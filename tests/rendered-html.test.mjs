@@ -32,24 +32,27 @@ test("server-renders the complete paper lab", async () => {
 });
 
 test("removes all starter-preview artifacts", async () => {
-  const [page, layout, packageJson] = await Promise.all([
+  const [page, paperLab, lesson, layout, packageJson] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/PaperLab.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/lessons/neural-text-degeneration.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
   ]);
 
-  assert.match(page, /@huggingface\/transformers/);
-  assert.match(page, /openrouter\/auto/);
-  assert.match(page, /function nucleus/);
-  assert.match(page, /TextStreamer/);
+  assert.match(page, /<PaperLab lesson=\{neuralTextDegenerationLesson\}/);
+  assert.match(paperLab, /@huggingface\/transformers/);
+  assert.match(paperLab, /openrouter\/auto/);
+  assert.match(paperLab, /TextStreamer/);
+  assert.match(lesson, /function nucleus/);
   assert.match(layout, /og\.png/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   await assert.rejects(access(new URL("../app/_sites-preview", templateRoot)));
 });
 
 test("the visible reference solution passes its behavioral contract", async () => {
-  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-  const blocks = [...page.matchAll(/code: `([\s\S]*?)`,\n\s*}/g)]
+  const lesson = await readFile(new URL("../app/lessons/neural-text-degeneration.ts", import.meta.url), "utf8");
+  const blocks = [...lesson.matchAll(/code: `([\s\S]*?)`,\n\s*}/g)]
     .slice(0, 4)
     .map((match) => new Function(`return \`${match[1]}\`;`)());
 

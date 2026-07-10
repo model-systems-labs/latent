@@ -22,10 +22,10 @@ test("server-renders the finished first lesson", async () => {
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /Character-Level Recurrent Neural Networks/);
-  assert.match(html, /Select the empirical training distribution/);
-  assert.match(html, /Run my forward pass/);
-  assert.match(html, /Start training/);
+  assert.match(html, /In-Browser LLM Inference and Constrained Decoding/);
+  assert.match(html, /Load local LLM/);
+  assert.match(html, /Validate policy/);
+  assert.match(html, /Generate baseline and constrained outputs/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/i);
 });
 
@@ -36,9 +36,10 @@ test("removes all starter-preview artifacts", async () => {
     readFile(new URL("../package.json", import.meta.url), "utf8"),
   ]);
 
-  assert.match(page, /TinyCharacterRNN/);
-  assert.match(page, /backpropagation through time/i);
-  assert.match(layout, /og-technical\.png/);
+  assert.match(page, /@huggingface\/transformers/);
+  assert.match(page, /bad_words_ids/);
+  assert.match(page, /TextStreamer/);
+  assert.match(layout, /og-browser-llm\.png/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   await assert.rejects(access(new URL("../app/_sites-preview", templateRoot)));
 });

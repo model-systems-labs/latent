@@ -22,9 +22,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "localhost:3001";
   const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   const metadataBase = new URL(`${protocol}://${host}`);
-  const title = "Character-Level Recurrent Neural Networks · Latent";
+  const title = "In-Browser LLM Inference and Constrained Decoding · Latent";
   const description =
-    "Implement a tanh RNN with cross-entropy loss, truncated backpropagation through time, AdaGrad, and autoregressive sampling in JavaScript.";
+    "Run a quantized transformer locally with WebGPU and compare baseline sampling with top-k, top-p, repetition penalties, token suppression, and output filters.";
 
   return {
     metadataBase,
@@ -34,13 +34,13 @@ export async function generateMetadata(): Promise<Metadata> {
       title,
       description,
       type: "website",
-      images: [{ url: new URL("/og-technical.png", metadataBase).toString(), width: 1200, height: 630 }],
+      images: [{ url: new URL("/og-browser-llm.png", metadataBase).toString(), width: 1200, height: 630 }],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [new URL("/og-technical.png", metadataBase).toString()],
+      images: [new URL("/og-browser-llm.png", metadataBase).toString()],
     },
   };
 }

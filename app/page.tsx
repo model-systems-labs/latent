@@ -1,122 +1,59 @@
 "use client";
 
-import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
-import { Prediction, TinyCharacterRNN } from "./rnn";
+import type { ReactNode } from "react";
+import { useRef, useState } from "react";
 
-const INITIAL_OUTPUT =
-  "Autoregressive output will appear after dataset selection, forward-pass validation, optimization, and sampling-prefix entry.";
+const MODEL_ID = "onnx-community/SmolLM2-135M-Instruct-ONNX";
 
-const CODE_SCAFFOLD = `function forward(x, hPrev, target) {
-  // 1. Compute the new hidden state.
+const POLICY_SCAFFOLD = `const decodingPolicy = {
+  // temperature: controls distribution sharpness
 
-  // 2. Convert the hidden state into logits.
+  // top_k: keeps only the k highest-scoring tokens
 
-  // 3. Convert logits into probabilities.
+  // top_p: keeps the smallest set whose probability mass reaches p
 
-  // 4. Compute target negative log-likelihood.
+  // repetition_penalty: downweights tokens already generated
 
-  return { hidden, probabilities, loss };
-}`;
+  // no_repeat_ngram_size: blocks repeated n-grams
 
-const DATASETS = [
-  {
-    id: "fable",
-    title: "The Lantern Wood",
-    category: "Narrative prose",
-    description: "Repeated names, places, and sentence rhythms make emerging structure easy to hear.",
-    seed: "Mara carried",
-    text: `Mara carried the lantern into the wood. The lantern made a small circle of gold on the path. Sol followed Mara and counted every owl they heard.
+  // max_new_tokens: caps generation length
+};`;
 
-At the river, Mara raised the lantern. The water carried the circle of gold toward the old bridge. Sol said the bridge remembered every traveler.
+type Message = { role: "system" | "user" | "assistant"; content: string };
 
-Mara crossed first. Sol crossed second. Behind them, the wood grew quiet. Ahead of them, one window shone in the empty house.
+type TensorLike = { tolist: () => number[][] };
 
-The house had a blue door and a brass bell. Mara rang the bell once. Sol rang the bell twice. From inside came the soft sound of a chair moving.
+type TokenizerOutput = {
+  input_ids: TensorLike;
+  attention_mask?: TensorLike;
+};
 
-An old fox opened the blue door. The fox wore a red scarf and held a silver cup. Welcome, said the fox. I have been waiting for the lantern.
+type Tokenizer = {
+  (input: string | string[], options?: Record<string, unknown>): TokenizerOutput;
+};
 
-Mara placed the lantern on the table. The circle of gold filled the silver cup. Sol stopped counting owls. Outside, the bridge remembered the light.`
+type TextGenerator = {
+  tokenizer: Tokenizer;
+  (input: Message[], options?: Record<string, unknown>): Promise<unknown>;
+};
+
+type TextStreamerConstructor = new (
+  tokenizer: Tokenizer,
+  options: {
+    skip_prompt: boolean;
+    skip_special_tokens: boolean;
+    callback_function: (text: string) => void;
   },
-  {
-    id: "dialogue",
-    title: "Weather Station",
-    category: "Dialogue",
-    description: "Speaker labels and repeated questions give the model a strong, visible format to imitate.",
-    seed: "NOA:",
-    text: `NOA: Read the western gauge.
-ELI: The western gauge says rain.
-NOA: Read the northern gauge.
-ELI: The northern gauge says wind.
+) => unknown;
 
-NOA: What does the glass show?
-ELI: A silver line at twenty-three.
-NOA: What does the roof show?
-ELI: Three crows facing east.
-
-NOA: Record the hour.
-ELI: The hour is six and the sky is violet.
-NOA: Record the pressure.
-ELI: The pressure is falling slowly.
-
-NOA: Will the storm reach the harbor?
-ELI: The western gauge says yes.
-NOA: Will the boats return before dark?
-ELI: The northern gauge says no.
-
-NOA: Read the final gauge.
-ELI: The final gauge has no numbers.
-NOA: Then what does it measure?
-ELI: It measures how long we are willing to wait.`
-  },
-  {
-    id: "javascript",
-    title: "Tiny JavaScript",
-    category: "Source code",
-    description: "Braces, indentation, keywords, and repeated function shapes create crisp local patterns.",
-    seed: "function ",
-    text: `function add(a, b) {
-  return a + b;
-}
-
-function subtract(a, b) {
-  return a - b;
-}
-
-function multiply(a, b) {
-  return a * b;
-}
-
-function square(value) {
-  return multiply(value, value);
-}
-
-function average(values) {
-  let total = 0;
-  for (const value of values) {
-    total = add(total, value);
-  }
-  return total / values.length;
-}
-
-function clamp(value, minimum, maximum) {
-  if (value < minimum) {
-    return minimum;
-  }
-  if (value > maximum) {
-    return maximum;
-  }
-  return value;
-}
-
-function normalize(value, minimum, maximum) {
-  const range = subtract(maximum, minimum);
-  const offset = subtract(value, minimum);
-  return clamp(offset / range, 0, 1);
-}`
-  },
-] as const;
-
-type DatasetId = (typeof DATASETS)[number]["id"];
+type GenerationPolicy = {
+  temperature: number;
+  topK: number;
+  topP: number;
+  repetitionPenalty: number;
+  noRepeatNgramSize: number;
+  maxNewTokens: number;
+};
 
 type SectionProps = {
   id?: string;
@@ -196,151 +133,287 @@ function TextBoxSection({ id, label, title, description, children }: SectionProp
   );
 }
 
-function displayCharacter(character: string) {
-  if (character === " ") return "space";
-  if (character === "\n") return "return";
-  if (character === "\t") return "tab";
-  return character;
+function extractGeneratedText(result: unknown) {
+  if (!Array.isArray(result) || result.length === 0) return "";
+  const generated = (result[0] as { generated_text?: unknown }).generated_text;
+  if (typeof generated === "string") return generated;
+  if (Array.isArray(generated)) {
+    const finalMessage = generated[generated.length - 1] as { content?: unknown } | undefined;
+    return typeof finalMessage?.content === "string" ? finalMessage.content : "";
+  }
+  return "";
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function applyOutputFilter(
+  text: string,
+  options: { maxWords: number; maxSentences: number; stripMarkdown: boolean; bannedPhrases: string[] },
+) {
+  let filtered = text;
+  if (options.stripMarkdown) {
+    filtered = filtered
+      .replace(/```[\s\S]*?```/g, " ")
+      .replace(/^\s{0,3}#{1,6}\s+/gm, "")
+      .replace(/^\s*[-*+]\s+/gm, "")
+      .replace(/[*_`>]/g, "");
+  }
+
+  for (const phrase of options.bannedPhrases) {
+    filtered = filtered.replace(new RegExp(escapeRegExp(phrase), "gi"), "");
+  }
+
+  filtered = filtered.replace(/\s+/g, " ").trim();
+  const sentences = filtered.match(/[^.!?]+[.!?]?/g) ?? [filtered];
+  filtered = sentences.slice(0, options.maxSentences).join(" ").trim();
+  const words = filtered.split(/\s+/).filter(Boolean);
+  if (words.length > options.maxWords) {
+    filtered = `${words.slice(0, options.maxWords).join(" ")}…`;
+  }
+  return filtered;
+}
+
+function parsePolicy(source: string): { policy?: GenerationPolicy; error?: string } {
+  const read = (key: string) => {
+    const match = source.match(new RegExp(`${key}\\s*:\\s*([0-9]+(?:\\.[0-9]+)?)`));
+    return match ? Number(match[1]) : null;
+  };
+
+  const temperature = read("temperature");
+  const topK = read("top_k");
+  const topP = read("top_p");
+  const repetitionPenalty = read("repetition_penalty");
+  const noRepeatNgramSize = read("no_repeat_ngram_size");
+  const maxNewTokens = read("max_new_tokens");
+  const missing = [
+    ["temperature", temperature],
+    ["top_k", topK],
+    ["top_p", topP],
+    ["repetition_penalty", repetitionPenalty],
+    ["no_repeat_ngram_size", noRepeatNgramSize],
+    ["max_new_tokens", maxNewTokens],
+  ].filter(([, value]) => value === null);
+
+  if (missing.length) return { error: `Missing: ${missing.map(([name]) => name).join(", ")}.` };
+  if (temperature! <= 0 || temperature! > 2) return { error: "temperature must be > 0 and ≤ 2." };
+  if (topK! < 1 || topK! > 200) return { error: "top_k must be between 1 and 200." };
+  if (topP! <= 0 || topP! > 1) return { error: "top_p must be > 0 and ≤ 1." };
+  if (repetitionPenalty! < 1 || repetitionPenalty! > 2) return { error: "repetition_penalty must be between 1 and 2." };
+  if (noRepeatNgramSize! < 0 || noRepeatNgramSize! > 8) return { error: "no_repeat_ngram_size must be between 0 and 8." };
+  if (maxNewTokens! < 8 || maxNewTokens! > 128) return { error: "max_new_tokens must be between 8 and 128." };
+
+  return {
+    policy: {
+      temperature: temperature!,
+      topK: Math.round(topK!),
+      topP: topP!,
+      repetitionPenalty: repetitionPenalty!,
+      noRepeatNgramSize: Math.round(noRepeatNgramSize!),
+      maxNewTokens: Math.round(maxNewTokens!),
+    },
+  };
 }
 
 export default function Home() {
-  const modelRef = useRef<TinyCharacterRNN | null>(null);
-  const [selectedDatasetId, setSelectedDatasetId] = useState<DatasetId>("fable");
-  const [modelDatasetId, setModelDatasetId] = useState<DatasetId | null>(null);
-  const [codeInput, setCodeInput] = useState(CODE_SCAFFOLD);
-  const [codeComplete, setCodeComplete] = useState(false);
-  const [codeMessage, setCodeMessage] = useState(
-    "Complete all four operations, then run your forward pass.",
+  const generatorRef = useRef<TextGenerator | null>(null);
+  const streamerRef = useRef<TextStreamerConstructor | null>(null);
+  const [modelStatus, setModelStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [modelProgress, setModelProgress] = useState(0);
+  const [modelFile, setModelFile] = useState("Not downloaded");
+  const [backend, setBackend] = useState("Not initialized");
+  const [modelError, setModelError] = useState("");
+  const [policyCode, setPolicyCode] = useState(POLICY_SCAFFOLD);
+  const [policy, setPolicy] = useState<GenerationPolicy | null>(null);
+  const [policyMessage, setPolicyMessage] = useState("Add all six generation parameters, then validate the object.");
+  const [prompt, setPrompt] = useState("I'm nervous about starting a new job on Monday. What would you say to a friend?");
+  const [styleInstruction, setStyleInstruction] = useState(
+    "Reply in natural spoken English. Use one or two short sentences. Avoid headings, lists, markdown, disclaimers, and formal filler.",
   );
-  const [primer, setPrimer] = useState("");
-  const [isRunning, setIsRunning] = useState(false);
-  const [loss, setLoss] = useState(0);
-  const [step, setStep] = useState(0);
-  const [output, setOutput] = useState(INITIAL_OUTPUT);
-  const [temperature, setTemperature] = useState(0.72);
-  const [predictions, setPredictions] = useState<Prediction[]>([]);
-  const [lossHistory, setLossHistory] = useState<number[]>([]);
-  const [modelDetails, setModelDetails] = useState({ vocabulary: 0, parameters: 0 });
-  const selectedDataset = DATASETS.find((dataset) => dataset.id === selectedDatasetId) ?? DATASETS[0];
-  const isModelCurrent = codeComplete && modelDatasetId === selectedDatasetId;
+  const [bannedPhrases, setBannedPhrases] = useState("however, furthermore, delve, certainly, as an AI");
+  const [maxWords, setMaxWords] = useState(36);
+  const [maxSentences, setMaxSentences] = useState(2);
+  const [stripMarkdown, setStripMarkdown] = useState(true);
+  const [rawOutput, setRawOutput] = useState("");
+  const [constrainedOutput, setConstrainedOutput] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationStage, setGenerationStage] = useState("Waiting for model and policy");
 
-  const updatePrediction = useCallback(
-    (model: TinyCharacterRNN, currentPrimer: string, currentTemperature: number) => {
-      const context = currentPrimer || model.text.slice(0, 32);
-      setPredictions(model.topPredictions(context, currentTemperature));
-      if (currentPrimer.trim()) {
-        setOutput(model.sample(420, currentTemperature, currentPrimer));
-      }
-    },
-    [],
-  );
-
-  const buildModel = () => {
-    const model = new TinyCharacterRNN(selectedDataset.text, 36, 32);
-    modelRef.current = model;
-    setModelDatasetId(selectedDataset.id);
-    setCodeComplete(true);
-    setIsRunning(false);
-    setLoss(model.loss);
-    setStep(0);
-    setLossHistory([model.loss]);
-    setOutput("Parameters initialized. Run optimization, then enter a sampling prefix below.");
-    setPrimer("");
-    setModelDetails({
-      vocabulary: model.vocabulary.length,
-      parameters: model.parameterCount,
-    });
-    updatePrediction(model, "", temperature);
-  };
-
-  const selectDataset = (datasetId: DatasetId) => {
-    setSelectedDatasetId(datasetId);
-    setModelDatasetId(null);
-    setCodeComplete(false);
-    setIsRunning(false);
-    setLoss(0);
-    setStep(0);
-    setLossHistory([]);
-    setPredictions([]);
-    setPrimer("");
-    setOutput(INITIAL_OUTPUT);
-    setModelDetails({ vocabulary: 0, parameters: 0 });
-    setCodeMessage("Dataset selected. Validate the forward pass to initialize model parameters.");
-    modelRef.current = null;
-  };
-
-  const validateCode = () => {
-    const checks = [
-      { label: "a recurrent tanh hidden state", matches: /const\s+hidden\s*=\s*tanh\s*\(\s*add\s*\(\s*matmul\s*\(\s*Wxh\s*,\s*x\s*\)\s*,\s*matmul\s*\(\s*Whh\s*,\s*hPrev\s*\)\s*,\s*bh\s*\)\s*\)/ },
-      { label: "a logits calculation", matches: /const\s+logits\s*=\s*add\s*\(\s*matmul\s*\(\s*Why\s*,\s*hidden\s*\)\s*,\s*by\s*\)/ },
-      { label: "softmax probabilities", matches: /const\s+probabilities\s*=\s*softmax\s*\(\s*logits\s*\)/ },
-      { label: "negative log loss", matches: /const\s+loss\s*=\s*-\s*Math\.log\s*\(\s*probabilities\s*\[\s*target\s*\]\s*\)/ },
-    ];
-    const missing = checks.filter((check) => !check.matches.test(codeInput));
-    if (missing.length > 0) {
-      setCodeComplete(false);
-      setModelDatasetId(null);
-      setIsRunning(false);
-      setCodeMessage(`Still missing: ${missing.map((check) => check.label).join(", ")}.`);
+  const validatePolicy = () => {
+    const parsed = parsePolicy(policyCode);
+    if (!parsed.policy) {
+      setPolicy(null);
+      setPolicyMessage(parsed.error ?? "Policy is invalid.");
       return;
     }
-
-    buildModel();
-    setCodeMessage(`Forward pass validated. Parameters initialized for “${selectedDataset.title}.”`);
+    setPolicy(parsed.policy);
+    setPolicyMessage("Policy validated. These values will control constrained generation.");
   };
 
-  const handleCodeChange = (value: string) => {
-    setCodeInput(value);
-    if (codeComplete) {
-      setCodeComplete(false);
-      setModelDatasetId(null);
-      setIsRunning(false);
-      setLoss(0);
-      setStep(0);
-      setLossHistory([]);
-      setPredictions([]);
-      setOutput(INITIAL_OUTPUT);
-      modelRef.current = null;
-    }
-    setCodeMessage("Code changed. Run the forward pass again when all four operations are present.");
-  };
+  const loadModel = async () => {
+    if (modelStatus === "loading" || modelStatus === "ready") return;
+    setModelStatus("loading");
+    setModelError("");
+    setModelProgress(0);
+    setModelFile("Resolving model files");
 
-  useEffect(() => {
-    if (!isRunning || !isModelCurrent) return;
-    let animationFrame = 0;
-    let active = true;
+    try {
+      const transformers = await import("@huggingface/transformers");
+      streamerRef.current = transformers.TextStreamer as unknown as TextStreamerConstructor;
+      const progressCallback = (info: unknown) => {
+        const progress = info as { progress?: number; file?: string; status?: string };
+        if (typeof progress.progress === "number") setModelProgress(Math.round(progress.progress));
+        if (progress.file) setModelFile(progress.file.split("/").pop() ?? progress.file);
+        if (progress.status === "ready") setModelProgress(100);
+      };
 
-    const train = () => {
-      const model = modelRef.current;
-      if (!active || !model) return;
-      let snapshot = model.trainStep();
-      snapshot = model.trainStep();
-
-      if (snapshot.step % 6 === 0) {
-        setLoss(snapshot.loss);
-        setStep(snapshot.step);
-        setLossHistory((history) => [...history.slice(-43), snapshot.loss]);
-        updatePrediction(model, primer, temperature);
+      const hasWebGPU = "gpu" in navigator;
+      let generator: TextGenerator;
+      if (hasWebGPU) {
+        try {
+          setBackend("WebGPU · q4");
+          generator = (await transformers.pipeline("text-generation", MODEL_ID, {
+            device: "webgpu",
+            dtype: "q4",
+            progress_callback: progressCallback,
+          })) as unknown as TextGenerator;
+        } catch {
+          setBackend("WASM CPU fallback · q4");
+          generator = (await transformers.pipeline("text-generation", MODEL_ID, {
+            device: "wasm",
+            dtype: "q4",
+            progress_callback: progressCallback,
+          })) as unknown as TextGenerator;
+        }
+      } else {
+        setBackend("WASM CPU · q4");
+        generator = (await transformers.pipeline("text-generation", MODEL_ID, {
+          device: "wasm",
+          dtype: "q4",
+          progress_callback: progressCallback,
+        })) as unknown as TextGenerator;
       }
-      animationFrame = window.requestAnimationFrame(train);
-    };
 
-    animationFrame = window.requestAnimationFrame(train);
-    return () => {
-      active = false;
-      window.cancelAnimationFrame(animationFrame);
-    };
-  }, [isModelCurrent, isRunning, primer, temperature, updatePrediction]);
-
-  const generate = () => {
-    const model = modelRef.current;
-    if (!model || !isModelCurrent || step === 0 || !primer.trim()) return;
-    updatePrediction(model, primer, temperature);
+      generatorRef.current = generator;
+      setModelProgress(100);
+      setModelFile("Model initialized and cached");
+      setModelStatus("ready");
+      setGenerationStage("Ready to generate");
+    } catch (error) {
+      setModelStatus("error");
+      setModelError(error instanceof Error ? error.message : "The model could not be initialized.");
+      setGenerationStage("Model initialization failed");
+    }
   };
 
-  const maximumLoss = Math.max(...lossHistory, 0.01);
-  const minimumLoss = Math.min(...lossHistory, maximumLoss);
-  const lossRange = Math.max(0.05, maximumLoss - minimumLoss);
+  const tokenizeBannedPhrases = async (generator: TextGenerator, phrases: string[]) => {
+    if (!phrases.length) return undefined;
+    const tokenized = generator.tokenizer(
+      phrases.map((phrase) => ` ${phrase}`),
+      { add_special_tokens: false, padding: true },
+    );
+    const rows = tokenized.input_ids.tolist();
+    const masks = tokenized.attention_mask?.tolist();
+    return rows.map((row, rowIndex) =>
+      row.filter((_, tokenIndex) => !masks || masks[rowIndex]?.[tokenIndex] === 1),
+    );
+  };
+
+  const generateWithStream = async (
+    generator: TextGenerator,
+    messages: Message[],
+    options: Record<string, unknown>,
+    onUpdate: (text: string) => void,
+  ) => {
+    let streamed = "";
+    const Streamer = streamerRef.current;
+    const streamer = Streamer
+      ? new Streamer(generator.tokenizer, {
+          skip_prompt: true,
+          skip_special_tokens: true,
+          callback_function: (text) => {
+            streamed += text;
+            onUpdate(streamed);
+          },
+        })
+      : undefined;
+    const result = await generator(messages, { ...options, streamer });
+    return streamed.trim() || extractGeneratedText(result).trim();
+  };
+
+  const runComparison = async () => {
+    const generator = generatorRef.current;
+    if (!generator || !policy || !prompt.trim() || isGenerating) return;
+    setIsGenerating(true);
+    setRawOutput("");
+    setConstrainedOutput("");
+    setModelError("");
+
+    try {
+      setGenerationStage("Generating unprocessed baseline");
+      const rawMessages: Message[] = [
+        { role: "system", content: "Answer the user's request directly." },
+        { role: "user", content: prompt.trim() },
+      ];
+      const raw = await generateWithStream(
+        generator,
+        rawMessages,
+        {
+          max_new_tokens: policy.maxNewTokens,
+          do_sample: true,
+          temperature: 1,
+          top_k: 0,
+          top_p: 1,
+          repetition_penalty: 1,
+          no_repeat_ngram_size: 0,
+        },
+        setRawOutput,
+      );
+      setRawOutput(raw);
+
+      setGenerationStage("Applying prompt, logit, and output constraints");
+      const phrases = bannedPhrases.split(",").map((phrase) => phrase.trim()).filter(Boolean);
+      const badWordsIds = await tokenizeBannedPhrases(generator, phrases);
+      let shapedStream = "";
+      const constrainedMessages: Message[] = [
+        { role: "system", content: styleInstruction.trim() },
+        { role: "user", content: prompt.trim() },
+      ];
+      const shaped = await generateWithStream(
+        generator,
+        constrainedMessages,
+        {
+          max_new_tokens: policy.maxNewTokens,
+          do_sample: true,
+          temperature: policy.temperature,
+          top_k: policy.topK,
+          top_p: policy.topP,
+          repetition_penalty: policy.repetitionPenalty,
+          no_repeat_ngram_size: policy.noRepeatNgramSize,
+          bad_words_ids: badWordsIds,
+          renormalize_logits: true,
+        },
+        (text) => {
+          shapedStream = text;
+          setConstrainedOutput(text);
+        },
+      );
+      const filtered = applyOutputFilter(shaped || shapedStream, {
+        maxWords,
+        maxSentences,
+        stripMarkdown,
+        bannedPhrases: phrases,
+      });
+      setConstrainedOutput(filtered);
+      setGenerationStage("Comparison complete");
+    } catch (error) {
+      setModelError(error instanceof Error ? error.message : "Generation failed.");
+      setGenerationStage("Generation failed");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   return (
     <main>
@@ -354,420 +427,271 @@ export default function Home() {
       </div>
 
       <header className="site-header">
-        <a className="wordmark" href="#top" aria-label="Latent home">
-          <span className="wordmark-dot" />
-          latent
-        </a>
+        <a className="wordmark" href="#top" aria-label="Latent home"><span className="wordmark-dot" />latent</a>
         <nav aria-label="Lesson navigation">
-          <a href="#idea">Read</a>
-          <a href="#mechanism">See</a>
-          <a href="#dataset">Data</a>
-          <a href="#code">Code</a>
-          <a href="#train">Train</a>
+          <a href="#runtime">Runtime</a>
+          <a href="#pipeline">Pipeline</a>
+          <a href="#policy">Policy</a>
+          <a href="#lab">Generate</a>
         </nav>
-        <span className="lesson-index">Lesson 01 / 30</span>
+        <span className="lesson-index">Interactive lab</span>
       </header>
 
       <div className="lesson-page" id="top">
         <HeaderSection
-          label="Lesson 01 · Sequence modeling"
-          title="Character-Level Recurrent Neural Networks"
+          label="Browser-native transformer inference"
+          title="In-Browser LLM Inference and Constrained Decoding"
           description={
             <p>
-              Derive and implement a tanh RNN language model with one-hot character inputs, a shared
-              recurrent hidden state, softmax next-character probabilities, cross-entropy loss,
-              truncated backpropagation through time, AdaGrad updates, and temperature-scaled
-              autoregressive sampling.
+              Run a 135M-parameter instruction-tuned causal transformer locally with WebGPU or
+              WASM, then compare unconstrained sampling with a production-style decoding stack:
+              system conditioning, top-k, nucleus sampling, repetition control, token suppression,
+              and deterministic output filtering.
             </p>
           }
           size="large"
         >
           <div className="lesson-meta">
-            <span>Architecture · tanh RNN</span>
-            <span>Hidden width · H = 36</span>
-            <span>BPTT window · T = 32</span>
+            <span>Model · SmolLM2-135M-Instruct</span>
+            <span>Runtime · Transformers.js + ONNX</span>
+            <span>Weights · q4, downloaded on demand</span>
           </div>
         </HeaderSection>
 
         <ParagraphSection
-          id="idea"
-          label="1 · Autoregressive objective"
-          title="Next-character maximum-likelihood estimation"
-          description="Given a character sequence c₀…cₙ, optimize θ to maximize the conditional likelihood of each next character given the preceding context."
+          id="runtime"
+          label="1 · Model and execution environment"
+          title="A quantized causal transformer running entirely on-device"
+          description="The model weights, tokenizer, KV cache, sampling loop, and generated text remain in the browser after the initial model download."
         >
-          <div className="reading-copy">
+          <div className="reading-copy two-up-reading">
             <p>
-              Let the vocabulary contain <code>V</code> unique characters. At time <code>t</code>, the
-              observed character is encoded as a one-hot vector <code>xₜ ∈ Rⱽ</code>. The network
-              produces logits <code>zₜ ∈ Rⱽ</code>, then applies softmax to obtain a categorical
-              distribution <code>pₜ = Pθ(cₜ₊₁ | c₀…cₜ)</code> over the next character.
+              SmolLM2-135M-Instruct uses a decoder-only transformer with 30 layers, hidden width
+              576, 9 attention heads, 3 key-value heads, a 49,152-token vocabulary, and an 8,192-token
+              maximum context. The ONNX graph is loaded through Transformers.js and executed with
+              ONNX Runtime Web.
             </p>
             <p>
-              For target index <code>yₜ</code>, the per-step negative log-likelihood is
-              <code> Lₜ = −log pₜ[yₜ]</code>. The sequence loss sums or averages this quantity over
-              the unrolled window. Minimizing cross-entropy is equivalent to maximizing the
-              likelihood assigned to observed next characters under the model.
-            </p>
-            <p>
-              The objective contains no explicit word, syntax, or formatting labels. Those
-              regularities are learned only when they reduce conditional entropy. Recognizing a
-              quote boundary, indentation level, identifier prefix, or recurring phrase improves
-              the next-character distribution and therefore lowers the same scalar loss.
+              Four-bit quantization reduces model transfer and memory pressure at the cost of some
+              numerical precision. WebGPU is attempted first; browsers without a compatible GPU
+              fall back to WASM on the CPU. The browser cache prevents the full model from being
+              downloaded again on every visit.
             </p>
           </div>
           <div className="technical-spec-grid">
-            <div><code>xₜ ∈ Rⱽ</code><span>one-hot input</span></div>
-            <div><code>hₜ ∈ Rᴴ</code><span>recurrent state</span></div>
-            <div><code>Wₓₕ ∈ Rᴴˣⱽ</code><span>input projection</span></div>
-            <div><code>Wₕₕ ∈ Rᴴˣᴴ</code><span>recurrent projection</span></div>
-            <div><code>Wₕᵧ ∈ Rⱽˣᴴ</code><span>output projection</span></div>
-            <div><code>pₜ ∈ Δⱽ⁻¹</code><span>categorical distribution</span></div>
+            <div><code>135M</code><span>parameters</span></div>
+            <div><code>30</code><span>decoder layers</span></div>
+            <div><code>576</code><span>hidden width</span></div>
+            <div><code>9 / 3</code><span>attention / KV heads</span></div>
+            <div><code>49,152</code><span>token vocabulary</span></div>
+            <div><code>8,192</code><span>maximum positions</span></div>
           </div>
-          <aside className="information-note">
-            <b>Architecture scope</b>
-            <p>
-              This lesson implements the recurrent architecture analyzed in Karpathy’s essay. A
-              transformer replaces the single recurrent state with attention over token
-              representations, but it can use the same autoregressive likelihood objective,
-              cross-entropy loss, and sampling procedure.
-            </p>
-          </aside>
         </ParagraphSection>
 
         <DiagramSection
-          label="2 · Supervised sequence construction"
-          title="One-step temporal shift defines the labels"
-          description="For a sequence of length T + 1, positions 0…T−1 form the inputs and positions 1…T form the targets. The model receives T supervised next-character predictions per window."
+          id="pipeline"
+          label="2 · Autoregressive generation pipeline"
+          title="Prompt tokens → transformer logits → decoding policy → visible text"
+          description="The neural network only produces logits. Product behavior emerges from the processors, sampling strategy, and output contract applied after each forward pass."
         >
-          <div className="shift-diagram">
-            <div className="diagram-row">
-              <span className="diagram-row-label">input</span>
-              {Array.from("the model").map((character, index) => (
-                <span className="character-cell" key={`input-${index}`}>{character === " " ? "·" : character}</span>
-              ))}
-              <span className="character-cell faded">…</span>
-            </div>
-            <div className="shift-arrows" aria-hidden="true">
-              {Array.from({ length: 9 }, (_, index) => <span key={index}>↘</span>)}
-            </div>
-            <div className="diagram-row">
-              <span className="diagram-row-label">target</span>
-              {Array.from("he model ").map((character, index) => (
-                <span className="character-cell target-cell" key={`target-${index}`}>{character === " " ? "·" : character}</span>
-              ))}
-              <span className="character-cell faded">…</span>
-            </div>
+          <div className="decode-pipeline">
+            {[
+              ["01", "Tokenizer", "Text → token IDs"],
+              ["02", "Transformer", "Next-token logits"],
+              ["03", "Logit processors", "Penalties and masks"],
+              ["04", "Sampler", "top-k + top-p + τ"],
+              ["05", "Post-filter", "Length and format"],
+            ].map(([index, name, detail]) => (
+              <article className="pipeline-node" key={index}>
+                <span>{index}</span><h3>{name}</h3><p>{detail}</p>
+              </article>
+            ))}
           </div>
-          <div className="diagram-caption-grid">
-            <p><b>Input tensor</b> has shape T × V after one-hot encoding.</p>
-            <p><b>Target tensor</b> stores T integer class indices in [0, V).</p>
-            <p><b>Loss reduction</b> averages −log pₜ[yₜ] across the T positions.</p>
+          <div className="equation-strip">
+            <code>p(xₜ | x&lt;ₜ) = softmax(process(logitsₜ) / τ)</code>
+            <span>sample one token, append it, update the KV cache, repeat</span>
           </div>
         </DiagramSection>
 
         <ParagraphSection
-          label="3 · Hidden-state recurrence"
-          title="Context compression into a fixed-width state"
-          description="The hidden vector hₜ is the only path by which information from earlier positions can affect the prediction at time t."
+          label="3 · Why a decoding layer is required"
+          title="Model likelihood is not the same as acceptable product output"
+          description="A pretrained language model estimates token probabilities; an application still needs an explicit policy for diversity, repetition, prohibited content, length, and presentation."
         >
-          <div className="reading-copy two-up-reading">
+          <div className="reading-copy">
             <p>
-              The recurrence computes <code>hₜ = tanh(Wₓₕxₜ + Wₕₕhₜ₋₁ + bₕ)</code>. The input
-              projection maps the V-dimensional one-hot character into H hidden features. The
-              recurrent projection transforms the previous H-dimensional state. Their sum passes
-              through tanh, bounding each hidden activation to (−1, 1).
+              Sampling directly from the full softmax preserves the entire low-probability tail.
+              This increases diversity but also admits incoherent transitions. Greedy decoding does
+              the opposite: it selects the local maximum at every step and often collapses into
+              generic or repetitive continuations.
             </p>
             <p>
-              Because the same matrices are reused at every position, parameter count is independent
-              of sequence length. The tradeoff is a fixed-width information bottleneck: any feature
-              needed later must survive repeated multiplication by <code>Wₕₕ</code> and repeated
-              tanh derivatives. This produces vanishing or exploding gradients over long temporal
-              distances.
+              Production systems therefore transform logits before sampling. Top-k removes every
+              token outside the k highest scores. Top-p retains the smallest sorted token set whose
+              cumulative probability exceeds p. Repetition penalties modify scores for tokens
+              already observed, while n-gram constraints prevent exact phrase loops.
+            </p>
+            <p>
+              Token masks can set prohibited token sequences to negative infinity before softmax.
+              A final deterministic pass can enforce requirements that are easier to express over
+              text than tokens: maximum words, maximum sentences, plain text only, or removal of
+              headings and list markers.
             </p>
           </div>
         </ParagraphSection>
 
-        <DiagramSection
-          id="mechanism"
-          label="4 · Unrolled computation graph"
-          title="Parameter sharing across time steps"
-          description="Unrolling makes the temporal dependencies explicit: each hₜ consumes hₜ₋₁, while the same Wₓₕ, Wₕₕ, Wₕᵧ, bₕ, and bᵧ parameters are reused at every position."
-        >
-          <div className="recurrent-diagram">
-            {[
-              ["t", "h₁", "h"],
-              ["h", "h₂", "e"],
-              ["e", "h₃", "·"],
-              ["·", "h₄", "m"],
-            ].map(([input, hidden, prediction], index) => (
-              <div className="recurrent-step" key={hidden}>
-                <span className="step-index">step {index + 1}</span>
-                <span className="input-token">{input}</span>
-                <span className="vertical-arrow">↓</span>
-                <span className="memory-token">{hidden}</span>
-                <span className="vertical-arrow">↓</span>
-                <span className="prediction-token">predict {prediction}</span>
-              </div>
-            ))}
-          </div>
-          <div className="equation-strip">
-            <code>hₜ = tanh(Wₓₕxₜ + Wₕₕhₜ₋₁ + bₕ)</code>
-            <span>H-dimensional state update with shared parameters and tanh activation</span>
-          </div>
-        </DiagramSection>
-
-        <TextBoxSection
-          id="dataset"
-          label="5 · Corpus and vocabulary"
-          title="Select the empirical training distribution"
-          description="Each fixed corpus induces a different character vocabulary, marginal frequency distribution, transition structure, and sequence-level dependency profile."
-        >
-          <div className="dataset-grid" role="group" aria-label="Training dataset">
-            {DATASETS.map((dataset) => (
-              <button
-                type="button"
-                className={dataset.id === selectedDatasetId ? "dataset-card selected" : "dataset-card"}
-                key={dataset.id}
-                onClick={() => selectDataset(dataset.id)}
-                aria-pressed={dataset.id === selectedDatasetId}
-              >
-                <span>{dataset.category}</span>
-                <h3>{dataset.title}</h3>
-                <p>{dataset.description}</p>
-                <code>{dataset.text.slice(0, 106).replace(/\s+/g, " ")}…</code>
-                <em>{dataset.text.length.toLocaleString()} characters</em>
-              </button>
-            ))}
-          </div>
-        </TextBoxSection>
-
         <CodingSection
-          id="code"
-          label="6 · Forward-pass implementation"
-          title="RNN forward pass: hₜ, zₜ, pₜ, and Lₜ"
-          description="Complete the JavaScript computation for hₜ, zₜ, pₜ, and Lₜ. The checker ignores formatting but validates the required operations and parameter dependencies."
+          id="policy"
+          label="4 · Generation policy implementation"
+          title="Define the logit warpers and stopping parameters"
+          description="Type a JavaScript configuration object. The parsed values are passed directly to the constrained Transformers.js generation call."
         >
-          <div className="typing-layout">
-            <div className="exercise-brief">
-              <p className="section-label">Required operations</p>
-              <ol>
-                <li><span>01</span><p>Create <code>hidden</code> with <code>tanh</code>, combining <code>Wxh × x</code>, <code>Whh × hPrev</code>, and <code>bh</code>.</p></li>
-                <li><span>02</span><p>Create <code>logits</code> with <code>add(matmul(Why, hidden), by)</code>.</p></li>
-                <li><span>03</span><p>Create <code>probabilities</code> by applying <code>softmax</code> to the logits.</p></li>
-                <li><span>04</span><p>Create <code>loss</code> as the negative log probability of <code>target</code>.</p></li>
-              </ol>
-              <details>
-                <summary>Show the available helpers</summary>
-                <p><code>matmul(A, b)</code>, <code>add(...vectors)</code>, <code>tanh(vector)</code>, and <code>softmax(vector)</code>.</p>
-              </details>
+          <div className="policy-layout">
+            <div className="policy-brief">
+              <p className="section-label">Required fields</p>
+              <ul>
+                <li><code>temperature</code><span>recommended 0.6–0.9</span></li>
+                <li><code>top_k</code><span>recommended 20–80</span></li>
+                <li><code>top_p</code><span>recommended 0.85–0.95</span></li>
+                <li><code>repetition_penalty</code><span>recommended 1.05–1.2</span></li>
+                <li><code>no_repeat_ngram_size</code><span>recommended 2–4</span></li>
+                <li><code>max_new_tokens</code><span>allowed 8–128</span></li>
+              </ul>
+              <p className="policy-example">A stable conversational starting point is 0.72, 40, 0.90, 1.12, 3, and 64 respectively.</p>
             </div>
-            <div className="code-editor-shell">
-              <div className="code-window-header">
-                <span>forward.js</span>
-                <span>{selectedDataset.title}</span>
-              </div>
+            <div className="policy-editor-shell">
+              <div className="code-window-header"><span>generation-policy.js</span><span>learner-authored</span></div>
               <textarea
-                className="code-editor"
-                aria-label="Type the recurrent neural network forward pass"
-                value={codeInput}
-                onChange={(event) => handleCodeChange(event.target.value)}
+                className="policy-editor"
+                aria-label="Type a Transformers.js generation policy"
+                value={policyCode}
+                onChange={(event) => { setPolicyCode(event.target.value); setPolicy(null); setPolicyMessage("Code changed. Validate the policy again."); }}
                 spellCheck="false"
               />
-              <div className="code-editor-footer">
-                <p className={codeComplete ? "code-status complete" : "code-status"} aria-live="polite">{codeMessage}</p>
-                <button type="button" className="action-button" onClick={validateCode}>Run my forward pass</button>
+              <div className="policy-editor-footer">
+                <p className={policy ? "policy-status valid" : "policy-status"} aria-live="polite">{policyMessage}</p>
+                <button className="action-button" type="button" onClick={validatePolicy}>Validate policy</button>
               </div>
             </div>
           </div>
         </CodingSection>
 
+        <TextBoxSection
+          id="lab"
+          label="5 · Live browser inference"
+          title="Compare baseline sampling with a constrained conversational policy"
+          description="The same user request is generated twice. The baseline uses the full distribution without repetition controls; the constrained path applies your code, token suppression, style conditioning, and a deterministic text contract."
+        >
+          <div className="model-loader">
+            <div>
+              <span className="section-label">On-demand model</span>
+              <h3>SmolLM2-135M-Instruct · q4 ONNX</h3>
+              <p>{modelFile} · {backend}</p>
+            </div>
+            <div className="load-actions">
+              <div className="load-progress"><i><b style={{ width: `${modelProgress}%` }} /></i><span>{modelProgress}%</span></div>
+              <button className="action-button" type="button" onClick={loadModel} disabled={modelStatus === "loading" || modelStatus === "ready"}>
+                {modelStatus === "ready" ? "Model ready" : modelStatus === "loading" ? "Downloading model" : "Load local LLM (~181 MB)"}
+              </button>
+            </div>
+          </div>
+
+          <div className="inference-controls">
+            <label className="control-block full-control">
+              <span>User prompt</span>
+              <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} />
+            </label>
+            <label className="control-block full-control">
+              <span>Conversational system instruction</span>
+              <textarea value={styleInstruction} onChange={(event) => setStyleInstruction(event.target.value)} />
+            </label>
+            <label className="control-block full-control">
+              <span>Suppress token sequences · comma separated</span>
+              <input value={bannedPhrases} onChange={(event) => setBannedPhrases(event.target.value)} />
+            </label>
+            <label className="control-block">
+              <span>Maximum words · {maxWords}</span>
+              <input type="range" min="12" max="80" value={maxWords} onChange={(event) => setMaxWords(Number(event.target.value))} />
+            </label>
+            <label className="control-block">
+              <span>Maximum sentences · {maxSentences}</span>
+              <input type="range" min="1" max="5" value={maxSentences} onChange={(event) => setMaxSentences(Number(event.target.value))} />
+            </label>
+            <label className="check-control">
+              <input type="checkbox" checked={stripMarkdown} onChange={(event) => setStripMarkdown(event.target.checked)} />
+              <span>Strip markdown, headings, lists, and code fences</span>
+            </label>
+          </div>
+
+          <button
+            className="action-button comparison-button"
+            type="button"
+            onClick={runComparison}
+            disabled={modelStatus !== "ready" || !policy || !prompt.trim() || isGenerating}
+          >
+            {isGenerating ? generationStage : "Generate baseline and constrained outputs"}
+          </button>
+          {modelError ? <p className="runtime-error">{modelError}</p> : null}
+
+          <div className="comparison-grid">
+            <article className="output-card">
+              <div className="output-card-header"><span>Baseline</span><b>τ 1.0 · full distribution · no penalties</b></div>
+              <div className="generated-output" aria-live="polite">{rawOutput || "Baseline output will stream here."}</div>
+            </article>
+            <article className="output-card constrained-card">
+              <div className="output-card-header"><span>Constrained</span><b>{policy ? `τ ${policy.temperature} · k ${policy.topK} · p ${policy.topP}` : "policy not validated"}</b></div>
+              <div className="generated-output" aria-live="polite">{constrainedOutput || "Constrained output will stream here."}</div>
+            </article>
+          </div>
+          <p className="generation-status">{generationStage}</p>
+        </TextBoxSection>
+
+        <DiagramSection
+          label="6 · Constraint order"
+          title="Prompt conditioning, logit processing, sampling, and output filtering"
+          description="The order matters because each stage operates on a different representation: messages, token logits, sampled token IDs, or decoded text."
+        >
+          <div className="constraint-stack">
+            <article><span>Prompt layer</span><h3>System instruction</h3><p>Conditions the model before decoding begins.</p></article>
+            <article><span>Logit layer</span><h3>Penalty + forbidden IDs</h3><p>Changes or removes scores before normalization.</p></article>
+            <article><span>Sampling layer</span><h3>top-k + top-p + temperature</h3><p>Defines the candidate set and its entropy.</p></article>
+            <article><span>Text layer</span><h3>Length + format contract</h3><p>Enforces deterministic product requirements.</p></article>
+          </div>
+        </DiagramSection>
+
         <ParagraphSection
-          label="7 · Optimization and decoding"
-          title="Truncated BPTT, AdaGrad, and temperature scaling"
-          description="Optimization differentiates the sequence loss through the unrolled recurrence; decoding repeatedly samples from the model’s temperature-adjusted output distribution."
+          label="7 · Interpretation"
+          title="Constrained decoding changes behavior without changing model weights"
+          description="The comparison isolates inference-time control: both outputs come from the same quantized transformer, but a different sequence of processors changes which continuations are reachable."
         >
           <div className="reading-copy two-up-reading">
             <p>
-              The implementation unrolls <code>T = 32</code> steps and differentiates the mean
-              cross-entropy backward through that finite graph. Truncation bounds computation and
-              memory, but prevents the gradient from directly assigning credit across more than 32
-              positions. Each scalar gradient is clipped to [−5, 5] before the optimizer update to
-              reduce instability from exploding recurrent products.
+              A decoding policy cannot add knowledge that the model did not learn. It can reduce
+              repetition, remove prohibited phrases, control entropy, and impose output shape. If
+              the constrained answer becomes bland or incomplete, the candidate set is probably too
+              narrow or the deterministic word limit is truncating useful content.
             </p>
             <p>
-              AdaGrad accumulates squared gradients per parameter:
-              <code> m ← m + g²</code>, then applies <code>θ ← θ − ηg / √(m + ε)</code>. During
-              decoding, logits are divided by temperature τ before softmax. Values τ &lt; 1 sharpen
-              the distribution; τ &gt; 1 increase entropy. The sampled index is fed back as the next
-              one-hot input, producing an autoregressive sequence.
-            </p>
-          </div>
-          <ol className="training-cycle">
-            <li><span>1</span><p><b>Forward</b> compute hₜ, zₜ, pₜ, and cross-entropy for T positions.</p></li>
-            <li><span>2</span><p><b>Backward</b> accumulate parameter gradients through the unrolled recurrence.</p></li>
-            <li><span>3</span><p><b>Clip</b> each gradient component to the interval [−5, 5].</p></li>
-            <li><span>4</span><p><b>Update</b> Wₓₕ, Wₕₕ, Wₕᵧ, bₕ, and bᵧ with AdaGrad.</p></li>
-          </ol>
-        </ParagraphSection>
-
-        <TextBoxSection
-          id="train"
-          label="8 · Browser-based optimization"
-          title="Optimize the corpus and sample autoregressively"
-          description={`The typed implementation initializes a 36-unit tanh RNN for “${selectedDataset.title}.” Forward passes, BPTT, gradient clipping, AdaGrad, and sampling execute locally in JavaScript.`}
-        >
-          <div className="active-dataset-bar">
-            <span>Selected dataset</span>
-            <b>{selectedDataset.title}</b>
-            <p>{selectedDataset.category} · {selectedDataset.text.length.toLocaleString()} characters · {new Set(Array.from(selectedDataset.text)).size} unique characters</p>
-          </div>
-          <div className="experiment-steps">
-            <article className={`experiment-step ${isModelCurrent ? "" : "step-disabled"}`}>
-              <div className="field-heading">
-                <div><span>Step 1</span><h3>Run truncated BPTT updates</h3></div>
-                <span className={isRunning ? "field-status learning" : "field-status"}>
-                  {isRunning ? "training now" : isModelCurrent ? "ready" : "complete the code first"}
-                </span>
-              </div>
-              <p className="field-instruction">
-                The displayed loss is an exponential moving average of per-character negative
-                log-likelihood. Individual windows vary, but the smoothed value should decrease as
-                the model fits the corpus distribution.
-              </p>
-              <div className="training-readout">
-                <div className="metric"><span>loss</span><strong>{loss ? loss.toFixed(3) : "—"}</strong><small>lower is better</small></div>
-                <div className="metric"><span>updates</span><strong>{step.toLocaleString()}</strong><small>32 characters each</small></div>
-                <div className="metric"><span>parameters</span><strong>{modelDetails.parameters ? modelDetails.parameters.toLocaleString() : "—"}</strong><small>{modelDetails.vocabulary || 0} character vocabulary</small></div>
-              </div>
-              <div className="loss-plot" aria-label="Recent training loss">
-                {lossHistory.map((value, index) => {
-                  const normalized = (value - minimumLoss) / lossRange;
-                  return <span key={`${index}-${value}`} style={{ height: `${14 + normalized * 76}%` }} title={value.toFixed(3)} />;
-                })}
-                {lossHistory.length <= 1 ? <p>Loss history appears here while the model trains.</p> : null}
-              </div>
-              <button
-                type="button"
-                className="action-button wide-button"
-                onClick={() => setIsRunning((running) => !running)}
-                disabled={!isModelCurrent}
-              >
-                {isRunning ? "Pause training" : step ? "Continue training" : "Start training"}
-              </button>
-            </article>
-
-            <article className={`experiment-step ${step === 0 ? "step-disabled" : ""}`}>
-              <div className="field-heading">
-                <div><span>Step 2</span><h3>Specify prefix and sampling temperature</h3></div>
-                <span className="field-status">temperature {temperature.toFixed(2)}</span>
-              </div>
-              <p className="field-instruction">
-                The prefix initializes the recurrent state before free-running generation. Use only
-                characters in the corpus vocabulary. For this corpus, a valid prefix is
-                <code>{selectedDataset.seed}</code>.
-              </p>
-              <textarea
-                className="primer-input"
-                aria-label="Type an opening phrase for generation"
-                placeholder={`Try “${selectedDataset.seed}”`}
-                value={primer}
-                onChange={(event) => setPrimer(event.target.value)}
-                disabled={step === 0}
-              />
-              <div className="temperature-row">
-                <label htmlFor="temperature">Predictable</label>
-                <input
-                  id="temperature"
-                  type="range"
-                  min="0.25"
-                  max="1.35"
-                  step="0.01"
-                  value={temperature}
-                  onChange={(event) => setTemperature(Number(event.target.value))}
-                  disabled={step === 0}
-                />
-                <label htmlFor="temperature">Varied</label>
-              </div>
-              <button
-                type="button"
-                className="action-button wide-button"
-                onClick={generate}
-                disabled={!isModelCurrent || step === 0 || !primer.trim()}
-              >
-                Generate a continuation
-              </button>
-            </article>
-
-            <article className={`experiment-step output-step ${step === 0 ? "step-disabled" : ""}`}>
-              <div className="field-heading">
-                <div><span>Step 3</span><h3>Inspect probabilities and sampled sequence</h3></div>
-                <span className="field-status">generated locally</span>
-              </div>
-              <textarea className="model-output" aria-label="Generated model output" readOnly value={output} />
-              <div className="probability-readout">
-                <p>Most likely next characters after your opening phrase</p>
-                {predictions.map((prediction) => (
-                  <div className="probability-row" key={prediction.character}>
-                    <span>{displayCharacter(prediction.character)}</span>
-                    <i><b style={{ width: `${Math.max(2, prediction.probability * 100)}%` }} /></i>
-                    <em>{Math.round(prediction.probability * 100)}%</em>
-                  </div>
-                ))}
-              </div>
-            </article>
-          </div>
-        </TextBoxSection>
-
-        <ParagraphSection
-          label="9 · Diagnostics and failure modes"
-          title="Memorization, context decay, and sampling entropy"
-          description="A low training loss does not imply semantic understanding. Diagnose what the network fits, what it recombines, and which dependencies its fixed-width state fails to preserve."
-        >
-          <div className="reading-copy">
-            <p>
-              At initialization, expected cross-entropy is approximately <code>log V</code> because
-              the output distribution is near-uniform. Early optimization fits marginal character
-              frequencies and common bigrams. Later updates fit longer local structures such as
-              indentation, speaker labels, recurring names, and short phrase templates.
-            </p>
-            <p>
-              Compare samples against the corpus to separate exact memorization from recombination.
-              Repeated verbatim spans indicate overfitting; locally plausible but globally
-              inconsistent samples indicate context decay. Evaluate multiple temperatures because
-              greedy or low-temperature decoding can conceal uncertainty, while high temperature can
-              overwhelm learned structure with low-probability transitions.
-            </p>
-            <p>
-              Long-range failures follow from repeated Jacobian products through <code>Wₕₕ</code> and
-              tanh. LSTMs add gated additive state updates to improve gradient transport. Attention
-              removes the requirement that all prior information be compressed into one state by
-              allowing direct, content-dependent access to earlier representations.
+              In production, these controls usually sit alongside safety classifiers, structured
+              output validators, retrieval, tool execution, and application-specific rules. The
+              useful mental model is a pipeline: the transformer supplies probabilities; the
+              surrounding system decides how those probabilities may become user-visible text.
             </p>
           </div>
         </ParagraphSection>
 
         <HeaderSection
-          label="Next architecture"
-          title="Gated recurrence and attention address context decay"
-          description={
-            <p>
-              This implementation covered the complete character-level RNN pipeline: vocabulary
-              construction, one-hot encoding, recurrent state updates, output projection,
-              cross-entropy, truncated BPTT, gradient clipping, AdaGrad, and autoregressive sampling.
-            </p>
-          }
+          label="Next implementation"
+          title="Token-level inspection and custom logits processors"
+          description={<p>Expose the top token candidates at each step, visualize entropy, and implement a custom processor that changes logits before the sampler receives them.</p>}
           size="medium"
-        >
-          <a className="source-link" href="https://karpathy.github.io/2015/05/21/rnn-effectiveness/" target="_blank" rel="noreferrer">
-            Read Karpathy’s original essay <span aria-hidden="true">↗</span>
-          </a>
-        </HeaderSection>
+        />
       </div>
 
       <footer className="site-footer">
         <span className="wordmark"><span className="wordmark-dot" />latent</span>
-        <p>A visual, implementation-first path through the ideas that made language models possible.</p>
-        <span>Next · Understanding LSTMs</span>
+        <p>Technical, implementation-first lessons for language-model systems.</p>
+        <a href="https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX" target="_blank" rel="noreferrer">Model card ↗</a>
       </footer>
     </main>
   );

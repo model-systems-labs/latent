@@ -16,16 +16,18 @@ async function render() {
   );
 }
 
-test("server-renders the finished first lesson", async () => {
+test("server-renders the complete paper lab", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /In-Browser LLM Inference and Constrained Decoding/);
-  assert.match(html, /Load local LLM/);
-  assert.match(html, /Validate policy/);
-  assert.match(html, /Generate baseline and constrained outputs/);
+  assert.match(html, /Neural Text Degeneration/);
+  assert.match(html, /Original paper/);
+  assert.match(html, /OpenRouter API key/);
+  assert.match(html, /Hide all blocks/);
+  assert.match(html, /Run behavioral checks/);
+  assert.match(html, /Compare full sampling with your nucleus policy/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/i);
 });
 
@@ -37,9 +39,35 @@ test("removes all starter-preview artifacts", async () => {
   ]);
 
   assert.match(page, /@huggingface\/transformers/);
-  assert.match(page, /bad_words_ids/);
+  assert.match(page, /openrouter\/auto/);
+  assert.match(page, /function nucleus/);
   assert.match(page, /TextStreamer/);
-  assert.match(layout, /og-browser-llm\.png/);
+  assert.match(layout, /og\.png/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   await assert.rejects(access(new URL("../app/_sites-preview", templateRoot)));
+});
+
+test("the visible reference solution passes its behavioral contract", async () => {
+  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  const blocks = [...page.matchAll(/code: `([\s\S]*?)`,\n\s*}/g)]
+    .slice(0, 4)
+    .map((match) => new Function(`return \`${match[1]}\`;`)());
+
+  assert.equal(blocks.length, 4);
+  const implementation = new Function(
+    `"use strict";\n${blocks.join("\n\n")}\nreturn { softmax, nucleus, policy, enforceOutputContract };`,
+  )();
+  const probabilities = implementation.softmax([2.2, 1.1, 0.3]);
+  const sum = probabilities.reduce((total, probability) => total + probability, 0);
+  const nucleus = implementation.nucleus(["A", "B", "C", "D"], [0.55, 0.3, 0.1, 0.05], 0.82);
+  const contracted = implementation.enforceOutputContract(
+    "Certainly, this is a deliberately long answer with several words that should be restricted.",
+    { maxWords: 8, banned: ["certainly"] },
+  );
+
+  assert.ok(Math.abs(sum - 1) < 1e-6);
+  assert.deepEqual(nucleus.map((candidate) => candidate.token), ["A", "B"]);
+  assert.doesNotMatch(contracted, /certainly/i);
+  assert.ok(contracted.split(/\s+/).filter(Boolean).length <= 8);
+  assert.equal(implementation.policy.top_p, 0.9);
 });

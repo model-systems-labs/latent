@@ -22,8 +22,8 @@ test("server-renders the finished first lesson", async () => {
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /Teach a machine to/);
-  assert.match(html, /Choose a dataset/);
+  assert.match(html, /Character-Level Recurrent Neural Networks/);
+  assert.match(html, /Select the empirical training distribution/);
   assert.match(html, /Run my forward pass/);
   assert.match(html, /Start training/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/i);
@@ -38,7 +38,7 @@ test("removes all starter-preview artifacts", async () => {
 
   assert.match(page, /TinyCharacterRNN/);
   assert.match(page, /backpropagation through time/i);
-  assert.match(layout, /og\.png/);
+  assert.match(layout, /og-technical\.png/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   await assert.rejects(access(new URL("../app/_sites-preview", templateRoot)));
 });

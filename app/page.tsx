@@ -4,7 +4,7 @@ import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { Prediction, TinyCharacterRNN } from "./rnn";
 
 const INITIAL_OUTPUT =
-  "Your model’s continuation will appear here after you choose a dataset, complete the forward pass, train the model, and give it an opening phrase.";
+  "Autoregressive output will appear after dataset selection, forward-pass validation, optimization, and sampling-prefix entry.";
 
 const CODE_SCAFFOLD = `function forward(x, hPrev, target) {
   // 1. Compute the new hidden state.
@@ -13,7 +13,7 @@ const CODE_SCAFFOLD = `function forward(x, hPrev, target) {
 
   // 3. Convert logits into probabilities.
 
-  // 4. Measure the surprise of the correct target.
+  // 4. Compute target negative log-likelihood.
 
   return { hidden, probabilities, loss };
 }`;
@@ -244,7 +244,7 @@ export default function Home() {
     setLoss(model.loss);
     setStep(0);
     setLossHistory([model.loss]);
-    setOutput("Fresh weights are ready. Train the model, then type an opening phrase below.");
+    setOutput("Parameters initialized. Run optimization, then enter a sampling prefix below.");
     setPrimer("");
     setModelDetails({
       vocabulary: model.vocabulary.length,
@@ -265,7 +265,7 @@ export default function Home() {
     setPrimer("");
     setOutput(INITIAL_OUTPUT);
     setModelDetails({ vocabulary: 0, parameters: 0 });
-    setCodeMessage("Dataset selected. Run your completed forward pass to build fresh weights.");
+    setCodeMessage("Dataset selected. Validate the forward pass to initialize model parameters.");
     modelRef.current = null;
   };
 
@@ -286,7 +286,7 @@ export default function Home() {
     }
 
     buildModel();
-    setCodeMessage(`Forward pass complete. Fresh weights now use “${selectedDataset.title}.”`);
+    setCodeMessage(`Forward pass validated. Parameters initialized for “${selectedDataset.title}.”`);
   };
 
   const handleCodeChange = (value: string) => {
@@ -370,67 +370,74 @@ export default function Home() {
 
       <div className="lesson-page" id="top">
         <HeaderSection
-          label="Lesson 01 · The unreasonable effectiveness of recurrent neural networks"
-          title="Teach a machine to dream in characters."
+          label="Lesson 01 · Sequence modeling"
+          title="Character-Level Recurrent Neural Networks"
           description={
             <p>
-              In 2015, Andrej Karpathy showed that a small neural network trained on one humble
-              objective—predict the next character—could reproduce the texture of Shakespeare,
-              Wikipedia, mathematical writing, and computer code. This lesson explains why, then
-              asks you to implement and train the same kind of model on a prepared dataset.
+              Derive and implement a tanh RNN language model with one-hot character inputs, a shared
+              recurrent hidden state, softmax next-character probabilities, cross-entropy loss,
+              truncated backpropagation through time, AdaGrad updates, and temperature-scaled
+              autoregressive sampling.
             </p>
           }
           size="large"
         >
           <div className="lesson-meta">
-            <span>25 minute lesson</span>
-            <span>Real training in JavaScript</span>
-            <span>No setup required</span>
+            <span>Architecture · tanh RNN</span>
+            <span>Hidden width · H = 36</span>
+            <span>BPTT window · T = 32</span>
           </div>
         </HeaderSection>
 
         <ParagraphSection
           id="idea"
-          label="1 · The central idea"
-          title="Prediction turns surprise into a learning signal."
-          description="The model is shown a piece of text and asked to predict the character that follows every position. Its error becomes a training signal."
+          label="1 · Autoregressive objective"
+          title="Next-character maximum-likelihood estimation"
+          description="Given a character sequence c₀…cₙ, optimize θ to maximize the conditional likelihood of each next character given the preceding context."
         >
           <div className="reading-copy">
             <p>
-              Start with the string <code>hello</code>. The model receives <code>h</code> and should
-              predict <code>e</code>. It then receives <code>e</code> and should predict <code>l</code>.
-              The process repeats across the entire dataset. Each prediction is a probability
-              distribution over the vocabulary: perhaps 42% for <code>l</code>, 18% for a space, 9%
-              for <code>a</code>, and smaller probabilities for everything else.
+              Let the vocabulary contain <code>V</code> unique characters. At time <code>t</code>, the
+              observed character is encoded as a one-hot vector <code>xₜ ∈ Rⱽ</code>. The network
+              produces logits <code>zₜ ∈ Rⱽ</code>, then applies softmax to obtain a categorical
+              distribution <code>pₜ = Pθ(cₜ₊₁ | c₀…cₜ)</code> over the next character.
             </p>
             <p>
-              When the correct character has low probability, the loss is high. Backpropagation
-              measures how every weight contributed to that mistake, and the optimizer nudges the
-              weights toward a less surprising prediction next time. Training is simply this loop
-              repeated thousands of times: predict, compare, adjust.
+              For target index <code>yₜ</code>, the per-step negative log-likelihood is
+              <code> Lₜ = −log pₜ[yₜ]</code>. The sequence loss sums or averages this quantity over
+              the unrolled window. Minimizing cross-entropy is equivalent to maximizing the
+              likelihood assigned to observed next characters under the model.
             </p>
             <p>
-              Nothing in the objective explicitly describes words, quotation marks, indentation,
-              or grammar. Those patterns become useful internal structure because they make future
-              characters easier to predict. A model that recognizes <code>function</code> can make a
-              better guess about what follows than one that only counts isolated letters.
+              The objective contains no explicit word, syntax, or formatting labels. Those
+              regularities are learned only when they reduce conditional entropy. Recognizing a
+              quote boundary, indentation level, identifier prefix, or recurring phrase improves
+              the next-character distribution and therefore lowers the same scalar loss.
             </p>
           </div>
+          <div className="technical-spec-grid">
+            <div><code>xₜ ∈ Rⱽ</code><span>one-hot input</span></div>
+            <div><code>hₜ ∈ Rᴴ</code><span>recurrent state</span></div>
+            <div><code>Wₓₕ ∈ Rᴴˣⱽ</code><span>input projection</span></div>
+            <div><code>Wₕₕ ∈ Rᴴˣᴴ</code><span>recurrent projection</span></div>
+            <div><code>Wₕᵧ ∈ Rⱽˣᴴ</code><span>output projection</span></div>
+            <div><code>pₜ ∈ Δⱽ⁻¹</code><span>categorical distribution</span></div>
+          </div>
           <aside className="information-note">
-            <b>RNN, not transformer</b>
+            <b>Architecture scope</b>
             <p>
-              This first lesson uses a recurrent neural network because that is the model in
-              Karpathy’s essay. A transformer stores context with attention instead of a recurrent
-              hidden state. The learning contract remains recognizable: text in, next-token
-              probabilities out, loss, gradients, weight updates, then generation.
+              This lesson implements the recurrent architecture analyzed in Karpathy’s essay. A
+              transformer replaces the single recurrent state with attention over token
+              representations, but it can use the same autoregressive likelihood objective,
+              cross-entropy loss, and sampling procedure.
             </p>
           </aside>
         </ParagraphSection>
 
         <DiagramSection
-          label="2 · Constructing the task"
-          title="Shift the text by one character."
-          description="Every character is both an input and, one step earlier, the answer the model should have predicted. One passage therefore supplies many training examples."
+          label="2 · Supervised sequence construction"
+          title="One-step temporal shift defines the labels"
+          description="For a sequence of length T + 1, positions 0…T−1 form the inputs and positions 1…T form the targets. The model receives T supervised next-character predictions per window."
         >
           <div className="shift-diagram">
             <div className="diagram-row">
@@ -452,38 +459,39 @@ export default function Home() {
             </div>
           </div>
           <div className="diagram-caption-grid">
-            <p><b>Vocabulary</b> is the set of unique characters in the selected dataset.</p>
-            <p><b>Context</b> is what the model has already read.</p>
-            <p><b>Target</b> is the next character it should assign high probability.</p>
+            <p><b>Input tensor</b> has shape T × V after one-hot encoding.</p>
+            <p><b>Target tensor</b> stores T integer class indices in [0, V).</p>
+            <p><b>Loss reduction</b> averages −log pₜ[yₜ] across the T positions.</p>
           </div>
         </DiagramSection>
 
         <ParagraphSection
-          label="3 · Why memory matters"
-          title="Memory changes the next prediction."
-          description="A useful prediction depends on more than the character directly in front of the model."
+          label="3 · Hidden-state recurrence"
+          title="Context compression into a fixed-width state"
+          description="The hidden vector hₜ is the only path by which information from earlier positions can affect the prediction at time t."
         >
           <div className="reading-copy two-up-reading">
             <p>
-              After <code>q</code>, the letter <code>u</code> is a strong prediction in English. But
-              longer patterns matter too. Inside a quotation, a closing quote becomes more likely.
-              After a function declaration, an opening brace becomes more likely. To exploit those
-              patterns, the model needs a summary of the past.
+              The recurrence computes <code>hₜ = tanh(Wₓₕxₜ + Wₕₕhₜ₋₁ + bₕ)</code>. The input
+              projection maps the V-dimensional one-hot character into H hidden features. The
+              recurrent projection transforms the previous H-dimensional state. Their sum passes
+              through tanh, bounding each hidden activation to (−1, 1).
             </p>
             <p>
-              An RNN stores that summary in a hidden state, written as <code>h</code>. At each time
-              step, it combines the current character with the previous hidden state and produces a
-              new hidden state. The vector is not a sentence or database. It is a learned set of
-              features that becomes useful only because it improves prediction.
+              Because the same matrices are reused at every position, parameter count is independent
+              of sequence length. The tradeoff is a fixed-width information bottleneck: any feature
+              needed later must survive repeated multiplication by <code>Wₕₕ</code> and repeated
+              tanh derivatives. This produces vanishing or exploding gradients over long temporal
+              distances.
             </p>
           </div>
         </ParagraphSection>
 
         <DiagramSection
           id="mechanism"
-          label="4 · The recurrent mechanism"
-          title="A hidden state travels through the sequence."
-          description="Reading left to right, the model rewrites its hidden state before making each prediction. The weights are reused at every position."
+          label="4 · Unrolled computation graph"
+          title="Parameter sharing across time steps"
+          description="Unrolling makes the temporal dependencies explicit: each hₜ consumes hₜ₋₁, while the same Wₓₕ, Wₕₕ, Wₕᵧ, bₕ, and bᵧ parameters are reused at every position."
         >
           <div className="recurrent-diagram">
             {[
@@ -504,15 +512,15 @@ export default function Home() {
           </div>
           <div className="equation-strip">
             <code>hₜ = tanh(Wₓₕxₜ + Wₕₕhₜ₋₁ + bₕ)</code>
-            <span>new memory = current input + previous memory, transformed</span>
+            <span>H-dimensional state update with shared parameters and tanh activation</span>
           </div>
         </DiagramSection>
 
         <TextBoxSection
           id="dataset"
-          label="5 · Choose the data"
-          title="Choose a dataset."
-          description="A prepared dataset makes the experiment reproducible. Each option emphasizes a different kind of character-level structure."
+          label="5 · Corpus and vocabulary"
+          title="Select the empirical training distribution"
+          description="Each fixed corpus induces a different character vocabulary, marginal frequency distribution, transition structure, and sequence-level dependency profile."
         >
           <div className="dataset-grid" role="group" aria-label="Training dataset">
             {DATASETS.map((dataset) => (
@@ -535,13 +543,13 @@ export default function Home() {
 
         <CodingSection
           id="code"
-          label="6 · Implementation"
-          title="Type the forward pass."
-          description="Use the equation above to complete the JavaScript yourself. The checker ignores formatting, but requires the hidden state, logits, softmax probabilities, and negative log loss."
+          label="6 · Forward-pass implementation"
+          title="RNN forward pass: hₜ, zₜ, pₜ, and Lₜ"
+          description="Complete the JavaScript computation for hₜ, zₜ, pₜ, and Lₜ. The checker ignores formatting but validates the required operations and parameter dependencies."
         >
           <div className="typing-layout">
             <div className="exercise-brief">
-              <p className="section-label">Your task</p>
+              <p className="section-label">Required operations</p>
               <ol>
                 <li><span>01</span><p>Create <code>hidden</code> with <code>tanh</code>, combining <code>Wxh × x</code>, <code>Whh × hPrev</code>, and <code>bh</code>.</p></li>
                 <li><span>02</span><p>Create <code>logits</code> with <code>add(matmul(Why, hidden), by)</code>.</p></li>
@@ -574,37 +582,39 @@ export default function Home() {
         </CodingSection>
 
         <ParagraphSection
-          label="7 · Training and generation"
-          title="Training changes probabilities."
-          description="Training and generation use the same forward pass for different purposes."
+          label="7 · Optimization and decoding"
+          title="Truncated BPTT, AdaGrad, and temperature scaling"
+          description="Optimization differentiates the sequence loss through the unrolled recurrence; decoding repeatedly samples from the model’s temperature-adjusted output distribution."
         >
           <div className="reading-copy two-up-reading">
             <p>
-              During training, backpropagation through time follows the recurrent connections
-              backward across a short sequence. It calculates a gradient for every parameter. This
-              lesson uses AdaGrad to update the weights: frequently changing parameters receive
-              smaller later updates, while less-used parameters can continue moving more freely.
+              The implementation unrolls <code>T = 32</code> steps and differentiates the mean
+              cross-entropy backward through that finite graph. Truncation bounds computation and
+              memory, but prevents the gradient from directly assigning credit across more than 32
+              positions. Each scalar gradient is clipped to [−5, 5] before the optimizer update to
+              reduce instability from exploding recurrent products.
             </p>
             <p>
-              During generation, there is no target. The model samples a character from its own
-              probability distribution, feeds that character back as the next input, and repeats.
-              Temperature reshapes the distribution: lower values favor the safest character;
-              higher values preserve more unlikely possibilities and therefore more variety.
+              AdaGrad accumulates squared gradients per parameter:
+              <code> m ← m + g²</code>, then applies <code>θ ← θ − ηg / √(m + ε)</code>. During
+              decoding, logits are divided by temperature τ before softmax. Values τ &lt; 1 sharpen
+              the distribution; τ &gt; 1 increase entropy. The sampled index is fed back as the next
+              one-hot input, producing an autoregressive sequence.
             </p>
           </div>
           <ol className="training-cycle">
-            <li><span>1</span><p><b>Predict</b> a probability for every next character.</p></li>
-            <li><span>2</span><p><b>Compare</b> the distribution with the true next character.</p></li>
-            <li><span>3</span><p><b>Backpropagate</b> responsibility through the unrolled sequence.</p></li>
-            <li><span>4</span><p><b>Update</b> the weights, then start another sequence.</p></li>
+            <li><span>1</span><p><b>Forward</b> compute hₜ, zₜ, pₜ, and cross-entropy for T positions.</p></li>
+            <li><span>2</span><p><b>Backward</b> accumulate parameter gradients through the unrolled recurrence.</p></li>
+            <li><span>3</span><p><b>Clip</b> each gradient component to the interval [−5, 5].</p></li>
+            <li><span>4</span><p><b>Update</b> Wₓₕ, Wₕₕ, Wₕᵧ, bₕ, and bᵧ with AdaGrad.</p></li>
           </ol>
         </ParagraphSection>
 
         <TextBoxSection
           id="train"
-          label="8 · Run the experiment"
-          title="Train the model and generate a continuation."
-          description={`Your code initializes fresh weights for “${selectedDataset.title}.” Training and generation happen locally in JavaScript.`}
+          label="8 · Browser-based optimization"
+          title="Optimize the corpus and sample autoregressively"
+          description={`The typed implementation initializes a 36-unit tanh RNN for “${selectedDataset.title}.” Forward passes, BPTT, gradient clipping, AdaGrad, and sampling execute locally in JavaScript.`}
         >
           <div className="active-dataset-bar">
             <span>Selected dataset</span>
@@ -614,14 +624,15 @@ export default function Home() {
           <div className="experiment-steps">
             <article className={`experiment-step ${isModelCurrent ? "" : "step-disabled"}`}>
               <div className="field-heading">
-                <div><span>Step 1</span><h3>Train fresh weights</h3></div>
+                <div><span>Step 1</span><h3>Run truncated BPTT updates</h3></div>
                 <span className={isRunning ? "field-status learning" : "field-status"}>
                   {isRunning ? "training now" : isModelCurrent ? "ready" : "complete the code first"}
                 </span>
               </div>
               <p className="field-instruction">
-                Loss measures how surprised the model is by the true next character. It should
-                trend downward—not perfectly at every update, but across many updates.
+                The displayed loss is an exponential moving average of per-character negative
+                log-likelihood. Individual windows vary, but the smoothed value should decrease as
+                the model fits the corpus distribution.
               </p>
               <div className="training-readout">
                 <div className="metric"><span>loss</span><strong>{loss ? loss.toFixed(3) : "—"}</strong><small>lower is better</small></div>
@@ -647,12 +658,13 @@ export default function Home() {
 
             <article className={`experiment-step ${step === 0 ? "step-disabled" : ""}`}>
               <div className="field-heading">
-                <div><span>Step 2</span><h3>Type an opening phrase</h3></div>
+                <div><span>Step 2</span><h3>Specify prefix and sampling temperature</h3></div>
                 <span className="field-status">temperature {temperature.toFixed(2)}</span>
               </div>
               <p className="field-instruction">
-                Start with characters that occur in the selected dataset. For this dataset, try a
-                phrase such as <code>{selectedDataset.seed}</code>, then invent your own.
+                The prefix initializes the recurrent state before free-running generation. Use only
+                characters in the corpus vocabulary. For this corpus, a valid prefix is
+                <code>{selectedDataset.seed}</code>.
               </p>
               <textarea
                 className="primer-input"
@@ -688,7 +700,7 @@ export default function Home() {
 
             <article className={`experiment-step output-step ${step === 0 ? "step-disabled" : ""}`}>
               <div className="field-heading">
-                <div><span>Step 3</span><h3>Read what the model predicts</h3></div>
+                <div><span>Step 3</span><h3>Inspect probabilities and sampled sequence</h3></div>
                 <span className="field-status">generated locally</span>
               </div>
               <textarea className="model-output" aria-label="Generated model output" readOnly value={output} />
@@ -707,40 +719,41 @@ export default function Home() {
         </TextBoxSection>
 
         <ParagraphSection
-          label="9 · Interpreting the result"
-          title="Look for learning, not intelligence."
-          description="A model this small will not understand your subject. It can still reveal exactly what the objective rewards."
+          label="9 · Diagnostics and failure modes"
+          title="Memorization, context decay, and sampling entropy"
+          description="A low training loss does not imply semantic understanding. Diagnose what the network fits, what it recombines, and which dependencies its fixed-width state fails to preserve."
         >
           <div className="reading-copy">
             <p>
-              Early samples are usually close to random. Then the model learns character frequency,
-              spaces, and punctuation. With more updates it begins producing familiar fragments and
-              repeated local structures. If your dataset has a strong format, that format may appear
-              before fluent sentences do.
+              At initialization, expected cross-entropy is approximately <code>log V</code> because
+              the output distribution is near-uniform. Early optimization fits marginal character
+              frequencies and common bigrams. Later updates fit longer local structures such as
+              indentation, speaker labels, recurring names, and short phrase templates.
             </p>
             <p>
-              Compare the output with your dataset. Ask what was copied exactly, what was recombined,
-              and what remained impossible for the model to maintain. Those failures point directly
-              at the limitation of a small recurrent state: information must survive many sequential
-              rewrites to influence a distant prediction.
+              Compare samples against the corpus to separate exact memorization from recombination.
+              Repeated verbatim spans indicate overfitting; locally plausible but globally
+              inconsistent samples indicate context decay. Evaluate multiple temperatures because
+              greedy or low-temperature decoding can conceal uncertainty, while high temperature can
+              overwhelm learned structure with low-probability transitions.
             </p>
             <p>
-              That limitation motivates the next part of the history. LSTMs introduce gates that
-              control what the recurrent state remembers and forgets. Attention later lets a model
-              look back at specific positions rather than compressing the entire past into one
-              continuously rewritten vector.
+              Long-range failures follow from repeated Jacobian products through <code>Wₕₕ</code> and
+              tanh. LSTMs add gated additive state updates to improve gradient transport. Attention
+              removes the requirement that all prior information be compressed into one state by
+              allowing direct, content-dependent access to earlier representations.
             </p>
           </div>
         </ParagraphSection>
 
         <HeaderSection
-          label="Lesson complete"
-          title="You trained a language model from first principles."
+          label="Next architecture"
+          title="Gated recurrence and attention address context decay"
           description={
             <p>
-              You chose the data, wrote the forward pass, created the vocabulary, optimized real
-              weights, and sampled new text from the model’s probability distribution. The scale is
-              tiny; the learning loop is real.
+              This implementation covered the complete character-level RNN pipeline: vocabulary
+              construction, one-hot encoding, recurrent state updates, output projection,
+              cross-entropy, truncated BPTT, gradient clipping, AdaGrad, and autoregressive sampling.
             </p>
           }
           size="medium"

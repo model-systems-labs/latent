@@ -22,9 +22,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "localhost:3001";
   const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   const metadataBase = new URL(`${protocol}://${host}`);
-  const title = "Teach a machine to dream in characters · Latent";
+  const title = "Character-Level Recurrent Neural Networks · Latent";
   const description =
-    "Build and train a real character-level recurrent language model in your browser in this visual lesson inspired by Andrej Karpathy.";
+    "Implement a tanh RNN with cross-entropy loss, truncated backpropagation through time, AdaGrad, and autoregressive sampling in JavaScript.";
 
   return {
     metadataBase,
@@ -34,13 +34,13 @@ export async function generateMetadata(): Promise<Metadata> {
       title,
       description,
       type: "website",
-      images: [{ url: new URL("/og.png", metadataBase).toString(), width: 1200, height: 630 }],
+      images: [{ url: new URL("/og-technical.png", metadataBase).toString(), width: 1200, height: 630 }],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [new URL("/og.png", metadataBase).toString()],
+      images: [new URL("/og-technical.png", metadataBase).toString()],
     },
   };
 }

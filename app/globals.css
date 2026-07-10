@@ -415,6 +415,45 @@ main {
   break-inside: avoid;
 }
 
+.technical-spec-grid {
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin-top: 2.5rem;
+}
+
+.technical-spec-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.25rem;
+}
+
+.technical-spec-grid > div + div {
+  border-left: 1px solid var(--line);
+}
+
+.technical-spec-grid > div:nth-child(4) {
+  border-left: 0;
+}
+
+.technical-spec-grid > div:nth-child(n + 4) {
+  border-top: 1px solid var(--line);
+}
+
+.technical-spec-grid code {
+  color: #51475f;
+  font-size: 0.82rem;
+}
+
+.technical-spec-grid span {
+  color: var(--faint);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .information-note {
   background: rgba(238, 233, 242, 0.62);
   border-left: 2px solid rgba(121, 110, 145, 0.55);
@@ -1393,8 +1432,18 @@ main {
   .diagram-caption-grid,
   .training-readout,
   .dataset-grid,
+  .technical-spec-grid,
   .site-footer {
     grid-template-columns: 1fr;
+  }
+
+  .technical-spec-grid > div + div,
+  .technical-spec-grid > div:nth-child(4) {
+    border-left: 0;
+  }
+
+  .technical-spec-grid > div:nth-child(n + 2) {
+    border-top: 1px solid var(--line);
   }
 
   .diagram-caption-grid {

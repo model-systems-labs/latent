@@ -133,8 +133,8 @@ main {
   display: grid;
   gap: clamp(3rem, 7vw, 8rem);
   grid-template-columns: minmax(0, 1.1fr) minmax(25rem, 0.9fr);
-  min-height: calc(100vh - 6.5rem);
-  padding: 6rem 0 7rem;
+  min-height: 46rem;
+  padding: 5.5rem 0 6rem;
   position: relative;
 }
 
@@ -346,34 +346,10 @@ blockquote {
   width: 1.4rem;
 }
 
-.lesson-facts {
-  border-bottom: 1px solid var(--line);
-  border-top: 1px solid var(--line);
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-}
-
-.lesson-facts span {
-  color: var(--muted);
-  font-size: 0.75rem;
-  letter-spacing: 0.035em;
-  padding: 1.4rem 1.75rem;
-}
-
-.lesson-facts span + span {
-  border-left: 1px solid var(--line);
-}
-
-.lesson-facts b {
-  color: var(--ink);
-  font-weight: 550;
-  margin-right: 0.5rem;
-}
-
 .lesson-section {
   display: grid;
   grid-template-columns: 8rem 1fr;
-  padding: 10rem 0;
+  padding: 8rem 0;
 }
 
 .section-number {
@@ -422,6 +398,40 @@ blockquote {
 .lead.compact {
   margin: 2rem 0 3.5rem;
   max-width: 45rem;
+}
+
+.essay-examples {
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin-bottom: 3.5rem;
+}
+
+.essay-examples article {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: 8rem;
+  padding: 1.4rem;
+}
+
+.essay-examples article + article {
+  border-left: 1px solid var(--line);
+}
+
+.essay-examples span {
+  font-family: var(--serif);
+  font-size: 1.15rem;
+}
+
+.essay-examples b {
+  color: var(--muted);
+  font-size: 0.64rem;
+  font-weight: 450;
+  letter-spacing: 0.06em;
+  line-height: 1.5;
+  text-transform: uppercase;
 }
 
 .prediction-question {
@@ -486,25 +496,14 @@ blockquote {
   font-weight: 400;
 }
 
-.memory-section {
-  background: rgba(255, 255, 255, 0.25);
-  border: 1px solid var(--line);
-  display: grid;
-  gap: 7rem;
-  grid-template-columns: 0.85fr 1.15fr;
-  max-width: 1400px;
-  padding: 5rem;
-}
-
-.memory-statement h2 {
-  font-size: clamp(2.6rem, 4vw, 4.6rem);
-  margin-bottom: 2rem;
-}
-
 .unrolled-network {
   align-items: center;
+  background: rgba(255, 255, 255, 0.22);
+  border: 1px solid var(--line);
   display: grid;
   grid-template-columns: repeat(4, 1fr);
+  margin-bottom: 2rem;
+  padding: 3rem 2rem;
 }
 
 .time-step {
@@ -1036,11 +1035,6 @@ blockquote {
     padding: 0;
   }
 
-  .memory-section {
-    gap: 4rem;
-    padding: 3rem;
-  }
-
   .lab-grid,
   .generated-grid {
     grid-template-columns: 1fr;
@@ -1101,15 +1095,6 @@ blockquote {
     margin-left: 0;
   }
 
-  .lesson-facts {
-    grid-template-columns: 1fr;
-  }
-
-  .lesson-facts span + span {
-    border-left: 0;
-    border-top: 1px solid var(--line);
-  }
-
   .lesson-section {
     display: block;
     padding: 6.5rem 0;
@@ -1121,7 +1106,6 @@ blockquote {
 
   .two-column-copy,
   .prediction-question,
-  .memory-section,
   .lab-heading,
   .generated-grid,
   .subtle-note {
@@ -1142,15 +1126,21 @@ blockquote {
     font-size: 2.5rem;
   }
 
-  .memory-section {
-    gap: 4rem;
-    padding: 3rem 1.25rem;
-    width: calc(100% - 2.25rem);
+  .essay-examples {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .essay-examples article:nth-child(3) {
+    border-left: 0;
+  }
+
+  .essay-examples article:nth-child(n + 3) {
+    border-top: 1px solid var(--line);
   }
 
   .unrolled-network {
     overflow-x: auto;
-    padding-bottom: 1rem;
+    padding: 2rem 1rem;
   }
 
   .code-notes {

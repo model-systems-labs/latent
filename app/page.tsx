@@ -168,28 +168,29 @@ export default function Home() {
         </div>
       </section>
 
-      <div className="lesson-facts section-shell" aria-label="Lesson facts">
-        <span><b>Build</b> a character-level RNN</span>
-        <span><b>Observe</b> loss becoming language</span>
-        <span><b>Runs</b> entirely on your device</span>
-      </div>
-
       <section className="lesson-section section-shell" id="intuition">
         <div className="section-number">01</div>
         <div className="section-content">
-          <p className="eyebrow">The surprising idea</p>
-          <h2>Language begins as a next-character question.</h2>
+          <p className="eyebrow">Karpathy’s experiment</p>
+          <h2>One job: predict the next character.</h2>
           <div className="two-column-copy">
             <p className="lead">
-              Give a neural network raw text and one modest task: after everything it has seen,
-              which character is most likely to come next?
+              Karpathy fed the same small model Shakespeare, Linux source, Wikipedia, and LaTeX.
+              It was never told what a word—or a bracket—was.
             </p>
             <p>
-              There are no hand-written rules for words, punctuation, quotes, or rhythm. The model
-              sees a sequence, compresses the useful past into a small hidden state, and adjusts its
-              weights whenever its prediction is wrong. Structure emerges because structure is the
-              easiest way to keep getting the next character right.
+              The training objective stayed almost absurdly simple: look at the characters so far
+              and predict the next one. Yet each dataset pulled a different structure out of the
+              network. Shakespeare produced dialogue and stage-like rhythm; code produced indents,
+              braces, and local syntax; LaTeX produced commands that looked uncannily at home.
             </p>
+          </div>
+
+          <div className="essay-examples" aria-label="Structures learned from different datasets">
+            <article><span>Shakespeare</span><b>voice · dialogue · rhythm</b></article>
+            <article><span>Linux</span><b>indentation · braces · syntax</b></article>
+            <article><span>Wikipedia</span><b>headings · citations · prose</b></article>
+            <article><span>LaTeX</span><b>commands · proofs · notation</b></article>
           </div>
 
           <div className="prediction-question" aria-label="Example next-character prediction">
@@ -207,41 +208,31 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="memory-section section-shell">
-        <div className="memory-statement">
-          <p className="eyebrow">The mechanism</p>
-          <h2>Memory changes the prediction.</h2>
-          <p>
-            The same input can mean something different after a different past. An RNN carries a
-            hidden state forward—just a vector of numbers, quietly rewritten at every step.
-          </p>
-        </div>
-        <div className="unrolled-network" aria-label="An RNN unrolled across four characters">
-          {[
-            ["t", "h₁"],
-            ["h", "h₂"],
-            ["e", "h₃"],
-            [" ", "h₄"],
-          ].map(([character, hidden], index) => (
-            <div className="time-step" key={hidden}>
-              <span className="time-label">t = {index + 1}</span>
-              <span className="input-character">{character === " " ? "␠" : character}</span>
-              <span className="transfer" aria-hidden="true">→</span>
-              <span className="hidden-state">{hidden}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-
       <section className="lesson-section section-shell" id="implementation">
         <div className="section-number">02</div>
         <div className="section-content">
-          <p className="eyebrow">Implementation box</p>
-          <h2>The entire recurrence is three lines.</h2>
+          <p className="eyebrow">The recurrence</p>
+          <h2>Give the model one small memory.</h2>
           <p className="lead compact">
-            At each step, combine the new character with the previous memory, predict the next
-            character, then learn from the error.
+            A hidden state carries the useful past forward. Each new character rewrites it; each
+            prediction tests whether it remembered the right things.
           </p>
+
+          <div className="unrolled-network" aria-label="An RNN unrolled across four characters">
+            {[
+              ["t", "h₁"],
+              ["h", "h₂"],
+              ["e", "h₃"],
+              [" ", "h₄"],
+            ].map(([character, hidden], index) => (
+              <div className="time-step" key={hidden}>
+                <span className="time-label">t = {index + 1}</span>
+                <span className="input-character">{character === " " ? "␠" : character}</span>
+                <span className="transfer" aria-hidden="true">→</span>
+                <span className="hidden-state">{hidden}</span>
+              </div>
+            ))}
+          </div>
 
           <div className="code-box">
             <div className="code-header">

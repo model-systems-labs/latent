@@ -237,8 +237,13 @@ main {
 }
 
 .header-section {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   overflow: hidden;
   padding: clamp(3rem, 7vw, 7rem);
+  text-align: center;
 }
 
 .header-section::before,
@@ -265,7 +270,7 @@ main {
 }
 
 .header-large {
-  min-height: 42rem;
+  min-height: 34rem;
 }
 
 .header-medium {
@@ -299,15 +304,17 @@ main {
 }
 
 .header-large h1 {
-  font-size: clamp(4.2rem, 8.5vw, 8.7rem);
-  line-height: 0.82;
-  max-width: 9ch;
+  font-size: clamp(3.3rem, 4.55vw, 5.7rem);
+  line-height: 0.95;
+  max-width: none;
+  white-space: nowrap;
 }
 
 .header-medium h1 {
-  font-size: clamp(3.4rem, 6.2vw, 6.5rem);
-  line-height: 0.92;
-  max-width: 11ch;
+  font-size: clamp(2.75rem, 3.5vw, 4.5rem);
+  line-height: 0.98;
+  max-width: none;
+  white-space: nowrap;
 }
 
 .header-small h1 {
@@ -319,8 +326,9 @@ main {
   color: var(--muted);
   font-size: 1.02rem;
   line-height: 1.75;
-  margin-top: 2.4rem;
-  max-width: 43rem;
+  margin: 2.4rem auto 0;
+  max-width: 52rem;
+  text-align: center;
 }
 
 .header-description p {
@@ -332,9 +340,10 @@ main {
   display: flex;
   flex-wrap: wrap;
   gap: 1.8rem;
+  justify-content: center;
   margin-top: 3.5rem;
   padding-top: 1.1rem;
-  width: min(43rem, 100%);
+  width: min(52rem, 100%);
 }
 
 .lesson-meta span {
@@ -346,26 +355,33 @@ main {
 
 .paragraph-section {
   border-bottom: 1px solid var(--line);
-  display: grid;
-  gap: clamp(3rem, 7vw, 7rem);
-  grid-template-columns: minmax(16rem, 0.74fr) minmax(0, 1.26fr);
+  display: block;
   padding: clamp(5rem, 9vw, 8rem) clamp(1rem, 4vw, 3.5rem);
 }
 
+.section-heading {
+  margin: 0 auto 3.5rem;
+  max-width: 72rem;
+  text-align: center;
+}
+
 .section-heading h2 {
-  font-size: clamp(2.8rem, 5vw, 5.4rem);
-  line-height: 0.98;
+  font-size: clamp(2.45rem, 3.8vw, 4.45rem);
+  line-height: 1;
+  text-wrap: balance;
 }
 
 .section-description {
   color: var(--muted);
   font-size: 0.95rem;
   line-height: 1.75;
-  margin: 1.8rem 0 0;
-  max-width: 35rem;
+  margin: 1.8rem auto 0;
+  max-width: 52rem;
 }
 
 .paragraph-body {
+  margin: 0 auto;
+  max-width: 59rem;
   min-width: 0;
 }
 
@@ -427,19 +443,16 @@ main {
 }
 
 .compact-heading {
-  display: grid;
-  gap: 1.2rem 4rem;
-  grid-template-columns: 0.85fr 1.15fr;
+  display: block;
   margin-bottom: 3.5rem;
 }
 
 .compact-heading .section-label {
-  grid-column: 1 / -1;
-  margin-bottom: 0;
+  margin-bottom: 1.4rem;
 }
 
 .compact-heading .section-description {
-  margin-top: 0;
+  margin-top: 1.8rem;
 }
 
 .diagram-canvas {
@@ -618,6 +631,201 @@ main {
   font-size: 0.72rem;
 }
 
+.dataset-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.dataset-card {
+  background: rgba(255, 255, 255, 0.42);
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  color: var(--ink);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  min-height: 22rem;
+  padding: 1.5rem;
+  text-align: left;
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.dataset-card:hover,
+.dataset-card:focus-visible {
+  background: rgba(255, 255, 255, 0.66);
+  border-color: rgba(121, 110, 145, 0.4);
+  outline: none;
+  transform: translateY(-2px);
+}
+
+.dataset-card.selected {
+  background: rgba(220, 212, 231, 0.38);
+  border-color: rgba(121, 110, 145, 0.52);
+  box-shadow: 0 0 0 3px rgba(121, 110, 145, 0.07);
+}
+
+.dataset-card > span,
+.dataset-card > em {
+  color: var(--violet);
+  font-size: 0.62rem;
+  font-style: normal;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.dataset-card h3 {
+  font-family: var(--serif);
+  font-size: 2rem;
+  font-weight: 400;
+  letter-spacing: -0.035em;
+  margin: 1.1rem 0 0.8rem;
+}
+
+.dataset-card p {
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.65;
+  margin: 0 0 1.5rem;
+}
+
+.dataset-card code {
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  color: #6f6963;
+  flex: 1;
+  font-size: 0.64rem;
+  line-height: 1.65;
+  margin-bottom: 1.2rem;
+  padding: 1.1rem 0;
+}
+
+.dataset-card > em {
+  color: var(--faint);
+}
+
+.typing-layout {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 0.72fr 1.28fr;
+}
+
+.exercise-brief,
+.code-editor-shell {
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.exercise-brief {
+  background: rgba(255, 255, 255, 0.34);
+  padding: 1.6rem;
+}
+
+.exercise-brief ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.exercise-brief li {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: auto 1fr;
+  padding: 1rem 0;
+}
+
+.exercise-brief li + li {
+  border-top: 1px solid var(--line);
+}
+
+.exercise-brief li > span {
+  color: var(--violet);
+  font-family: var(--serif);
+  font-style: italic;
+}
+
+.exercise-brief li p,
+.exercise-brief details p {
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.65;
+  margin: 0;
+}
+
+.exercise-brief code,
+.field-instruction code {
+  background: rgba(121, 110, 145, 0.08);
+  border: 1px solid rgba(121, 110, 145, 0.12);
+  border-radius: 0.25rem;
+  color: #564c67;
+  font-family: var(--mono);
+  font-size: 0.9em;
+  padding: 0.08rem 0.25rem;
+}
+
+.exercise-brief details {
+  border-top: 1px solid var(--line);
+  margin-top: 0.6rem;
+  padding-top: 1.2rem;
+}
+
+.exercise-brief summary {
+  color: var(--violet);
+  cursor: pointer;
+  font-size: 0.7rem;
+  margin-bottom: 0.8rem;
+}
+
+.code-editor-shell {
+  background: rgba(30, 29, 31, 0.96);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.code-editor {
+  background: transparent;
+  border: 0;
+  color: #eeeae4;
+  flex: 1;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  line-height: 1.8;
+  min-height: 29rem;
+  outline: none;
+  padding: 1.6rem;
+  resize: vertical;
+  tab-size: 2;
+  width: 100%;
+}
+
+.code-editor-footer {
+  align-items: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 1rem;
+}
+
+.code-editor-footer .action-button {
+  background: #ece7df;
+  color: #262329;
+  flex: 0 0 auto;
+}
+
+.code-status {
+  color: #99948d;
+  font-size: 0.65rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.code-status.complete {
+  color: #9fc4aa;
+}
+
 .code-window {
   background: rgba(30, 29, 31, 0.94);
   border: 1px solid rgba(30, 27, 34, 0.3);
@@ -730,17 +938,48 @@ main {
 }
 
 .textbox-section > .section-heading {
-  max-width: 56rem;
+  max-width: 72rem;
 }
 
 .textbox-section > .section-heading .section-description {
-  max-width: 50rem;
+  max-width: 54rem;
+}
+
+.active-dataset-bar {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.38);
+  border: 1px solid var(--line);
+  border-radius: 1rem 1rem 0 0;
+  display: grid;
+  gap: 0.7rem 1.2rem;
+  grid-template-columns: auto 1fr auto;
+  margin-top: 3.5rem;
+  padding: 1.2rem 1.5rem;
+}
+
+.active-dataset-bar > span {
+  color: var(--violet);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.active-dataset-bar b {
+  font-family: var(--serif);
+  font-size: 1.2rem;
+  font-weight: 400;
+}
+
+.active-dataset-bar p {
+  color: var(--faint);
+  font-size: 0.64rem;
+  margin: 0;
 }
 
 .experiment-steps {
   border: 1px solid var(--line);
   border-radius: 1rem;
-  margin-top: 4rem;
+  margin-top: 0;
   overflow: hidden;
 }
 
@@ -1071,6 +1310,11 @@ main {
     grid-template-columns: 1fr auto;
   }
 
+  .header-large h1,
+  .header-medium h1 {
+    white-space: normal;
+  }
+
   .paragraph-section,
   .compact-heading {
     grid-template-columns: 1fr;
@@ -1090,6 +1334,10 @@ main {
 
   .code-explanation article:nth-child(n + 3) {
     border-top: 1px solid var(--line);
+  }
+
+  .typing-layout {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1124,7 +1372,7 @@ main {
   }
 
   .header-large h1 {
-    font-size: clamp(3.55rem, 18vw, 5.4rem);
+    font-size: clamp(3.15rem, 15vw, 4.8rem);
   }
 
   .paragraph-section {
@@ -1144,6 +1392,7 @@ main {
 
   .diagram-caption-grid,
   .training-readout,
+  .dataset-grid,
   .site-footer {
     grid-template-columns: 1fr;
   }
@@ -1193,6 +1442,15 @@ main {
 
   .field-status {
     white-space: normal;
+  }
+
+  .code-editor-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .active-dataset-bar {
+    grid-template-columns: 1fr;
   }
 
   .temperature-row {

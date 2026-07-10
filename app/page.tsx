@@ -3,9 +3,120 @@
 import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { Prediction, TinyCharacterRNN } from "./rnn";
 
-const MINIMUM_CORPUS_LENGTH = 180;
 const INITIAL_OUTPUT =
-  "Your model’s continuation will appear here after you write a dataset, train it, and give it an opening phrase.";
+  "Your model’s continuation will appear here after you choose a dataset, complete the forward pass, train the model, and give it an opening phrase.";
+
+const CODE_SCAFFOLD = `function forward(x, hPrev, target) {
+  // 1. Compute the new hidden state.
+
+  // 2. Convert the hidden state into logits.
+
+  // 3. Convert logits into probabilities.
+
+  // 4. Measure the surprise of the correct target.
+
+  return { hidden, probabilities, loss };
+}`;
+
+const DATASETS = [
+  {
+    id: "fable",
+    title: "The Lantern Wood",
+    category: "Narrative prose",
+    description: "Repeated names, places, and sentence rhythms make emerging structure easy to hear.",
+    seed: "Mara carried",
+    text: `Mara carried the lantern into the wood. The lantern made a small circle of gold on the path. Sol followed Mara and counted every owl they heard.
+
+At the river, Mara raised the lantern. The water carried the circle of gold toward the old bridge. Sol said the bridge remembered every traveler.
+
+Mara crossed first. Sol crossed second. Behind them, the wood grew quiet. Ahead of them, one window shone in the empty house.
+
+The house had a blue door and a brass bell. Mara rang the bell once. Sol rang the bell twice. From inside came the soft sound of a chair moving.
+
+An old fox opened the blue door. The fox wore a red scarf and held a silver cup. Welcome, said the fox. I have been waiting for the lantern.
+
+Mara placed the lantern on the table. The circle of gold filled the silver cup. Sol stopped counting owls. Outside, the bridge remembered the light.`
+  },
+  {
+    id: "dialogue",
+    title: "Weather Station",
+    category: "Dialogue",
+    description: "Speaker labels and repeated questions give the model a strong, visible format to imitate.",
+    seed: "NOA:",
+    text: `NOA: Read the western gauge.
+ELI: The western gauge says rain.
+NOA: Read the northern gauge.
+ELI: The northern gauge says wind.
+
+NOA: What does the glass show?
+ELI: A silver line at twenty-three.
+NOA: What does the roof show?
+ELI: Three crows facing east.
+
+NOA: Record the hour.
+ELI: The hour is six and the sky is violet.
+NOA: Record the pressure.
+ELI: The pressure is falling slowly.
+
+NOA: Will the storm reach the harbor?
+ELI: The western gauge says yes.
+NOA: Will the boats return before dark?
+ELI: The northern gauge says no.
+
+NOA: Read the final gauge.
+ELI: The final gauge has no numbers.
+NOA: Then what does it measure?
+ELI: It measures how long we are willing to wait.`
+  },
+  {
+    id: "javascript",
+    title: "Tiny JavaScript",
+    category: "Source code",
+    description: "Braces, indentation, keywords, and repeated function shapes create crisp local patterns.",
+    seed: "function ",
+    text: `function add(a, b) {
+  return a + b;
+}
+
+function subtract(a, b) {
+  return a - b;
+}
+
+function multiply(a, b) {
+  return a * b;
+}
+
+function square(value) {
+  return multiply(value, value);
+}
+
+function average(values) {
+  let total = 0;
+  for (const value of values) {
+    total = add(total, value);
+  }
+  return total / values.length;
+}
+
+function clamp(value, minimum, maximum) {
+  if (value < minimum) {
+    return minimum;
+  }
+  if (value > maximum) {
+    return maximum;
+  }
+  return value;
+}
+
+function normalize(value, minimum, maximum) {
+  const range = subtract(maximum, minimum);
+  const offset = subtract(value, minimum);
+  return clamp(offset / range, 0, 1);
+}`
+  },
+] as const;
+
+type DatasetId = (typeof DATASETS)[number]["id"];
 
 type SectionProps = {
   id?: string;
@@ -94,8 +205,13 @@ function displayCharacter(character: string) {
 
 export default function Home() {
   const modelRef = useRef<TinyCharacterRNN | null>(null);
-  const [corpus, setCorpus] = useState("");
-  const [preparedCorpus, setPreparedCorpus] = useState("");
+  const [selectedDatasetId, setSelectedDatasetId] = useState<DatasetId>("fable");
+  const [modelDatasetId, setModelDatasetId] = useState<DatasetId | null>(null);
+  const [codeInput, setCodeInput] = useState(CODE_SCAFFOLD);
+  const [codeComplete, setCodeComplete] = useState(false);
+  const [codeMessage, setCodeMessage] = useState(
+    "Complete all four operations, then run your forward pass.",
+  );
   const [primer, setPrimer] = useState("");
   const [isRunning, setIsRunning] = useState(false);
   const [loss, setLoss] = useState(0);
@@ -105,13 +221,8 @@ export default function Home() {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [lossHistory, setLossHistory] = useState<number[]>([]);
   const [modelDetails, setModelDetails] = useState({ vocabulary: 0, parameters: 0 });
-  const [modelMessage, setModelMessage] = useState(
-    `Write at least ${MINIMUM_CORPUS_LENGTH} characters to create a dataset.`,
-  );
-
-  const cleanedCorpus = corpus.trim();
-  const isModelCurrent = preparedCorpus.length > 0 && preparedCorpus === cleanedCorpus;
-  const charactersRemaining = Math.max(0, MINIMUM_CORPUS_LENGTH - cleanedCorpus.length);
+  const selectedDataset = DATASETS.find((dataset) => dataset.id === selectedDatasetId) ?? DATASETS[0];
+  const isModelCurrent = codeComplete && modelDatasetId === selectedDatasetId;
 
   const updatePrediction = useCallback(
     (model: TinyCharacterRNN, currentPrimer: string, currentTemperature: number) => {
@@ -125,25 +236,73 @@ export default function Home() {
   );
 
   const buildModel = () => {
-    if (cleanedCorpus.length < MINIMUM_CORPUS_LENGTH) {
-      setModelMessage(`Add ${charactersRemaining} more characters before building the model.`);
-      return;
-    }
-
-    const model = new TinyCharacterRNN(cleanedCorpus, 36, 32);
+    const model = new TinyCharacterRNN(selectedDataset.text, 36, 32);
     modelRef.current = model;
-    setPreparedCorpus(cleanedCorpus);
+    setModelDatasetId(selectedDataset.id);
+    setCodeComplete(true);
     setIsRunning(false);
     setLoss(model.loss);
     setStep(0);
     setLossHistory([model.loss]);
     setOutput("Fresh weights are ready. Train the model, then type an opening phrase below.");
+    setPrimer("");
     setModelDetails({
       vocabulary: model.vocabulary.length,
       parameters: model.parameterCount,
     });
-    setModelMessage("Model built from your text. Its weights are random until you train them.");
     updatePrediction(model, "", temperature);
+  };
+
+  const selectDataset = (datasetId: DatasetId) => {
+    setSelectedDatasetId(datasetId);
+    setModelDatasetId(null);
+    setCodeComplete(false);
+    setIsRunning(false);
+    setLoss(0);
+    setStep(0);
+    setLossHistory([]);
+    setPredictions([]);
+    setPrimer("");
+    setOutput(INITIAL_OUTPUT);
+    setModelDetails({ vocabulary: 0, parameters: 0 });
+    setCodeMessage("Dataset selected. Run your completed forward pass to build fresh weights.");
+    modelRef.current = null;
+  };
+
+  const validateCode = () => {
+    const checks = [
+      { label: "a recurrent tanh hidden state", matches: /const\s+hidden\s*=\s*tanh\s*\(\s*add\s*\(\s*matmul\s*\(\s*Wxh\s*,\s*x\s*\)\s*,\s*matmul\s*\(\s*Whh\s*,\s*hPrev\s*\)\s*,\s*bh\s*\)\s*\)/ },
+      { label: "a logits calculation", matches: /const\s+logits\s*=\s*add\s*\(\s*matmul\s*\(\s*Why\s*,\s*hidden\s*\)\s*,\s*by\s*\)/ },
+      { label: "softmax probabilities", matches: /const\s+probabilities\s*=\s*softmax\s*\(\s*logits\s*\)/ },
+      { label: "negative log loss", matches: /const\s+loss\s*=\s*-\s*Math\.log\s*\(\s*probabilities\s*\[\s*target\s*\]\s*\)/ },
+    ];
+    const missing = checks.filter((check) => !check.matches.test(codeInput));
+    if (missing.length > 0) {
+      setCodeComplete(false);
+      setModelDatasetId(null);
+      setIsRunning(false);
+      setCodeMessage(`Still missing: ${missing.map((check) => check.label).join(", ")}.`);
+      return;
+    }
+
+    buildModel();
+    setCodeMessage(`Forward pass complete. Fresh weights now use “${selectedDataset.title}.”`);
+  };
+
+  const handleCodeChange = (value: string) => {
+    setCodeInput(value);
+    if (codeComplete) {
+      setCodeComplete(false);
+      setModelDatasetId(null);
+      setIsRunning(false);
+      setLoss(0);
+      setStep(0);
+      setLossHistory([]);
+      setPredictions([]);
+      setOutput(INITIAL_OUTPUT);
+      modelRef.current = null;
+    }
+    setCodeMessage("Code changed. Run the forward pass again when all four operations are present.");
   };
 
   useEffect(() => {
@@ -172,18 +331,6 @@ export default function Home() {
       window.cancelAnimationFrame(animationFrame);
     };
   }, [isModelCurrent, isRunning, primer, temperature, updatePrediction]);
-
-  const handleCorpusChange = (value: string) => {
-    setCorpus(value);
-    if (isRunning) setIsRunning(false);
-    if (preparedCorpus && preparedCorpus !== value.trim()) {
-      setModelMessage("Your dataset changed. Rebuild the model so the new text is used.");
-    } else if (value.trim().length < MINIMUM_CORPUS_LENGTH) {
-      setModelMessage(
-        `Keep writing: ${Math.max(0, MINIMUM_CORPUS_LENGTH - value.trim().length)} characters to go.`,
-      );
-    }
-  };
 
   const generate = () => {
     const model = modelRef.current;
@@ -214,6 +361,7 @@ export default function Home() {
         <nav aria-label="Lesson navigation">
           <a href="#idea">Read</a>
           <a href="#mechanism">See</a>
+          <a href="#dataset">Data</a>
           <a href="#code">Code</a>
           <a href="#train">Train</a>
         </nav>
@@ -223,13 +371,13 @@ export default function Home() {
       <div className="lesson-page" id="top">
         <HeaderSection
           label="Lesson 01 · The unreasonable effectiveness of recurrent neural networks"
-          title={<>Teach a machine<br />to dream in<br />characters.</>}
+          title="Teach a machine to dream in characters."
           description={
             <p>
               In 2015, Andrej Karpathy showed that a small neural network trained on one humble
               objective—predict the next character—could reproduce the texture of Shakespeare,
               Wikipedia, mathematical writing, and computer code. This lesson explains why, then
-              lets you train the same kind of model on text you write yourself.
+              asks you to implement and train the same kind of model on a prepared dataset.
             </p>
           }
           size="large"
@@ -244,7 +392,7 @@ export default function Home() {
         <ParagraphSection
           id="idea"
           label="1 · The central idea"
-          title="A language model learns by being surprised."
+          title="Prediction turns surprise into a learning signal."
           description="The model is shown a piece of text and asked to predict the character that follows every position. Its error becomes a training signal."
         >
           <div className="reading-copy">
@@ -281,7 +429,7 @@ export default function Home() {
 
         <DiagramSection
           label="2 · Constructing the task"
-          title="The target is the same text, shifted one place."
+          title="Shift the text by one character."
           description="Every character is both an input and, one step earlier, the answer the model should have predicted. One passage therefore supplies many training examples."
         >
           <div className="shift-diagram">
@@ -304,7 +452,7 @@ export default function Home() {
             </div>
           </div>
           <div className="diagram-caption-grid">
-            <p><b>Vocabulary</b> is the set of unique characters in your text.</p>
+            <p><b>Vocabulary</b> is the set of unique characters in the selected dataset.</p>
             <p><b>Context</b> is what the model has already read.</p>
             <p><b>Target</b> is the next character it should assign high probability.</p>
           </div>
@@ -312,7 +460,7 @@ export default function Home() {
 
         <ParagraphSection
           label="3 · Why memory matters"
-          title="The same character can imply different futures."
+          title="Memory changes the next prediction."
           description="A useful prediction depends on more than the character directly in front of the model."
         >
           <div className="reading-copy two-up-reading">
@@ -334,7 +482,7 @@ export default function Home() {
         <DiagramSection
           id="mechanism"
           label="4 · The recurrent mechanism"
-          title="One memory vector travels through the sequence."
+          title="A hidden state travels through the sequence."
           description="Reading left to right, the model rewrites its hidden state before making each prediction. The weights are reused at every position."
         >
           <div className="recurrent-diagram">
@@ -360,30 +508,74 @@ export default function Home() {
           </div>
         </DiagramSection>
 
+        <TextBoxSection
+          id="dataset"
+          label="5 · Choose the data"
+          title="Choose a dataset."
+          description="A prepared dataset makes the experiment reproducible. Each option emphasizes a different kind of character-level structure."
+        >
+          <div className="dataset-grid" role="group" aria-label="Training dataset">
+            {DATASETS.map((dataset) => (
+              <button
+                type="button"
+                className={dataset.id === selectedDatasetId ? "dataset-card selected" : "dataset-card"}
+                key={dataset.id}
+                onClick={() => selectDataset(dataset.id)}
+                aria-pressed={dataset.id === selectedDatasetId}
+              >
+                <span>{dataset.category}</span>
+                <h3>{dataset.title}</h3>
+                <p>{dataset.description}</p>
+                <code>{dataset.text.slice(0, 106).replace(/\s+/g, " ")}…</code>
+                <em>{dataset.text.length.toLocaleString()} characters</em>
+              </button>
+            ))}
+          </div>
+        </TextBoxSection>
+
         <CodingSection
           id="code"
-          label="5 · Implementation"
-          title="The forward pass is small enough to read."
-          description="This is the essential JavaScript executed for each character. Matrix operations are written compactly here; the live model below implements the same recurrence with typed arrays."
+          label="6 · Implementation"
+          title="Type the forward pass."
+          description="Use the equation above to complete the JavaScript yourself. The checker ignores formatting, but requires the hidden state, logits, softmax probabilities, and negative log loss."
         >
-          <div className="code-window">
-            <div className="code-window-header">
-              <span>tiny-character-rnn.js</span>
-              <span>forward pass</span>
+          <div className="typing-layout">
+            <div className="exercise-brief">
+              <p className="section-label">Your task</p>
+              <ol>
+                <li><span>01</span><p>Create <code>hidden</code> with <code>tanh</code>, combining <code>Wxh × x</code>, <code>Whh × hPrev</code>, and <code>bh</code>.</p></li>
+                <li><span>02</span><p>Create <code>logits</code> with <code>add(matmul(Why, hidden), by)</code>.</p></li>
+                <li><span>03</span><p>Create <code>probabilities</code> by applying <code>softmax</code> to the logits.</p></li>
+                <li><span>04</span><p>Create <code>loss</code> as the negative log probability of <code>target</code>.</p></li>
+              </ol>
+              <details>
+                <summary>Show the available helpers</summary>
+                <p><code>matmul(A, b)</code>, <code>add(...vectors)</code>, <code>tanh(vector)</code>, and <code>softmax(vector)</code>.</p>
+              </details>
             </div>
-            <pre><code><span className="code-comment">{"// 1. Encode the current character as a vector."}</span>{"\n"}<span className="code-keyword">const</span> x = oneHot(character, vocabulary);{"\n\n"}<span className="code-comment">{"// 2. Combine the input with the previous memory."}</span>{"\n"}<span className="code-keyword">const</span> h = tanh(add(matmul(Wxh, x), matmul(Whh, hPrev), bh));{"\n\n"}<span className="code-comment">{"// 3. Score every possible next character."}</span>{"\n"}<span className="code-keyword">const</span> logits = add(matmul(Why, h), by);{"\n"}<span className="code-keyword">const</span> probabilities = softmax(logits);{"\n\n"}<span className="code-comment">{"// 4. Penalize surprise at the correct answer."}</span>{"\n"}<span className="code-keyword">const</span> loss = -Math.log(probabilities[target]);</code></pre>
-          </div>
-          <div className="code-explanation">
-            <article><span>01</span><p><b>Encoding</b> converts a character into numbers the network can multiply by weights.</p></article>
-            <article><span>02</span><p><b>Recurrence</b> mixes new evidence with information retained from earlier positions.</p></article>
-            <article><span>03</span><p><b>Softmax</b> converts raw scores into probabilities that add up to one.</p></article>
-            <article><span>04</span><p><b>Loss</b> is large when the true next character was assigned a small probability.</p></article>
+            <div className="code-editor-shell">
+              <div className="code-window-header">
+                <span>forward.js</span>
+                <span>{selectedDataset.title}</span>
+              </div>
+              <textarea
+                className="code-editor"
+                aria-label="Type the recurrent neural network forward pass"
+                value={codeInput}
+                onChange={(event) => handleCodeChange(event.target.value)}
+                spellCheck="false"
+              />
+              <div className="code-editor-footer">
+                <p className={codeComplete ? "code-status complete" : "code-status"} aria-live="polite">{codeMessage}</p>
+                <button type="button" className="action-button" onClick={validateCode}>Run my forward pass</button>
+              </div>
+            </div>
           </div>
         </CodingSection>
 
         <ParagraphSection
-          label="6 · Training and generation"
-          title="Learning changes probabilities; sampling turns them into text."
+          label="7 · Training and generation"
+          title="Training changes probabilities."
           description="Training and generation use the same forward pass for different purposes."
         >
           <div className="reading-copy two-up-reading">
@@ -410,50 +602,21 @@ export default function Home() {
 
         <TextBoxSection
           id="train"
-          label="7 · Your experiment"
-          title="Write the world your model will learn."
-          description={
-            <>
-              Type at least {MINIMUM_CORPUS_LENGTH} characters. Use several related sentences and
-              repeat names, phrases, or structures you want the model to notice. The model receives
-              only this text—nothing is preloaded and nothing is sent away from your browser.
-            </>
-          }
+          label="8 · Run the experiment"
+          title="Train the model and generate a continuation."
+          description={`Your code initializes fresh weights for “${selectedDataset.title}.” Training and generation happen locally in JavaScript.`}
         >
+          <div className="active-dataset-bar">
+            <span>Selected dataset</span>
+            <b>{selectedDataset.title}</b>
+            <p>{selectedDataset.category} · {selectedDataset.text.length.toLocaleString()} characters · {new Set(Array.from(selectedDataset.text)).size} unique characters</p>
+          </div>
           <div className="experiment-steps">
-            <article className="experiment-step">
-              <div className="field-heading">
-                <div><span>Step 1</span><h3>Write a tiny dataset</h3></div>
-                <span className={charactersRemaining ? "field-status" : "field-status complete"}>
-                  {charactersRemaining ? `${charactersRemaining} characters to go` : "enough to train"}
-                </span>
-              </div>
-              <p className="field-instruction">
-                Try describing a place, inventing a short dialogue, or writing several lines in a
-                repeated format. Consistency gives a small model something it can learn quickly.
-              </p>
-              <textarea
-                className="dataset-input"
-                aria-label="Write the training dataset"
-                placeholder={'Example direction (write your own):\n\n"Create six short sentences about a lighthouse. Repeat the names Mara and Sol. Give every sentence a similar rhythm."'}
-                value={corpus}
-                onChange={(event) => handleCorpusChange(event.target.value)}
-                spellCheck="true"
-              />
-              <div className="field-footer">
-                <span>{cleanedCorpus.length.toLocaleString()} characters · {new Set(Array.from(cleanedCorpus)).size} unique</span>
-                <button type="button" className="action-button" onClick={buildModel} disabled={charactersRemaining > 0}>
-                  {preparedCorpus ? "Rebuild from my text" : "Build a model from my text"}
-                </button>
-              </div>
-              <p className="model-message" aria-live="polite">{modelMessage}</p>
-            </article>
-
             <article className={`experiment-step ${isModelCurrent ? "" : "step-disabled"}`}>
               <div className="field-heading">
-                <div><span>Step 2</span><h3>Train fresh weights</h3></div>
+                <div><span>Step 1</span><h3>Train fresh weights</h3></div>
                 <span className={isRunning ? "field-status learning" : "field-status"}>
-                  {isRunning ? "training now" : isModelCurrent ? "ready" : "waiting for text"}
+                  {isRunning ? "training now" : isModelCurrent ? "ready" : "complete the code first"}
                 </span>
               </div>
               <p className="field-instruction">
@@ -484,17 +647,17 @@ export default function Home() {
 
             <article className={`experiment-step ${step === 0 ? "step-disabled" : ""}`}>
               <div className="field-heading">
-                <div><span>Step 3</span><h3>Type an opening phrase</h3></div>
+                <div><span>Step 2</span><h3>Type an opening phrase</h3></div>
                 <span className="field-status">temperature {temperature.toFixed(2)}</span>
               </div>
               <p className="field-instruction">
-                Begin with characters that occurred in your dataset. The model will continue from
-                your phrase one character at a time using only what its weights learned above.
+                Start with characters that occur in the selected dataset. For this dataset, try a
+                phrase such as <code>{selectedDataset.seed}</code>, then invent your own.
               </p>
               <textarea
                 className="primer-input"
                 aria-label="Type an opening phrase for generation"
-                placeholder="Type the beginning of a sentence…"
+                placeholder={`Try “${selectedDataset.seed}”`}
                 value={primer}
                 onChange={(event) => setPrimer(event.target.value)}
                 disabled={step === 0}
@@ -525,7 +688,7 @@ export default function Home() {
 
             <article className={`experiment-step output-step ${step === 0 ? "step-disabled" : ""}`}>
               <div className="field-heading">
-                <div><span>Step 4</span><h3>Read what the model predicts</h3></div>
+                <div><span>Step 3</span><h3>Read what the model predicts</h3></div>
                 <span className="field-status">generated locally</span>
               </div>
               <textarea className="model-output" aria-label="Generated model output" readOnly value={output} />
@@ -544,8 +707,8 @@ export default function Home() {
         </TextBoxSection>
 
         <ParagraphSection
-          label="8 · Interpreting the result"
-          title="Look for evidence of learning, not intelligence."
+          label="9 · Interpreting the result"
+          title="Look for learning, not intelligence."
           description="A model this small will not understand your subject. It can still reveal exactly what the objective rewards."
         >
           <div className="reading-copy">
@@ -575,9 +738,9 @@ export default function Home() {
           title="You trained a language model from first principles."
           description={
             <p>
-              You supplied the data, created the vocabulary, optimized real weights, and sampled new
-              text from the model’s probability distribution. The scale is tiny; the learning loop
-              is real.
+              You chose the data, wrote the forward pass, created the vocabulary, optimized real
+              weights, and sampled new text from the model’s probability distribution. The scale is
+              tiny; the learning loop is real.
             </p>
           }
           size="medium"

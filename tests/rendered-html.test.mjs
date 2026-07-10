@@ -23,8 +23,8 @@ test("server-renders the finished first lesson", async () => {
 
   const html = await response.text();
   assert.match(html, /Teach a machine to/);
-  assert.match(html, /Write the world your model will learn/);
-  assert.match(html, /Build a model from my text/);
+  assert.match(html, /Choose a dataset/);
+  assert.match(html, /Run my forward pass/);
   assert.match(html, /Start training/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/i);
 });

@@ -87,7 +87,7 @@ test("the capstone contains the complete React chat system", async () => {
   assert.match(html, /Request lifecycle/);
   assert.match(html, /Train model/);
   assert.match(html, /Enter to send/);
-  assert.match(html, /Clear conversation/);
+  assert.match(html, /Clear current backend/);
 });
 
 test("the design kit, simulations, and model engines remain reusable", async () => {
@@ -113,22 +113,35 @@ test("the design kit, simulations, and model engines remain reusable", async () 
   assert.match(extended, /productLessons/);
   assert.equal((sourceSets.match(/role: /g) ?? []).length, 42);
   assert.equal((sourceSets.match(/^  (?:"[^"]+"|[a-z-]+): \[$/gm) ?? []).length, 14);
-  assert.match(paperLab, /lesson\.sources\.map/);
+  assert.match(paperLab, /supporting\.map\(sourceCard\)/);
   assert.match(paperLab, /Synthesize across these sources/);
   assert.match(layout, /og\.png/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   await assert.rejects(access(new URL("../app/_sites-preview", templateRoot)));
 });
 
-test("all visible reference cells pass their behavioral contracts", async () => {
-  const sources = await Promise.all([
-    readFile(new URL("../app/lessons/course.ts", import.meta.url), "utf8"),
-    readFile(new URL("../app/lessons/extended-course.ts", import.meta.url), "utf8"),
-  ]);
-  const pairs = sources.flatMap((source) => [...source.matchAll(/code: `([\s\S]*?)`,\n\s*checkCode: `([\s\S]*?)`,/g)]);
-  assert.equal(pairs.length, 34);
-  for (const [index, pair] of pairs.entries()) {
-    const result = new Function(`"use strict";\n${pair[1]}\n${pair[2]}`)();
-    assert.equal(result.passed, true, `reference cell ${index + 1}: ${result.detail}`);
+test("all browser-rendered reference cells pass their behavioral contracts", async () => {
+  const slugs = [
+    "character-rnns", "neural-language-models", "subword-tokenization", "additive-attention", "transformers", "in-context-learning",
+    "inference-runtime", "streaming-transport", "scheduling-memory", "reliability-observability",
+    "conversation-state", "streaming-react", "chat-actions-context", "chat-product-quality",
+  ];
+  const cells = [];
+  for (const slug of slugs) {
+    const html = await (await render(`/lessons/${slug}`)).text();
+    cells.push(...[...html.matchAll(/data-reference-code="([^"]*)" data-check-code="([^"]*)"/g)].map((match) => ({
+      slug,
+      reference: decodeURIComponent(match[1]),
+      check: decodeURIComponent(match[2]),
+    })));
+  }
+  assert.equal(cells.length, 34);
+  for (const [index, cell] of cells.entries()) {
+    try {
+      const result = new Function(`"use strict";\n${cell.reference}\n${cell.check}`)();
+      assert.equal(result.passed, true, `${cell.slug} cell ${index + 1}: ${result.detail}`);
+    } catch (error) {
+      assert.fail(`${cell.slug} cell ${index + 1}: ${error instanceof Error ? error.message : error}\n${cell.reference}\n${cell.check}`);
+    }
   }
 });

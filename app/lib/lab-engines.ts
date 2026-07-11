@@ -73,6 +73,17 @@ function sampleIndex(probabilities: number[], random: () => number) {
   return probabilities.length - 1;
 }
 
+export type RnnCheckpoint = {
+  version: 1;
+  vocabulary: string[];
+  hiddenSize: number;
+  Wxh: number[][];
+  Whh: number[][];
+  Why: number[][];
+  bh: number[];
+  by: number[];
+};
+
 export type RnnResult = {
   losses: number[];
   initialLoss: number;
@@ -80,7 +91,50 @@ export type RnnResult = {
   sample: string;
   vocabularySize: number;
   parameters: number;
+  checkpoint: RnnCheckpoint;
 };
+
+export function sampleCharacterRnn(
+  checkpoint: RnnCheckpoint,
+  prompt = "t",
+  length = 180,
+  temperature = 0.78,
+  seed = 71,
+) {
+  const { vocabulary, hiddenSize, Wxh, Whh, Why, bh, by } = checkpoint;
+  const toIndex = new Map(vocabulary.map((character, index) => [character, index]));
+  let state = Array(hiddenSize).fill(0) as number[];
+  let characterIndex = toIndex.get("t") ?? 0;
+  const normalizedPrompt = prompt.toLowerCase();
+
+  for (const character of normalizedPrompt) {
+    characterIndex = toIndex.get(character) ?? toIndex.get(" ") ?? 0;
+    state = Array.from({ length: hiddenSize }, (_, row) => {
+      let activation = bh[row] + Wxh[row][characterIndex];
+      for (let column = 0; column < hiddenSize; column += 1) activation += Whh[row][column] * state[column];
+      return Math.tanh(activation);
+    });
+  }
+
+  const random = seededRandom(seed + normalizedPrompt.length * 17);
+  let sample = "";
+  for (let step = 0; step < length; step += 1) {
+    const logits = Array.from({ length: vocabulary.length }, (_, row) => {
+      let value = by[row];
+      for (let column = 0; column < hiddenSize; column += 1) value += Why[row][column] * state[column];
+      return value / temperature;
+    });
+    characterIndex = sampleIndex(softmax(logits), random);
+    const character = vocabulary[characterIndex];
+    sample += character;
+    state = Array.from({ length: hiddenSize }, (_, row) => {
+      let activation = bh[row] + Wxh[row][characterIndex];
+      for (let column = 0; column < hiddenSize; column += 1) activation += Whh[row][column] * state[column];
+      return Math.tanh(activation);
+    });
+  }
+  return sample;
+}
 
 export function trainCharacterRnn(steps = 600): RnnResult {
   const corpus = RNN_CORPUS;
@@ -207,33 +261,16 @@ export function trainCharacterRnn(steps = 600): RnnResult {
     losses.push(loss / sequenceLength);
   }
 
-  let state = Array(hiddenSize).fill(0) as number[];
-  let characterIndex = toIndex.get("t") ?? 0;
-  let sample = vocabulary[characterIndex];
-  const sampleRandom = seededRandom(71);
-  for (let step = 0; step < 180; step += 1) {
-    state = Array.from({ length: hiddenSize }, (_, row) => {
-      let activation = bh[row] + Wxh[row][characterIndex];
-      for (let column = 0; column < hiddenSize; column += 1) activation += Whh[row][column] * state[column];
-      return Math.tanh(activation);
-    });
-    const logits = Array.from({ length: vocabularySize }, (_, row) => {
-      let value = by[row];
-      for (let column = 0; column < hiddenSize; column += 1) value += Why[row][column] * state[column];
-      return value / 0.78;
-    });
-    characterIndex = sampleIndex(softmax(logits), sampleRandom);
-    sample += vocabulary[characterIndex];
-  }
-
   const mean = (values: number[]) => values.reduce((sum, value) => sum + value, 0) / values.length;
+  const checkpoint: RnnCheckpoint = { version: 1, vocabulary, hiddenSize, Wxh, Whh, Why, bh, by };
   return {
     losses,
     initialLoss: mean(losses.slice(0, 12)),
     finalLoss: mean(losses.slice(-12)),
-    sample,
+    sample: `t${sampleCharacterRnn(checkpoint)}`,
     vocabularySize,
     parameters: hiddenSize * vocabularySize + hiddenSize * hiddenSize + vocabularySize * hiddenSize + hiddenSize + vocabularySize,
+    checkpoint,
   };
 }
 

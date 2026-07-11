@@ -1,11 +1,18 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import type { CodeBlock, CourseLesson } from "../lib/lesson-types";
+import type { CodeBlock, CourseLesson, LessonSource } from "../lib/lesson-types";
 import { courseLessons } from "../lessons/course";
 import { LessonExperiment } from "./LessonExperiment";
+import {
+  lessonIsComplete,
+  loadLearnerState,
+  recordVerifiedCells,
+  saveLessonPractice,
+  useLearnerState,
+} from "../lib/learner-state";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 type CheckResult = { label: string; passed: boolean; detail: string };
@@ -24,6 +31,16 @@ function Atmosphere() {
 }
 
 export function HeaderSection({ lesson }: { lesson: CourseLesson }) {
+  const primary = lesson.sources[0];
+  const supporting = lesson.sources.slice(1);
+  const sourceCard = (source: LessonSource) => (
+    <a href={source.url} target="_blank" rel="noreferrer" key={`${source.role}-${source.title}`}>
+      <span>{source.role} · {source.year}</span>
+      <strong>{source.title}</strong>
+      <p>{source.relevance}</p>
+      <em>{source.authors} ↗</em>
+    </a>
+  );
   return (
     <header className="paper-hero">
       <p className="eyebrow">{lesson.eyebrow}</p>
@@ -40,14 +57,11 @@ export function HeaderSection({ lesson }: { lesson: CourseLesson }) {
           <em>{lesson.sources.length} primary and supporting references</em>
         </div>
         <div className="source-set-grid">
-          {lesson.sources.map((source) => (
-            <a href={source.url} target="_blank" rel="noreferrer" key={`${source.role}-${source.title}`}>
-              <span>{source.role} · {source.year}</span>
-              <strong>{source.title}</strong>
-              <p>{source.relevance}</p>
-              <em>{source.authors} ↗</em>
-            </a>
-          ))}
+          {primary ? sourceCard(primary) : null}
+          <details className="supporting-sources">
+            <summary><span>{supporting.length} supporting sources</span><em>{supporting.map((source) => source.title).join(" · ")}</em></summary>
+            <div>{supporting.map(sourceCard)}</div>
+          </details>
         </div>
       </div>
     </header>
@@ -220,45 +234,73 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
   const blocks = lesson.implementation.codeBlocks;
   const [hiddenBlocks, setHiddenBlocks] = useState<string[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [verifiedBlockIds, setVerifiedBlockIds] = useState<string[]>([]);
   const [cellResults, setCellResults] = useState<Record<string, CheckResult | undefined>>({});
   const [checks, setChecks] = useState<CheckResult[]>([]);
   const [practiceMessage, setPracticeMessage] = useState("The reference implementation is complete and runnable.");
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const saved = loadLearnerState().lessons[lesson.id];
+      if (!saved) return;
+      setHiddenBlocks(saved.hiddenBlocks.filter((id) => blocks.some((block) => block.id === id)));
+      setAnswers(saved.answers);
+      setVerifiedBlockIds(saved.verifiedCells.filter((id) => blocks.some((block) => block.id === id)));
+      if (saved.hiddenBlocks.length) setPracticeMessage("Your device-local practice state was restored.");
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [blocks, lesson.id]);
+
   const sourceFor = (block: CodeBlock) => hiddenBlocks.includes(block.id) ? answers[block.id] ?? "" : block.code;
   const toggleBlock = (block: CodeBlock) => {
+    const nextHidden = hiddenBlocks.includes(block.id) ? hiddenBlocks.filter((id) => id !== block.id) : [...hiddenBlocks, block.id];
+    const nextAnswers = { ...answers, [block.id]: answers[block.id] ?? starterCodeFor(block) };
     setChecks([]);
     setCellResults((current) => ({ ...current, [block.id]: undefined }));
-    setHiddenBlocks((current) => current.includes(block.id) ? current.filter((id) => id !== block.id) : [...current, block.id]);
-    setAnswers((current) => ({ ...current, [block.id]: current[block.id] ?? starterCodeFor(block) }));
+    setHiddenBlocks(nextHidden);
+    setAnswers(nextAnswers);
+    saveLessonPractice(lesson.id, nextHidden, nextAnswers);
     setPracticeMessage("Implementation changed. Run the affected cell again.");
   };
   const hideAll = () => {
-    setHiddenBlocks(blocks.map((block) => block.id));
-    setAnswers(Object.fromEntries(blocks.map((block) => [block.id, starterCodeFor(block)])));
+    const nextHidden = blocks.map((block) => block.id);
+    const nextAnswers = Object.fromEntries(blocks.map((block) => [block.id, starterCodeFor(block)]));
+    setHiddenBlocks(nextHidden);
+    setAnswers(nextAnswers);
+    setVerifiedBlockIds([]);
+    saveLessonPractice(lesson.id, nextHidden, nextAnswers);
+    recordVerifiedCells(lesson.id, []);
     setCellResults({});
     setChecks([]);
     setPracticeMessage("All conceptual blocks are hidden. Reconstruct them in any valid way.");
   };
   const showSolution = () => {
     setHiddenBlocks([]);
+    saveLessonPractice(lesson.id, [], answers);
     setCellResults({});
     setChecks([]);
     setPracticeMessage("Reference solution restored. Previous attempts remain available if you hide a cell again.");
   };
   const runCell = (block: CodeBlock) => {
     const result = evaluateBlock(block, sourceFor(block));
+    const nextVerified = result.passed ? [...new Set([...verifiedBlockIds, block.id])] : verifiedBlockIds.filter((id) => id !== block.id);
+    setVerifiedBlockIds(nextVerified);
+    recordVerifiedCells(lesson.id, nextVerified);
     setCellResults((current) => ({ ...current, [block.id]: result }));
     setPracticeMessage(result.passed ? `${block.label} passed.` : `${block.label} needs attention.`);
   };
   const runAll = () => {
     const results = blocks.map((block) => evaluateBlock(block, sourceFor(block)));
+    const nextVerified = blocks.filter((_, index) => results[index].passed).map((block) => block.id);
+    setVerifiedBlockIds(nextVerified);
+    recordVerifiedCells(lesson.id, nextVerified);
     setChecks(results);
     setCellResults(Object.fromEntries(blocks.map((block, index) => [block.id, results[index]])));
     const passed = results.filter((result) => result.passed).length;
     setPracticeMessage(passed === results.length ? "All behavioral checks pass. Run the experiment below." : `${passed} of ${results.length} behavioral checks pass.`);
   };
   const passedChecks = checks.filter((check) => check.passed).length;
-  const verifiedCells = Object.values(cellResults).filter((result) => result?.passed).length;
+  const verifiedCells = verifiedBlockIds.length;
 
   return (
     <section className="paper-section implementation-section" id="implementation">
@@ -278,7 +320,12 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
             const startLine = blocks.slice(0, blockIndex).reduce((line, previous) => line + previous.code.split("\n").length + 1, 1);
             const result = cellResults[block.id];
             return (
-              <div className={`practice-block ${hidden ? "is-hidden" : ""}`} key={block.id}>
+              <div
+                className={`practice-block ${hidden ? "is-hidden" : ""}`}
+                data-reference-code={encodeURIComponent(block.code)}
+                data-check-code={encodeURIComponent(block.checkCode ?? "")}
+                key={block.id}
+              >
                 <div className="block-heading">
                   <div><span>0{blockIndex + 1}</span><strong>{block.label}</strong><em>{block.purpose}</em></div>
                   <div className="block-actions">
@@ -292,12 +339,22 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
                     <div className="practice-guidance">
                       <div><span>Practice mode</span><strong>Complete the function, then run this cell.</strong></div>
                       <button type="button" onClick={() => {
-                        setAnswers((current) => ({ ...current, [block.id]: starterCodeFor(block) }));
+                        const nextAnswers = { ...answers, [block.id]: starterCodeFor(block) };
+                        const nextVerified = verifiedBlockIds.filter((id) => id !== block.id);
+                        setAnswers(nextAnswers);
+                        setVerifiedBlockIds(nextVerified);
+                        saveLessonPractice(lesson.id, hiddenBlocks, nextAnswers);
+                        recordVerifiedCells(lesson.id, nextVerified);
                         setCellResults((current) => ({ ...current, [block.id]: undefined }));
                       }}>Reset starter</button>
                     </div>
                     <textarea aria-label={`Reimplement ${block.label}`} value={answers[block.id] ?? ""} onChange={(event) => {
-                      setAnswers((current) => ({ ...current, [block.id]: event.target.value }));
+                      const nextAnswers = { ...answers, [block.id]: event.target.value };
+                      const nextVerified = verifiedBlockIds.filter((id) => id !== block.id);
+                      setAnswers(nextAnswers);
+                      setVerifiedBlockIds(nextVerified);
+                      saveLessonPractice(lesson.id, hiddenBlocks, nextAnswers);
+                      recordVerifiedCells(lesson.id, nextVerified);
                       setCellResults((current) => ({ ...current, [block.id]: undefined }));
                       setChecks([]);
                       setPracticeMessage("Implementation changed. Run the affected cell again.");
@@ -327,11 +384,14 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
 }
 
 export function PaperLab({ lesson }: { lesson: CourseLesson }) {
+  const learnerState = useLearnerState();
   const trackLessons = courseLessons.filter((candidate) => candidate.courseId === lesson.courseId);
   const trackIndex = trackLessons.findIndex((candidate) => candidate.id === lesson.id);
   const previous = trackLessons[trackIndex - 1];
   const next = trackLessons[trackIndex + 1];
   const courseHref = `/courses/${lesson.courseId ?? "models"}`;
+  const progress = learnerState.lessons[lesson.id];
+  const complete = lessonIsComplete(learnerState, lesson.id, lesson.implementation.codeBlocks.length);
   return (
     <main>
       <Atmosphere />
@@ -347,7 +407,7 @@ export function PaperLab({ lesson }: { lesson: CourseLesson }) {
         <CodingSection lesson={lesson} />
         <footer className="paper-footer lesson-footer">
           {previous ? <Link href={`/lessons/${previous.id}`}>← {previous.title}</Link> : <Link href={courseHref}>← Course</Link>}
-          <p>Lesson {trackIndex + 1} complete</p>
+          <p>{complete ? `Lesson ${trackIndex + 1} complete` : `${progress?.verifiedCells.length ?? 0}/${lesson.implementation.codeBlocks.length} checks · ${progress?.experimentComplete ? "experiment complete" : "experiment pending"}`}</p>
           {next ? <Link href={`/lessons/${next.id}`}>{next.title} →</Link> : <Link href={courseHref}>Course ↑</Link>}
         </footer>
       </article>

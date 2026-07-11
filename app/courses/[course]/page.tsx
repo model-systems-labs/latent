@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { courseTracks, getTrack, getTrackLessons } from "../../lessons/course";
+import { CourseCurriculum } from "../../components/CourseCurriculum";
 
 export function generateStaticParams() {
   return courseTracks.map((track) => ({ course: track.id }));
@@ -32,16 +33,7 @@ export default async function CoursePage({ params }: { params: Promise<{ course:
           <p>{track.thesis}</p>
           <div className="track-outcome"><span>Course artifact</span><strong>{track.outcome}</strong></div>
         </header>
-        <section className="curriculum-list" aria-label={`${track.title} lessons`}>
-          {lessons.map((lesson, index) => (
-            <Link className="lesson-card" href={`/lessons/${lesson.id}`} key={lesson.id}>
-              <span>{String(index + 1).padStart(2, "0")}</span>
-              <div><h2>{lesson.title}</h2><p>{lesson.thesis}</p></div>
-              <div className="lesson-build"><em>{lesson.modeLabel}</em><strong>{lesson.experiment.title}</strong><span>{lesson.sources.length} curated sources</span></div>
-              <i>Open →</i>
-            </Link>
-          ))}
-        </section>
+        <CourseCurriculum title={track.title} lessons={lessons} />
         <footer className="track-navigation">
           {previous ? <Link href={`/courses/${previous.id}`}>← {previous.title}</Link> : <Link href="/">← Curriculum</Link>}
           {next ? <Link href={`/courses/${next.id}`}>{next.title} →</Link> : <Link href="/capstone">Build the capstone →</Link>}

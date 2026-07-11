@@ -14,10 +14,12 @@ import {
   type RnnResult,
   type TransformerResult,
 } from "../lib/lab-engines";
+import { markExperimentComplete, saveCharacterRnnArtifact } from "../lib/learner-state";
+import { runCapstoneQualityAudit, selectCompleteTurnContext } from "../lib/capstone-contract";
 
 type ModelMessage = { role: "system" | "user" | "assistant"; content: string };
 type TextGenerator = (
-  input: ModelMessage[],
+  input: ModelMessage[] | string,
   options?: Record<string, unknown>,
 ) => Promise<unknown>;
 type IclCondition = "Zero-shot" | "One-shot" | "Few-shot";
@@ -71,13 +73,18 @@ function DatasetRecord({ lesson }: { lesson: CourseLesson }) {
   );
 }
 
-function RnnExperiment() {
+type ExperimentProps = { onComplete: () => void };
+
+function RnnExperiment({ onComplete }: ExperimentProps) {
   const [result, setResult] = useState<RnnResult | null>(null);
   const [running, setRunning] = useState(false);
   const run = () => {
     setRunning(true);
     window.setTimeout(() => {
-      setResult(trainCharacterRnn());
+      const trained = trainCharacterRnn();
+      setResult(trained);
+      saveCharacterRnnArtifact(trained);
+      onComplete();
       setRunning(false);
     }, 30);
   };
@@ -103,13 +110,14 @@ function RnnExperiment() {
   );
 }
 
-function NeuralLmExperiment() {
+function NeuralLmExperiment({ onComplete }: ExperimentProps) {
   const [result, setResult] = useState<NeuralLmResult | null>(null);
   const [running, setRunning] = useState(false);
   const run = () => {
     setRunning(true);
     window.setTimeout(() => {
       setResult(trainNeuralLanguageModel());
+      onComplete();
       setRunning(false);
     }, 30);
   };
@@ -148,10 +156,13 @@ function NeuralLmExperiment() {
   );
 }
 
-function BpeExperiment() {
+function BpeExperiment({ onComplete }: ExperimentProps) {
   const [budget, setBudget] = useState(10);
   const [result, setResult] = useState<BpeResult | null>(null);
-  const run = () => setResult(trainBpe(budget));
+  const run = () => {
+    setResult(trainBpe(budget));
+    onComplete();
+  };
   return (
     <>
       <div className="experiment-action bpe-action">
@@ -178,13 +189,14 @@ function BpeExperiment() {
   );
 }
 
-function AttentionExperiment() {
+function AttentionExperiment({ onComplete }: ExperimentProps) {
   const [result, setResult] = useState<AttentionResult | null>(null);
   const [running, setRunning] = useState(false);
   const run = () => {
     setRunning(true);
     window.setTimeout(() => {
       setResult(trainAdditiveAttention());
+      onComplete();
       setRunning(false);
     }, 30);
   };
@@ -216,13 +228,13 @@ function AttentionExperiment() {
   );
 }
 
-function TransformerExperiment() {
+function TransformerExperiment({ onComplete }: ExperimentProps) {
   const [result, setResult] = useState<TransformerResult | null>(null);
   return (
     <>
       <div className="experiment-action">
         <p>8-dimensional token-plus-position vectors · one causal attention head</p>
-        <button type="button" onClick={() => setResult(runCausalAttention())}>{result ? "Run again" : "Run attention"}</button>
+        <button type="button" onClick={() => { setResult(runCausalAttention()); onComplete(); }}>{result ? "Run again" : "Run attention"}</button>
       </div>
       {result ? (
         <div className="experiment-results">
@@ -242,7 +254,7 @@ function TransformerExperiment() {
   );
 }
 
-function IclExperiment() {
+function IclExperiment({ onComplete }: ExperimentProps) {
   const generatorRef = useRef<TextGenerator | null>(null);
   const [modelStatus, setModelStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [progress, setProgress] = useState(0);
@@ -293,14 +305,14 @@ function IclExperiment() {
     setRows([]);
     setError("");
     const demonstrations = [
-      { input: "clear, careful, and useful", label: "Z" },
-      { input: "confused, careless, and unreliable", label: "Q" },
-      { input: "precise and easy to follow", label: "Z" },
-      { input: "incorrect and difficult to trust", label: "Q" },
+      { input: "I loved every minute.", label: "K" },
+      { input: "Warm, precise, and beautifully acted.", label: "K" },
+      { input: "A complete waste of time.", label: "M" },
+      { input: "Dull, confused, and badly written.", label: "M" },
     ];
     const tests = [
-      { input: "accurate, concise, and genuinely helpful", expected: "Z" },
-      { input: "vague, misleading, and poorly supported", expected: "Q" },
+      { input: "A sharp and moving story.", expected: "K" },
+      { input: "Flat, tedious, and far too long.", expected: "M" },
     ];
     const conditions: Array<{ name: IclCondition; examples: typeof demonstrations }> = [
       { name: "Zero-shot", examples: [] },
@@ -313,29 +325,39 @@ function IclExperiment() {
         for (const test of tests) {
           const exampleText = condition.examples.map((example) => `Input: ${example.input}\nLabel: ${example.label}`).join("\n\n");
           const prompt = [
-            "Classify each input with the opaque label Z or Q. Infer the label mapping from demonstrations when they are present. Return exactly one label.",
+            "Infer how the demonstrations map short reviews to the opaque labels K and M. Classify the final review. Return exactly one capital letter: K or M.",
             exampleText,
             `Input: ${test.input}\nLabel:`,
           ].filter(Boolean).join("\n\n");
           setDetail(`${condition.name} · case ${outputs.length + 1} of ${tests.length}`);
-          const result = await generator([
-            { role: "system", content: "Return only the requested classification label." },
-            { role: "user", content: prompt },
-          ], { max_new_tokens: 4, do_sample: false, repetition_penalty: 1.05 });
+          const result = await generator(prompt, {
+            max_new_tokens: 2,
+            do_sample: false,
+            repetition_penalty: 1.05,
+            return_full_text: false,
+          });
           const raw = extractGeneratedText(result).trim();
-          const match = raw.toUpperCase().match(/\b(Z|Q)\b/);
+          const match = raw.toUpperCase().match(/\b(K|M)\b/);
           outputs.push({ input: test.input, expected: test.expected, predicted: match?.[1] ?? null, raw });
         }
         const row = { condition: condition.name, correct: outputs.filter((output) => output.predicted === output.expected).length, total: outputs.length, outputs };
         setRows((current) => [...current, row]);
       }
       setDetail("Evaluation complete · frozen weights throughout");
+      onComplete();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "The local evaluation stopped.");
     } finally {
       setRunning(false);
     }
   };
+
+  const zeroShot = rows.find((row) => row.condition === "Zero-shot");
+  const fewShot = rows.find((row) => row.condition === "Few-shot");
+  const promptedRows = rows.filter((row) => row.condition !== "Zero-shot");
+  const changedPredictions = zeroShot
+    ? zeroShot.outputs.filter((output, index) => promptedRows.some((row) => row.outputs[index]?.predicted !== output.predicted)).length
+    : 0;
 
   return (
     <>
@@ -345,22 +367,26 @@ function IclExperiment() {
         <button type="button" onClick={loadModel} disabled={modelStatus === "loading" || modelStatus === "ready"}>{modelStatus === "ready" ? "Model ready" : modelStatus === "loading" ? `${progress}% downloaded` : "Load model · ~181 MB"}</button>
       </div>
       <div className="experiment-action">
-        <p>2 held-out cases · exact match · identical model weights and decoding policy</p>
+        <p>Opaque sentiment labels · 2 held-out cases · exact match · frozen weights</p>
         <button type="button" onClick={runEvaluation} disabled={modelStatus !== "ready" || running}>{running ? "Evaluating…" : rows.length ? "Run evaluation again" : "Run three conditions"}</button>
       </div>
       {error ? <p className="model-error">{error}</p> : null}
       {rows.length ? (
-        <div className="icl-results">
-          {rows.map((row) => (
-            <article key={row.condition}>
-              <header><span>{row.condition}</span><strong>{row.correct}/{row.total}</strong></header>
-              {row.outputs.map((output, index) => (
-                <div key={`${row.condition}-${index}`}><p>{output.input}</p><code className={output.predicted === output.expected ? "passed" : "failed"}>{output.predicted ?? "no label"} / {output.expected}</code></div>
-              ))}
-            </article>
-          ))}
+        <div className="icl-result-stack">
+          <div className="metric-grid"><span><em>Weights updated</em><strong>0</strong></span><span><em>Changed by examples</em><strong>{changedPredictions}/2</strong></span><span><em>Few-shot accuracy</em><strong>{fewShot?.correct ?? 0}/2</strong></span></div>
+          <p className="simulation-artifact">The causal result is prediction sensitivity with frozen weights—not a guarantee that adding more examples improves this small model.</p>
+          <div className="icl-results">
+            {rows.map((row) => (
+              <article key={row.condition}>
+                <header><span>{row.condition}</span><strong>{row.correct}/{row.total}</strong></header>
+                {row.outputs.map((output, index) => (
+                  <div key={`${row.condition}-${index}`}><p>{output.input}</p><code className={output.predicted === output.expected ? "passed" : "failed"}>{output.predicted ?? "no label"} / {output.expected}</code><small>raw: {output.raw || "empty"}</small></div>
+                ))}
+              </article>
+            ))}
+          </div>
         </div>
-      ) : <p className="experiment-empty">The zero-, one-, and few-shot scorecards will appear here. Variation is evidence, not a guaranteed improvement.</p>}
+      ) : <p className="experiment-empty">The same review queries will appear under zero-, one-, and few-shot prompts. The labels are intentionally opaque, so only the demonstrations reveal their meaning. Every raw output remains visible.</p>}
     </>
   );
 }
@@ -368,7 +394,7 @@ function IclExperiment() {
 type SystemsVariant = "runtime" | "streaming" | "scheduling" | "reliability";
 type ProductVariant = "state" | "streaming-ui" | "context-actions" | "quality";
 
-function SystemsExperiment({ variant }: { variant: SystemsVariant }) {
+function SystemsExperiment({ variant, onComplete }: { variant: SystemsVariant } & ExperimentProps) {
   const [policy, setPolicy] = useState<"static" | "continuous">("continuous");
   const [failure, setFailure] = useState("queue-timeout");
   const [result, setResult] = useState<{
@@ -378,6 +404,7 @@ function SystemsExperiment({ variant }: { variant: SystemsVariant }) {
   } | null>(null);
 
   const run = () => {
+    onComplete();
     if (variant === "runtime") {
       setResult({
         metrics: [
@@ -485,7 +512,7 @@ function SystemsExperiment({ variant }: { variant: SystemsVariant }) {
   );
 }
 
-function ProductExperiment({ variant }: { variant: ProductVariant }) {
+function ProductExperiment({ variant, onComplete }: { variant: ProductVariant } & ExperimentProps) {
   const [step, setStep] = useState(0);
   const [budget, setBudget] = useState(36);
   const [ran, setRan] = useState(false);
@@ -494,7 +521,7 @@ function ProductExperiment({ variant }: { variant: ProductVariant }) {
     { action: "START_ATTEMPT", status: "queued", content: "" },
     { action: "STREAM_START", status: "streaming", content: "" },
     { action: "TOKEN_DELTA", status: "streaming", content: "A causal mask" },
-    { action: "TOKEN_DELTA", status: "streaming", content: " removes future positions." },
+    { action: "TOKEN_DELTA", status: "streaming", content: "A causal mask removes future positions." },
     { action: "COMPLETE", status: "complete", content: "A causal mask removes future positions." },
   ];
   const contextMessages = [
@@ -503,24 +530,17 @@ function ProductExperiment({ variant }: { variant: ProductVariant }) {
     { id: "m3", role: "assistant", tokens: 18, text: "Earlier tokenizer explanation" },
     { id: "m4", role: "user", tokens: 9, text: "Current question about attention" },
   ];
-  const selected: typeof contextMessages = [];
-  let used = 0;
-  for (const message of [...contextMessages].reverse()) {
-    if (used + message.tokens <= budget) {
-      selected.unshift(message);
-      used += message.tokens;
-    }
-  }
+  const { selected, used } = selectCompleteTurnContext(contextMessages, budget);
 
   if (variant === "state") {
     const current = stateTrace[Math.min(step, stateTrace.length - 1)];
     return (
       <>
-        <div className="simulation-controls"><span>Reducer event</span><input type="range" min="0" max={stateTrace.length - 1} value={step} onChange={(event) => setStep(Number(event.target.value))} /><code>{step + 1}/{stateTrace.length}</code></div>
+        <div className="simulation-controls"><span>Reducer event</span><input aria-label="Reducer event" type="range" min="0" max={stateTrace.length - 1} value={step} onChange={(event) => { setStep(Number(event.target.value)); onComplete(); }} /><code>{step + 1}/{stateTrace.length}</code></div>
         <div className="simulation-result product-simulation">
           <div className="state-inspector"><div><span>Action</span><strong>{current.action}</strong></div><div><span>Status</span><strong>{current.status}</strong></div><div><span>Available actions</span><strong>{current.status === "streaming" ? "Stop" : current.status === "complete" ? "Retry · Edit" : "None"}</strong></div></div>
           <article className={`mini-message ${current.status}`}><span>Assistant</span><p>{current.content || "Waiting for output…"}</p></article>
-          <div className="trace-list compact-trace">{stateTrace.map((event, index) => <button className={index === step ? "active" : index < step ? "complete" : ""} type="button" onClick={() => setStep(index)} key={`${event.action}-${index}`}><span>{index + 1}</span><strong>{event.action}</strong></button>)}</div>
+          <div className="trace-list compact-trace">{stateTrace.map((event, index) => <button className={index === step ? "active" : index < step ? "complete" : ""} type="button" onClick={() => { setStep(index); onComplete(); }} key={`${event.action}-${index}`}><span>{index + 1}</span><strong>{event.action}</strong></button>)}</div>
         </div>
       </>
     );
@@ -528,7 +548,7 @@ function ProductExperiment({ variant }: { variant: ProductVariant }) {
   if (variant === "streaming-ui") {
     return (
       <>
-        <div className="experiment-action"><p>60 transport deltas · frame-buffered React commits · bounded live announcements</p><button type="button" onClick={() => setRan(true)}>{ran ? "Replay stream" : "Render stream"}</button></div>
+        <div className="experiment-action"><p>60 transport deltas · frame-buffered React commits · bounded live announcements</p><button type="button" onClick={() => { setRan(true); onComplete(); }}>{ran ? "Replay stream" : "Render stream"}</button></div>
         {ran ? <div className="simulation-result product-simulation"><div className="metric-grid"><span><em>Transport deltas</em><strong>60</strong></span><span><em>Visual commits</em><strong>12</strong></span><span><em>Live announcements</em><strong>4</strong></span><span><em>Dropped text</em><strong>0</strong></span></div><article className="stream-preview"><span>Assistant · generating</span><p>A causal mask prevents each token from reading positions that occur later in the sequence. The masked logits become zero probability after softmax.</p><i><b /></i></article><p className="simulation-artifact">Reader remains 214 px from the bottom → auto-scroll paused; generation continues.</p></div> : <p className="experiment-empty">Render and accessibility metrics will appear here.</p>}
       </>
     );
@@ -536,25 +556,19 @@ function ProductExperiment({ variant }: { variant: ProductVariant }) {
   if (variant === "context-actions") {
     return (
       <>
-        <div className="simulation-controls"><label><span>Context budget · {budget} tokens</span><input type="range" min="12" max="50" value={budget} onChange={(event) => setBudget(Number(event.target.value))} /></label><code>{used}/{budget} used</code></div>
+        <div className="simulation-controls"><label><span>Context budget · {budget} tokens</span><input type="range" min="12" max="50" value={budget} onChange={(event) => { setBudget(Number(event.target.value)); onComplete(); }} /></label><code>{used}/{budget} used</code></div>
         <div className="simulation-result product-simulation"><div className="context-stack">{contextMessages.map((message) => { const included = selected.some((item) => item.id === message.id); return <article className={included ? "included" : "excluded"} key={message.id}><span>{message.id} · {message.role}</span><p>{message.text}</p><code>{message.tokens} tokens · {included ? "included" : "excluded"}</code></article>; })}</div><div className="branch-record"><span>Regeneration record</span><code>{JSON.stringify({ parentUserId: "m4", attemptId: "a2", includedMessageIds: selected.map((message) => message.id), status: "queued" }, null, 2)}</code></div></div>
       </>
     );
   }
-  const checks = [
-    ["Keyboard send", "Enter submits; Shift+Enter inserts a line"],
-    ["Stop focus", "Focus returns to the composer after cancellation"],
-    ["Live region", "Streaming text announced in bounded semantic batches"],
-    ["Storage schema", "Versioned record rejects secrets and malformed messages"],
-    ["Latency states", "Queue, loading, prefill, streaming, and error are distinct"],
-    ["Reduced motion", "Streaming cursor and transitions honor user preference"],
-  ];
+  const checks = runCapstoneQualityAudit();
   return (
-    <><div className="experiment-action"><p>Deterministic product checklist · state, keyboard, storage, recovery, and announcements</p><button type="button" onClick={() => setRan(true)}>{ran ? "Run audit again" : "Run product audit"}</button></div>{ran ? <div className="quality-grid">{checks.map(([label, detail]) => <article key={label}><i>✓</i><div><strong>{label}</strong><p>{detail}</p></div></article>)}</div> : <p className="experiment-empty">The capstone product audit will appear here.</p>}</>
+    <><div className="experiment-action"><p>Executable contract audit · keyboard, storage, backend isolation, context, and ARIA</p><button type="button" onClick={() => { setRan(true); onComplete(); }}>{ran ? "Run audit again" : "Run product audit"}</button></div>{ran ? <div className="quality-grid">{checks.map((check) => <article className={check.passed ? "passed" : "failed"} key={check.label}><i>{check.passed ? "✓" : "×"}</i><div><strong>{check.label}</strong><p>{check.detail}</p></div></article>)}</div> : <p className="experiment-empty">The executable capstone contract audit will appear here.</p>}</>
   );
 }
 
 export function LessonExperiment({ lesson }: { lesson: CourseLesson }) {
+  const complete = () => markExperimentComplete(lesson.id);
   return (
     <div className="experiment-lab">
       <header className="experiment-header">
@@ -562,14 +576,14 @@ export function LessonExperiment({ lesson }: { lesson: CourseLesson }) {
         <code>{lesson.experiment.kind}</code>
       </header>
       <DatasetRecord lesson={lesson} />
-      {lesson.experiment.kind === "rnn" ? <RnnExperiment /> : null}
-      {lesson.experiment.kind === "neural-lm" ? <NeuralLmExperiment /> : null}
-      {lesson.experiment.kind === "bpe" ? <BpeExperiment /> : null}
-      {lesson.experiment.kind === "attention" ? <AttentionExperiment /> : null}
-      {lesson.experiment.kind === "transformer" ? <TransformerExperiment /> : null}
-      {lesson.experiment.kind === "icl" ? <IclExperiment /> : null}
-      {lesson.experiment.kind === "systems" && lesson.experiment.variant ? <SystemsExperiment variant={lesson.experiment.variant as SystemsVariant} /> : null}
-      {lesson.experiment.kind === "product" && lesson.experiment.variant ? <ProductExperiment variant={lesson.experiment.variant as ProductVariant} /> : null}
+      {lesson.experiment.kind === "rnn" ? <RnnExperiment onComplete={complete} /> : null}
+      {lesson.experiment.kind === "neural-lm" ? <NeuralLmExperiment onComplete={complete} /> : null}
+      {lesson.experiment.kind === "bpe" ? <BpeExperiment onComplete={complete} /> : null}
+      {lesson.experiment.kind === "attention" ? <AttentionExperiment onComplete={complete} /> : null}
+      {lesson.experiment.kind === "transformer" ? <TransformerExperiment onComplete={complete} /> : null}
+      {lesson.experiment.kind === "icl" ? <IclExperiment onComplete={complete} /> : null}
+      {lesson.experiment.kind === "systems" && lesson.experiment.variant ? <SystemsExperiment variant={lesson.experiment.variant as SystemsVariant} onComplete={complete} /> : null}
+      {lesson.experiment.kind === "product" && lesson.experiment.variant ? <ProductExperiment variant={lesson.experiment.variant as ProductVariant} onComplete={complete} /> : null}
     </div>
   );
 }

@@ -207,6 +207,7 @@ main {
 .section-title > span,
 .source-set-heading > span,
 .source-set-grid > a > span,
+.supporting-sources summary > span,
 .block-heading > div > span,
 .key-panel label > span,
 .lab-controls label > span,
@@ -345,11 +346,12 @@ main {
 .source-set-grid {
   display: grid;
   gap: 0.65rem;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-top: 0.65rem;
 }
 
-.source-set-grid > a {
+.source-set-grid > a,
+.supporting-sources > summary {
   background: rgba(255, 255, 255, 0.34);
   border: 1px solid var(--line);
   border-radius: 0.9rem;
@@ -361,10 +363,80 @@ main {
 }
 
 .source-set-grid > a:hover,
-.source-set-grid > a:focus-visible {
+.source-set-grid > a:focus-visible,
+.supporting-sources > summary:hover,
+.supporting-sources > summary:focus-visible {
   background: rgba(255, 255, 255, 0.62);
   border-color: rgba(117, 100, 143, 0.4);
   transform: translateY(-2px);
+}
+
+.supporting-sources {
+  min-width: 0;
+}
+
+.supporting-sources > summary {
+  cursor: pointer;
+  list-style: none;
+  text-align: left;
+}
+
+.supporting-sources > summary::-webkit-details-marker {
+  display: none;
+}
+
+.supporting-sources summary > span {
+  font-size: 0.59rem;
+  font-weight: 590;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.supporting-sources summary > em {
+  color: var(--muted);
+  font-family: var(--serif);
+  font-size: 1rem;
+  font-style: normal;
+  line-height: 1.35;
+  margin-top: 0.8rem;
+}
+
+.supporting-sources summary::after {
+  color: var(--violet);
+  content: "Open references +";
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  margin-top: auto;
+  text-transform: uppercase;
+}
+
+.supporting-sources[open] {
+  grid-column: 1 / -1;
+}
+
+.supporting-sources[open] > summary {
+  min-height: 0;
+}
+
+.supporting-sources[open] summary::after {
+  content: "Close references −";
+}
+
+.supporting-sources > div {
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 0.65rem;
+}
+
+.supporting-sources > div > a {
+  background: rgba(255, 255, 255, 0.34);
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 11rem;
+  padding: 1rem;
 }
 
 .source-set-grid strong {
@@ -2102,6 +2174,53 @@ button:disabled {
   overflow: hidden;
 }
 
+.course-progress-record {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.38);
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: auto 1fr;
+  margin-bottom: 0.8rem;
+  padding: 1rem 1.2rem;
+}
+
+.course-progress-record div {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.course-progress-record span,
+.course-progress-record strong {
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.course-progress-record span {
+  color: var(--muted);
+}
+
+.course-progress-record strong {
+  color: var(--violet);
+  font-weight: 600;
+}
+
+.course-progress-record > i {
+  background: rgba(117, 100, 143, 0.09);
+  border-radius: 999px;
+  height: 0.28rem;
+  overflow: hidden;
+}
+
+.course-progress-record > i > b {
+  background: linear-gradient(90deg, var(--violet), #c7956b);
+  display: block;
+  height: 100%;
+  transition: width 220ms ease;
+}
+
 .lesson-card {
   align-items: center;
   display: grid;
@@ -2171,6 +2290,17 @@ button:disabled {
   color: var(--faint);
   font-size: 0.62rem;
   font-style: normal;
+}
+
+.lesson-card.completed {
+  border-color: rgba(117, 100, 143, 0.28);
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.lesson-build small {
+  color: var(--faint);
+  font-size: 0.55rem;
+  line-height: 1.35;
 }
 
 .course-note {
@@ -3063,7 +3193,7 @@ button:disabled {
 .chat-workspace {
   background: #f8f6f1;
   display: grid;
-  grid-template-rows: auto minmax(24rem, 1fr) auto auto auto;
+  grid-template-rows: auto minmax(24rem, 1fr) auto auto auto auto;
   min-width: 0;
 }
 
@@ -3098,6 +3228,36 @@ button:disabled {
 .capstone-message > p { color: #302d2b; font-family: var(--serif); font-size: 1.02rem; line-height: 1.65; margin: 0; white-space: pre-wrap; }
 .capstone-message.user > p { font-family: var(--sans); font-size: 0.78rem; line-height: 1.5; }
 .capstone-message > em { color: var(--faint); display: block; font-size: 0.55rem; font-style: normal; margin-top: 0.5rem; text-transform: uppercase; }
+
+.capstone-hydrating {
+  color: var(--muted);
+  font-family: var(--serif);
+  margin: auto;
+}
+
+.grounding-record {
+  align-items: center;
+  background: rgba(117, 100, 143, 0.07);
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  display: flex;
+  gap: 0.7rem;
+  justify-content: center;
+  padding: 0.65rem 1rem;
+}
+
+.grounding-record span {
+  color: var(--violet);
+  font-size: 0.52rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.grounding-record strong {
+  color: var(--muted);
+  font-size: 0.59rem;
+  font-weight: 500;
+}
 
 .chat-actions { display: flex; gap: 0.5rem; justify-content: center; min-height: 2.6rem; padding: 0.35rem 1rem; }
 .chat-actions button { background: transparent; border: 1px solid var(--line-strong); border-radius: 999px; color: var(--muted); cursor: pointer; font-size: 0.58rem; padding: 0.5rem 0.72rem; }
@@ -3275,8 +3435,13 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 
-  .source-set-grid > a {
+  .source-set-grid > a,
+  .supporting-sources > summary {
     min-height: 0;
+  }
+
+  .supporting-sources > div {
+    grid-template-columns: 1fr;
   }
 
   .source-set-heading {
@@ -3521,7 +3686,39 @@ button:disabled {
   }
 
   .chat-workspace {
-    grid-template-rows: auto minmax(22rem, 1fr) auto auto auto;
+    grid-template-rows: auto minmax(22rem, 1fr) auto auto auto auto;
+    order: 2;
+  }
+
+  .capstone-layout {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .capstone-sidebar {
+    display: contents;
+  }
+
+  .capstone-sidebar > section,
+  .capstone-sidebar > footer {
+    background: #232126;
+    color: #eee8e0;
+  }
+
+  .backend-panel {
+    order: 1;
+  }
+
+  .runtime-panel {
+    order: 3;
+  }
+
+  .transport-panel {
+    order: 4;
+  }
+
+  .capstone-sidebar > footer {
+    order: 5;
   }
 
   .capstone-messages {

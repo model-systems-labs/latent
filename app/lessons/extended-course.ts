@@ -178,10 +178,10 @@ return { passed: bytes === 204800, detail: (bytes / 1024).toFixed(0) + " KiB" };
             { name: "blank line", detail: "Two newline characters terminate one event." },
           ],
           code: `function encodeSse(event, data) {
-  return "event: " + event + "\n" + "data: " + JSON.stringify(data) + "\n\n";
+  return "event: " + event + "\\n" + "data: " + JSON.stringify(data) + "\\n\\n";
 }`,
           checkCode: `const frame = encodeSse("token", { delta: "hi" });
-return { passed: frame === "event: token\ndata: {\"delta\":\"hi\"}\n\n", detail: frame.replace(/\n/g, " ↵ ") };`,
+return { passed: frame === "event: token\\ndata: {\\\"delta\\\":\\\"hi\\\"}\\n\\n", detail: frame.replace(/\\n/g, " ↵ ") };`,
         },
         {
           id: "parse-sse",
@@ -194,18 +194,18 @@ return { passed: frame === "event: token\ndata: {\"delta\":\"hi\"}\n\n", detail:
           ],
           code: `function parseSseChunk(buffer, chunk) {
   const combined = buffer + chunk;
-  const frames = combined.split("\n\n");
+  const frames = combined.split("\\n\\n");
   const remainder = frames.pop() ?? "";
   const events = frames.map((frame) => {
-    const lines = frame.split("\n");
+    const lines = frame.split("\\n");
     const event = lines.find((line) => line.startsWith("event: "))?.slice(7) ?? "message";
     const data = lines.find((line) => line.startsWith("data: "))?.slice(6) ?? "null";
     return { event, data: JSON.parse(data) };
   });
   return { events, remainder };
 }`,
-          checkCode: `const first = parseSseChunk("", "event: token\ndata: {\"delta\":\"h");
-const second = parseSseChunk(first.remainder, "i\"}\n\n");
+          checkCode: `const first = parseSseChunk("", "event: token\\ndata: {\\\"delta\\\":\\\"h");
+const second = parseSseChunk(first.remainder, "i\\\"}\\n\\n");
 return { passed: first.events.length === 0 && second.events[0].data.delta === "hi" && second.remainder === "", detail: second.events.length + " event parsed across chunks" };`,
         },
       ],
@@ -601,24 +601,37 @@ return { passed: near === true && reading === false, detail: "near bottom follow
         {
           id: "context-budget",
           label: "Context selection",
-          purpose: "Retain the newest complete turns that fit inside the available token budget.",
+          purpose: "Retain the system message and newest complete user-assistant turns that fit the budget.",
           concepts: [
-            { name: "reverse", detail: "Considers the newest messages first." },
-            { name: "used", detail: "Running token estimate for admitted messages." },
-            { name: "unshift", detail: "Restores chronological order in the final request." },
+            { name: "turns", detail: "Keeps each user message paired with its dependent assistant response." },
+            { name: "system", detail: "Instructions retained separately from conversational turns." },
+            { name: "used", detail: "Running token estimate for complete admitted units." },
           ],
           code: `function selectContext(messages, budget) {
-  const selected = [];
-  let used = 0;
-  for (const message of [...messages].reverse()) {
-    if (used + message.tokens > budget) continue;
-    selected.unshift(message);
-    used += message.tokens;
+  const system = messages.filter((message) => message.role === "system");
+  const turns = [];
+  for (const message of messages.filter((item) => item.role !== "system")) {
+    if (message.role === "user" || turns.length === 0) turns.push([message]);
+    else turns[turns.length - 1].push(message);
   }
-  return { selected, used };
+  const selectedTurns = [];
+  let used = system.reduce((sum, message) => sum + message.tokens, 0);
+  for (const turn of [...turns].reverse()) {
+    const turnTokens = turn.reduce((sum, message) => sum + message.tokens, 0);
+    if (used + turnTokens <= budget) {
+      selectedTurns.unshift(turn);
+      used += turnTokens;
+    }
+  }
+  return { selected: [...system, ...selectedTurns.flat()], used };
 }`,
-          checkCode: `const result = selectContext([{ id: "a", tokens: 6 }, { id: "b", tokens: 5 }, { id: "c", tokens: 4 }], 9);
-return { passed: result.selected.map(m => m.id).join("") === "bc" && result.used === 9, detail: result.selected.map(m => m.id).join(" → ") + " · " + result.used + " tokens" };`,
+          checkCode: `const result = selectContext([
+  { id: "s", role: "system", tokens: 4 },
+  { id: "u1", role: "user", tokens: 5 },
+  { id: "a1", role: "assistant", tokens: 6 },
+  { id: "u2", role: "user", tokens: 5 }
+], 10);
+return { passed: result.selected.map(m => m.id).join(",") === "s,u2" && result.used === 9, detail: result.selected.map(m => m.id).join(" → ") + " · " + result.used + " tokens" };`,
         },
         {
           id: "regenerate-branch",

@@ -824,11 +824,11 @@ ${commonQuestionInstruction}`.trim(),
       ],
     },
     dataset: {
-      name: "Opaque Sentiment Labels",
+      name: "Opaque Review Labels",
       source: "Original fixed evaluation set",
       license: "CC0",
       size: "4 demonstrations · 2 held-out cases",
-      preview: "clear and precise → Z · confused and unreliable → Q",
+      preview: "positive → K · negative → M · held-out reviews use the same concealed mapping",
     },
     implementation: {
       filename: "few-shot-evaluation.js",
@@ -845,11 +845,11 @@ ${commonQuestionInstruction}`.trim(),
           ],
           code: `function formatDemonstrations(examples) {
   return examples
-    .map(({ input, label }) => "Input: " + input + "\nLabel: " + label)
-    .join("\n\n");
+    .map(({ input, label }) => "Input: " + input + "\\nLabel: " + label)
+    .join("\\n\\n");
 }`,
-          checkCode: `const text = formatDemonstrations([{ input: "clear", label: "Z" }, { input: "poor", label: "Q" }]);
-return { passed: text.includes("Input: clear\nLabel: Z") && text.indexOf("clear") < text.indexOf("poor"), detail: "order preserved" };`,
+          checkCode: `const text = formatDemonstrations([{ input: "aa", label: "K" }, { input: "bbb", label: "M" }]);
+return { passed: text.includes("Input: aa\\nLabel: K") && text.indexOf("aa") < text.indexOf("bbb"), detail: "order preserved" };`,
         },
         {
           id: "build-prompt",
@@ -863,11 +863,11 @@ return { passed: text.includes("Input: clear\nLabel: Z") && text.indexOf("clear"
           code: `function buildPrompt({ instruction, demonstrations, query }) {
   const sections = [instruction.trim()];
   if (demonstrations.trim()) sections.push(demonstrations.trim());
-  sections.push("Input: " + query.trim() + "\nLabel:");
-  return sections.join("\n\n");
+  sections.push("Input: " + query.trim() + "\\nLabel:");
+  return sections.join("\\n\\n");
 }`,
-          checkCode: `const prompt = buildPrompt({ instruction: "Return Z or Q.", demonstrations: "", query: "precise" });
-return { passed: prompt === "Return Z or Q.\n\nInput: precise\nLabel:", detail: "zero-shot prompt is deterministic" };`,
+          checkCode: `const prompt = buildPrompt({ instruction: "Return K or M.", demonstrations: "", query: "A sharp story." });
+return { passed: prompt === "Return K or M.\\n\\nInput: A sharp story.\\nLabel:", detail: "zero-shot prompt is deterministic" };`,
         },
         {
           id: "exact-match",
@@ -878,14 +878,14 @@ return { passed: prompt === "Return Z or Q.\n\nInput: precise\nLabel:", detail: 
             { name: "match", detail: "First standalone permitted label in the generation." },
             { name: "expected", detail: "Gold label hidden from the prompt." },
           ],
-          code: `function exactMatchLabel(output, expected, allowedLabels = ["Z", "Q"]) {
+          code: `function exactMatchLabel(output, expected, allowedLabels = ["K", "M"]) {
   const escaped = allowedLabels.join("|");
-  const match = output.toUpperCase().match(new RegExp("\\b(" + escaped + ")\\b"));
+  const match = output.toUpperCase().match(new RegExp("\\\\b(" + escaped + ")\\\\b"));
   const predicted = match ? match[1] : null;
   return { predicted, passed: predicted === expected };
 }`,
-          checkCode: `const result = exactMatchLabel("The label is Z.", "Z");
-return { passed: result.passed && result.predicted === "Z", detail: "predicted " + result.predicted };`,
+          checkCode: `const result = exactMatchLabel("The label is K.", "K");
+return { passed: result.passed && result.predicted === "K", detail: "predicted " + result.predicted };`,
         },
       ],
     },

@@ -100,6 +100,7 @@ export function sampleCharacterRnn(
   length = 180,
   temperature = 0.78,
   seed = 71,
+  topK = 0,
 ) {
   const { vocabulary, hiddenSize, Wxh, Whh, Why, bh, by } = checkpoint;
   const toIndex = new Map(vocabulary.map((character, index) => [character, index]));
@@ -119,11 +120,15 @@ export function sampleCharacterRnn(
   const random = seededRandom(seed + normalizedPrompt.length * 17);
   let sample = "";
   for (let step = 0; step < length; step += 1) {
-    const logits = Array.from({ length: vocabulary.length }, (_, row) => {
+    let logits = Array.from({ length: vocabulary.length }, (_, row) => {
       let value = by[row];
       for (let column = 0; column < hiddenSize; column += 1) value += Why[row][column] * state[column];
       return value / temperature;
     });
+    if (topK > 0 && topK < logits.length) {
+      const retained = new Set(logits.map((value, index) => ({ value, index })).sort((left, right) => right.value - left.value).slice(0, topK).map((item) => item.index));
+      logits = logits.map((value, index) => retained.has(index) ? value : Number.NEGATIVE_INFINITY);
+    }
     characterIndex = sampleIndex(softmax(logits), random);
     const character = vocabulary[characterIndex];
     sample += character;

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useReducer, useRef, useState } from "react";
 import { sampleCharacterRnn, trainCharacterRnn } from "../lib/lab-engines";
 import { loadLearnerState, saveCharacterRnnArtifact, type SavedRnnArtifact } from "../lib/learner-state";
+import { useProjectState } from "../lib/project-workspace";
+import { ProjectWorkbench } from "./ProjectWorkbench";
 import {
   CAPSTONE_STORAGE_KEY,
   CHAT_LOG_ACCESSIBILITY,
@@ -100,9 +102,10 @@ function applyCourseGrounding(question: string, rawDraft: string) {
   };
 }
 
-function createSseStream(text: string, signal: AbortSignal) {
+function createSseStream(text: string, signal: AbortSignal, wordsPerEvent = 1, delayMs = 24) {
   const encoder = new TextEncoder();
-  const pieces = text.match(/\S+\s*/g) ?? [text];
+  const words = text.match(/\S+\s*/g) ?? [text];
+  const pieces = Array.from({ length: Math.ceil(words.length / wordsPerEvent) }, (_, index) => words.slice(index * wordsPerEvent, (index + 1) * wordsPerEvent).join(""));
   return new ReadableStream<Uint8Array>({
     start(controller) {
       let index = 0;
@@ -122,9 +125,9 @@ function createSseStream(text: string, signal: AbortSignal) {
         controller.enqueue(encoder.encode(frame.slice(0, midpoint)));
         controller.enqueue(encoder.encode(frame.slice(midpoint)));
         index += 1;
-        window.setTimeout(push, 24);
+        window.setTimeout(push, delayMs);
       };
-      window.setTimeout(push, 70);
+      window.setTimeout(push, Math.min(120, delayMs * 3));
     },
   });
 }
@@ -149,6 +152,8 @@ async function consumeSse(stream: ReadableStream<Uint8Array>, onEvent: (event: s
 }
 
 export function BrowserChatCapstone() {
+  const project = useProjectState();
+  const runtime = project.runtime;
   const [state, dispatch] = useReducer(chatReducer, { messages: [] });
   const [hydrated, setHydrated] = useState(false);
   const [input, setInput] = useState("");
@@ -233,8 +238,8 @@ export function BrowserChatCapstone() {
   const generateResponse = async (userText: string, generationSeed: number) => {
     if (mode === "student") {
       if (!student) throw new Error("Train the student model first.");
-      const continuation = sampleCharacterRnn(student.checkpoint, userText, 180, 0.78, generationSeed);
-      return `Prompt-conditioned character continuation:\n\n…${userText.slice(-32)}${continuation}`;
+      const continuation = sampleCharacterRnn(student.checkpoint, userText, runtime.model.maxTokens, runtime.model.temperature, runtime.model.seed + generationSeed, runtime.model.topK);
+      return `${runtime.interface.responsePrefix}Prompt-conditioned character continuation:\n\n…${userText.slice(-32)}${continuation}`;
     }
     const generator = generatorRef.current;
     if (!generator) throw new Error("Load the local model first.");
@@ -246,11 +251,11 @@ export function BrowserChatCapstone() {
         .map((message) => ({ role: message.role, content: message.content } as ModelMessage)),
       { role: "user", content: userText },
     ];
-    const result = await generator(context, { max_new_tokens: 90, do_sample: true, temperature: 0.72, top_p: 0.9, repetition_penalty: 1.08 });
+    const result = await generator(context, { max_new_tokens: Math.min(runtime.model.maxTokens, 120), do_sample: true, temperature: runtime.model.temperature, top_k: runtime.model.topK || undefined, top_p: 0.9, repetition_penalty: 1.08 });
     const raw = extractGeneratedText(result).trim() || "The local model returned no text.";
     const grounded = applyCourseGrounding(userText, raw);
     setGroundingSource(grounded.source);
-    return grounded.text;
+    return `${runtime.interface.responsePrefix}${grounded.text}`;
   };
 
   const send = async (override?: string, regenerateFrom?: PersistedChatMessage) => {
@@ -279,12 +284,13 @@ export function BrowserChatCapstone() {
       let firstEvent = 0;
       let eventCount = 0;
       let tokens = 0;
-      await consumeSse(createSseStream(response, controller.signal), (event, data) => {
+      await consumeSse(createSseStream(response, controller.signal, runtime.transport.wordsPerEvent, runtime.transport.delayMs), (event, data) => {
         eventCount += 1;
         if (!firstEvent && event === "token") firstEvent = performance.now();
         if (event === "token") {
-          tokens += 1;
-          dispatch({ type: "delta", id: assistantId, delta: String(data.delta ?? "") });
+          const delta = String(data.delta ?? "");
+          tokens += delta.match(/\S+/g)?.length ?? 0;
+          dispatch({ type: "delta", id: assistantId, delta });
         }
         if (event === "cancelled") dispatch({ type: "terminal", id: assistantId, status: "cancelled" });
       });
@@ -335,6 +341,7 @@ export function BrowserChatCapstone() {
         <div><span>Capstone</span><strong>Browser Chat</strong></div>
         <nav><Link href="/courses/models">Model</Link><Link href="/courses/systems">Platform</Link><Link href="/courses/product">React</Link></nav>
       </header>
+      <ProjectWorkbench student={student} />
       <div className="capstone-layout">
         <aside className="capstone-sidebar">
           <section className="backend-panel">
@@ -349,9 +356,9 @@ export function BrowserChatCapstone() {
           <section className="runtime-panel">
             <span>Request lifecycle</span>
             <div className="phase-row">{["queued", "prefill", "streaming"].map((phase) => <i className={requestPhase === phase ? "active" : ""} key={phase}>{phase}</i>)}</div>
-            <dl><div><dt>Queue</dt><dd>{metrics.queueMs} ms</dd></div><div><dt>Model</dt><dd>{metrics.modelMs} ms</dd></div><div><dt>TTFT</dt><dd>{metrics.ttftMs} ms</dd></div><div><dt>Events</dt><dd>{metrics.events}</dd></div><div><dt>Tokens</dt><dd>{metrics.tokens}</dd></div><div><dt>Total</dt><dd>{metrics.durationMs} ms</dd></div></dl>
+            {runtime.interface.showMetrics ? <dl><div><dt>Queue</dt><dd>{metrics.queueMs} ms</dd></div><div><dt>Model</dt><dd>{metrics.modelMs} ms</dd></div><div><dt>TTFT</dt><dd>{metrics.ttftMs} ms</dd></div><div><dt>Events</dt><dd>{metrics.events}</dd></div><div><dt>Tokens</dt><dd>{metrics.tokens}</dd></div><div><dt>Total</dt><dd>{metrics.durationMs} ms</dd></div></dl> : <p>Metrics hidden by runtime/interface.config.js.</p>}
           </section>
-          <section className="transport-panel"><span>Transport</span><strong>SSE-compatible ReadableStream</strong><code>token · done · cancelled</code><p>Each logical event is deliberately split across byte chunks before parsing.</p></section>
+          <section className="transport-panel"><span>Transport · build {runtime.buildNumber}</span><strong>SSE-compatible ReadableStream</strong><code>{runtime.transport.wordsPerEvent} words/event · {runtime.transport.delayMs} ms</code><p>The compiled transport adapter controls how the visible answer arrives.</p></section>
           <footer><span>Device-local · {mode} conversation</span><button type="button" onClick={reset}>Clear current backend</button></footer>
         </aside>
         <section className="chat-workspace">
@@ -359,7 +366,7 @@ export function BrowserChatCapstone() {
           <div className="capstone-messages" role={CHAT_LOG_ACCESSIBILITY.role} aria-live={CHAT_LOG_ACCESSIBILITY.ariaLive} aria-label="Conversation">
             {!hydrated ? <p className="capstone-hydrating">Restoring device-local conversation…</p> : visibleMessages.map((message) => (
               <article className={`capstone-message ${message.role} ${message.status}`} key={message.id}>
-                <span>{message.role === "user" ? "You" : "Model"}</span>
+                <span>{message.role === "user" ? "You" : runtime.interface.assistantName}</span>
                 <p>{message.content || (message.status === "streaming" ? "Processing context…" : "No output")}</p>
                 {message.status !== "complete" ? <em>{message.status}</em> : null}
               </article>
@@ -371,7 +378,7 @@ export function BrowserChatCapstone() {
             <textarea value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={(event) => { if (composerKeyAction(event.key, event.shiftKey) === "send") { event.preventDefault(); void send(); } }} placeholder={readyForMode ? "Send a message to the selected model…" : "Prepare the selected model first…"} disabled={!readyForMode || generating} aria-label="Chat message" />
             <div><span>Enter to send · Shift+Enter for newline</span><button type="submit" disabled={!readyForMode || generating || !input.trim()}>Send</button></div>
           </form>
-          <footer className="capstone-contract"><span>Execution contract</span><p>The Course 01 checkpoint is real, prompt-conditioned, and device-local. The 135M backend is real local inference but not treated as an authority: matching technical questions are constrained to reviewed course notes. Each backend owns an isolated conversation.</p></footer>
+          <footer className="capstone-contract"><span>Execution contract</span><p>Lesson files, edits, build settings, checkpoints, and conversations remain on this device. The active model, transport, and interface adapters above directly control new chat requests.</p></footer>
         </section>
       </div>
     </main>

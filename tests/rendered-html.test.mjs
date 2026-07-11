@@ -86,15 +86,21 @@ test("the capstone contains the complete React chat system", async () => {
   assert.match(html, /SSE-compatible ReadableStream/);
   assert.match(html, /Request lifecycle/);
   assert.match(html, /Train model/);
+  assert.match(html, /Your project/);
+  assert.match(html, /runtime\/model.config.js/);
+  assert.match(html, /Project file editor/);
+  assert.match(html, /Build &amp; run/);
   assert.match(html, /Enter to send/);
   assert.match(html, /Clear current backend/);
 });
 
 test("the design kit, simulations, and model engines remain reusable", async () => {
-  const [paperLab, experiment, capstone, engines, extended, sourceSets, layout, packageJson] = await Promise.all([
+  const [paperLab, experiment, capstone, workbench, projectWorkspace, engines, extended, sourceSets, layout, packageJson] = await Promise.all([
     readFile(new URL("../app/components/PaperLab.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/LessonExperiment.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/BrowserChatCapstone.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/ProjectWorkbench.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/lib/project-workspace.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/lib/lab-engines.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/lessons/extended-course.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/lessons/sources.ts", import.meta.url), "utf8"),
@@ -108,7 +114,15 @@ test("the design kit, simulations, and model engines remain reusable", async () 
   assert.match(capstone, /chatReducer/);
   assert.match(capstone, /localStorage/);
   assert.match(capstone, /@huggingface\/transformers/);
+  assert.match(capstone, /runtime\.model\.temperature/);
+  assert.match(capstone, /runtime\.transport\.wordsPerEvent/);
+  assert.match(workbench, /Previous build/);
+  assert.match(workbench, /saveProjectRuntime/);
+  assert.match(projectWorkspace, /latent-project-v1/);
+  assert.match(projectWorkspace, /compileProject/);
+  assert.match(projectWorkspace, /localStorage/);
   assert.match(engines, /trainCharacterRnn/);
+  assert.match(engines, /topK/);
   assert.match(extended, /systemsLessons/);
   assert.match(extended, /productLessons/);
   assert.equal((sourceSets.match(/role: /g) ?? []).length, 42);

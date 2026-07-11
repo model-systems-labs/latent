@@ -13,6 +13,7 @@ import {
   saveLessonPractice,
   useLearnerState,
 } from "../lib/learner-state";
+import { ensureProjectWorkspace, saveLessonProjectFile, type LessonProjectSeed } from "../lib/project-workspace";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 type CheckResult = { label: string; passed: boolean; detail: string };
@@ -230,8 +231,26 @@ function starterCodeFor(block: CodeBlock) {
   return `${signature}\n  // TODO: implement ${block.label.toLowerCase()}.\n}`;
 }
 
+function projectSeedForLesson(lesson: CourseLesson, hidden: string[], currentAnswers: Record<string, string>, verified: string[]): LessonProjectSeed {
+  const blocks = lesson.implementation.codeBlocks;
+  const contentFor = (practice: boolean) => blocks
+    .map((block, index) => `// ${String(index + 1).padStart(2, "0")} · ${block.label}\n${practice && hidden.includes(block.id) ? currentAnswers[block.id] ?? "" : block.code}`)
+    .join("\n\n");
+  return {
+    path: `${lesson.courseId ?? "models"}/${lesson.implementation.filename}`,
+    courseId: lesson.courseId ?? "models",
+    lessonId: lesson.id,
+    title: lesson.title,
+    content: contentFor(true),
+    referenceContent: contentFor(false),
+    verifiedCells: verified.length,
+    totalCells: blocks.length,
+  };
+}
+
 export function CodingSection({ lesson }: { lesson: CourseLesson }) {
   const blocks = lesson.implementation.codeBlocks;
+  const projectPath = `${lesson.courseId ?? "models"}/${lesson.implementation.filename}`;
   const [hiddenBlocks, setHiddenBlocks] = useState<string[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [verifiedBlockIds, setVerifiedBlockIds] = useState<string[]>([]);
@@ -242,24 +261,31 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const saved = loadLearnerState().lessons[lesson.id];
-      if (!saved) return;
-      setHiddenBlocks(saved.hiddenBlocks.filter((id) => blocks.some((block) => block.id === id)));
-      setAnswers(saved.answers);
-      setVerifiedBlockIds(saved.verifiedCells.filter((id) => blocks.some((block) => block.id === id)));
-      if (saved.hiddenBlocks.length) setPracticeMessage("Your device-local practice state was restored.");
+      const savedHidden = saved?.hiddenBlocks.filter((id) => blocks.some((block) => block.id === id)) ?? [];
+      const savedAnswers = saved?.answers ?? {};
+      const savedVerified = saved?.verifiedCells.filter((id) => blocks.some((block) => block.id === id)) ?? [];
+      setHiddenBlocks(savedHidden);
+      setAnswers(savedAnswers);
+      setVerifiedBlockIds(savedVerified);
+      ensureProjectWorkspace([projectSeedForLesson(lesson, savedHidden, savedAnswers, savedVerified)]);
+      if (savedHidden.length) setPracticeMessage("Your device-local practice state and project file were restored.");
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [blocks, lesson.id]);
+  }, [blocks, lesson]);
 
   const sourceFor = (block: CodeBlock) => hiddenBlocks.includes(block.id) ? answers[block.id] ?? "" : block.code;
   const toggleBlock = (block: CodeBlock) => {
     const nextHidden = hiddenBlocks.includes(block.id) ? hiddenBlocks.filter((id) => id !== block.id) : [...hiddenBlocks, block.id];
     const nextAnswers = { ...answers, [block.id]: answers[block.id] ?? starterCodeFor(block) };
+    const nextVerified = verifiedBlockIds.filter((id) => id !== block.id);
     setChecks([]);
     setCellResults((current) => ({ ...current, [block.id]: undefined }));
     setHiddenBlocks(nextHidden);
     setAnswers(nextAnswers);
+    setVerifiedBlockIds(nextVerified);
     saveLessonPractice(lesson.id, nextHidden, nextAnswers);
+    recordVerifiedCells(lesson.id, nextVerified);
+    saveLessonProjectFile(projectSeedForLesson(lesson, nextHidden, nextAnswers, nextVerified));
     setPracticeMessage("Implementation changed. Run the affected cell again.");
   };
   const hideAll = () => {
@@ -270,6 +296,7 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
     setVerifiedBlockIds([]);
     saveLessonPractice(lesson.id, nextHidden, nextAnswers);
     recordVerifiedCells(lesson.id, []);
+    saveLessonProjectFile(projectSeedForLesson(lesson, nextHidden, nextAnswers, []));
     setCellResults({});
     setChecks([]);
     setPracticeMessage("All conceptual blocks are hidden. Reconstruct them in any valid way.");
@@ -277,6 +304,7 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
   const showSolution = () => {
     setHiddenBlocks([]);
     saveLessonPractice(lesson.id, [], answers);
+    saveLessonProjectFile(projectSeedForLesson(lesson, [], answers, verifiedBlockIds));
     setCellResults({});
     setChecks([]);
     setPracticeMessage("Reference solution restored. Previous attempts remain available if you hide a cell again.");
@@ -286,6 +314,7 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
     const nextVerified = result.passed ? [...new Set([...verifiedBlockIds, block.id])] : verifiedBlockIds.filter((id) => id !== block.id);
     setVerifiedBlockIds(nextVerified);
     recordVerifiedCells(lesson.id, nextVerified);
+    saveLessonProjectFile(projectSeedForLesson(lesson, hiddenBlocks, answers, nextVerified));
     setCellResults((current) => ({ ...current, [block.id]: result }));
     setPracticeMessage(result.passed ? `${block.label} passed.` : `${block.label} needs attention.`);
   };
@@ -294,6 +323,7 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
     const nextVerified = blocks.filter((_, index) => results[index].passed).map((block) => block.id);
     setVerifiedBlockIds(nextVerified);
     recordVerifiedCells(lesson.id, nextVerified);
+    saveLessonProjectFile(projectSeedForLesson(lesson, hiddenBlocks, answers, nextVerified));
     setChecks(results);
     setCellResults(Object.fromEntries(blocks.map((block, index) => [block.id, results[index]])));
     const passed = results.filter((result) => result.passed).length;
@@ -308,7 +338,7 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
       <p className="implementation-intro">{lesson.implementation.intro}</p>
       <div className="practice-editor">
         <div className="editor-toolbar">
-          <div className="editor-file"><span>{lesson.implementation.filename}</span><strong>{hiddenBlocks.length === 0 ? "Complete reference" : `Practice · ${hiddenBlocks.length} cells active`}</strong></div>
+          <div className="editor-file"><span>{projectPath}</span><strong>{hiddenBlocks.length === 0 ? "Complete reference · saved to capstone" : `Practice · ${hiddenBlocks.length} cells active · saved locally`}</strong></div>
           <div className="editor-progress" aria-label={`${verifiedCells} of ${blocks.length} cells verified`}>
             <span>{verifiedCells}/{blocks.length} verified</span><i><b style={{ width: `${verifiedCells / blocks.length * 100}%` }} /></i>
           </div>
@@ -345,6 +375,7 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
                         setVerifiedBlockIds(nextVerified);
                         saveLessonPractice(lesson.id, hiddenBlocks, nextAnswers);
                         recordVerifiedCells(lesson.id, nextVerified);
+                        saveLessonProjectFile(projectSeedForLesson(lesson, hiddenBlocks, nextAnswers, nextVerified));
                         setCellResults((current) => ({ ...current, [block.id]: undefined }));
                       }}>Reset starter</button>
                     </div>
@@ -355,6 +386,7 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
                       setVerifiedBlockIds(nextVerified);
                       saveLessonPractice(lesson.id, hiddenBlocks, nextAnswers);
                       recordVerifiedCells(lesson.id, nextVerified);
+                      saveLessonProjectFile(projectSeedForLesson(lesson, hiddenBlocks, nextAnswers, nextVerified));
                       setCellResults((current) => ({ ...current, [block.id]: undefined }));
                       setChecks([]);
                       setPracticeMessage("Implementation changed. Run the affected cell again.");

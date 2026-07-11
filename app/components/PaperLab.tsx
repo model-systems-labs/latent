@@ -45,6 +45,7 @@ type PracticeImplementation = {
   ) => string;
 };
 type CheckResult = { label: string; passed: boolean; detail: string };
+type CellResult = { passed: boolean; detail: string };
 
 function composeSource(
   codeBlocks: CodeBlock[],
@@ -117,6 +118,73 @@ function evaluateImplementation(source: string) {
   return { implementation, checks };
 }
 
+function getBlockSource(
+  block: CodeBlock,
+  hiddenBlocks: BlockId[],
+  answers: Partial<Record<BlockId, string>>,
+) {
+  return hiddenBlocks.includes(block.id) ? answers[block.id] ?? "" : block.code;
+}
+
+function evaluateCell(block: CodeBlock, source: string): CellResult {
+  if (!source.trim()) {
+    return { passed: false, detail: "This cell is empty." };
+  }
+
+  try {
+    if (block.id === "softmax") {
+      const softmax = new Function(`"use strict";\n${source}\nreturn softmax;`)() as PracticeImplementation["softmax"];
+      const probabilities = softmax([1000, 999, 998], 0);
+      const sum = probabilities.reduce((total, probability) => total + probability, 0);
+      const valid =
+        probabilities.length === 3 &&
+        probabilities.every((probability) => Number.isFinite(probability) && probability > 0) &&
+        Math.abs(sum - 1) < 1e-6;
+      return {
+        passed: valid,
+        detail: valid ? `stable distribution · Σp = ${sum.toFixed(6)}` : "Expected finite probabilities that sum to 1.",
+      };
+    }
+
+    if (block.id === "nucleus") {
+      const nucleus = new Function(`"use strict";\n${source}\nreturn nucleus;`)() as PracticeImplementation["nucleus"];
+      const kept = nucleus(["A", "B", "C", "D"], [0.55, 0.3, 0.1, 0.05], 0.82);
+      const mass = kept.reduce((total, candidate) => total + candidate.probability, 0);
+      const valid = kept.length === 2 && kept[0]?.token === "A" && kept[1]?.token === "B" && Math.abs(mass - 1) < 1e-6;
+      return {
+        passed: valid,
+        detail: valid ? "kept A, B and renormalized mass" : "Expected the minimal top-p set A, B.",
+      };
+    }
+
+    if (block.id === "policy") {
+      const policy = new Function(`"use strict";\n${source}\nreturn policy;`)() as GenerationPolicy;
+      const valid = policy.top_p > 0 && policy.top_p <= 1 && policy.temperature > 0 && policy.max_new_tokens >= 8;
+      return {
+        passed: valid,
+        detail: valid ? `τ ${policy.temperature} · p ${policy.top_p}` : "Expected a usable sampling policy.",
+      };
+    }
+
+    if (block.id === "contract") {
+      const enforceOutputContract = new Function(`"use strict";\n${source}\nreturn enforceOutputContract;`)() as PracticeImplementation["enforceOutputContract"];
+      const output = enforceOutputContract("Certainly, this answer should be short and restricted.", {
+        maxWords: 5,
+        banned: ["certainly"],
+      });
+      const valid = output.split(/\s+/).filter(Boolean).length <= 5 && !/certainly/i.test(output);
+      return {
+        passed: valid,
+        detail: valid ? output : "Expected banned text removed and word count enforced.",
+      };
+    }
+
+    return { passed: true, detail: "Cell source is syntactically valid." };
+  } catch (error) {
+    return { passed: false, detail: error instanceof Error ? error.message : "This cell could not run." };
+  }
+}
+
 function extractGeneratedText(result: unknown) {
   if (!Array.isArray(result) || result.length === 0) return "";
   const generated = (result[0] as { generated_text?: unknown }).generated_text;
@@ -146,6 +214,7 @@ export function PaperLab({ lesson }: { lesson: PaperLesson }) {
   const [hiddenBlocks, setHiddenBlocks] = useState<BlockId[]>([]);
   const [answers, setAnswers] = useState<Partial<Record<BlockId, string>>>({});
   const [checks, setChecks] = useState<CheckResult[]>([]);
+  const [cellResults, setCellResults] = useState<Partial<Record<BlockId, CellResult>>>({});
   const [practiceMessage, setPracticeMessage] = useState("The reference implementation is complete and runnable.");
 
   const [modelStatus, setModelStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
@@ -178,6 +247,7 @@ export function PaperLab({ lesson }: { lesson: PaperLesson }) {
 
   const toggleBlock = (id: BlockId) => {
     setChecks([]);
+    setCellResults((current) => ({ ...current, [id]: undefined }));
     setPracticeMessage("Implementation changed. Run the checks again.");
     setHiddenBlocks((current) => {
       if (current.includes(id)) return current.filter((blockId) => blockId !== id);
@@ -191,13 +261,21 @@ export function PaperLab({ lesson }: { lesson: PaperLesson }) {
     setAnswers(blankAnswers);
     setHiddenBlocks(codeBlocks.map((block) => block.id));
     setChecks([]);
+    setCellResults({});
     setPracticeMessage("All conceptual blocks are hidden. Reconstruct them in any valid way.");
   };
 
   const showSolution = () => {
     setHiddenBlocks([]);
     setChecks([]);
+    setCellResults({});
     setPracticeMessage("Reference solution restored. Your previous attempts are still available if you hide a block again.");
+  };
+
+  const runCell = (block: CodeBlock) => {
+    const result = evaluateCell(block, getBlockSource(block, hiddenBlocks, answers));
+    setCellResults((current) => ({ ...current, [block.id]: result }));
+    setPracticeMessage(result.passed ? `${block.label} cell passed.` : `${block.label} cell needs attention.`);
   };
 
   const runChecks = () => {
@@ -583,6 +661,16 @@ export function PaperLab({ lesson }: { lesson: PaperLesson }) {
                         {hidden ? "Reveal solution" : "Hide to practice"}
                       </button>
                     </div>
+                    {block.concepts?.length ? (
+                      <div className="concept-strip" aria-label={`${block.label} concept variables`}>
+                        {block.concepts.map((concept) => (
+                          <span key={concept.name}>
+                            <code>{concept.name}</code>
+                            <em>{concept.detail}</em>
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
                     {hidden ? (
                       <div className="answer-area">
                         <textarea
@@ -591,6 +679,7 @@ export function PaperLab({ lesson }: { lesson: PaperLesson }) {
                           onChange={(event) => {
                             setAnswers((current) => ({ ...current, [block.id]: event.target.value }));
                             setChecks([]);
+                            setCellResults((current) => ({ ...current, [block.id]: undefined }));
                             setPracticeMessage("Implementation changed. Run the checks again.");
                           }}
                           placeholder={`// Reimplement: ${block.purpose}`}
@@ -605,6 +694,17 @@ export function PaperLab({ lesson }: { lesson: PaperLesson }) {
                         ))}
                       </div>
                     )}
+                    <div className="cell-footer">
+                      <button type="button" onClick={() => runCell(block)}>Run cell</button>
+                      {cellResults[block.id] ? (
+                        <span className={cellResults[block.id]?.passed ? "cell-result passed" : "cell-result failed"}>
+                          <i>{cellResults[block.id]?.passed ? "✓" : "×"}</i>
+                          {cellResults[block.id]?.detail}
+                        </span>
+                      ) : (
+                        <span>Run this cell independently.</span>
+                      )}
+                    </div>
                   </div>
                 );
               })}

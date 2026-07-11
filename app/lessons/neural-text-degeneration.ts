@@ -81,8 +81,24 @@ Answer precisely and pedagogically. Distinguish claims made by the paper from la
         id: "softmax",
         label: "Temperature-scaled softmax",
         purpose: "Convert logits into a normalized next-token distribution.",
+        concepts: [
+          {
+            name: "safeTemperature",
+            detail: "Clamp the denominator before scaling so temperature cannot divide logits by zero.",
+          },
+          {
+            name: "maxLogit",
+            detail: "Subtract the largest scaled logit before exponentiation to keep exp() numerically stable.",
+          },
+          {
+            name: "total",
+            detail: "Normalize every positive weight into a probability distribution whose mass sums to 1.",
+          },
+        ],
         code: `function softmax(logits, temperature = 1) {
-  const scaled = logits.map((logit) => logit / temperature);
+  const safeTemperature =
+    Number.isFinite(temperature) && temperature > 0 ? temperature : 1;
+  const scaled = logits.map((logit) => logit / safeTemperature);
   const maxLogit = Math.max(...scaled);
   const weights = scaled.map((logit) => Math.exp(logit - maxLogit));
   const total = weights.reduce((sum, weight) => sum + weight, 0);
@@ -94,6 +110,20 @@ Answer precisely and pedagogically. Distinguish claims made by the paper from la
         id: "nucleus",
         label: "Dynamic nucleus",
         purpose: "Keep the smallest ranked token set whose probability mass reaches p.",
+        concepts: [
+          {
+            name: "ranked",
+            detail: "Sort candidate tokens from most likely to least likely before applying the cumulative cutoff.",
+          },
+          {
+            name: "cumulativeMass",
+            detail: "Track how much probability mass the dynamic nucleus has captured.",
+          },
+          {
+            name: "renormalized",
+            detail: "Return probabilities scaled back to sum to 1 after the low-probability tail is removed.",
+          },
+        ],
         code: `function nucleus(tokens, probabilities, topP = 0.9) {
   const ranked = tokens
     .map((token, index) => ({ token, index, probability: probabilities[index] }))
@@ -118,6 +148,20 @@ Answer precisely and pedagogically. Distinguish claims made by the paper from la
         id: "policy",
         label: "Generation policy",
         purpose: "Expose the inference-time controls used by the local transformer.",
+        concepts: [
+          {
+            name: "temperature",
+            detail: "Lower values sharpen the distribution; higher values flatten it.",
+          },
+          {
+            name: "top_p",
+            detail: "Keep the smallest dynamic token set whose cumulative probability reaches this threshold.",
+          },
+          {
+            name: "repetition_penalty",
+            detail: "Reduce the model's tendency to reuse tokens it has already emitted.",
+          },
+        ],
         code: `const policy = {
   temperature: 0.78,
   top_k: 50,
@@ -131,6 +175,20 @@ Answer precisely and pedagogically. Distinguish claims made by the paper from la
         id: "contract",
         label: "Output contract",
         purpose: "Apply deterministic product requirements after token decoding.",
+        concepts: [
+          {
+            name: "banned",
+            detail: "Remove product-specific phrases after generation without changing the model weights.",
+          },
+          {
+            name: "words",
+            detail: "Count user-visible tokens at the text level, not the model-token level.",
+          },
+          {
+            name: "maxWords",
+            detail: "Enforce a predictable product boundary after stochastic decoding has finished.",
+          },
+        ],
         code: `function enforceOutputContract(text, { maxWords, banned }) {
   let output = text.replace(/[*_\\x60#>]/g, " ");
 

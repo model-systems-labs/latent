@@ -26,6 +26,8 @@ test("server-renders the complete paper lab", async () => {
   assert.match(html, /Original paper/);
   assert.match(html, /OpenRouter API key/);
   assert.match(html, /Hide all blocks/);
+  assert.match(html, /Run cell/);
+  assert.match(html, /safeTemperature/);
   assert.match(html, /Run behavioral checks/);
   assert.match(html, /Compare full sampling with your nucleus policy/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/i);

@@ -861,6 +861,33 @@ button:disabled {
   background: rgba(121, 104, 137, 0.1);
 }
 
+.concept-strip {
+  background: rgba(255, 255, 255, 0.03);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: repeat(3, 1fr);
+  padding: 0.85rem 1.2rem;
+}
+
+.concept-strip span {
+  display: grid;
+  gap: 0.28rem;
+  min-width: 0;
+}
+
+.concept-strip code {
+  color: #d8c9e7;
+  font-size: 0.64rem;
+}
+
+.concept-strip em {
+  color: #9e9790;
+  font-size: 0.61rem;
+  font-style: normal;
+  line-height: 1.45;
+}
+
 .code-lines {
   padding: 1rem 0 1.35rem;
 }
@@ -918,6 +945,73 @@ button:disabled {
   color: #8e8580;
   position: absolute;
   right: 0.8rem;
+}
+
+.cell-footer {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.018);
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  display: flex;
+  gap: 0.8rem;
+  justify-content: space-between;
+  min-height: 3.1rem;
+  padding: 0.65rem 1.2rem;
+}
+
+.cell-footer button {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 999px;
+  color: #d7d0c8;
+  cursor: pointer;
+  font-size: 0.62rem;
+  padding: 0.46rem 0.72rem;
+}
+
+.cell-footer button:hover,
+.cell-footer button:focus-visible {
+  border-color: rgba(203, 188, 218, 0.45);
+  color: #f0ebe4;
+}
+
+.cell-footer > span {
+  color: #8f8882;
+  font-size: 0.62rem;
+  line-height: 1.35;
+  text-align: right;
+}
+
+.cell-result {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.45rem;
+  justify-content: flex-end;
+}
+
+.cell-result i {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-style: normal;
+  height: 1.1rem;
+  justify-content: center;
+  width: 1.1rem;
+}
+
+.cell-result.passed {
+  color: #b8d0bd;
+}
+
+.cell-result.passed i {
+  background: rgba(126, 158, 135, 0.16);
+}
+
+.cell-result.failed {
+  color: #e2b6ad;
+}
+
+.cell-result.failed i {
+  background: rgba(168, 96, 84, 0.17);
 }
 
 .editor-footer {
@@ -1404,8 +1498,27 @@ button:disabled {
     width: 100%;
   }
 
+  .concept-strip {
+    grid-template-columns: 1fr;
+  }
+
   .code-lines > div {
     grid-template-columns: 2.5rem 1fr;
+  }
+
+  .cell-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .cell-footer button,
+  .cell-footer > span {
+    text-align: left;
+    width: 100%;
+  }
+
+  .cell-result {
+    justify-content: flex-start;
   }
 
   .check,

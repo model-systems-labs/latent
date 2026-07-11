@@ -2,6 +2,10 @@ export type CodeBlock = {
   id: string;
   label: string;
   purpose: string;
+  concepts?: Array<{
+    name: string;
+    detail: string;
+  }>;
   code: string;
 };
 

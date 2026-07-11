@@ -15,6 +15,10 @@ export type LessonMode = "live-training" | "core-mechanism" | "local-inference";
 export type CourseLesson = {
   id: string;
   number: number;
+  courseId?: "models" | "systems" | "product";
+  courseTitle?: string;
+  courseNumber?: number;
+  lessonNumber?: number;
   mode: LessonMode;
   modeLabel: string;
   eyebrow: string;
@@ -59,10 +63,21 @@ export type CourseLesson = {
     codeBlocks: CodeBlock[];
   };
   experiment: {
-    kind: "rnn" | "neural-lm" | "bpe" | "attention" | "transformer" | "icl";
+    kind: "rnn" | "neural-lm" | "bpe" | "attention" | "transformer" | "icl" | "systems" | "product";
+    variant?: "runtime" | "streaming" | "scheduling" | "reliability" | "state" | "streaming-ui" | "context-actions" | "quality";
     title: string;
     intro: string;
   };
+};
+
+export type CourseTrack = {
+  id: "models" | "systems" | "product";
+  number: number;
+  title: string;
+  shortTitle: string;
+  thesis: string;
+  outcome: string;
+  lessonIds: string[];
 };
 
 export type DistributionCandidate = {

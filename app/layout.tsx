@@ -22,9 +22,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "localhost:3001";
   const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   const metadataBase = new URL(`${protocol}://${host}`);
-  const title = "Latent · Language Model Fundamentals";
+  const title = "Latent · Build an LLM Chat System";
   const description =
-    "Six technical paper labs covering recurrent language models, embeddings, tokenization, attention, Transformers, and in-context learning in the browser.";
+    "Train a language model, implement the inference platform, and ship a complete React chat product in the browser.";
 
   return {
     metadataBase,

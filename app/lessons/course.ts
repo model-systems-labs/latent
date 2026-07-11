@@ -1,10 +1,13 @@
 import type { CourseLesson } from "../lib/lesson-types";
+import { courseTracks, productLessons, systemsLessons } from "./extended-course";
+
+export { courseTracks } from "./extended-course";
 
 const commonQuestionInstruction = `
 Answer precisely and pedagogically. Separate the source's claims from later practice. If the supplied context is insufficient, say what evidence would be needed. Do not invent quotations, page numbers, experiments, or results. Keep answers under 240 words unless the learner asks for more detail.
 `.trim();
 
-export const courseLessons: CourseLesson[] = [
+const modelLessons: CourseLesson[] = [
   {
     id: "character-rnns",
     number: 1,
@@ -893,10 +896,33 @@ return { passed: result.passed && result.predicted === "Z", detail: "predicted "
   },
 ];
 
+export const courseLessons: CourseLesson[] = [
+  ...modelLessons.map((lesson, index) => ({
+    ...lesson,
+    courseId: "models" as const,
+    courseTitle: "Language Models",
+    courseNumber: 1,
+    lessonNumber: index + 1,
+  })),
+  ...systemsLessons,
+  ...productLessons,
+];
+
+export { modelLessons };
+
 export function getLesson(slug: string) {
   return courseLessons.find((lesson) => lesson.id === slug);
 }
 
 export function getAdjacentLesson(lesson: CourseLesson, direction: -1 | 1) {
-  return courseLessons[lesson.number - 1 + direction];
+  const index = courseLessons.findIndex((candidate) => candidate.id === lesson.id);
+  return courseLessons[index + direction];
+}
+
+export function getTrack(courseId: string) {
+  return courseTracks.find((track) => track.id === courseId);
+}
+
+export function getTrackLessons(courseId: string) {
+  return courseLessons.filter((lesson) => lesson.courseId === courseId);
 }

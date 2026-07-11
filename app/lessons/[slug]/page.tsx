@@ -1,0 +1,22 @@
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { PaperLab } from "../../components/PaperLab";
+import { courseLessons, getLesson } from "../course";
+
+export function generateStaticParams() {
+  return courseLessons.map((lesson) => ({ slug: lesson.id }));
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const lesson = getLesson(slug);
+  if (!lesson) return {};
+  return { title: `${lesson.title} · Latent`, description: lesson.thesis };
+}
+
+export default async function LessonPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const lesson = getLesson(slug);
+  if (!lesson) notFound();
+  return <PaperLab lesson={lesson} />;
+}

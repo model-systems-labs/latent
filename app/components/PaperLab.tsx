@@ -313,15 +313,18 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
 }
 
 export function PaperLab({ lesson }: { lesson: CourseLesson }) {
-  const previous = courseLessons[lesson.number - 2];
-  const next = courseLessons[lesson.number];
+  const trackLessons = courseLessons.filter((candidate) => candidate.courseId === lesson.courseId);
+  const trackIndex = trackLessons.findIndex((candidate) => candidate.id === lesson.id);
+  const previous = trackLessons[trackIndex - 1];
+  const next = trackLessons[trackIndex + 1];
+  const courseHref = `/courses/${lesson.courseId ?? "models"}`;
   return (
     <main>
       <Atmosphere />
       <header className="site-header">
         <Link className="wordmark" href="/" aria-label="Latent course home"><i />latent</Link>
         <nav aria-label="Lesson navigation"><a href="#summary">Summary</a><a href="#questions">Questions</a><a href="#implementation">Implementation</a></nav>
-        <span>Lesson {String(lesson.number).padStart(2, "0")} / {String(courseLessons.length).padStart(2, "0")}</span>
+        <span>{lesson.courseTitle ?? "Language Models"} · {String(trackIndex + 1).padStart(2, "0")} / {String(trackLessons.length).padStart(2, "0")}</span>
       </header>
       <article className="paper-page" id="top">
         <HeaderSection lesson={lesson} />
@@ -329,9 +332,9 @@ export function PaperLab({ lesson }: { lesson: CourseLesson }) {
         <TextBoxSection lesson={lesson} />
         <CodingSection lesson={lesson} />
         <footer className="paper-footer lesson-footer">
-          {previous ? <Link href={`/papers/${previous.id}`}>← {previous.title}</Link> : <Link href="/">← Curriculum</Link>}
-          <p>Lesson {lesson.number} complete</p>
-          {next ? <Link href={`/papers/${next.id}`}>{next.title} →</Link> : <Link href="/">Curriculum ↑</Link>}
+          {previous ? <Link href={`/lessons/${previous.id}`}>← {previous.title}</Link> : <Link href={courseHref}>← Course</Link>}
+          <p>Lesson {trackIndex + 1} complete</p>
+          {next ? <Link href={`/lessons/${next.id}`}>{next.title} →</Link> : <Link href={courseHref}>Course ↑</Link>}
         </footer>
       </article>
     </main>

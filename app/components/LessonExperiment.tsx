@@ -365,6 +365,195 @@ function IclExperiment() {
   );
 }
 
+type SystemsVariant = "runtime" | "streaming" | "scheduling" | "reliability";
+type ProductVariant = "state" | "streaming-ui" | "context-actions" | "quality";
+
+function SystemsExperiment({ variant }: { variant: SystemsVariant }) {
+  const [policy, setPolicy] = useState<"static" | "continuous">("continuous");
+  const [failure, setFailure] = useState("queue-timeout");
+  const [result, setResult] = useState<{
+    metrics: Array<{ label: string; value: string }>;
+    trace: Array<{ label: string; detail: string; tone?: string }>;
+    artifact: string;
+  } | null>(null);
+
+  const run = () => {
+    if (variant === "runtime") {
+      setResult({
+        metrics: [
+          { label: "Queue", value: "18 ms" },
+          { label: "Prefill", value: "74 ms" },
+          { label: "TTFT", value: "92 ms" },
+          { label: "Decode", value: "21.4 tok/s" },
+        ],
+        trace: [
+          { label: "Admitted", detail: "request r-104 · prompt 96 tokens" },
+          { label: "Prefill", detail: "96 positions processed · 6 KV pages allocated" },
+          { label: "First token", detail: "visible after queue + prefill" },
+          { label: "Decode", detail: "32 serial iterations · cache grows to 8 pages" },
+          { label: "Complete", detail: "8 pages released to allocator" },
+        ],
+        artifact: "Request r-104 preserves separate queue, prefill, and decode measurements.",
+      });
+      return;
+    }
+    if (variant === "streaming") {
+      setResult({
+        metrics: [
+          { label: "Byte chunks", value: "17" },
+          { label: "SSE events", value: "14" },
+          { label: "Token events", value: "10" },
+          { label: "Remainder", value: "0 B" },
+        ],
+        trace: [
+          { label: "meta", detail: "request id and model metadata decoded" },
+          { label: "token × 4", detail: "first frame split across three byte chunks" },
+          { label: "pause", detail: "visual rendering paused; parser continues buffering" },
+          { label: "token × 6", detail: "ordered deltas recovered without duplication" },
+          { label: "done", detail: "terminal event closes parser and releases reader" },
+        ],
+        artifact: "event: token\ndata: {\"delta\":\"browser\"}\n\nevent: done\ndata: {}",
+      });
+      return;
+    }
+    if (variant === "scheduling") {
+      const continuous = policy === "continuous";
+      setResult({
+        metrics: [
+          { label: "Policy", value: continuous ? "Continuous" : "Static" },
+          { label: "Iterations", value: continuous ? "88" : "116" },
+          { label: "Utilization", value: continuous ? "86%" : "61%" },
+          { label: "P95 wait", value: continuous ? "7 steps" : "19 steps" },
+        ],
+        trace: continuous ? [
+          { label: "Iteration 01", detail: "a, b, c admitted · 11 pages active" },
+          { label: "Iteration 14", detail: "a completes · d joins next iteration" },
+          { label: "Iteration 31", detail: "b completes · 4 pages returned" },
+          { label: "Iteration 88", detail: "final request completes · allocator empty" },
+        ] : [
+          { label: "Batch 01", detail: "a, b, c fixed until longest request completes" },
+          { label: "Idle slots", detail: "a and c finish while their batch positions remain reserved", tone: "warning" },
+          { label: "Batch 02", detail: "waiting requests admitted after batch drain" },
+          { label: "Iteration 116", detail: "final request completes" },
+        ],
+        artifact: continuous ? "Completed requests release pages and batch positions immediately." : "Static membership leaves decode capacity idle behind the longest request.",
+      });
+      return;
+    }
+    const scenarios: Record<string, { metrics: Array<{ label: string; value: string }>; trace: Array<{ label: string; detail: string; tone?: string }>; artifact: string }> = {
+      "queue-timeout": {
+        metrics: [{ label: "Retry", value: "yes" }, { label: "Tokens visible", value: "0" }, { label: "Attempts", value: "2" }, { label: "Outcome", value: "complete" }],
+        trace: [{ label: "Queued", detail: "r-201 waits beyond admission deadline" }, { label: "Timeout", detail: "transient · no output emitted", tone: "warning" }, { label: "Retry", detail: "new attempt r-201.2 enters queue" }, { label: "Complete", detail: "attempt 2 streams normally" }],
+        artifact: "Safe retry: transient failure occurred before any user-visible token.",
+      },
+      "malformed-frame": {
+        metrics: [{ label: "Retry", value: "no" }, { label: "Tokens visible", value: "6" }, { label: "Parser errors", value: "1" }, { label: "Outcome", value: "error" }],
+        trace: [{ label: "Streaming", detail: "six token events applied" }, { label: "Parse error", detail: "invalid JSON in event data", tone: "error" }, { label: "Terminal", detail: "partial output preserved · transparent retry blocked" }],
+        artifact: "Unsafe retry: visible output already escaped the attempt boundary.",
+      },
+      "worker-crash": {
+        metrics: [{ label: "Retry", value: "yes" }, { label: "Tokens visible", value: "0" }, { label: "Worker restarts", value: "1" }, { label: "Outcome", value: "complete" }],
+        trace: [{ label: "Loading", detail: "worker starts model initialization" }, { label: "Crash", detail: "worker terminates before prefill", tone: "error" }, { label: "Restart", detail: "new worker owns a fresh model lifecycle" }, { label: "Complete", detail: "request succeeds on bounded retry" }],
+        artifact: "Worker failure cannot mutate React state after its request id is retired.",
+      },
+      "user-abort": {
+        metrics: [{ label: "Retry", value: "no" }, { label: "Tokens visible", value: "11" }, { label: "Abort latency", value: "14 ms" }, { label: "Outcome", value: "cancelled" }],
+        trace: [{ label: "Streaming", detail: "eleven token events applied" }, { label: "Abort", detail: "signal reaches reader and worker" }, { label: "Cancelled", detail: "partial message retained · late events ignored" }],
+        artifact: "Cancellation is a terminal user action, not an infrastructure error.",
+      },
+    };
+    setResult(scenarios[failure]);
+  };
+
+  return (
+    <>
+      {variant === "scheduling" ? (
+        <div className="simulation-controls"><span>Scheduling policy</span><button className={policy === "static" ? "selected" : ""} type="button" onClick={() => setPolicy("static")}>Static batch</button><button className={policy === "continuous" ? "selected" : ""} type="button" onClick={() => setPolicy("continuous")}>Continuous</button></div>
+      ) : null}
+      {variant === "reliability" ? (
+        <div className="simulation-controls"><label><span>Injected failure</span><select value={failure} onChange={(event) => setFailure(event.target.value)}><option value="queue-timeout">Queue timeout</option><option value="malformed-frame">Malformed frame</option><option value="worker-crash">Worker crash</option><option value="user-abort">User abort</option></select></label></div>
+      ) : null}
+      <div className="experiment-action"><p>Deterministic browser simulation · repeatable seed · explicit resource accounting</p><button type="button" onClick={run}>{result ? "Run again" : "Run simulation"}</button></div>
+      {result ? (
+        <div className="simulation-result">
+          <div className="metric-grid">{result.metrics.map((metric) => <span key={metric.label}><em>{metric.label}</em><strong>{metric.value}</strong></span>)}</div>
+          <div className="trace-list">{result.trace.map((event, index) => <div className={event.tone ?? ""} key={`${event.label}-${index}`}><span>{String(index + 1).padStart(2, "0")}</span><strong>{event.label}</strong><p>{event.detail}</p></div>)}</div>
+          <pre className="simulation-artifact">{result.artifact}</pre>
+        </div>
+      ) : <p className="experiment-empty">The trace, phase metrics, and executable artifact will appear here.</p>}
+    </>
+  );
+}
+
+function ProductExperiment({ variant }: { variant: ProductVariant }) {
+  const [step, setStep] = useState(0);
+  const [budget, setBudget] = useState(36);
+  const [ran, setRan] = useState(false);
+  const stateTrace = [
+    { action: "USER_MESSAGE", status: "complete", content: "Explain causal masking." },
+    { action: "START_ATTEMPT", status: "queued", content: "" },
+    { action: "STREAM_START", status: "streaming", content: "" },
+    { action: "TOKEN_DELTA", status: "streaming", content: "A causal mask" },
+    { action: "TOKEN_DELTA", status: "streaming", content: " removes future positions." },
+    { action: "COMPLETE", status: "complete", content: "A causal mask removes future positions." },
+  ];
+  const contextMessages = [
+    { id: "m1", role: "system", tokens: 8, text: "Technical tutor instructions" },
+    { id: "m2", role: "user", tokens: 12, text: "Earlier question about tokenization" },
+    { id: "m3", role: "assistant", tokens: 18, text: "Earlier tokenizer explanation" },
+    { id: "m4", role: "user", tokens: 9, text: "Current question about attention" },
+  ];
+  const selected: typeof contextMessages = [];
+  let used = 0;
+  for (const message of [...contextMessages].reverse()) {
+    if (used + message.tokens <= budget) {
+      selected.unshift(message);
+      used += message.tokens;
+    }
+  }
+
+  if (variant === "state") {
+    const current = stateTrace[Math.min(step, stateTrace.length - 1)];
+    return (
+      <>
+        <div className="simulation-controls"><span>Reducer event</span><input type="range" min="0" max={stateTrace.length - 1} value={step} onChange={(event) => setStep(Number(event.target.value))} /><code>{step + 1}/{stateTrace.length}</code></div>
+        <div className="simulation-result product-simulation">
+          <div className="state-inspector"><div><span>Action</span><strong>{current.action}</strong></div><div><span>Status</span><strong>{current.status}</strong></div><div><span>Available actions</span><strong>{current.status === "streaming" ? "Stop" : current.status === "complete" ? "Retry · Edit" : "None"}</strong></div></div>
+          <article className={`mini-message ${current.status}`}><span>Assistant</span><p>{current.content || "Waiting for output…"}</p></article>
+          <div className="trace-list compact-trace">{stateTrace.map((event, index) => <button className={index === step ? "active" : index < step ? "complete" : ""} type="button" onClick={() => setStep(index)} key={`${event.action}-${index}`}><span>{index + 1}</span><strong>{event.action}</strong></button>)}</div>
+        </div>
+      </>
+    );
+  }
+  if (variant === "streaming-ui") {
+    return (
+      <>
+        <div className="experiment-action"><p>60 transport deltas · frame-buffered React commits · bounded live announcements</p><button type="button" onClick={() => setRan(true)}>{ran ? "Replay stream" : "Render stream"}</button></div>
+        {ran ? <div className="simulation-result product-simulation"><div className="metric-grid"><span><em>Transport deltas</em><strong>60</strong></span><span><em>Visual commits</em><strong>12</strong></span><span><em>Live announcements</em><strong>4</strong></span><span><em>Dropped text</em><strong>0</strong></span></div><article className="stream-preview"><span>Assistant · generating</span><p>A causal mask prevents each token from reading positions that occur later in the sequence. The masked logits become zero probability after softmax.</p><i><b /></i></article><p className="simulation-artifact">Reader remains 214 px from the bottom → auto-scroll paused; generation continues.</p></div> : <p className="experiment-empty">Render and accessibility metrics will appear here.</p>}
+      </>
+    );
+  }
+  if (variant === "context-actions") {
+    return (
+      <>
+        <div className="simulation-controls"><label><span>Context budget · {budget} tokens</span><input type="range" min="12" max="50" value={budget} onChange={(event) => setBudget(Number(event.target.value))} /></label><code>{used}/{budget} used</code></div>
+        <div className="simulation-result product-simulation"><div className="context-stack">{contextMessages.map((message) => { const included = selected.some((item) => item.id === message.id); return <article className={included ? "included" : "excluded"} key={message.id}><span>{message.id} · {message.role}</span><p>{message.text}</p><code>{message.tokens} tokens · {included ? "included" : "excluded"}</code></article>; })}</div><div className="branch-record"><span>Regeneration record</span><code>{JSON.stringify({ parentUserId: "m4", attemptId: "a2", includedMessageIds: selected.map((message) => message.id), status: "queued" }, null, 2)}</code></div></div>
+      </>
+    );
+  }
+  const checks = [
+    ["Keyboard send", "Enter submits; Shift+Enter inserts a line"],
+    ["Stop focus", "Focus returns to the composer after cancellation"],
+    ["Live region", "Streaming text announced in bounded semantic batches"],
+    ["Storage schema", "Versioned record rejects secrets and malformed messages"],
+    ["Latency states", "Queue, loading, prefill, streaming, and error are distinct"],
+    ["Reduced motion", "Streaming cursor and transitions honor user preference"],
+  ];
+  return (
+    <><div className="experiment-action"><p>Deterministic product checklist · state, keyboard, storage, recovery, and announcements</p><button type="button" onClick={() => setRan(true)}>{ran ? "Run audit again" : "Run product audit"}</button></div>{ran ? <div className="quality-grid">{checks.map(([label, detail]) => <article key={label}><i>✓</i><div><strong>{label}</strong><p>{detail}</p></div></article>)}</div> : <p className="experiment-empty">The capstone product audit will appear here.</p>}</>
+  );
+}
+
 export function LessonExperiment({ lesson }: { lesson: CourseLesson }) {
   return (
     <div className="experiment-lab">
@@ -379,6 +568,8 @@ export function LessonExperiment({ lesson }: { lesson: CourseLesson }) {
       {lesson.experiment.kind === "attention" ? <AttentionExperiment /> : null}
       {lesson.experiment.kind === "transformer" ? <TransformerExperiment /> : null}
       {lesson.experiment.kind === "icl" ? <IclExperiment /> : null}
+      {lesson.experiment.kind === "systems" && lesson.experiment.variant ? <SystemsExperiment variant={lesson.experiment.variant as SystemsVariant} /> : null}
+      {lesson.experiment.kind === "product" && lesson.experiment.variant ? <ProductExperiment variant={lesson.experiment.variant as ProductVariant} /> : null}
     </div>
   );
 }

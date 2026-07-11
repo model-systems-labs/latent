@@ -342,7 +342,7 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
           <div className="editor-progress" aria-label={`${verifiedCells} of ${blocks.length} cells verified`}>
             <span>{verifiedCells}/{blocks.length} verified</span><i><b style={{ width: `${verifiedCells / blocks.length * 100}%` }} /></i>
           </div>
-          <div className="toolbar-actions"><button type="button" onClick={hideAll}>Practice all</button><button type="button" onClick={showSolution} disabled={hiddenBlocks.length === 0}>Restore all</button></div>
+          <div className="toolbar-actions"><button type="button" onClick={hideAll}>Practice all</button><button type="button" onClick={showSolution} disabled={hiddenBlocks.length === 0}>Restore all</button><Link href="/workspace">Open in IDE ↗</Link></div>
         </div>
         <div className="code-surface">
           {blocks.map((block, blockIndex) => {

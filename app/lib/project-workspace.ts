@@ -28,12 +28,21 @@ export type ProjectRuntime = {
   builtAt: number;
 };
 
+export type ProjectUnitResult = {
+  id: string;
+  path: string;
+  label: string;
+  passed: boolean;
+  detail: string;
+};
+
 export type ProjectState = {
   version: 1;
   files: Record<string, ProjectFile>;
   selectedPath: string;
   runtime: ProjectRuntime;
   output: { previous: string; current: string };
+  tests: { results: Record<string, ProjectUnitResult[]>; ranAt: number };
 };
 
 export type LessonProjectSeed = Omit<ProjectFile, "updatedAt">;
@@ -81,6 +90,7 @@ export function emptyProjectState(): ProjectState {
     selectedPath: RUNTIME_PATHS.model,
     runtime: { ...DEFAULT_RUNTIME, model: { ...DEFAULT_RUNTIME.model }, transport: { ...DEFAULT_RUNTIME.transport }, interface: { ...DEFAULT_RUNTIME.interface } },
     output: { previous: "", current: "" },
+    tests: { results: {}, ranAt: 0 },
   };
 }
 
@@ -143,7 +153,17 @@ function sanitizeProjectState(value: unknown): ProjectState {
     previous: typeof rawOutput?.previous === "string" ? rawOutput.previous : "",
     current: typeof rawOutput?.current === "string" ? rawOutput.current : "",
   };
-  return { version: 1, files, selectedPath, runtime: sanitizeRuntime(candidate.runtime), output };
+  const rawTests = candidate.tests as Partial<ProjectState["tests"]> | undefined;
+  const testResults: Record<string, ProjectUnitResult[]> = {};
+  if (rawTests?.results && typeof rawTests.results === "object") {
+    for (const [path, results] of Object.entries(rawTests.results)) {
+      if (!Array.isArray(results)) continue;
+      testResults[path] = results.filter((result): result is ProjectUnitResult => Boolean(result) && typeof result === "object" && typeof result.id === "string" && typeof result.label === "string" && typeof result.passed === "boolean" && typeof result.detail === "string")
+        .map((result) => ({ ...result, path }));
+    }
+  }
+  const tests = { results: testResults, ranAt: finiteNumber(rawTests?.ranAt, 0) };
+  return { version: 1, files, selectedPath, runtime: sanitizeRuntime(candidate.runtime), output, tests };
 }
 
 export function loadProjectState(): ProjectState {
@@ -245,6 +265,17 @@ export function compileProject(files: Record<string, ProjectFile>, previous: Pro
 
 export function saveProjectRuntime(runtime: ProjectRuntime, preview: string) {
   return updateProjectState((state) => ({ ...state, runtime, output: { previous: state.output.current, current: preview } }));
+}
+
+export function saveProjectTestResults(results: ProjectUnitResult[], replaceAll = false) {
+  return updateProjectState((state) => {
+    const nextResults = replaceAll ? {} as Record<string, ProjectUnitResult[]> : { ...state.tests.results };
+    for (const path of new Set(results.map((result) => result.path))) nextResults[path] = [];
+    for (const result of results) {
+      nextResults[result.path].push(result);
+    }
+    return { ...state, tests: { results: nextResults, ranAt: Date.now() } };
+  });
 }
 
 export function useProjectState() {

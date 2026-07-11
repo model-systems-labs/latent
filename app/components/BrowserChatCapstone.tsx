@@ -5,7 +5,6 @@ import { useEffect, useReducer, useRef, useState } from "react";
 import { sampleCharacterRnn, trainCharacterRnn } from "../lib/lab-engines";
 import { loadLearnerState, saveCharacterRnnArtifact, type SavedRnnArtifact } from "../lib/learner-state";
 import { useProjectState } from "../lib/project-workspace";
-import { ProjectWorkbench } from "./ProjectWorkbench";
 import {
   CAPSTONE_STORAGE_KEY,
   CHAT_LOG_ACCESSIBILITY,
@@ -339,9 +338,8 @@ export function BrowserChatCapstone() {
       <header className="capstone-topbar">
         <Link className="wordmark" href="/"><i />latent</Link>
         <div><span>Capstone</span><strong>Browser Chat</strong></div>
-        <nav><Link href="/courses/models">Model</Link><Link href="/courses/systems">Platform</Link><Link href="/courses/product">React</Link></nav>
+        <nav><Link href="/workspace">IDE</Link><Link href="/courses/models">Model</Link><Link href="/courses/systems">Platform</Link><Link href="/courses/product">React</Link></nav>
       </header>
-      <ProjectWorkbench student={student} />
       <div className="capstone-layout">
         <aside className="capstone-sidebar">
           <section className="backend-panel">

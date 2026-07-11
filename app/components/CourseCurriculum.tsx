@@ -15,6 +15,7 @@ export function CourseCurriculum({ title, lessons }: { title: string; lessons: C
       <div className="course-progress-record" aria-label={`${completed} of ${lessons.length} lessons complete`}>
         <div><span>Device-local project</span><strong>{completed}/{lessons.length} lessons complete · {savedFiles}/{lessons.length} source files saved</strong></div>
         <i><b style={{ width: `${completed / lessons.length * 100}%` }} /></i>
+        <Link href="/workspace">Open project IDE →</Link>
       </div>
       <section className="curriculum-list" aria-label={`${title} lessons`}>
         {lessons.map((lesson, index) => {

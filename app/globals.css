@@ -1293,6 +1293,15 @@ button:disabled {
   white-space: pre-wrap;
 }
 
+.output-grid article footer {
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.61rem;
+  letter-spacing: 0.08em;
+  padding: 0.75rem 1rem;
+  text-transform: uppercase;
+}
+
 .nucleus-output {
   background: rgba(211, 202, 223, 0.18);
 }

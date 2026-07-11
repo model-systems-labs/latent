@@ -47,6 +47,15 @@ type PracticeImplementation = {
 type CheckResult = { label: string; passed: boolean; detail: string };
 type CellResult = { passed: boolean; detail: string };
 
+const BASELINE_POLICY = {
+  temperature: 1.45,
+  top_k: 0,
+  top_p: 1,
+  repetition_penalty: 1,
+  no_repeat_ngram_size: 0,
+  max_new_tokens: 96,
+};
+
 function composeSource(
   codeBlocks: CodeBlock[],
   hiddenBlocks: BlockId[],
@@ -196,6 +205,10 @@ function extractGeneratedText(result: unknown) {
   return "";
 }
 
+function countWords(text: string) {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
 export function PaperLab({ lesson }: { lesson: PaperLesson }) {
   const codeBlocks = lesson.implementation.codeBlocks;
   const distribution = lesson.diagram.distribution;
@@ -223,10 +236,10 @@ export function PaperLab({ lesson }: { lesson: PaperLesson }) {
   const [modelError, setModelError] = useState("");
   const [prompt, setPrompt] = useState("Write a short opening for a story about a radio signal received from an empty planet.");
   const [bannedPhrases, setBannedPhrases] = useState("certainly, delve, as an AI");
-  const [maxWords, setMaxWords] = useState(44);
+  const [maxWords, setMaxWords] = useState(32);
   const [baselineOutput, setBaselineOutput] = useState("");
   const [nucleusOutput, setNucleusOutput] = useState("");
-  const [generationStatus, setGenerationStatus] = useState("Load the model when you are ready to compare outputs.");
+  const [generationStatus, setGenerationStatus] = useState("Load the model when you are ready to compare raw and controlled decoding.");
   const [generating, setGenerating] = useState(false);
 
   const retainedTokens = useMemo(() => {
@@ -433,28 +446,32 @@ export function PaperLab({ lesson }: { lesson: PaperLesson }) {
       }
 
       const messages: ModelMessage[] = [
-        { role: "system", content: "Continue directly in plain prose. Do not use headings, lists, or disclaimers." },
+        {
+          role: "system",
+          content:
+            "Continue directly in plain prose. Do not use headings, lists, markdown, preambles, or disclaimers.",
+        },
         { role: "user", content: prompt.trim() },
       ];
 
-      setGenerationStatus("Generating from the full probability distribution…");
+      setGenerationStatus("Generating a raw high-variance sample from the full distribution...");
       const baseline = await generateWithStream(
         generator,
         messages,
         {
-          max_new_tokens: implementation.policy.max_new_tokens,
+          max_new_tokens: BASELINE_POLICY.max_new_tokens,
           do_sample: true,
-          temperature: 1,
-          top_k: 0,
-          top_p: 1,
-          repetition_penalty: 1,
-          no_repeat_ngram_size: 0,
+          temperature: BASELINE_POLICY.temperature,
+          top_k: BASELINE_POLICY.top_k,
+          top_p: BASELINE_POLICY.top_p,
+          repetition_penalty: BASELINE_POLICY.repetition_penalty,
+          no_repeat_ngram_size: BASELINE_POLICY.no_repeat_ngram_size,
         },
         setBaselineOutput,
       );
       setBaselineOutput(baseline);
 
-      setGenerationStatus("Generating from the nucleus defined by your implementation…");
+      setGenerationStatus("Generating the controlled product answer from your nucleus policy...");
       const nucleus = await generateWithStream(
         generator,
         messages,
@@ -472,7 +489,7 @@ export function PaperLab({ lesson }: { lesson: PaperLesson }) {
       );
       const banned = bannedPhrases.split(",").map((phrase) => phrase.trim()).filter(Boolean);
       setNucleusOutput(implementation.enforceOutputContract(nucleus, { maxWords, banned }));
-      setGenerationStatus("Comparison complete. Run it again to observe sampling variance.");
+      setGenerationStatus("Comparison complete. The left side is intentionally loose; the right side applies the learned policy and product contract.");
     } catch (error) {
       setModelError(error instanceof Error ? error.message : "Generation failed.");
       setGenerationStatus("Generation stopped.");
@@ -753,8 +770,22 @@ export function PaperLab({ lesson }: { lesson: PaperLesson }) {
             </button>
             {modelError ? <p className="model-error">{modelError}</p> : null}
             <div className="output-grid">
-              <article><header><span>Full distribution</span><code>τ 1.0 · p 1.0</code></header><p>{baselineOutput || "The untruncated sample will stream here."}</p></article>
-              <article className="nucleus-output"><header><span>Nucleus + contract</span><code>your implementation</code></header><p>{nucleusOutput || "The constrained sample will stream here."}</p></article>
+              <article>
+                <header>
+                  <span>Raw full distribution</span>
+                  <code>tau {BASELINE_POLICY.temperature} · p {BASELINE_POLICY.top_p} · no contract</code>
+                </header>
+                <p>{baselineOutput || "The intentionally loose sample will stream here."}</p>
+                <footer>{baselineOutput ? `${countWords(baselineOutput)} words · unconstrained` : "High temperature, full tail"}</footer>
+              </article>
+              <article className="nucleus-output">
+                <header>
+                  <span>Controlled nucleus output</span>
+                  <code>your policy · contract</code>
+                </header>
+                <p>{nucleusOutput || "The policy-constrained answer will stream here."}</p>
+                <footer>{nucleusOutput ? `${countWords(nucleusOutput)} words · capped at ${maxWords}` : "Top-p, repetition control, word cap"}</footer>
+              </article>
             </div>
             <p className="generation-status">{generationStatus}</p>
           </div>

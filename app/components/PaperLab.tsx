@@ -48,7 +48,7 @@ type CheckResult = { label: string; passed: boolean; detail: string };
 type CellResult = { passed: boolean; detail: string };
 
 const BASELINE_POLICY = {
-  temperature: 1.45,
+  temperature: 1.15,
   top_k: 0,
   top_p: 1,
   repetition_penalty: 1,
@@ -454,7 +454,7 @@ export function PaperLab({ lesson }: { lesson: PaperLesson }) {
         { role: "user", content: prompt.trim() },
       ];
 
-      setGenerationStatus("Generating a raw high-variance sample from the full distribution...");
+      setGenerationStatus("Generating a raw full-tail sample without product controls...");
       const baseline = await generateWithStream(
         generator,
         messages,
@@ -489,7 +489,7 @@ export function PaperLab({ lesson }: { lesson: PaperLesson }) {
       );
       const banned = bannedPhrases.split(",").map((phrase) => phrase.trim()).filter(Boolean);
       setNucleusOutput(implementation.enforceOutputContract(nucleus, { maxWords, banned }));
-      setGenerationStatus("Comparison complete. The left side is intentionally loose; the right side applies the learned policy and product contract.");
+      setGenerationStatus("Comparison complete. The left side is a realistic raw baseline; the right side applies the learned policy and product contract.");
     } catch (error) {
       setModelError(error instanceof Error ? error.message : "Generation failed.");
       setGenerationStatus("Generation stopped.");
@@ -775,8 +775,8 @@ export function PaperLab({ lesson }: { lesson: PaperLesson }) {
                   <span>Raw full distribution</span>
                   <code>tau {BASELINE_POLICY.temperature} · p {BASELINE_POLICY.top_p} · no contract</code>
                 </header>
-                <p>{baselineOutput || "The intentionally loose sample will stream here."}</p>
-                <footer>{baselineOutput ? `${countWords(baselineOutput)} words · unconstrained` : "High temperature, full tail"}</footer>
+                <p>{baselineOutput || "The raw full-tail sample will stream here."}</p>
+                <footer>{baselineOutput ? `${countWords(baselineOutput)} words · unconstrained` : "Mild temperature, full tail"}</footer>
               </article>
               <article className="nucleus-output">
                 <header>

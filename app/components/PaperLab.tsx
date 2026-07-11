@@ -197,6 +197,11 @@ function evaluateBlock(block: CodeBlock, source: string): CheckResult {
   }
 }
 
+function starterCodeFor(block: CodeBlock) {
+  const signature = block.code.split("\n")[0];
+  return `${signature}\n  // TODO: implement ${block.label.toLowerCase()}.\n}`;
+}
+
 export function CodingSection({ lesson }: { lesson: CourseLesson }) {
   const blocks = lesson.implementation.codeBlocks;
   const [hiddenBlocks, setHiddenBlocks] = useState<string[]>([]);
@@ -210,12 +215,12 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
     setChecks([]);
     setCellResults((current) => ({ ...current, [block.id]: undefined }));
     setHiddenBlocks((current) => current.includes(block.id) ? current.filter((id) => id !== block.id) : [...current, block.id]);
-    setAnswers((current) => ({ ...current, [block.id]: current[block.id] ?? "" }));
+    setAnswers((current) => ({ ...current, [block.id]: current[block.id] ?? starterCodeFor(block) }));
     setPracticeMessage("Implementation changed. Run the affected cell again.");
   };
   const hideAll = () => {
     setHiddenBlocks(blocks.map((block) => block.id));
-    setAnswers(Object.fromEntries(blocks.map((block) => [block.id, ""])));
+    setAnswers(Object.fromEntries(blocks.map((block) => [block.id, starterCodeFor(block)])));
     setCellResults({});
     setChecks([]);
     setPracticeMessage("All conceptual blocks are hidden. Reconstruct them in any valid way.");
@@ -234,10 +239,12 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
   const runAll = () => {
     const results = blocks.map((block) => evaluateBlock(block, sourceFor(block)));
     setChecks(results);
+    setCellResults(Object.fromEntries(blocks.map((block, index) => [block.id, results[index]])));
     const passed = results.filter((result) => result.passed).length;
     setPracticeMessage(passed === results.length ? "All behavioral checks pass. Run the experiment below." : `${passed} of ${results.length} behavioral checks pass.`);
   };
   const passedChecks = checks.filter((check) => check.passed).length;
+  const verifiedCells = Object.values(cellResults).filter((result) => result?.passed).length;
 
   return (
     <section className="paper-section implementation-section" id="implementation">
@@ -245,8 +252,11 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
       <p className="implementation-intro">{lesson.implementation.intro}</p>
       <div className="practice-editor">
         <div className="editor-toolbar">
-          <div><span>{lesson.implementation.filename}</span><strong>{hiddenBlocks.length === 0 ? "Reference mode" : `Practice mode · ${hiddenBlocks.length} hidden`}</strong></div>
-          <div className="toolbar-actions"><button type="button" onClick={hideAll}>Hide all blocks</button><button type="button" onClick={showSolution} disabled={hiddenBlocks.length === 0}>Show solution</button></div>
+          <div className="editor-file"><span>{lesson.implementation.filename}</span><strong>{hiddenBlocks.length === 0 ? "Complete reference" : `Practice · ${hiddenBlocks.length} cells active`}</strong></div>
+          <div className="editor-progress" aria-label={`${verifiedCells} of ${blocks.length} cells verified`}>
+            <span>{verifiedCells}/{blocks.length} verified</span><i><b style={{ width: `${verifiedCells / blocks.length * 100}%` }} /></i>
+          </div>
+          <div className="toolbar-actions"><button type="button" onClick={hideAll}>Practice all</button><button type="button" onClick={showSolution} disabled={hiddenBlocks.length === 0}>Restore all</button></div>
         </div>
         <div className="code-surface">
           {blocks.map((block, blockIndex) => {
@@ -257,25 +267,33 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
               <div className={`practice-block ${hidden ? "is-hidden" : ""}`} key={block.id}>
                 <div className="block-heading">
                   <div><span>0{blockIndex + 1}</span><strong>{block.label}</strong><em>{block.purpose}</em></div>
-                  <button type="button" onClick={() => toggleBlock(block)}>{hidden ? "Reveal solution" : "Hide to practice"}</button>
+                  <div className="block-actions">
+                    <button className="run-cell-button" type="button" onClick={() => runCell(block)}>Run cell</button>
+                    <button type="button" onClick={() => toggleBlock(block)}>{hidden ? "Show reference" : "Practice cell"}</button>
+                  </div>
                 </div>
                 {block.concepts?.length ? <div className="concept-strip" aria-label={`${block.label} variables`}>{block.concepts.map((concept) => <span key={concept.name}><code>{concept.name}</code><em>{concept.detail}</em></span>)}</div> : null}
                 {hidden ? (
                   <div className="answer-area">
+                    <div className="practice-guidance">
+                      <div><span>Practice mode</span><strong>Complete the function, then run this cell.</strong></div>
+                      <button type="button" onClick={() => {
+                        setAnswers((current) => ({ ...current, [block.id]: starterCodeFor(block) }));
+                        setCellResults((current) => ({ ...current, [block.id]: undefined }));
+                      }}>Reset starter</button>
+                    </div>
                     <textarea aria-label={`Reimplement ${block.label}`} value={answers[block.id] ?? ""} onChange={(event) => {
                       setAnswers((current) => ({ ...current, [block.id]: event.target.value }));
                       setCellResults((current) => ({ ...current, [block.id]: undefined }));
                       setChecks([]);
                       setPracticeMessage("Implementation changed. Run the affected cell again.");
-                    }} placeholder={`// Reimplement: ${block.purpose}`} spellCheck="false" />
-                    <button type="button" onClick={() => setAnswers((current) => ({ ...current, [block.id]: "" }))}>Clear attempt</button>
+                    }} spellCheck="false" />
                   </div>
                 ) : (
                   <div className="code-lines">{block.code.split("\n").map((line, lineIndex) => <div key={`${block.id}-${lineIndex}`}><span>{startLine + lineIndex}</span><code>{line || " "}</code></div>)}</div>
                 )}
                 <div className="cell-footer">
-                  <button type="button" onClick={() => runCell(block)}>Run cell</button>
-                  {result ? <span className={result.passed ? "cell-result passed" : "cell-result failed"}><i>{result.passed ? "✓" : "×"}</i>{result.detail}</span> : <span>Run this cell independently.</span>}
+                  {result ? <span className={result.passed ? "cell-result passed" : "cell-result failed"}><i>{result.passed ? "✓" : "×"}</i>{result.detail}</span> : <span>Not run yet · checks behavior, not exact text.</span>}
                 </div>
               </div>
             );

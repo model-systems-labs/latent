@@ -50,7 +50,7 @@ test("every lesson uses the complete reusable learning flow", async () => {
     assert.match(html, /Paper claim/);
     assert.match(html, /Browser reproduction/);
     assert.match(html, /OpenRouter API key/);
-    assert.match(html, /Hide all blocks/);
+    assert.match(html, /Practice all/);
     assert.match(html, /Run cell/);
     assert.match(html, /Run behavioral checks/);
     assert.match(html, new RegExp(action));

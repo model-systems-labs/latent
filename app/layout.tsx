@@ -22,9 +22,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "localhost:3001";
   const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   const metadataBase = new URL(`${protocol}://${host}`);
-  const title = "Neural Text Degeneration · Latent Paper Lab";
+  const title = "Latent · Language Model Fundamentals";
   const description =
-    "Read the original paper, question its claims, reconstruct nucleus sampling, and compare decoding policies on a real transformer running in your browser.";
+    "Six technical paper labs covering recurrent language models, embeddings, tokenization, attention, Transformers, and in-context learning in the browser.";
 
   return {
     metadataBase,

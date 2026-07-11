@@ -7,6 +7,62 @@ export type CodeBlock = {
     detail: string;
   }>;
   code: string;
+  checkCode?: string;
+};
+
+export type LessonMode = "live-training" | "core-mechanism" | "local-inference";
+
+export type CourseLesson = {
+  id: string;
+  number: number;
+  mode: LessonMode;
+  modeLabel: string;
+  eyebrow: string;
+  title: string;
+  thesis: string;
+  paperUrl: string;
+  paperTitle: string;
+  authors: string;
+  year: string;
+  paperContext: string;
+  summary: Array<{
+    label: string;
+    body: string;
+  }>;
+  claims: {
+    paper: string;
+    lab: string;
+    limit: string;
+  };
+  diagram: {
+    title: string;
+    caption: string;
+    nodes: Array<{
+      label: string;
+      value: string;
+    }>;
+  };
+  questions: {
+    intro: string;
+    suggestions: string[];
+  };
+  dataset: {
+    name: string;
+    source: string;
+    license: string;
+    size: string;
+    preview: string;
+  };
+  implementation: {
+    filename: string;
+    intro: string;
+    codeBlocks: CodeBlock[];
+  };
+  experiment: {
+    kind: "rnn" | "neural-lm" | "bpe" | "attention" | "transformer" | "icl";
+    title: string;
+    intro: string;
+  };
 };
 
 export type DistributionCandidate = {

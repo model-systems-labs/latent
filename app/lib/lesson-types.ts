@@ -12,6 +12,15 @@ export type CodeBlock = {
 
 export type LessonMode = "live-training" | "core-mechanism" | "local-inference";
 
+export type LessonSource = {
+  role: "Primary" | "Paper" | "Specification" | "Implementation" | "Guide";
+  title: string;
+  authors: string;
+  year: string;
+  url: string;
+  relevance: string;
+};
+
 export type CourseLesson = {
   id: string;
   number: number;
@@ -29,6 +38,7 @@ export type CourseLesson = {
   authors: string;
   year: string;
   paperContext: string;
+  sources: LessonSource[];
   summary: Array<{
     label: string;
     body: string;

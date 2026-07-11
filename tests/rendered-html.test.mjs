@@ -64,8 +64,10 @@ test("all fourteen lessons use the reusable learning flow", async () => {
     assert.equal(response.status, 200, slug);
     const html = await response.text();
     assert.match(html, new RegExp(title));
-    assert.match(html, /Original source/);
-    assert.match(html, /Paper claim/);
+    assert.match(html, /Source set/);
+    assert.match(html, /aria-label="3 sources for/);
+    assert.match(html, /primary and supporting references/);
+    assert.match(html, /Primary claim/);
     assert.match(html, /Browser reproduction/);
     assert.match(html, /OpenRouter API key/);
     assert.match(html, /Practice all/);
@@ -89,12 +91,13 @@ test("the capstone contains the complete React chat system", async () => {
 });
 
 test("the design kit, simulations, and model engines remain reusable", async () => {
-  const [paperLab, experiment, capstone, engines, extended, layout, packageJson] = await Promise.all([
+  const [paperLab, experiment, capstone, engines, extended, sourceSets, layout, packageJson] = await Promise.all([
     readFile(new URL("../app/components/PaperLab.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/LessonExperiment.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/BrowserChatCapstone.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/lib/lab-engines.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/lessons/extended-course.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/lessons/sources.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
   ]);
@@ -108,6 +111,10 @@ test("the design kit, simulations, and model engines remain reusable", async () 
   assert.match(engines, /trainCharacterRnn/);
   assert.match(extended, /systemsLessons/);
   assert.match(extended, /productLessons/);
+  assert.equal((sourceSets.match(/role: /g) ?? []).length, 42);
+  assert.equal((sourceSets.match(/^  (?:"[^"]+"|[a-z-]+): \[$/gm) ?? []).length, 14);
+  assert.match(paperLab, /lesson\.sources\.map/);
+  assert.match(paperLab, /Synthesize across these sources/);
   assert.match(layout, /og\.png/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   await assert.rejects(access(new URL("../app/_sites-preview", templateRoot)));

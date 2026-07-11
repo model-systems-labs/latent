@@ -34,11 +34,22 @@ export function HeaderSection({ lesson }: { lesson: CourseLesson }) {
         <span>{lesson.authors}</span>
         <span>{lesson.year}</span>
       </div>
-      <a className="paper-link" href={lesson.paperUrl} target="_blank" rel="noreferrer">
-        <span>Original source</span>
-        <strong>{lesson.paperTitle}</strong>
-        <em>Read ↗</em>
-      </a>
+      <div className="source-set" aria-label={`${lesson.sources.length} sources for ${lesson.title}`}>
+        <div className="source-set-heading">
+          <span>Source set</span>
+          <em>{lesson.sources.length} primary and supporting references</em>
+        </div>
+        <div className="source-set-grid">
+          {lesson.sources.map((source) => (
+            <a href={source.url} target="_blank" rel="noreferrer" key={`${source.role}-${source.title}`}>
+              <span>{source.role} · {source.year}</span>
+              <strong>{source.title}</strong>
+              <p>{source.relevance}</p>
+              <em>{source.authors} ↗</em>
+            </a>
+          ))}
+        </div>
+      </div>
     </header>
   );
 }
@@ -74,7 +85,7 @@ export function ParagraphSection({ lesson }: { lesson: CourseLesson }) {
         <div className="summary-evidence">
           <DiagramSection lesson={lesson} />
           <dl className="fidelity-record">
-            <div><dt>Paper claim</dt><dd>{lesson.claims.paper}</dd></div>
+            <div><dt>Primary claim</dt><dd>{lesson.claims.paper}</dd></div>
             <div><dt>Browser reproduction</dt><dd>{lesson.claims.lab}</dd></div>
             <div><dt>Boundary</dt><dd>{lesson.claims.limit}</dd></div>
           </dl>
@@ -92,6 +103,9 @@ export function TextBoxSection({ lesson }: { lesson: CourseLesson }) {
   const [asking, setAsking] = useState(false);
   const [questionError, setQuestionError] = useState("");
   const [answerModel, setAnswerModel] = useState("");
+  const sourceContext = lesson.sources
+    .map((source) => `- ${source.role}: "${source.title}" — ${source.authors} (${source.year}). Relevance: ${source.relevance}`)
+    .join("\n");
 
   const askPaper = async (event: FormEvent) => {
     event.preventDefault();
@@ -114,7 +128,7 @@ export function TextBoxSection({ lesson }: { lesson: CourseLesson }) {
         body: JSON.stringify({
           model: "openrouter/auto",
           messages: [
-            { role: "system", content: lesson.paperContext },
+            { role: "system", content: `${lesson.paperContext}\n\nCurated source set:\n${sourceContext}\nSynthesize across these sources when relevant, and identify which source supports each part of the answer.` },
             ...nextChat.map((message) => ({ role: message.role, content: message.content })),
           ],
         }),
@@ -161,13 +175,13 @@ export function TextBoxSection({ lesson }: { lesson: CourseLesson }) {
               </div>
             ) : chat.map((message, index) => (
               <div className={`chat-message ${message.role}`} key={`${message.role}-${index}`}>
-                <span>{message.role === "user" ? "You" : "Paper guide"}</span><p>{message.content}</p>
+                <span>{message.role === "user" ? "You" : "Source guide"}</span><p>{message.content}</p>
               </div>
             ))}
           </div>
           <form className="question-form" onSubmit={askPaper}>
-            <textarea aria-label="Question about the source" value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Ask about a claim, equation, assumption, or limitation…" />
-            <button type="submit" disabled={!openRouterKey.trim() || !question.trim() || asking}>{asking ? "Thinking…" : "Ask source"}</button>
+            <textarea aria-label="Question about the source set" value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Ask across the papers, specifications, implementations, or lesson boundaries…" />
+            <button type="submit" disabled={!openRouterKey.trim() || !question.trim() || asking}>{asking ? "Thinking…" : "Ask sources"}</button>
           </form>
           <div className="chat-status">
             <span>{questionError || (answerModel ? `Answered by ${answerModel}` : "Grounded in the technical lesson notes")}</span>

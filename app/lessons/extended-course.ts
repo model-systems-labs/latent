@@ -1,4 +1,5 @@
 import type { CourseLesson, CourseTrack } from "../lib/lesson-types";
+import { getLessonSources } from "./sources";
 
 type ExtendedLessonInput = Pick<
   CourseLesson,
@@ -12,6 +13,7 @@ function makeLesson(input: ExtendedLessonInput): CourseLesson {
   const compactContext = input.summary.map((paragraph) => `- ${paragraph.label} ${paragraph.body}`).join("\n");
   return {
     ...input,
+    sources: getLessonSources(input.id),
     paperContext: `
 This lesson is "${input.title}" in the ${input.courseTitle} course.
 Primary reference: "${input.paperTitle}" by ${input.authors} (${input.year}).

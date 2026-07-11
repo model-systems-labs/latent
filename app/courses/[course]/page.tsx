@@ -37,7 +37,7 @@ export default async function CoursePage({ params }: { params: Promise<{ course:
             <Link className="lesson-card" href={`/lessons/${lesson.id}`} key={lesson.id}>
               <span>{String(index + 1).padStart(2, "0")}</span>
               <div><h2>{lesson.title}</h2><p>{lesson.thesis}</p></div>
-              <div className="lesson-build"><em>{lesson.modeLabel}</em><strong>{lesson.experiment.title}</strong></div>
+              <div className="lesson-build"><em>{lesson.modeLabel}</em><strong>{lesson.experiment.title}</strong><span>{lesson.sources.length} curated sources</span></div>
               <i>Open →</i>
             </Link>
           ))}

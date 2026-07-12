@@ -1,5 +1,5 @@
 import recordedTraining from "./recorded/character-rnn-training.json";
-import { createArtifact, type ArtifactEnvelope, type ArtifactJson, type ArtifactStore } from "../../platform/artifact-runtime";
+import { createArtifact, type ArtifactEnvelope, type ArtifactJson, type ArtifactStore } from "@latent/artifact-runtime";
 
 type RecordedCheckpoint = {
   steps: number;

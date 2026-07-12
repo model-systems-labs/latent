@@ -8,15 +8,15 @@ import { sampleCharacterRnn } from "../lib/lab-engines";
 import { loadLearnerState, useLearnerState } from "../lib/learner-state";
 import { runProjectUnitTests } from "../lib/project-tests";
 import { gateBrowserLabBuild } from "../lib/browser-lab";
-import { createBuildArtifact } from "../platform/browser-lab";
+import { createBuildArtifact } from "@latent/browser-lab";
 import { getPersistenceContext } from "../platform/persistence/client";
 import { exportPersistenceSnapshot, importPersistenceSnapshot, persistenceSnapshotBlob } from "../platform/persistence/portable";
 import type { JsonValue } from "../platform/persistence/types";
 import { llmSystemsContractSuite } from "../content/llm-systems/contracts";
 import { createCapstoneRuntimeDescriptor, llmRuntimeBindingManifest } from "../runtime/bindings";
 import { downloadArtifact, latestProjectBuildArtifact, recordProjectBuildArtifact, recordValidatedProjectLessonArtifacts } from "../features/artifacts/lesson-artifacts";
-import type { ArtifactEnvelope } from "../platform/artifact-runtime";
-import { lessonImplementationSource } from "../platform/latent-tensor";
+import type { ArtifactEnvelope } from "@latent/artifact-runtime";
+import { lessonImplementationSource } from "../lessons/implementation-source";
 import {
   compileProject,
   ensureProjectWorkspace,

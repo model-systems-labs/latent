@@ -3,7 +3,7 @@
 import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import type { CodeBlock, CourseLesson, LessonSource } from "../lib/lesson-types";
+import type { CodeBlock, CourseLesson, LessonSource } from "@latent/course-kit";
 import { courseLessons } from "../lessons/course";
 import { LessonExperiment } from "./LessonExperiment";
 import {
@@ -17,7 +17,8 @@ import { ensureProjectWorkspace, saveLessonProjectFile, type LessonProjectSeed }
 import { runPracticeContracts } from "../features/ide/browser-lab-service";
 import { ArtifactRuntimePanel } from "../features/artifacts/ArtifactRuntimePanel";
 import { recordValidatedLessonArtifact } from "../features/artifacts/lesson-artifacts";
-import { latentTensorOperations, lessonImplementationPrelude, lessonImplementationSource } from "../platform/latent-tensor";
+import { latentTensorOperations } from "@latent/tensor";
+import { lessonImplementationPrelude, lessonImplementationSource } from "../lessons/implementation-source";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 type CheckResult = { label: string; passed: boolean; detail: string };

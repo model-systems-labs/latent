@@ -34,17 +34,24 @@ assertions, compiler policy, resource limits, build receipts, and promotion gate
 
 ## Project map
 
+- `packages/tensor/` — typed tensor/autograd runtime plus generated Browser Lab source
+- `packages/browser-lab/` — VFS compiler, QuickJS sandbox, test receipts, and promotion gate
+- `packages/artifact-runtime/` — domain-neutral artifact lineage, replay, comparison, and storage
+- `packages/course-kit/` — lesson types, curriculum schema, and curriculum compiler
+- `packages/mock-services/` — MSW handlers, SSE transport, cancellation, and failure scenarios
 - `app/content/llm-systems/` — curriculum manifest and typed exercise contracts
 - `app/features/ide/` — authoring experience and Browser Lab orchestration
-- `app/platform/browser-lab/` — VFS compiler, QuickJS sandbox, test receipts
 - `app/platform/persistence/` — Dexie schema, repositories, migrations, exports
 - `app/runtime/model/` — character training and local Transformer workers
-- `app/runtime/serving/` — SSE transport and deterministic failure scenarios
 - `app/runtime/bindings/` — validated capstone binding descriptors
-- `app/platform/artifact-runtime/` — domain-neutral artifact, lineage, replay,
-  comparison, storage, and portable bundle contracts
 - `app/features/artifacts/` — course adapters and recorded training checkpoints
+- `app/lessons/model/` and `app/lessons/extended/` — one independently owned lesson per file
+- `app/styles/` — learning-flow, course, coding, capstone, and responsive style layers
 - `tests/` — curriculum, compiler, sandbox, persistence, binding, and render tests
+
+The root is the private `@latent/web` application and remains the Sites deployment
+surface. Reusable systems are npm workspaces under `packages/*`. Packages may
+depend on other declared packages but may never import application code.
 
 ## Local development
 
@@ -58,12 +65,12 @@ npm run dev
 Validation:
 
 ```bash
-npm run typecheck
-npm run lint
-npm test
+npm run validate
 ```
 
-`npm test` performs the production build and runs all 41 host-side tests.
+`npm run validate` enforces package boundaries, builds and typechecks every
+workspace, lints the repository, creates the production site, runs each package
+suite independently, and finishes with the application integration suite.
 
 The checked-in character-model checkpoint ladder comes from a reproducible
 deterministic run. Regenerate it after intentionally changing the trainer with:

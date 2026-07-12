@@ -1,36 +1,46 @@
 {
-  "name": "site-creator-vinext-starter",
+  "name": "@latent/web",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "engines": {
     "node": ">=22.13.0"
   },
   "scripts": {
+    "predev": "npm run packages:build",
     "dev": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext dev",
-    "build": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext build && node scripts/prune-browser-only-ssr-assets.mjs",
+    "build": "npm run packages:build && npm run build:web",
+    "build:web": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext build && node scripts/prune-browser-only-ssr-assets.mjs",
     "start": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext start",
-    "test": "npm run build && node --test tests/*.test.mjs",
-    "typecheck": "tsc --noEmit",
+    "test": "npm run packages:test && npm run build:web && npm run test:app",
+    "test:app": "node --test tests/*.test.mjs",
+    "packages:build": "npm run build --workspaces --if-present",
+    "packages:test": "npm run test --workspaces --if-present",
+    "packages:typecheck": "npm run typecheck --workspaces --if-present",
+    "typecheck": "npm run packages:build && tsc --noEmit",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+    "boundaries": "node scripts/check-package-boundaries.mjs",
+    "validate": "npm run boundaries && npm run typecheck && npm run lint && npm test",
     "artifacts:record-training": "node scripts/generate-recorded-training.mjs",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
+    "@latent/artifact-runtime": "*",
+    "@latent/browser-lab": "*",
+    "@latent/course-kit": "*",
+    "@latent/mock-services": "*",
+    "@latent/tensor": "*",
     "@codemirror/lang-javascript": "6.2.5",
-    "@codemirror/lint": "6.9.7",
     "@huggingface/transformers": "^3.8.1",
-    "@jitl/quickjs-wasmfile-release-sync": "0.32.0",
     "codemirror": "6.0.2",
     "dexie": "4.4.4",
-    "dexie-react-hooks": "4.4.0",
     "drizzle-orm": "0.45.2",
     "esbuild-wasm": "0.28.1",
-    "msw": "2.15.0",
     "next": "16.2.6",
-    "quickjs-emscripten-core": "0.32.0",
     "react": "19.2.6",
-    "react-dom": "19.2.6",
-    "zod": "4.4.3"
+    "react-dom": "19.2.6"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.37.1",

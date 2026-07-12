@@ -14,7 +14,7 @@ test.before(async () => {
   const coreOutput = join(temporaryDirectory, "core.mjs");
   const quickjsOutput = join(temporaryDirectory, "quickjs.mjs");
   await build({
-    entryPoints: [fileURLToPath(new URL("../app/platform/browser-lab/index.ts", import.meta.url))],
+    entryPoints: [fileURLToPath(new URL("../packages/browser-lab/src/index.ts", import.meta.url))],
     outfile: coreOutput,
     bundle: true,
     platform: "node",
@@ -22,7 +22,7 @@ test.before(async () => {
     target: "node22",
   });
   await build({
-    entryPoints: [fileURLToPath(new URL("../app/platform/browser-lab/worker/quickjs-engine.ts", import.meta.url))],
+    entryPoints: [fileURLToPath(new URL("../packages/browser-lab/src/worker/quickjs-engine.ts", import.meta.url))],
     outfile: quickjsOutput,
     bundle: true,
     packages: "external",
@@ -162,7 +162,7 @@ test("handler produces a source-bound receipt and caps learner logs", async () =
   const messages = [];
   // Bundle the handler separately so its engine adapter remains injectable.
   const handlerOutput = join(temporaryDirectory, "handler.mjs");
-  await build({ entryPoints: [fileURLToPath(new URL("../app/platform/browser-lab/worker/handler.ts", import.meta.url))], outfile: handlerOutput, bundle: true, platform: "node", format: "esm", target: "node22" });
+  await build({ entryPoints: [fileURLToPath(new URL("../packages/browser-lab/src/worker/handler.ts", import.meta.url))], outfile: handlerOutput, bundle: true, platform: "node", format: "esm", target: "node22" });
   const handler = await import(`${pathToFileURL(handlerOutput).href}?test=${Date.now()}`);
   const receipt = await handler.handleSandboxRunRequest(request, new quickjs.QuickJSSandboxEngine(), (message) => messages.push(message), () => 500);
   assert.equal(receipt.status, "passed");
@@ -220,9 +220,9 @@ test("the outer worker watchdog terminates a non-responsive worker", async () =>
 
 test("Browser Lab source contains no application-realm dynamic evaluation fallback", async () => {
   const files = [
-    "../app/platform/browser-lab/worker-client.ts",
-    "../app/platform/browser-lab/worker/handler.ts",
-    "../app/platform/browser-lab/worker/quickjs-engine.ts",
+    "../packages/browser-lab/src/worker-client.ts",
+    "../packages/browser-lab/src/worker/handler.ts",
+    "../packages/browser-lab/src/worker/quickjs-engine.ts",
   ];
   const source = (await Promise.all(files.map((path) => readFile(new URL(path, import.meta.url), "utf8")))).join("\n");
   assert.doesNotMatch(source, /new\s+Function\s*\(/);

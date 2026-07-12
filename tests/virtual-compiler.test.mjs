@@ -12,7 +12,7 @@ test.before(async () => {
   temporaryDirectory = await mkdtemp(join(fileURLToPath(new URL("../", import.meta.url)), ".virtual-compiler-test-"));
   const output = join(temporaryDirectory, "compiler.mjs");
   await esbuild.build({
-    entryPoints: [fileURLToPath(new URL("../app/platform/browser-lab/index.ts", import.meta.url))],
+    entryPoints: [fileURLToPath(new URL("../packages/browser-lab/src/index.ts", import.meta.url))],
     outfile: output,
     bundle: true,
     platform: "node",
@@ -160,9 +160,9 @@ test("compiler client is lazy, validates worker identity, and terminates on disp
 
 test("the production compiler has a dedicated URL worker and no dynamic evaluation fallback", async () => {
   const sources = await Promise.all([
-    "../app/platform/browser-lab/compiler/client.ts",
-    "../app/platform/browser-lab/compiler/compiler.worker.ts",
-    "../app/platform/browser-lab/compiler/virtual-project.ts",
+    "../packages/browser-lab/src/compiler/client.ts",
+    "../packages/browser-lab/src/compiler/compiler.worker.ts",
+    "../packages/browser-lab/src/compiler/virtual-project.ts",
   ].map((path) => readFile(new URL(path, import.meta.url), "utf8")));
   const source = sources.join("\n");
   assert.match(source, /new Worker\(new URL\("\.\/compiler\.worker\.ts", import\.meta\.url\)/);

@@ -15,7 +15,7 @@ import {
   consumeSse,
   createMockServingStream,
   type MockServingScenario,
-} from "../runtime/serving/sse";
+} from "@latent/mock-services";
 import {
   CHAT_LOG_ACCESSIBILITY,
   canRegenerate,

@@ -1,7 +1,7 @@
 "use client";
 
-import { artifactBundleBlob, createArtifact, hashArtifactValue, type ArtifactEnvelope, type ArtifactJson } from "../../platform/artifact-runtime";
-import { getArtifactRuntime } from "../../platform/artifact-runtime/client";
+import { artifactBundleBlob, createArtifact, hashArtifactValue, type ArtifactEnvelope, type ArtifactJson } from "@latent/artifact-runtime";
+import { getArtifactRuntime } from "@latent/artifact-runtime/client";
 import { lessonArtifactBlueprintById, lessonArtifactBlueprints, previousArtifactLessonId } from "./lesson-blueprints";
 import { ensureRecordedTrainingArtifacts } from "./training-replay";
 import { llmSystemsContractSuite } from "../../content/llm-systems/contracts";

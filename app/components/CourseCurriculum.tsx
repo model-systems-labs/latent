@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { CourseLesson } from "../lib/lesson-types";
+import type { CourseLesson } from "@latent/course-kit";
 import { lessonIsComplete, useLearnerState } from "../lib/learner-state";
 import { useProjectState } from "../lib/project-workspace";
 

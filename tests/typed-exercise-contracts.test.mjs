@@ -18,7 +18,7 @@ before(async () => {
     logLevel: "silent",
   });
   [browserLabContracts, contractModule, course, manifestModule] = await Promise.all([
-    vite.ssrLoadModule("/app/platform/browser-lab/contracts.ts"),
+    vite.ssrLoadModule("/packages/browser-lab/src/contracts.ts"),
     vite.ssrLoadModule("/app/content/llm-systems/contracts.ts"),
     vite.ssrLoadModule("/app/lessons/course.ts"),
     vite.ssrLoadModule("/app/content/llm-systems/manifest.ts"),

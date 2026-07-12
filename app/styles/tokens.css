@@ -1,0 +1,19 @@
+:root {
+  --paper: #f1eee8;
+  --paper-bright: #fbfaf7;
+  --ink: #1f1d1c;
+  --muted: #6f6a65;
+  --faint: #99928b;
+  --line: rgba(55, 46, 62, 0.13);
+  --line-strong: rgba(71, 60, 81, 0.23);
+  --violet: #766889;
+  --violet-deep: #51465f;
+  --violet-wash: rgba(205, 196, 220, 0.31);
+  --amber: #b8875e;
+  --green: #56765f;
+  --red: #8d5a54;
+  --code: #211f22;
+  --serif: "Iowan Old Style", "Baskerville", "Times New Roman", serif;
+  --sans: var(--font-geist-sans), "Helvetica Neue", sans-serif;
+  --mono: var(--font-geist-mono), "SFMono-Regular", monospace;
+}

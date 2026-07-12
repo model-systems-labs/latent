@@ -19,7 +19,7 @@ before(async () => {
   [course, manifestModule, lms] = await Promise.all([
     vite.ssrLoadModule("/app/lessons/course.ts"),
     vite.ssrLoadModule("/app/content/llm-systems/manifest.ts"),
-    vite.ssrLoadModule("/app/platform/lms/curriculum.ts"),
+    vite.ssrLoadModule("/packages/course-kit/src/curriculum.ts"),
   ]);
 });
 

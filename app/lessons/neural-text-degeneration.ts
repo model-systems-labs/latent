@@ -1,4 +1,4 @@
-import type { PaperLesson } from "../lib/lesson-types";
+import type { PaperLesson } from "@latent/course-kit";
 
 export const neuralTextDegenerationLesson: PaperLesson = {
   id: "neural-text-degeneration",

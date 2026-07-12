@@ -1,7 +1,7 @@
 import {
   CURRICULUM_MANIFEST_VERSION,
   defineCurriculumManifest,
-} from "../schema/curriculum";
+} from "@latent/course-kit";
 
 export const LLM_SYSTEMS_PROGRAM_ID = "llm-systems" as const;
 

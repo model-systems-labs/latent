@@ -9,7 +9,7 @@ import {
   type BuildArtifact,
   type RuntimeBinding,
   type SourceHash,
-} from "../../platform/browser-lab";
+} from "@latent/browser-lab";
 import {
   LLM_LESSON_SOURCES,
   LLM_RUNTIME_CAPABILITIES,

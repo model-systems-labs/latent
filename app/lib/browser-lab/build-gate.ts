@@ -1,6 +1,6 @@
 import type { BrowserLabBuildGate, BrowserLabTestResult } from "./types";
 
-/** Presentation-level summary; execution lives in platform/browser-lab workers. */
+/** Presentation-level summary; execution lives in @latent/browser-lab workers. */
 export function gateBrowserLabBuild(results: BrowserLabTestResult[]): BrowserLabBuildGate {
   const failures = results.filter((result) => !result.passed);
   return {

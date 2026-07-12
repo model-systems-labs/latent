@@ -5,7 +5,7 @@ import type {
   HostAssertion,
   JsonValue,
   ValuePath,
-} from "../../platform/browser-lab/types";
+} from "@latent/browser-lab/types";
 import { llmSystemsManifest } from "./manifest";
 
 type AuthoredCase = {

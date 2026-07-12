@@ -12,11 +12,11 @@ const vite = await createServer({
   appType: "custom",
 });
 
-const sourceModule = await vite.ssrLoadModule("/app/platform/latent-tensor/source.ts");
-const catalogModule = await vite.ssrLoadModule("/app/platform/latent-tensor/catalog.ts");
-const lessonSourceModule = await vite.ssrLoadModule("/app/platform/latent-tensor/lesson-source.ts");
+const sourceModule = await vite.ssrLoadModule("/packages/tensor/src/browser-source.ts");
+const catalogModule = await vite.ssrLoadModule("/packages/tensor/src/catalog.ts");
+const lessonSourceModule = await vite.ssrLoadModule("/app/lessons/implementation-source.ts");
 const courseModule = await vite.ssrLoadModule("/app/lessons/course.ts");
-const compilerModule = await vite.ssrLoadModule("/app/platform/browser-lab/index.ts");
+const compilerModule = await vite.ssrLoadModule("/packages/browser-lab/src/index.ts");
 const runtimeUrl = `data:text/javascript;base64,${Buffer.from(sourceModule.LATENT_TENSOR_SOURCE).toString("base64")}`;
 const latent = await import(runtimeUrl);
 

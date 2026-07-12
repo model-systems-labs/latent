@@ -5,7 +5,7 @@ import {
   BROWSER_LAB_COMPILER_VERSION,
   BrowserLabCompilerClient,
   exposeLessonFunctions,
-} from "../../platform/browser-lab/compiler";
+} from "@latent/browser-lab/compiler";
 import {
   BrowserLabWorkerClient,
   DEFAULT_SANDBOX_LIMITS,
@@ -17,11 +17,11 @@ import {
   type SourceHash,
   type TestReceipt,
   type VirtualSourceFile,
-} from "../../platform/browser-lab";
+} from "@latent/browser-lab";
 import { getPersistenceContext } from "../../platform/persistence/client";
 import type { TestReceiptRecord } from "../../platform/persistence/types";
 import { flushProjectPersistence, type ProjectFile, type ProjectUnitResult } from "../../lib/project-workspace";
-import { LATENT_TENSOR_PATH, LATENT_TENSOR_SOURCE } from "../../platform/latent-tensor";
+import { LATENT_TENSOR_PATH, LATENT_TENSOR_SOURCE } from "@latent/tensor/browser-source";
 
 const PROJECT_ID = "browser-chat";
 const RUNNER_VERSION = "browser-lab-quickjs-v1";

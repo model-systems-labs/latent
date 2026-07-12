@@ -13,11 +13,11 @@ const vite = await createServer({
   server: { middlewareMode: true },
   appType: "custom",
 });
-const runtime = await vite.ssrLoadModule("/app/platform/artifact-runtime/index.ts");
+const runtime = await vite.ssrLoadModule("/packages/artifact-runtime/src/index.ts");
 const blueprints = await vite.ssrLoadModule("/app/features/artifacts/lesson-blueprints.ts");
 const training = await vite.ssrLoadModule("/app/features/artifacts/training-replay.ts");
 const artifactService = await vite.ssrLoadModule("/app/features/artifacts/lesson-artifacts.ts");
-const artifactClient = await vite.ssrLoadModule("/app/platform/artifact-runtime/client.ts");
+const artifactClient = await vite.ssrLoadModule("/packages/artifact-runtime/src/client.ts");
 const contracts = await vite.ssrLoadModule("/app/content/llm-systems/contracts.ts");
 const manifest = await vite.ssrLoadModule("/app/content/llm-systems/manifest.ts");
 

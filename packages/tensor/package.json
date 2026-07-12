@@ -1,0 +1,44 @@
+{
+  "name": "@latent/tensor",
+  "version": "0.1.0",
+  "description": "A small browser-safe tensor and automatic differentiation runtime for LLM education.",
+  "type": "module",
+  "private": true,
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./browser-source": {
+      "types": "./dist/browser-source.d.ts",
+      "import": "./dist/browser-source.js"
+    },
+    "./catalog": {
+      "types": "./dist/catalog.d.ts",
+      "import": "./dist/catalog.js"
+    }
+  },
+  "scripts": {
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "generate:browser-source": "node scripts/generate-browser-source.mjs",
+    "check:browser-source": "node scripts/generate-browser-source.mjs --check",
+    "build": "npm run generate:browser-source && tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test test/*.test.mjs",
+    "validate": "npm run typecheck && npm run check:browser-source && npm test",
+    "prepack": "npm run build"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  }
+}

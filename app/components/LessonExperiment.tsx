@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import type { CourseLesson } from "../lib/lesson-types";
+import type { CourseLesson } from "@latent/course-kit";
 import {
   runCausalAttention,
   trainAdditiveAttention,

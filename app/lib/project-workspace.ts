@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import type { BrowserLabTestResult } from "./browser-lab";
 import { getPersistenceContext } from "../platform/persistence/client";
 import type { JsonValue } from "../platform/persistence/types";
-import { LATENT_TENSOR_PATH, LATENT_TENSOR_SOURCE } from "../platform/latent-tensor";
+import { LATENT_TENSOR_PATH, LATENT_TENSOR_SOURCE } from "@latent/tensor/browser-source";
 
 export const PROJECT_STORAGE_KEY = "latent-project-v1";
 const PROJECT_CHANGE_EVENT = "latent-project-change";

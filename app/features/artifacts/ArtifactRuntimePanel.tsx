@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { CourseLesson } from "../../lib/lesson-types";
-import { compareArtifacts, type ArtifactEnvelope, type ArtifactJson } from "../../platform/artifact-runtime";
+import type { CourseLesson } from "@latent/course-kit";
+import { compareArtifacts, type ArtifactEnvelope, type ArtifactJson } from "@latent/artifact-runtime";
 import { downloadArtifact, loadLessonArtifactView } from "./lesson-artifacts";
 
 type ArtifactView = Awaited<ReturnType<typeof loadLessonArtifactView>>;

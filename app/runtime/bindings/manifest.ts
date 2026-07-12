@@ -2,7 +2,7 @@ import { llmSystemsManifest, type LlmSystemsModuleId } from "../../content/llm-s
 import type {
   BindingManifest,
   RuntimeBinding,
-} from "../../platform/browser-lab";
+} from "@latent/browser-lab";
 
 export type CapstoneRuntimeConsumer =
   | "local-model-sampling"
@@ -153,4 +153,3 @@ export const REQUIRED_LLM_RUNTIME_CAPABILITIES: readonly string[] = Object.freez
     (binding) => binding.capability,
   ),
 );
-

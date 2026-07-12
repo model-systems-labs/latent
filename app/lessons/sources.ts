@@ -1,4 +1,4 @@
-import type { LessonSource } from "../lib/lesson-types";
+import type { LessonSource } from "@latent/course-kit";
 
 export const lessonSources: Record<string, LessonSource[]> = {
   "character-rnns": [

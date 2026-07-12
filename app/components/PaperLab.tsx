@@ -17,6 +17,7 @@ import { ensureProjectWorkspace, saveLessonProjectFile, type LessonProjectSeed }
 import { runPracticeContracts } from "../features/ide/browser-lab-service";
 import { ArtifactRuntimePanel } from "../features/artifacts/ArtifactRuntimePanel";
 import { recordValidatedLessonArtifact } from "../features/artifacts/lesson-artifacts";
+import { latentTensorOperations, lessonImplementationPrelude, lessonImplementationSource } from "../platform/latent-tensor";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 type CheckResult = { label: string; passed: boolean; detail: string };
@@ -218,9 +219,8 @@ function starterCodeFor(block: CodeBlock) {
 
 function projectSeedForLesson(lesson: CourseLesson, hidden: string[], currentAnswers: Record<string, string>, verified: string[]): LessonProjectSeed {
   const blocks = lesson.implementation.codeBlocks;
-  const contentFor = (practice: boolean) => blocks
-    .map((block, index) => `// ${String(index + 1).padStart(2, "0")} · ${block.label}\n${practice && hidden.includes(block.id) ? currentAnswers[block.id] ?? "" : block.code}`)
-    .join("\n\n");
+  const contentFor = (practice: boolean) => lessonImplementationSource(lesson, blocks
+    .map((block, index) => `// ${String(index + 1).padStart(2, "0")} · ${block.label}\n${practice && hidden.includes(block.id) ? currentAnswers[block.id] ?? "" : block.code}`));
   return {
     path: `${lesson.courseId ?? "models"}/${lesson.implementation.filename}`,
     courseId: lesson.courseId ?? "models",
@@ -303,7 +303,7 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
     try {
       const [result] = await runPracticeContracts({
         path: projectPath,
-        source: sourceFor(block),
+        source: lessonImplementationSource(lesson, [sourceFor(block)]),
         contractIds: [`${lesson.id}/${block.id}`],
       });
       const check = result ?? { label: block.label, passed: false, detail: "The isolated test returned no result." };
@@ -326,7 +326,7 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
     setRunningBlockIds(blocks.map((block) => block.id));
     setPracticeMessage("Compiling this lesson and running every contract in an isolated worker…");
     try {
-      const combinedSource = blocks.map((block) => sourceFor(block)).join("\n\n");
+      const combinedSource = lessonImplementationSource(lesson, blocks.map((block) => sourceFor(block)));
       const results = await runPracticeContracts({
         path: projectPath,
         source: combinedSource,
@@ -374,6 +374,14 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
     <section className="paper-section implementation-section" id="implementation">
       <div className="section-title"><span>03</span><h2>Implementation</h2></div>
       <p className="implementation-intro">{lesson.implementation.intro}</p>
+      {lesson.implementation.tensorOps?.length ? (
+        <div className="tensor-runtime-strip">
+          <div><span>Numerical dependency</span><strong>runtime/latent-tensor.js</strong><p>The course owns shape checks and automatic differentiation; this lesson owns the model operation.</p></div>
+          <div aria-label="Latent Tensor operations used in this lesson">
+            {latentTensorOperations(lesson.implementation.tensorOps).map((operation) => <span title={operation.purpose} key={operation.name}>{operation.name}</span>)}
+          </div>
+        </div>
+      ) : null}
       <div className="practice-editor">
         <div className="editor-toolbar">
           <div className="editor-file"><span>{projectPath}</span><strong>{hiddenBlocks.length === 0 ? "Complete reference · saved to capstone" : `Practice · ${hiddenBlocks.length} cells active · saved locally`}</strong></div>
@@ -383,9 +391,12 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
           <div className="toolbar-actions"><button type="button" onClick={hideAll}>Practice all</button><button type="button" onClick={showSolution} disabled={hiddenBlocks.length === 0}>Restore all</button><Link href={`/workspace?file=${encodeURIComponent(`${lesson.courseId ?? "models"}/${lesson.implementation.filename}`)}`}>Open this file in IDE ↗</Link></div>
         </div>
         <div className="code-surface">
+          {lesson.implementation.tensorOps?.length ? (
+            <div className="tensor-import-line"><span>dependency</span><code>{lessonImplementationPrelude(lesson)}</code><em>read only</em></div>
+          ) : null}
           {blocks.map((block, blockIndex) => {
             const hidden = hiddenBlocks.includes(block.id);
-            const startLine = blocks.slice(0, blockIndex).reduce((line, previous) => line + previous.code.split("\n").length + 1, 1);
+            const startLine = blocks.slice(0, blockIndex).reduce((line, previous) => line + previous.code.split("\n").length + 1, lesson.implementation.tensorOps?.length ? 3 : 1);
             const result = cellResults[block.id];
             return (
               <div

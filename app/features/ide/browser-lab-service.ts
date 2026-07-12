@@ -21,6 +21,7 @@ import {
 import { getPersistenceContext } from "../../platform/persistence/client";
 import type { TestReceiptRecord } from "../../platform/persistence/types";
 import { flushProjectPersistence, type ProjectFile, type ProjectUnitResult } from "../../lib/project-workspace";
+import { LATENT_TENSOR_PATH, LATENT_TENSOR_SOURCE } from "../../platform/latent-tensor";
 
 const PROJECT_ID = "browser-chat";
 const RUNNER_VERSION = "browser-lab-quickjs-v1";
@@ -119,7 +120,10 @@ export async function runPracticeContracts(input: {
   const snapshot: ProjectSnapshot = {
     projectId: `practice-${input.path.replace(/[^A-Za-z0-9]+/g, "-")}`,
     revision: 0,
-    files: [{ path: input.path, contents, loader: loaderFor(input.path) }],
+    files: [
+      { path: input.path, contents, loader: loaderFor(input.path) },
+      { path: LATENT_TENSOR_PATH, contents: LATENT_TENSOR_SOURCE, loader: "js" },
+    ],
   };
   const job = await createCompileJob({
     jobId: `practice-compile-${crypto.randomUUID()}`,

@@ -12,6 +12,7 @@ type CodeEditorProps = {
   path: string;
   onChange: (value: string) => void;
   onSave?: () => void;
+  readOnly?: boolean;
 };
 
 const latentTheme = EditorView.theme({
@@ -50,7 +51,7 @@ const syntaxTheme = EditorView.baseTheme({
   ".tok-variableName": { color: "#ddd8e0" },
 });
 
-export function CodeEditor({ value, path, onChange, onSave }: CodeEditorProps) {
+export function CodeEditor({ value, path, onChange, onSave, readOnly = false }: CodeEditorProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<EditorView | null>(null);
   const changeRef = useRef(onChange);
@@ -87,6 +88,8 @@ export function CodeEditor({ value, path, onChange, onSave }: CodeEditorProps) {
           latentTheme,
           syntaxTheme,
           EditorView.lineWrapping,
+          EditorState.readOnly.of(readOnly),
+          EditorView.editable.of(!readOnly),
           EditorView.updateListener.of((update) => {
             if (update.docChanged) changeRef.current(update.state.doc.toString());
           }),
@@ -105,7 +108,7 @@ export function CodeEditor({ value, path, onChange, onSave }: CodeEditorProps) {
       viewRef.current = null;
     };
     // Recreate the language mode when the selected path changes.
-  }, [path]);
+  }, [path, readOnly]);
 
   useEffect(() => {
     const view = viewRef.current;

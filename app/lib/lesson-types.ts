@@ -70,6 +70,7 @@ export type CourseLesson = {
   implementation: {
     filename: string;
     intro: string;
+    tensorOps?: string[];
     codeBlocks: CodeBlock[];
   };
   experiment: {

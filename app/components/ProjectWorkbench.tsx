@@ -16,6 +16,7 @@ import { llmSystemsContractSuite } from "../content/llm-systems/contracts";
 import { createCapstoneRuntimeDescriptor, llmRuntimeBindingManifest } from "../runtime/bindings";
 import { downloadArtifact, latestProjectBuildArtifact, recordProjectBuildArtifact, recordValidatedProjectLessonArtifacts } from "../features/artifacts/lesson-artifacts";
 import type { ArtifactEnvelope } from "../platform/artifact-runtime";
+import { lessonImplementationSource } from "../platform/latent-tensor";
 import {
   compileProject,
   ensureProjectWorkspace,
@@ -32,9 +33,8 @@ function lessonSeed(lesson: (typeof courseLessons)[number]): LessonProjectSeed {
   const local = loadLearnerState().lessons[lesson.id];
   const hidden = local?.hiddenBlocks ?? [];
   const answers = local?.answers ?? {};
-  const contentFor = (usePractice: boolean) => lesson.implementation.codeBlocks
-    .map((block, index) => `// ${String(index + 1).padStart(2, "0")} · ${block.label}\n${usePractice && hidden.includes(block.id) ? answers[block.id] ?? "" : block.code}`)
-    .join("\n\n");
+  const contentFor = (usePractice: boolean) => lessonImplementationSource(lesson, lesson.implementation.codeBlocks
+    .map((block, index) => `// ${String(index + 1).padStart(2, "0")} · ${block.label}\n${usePractice && hidden.includes(block.id) ? answers[block.id] ?? "" : block.code}`));
   return {
     path: `${lesson.courseId ?? "models"}/${lesson.implementation.filename}`,
     courseId: lesson.courseId ?? "models",
@@ -87,7 +87,7 @@ export function ProjectWorkbench() {
   const passingTests = allTests.filter((test) => test.passed).length;
 
   useEffect(() => {
-    if (!selected || !dirty) return;
+    if (!selected || selected.readOnly || !dirty) return;
     const timer = window.setTimeout(() => {
       saveProjectFile(selected.path, draft);
       setMessage(`${selected.path} autosaved. Run its tests when you are ready.`);
@@ -104,7 +104,7 @@ export function ProjectWorkbench() {
   };
 
   const save = () => {
-    if (!selected) return project;
+    if (!selected || selected.readOnly) return project;
     const next = saveProjectFile(selected.path, draft);
     setDrafts((current) => ({ ...current, [selected.path]: draft }));
     setMessage(`${selected.path} saved on this device. Build to apply runtime changes.`);
@@ -256,14 +256,14 @@ export function ProjectWorkbench() {
           ))}
         </nav>
         <div className="project-editor-panel">
-          <header><div><span>{selected?.path ?? "No file selected"}</span><strong>{selected?.title}</strong></div><div><i className={dirty ? "dirty" : "saved"} />{dirty ? "Unsaved changes" : "Saved locally"}</div></header>
-          {selected ? <CodeEditor path={selected.path} value={draft} onChange={(value) => setDrafts((current) => ({ ...current, [selected.path]: value }))} onSave={save} /> : null}
-          <footer><p>{message}</p><div><button type="button" onClick={() => selected && setDrafts((current) => ({ ...current, [selected.path]: selected.referenceContent }))} disabled={working || !selected || draft === selected?.referenceContent}>Restore reference</button><button type="button" onClick={save} disabled={working || !dirty}>Save now</button><button className="build" type="button" onClick={() => void build()} disabled={working}>{working ? "Running…" : "Test, build & run"}</button></div></footer>
+          <header><div><span>{selected?.path ?? "No file selected"}</span><strong>{selected?.title}</strong></div><div><i className={dirty ? "dirty" : "saved"} />{selected?.readOnly ? "Course library · read only" : dirty ? "Unsaved changes" : "Saved locally"}</div></header>
+          {selected ? <CodeEditor path={selected.path} value={draft} readOnly={selected.readOnly} onChange={(value) => setDrafts((current) => ({ ...current, [selected.path]: value }))} onSave={save} /> : null}
+          <footer><p>{selected?.readOnly ? "This is the numerical runtime imported by model lessons. Its source is visible, versioned, and protected from accidental edits." : message}</p><div><button type="button" onClick={() => selected && setDrafts((current) => ({ ...current, [selected.path]: selected.referenceContent }))} disabled={working || !selected || selected.readOnly || draft === selected?.referenceContent}>Restore reference</button><button type="button" onClick={save} disabled={working || selected?.readOnly || !dirty}>Save now</button><button className="build" type="button" onClick={() => void build()} disabled={working}>{working ? "Running…" : "Test, build & run"}</button></div></footer>
         </div>
         <aside className="project-inspector" aria-live="polite">
           <section className="unit-test-panel">
             <header><div><span>Unit tests</span><strong>{allTests.length ? `${passingTests}/${allTests.length} passing` : "Not run"}</strong></div><button type="button" onClick={() => void runTests()} disabled={working}>Run all {llmSystemsCurriculum.testCount + 3}</button></header>
-            <div className="selected-test-heading"><span>{selected?.path}</span><button type="button" onClick={() => selected && void runTests(selected.path)} disabled={working || !selected}>Run file tests</button></div>
+            <div className="selected-test-heading"><span>{selected?.path}</span><button type="button" onClick={() => selected && void runTests(selected.path)} disabled={working || !selected || selected.readOnly}>Run file tests</button></div>
             <div className="unit-test-list">
               {selectedTests.length ? selectedTests.map((test) => <article className={test.passed ? "passed" : "failed"} key={test.id}><i>{test.passed ? "✓" : "×"}</i><div><strong>{test.label}</strong><p>{test.detail}</p></div></article>) : <p>Select “Run file tests” to verify this module independently of the build.</p>}
             </div>

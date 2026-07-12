@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { BrowserLabTestResult } from "./browser-lab";
 import { getPersistenceContext } from "../platform/persistence/client";
 import type { JsonValue } from "../platform/persistence/types";
+import { LATENT_TENSOR_PATH, LATENT_TENSOR_SOURCE } from "../platform/latent-tensor";
 
 export const PROJECT_STORAGE_KEY = "latent-project-v1";
 const PROJECT_CHANGE_EVENT = "latent-project-change";
@@ -21,6 +22,7 @@ export type ProjectFile = {
   verifiedCells: number;
   totalCells: number;
   updatedAt: number;
+  readOnly?: boolean;
 };
 
 export type ProjectRuntime = {
@@ -46,6 +48,7 @@ export type ProjectState = {
 export type LessonProjectSeed = Omit<ProjectFile, "updatedAt">;
 
 export const RUNTIME_PATHS = {
+  tensor: LATENT_TENSOR_PATH,
   model: "runtime/model.config.js",
   transport: "runtime/transport.config.js",
   interface: "runtime/interface.config.js",
@@ -67,6 +70,7 @@ function configSource(value: object) {
 function runtimeFiles(): Record<string, ProjectFile> {
   const now = Date.now();
   const definitions = [
+    { path: RUNTIME_PATHS.tensor, title: "Latent Tensor", content: LATENT_TENSOR_SOURCE, readOnly: true },
     { path: RUNTIME_PATHS.model, title: "Sampling runtime", content: configSource(DEFAULT_RUNTIME.model) },
     { path: RUNTIME_PATHS.transport, title: "Streaming transport", content: configSource(DEFAULT_RUNTIME.transport) },
     { path: RUNTIME_PATHS.interface, title: "Chat presentation", content: configSource(DEFAULT_RUNTIME.interface) },
@@ -78,6 +82,7 @@ function runtimeFiles(): Record<string, ProjectFile> {
     verifiedCells: 1,
     totalCells: 1,
     updatedAt: now,
+    readOnly: file.readOnly,
   }]));
 }
 
@@ -128,6 +133,7 @@ function sanitizeProjectState(value: unknown): ProjectState {
   const files: Record<string, ProjectFile> = { ...base.files };
   if (candidate.files && typeof candidate.files === "object") {
     for (const [path, raw] of Object.entries(candidate.files)) {
+      if (base.files[path]?.readOnly) continue;
       if (!raw || typeof raw !== "object") continue;
       const file = raw as Partial<ProjectFile>;
       if (typeof file.content !== "string" || typeof file.title !== "string") continue;
@@ -142,6 +148,7 @@ function sanitizeProjectState(value: unknown): ProjectState {
         verifiedCells: Math.max(0, Math.round(finiteNumber(file.verifiedCells, 0))),
         totalCells: Math.max(1, Math.round(finiteNumber(file.totalCells, 1))),
         updatedAt: finiteNumber(file.updatedAt, 0),
+        readOnly: false,
       };
     }
   }
@@ -244,6 +251,7 @@ async function stateFromPersistence(): Promise<ProjectState | null> {
   const legacy = loadLegacyProjectState();
   const files: Record<string, ProjectFile> = { ...legacy.files };
   for (const record of records) {
+    if (files[record.path]?.readOnly) continue;
     const previous = files[record.path];
     const courseId = ["runtime", "models", "systems", "backend", "product"].includes(record.track) ? record.track as ProjectCourse : "models";
     files[record.path] = {
@@ -256,6 +264,7 @@ async function stateFromPersistence(): Promise<ProjectState | null> {
       verifiedCells: previous?.verifiedCells ?? 0,
       totalCells: previous?.totalCells ?? 1,
       updatedAt: record.updatedAt,
+      readOnly: false,
     };
   }
   const latestRun = runs.at(-1);
@@ -332,6 +341,27 @@ export function ensureProjectWorkspace(seeds: LessonProjectSeed[]) {
       if (!files[seed.path]) {
         files[seed.path] = { ...seed, updatedAt: Date.now() };
         sourceTreeChanged = true;
+      } else if (seed.readOnly) {
+        const current = files[seed.path];
+        if (current.content !== seed.content || current.referenceContent !== seed.referenceContent || !current.readOnly) {
+          files[seed.path] = { ...seed, updatedAt: current.updatedAt };
+          sourceTreeChanged = true;
+        }
+      } else if (files[seed.path].referenceContent !== seed.referenceContent) {
+        const current = files[seed.path];
+        const untouched = current.content === current.referenceContent;
+        const nextContent = untouched
+          ? seed.content
+          : seed.content.startsWith("import {") && !current.content.startsWith("import {")
+            ? `${seed.content.split("\n", 1)[0]}\n\n${current.content}`
+            : current.content;
+        files[seed.path] = {
+          ...current,
+          ...seed,
+          content: nextContent,
+          updatedAt: nextContent === current.content ? current.updatedAt : Date.now(),
+        };
+        sourceTreeChanged = true;
       }
     }
     return {
@@ -347,6 +377,7 @@ export function saveProjectFile(path: string, content: string) {
   return updateProjectState((state) => {
     const file = state.files[path];
     if (!file) return state;
+    if (file.readOnly) return { ...state, selectedPath: path };
     if (file.content === content) return { ...state, selectedPath: path };
     return {
       ...state,

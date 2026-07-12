@@ -77,6 +77,7 @@ export const systemsLessons: CourseLesson[] = [
     implementation: {
       filename: "inference-runtime.js",
       intro: "Implement phase accounting and KV-cache sizing before running the request lifecycle simulator.",
+      tensorOps: ["numel"],
       codeBlocks: [
         {
           id: "inference-phases",
@@ -107,7 +108,7 @@ return { passed: phases.prefillTokens === 96 && phases.decodeIterations === 32 &
             { name: "bytesPerValue", detail: "Storage width of each cached scalar." },
           ],
           code: `function kvCacheBytes({ layers, heads, headDimension, tokens, bytesPerValue = 2 }) {
-  return 2 * layers * heads * headDimension * tokens * bytesPerValue;
+  return numel([2, layers, heads, tokens, headDimension]) * bytesPerValue;
 }`,
           checkCode: `const bytes = kvCacheBytes({ layers: 4, heads: 8, headDimension: 16, tokens: 100, bytesPerValue: 2 });
 return { passed: bytes === 204800, detail: (bytes / 1024).toFixed(0) + " KiB" };`,

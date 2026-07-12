@@ -87,6 +87,7 @@ ${commonQuestionInstruction}`.trim(),
       filename: "character-rnn.js",
       intro:
         "The complete reference implementation is visible. Hide one transition, loss, or stabilization block and reconstruct it while the rest of the program remains in place.",
+      tensorOps: ["tensor", "matmul", "add", "tanh", "nllLoss", "clip", "toArray"],
       codeBlocks: [
         {
           id: "rnn-step",
@@ -95,20 +96,12 @@ ${commonQuestionInstruction}`.trim(),
           concepts: [
             { name: "input", detail: "One-hot character vector for the current position." },
             { name: "previous", detail: "Hidden state carried from the preceding position." },
-            { name: "Math.tanh", detail: "Bounded nonlinearity applied to each hidden unit." },
+            { name: "tanh", detail: "Differentiable bounded nonlinearity applied to each hidden unit." },
           ],
           code: `function rnnStep(input, previous, { Wxh, Whh, bias }) {
-  return bias.map((offset, row) => {
-    const fromInput = Wxh[row].reduce(
-      (sum, weight, column) => sum + weight * input[column],
-      0,
-    );
-    const fromState = Whh[row].reduce(
-      (sum, weight, column) => sum + weight * previous[column],
-      0,
-    );
-    return Math.tanh(offset + fromInput + fromState);
-  });
+  const inputProjection = matmul(tensor(Wxh), tensor(input));
+  const stateProjection = matmul(tensor(Whh), tensor(previous));
+  return toArray(tanh(add(add(inputProjection, stateProjection), tensor(bias))));
 }`,
           checkCode: `const state = rnnStep([1, 0], [0, 0], {
   Wxh: [[1, 0], [0, 1]], Whh: [[0, 0], [0, 0]], bias: [0, 0]
@@ -122,11 +115,10 @@ return { passed: state.length === 2 && state[0] > 0.7 && state[1] === 0, detail:
           concepts: [
             { name: "probabilities", detail: "Normalized next-character distribution." },
             { name: "targetIndex", detail: "Vocabulary index of the observed next character." },
-            { name: "epsilon", detail: "Prevents log(0) from producing infinite loss." },
+            { name: "nllLoss", detail: "Applies the finite logarithm boundary inside the tensor runtime." },
           ],
           code: `function crossEntropy(probabilities, targetIndex) {
-  const epsilon = 1e-12;
-  return -Math.log(Math.max(probabilities[targetIndex], epsilon));
+  return nllLoss(tensor(probabilities), targetIndex).item();
 }`,
           checkCode: `const good = crossEntropy([0.1, 0.8, 0.1], 1);
 const bad = crossEntropy([0.8, 0.1, 0.1], 1);
@@ -138,11 +130,11 @@ return { passed: Number.isFinite(good) && good < bad, detail: "correct target lo
           purpose: "Bound the update produced by unstable recurrent gradients.",
           concepts: [
             { name: "limit", detail: "Largest allowed absolute gradient value." },
-            { name: "Math.max", detail: "Applies the lower clipping boundary." },
-            { name: "Math.min", detail: "Applies the upper clipping boundary." },
+            { name: "clip", detail: "Applies both gradient boundaries element by element." },
+            { name: "toArray", detail: "Returns a plain vector at the lesson boundary." },
           ],
           code: `function clipGradients(gradients, limit = 5) {
-  return gradients.map((value) => Math.max(-limit, Math.min(limit, value)));
+  return toArray(clip(tensor(gradients), -limit, limit));
 }`,
           checkCode: `const clipped = clipGradients([-12, -2, 0, 3, 20], 5);
 return { passed: clipped.join(",") === "-5,-2,0,3,5", detail: clipped.join(", ") };`,
@@ -231,21 +223,19 @@ ${commonQuestionInstruction}`.trim(),
     implementation: {
       filename: "neural-language-model.js",
       intro: "Reconstruct the numerical path from context vectors to a normalized loss before training the supplied model.",
+      tensorOps: ["tensor", "softmax", "embedding", "mean", "nllLoss", "toArray"],
       codeBlocks: [
         {
           id: "stable-softmax",
           label: "Stable softmax",
           purpose: "Normalize vocabulary logits without exponent overflow.",
           concepts: [
-            { name: "maxLogit", detail: "Subtracted before exponentiation for numerical stability." },
-            { name: "weights", detail: "Positive unnormalized vocabulary scores." },
-            { name: "total", detail: "Partition function used for normalization." },
+            { name: "tensor", detail: "Tracks the vector shape and differentiable operation graph." },
+            { name: "softmax", detail: "Subtracts the maximum internally before normalization." },
+            { name: "toArray", detail: "Returns the normalized vocabulary distribution." },
           ],
           code: `function stableSoftmax(logits) {
-  const maxLogit = Math.max(...logits);
-  const weights = logits.map((value) => Math.exp(value - maxLogit));
-  const total = weights.reduce((sum, value) => sum + value, 0);
-  return weights.map((value) => value / total);
+  return toArray(softmax(tensor(logits)));
 }`,
           checkCode: `const probabilities = stableSoftmax([1001, 1000, 999]);
 const total = probabilities.reduce((sum, value) => sum + value, 0);
@@ -261,11 +251,8 @@ return { passed: probabilities.every(Number.isFinite) && Math.abs(total - 1) < 1
             { name: "dimension", detail: "Width of each distributed representation." },
           ],
           code: `function contextEmbedding(indices, embeddings) {
-  const dimension = embeddings[0].length;
-  return Array.from({ length: dimension }, (_, column) =>
-    indices.reduce((sum, index) => sum + embeddings[index][column], 0) /
-    indices.length,
-  );
+  const selected = embedding(tensor(embeddings), indices);
+  return toArray(mean(selected, 0));
 }`,
           checkCode: `const vector = contextEmbedding([0, 1], [[2, 0], [0, 4]]);
 return { passed: vector[0] === 1 && vector[1] === 2, detail: "context = [" + vector.join(", ") + "]" };`,
@@ -277,11 +264,10 @@ return { passed: vector[0] === 1 && vector[1] === 2, detail: "context = [" + vec
           concepts: [
             { name: "targetIndex", detail: "Index of the observed next word." },
             { name: "probability", detail: "Model mass assigned to that word." },
-            { name: "1e-12", detail: "Finite lower bound for logarithms." },
+            { name: "nllLoss", detail: "Uses a finite lower bound before taking the logarithm." },
           ],
           code: `function negativeLogLikelihood(probabilities, targetIndex) {
-  const probability = Math.max(probabilities[targetIndex], 1e-12);
-  return -Math.log(probability);
+  return nllLoss(tensor(probabilities), targetIndex).item();
 }`,
           checkCode: `const certain = negativeLogLikelihood([0.05, 0.9, 0.05], 1);
 const uncertain = negativeLogLikelihood([0.45, 0.1, 0.45], 1);
@@ -526,6 +512,7 @@ ${commonQuestionInstruction}`.trim(),
     implementation: {
       filename: "additive-attention.js",
       intro: "Implement the scoring, normalization, and weighted context operations that turn encoder states into a step-specific representation.",
+      tensorOps: ["tensor", "matmul", "add", "tanh", "dot", "softmax", "weightedSum", "toArray"],
       codeBlocks: [
         {
           id: "additive-score",
@@ -537,17 +524,10 @@ ${commonQuestionInstruction}`.trim(),
             { name: "v", detail: "Collapses the nonlinear hidden vector to one scalar score." },
           ],
           code: `function additiveScore(query, key, { Wq, Wk, v, bias }) {
-  return v.reduce((score, outputWeight, row) => {
-    const queryTerm = Wq[row].reduce(
-      (sum, weight, column) => sum + weight * query[column],
-      0,
-    );
-    const keyTerm = Wk[row].reduce(
-      (sum, weight, column) => sum + weight * key[column],
-      0,
-    );
-    return score + outputWeight * Math.tanh(queryTerm + keyTerm + bias[row]);
-  }, 0);
+  const queryTerm = matmul(tensor(Wq), tensor(query));
+  const keyTerm = matmul(tensor(Wk), tensor(key));
+  const hidden = tanh(add(add(queryTerm, keyTerm), tensor(bias)));
+  return dot(tensor(v), hidden).item();
 }`,
           checkCode: `const score = additiveScore([1, 0], [0, 1], {
   Wq: [[1, 0], [0, 1]], Wk: [[1, 0], [0, 1]], v: [0.5, -0.5], bias: [0, 0]
@@ -560,14 +540,11 @@ return { passed: Number.isFinite(score), detail: "e = " + score.toFixed(4) };`,
           purpose: "Normalize compatibility scores across source positions.",
           concepts: [
             { name: "scores", detail: "One scalar compatibility value per encoder state." },
-            { name: "maxScore", detail: "Stability offset before exponentiation." },
-            { name: "total", detail: "Ensures the alignment weights sum to one." },
+            { name: "softmax", detail: "Applies the stability offset and normalization." },
+            { name: "toArray", detail: "Returns one alignment weight per source position." },
           ],
           code: `function attentionWeights(scores) {
-  const maxScore = Math.max(...scores);
-  const weights = scores.map((score) => Math.exp(score - maxScore));
-  const total = weights.reduce((sum, weight) => sum + weight, 0);
-  return weights.map((weight) => weight / total);
+  return toArray(softmax(tensor(scores)));
 }`,
           checkCode: `const weights = attentionWeights([2, 1, 0]);
 const total = weights.reduce((sum, value) => sum + value, 0);
@@ -583,13 +560,7 @@ return { passed: weights[0] > weights[1] && Math.abs(total - 1) < 1e-9, detail: 
             { name: "dimension", detail: "Width of the resulting context vector." },
           ],
           code: `function contextVector(states, weights) {
-  const dimension = states[0].length;
-  return Array.from({ length: dimension }, (_, column) =>
-    states.reduce(
-      (sum, state, index) => sum + weights[index] * state[column],
-      0,
-    ),
-  );
+  return toArray(weightedSum(tensor(states), tensor(weights)));
 }`,
           checkCode: `const context = contextVector([[1, 0], [0, 1]], [0.75, 0.25]);
 return { passed: context[0] === 0.75 && context[1] === 0.25, detail: "c = [" + context.join(", ") + "]" };`,
@@ -679,6 +650,7 @@ ${commonQuestionInstruction}`.trim(),
     implementation: {
       filename: "causal-transformer.js",
       intro: "Implement the exact operations that determine which token positions can exchange information inside a causal attention block.",
+      tensorOps: ["tensor", "matmul", "div", "softmax", "weightedSum", "maskCausal", "normalizeLayer", "toArray"],
       codeBlocks: [
         {
           id: "causal-mask",
@@ -690,11 +662,7 @@ ${commonQuestionInstruction}`.trim(),
             { name: "-Infinity", detail: "Becomes exactly zero probability after softmax." },
           ],
           code: `function causalMask(scores) {
-  return scores.map((row, rowIndex) =>
-    row.map((score, columnIndex) =>
-      columnIndex > rowIndex ? -Infinity : score,
-    ),
-  );
+  return toArray(maskCausal(tensor(scores)));
 }`,
           checkCode: `const masked = causalMask([[1, 2, 3], [4, 5, 6], [7, 8, 9]]);
 return { passed: masked[0][0] === 1 && masked[0][1] === -Infinity && masked[1][2] === -Infinity && masked[2][2] === 9, detail: "future logits removed" };`,
@@ -710,19 +678,9 @@ return { passed: masked[0][0] === 1 && masked[0][1] === -Infinity && masked[1][2
           ],
           code: `function scaledDotProductAttention(query, keys, values) {
   const scale = Math.sqrt(query.length);
-  const scores = keys.map((key) =>
-    key.reduce((sum, value, index) => sum + value * query[index], 0) / scale,
-  );
-  const maxScore = Math.max(...scores);
-  const weights = scores.map((score) => Math.exp(score - maxScore));
-  const total = weights.reduce((sum, weight) => sum + weight, 0);
-  const probabilities = weights.map((weight) => weight / total);
-  return values[0].map((_, column) =>
-    values.reduce(
-      (sum, value, index) => sum + probabilities[index] * value[column],
-      0,
-    ),
-  );
+  const scores = div(matmul(tensor(keys), tensor(query)), scale);
+  const probabilities = softmax(scores);
+  return toArray(weightedSum(tensor(values), probabilities));
 }`,
           checkCode: `const output = scaledDotProductAttention([1, 0], [[1, 0], [0, 1]], [[2, 0], [0, 2]]);
 return { passed: output.length === 2 && output[0] > output[1], detail: "output = [" + output.map(v => v.toFixed(3)).join(", ") + "]" };`,
@@ -737,12 +695,7 @@ return { passed: output.length === 2 && output[0] > output[1], detail: "output =
             { name: "epsilon", detail: "Stability constant inside the square root." },
           ],
           code: `function layerNorm(vector, epsilon = 1e-5) {
-  const mean = vector.reduce((sum, value) => sum + value, 0) / vector.length;
-  const variance = vector.reduce(
-    (sum, value) => sum + (value - mean) ** 2,
-    0,
-  ) / vector.length;
-  return vector.map((value) => (value - mean) / Math.sqrt(variance + epsilon));
+  return toArray(normalizeLayer(tensor(vector), epsilon));
 }`,
           checkCode: `const normalized = layerNorm([1, 2, 3, 4]);
 const mean = normalized.reduce((sum, value) => sum + value, 0) / normalized.length;

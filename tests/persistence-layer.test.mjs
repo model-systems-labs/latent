@@ -137,7 +137,13 @@ test("passing promotion is atomic, idempotent, and rejects a stale receipt", asy
     contractVersion: "contracts-v1",
     runnerVersion: "runner-v1",
   });
-  const receipt = await repositories.assessments.finish(run.id, [{ contractId: "model", path: file.path, label: "Model", passed: true, detail: "Passed", durationMs: 1 }]);
+  const runtimeBundle = "export const model = 1";
+  const runtimeBundleHash = await persistence.hashText(runtimeBundle);
+  const receipt = await repositories.assessments.finish(
+    run.id,
+    [{ contractId: "model", path: file.path, label: "Model", passed: true, detail: "Passed", durationMs: 1 }],
+    { runtime: runtimeBundleHash },
+  );
   const input = {
     projectId: project.id,
     projectRevision: current.draftRevision,
@@ -145,12 +151,29 @@ test("passing promotion is atomic, idempotent, and rejects a stale receipt", asy
     contractVersion: "contracts-v1",
     testReceiptId: receipt.id,
     fileHashes: { [file.path]: file.sourceHash },
-    bundles: { runtime: "export const model = 1" },
+    bundles: { runtime: runtimeBundle },
     runtimeConfig: { temperature: 0.8 },
     bindings: { model: { modulePath: "model.js", exportName: "model" } },
   };
+  await assert.rejects(
+    repositories.builds.promotePassing({
+      ...input,
+      bundleHashes: { runtime: await persistence.hashText("different bundle bytes") },
+    }),
+    /content-hash integrity/i,
+  );
+  const untestedBundle = "export const model = 999";
+  await assert.rejects(
+    repositories.builds.promotePassing({
+      ...input,
+      bundles: { runtime: untestedBundle },
+      bundleHashes: { runtime: await persistence.hashText(untestedBundle) },
+    }),
+    /tested compiler module hash/i,
+  );
   const first = await repositories.builds.promotePassing(input);
   const repeated = await repositories.builds.promotePassing(input);
+  assert.equal(first.bundleHashes.runtime, await persistence.hashText(input.bundles.runtime));
   assert.equal(repeated.id, first.id);
   assert.equal(await db.builds.count(), 1);
   assert.equal((await repositories.projects.get(project.id)).activeBuildId, first.id);
@@ -160,6 +183,74 @@ test("passing promotion is atomic, idempotent, and rejects a stale receipt", asy
   assert.equal((await repositories.projects.get(project.id)).activeBuildId, first.id);
   assert.equal(await db.builds.count(), 1);
   await dispose(db);
+});
+
+test("persisted bundle hashes reject changed bytes at database and portable import boundaries", async () => {
+  const source = database();
+  await source.open();
+  const repositories = new persistence.PersistenceRepositories(source);
+  await repositories.projects.create({ id: "integrity", title: "Integrity", courseId: "llm-systems" });
+  const file = await repositories.projects.saveFile({
+    projectId: "integrity",
+    path: "model.js",
+    track: "models",
+    title: "Model",
+    content: "export const model = 1",
+  });
+  const project = await repositories.projects.get("integrity");
+  const run = await repositories.assessments.start({
+    projectId: project.id,
+    projectRevision: project.draftRevision,
+    sourceTreeHash: "sha256:integrity-tree",
+    contractVersion: "contracts-v1",
+    runnerVersion: "runner-v1",
+  });
+  const bundle = "var model = (() => ({ model: 1 }))();";
+  const receipt = await repositories.assessments.finish(
+    run.id,
+    [{
+      contractId: "model",
+      path: file.path,
+      label: "Model",
+      passed: true,
+      detail: "Passed",
+      durationMs: 1,
+    }],
+    { "model.js": await persistence.hashText(bundle) },
+  );
+  const build = await repositories.builds.promotePassing({
+    projectId: project.id,
+    projectRevision: project.draftRevision,
+    sourceTreeHash: "sha256:integrity-tree",
+    contractVersion: "contracts-v1",
+    testReceiptId: receipt.id,
+    fileHashes: { [file.path]: file.sourceHash },
+    bundles: { "model.js": bundle },
+    runtimeConfig: {},
+    bindings: { model: { modulePath: "model.js", exportName: "model" } },
+  });
+  assert.equal(build.bundleHashes["model.js"], await persistence.hashText(bundle));
+
+  const portable = await persistence.exportPersistenceSnapshot(source);
+  const tamperedPortable = structuredClone(portable);
+  tamperedPortable.tables.builds[0].bundles["model.js"] += "\n// changed after promotion";
+  const destination = database();
+  await destination.open();
+  await assert.rejects(
+    persistence.importPersistenceSnapshot(destination, tamperedPortable, { mode: "replace" }),
+    /content-hash integrity/i,
+  );
+  assert.equal(await destination.builds.count(), 0);
+
+  await source.builds.update(build.id, {
+    bundles: { "model.js": `${bundle}\n// changed in storage` },
+  });
+  await assert.rejects(repositories.builds.active(project.id), /content-hash integrity/i);
+  await assert.rejects(repositories.builds.list(project.id), /content-hash integrity/i);
+  await assert.rejects(persistence.exportPersistenceSnapshot(source), /content-hash integrity/i);
+
+  await dispose(source);
+  await dispose(destination);
 });
 
 test("portable snapshot round-trips and detects immutable conflicts", async () => {

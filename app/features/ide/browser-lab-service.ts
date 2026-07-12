@@ -22,6 +22,7 @@ import { getPersistenceContext } from "../../platform/persistence/client";
 import type { TestReceiptRecord } from "../../platform/persistence/types";
 import { flushProjectPersistence, type ProjectFile, type ProjectUnitResult } from "../../lib/project-workspace";
 import { LATENT_TENSOR_PATH, LATENT_TENSOR_SOURCE } from "@latent/tensor/browser-source";
+import { CAPSTONE_ENTRY_PATH } from "../../content/browser-chat/project-template";
 
 const PROJECT_ID = "browser-chat";
 const RUNNER_VERSION = "browser-lab-quickjs-v1";
@@ -173,18 +174,25 @@ export async function runLessonContracts(
   const prepared = prepareSnapshotFiles(files);
   const selectedPaths = new Set(selectedContracts.flatMap((contract) => contract.cases.map((exerciseCase) => exerciseCase.invoke.modulePath)));
   const preparationFailures = prepared.failures.filter((result) => selectedPaths.has(result.path));
-  const entryPoints = prepared.entryPoints.filter((path) => selectedPaths.has(path));
+  const lessonEntryPoints = prepared.entryPoints.filter((path) => selectedPaths.has(path));
+  const includeCapstone = !options.onlyPath;
+  const capstoneAvailable = Boolean(files[CAPSTONE_ENTRY_PATH]);
+  const entryPoints = includeCapstone && capstoneAvailable
+    ? [...lessonEntryPoints, CAPSTONE_ENTRY_PATH]
+    : lessonEntryPoints;
   const snapshot: ProjectSnapshot = {
     projectId: PROJECT_ID,
     revision: project.draftRevision,
     files: prepared.files,
   };
   const sourceHash = await hashSnapshot(snapshot);
-  if (!selectedContracts.length || preparationFailures.length || entryPoints.length !== selectedPaths.size) {
+  if (!selectedContracts.length || preparationFailures.length || lessonEntryPoints.length !== selectedPaths.size || (includeCapstone && !capstoneAvailable)) {
     const existing = new Set(preparationFailures.map((result) => result.id));
     const results = [
       ...preparationFailures,
-      ...selectedContracts.filter((contract) => !existing.has(contract.id)).map((contract) => preparationFailure(contract, "The lesson module is not ready to compile.")),
+      ...selectedContracts.filter((contract) => !existing.has(contract.id)).map((contract) => preparationFailure(contract, includeCapstone && !capstoneAvailable
+        ? "The canonical capstone entry is missing from this project."
+        : "The lesson module is not ready to compile.")),
     ];
     return { results, sourceHash, projectRevision: project.draftRevision, program: null, receipt: null, persistenceReceipt: null };
   }
@@ -237,13 +245,17 @@ export async function runLessonContracts(
     return { results: compileFailureResults(selectedContracts, detail), sourceHash, projectRevision: project.draftRevision, program, receipt: null, persistenceReceipt: null };
   }
   const results = aggregateReceipt(receipt, selectedContracts);
-  const persistenceReceipt = await repositories.assessments.finish(assessment.id, results.map((result) => ({
-    contractId: result.id,
-    path: result.path,
-    label: result.label,
-    passed: result.passed,
-    detail: result.detail,
-    durationMs: Math.max(0, receipt.completedAt - receipt.startedAt),
-  })));
+  const persistenceReceipt = await repositories.assessments.finish(
+    assessment.id,
+    results.map((result) => ({
+      contractId: result.id,
+      path: result.path,
+      label: result.label,
+      passed: result.passed,
+      detail: result.detail,
+      durationMs: Math.max(0, receipt.completedAt - receipt.startedAt),
+    })),
+    Object.fromEntries(program.modules.map((module) => [module.modulePath, module.codeHash])),
+  );
   return { results, sourceHash, projectRevision: project.draftRevision, program, receipt, persistenceReceipt };
 }

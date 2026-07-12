@@ -106,6 +106,23 @@ test("project files expose clear pending, complete, provided, and failure states
     { tone: "provided", label: "Provided", complete: true },
   );
   assert.deepEqual(
+    fileStatus.projectFileStatus({ isLessonFile: false, requiresPassingTests: true }),
+    { tone: "pending", label: "Pending", complete: false },
+  );
+  assert.deepEqual(
+    fileStatus.projectFileStatus({ isLessonFile: false, requiresPassingTests: true, results: [{ passed: true }] }),
+    { tone: "passed", label: "Tests pass", complete: true },
+  );
+  const sharedCompile = [{ id: "capstone", path: "capstone/main.tsx", label: "Capstone", passed: true, detail: "Passed" }];
+  assert.equal(
+    fileStatus.projectResultsForFile(
+      { "capstone/main.tsx": sharedCompile },
+      "capstone/BrowserChat.tsx",
+      "capstone/main.tsx",
+    ),
+    sharedCompile,
+  );
+  assert.deepEqual(
     fileStatus.projectFileStatus({ isLessonFile: true, verifiedCells: 3, totalCells: 3, results: [{ passed: false }] }),
     { tone: "failed", label: "Needs work", complete: false },
   );

@@ -28,7 +28,7 @@ export type SafeRuntimeBindingReference = {
   required: boolean;
   consumer: CapstoneRuntimeConsumer;
   summary: string;
-  executionTarget: "isolated-browser-lab-worker";
+  executionTarget: "isolated-browser-lab-worker" | "sandboxed-preview-frame";
 };
 
 export type ActiveBuildContribution = {
@@ -64,7 +64,7 @@ export type CapstoneRuntimeDescriptor = {
   executionPolicy: {
     pageEvaluationAllowed: false;
     sourceIncluded: false;
-    target: "isolated-browser-lab-worker";
+    target: "isolated-worker-and-sandboxed-preview-frame";
   };
 };
 
@@ -175,7 +175,9 @@ function safeBindingReferences(manifest: BindingManifest): readonly SafeRuntimeB
           required: binding.required,
           consumer: definition.consumer,
           summary: definition.summary,
-          executionTarget: "isolated-browser-lab-worker" as const,
+          executionTarget: binding.capability === "ui.mount"
+            ? "sandboxed-preview-frame" as const
+            : "isolated-browser-lab-worker" as const,
         });
       })
       .sort((left, right) => left.capability.localeCompare(right.capability)),
@@ -421,7 +423,50 @@ export async function createCapstoneRuntimeDescriptor(
     executionPolicy: Object.freeze({
       pageEvaluationAllowed: false as const,
       sourceIncluded: false as const,
-      target: "isolated-browser-lab-worker" as const,
+      target: "isolated-worker-and-sandboxed-preview-frame" as const,
     }),
   });
+}
+
+export type ValidatedCapstoneBundle = {
+  descriptor: CapstoneRuntimeDescriptor;
+  entryPath: string;
+  code: string;
+  codeHash: SourceHash;
+};
+
+/**
+ * Returns executable UI bytes only after the active build, canonical binding,
+ * and persisted compiler hash have all been verified. Callers must execute the
+ * code in the opaque-origin preview frame, never in the application realm.
+ */
+export async function loadValidatedCapstoneBundle(
+  build: BuildArtifact | BuildRecord,
+): Promise<ValidatedCapstoneBundle> {
+  const descriptor = await createCapstoneRuntimeDescriptor(build);
+  const binding = descriptor.bindings.find((candidate) => candidate.capability === "ui.mount");
+  if (!binding || binding.executionTarget !== "sandboxed-preview-frame") {
+    fail("MISSING_CAPSTONE_UI", "The active build has no validated capstone UI entry point.");
+  }
+  let code: string | undefined;
+  let expectedHash: string | undefined;
+  if (isBuildArtifact(build)) {
+    const compiled = build.program.modules.find((module) => module.modulePath === binding.modulePath);
+    code = compiled?.code;
+    expectedHash = compiled?.codeHash;
+  } else {
+    code = build.bundles[binding.modulePath];
+    expectedHash = build.bundleHashes?.[binding.modulePath];
+  }
+  if (!code || !expectedHash || !isSourceHash(expectedHash)) {
+    fail("UNVERIFIED_CAPSTONE_UI", "The active build does not retain a compiler hash for its capstone UI bundle.");
+  }
+  const codeHash = await hashText(code);
+  if (codeHash !== expectedHash) {
+    fail("COMPILED_CODE_TAMPERED", "The capstone UI bundle no longer matches its compiler hash.");
+  }
+  if (new TextEncoder().encode(code).byteLength > 2_000_000) {
+    fail("CAPSTONE_UI_TOO_LARGE", "The capstone UI bundle exceeds the preview size limit.");
+  }
+  return Object.freeze({ descriptor, entryPath: binding.modulePath, code, codeHash });
 }

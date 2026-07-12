@@ -16,15 +16,25 @@ export type ProjectFileStatus = {
   complete: boolean;
 };
 
+export function projectResultsForFile(
+  resultsByPath: Readonly<Record<string, ProjectUnitResult[]>>,
+  path: string,
+  sharedCompilePath?: string,
+) {
+  return resultsByPath[path] ?? (sharedCompilePath ? resultsByPath[sharedCompilePath] : undefined) ?? [];
+}
+
 export function projectFileStatus({
   isLessonFile,
   readOnly = false,
+  requiresPassingTests = false,
   verifiedCells = 0,
   totalCells = 1,
   results = [],
 }: {
   isLessonFile: boolean;
   readOnly?: boolean;
+  requiresPassingTests?: boolean;
   verifiedCells?: number;
   totalCells?: number;
   results?: ProjectUnitResult[];
@@ -36,6 +46,7 @@ export function projectFileStatus({
     return { tone: "passed", label: "Tests pass", complete: true };
   }
   if (readOnly) return { tone: "provided", label: "Provided", complete: true };
+  if (requiresPassingTests) return { tone: "pending", label: "Pending", complete: false };
   if (!isLessonFile) return { tone: "ready", label: "Ready", complete: true };
 
   const total = Math.max(1, totalCells);

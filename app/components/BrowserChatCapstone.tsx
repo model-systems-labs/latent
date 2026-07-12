@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useReducer, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { sampleCharacterRnn } from "../lib/lab-engines";
 import { loadLearnerState, saveCharacterRnnArtifact, type SavedRnnArtifact } from "../lib/learner-state";
 import { useProjectState } from "../lib/project-workspace";
@@ -9,381 +9,463 @@ import { loadCapstoneConversation, persistCapstoneConversation } from "../featur
 import { LocalModelClient } from "../runtime/model/local-model-client";
 import type { ModelMessage } from "../runtime/model/protocol";
 import { trainCharacterRnnInWorker } from "../runtime/model/train-character-client";
-import { createCapstoneRuntimeDescriptor, type CapstoneRuntimeDescriptor } from "../runtime/bindings";
 import { getPersistenceContext } from "../platform/persistence/client";
+import { createMockServingStream } from "@latent/mock-services/sse";
 import {
-  consumeSse,
-  createMockServingStream,
-  type MockServingScenario,
-} from "@latent/mock-services/sse";
+  loadValidatedCapstoneBundle,
+  type CapstoneRuntimeDescriptor,
+} from "../runtime/bindings";
 import {
-  CHAT_LOG_ACCESSIBILITY,
-  canRegenerate,
-  composerKeyAction,
-  lastUserForBackend,
-  messagesForBackend,
-  type CapstoneBackend,
-  type PersistedChatMessage,
-} from "../lib/capstone-contract";
+  mountPreviewFrame,
+  PREVIEW_REACT_RUNTIME_PATH,
+  verifyPreviewBundle,
+  verifyPreviewRuntime,
+  type PreviewFrameSession,
+  type PreviewJson,
+  type PreviewRequestMessage,
+  type ValidatedPreviewBundle,
+  type ValidatedPreviewRuntime,
+} from "../runtime/capstone/preview-frame";
+import type { CapstoneBackend, PersistedChatMessage } from "../lib/capstone-contract";
 
-type ChatState = { messages: PersistedChatMessage[] };
-type ChatAction =
-  | { type: "user"; message: PersistedChatMessage }
-  | { type: "start"; message: PersistedChatMessage }
-  | { type: "delta"; id: string; delta: string }
-  | { type: "terminal"; id: string; status: PersistedChatMessage["status"] }
-  | { type: "reset"; messages: PersistedChatMessage[] };
-type MetricState = { queueMs: number; modelMs: number; ttftMs: number; tokens: number; durationMs: number; events: number };
+const ALLOWED_METHODS = new Set(["initialize", "train-student", "load-local", "generate", "cancel", "persist"]);
 
-function welcomeMessage(backend: CapstoneBackend): PersistedChatMessage {
-  return {
-    id: `welcome-${backend}`,
-    role: "assistant",
-    backend,
-    status: "complete",
-    content: backend === "student"
-      ? "This conversation uses the character RNN checkpoint produced in Module 01. Its output is a prompt-conditioned character continuation, not a general-purpose answer."
-      : "This conversation uses a real local 135M Transformer. Course-note grounding replaces unsupported drafts when a matching technical source is available.",
-  };
-}
+type GenerationPayload = {
+  requestId: string;
+  backend: CapstoneBackend;
+  messages: ModelMessage[];
+  requestFrame: string;
+  options: { temperature: number; topK: number; maxTokens: number };
+};
 
-const initialMessages = [welcomeMessage("student"), welcomeMessage("local")];
+type HostStatus = "loading" | "ready" | "missing" | "error";
 
-function chatReducer(state: ChatState, action: ChatAction): ChatState {
-  if (action.type === "reset") return { messages: action.messages };
-  if (action.type === "user" || action.type === "start") return { messages: [...state.messages, action.message] };
-  if (action.type === "delta") return {
-    messages: state.messages.map((message) => message.id === action.id && message.status === "streaming" ? { ...message, content: message.content + action.delta } : message),
-  };
-  return { messages: state.messages.map((message) => message.id === action.id ? { ...message, status: action.status } : message) };
+export type CapabilityAdmission =
+  | "accepted"
+  | "model-preparation-busy"
+  | "duplicate-generation"
+  | "generation-busy";
+
+/** Pure admission gate kept outside the iframe's control. */
+export class CapstoneCapabilityGate {
+  #preparation: "train" | "load" | null = null;
+  readonly #generations = new Set<string>();
+
+  beginPreparation(kind: "train" | "load"): CapabilityAdmission {
+    if (this.#preparation) return "model-preparation-busy";
+    if (this.#generations.size) return "generation-busy";
+    this.#preparation = kind;
+    return "accepted";
+  }
+
+  finishPreparation(kind: "train" | "load"): void {
+    if (this.#preparation === kind) this.#preparation = null;
+  }
+
+  beginGeneration(requestId: string): CapabilityAdmission {
+    if (this.#preparation) return "model-preparation-busy";
+    if (this.#generations.has(requestId)) return "duplicate-generation";
+    if (this.#generations.size) return "generation-busy";
+    this.#generations.add(requestId);
+    return "accepted";
+  }
+
+  finishGeneration(requestId: string): void {
+    this.#generations.delete(requestId);
+  }
+
+  reset(): void {
+    this.#preparation = null;
+    this.#generations.clear();
+  }
 }
 
 const COURSE_GROUNDING = [
   {
     terms: ["causal", "mask", "future"],
     minTerms: 2,
-    source: "Transformers · causal self-attention",
-    answer: "A causal mask prevents position t from attending to positions greater than t. Adding negative infinity to those attention logits makes their softmax probability exactly zero, so a training token cannot read the future token it is supposed to predict.",
+    answer: "A causal mask prevents position t from attending to future positions. Those logits receive zero probability after softmax, so a token cannot read the target it is supposed to predict.",
   },
   {
     terms: ["sse", "stream", "chunk"],
     minTerms: 1,
-    source: "Streaming Transport · event framing",
-    answer: "SSE represents each event as UTF-8 fields terminated by a blank line. Network chunks are arbitrary, so the parser must retain an incomplete remainder and emit an event only after the full delimiter arrives.",
+    answer: "SSE events end with a blank line, while network chunks can split anywhere. A correct parser retains incomplete bytes and emits only complete events.",
   },
   {
     terms: ["token", "subword", "bpe"],
     minTerms: 1,
-    source: "Subword Tokenization · learned merges",
-    answer: "Subword tokenization learns frequent symbol merges. More merges shorten common sequences but enlarge the vocabulary; rare or unseen words remain representable as smaller units.",
-  },
-  {
-    terms: ["recurrent", "rnn", "hidden state"],
-    minTerms: 1,
-    source: "Character RNNs · recurrent state",
-    answer: "A recurrent model reuses the same transition at every position, combining the current input with the previous hidden state. Training next-character cross-entropy through the unrolled transition makes that state useful for predicting later characters.",
+    answer: "Subword tokenization learns frequent symbol merges. Common sequences become shorter while rare words remain representable as smaller units.",
   },
 ];
 
-function applyCourseGrounding(question: string, rawDraft: string) {
+function groundedAnswer(question: string, draft: string) {
   const normalized = question.toLowerCase();
   const match = COURSE_GROUNDING.find((entry) => entry.terms.filter((term) => normalized.includes(term)).length >= entry.minTerms);
-  if (!match) return { text: `Unverified local draft:\n\n${rawDraft}`, grounded: false, source: null };
+  return match ? `Grounded course answer:\n\n${match.answer}` : `Unverified local draft:\n\n${draft}`;
+}
+
+function boundedNumber(value: unknown, fallback: number, minimum: number, maximum: number, integer = false) {
+  const numeric = typeof value === "number" && Number.isFinite(value) ? value : fallback;
+  const bounded = Math.min(maximum, Math.max(minimum, numeric));
+  return integer ? Math.round(bounded) : bounded;
+}
+
+function generationPayload(value: PreviewJson): GenerationPayload | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const candidate = value as Record<string, PreviewJson>;
+  const backend = candidate.backend;
+  const requestId = candidate.requestId;
+  const requestFrame = candidate.requestFrame;
+  const rawMessages = candidate.messages;
+  const rawOptions = candidate.options;
+  if ((backend !== "student" && backend !== "local") || typeof requestId !== "string" || requestId.length > 128
+    || typeof requestFrame !== "string" || requestFrame.length > 64_000 || !Array.isArray(rawMessages)
+    || rawMessages.length > 32 || !rawOptions || typeof rawOptions !== "object" || Array.isArray(rawOptions)) return null;
+  const messages: ModelMessage[] = [];
+  let characters = 0;
+  for (const raw of rawMessages) {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+    const message = raw as Record<string, PreviewJson>;
+    if ((message.role !== "system" && message.role !== "user" && message.role !== "assistant") || typeof message.content !== "string") return null;
+    characters += message.content.length;
+    if (characters > 48_000) return null;
+    messages.push({ role: message.role, content: message.content });
+  }
+  const options = rawOptions as Record<string, PreviewJson>;
   return {
-    text: `Grounded course answer:\n\n${match.answer}\n\nPost-technique: a real local draft was generated, then replaced with the matching course note because the 135M model is not a reliable technical authority.`,
-    grounded: true,
-    source: match.source,
+    requestId,
+    backend,
+    messages,
+    requestFrame,
+    options: {
+      temperature: boundedNumber(options.temperature, 0.72, 0.2, 1.8),
+      topK: boundedNumber(options.topK, 24, 0, 64, true),
+      maxTokens: boundedNumber(options.maxTokens, 160, 40, 240, true),
+    },
   };
+}
+
+function safeConversationMessages(value: PreviewJson): PersistedChatMessage[] | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const payload = value as Record<string, PreviewJson>;
+  const record = payload.record;
+  if (!record || typeof record !== "object" || Array.isArray(record)) return null;
+  const candidate = record as Record<string, PreviewJson>;
+  if (candidate.version !== 1 || typeof candidate.id !== "string" || !Array.isArray(candidate.messages) || candidate.messages.length > 200 || "apiKey" in candidate) return null;
+  const messages: PersistedChatMessage[] = [];
+  let characters = 0;
+  for (const raw of candidate.messages) {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+    const message = raw as Record<string, PreviewJson>;
+    if (typeof message.id !== "string" || (message.role !== "user" && message.role !== "assistant")
+      || (message.backend !== "student" && message.backend !== "local") || typeof message.content !== "string"
+      || (message.status !== "complete" && message.status !== "cancelled" && message.status !== "error")) return null;
+    characters += message.content.length;
+    if (characters > 200_000) return null;
+    messages.push({
+      id: message.id,
+      role: message.role,
+      backend: message.backend,
+      content: message.content,
+      status: message.status,
+      ...(typeof message.attemptId === "string" ? { attemptId: message.attemptId } : {}),
+      ...(typeof message.parentUserId === "string" ? { parentUserId: message.parentUserId } : {}),
+    });
+  }
+  return messages;
+}
+
+function portableMessages(messages: PersistedChatMessage[]) {
+  return messages.map((message) => ({
+    id: message.id,
+    role: message.role,
+    content: message.content,
+    status: message.status,
+    backend: message.backend,
+    ...(message.attemptId ? { attemptId: message.attemptId } : {}),
+    ...(message.parentUserId ? { parentUserId: message.parentUserId } : {}),
+  }));
 }
 
 export function BrowserChatCapstone() {
   const project = useProjectState();
-  const runtime = project.runtime;
-  const [state, dispatch] = useReducer(chatReducer, { messages: [] });
-  const [hydrated, setHydrated] = useState(false);
-  const [input, setInput] = useState("");
-  const [mode, setMode] = useState<CapstoneBackend>("student");
-  const [student, setStudent] = useState<SavedRnnArtifact | null>(null);
-  const [training, setTraining] = useState(false);
-  const [modelStatus, setModelStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
-  const [modelProgress, setModelProgress] = useState(0);
-  const [modelDetail, setModelDetail] = useState("Not loaded");
-  const [requestPhase, setRequestPhase] = useState("ready");
-  const [metrics, setMetrics] = useState<MetricState>({ queueMs: 0, modelMs: 0, ttftMs: 0, tokens: 0, durationMs: 0, events: 0 });
-  const [groundingSource, setGroundingSource] = useState<string | null>(null);
-  const [servingScenario, setServingScenario] = useState<MockServingScenario>("healthy");
-  const [activeDescriptor, setActiveDescriptor] = useState<CapstoneRuntimeDescriptor | null>(null);
-  const modelClientRef = useRef<LocalModelClient | null>(null);
-  const activeModelRequestRef = useRef<string | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const sessionRef = useRef<PreviewFrameSession | null>(null);
+  const studentRef = useRef<SavedRnnArtifact | null>(null);
+  const localModelRef = useRef<LocalModelClient | null>(null);
+  const localReadyRef = useRef(false);
+  const [bundle, setBundle] = useState<ValidatedPreviewBundle | null>(null);
+  const [reactRuntime, setReactRuntime] = useState<ValidatedPreviewRuntime | null>(null);
+  const [descriptor, setDescriptor] = useState<CapstoneRuntimeDescriptor | null>(null);
+  const [status, setStatus] = useState<HostStatus>("loading");
+  const [detail, setDetail] = useState("Loading the last passing project build…");
+  const [runRequested, setRunRequested] = useState(false);
 
   useEffect(() => {
     let active = true;
     void (async () => {
-      const learner = loadLearnerState();
-      setStudent(learner.artifacts.characterRnn ?? null);
-      const saved = await loadCapstoneConversation();
+      await Promise.resolve();
       if (!active) return;
-      setMode(saved?.selectedBackend ?? "student");
-      const restoredMessages = saved?.messages.length
-        ? [
-            welcomeMessage("student"),
-            welcomeMessage("local"),
-            ...saved.messages.filter((message) => (
-              !message.id.startsWith("welcome-")
-              && !message.content.startsWith("This conversation uses the character RNN checkpoint produced in")
-              && !message.content.startsWith("This conversation uses a real local 135M Transformer")
-            )),
-          ]
-        : initialMessages;
-      dispatch({ type: "reset", messages: restoredMessages });
-      setHydrated(true);
-    })().catch(() => {
-      if (!active) return;
-      dispatch({ type: "reset", messages: initialMessages });
-      setHydrated(true);
-    });
-    return () => { active = false; };
-  }, []);
-
-  useEffect(() => {
-    if (!hydrated || state.messages.some((message) => message.status === "streaming")) return;
-    void persistCapstoneConversation(mode, state.messages).catch((error) => console.error("Conversation persistence failed", error));
-  }, [hydrated, mode, state.messages]);
-
-  useEffect(() => () => {
-    modelClientRef.current?.dispose();
-    modelClientRef.current = null;
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-    void (async () => {
+      setStatus("loading");
+      setBundle(null);
+      setReactRuntime(null);
+      setDescriptor(null);
+      setRunRequested(false);
+      setDetail("Loading the last passing project build…");
       const { repositories } = await getPersistenceContext();
       const build = await repositories.builds.active("browser-chat");
-      if (!build || !active) return;
-      const descriptor = await createCapstoneRuntimeDescriptor(build);
-      if (active) setActiveDescriptor(descriptor);
-    })().catch(() => {
-      if (active) setActiveDescriptor(null);
+      if (!build) {
+        if (active) { setStatus("missing"); setDetail("No passing canonical project build exists on this device yet."); }
+        return;
+      }
+      const loaded = await loadValidatedCapstoneBundle(build);
+      const runtimeResponse = await fetch(PREVIEW_REACT_RUNTIME_PATH, {
+        cache: "force-cache",
+        credentials: "same-origin",
+      });
+      if (!runtimeResponse.ok) throw new Error("The trusted React preview runtime is unavailable.");
+      const [verified, verifiedRuntime] = await Promise.all([
+        verifyPreviewBundle({
+          projectId: loaded.descriptor.projectId,
+          buildId: loaded.descriptor.buildId,
+          buildNumber: loaded.descriptor.buildNumber,
+          projectRevision: loaded.descriptor.projectRevision,
+          sourceHash: loaded.descriptor.fingerprints.sourceTree,
+          entryPath: loaded.entryPath,
+          code: loaded.code,
+          codeHash: loaded.codeHash,
+        }),
+        runtimeResponse.text().then((source) => verifyPreviewRuntime(source)),
+      ]);
+      if (!active) return;
+      setDescriptor(loaded.descriptor);
+      setBundle(verified);
+      setReactRuntime(verifiedRuntime);
+      setStatus("ready");
+      setDetail(`Build ${loaded.descriptor.buildNumber} is verified. It runs with isolated host capabilities; a synchronous loop can still require reloading this tab.`);
+    })().catch((error) => {
+      if (!active) return;
+      setStatus("error");
+      setDetail(error instanceof Error ? error.message : "The active capstone build could not be verified.");
     });
     return () => { active = false; };
-  }, [runtime.buildNumber]);
+  }, [project.runtime.buildNumber]);
 
-  const trainStudent = async () => {
-    setTraining(true);
-    setRequestPhase("training");
-    try {
-      const trained = await trainCharacterRnnInWorker(600);
-      saveCharacterRnnArtifact(trained);
-      setStudent({ checkpoint: trained.checkpoint, finalLoss: trained.finalLoss, parameters: trained.parameters, vocabularySize: trained.vocabularySize, trainedAt: Date.now() });
-    } catch {
-      setRequestPhase("error");
-    } finally {
-      setTraining(false);
-      window.setTimeout(() => setRequestPhase("ready"), 450);
-    }
-  };
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe || !bundle || !reactRuntime || !descriptor || !runRequested) return;
+    let disposed = false;
+    const capabilityGate = new CapstoneCapabilityGate();
+    const generationRequests = new Map<string, AbortController>();
+    let trainingController: AbortController | null = null;
 
-  const loadLocalModel = async () => {
-    if (modelStatus === "loading" || modelStatus === "ready") return;
-    setModelStatus("loading");
-    setModelProgress(0);
-    setRequestPhase("loading");
-    try {
-      const client = modelClientRef.current ?? new LocalModelClient();
-      modelClientRef.current = client;
-      const loaded = await client.load({
-        onProgress: (progress, detail) => {
-          setModelProgress(progress);
-          setModelDetail(detail);
-        },
-      });
-      setModelStatus("ready");
-      setModelProgress(100);
-      setModelDetail(loaded.detail);
-      setRequestPhase("ready");
-    } catch (error) {
-      setModelStatus("error");
-      setModelDetail(error instanceof Error ? error.message : "Model load failed");
-      setRequestPhase("error");
-    }
-  };
+    const emit = (requestId: string, event: string, payload: PreviewJson) => {
+      if (disposed) return;
+      try { sessionRef.current?.emit(requestId, event, payload); } catch { /* The frame may have closed. */ }
+    };
+    const respond = (requestId: string, value: PreviewJson) => {
+      if (disposed) return;
+      try { sessionRef.current?.respond(requestId, value); } catch { /* The frame may have closed. */ }
+    };
+    const fail = (requestId: string, code: string, message: string) => {
+      if (disposed) return;
+      try { sessionRef.current?.fail(requestId, code, message); } catch { /* The frame may have closed. */ }
+    };
 
-  const generateResponse = async (userText: string, generationSeed: number, requestId: string, signal: AbortSignal) => {
-    if (mode === "student") {
-      if (!student) throw new Error("Train the student model first.");
-      const continuation = sampleCharacterRnn(student.checkpoint, userText, runtime.model.maxTokens, runtime.model.temperature, runtime.model.seed + generationSeed, runtime.model.topK);
-      return `${runtime.interface.responsePrefix}Prompt-conditioned character continuation:\n\n…${userText.slice(-32)}${continuation}`;
-    }
-    const client = modelClientRef.current;
-    if (!client || modelStatus !== "ready") throw new Error("Load the local model first.");
-    const context: ModelMessage[] = [
-      { role: "system", content: "Answer in concise technical prose. If uncertain, state uncertainty. Do not use markdown headings." },
-      ...messagesForBackend(state.messages, "local")
-        .filter((message) => !message.id.startsWith("welcome-") && message.status === "complete")
-        .slice(-6)
-        .map((message) => ({ role: message.role, content: message.content } as ModelMessage)),
-      { role: "user", content: userText },
-    ];
-    let raw = "";
-    const interrupt = () => client.cancel(requestId);
-    signal.addEventListener("abort", interrupt, { once: true });
-    activeModelRequestRef.current = requestId;
-    try {
-      await client.generate(requestId, context, {
-        maxTokens: Math.min(runtime.model.maxTokens, 160),
-        temperature: runtime.model.temperature,
-        topK: runtime.model.topK,
-      }, {
-        onDelta: (delta) => { raw += delta; },
-      });
-    } finally {
-      signal.removeEventListener("abort", interrupt);
-      if (activeModelRequestRef.current === requestId) activeModelRequestRef.current = null;
-    }
-    if (signal.aborted) throw new DOMException("Aborted", "AbortError");
-    raw = raw.trim() || "The local model returned no text.";
-    const grounded = applyCourseGrounding(userText, raw);
-    setGroundingSource(grounded.source);
-    return `${runtime.interface.responsePrefix}${grounded.text}`;
-  };
-
-  const send = async (override?: string, regenerateFrom?: PersistedChatMessage) => {
-    const userText = (override ?? input).trim();
-    if (!userText || requestPhase !== "ready") return;
-    const requestId = `r-${Date.now()}`;
-    const parentUser = regenerateFrom ?? { id: `u-${requestId}`, role: "user", content: userText, status: "complete", backend: mode } as PersistedChatMessage;
-    if (!regenerateFrom) dispatch({ type: "user", message: parentUser });
-    const assistantId = `a-${requestId}`;
-    dispatch({ type: "start", message: { id: assistantId, role: "assistant", content: "", status: "streaming", backend: mode, attemptId: requestId, parentUserId: parentUser.id } });
-    setInput("");
-    setGroundingSource(null);
-    setRequestPhase("queued");
-    setMetrics({ queueMs: 12, modelMs: 0, ttftMs: 0, tokens: 0, durationMs: 0, events: 0 });
-    const controller = new AbortController();
-    abortRef.current = controller;
-    const started = performance.now();
-    try {
-      await new Promise((resolve) => window.setTimeout(resolve, 12));
-      setRequestPhase("prefill");
-      const modelStarted = performance.now();
-      const response = await generateResponse(userText, Number(requestId.slice(2)) % 100000, requestId, controller.signal);
-      const modelMs = performance.now() - modelStarted;
-      if (controller.signal.aborted) throw new DOMException("Aborted", "AbortError");
-      setRequestPhase("streaming");
-      let firstEvent = 0;
-      let eventCount = 0;
-      let tokens = 0;
-      await consumeSse(createMockServingStream(response, controller.signal, {
-        wordsPerEvent: runtime.transport.wordsPerEvent,
-        delayMs: runtime.transport.delayMs,
-        scenario: servingScenario,
-      }), (event) => {
-        eventCount += 1;
-        if (!firstEvent && event.type === "token") firstEvent = performance.now();
-        if (event.type === "token") {
-          const delta = event.data.delta;
-          tokens += delta.match(/\S+/g)?.length ?? 0;
-          dispatch({ type: "delta", id: assistantId, delta });
+    const generate = async (bridgeRequestId: string, payload: GenerationPayload) => {
+      const controller = new AbortController();
+      generationRequests.set(payload.requestId, controller);
+      const started = performance.now();
+      emit(bridgeRequestId, "phase", { type: "phase", phase: "queued" });
+      try {
+        await new Promise((resolve) => window.setTimeout(resolve, 12));
+        emit(bridgeRequestId, "phase", { type: "phase", phase: "prefill" });
+        const modelStarted = performance.now();
+        const latestUser = [...payload.messages].reverse().find((message) => message.role === "user")?.content ?? "";
+        let response: string;
+        if (payload.backend === "student") {
+          const student = studentRef.current ?? loadLearnerState().artifacts.characterRnn ?? null;
+          if (!student) throw new Error("Train the student model before generating.");
+          const continuation = sampleCharacterRnn(student.checkpoint, latestUser, payload.options.maxTokens, payload.options.temperature, project.runtime.model.seed, payload.options.topK);
+          response = `Prompt-conditioned character continuation:\n\n…${latestUser.slice(-32)}${continuation}`;
+        } else {
+          const client = localModelRef.current;
+          if (!client || !localReadyRef.current) throw new Error("Load the local model before generating.");
+          let draft = "";
+          await client.generate(payload.requestId, payload.messages.slice(-12), payload.options, { onDelta: (delta) => { draft += delta; } });
+          response = groundedAnswer(latestUser, draft.trim() || "The local model returned no text.");
         }
-        if (event.type === "cancelled") dispatch({ type: "terminal", id: assistantId, status: "cancelled" });
-        if (event.type === "error") throw new Error(`${event.data.code}: ${event.data.message}`);
-      });
-      if (controller.signal.aborted) {
-        dispatch({ type: "terminal", id: assistantId, status: "cancelled" });
-        setRequestPhase("cancelled");
-      } else {
-        dispatch({ type: "terminal", id: assistantId, status: "complete" });
-        setRequestPhase("ready");
+        if (controller.signal.aborted) throw new DOMException("Aborted", "AbortError");
+        const modelMs = performance.now() - modelStarted;
+        emit(bridgeRequestId, "phase", { type: "phase", phase: "streaming" });
+        const stream = createMockServingStream(response, controller.signal, project.runtime.transport);
+        const reader = stream.getReader();
+        const decoder = new TextDecoder();
+        let firstChunk = 0;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          if (!firstChunk) firstChunk = performance.now();
+          emit(bridgeRequestId, "chunk", { type: "chunk", chunk: decoder.decode(value, { stream: true }) });
+        }
+        const durationMs = performance.now() - started;
+        emit(bridgeRequestId, "metrics", {
+          type: "metrics",
+          metrics: {
+            queueMs: 12,
+            modelMs: Math.round(modelMs),
+            ttftMs: Math.round((firstChunk || performance.now()) - started),
+            tokens: response.match(/\S+/g)?.length ?? 0,
+            durationMs: Math.round(durationMs),
+          },
+        });
+        emit(bridgeRequestId, "phase", { type: "phase", phase: controller.signal.aborted ? "cancelled" : "complete" });
+        respond(bridgeRequestId, { status: controller.signal.aborted ? "cancelled" : "complete" });
+      } catch (error) {
+        const cancelled = controller.signal.aborted || (error instanceof DOMException && error.name === "AbortError");
+        if (cancelled) {
+          emit(bridgeRequestId, "phase", { type: "phase", phase: "cancelled" });
+          respond(bridgeRequestId, { status: "cancelled" });
+        } else {
+          const message = error instanceof Error ? error.message : "Generation failed.";
+          emit(bridgeRequestId, "error", { type: "error", message, transient: false });
+          fail(bridgeRequestId, "generation-failed", message);
+        }
+      } finally {
+        generationRequests.delete(payload.requestId);
+        capabilityGate.finishGeneration(payload.requestId);
       }
-      setMetrics({ queueMs: 12, modelMs: Math.round(modelMs), ttftMs: Math.round((firstEvent || performance.now()) - started), tokens, durationMs: Math.round(performance.now() - started), events: eventCount });
-    } catch (error) {
-      const cancelled = error instanceof DOMException && error.name === "AbortError";
-      if (!cancelled) {
-        const detail = error instanceof Error ? error.message : "The generation request failed.";
-        dispatch({ type: "delta", id: assistantId, delta: `Generation failed: ${detail}` });
-      }
-      dispatch({ type: "terminal", id: assistantId, status: cancelled ? "cancelled" : "error" });
-      setRequestPhase(cancelled ? "cancelled" : "error");
-    } finally {
-      abortRef.current = null;
-      window.setTimeout(() => setRequestPhase((phase) => phase === "cancelled" || phase === "error" ? "ready" : phase), 500);
-    }
-  };
+    };
 
-  const stop = () => {
-    abortRef.current?.abort();
-    const requestId = activeModelRequestRef.current;
-    if (requestId) modelClientRef.current?.cancel(requestId);
-  };
-  const generating = ["queued", "prefill", "streaming"].includes(requestPhase);
-  const regenerate = () => {
-    const lastUser = lastUserForBackend(state.messages, mode);
-    if (lastUser) void send(lastUser.content, lastUser);
-  };
-  const reset = () => {
-    abortRef.current?.abort();
-    dispatch({ type: "reset", messages: [...state.messages.filter((message) => message.backend !== mode), welcomeMessage(mode)] });
-  };
-  const switchMode = (backend: CapstoneBackend) => {
-    if (generating) return;
-    setMode(backend);
-    setInput("");
-    setGroundingSource(null);
-    setMetrics({ queueMs: 0, modelMs: 0, ttftMs: 0, tokens: 0, durationMs: 0, events: 0 });
-    setRequestPhase("ready");
-  };
-  const readyForMode = hydrated && (mode === "student" ? Boolean(student) : modelStatus === "ready");
-  const visibleMessages = messagesForBackend(state.messages, mode);
-  const regenerationAvailable = canRegenerate(state.messages, mode, generating) && readyForMode;
+    const handleRequest = (request: PreviewRequestMessage) => {
+      void (async () => {
+        if (request.method === "initialize") {
+          studentRef.current = loadLearnerState().artifacts.characterRnn ?? null;
+          const saved = await loadCapstoneConversation();
+          respond(request.requestId, {
+            buildId: descriptor.buildId,
+            buildNumber: descriptor.buildNumber,
+            studentReady: Boolean(studentRef.current),
+            localReady: localReadyRef.current,
+            conversation: { version: 1, id: "active", messages: portableMessages(saved.messages) },
+            runtime: project.runtime as unknown as PreviewJson,
+          });
+          return;
+        }
+        if (request.method === "train-student") {
+          const admission = capabilityGate.beginPreparation("train");
+          if (admission !== "accepted") return fail(request.requestId, admission, "Another model preparation or generation job is already active.");
+          const controller = new AbortController();
+          trainingController = controller;
+          try {
+            emit(request.requestId, "progress", { type: "progress", progress: 5, detail: "Starting training worker" });
+            const trained = await trainCharacterRnnInWorker(600, controller.signal);
+            saveCharacterRnnArtifact(trained);
+            studentRef.current = { checkpoint: trained.checkpoint, finalLoss: trained.finalLoss, parameters: trained.parameters, vocabularySize: trained.vocabularySize, trainedAt: Date.now() };
+            emit(request.requestId, "progress", { type: "progress", progress: 100, detail: "Checkpoint ready" });
+            respond(request.requestId, { ready: true });
+          } finally {
+            if (trainingController === controller) trainingController = null;
+            capabilityGate.finishPreparation("train");
+          }
+          return;
+        }
+        if (request.method === "load-local") {
+          const admission = capabilityGate.beginPreparation("load");
+          if (admission !== "accepted") return fail(request.requestId, admission, "Another model preparation or generation job is already active.");
+          try {
+            const client = localModelRef.current ?? new LocalModelClient();
+            localModelRef.current = client;
+            await client.load({ onProgress: (progress, progressDetail) => emit(request.requestId, "progress", { type: "progress", progress, detail: progressDetail }) });
+            localReadyRef.current = true;
+            respond(request.requestId, { ready: true });
+          } finally {
+            capabilityGate.finishPreparation("load");
+          }
+          return;
+        }
+        if (request.method === "generate") {
+          const payload = generationPayload(request.payload);
+          if (!payload) return fail(request.requestId, "invalid-generation", "The generation request did not satisfy the bounded host contract.");
+          const admission = capabilityGate.beginGeneration(payload.requestId);
+          if (admission !== "accepted") return fail(request.requestId, admission, "Only one unique model generation may run at a time.");
+          await generate(request.requestId, payload);
+          return;
+        }
+        if (request.method === "cancel") {
+          const payload = request.payload && typeof request.payload === "object" && !Array.isArray(request.payload) ? request.payload as Record<string, PreviewJson> : null;
+          if (typeof payload?.requestId === "string") {
+            generationRequests.get(payload.requestId)?.abort();
+            localModelRef.current?.cancel(payload.requestId);
+          }
+          respond(request.requestId, null);
+          return;
+        }
+        if (request.method === "persist") {
+          const messages = safeConversationMessages(request.payload);
+          if (!messages) return fail(request.requestId, "invalid-conversation", "The conversation record did not satisfy its storage schema.");
+          const selected = messages.at(-1)?.backend ?? "local";
+          await persistCapstoneConversation(selected, messages);
+          respond(request.requestId, null);
+          return;
+        }
+        fail(request.requestId, "unknown-method", "The preview requested an unavailable host capability.");
+      })().catch((error) => fail(request.requestId, "host-capability-failed", error instanceof Error ? error.message : "The host capability failed."));
+    };
+
+    const previewSession = mountPreviewFrame({
+      iframe,
+      bundle,
+      runtime: reactRuntime,
+      allowedMethods: ALLOWED_METHODS,
+      handlers: {
+        onRequest: handleRequest,
+        onReady: () => setDetail(`Build ${descriptor.buildNumber} is running from the IDE project.`),
+        onError: (message) => { setStatus("error"); setDetail(message.message); },
+        onProtocolViolation: () => setDetail("The preview rejected an out-of-contract message."),
+      },
+    });
+    sessionRef.current = previewSession;
+
+    return () => {
+      disposed = true;
+      previewSession.dispose();
+      sessionRef.current = null;
+      trainingController?.abort();
+      trainingController = null;
+      for (const controller of generationRequests.values()) controller.abort();
+      generationRequests.clear();
+      capabilityGate.reset();
+    };
+  }, [bundle, descriptor, project.runtime, reactRuntime, runRequested]);
+
+  useEffect(() => () => {
+    sessionRef.current?.dispose();
+    localModelRef.current?.dispose();
+    localModelRef.current = null;
+  }, []);
 
   return (
-    <main className="capstone-shell">
+    <main className="compiled-capstone-shell">
       <header className="capstone-topbar">
         <Link className="wordmark" href="/"><i />latent</Link>
         <div><span>Capstone</span><strong>Browser Chat</strong></div>
         <nav><Link href="/">Course</Link><Link href="/project">Project</Link><Link href="/workspace">IDE</Link></nav>
       </header>
-      <div className="capstone-layout">
-        <aside className="capstone-sidebar">
-          <section className="backend-panel">
-            <span>Model backend</span>
-            <div className="mode-switch"><button disabled={generating} className={mode === "student" ? "active" : ""} type="button" onClick={() => switchMode("student")}>Student model</button><button disabled={generating} className={mode === "local" ? "active" : ""} type="button" onClick={() => switchMode("local")}>Local chat model</button></div>
-            {mode === "student" ? (
-              <div className="backend-card"><strong>18-unit character RNN</strong><p>{student ? "Checkpoint restored from device-local Module 01 state." : "Train here or complete Character RNNs to create a reusable local checkpoint."}</p>{student ? <dl><div><dt>Parameters</dt><dd>{student.parameters.toLocaleString()}</dd></div><div><dt>Final loss</dt><dd>{student.finalLoss.toFixed(3)}</dd></div></dl> : null}<button type="button" onClick={() => void trainStudent()} disabled={training}>{training ? "Training…" : student ? "Retrain model" : "Train model"}</button></div>
-            ) : (
-              <div className="backend-card"><strong>SmolLM2-135M · q4</strong><p>Real local generation with an explicit course-note grounding layer. Raw unmatched drafts remain labeled unverified.</p><div className="load-progress"><i><b style={{ width: `${modelProgress}%` }} /></i><em>{modelDetail}</em></div><button type="button" onClick={loadLocalModel} disabled={modelStatus === "loading" || modelStatus === "ready"}>{modelStatus === "ready" ? "Model ready" : modelStatus === "loading" ? `${modelProgress}% loaded` : "Load ~181 MB"}</button></div>
-            )}
-          </section>
-          <section className="runtime-panel">
-            <span>Request lifecycle</span>
-            <div className="phase-row">{["queued", "prefill", "streaming"].map((phase) => <i className={requestPhase === phase ? "active" : ""} key={phase}>{phase}</i>)}</div>
-            {runtime.interface.showMetrics ? <dl><div><dt>Queue</dt><dd>{metrics.queueMs} ms</dd></div><div><dt>Model</dt><dd>{metrics.modelMs} ms</dd></div><div><dt>TTFT</dt><dd>{metrics.ttftMs} ms</dd></div><div><dt>Events</dt><dd>{metrics.events}</dd></div><div><dt>Tokens</dt><dd>{metrics.tokens}</dd></div><div><dt>Total</dt><dd>{metrics.durationMs} ms</dd></div></dl> : <p>Metrics hidden by runtime/interface.config.js.</p>}
-          </section>
-          <section className="transport-panel"><span>Serving adapter · build {runtime.buildNumber}</span><strong>SSE-compatible ReadableStream</strong><code>{runtime.transport.wordsPerEvent} words/event · {runtime.transport.delayMs} ms</code><p>The deterministic adapter controls delivery and failure injection; model computation stays in its own worker.</p><div className="active-build-proof"><span>{activeDescriptor ? `${activeDescriptor.contributions.length}/14 tested modules` : "Legacy build"}</span><code>{activeDescriptor ? activeDescriptor.fingerprints.sourceTree.slice(7, 19) : "Rebuild in the IDE to create a source-bound artifact"}</code></div><label><span>Failure scenario</span><select value={servingScenario} onChange={(event) => setServingScenario(event.target.value as MockServingScenario)} disabled={generating}><option value="healthy">Healthy stream</option><option value="slow-first-token">Slow first token</option><option value="timeout-before-first-token">Queue timeout</option><option value="malformed-frame">Malformed frame</option></select></label></section>
-          <footer><span>Device-local · {mode} conversation</span><button type="button" onClick={reset}>Clear current backend</button></footer>
-        </aside>
-        <section className="chat-workspace">
-          <header><div><span>{mode === "student" ? "Learner-trained continuation" : "Local model + grounding"}</span><strong>{!hydrated ? "Restoring local state" : readyForMode ? "Ready" : mode === "student" ? "Train before chatting" : "Load before chatting"}</strong></div><div className={`runtime-status ${requestPhase}`}><i />{requestPhase}</div></header>
-          <div className="capstone-messages" role={CHAT_LOG_ACCESSIBILITY.role} aria-live={CHAT_LOG_ACCESSIBILITY.ariaLive} aria-label="Conversation">
-            {!hydrated ? <p className="capstone-hydrating">Restoring device-local conversation…</p> : visibleMessages.map((message) => (
-              <article className={`capstone-message ${message.role} ${message.status}`} key={message.id}>
-                <span>{message.role === "user" ? "You" : runtime.interface.assistantName}</span>
-                <p>{message.content || (message.status === "streaming" ? "Processing context…" : "No output")}</p>
-                {message.status !== "complete" ? <em>{message.status}</em> : null}
-              </article>
-            ))}
-          </div>
-          {groundingSource ? <div className="grounding-record"><span>Grounding applied</span><strong>{groundingSource}</strong></div> : null}
-          <div className="chat-actions"><button type="button" onClick={regenerate} disabled={!regenerationAvailable}>Regenerate last answer</button>{generating ? <button className="stop" type="button" onClick={stop}>Stop generation</button> : null}</div>
-          <form className="capstone-composer" onSubmit={(event) => { event.preventDefault(); void send(); }}>
-            <textarea value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={(event) => { if (composerKeyAction(event.key, event.shiftKey) === "send") { event.preventDefault(); void send(); } }} placeholder={readyForMode ? "Send a message to the selected model…" : "Prepare the selected model first…"} disabled={!readyForMode || generating} aria-label="Chat message" />
-            <div><span>Enter to send · Shift+Enter for newline</span><button type="submit" disabled={!readyForMode || generating || !input.trim()}>Send</button></div>
-          </form>
-          <footer className="capstone-contract"><p>Files, builds, checkpoints, and conversations stay on this device. The selected model and serving controls apply to the next request.</p></footer>
+      {status === "ready" && bundle && reactRuntime && runRequested ? (
+        <section className="compiled-capstone-runtime">
+          <header><div><span>Active project build</span><strong>{detail}</strong></div><div><code>{descriptor?.fingerprints.sourceTree.slice(7, 19)}</code><button type="button" onClick={() => setRunRequested(false)}>Reset preview</button></div></header>
+          <iframe ref={iframeRef} title="Browser Chat compiled project" sandbox="allow-scripts" />
         </section>
-      </div>
+      ) : (
+        <section className={`capstone-build-gate ${status}`}>
+          <span>{status === "loading" ? "Restoring project" : status === "ready" ? "Verified project build" : "Canonical project required"}</span>
+          <h1>{status === "loading" ? "Loading Browser Chat…" : status === "ready" ? "Run Browser Chat." : "Build the repository in the IDE."}</h1>
+          <p>{detail}</p>
+          {status === "ready" ? <button type="button" onClick={() => setRunRequested(true)}>Run verified preview</button> : null}
+          {status !== "loading" && status !== "ready" ? <Link href="/workspace?file=capstone%2FBrowserChat.tsx">Open the project IDE →</Link> : null}
+        </section>
+      )}
     </main>
   );
 }

@@ -18,10 +18,13 @@ import { createCapstoneRuntimeDescriptor, llmRuntimeBindingManifest } from "../r
 import { downloadArtifact, latestProjectBuildArtifact, recordProjectBuildArtifact, recordValidatedProjectLessonArtifacts } from "../features/artifacts/lesson-artifacts";
 import type { ArtifactEnvelope } from "@latent/artifact-runtime";
 import { lessonImplementationSource } from "../lessons/implementation-source";
-import { projectFileStatus } from "../lib/project-file-status";
+import { projectFileStatus, projectResultsForFile } from "../lib/project-file-status";
+import { canonicalProjectSeeds } from "../lib/canonical-project";
+import { CAPSTONE_ENTRY_PATH } from "../content/browser-chat/project-template";
 import {
   compileProject,
   ensureProjectWorkspace,
+  initializeProjectPersistence,
   saveProjectFile,
   saveProjectRuntime,
   saveProjectTestResults,
@@ -55,6 +58,7 @@ const groups: Array<{ id: ProjectCourse; label: string }> = [
   { id: "systems", label: "02 · Inference runtime" },
   { id: "backend", label: "03 · LLM serving" },
   { id: "product", label: "04 · Chat integration" },
+  { id: "app", label: "05 · Capstone application" },
 ];
 
 type ProjectTreeEntry = {
@@ -80,15 +84,20 @@ export function ProjectWorkbench() {
   const importRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    ensureProjectWorkspace(courseLessons.map(lessonSeed));
-    const path = new URL(window.location.href).searchParams.get("file");
-    if (path) selectProjectFile(path);
-    void latestProjectBuildArtifact().then((artifact) => setBuildArtifact(artifact ?? null)).catch(() => setBuildArtifact(null));
+    let active = true;
+    void initializeProjectPersistence().then(() => {
+      if (!active) return;
+      ensureProjectWorkspace([...courseLessons.map(lessonSeed), ...canonicalProjectSeeds()]);
+      const path = new URL(window.location.href).searchParams.get("file");
+      if (path) selectProjectFile(path);
+      void latestProjectBuildArtifact().then((artifact) => setBuildArtifact(artifact ?? null)).catch(() => setBuildArtifact(null));
+    });
+    return () => { active = false; };
   }, []);
 
   const filesByGroup = useMemo(() => groups.map((group) => ({
     ...group,
-    files: group.id === "runtime"
+    files: group.id === "runtime" || group.id === "app"
       ? Object.values(project.files).filter((file) => file.courseId === group.id).sort((left, right) => left.path.localeCompare(right.path))
       : courseLessons.filter((lesson) => lesson.courseId === group.id).map((lesson): ProjectTreeEntry => {
           const path = `${lesson.courseId ?? "models"}/${lesson.implementation.filename}`;
@@ -106,17 +115,28 @@ export function ProjectWorkbench() {
   const dirty = Boolean(selected && draft !== selected.content);
   const trustedResults = project.tests.runner === "browser-lab-v1" ? project.tests.results : {};
   const statusForFile = (file: ProjectTreeEntry) => {
-    const verifiedCells = file.lessonId ? learner.lessons[file.lessonId]?.verifiedCells.length ?? file.verifiedCells : file.verifiedCells;
+    const results = projectResultsForFile(
+      trustedResults,
+      file.path,
+      file.courseId === "app" && !file.readOnly ? CAPSTONE_ENTRY_PATH : undefined,
+    );
     return projectFileStatus({
       isLessonFile: Boolean(file.lessonId),
       readOnly: file.readOnly,
-      verifiedCells,
+      requiresPassingTests: file.courseId === "app" && !file.readOnly,
+      verifiedCells: file.verifiedCells,
       totalCells: file.totalCells,
-      results: trustedResults[file.path] ?? [],
+      results,
     });
   };
   const verifiedFiles = filesByGroup.flatMap((group) => group.files).filter((file) => file.lessonId && statusForFile(file).complete).length;
-  const selectedTests = selected ? trustedResults[selected.path] ?? [] : [];
+  const selectedTests = selected
+    ? projectResultsForFile(
+        trustedResults,
+        selected.path,
+        selected.courseId === "app" && !selected.readOnly ? CAPSTONE_ENTRY_PATH : undefined,
+      )
+    : [];
   const allTests = Object.values(trustedResults).flat();
   const passingTests = allTests.filter((test) => test.passed).length;
 
@@ -152,7 +172,7 @@ export function ProjectWorkbench() {
     setMessage("Compiling the virtual project in an isolated worker…");
     try {
       const run = await runProjectUnitTests(saved.files, saved.runtime);
-      saveProjectTestResults(run.results, true);
+      saveProjectTestResults(run.results, true, run.sourceHash, run.projectRevision);
       const gate = gateBrowserLabBuild(run.results);
       if (!gate.canPromote) {
         setErrors([]);
@@ -186,6 +206,7 @@ export function ProjectWorkbench() {
         testReceiptId: run.persistenceReceipt.id,
         fileHashes: Object.fromEntries(fileRecords.map((file) => [file.path, file.sourceHash])),
         bundles: Object.fromEntries(run.program.modules.map((compiledModule) => [compiledModule.modulePath, compiledModule.code])),
+        bundleHashes: Object.fromEntries(run.program.modules.map((compiledModule) => [compiledModule.modulePath, compiledModule.codeHash])),
         runtimeConfig: result.runtime as unknown as JsonValue,
         bindings: Object.fromEntries(llmRuntimeBindingManifest.bindings.map((binding) => [binding.capability, { modulePath: binding.modulePath, exportName: binding.exportName }])),
       });
@@ -236,7 +257,7 @@ export function ProjectWorkbench() {
     setMessage(onlyPath ? "Running this file in the isolated test worker…" : "Compiling and running the complete isolated test suite…");
     try {
       const run = await runProjectUnitTests(saved.files, saved.runtime, onlyPath);
-      saveProjectTestResults(run.results, !onlyPath);
+      saveProjectTestResults(run.results, !onlyPath, run.sourceHash, run.projectRevision);
       const failed = run.results.filter((test) => !test.passed).length;
       setErrors([]);
       setMessage(failed ? `${failed} of ${run.results.length} unit tests failed. The active build was not changed.` : `${run.results.length} unit tests pass in the sandbox. No build was created.`);
@@ -279,7 +300,7 @@ export function ProjectWorkbench() {
               <span>{group.label}</span>
               {group.files.map((file) => {
                 const status = statusForFile(file);
-                const verifiedCells = file.lessonId ? learner.lessons[file.lessonId]?.verifiedCells.length ?? file.verifiedCells : file.verifiedCells;
+                const verifiedCells = file.verifiedCells;
                 return (
                   <button
                     aria-label={`${file.path}, ${status.label}${file.lessonId ? `, ${verifiedCells} of ${file.totalCells} checks verified` : ""}`}
@@ -296,14 +317,7 @@ export function ProjectWorkbench() {
               })}
             </section>
           ))}
-          <section>
-            <span>05 · Capstone</span>
-            <Link className={project.runtime.builtAt > 0 ? "status-assembled" : "status-pending"} href="/capstone">
-              <i />
-              <span>{llmSystemsCurriculum.capstone.projectPath.split("/").at(-1)}</span>
-              <em>{project.runtime.builtAt > 0 ? "Assembled" : "Pending"}</em>
-            </Link>
-          </section>
+          <Link className="project-run-capstone" href="/capstone">Run active capstone →</Link>
         </nav>
         <div className="project-editor-panel">
           <header><div><span>{selected?.path ?? "No file selected"}</span><strong>{selected?.title}</strong></div><div><i className={dirty ? "dirty" : "saved"} />{selected?.readOnly ? "Course library · read only" : dirty ? "Unsaved changes" : "Saved locally"}</div></header>
@@ -312,7 +326,7 @@ export function ProjectWorkbench() {
         </div>
         <aside className="project-inspector" aria-live="polite">
           <section className="unit-test-panel">
-            <header><div><span>Unit tests</span><strong>{allTests.length ? `${passingTests}/${allTests.length} passing` : "Not run"}</strong></div><button type="button" onClick={() => void runTests()} disabled={working}>Run all {llmSystemsCurriculum.testCount + 3}</button></header>
+            <header><div><span>Unit tests</span><strong>{allTests.length ? `${passingTests}/${allTests.length} passing` : "Not run"}</strong></div><button type="button" onClick={() => void runTests()} disabled={working}>Run all {llmSystemsCurriculum.testCount + 5}</button></header>
             <div className="selected-test-heading"><span>{selected?.path}</span><button type="button" onClick={() => selected && void runTests(selected.path)} disabled={working || !selected || selected.readOnly}>Run file tests</button></div>
             <div className="unit-test-list">
               {selectedTests.length ? selectedTests.map((test) => <article className={test.passed ? "passed" : "failed"} key={test.id}><i>{test.passed ? "✓" : "×"}</i><div><strong>{test.label}</strong><p>{test.detail}</p></div></article>) : <p>Select “Run file tests” to verify this module independently of the build.</p>}

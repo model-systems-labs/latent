@@ -13,12 +13,13 @@ import {
   saveLessonPractice,
   useLearnerState,
 } from "../lib/learner-state";
-import { ensureProjectWorkspace, saveLessonProjectFile, type LessonProjectSeed } from "../lib/project-workspace";
+import { ensureProjectWorkspace, initializeProjectPersistence, saveLessonProjectFile, type LessonProjectSeed } from "../lib/project-workspace";
 import { runPracticeContracts } from "../features/ide/browser-lab-service";
 import { ArtifactRuntimePanel } from "../features/artifacts/ArtifactRuntimePanel";
 import { recordValidatedLessonArtifact } from "../features/artifacts/lesson-artifacts";
 import { latentTensorOperations } from "@latent/tensor";
 import { lessonImplementationPrelude, lessonImplementationSource } from "../lessons/implementation-source";
+import { canonicalProjectSeeds } from "../lib/canonical-project";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 type CheckResult = { label: string; passed: boolean; detail: string };
@@ -242,18 +243,22 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
   const [artifactRevision, setArtifactRevision] = useState(0);
 
   useEffect(() => {
+    let active = true;
     const timer = window.setTimeout(() => {
-      const saved = loadLearnerState().lessons[lesson.id];
-      const savedHidden = saved?.hiddenBlocks.filter((id) => blocks.some((block) => block.id === id)) ?? [];
-      const savedAnswers = saved?.answers ?? {};
-      const savedVerified = saved?.verifiedCells.filter((id) => blocks.some((block) => block.id === id)) ?? [];
-      setHiddenBlocks(savedHidden);
-      setAnswers(savedAnswers);
-      setVerifiedBlockIds(savedVerified);
-      ensureProjectWorkspace([projectSeedForLesson(lesson, savedHidden, savedAnswers, savedVerified)]);
-      if (savedHidden.length) setPracticeMessage("Your device-local practice state and project file were restored.");
+      void initializeProjectPersistence().then(() => {
+        if (!active) return;
+        const saved = loadLearnerState().lessons[lesson.id];
+        const savedHidden = saved?.hiddenBlocks.filter((id) => blocks.some((block) => block.id === id)) ?? [];
+        const savedAnswers = saved?.answers ?? {};
+        const savedVerified = saved?.verifiedCells.filter((id) => blocks.some((block) => block.id === id)) ?? [];
+        setHiddenBlocks(savedHidden);
+        setAnswers(savedAnswers);
+        setVerifiedBlockIds(savedVerified);
+        ensureProjectWorkspace([projectSeedForLesson(lesson, savedHidden, savedAnswers, savedVerified), ...canonicalProjectSeeds()]);
+        if (savedHidden.length) setPracticeMessage("Your device-local practice state and project file were restored.");
+      });
     }, 0);
-    return () => window.clearTimeout(timer);
+    return () => { active = false; window.clearTimeout(timer); };
   }, [blocks, lesson]);
 
   const sourceFor = (block: CodeBlock) => hiddenBlocks.includes(block.id) ? answers[block.id] ?? "" : block.code;

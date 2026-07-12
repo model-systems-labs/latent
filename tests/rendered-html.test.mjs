@@ -109,16 +109,13 @@ test("the capstone contains the complete React chat system", async () => {
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /Browser Chat/);
-  assert.match(html, /Student model/);
-  assert.match(html, /Local chat model/);
-  assert.match(html, /SSE-compatible ReadableStream/);
-  assert.match(html, /Request lifecycle/);
-  assert.match(html, /Train model/);
+  assert.match(html, /compiled-capstone-shell/);
+  assert.match(html, /Loading Browser Chat/);
+  assert.match(html, /Restoring project/);
   assert.match(html, /href="\/workspace"/);
   assert.match(html, /href="\/project"/);
   assert.doesNotMatch(html, /Project file editor/);
-  assert.match(html, /Enter to send/);
-  assert.match(html, /Clear current backend/);
+  assert.doesNotMatch(html, /Student model|Local chat model|Enter to send/);
 });
 
 test("the project IDE is a dedicated tested authoring surface", async () => {
@@ -137,17 +134,19 @@ test("the project IDE is a dedicated tested authoring surface", async () => {
   assert.match(html, /Pending/);
   assert.match(html, /class="code-editor"/);
   assert.match(html, /Unit tests/);
-  assert.match(html, /Run all[\s\S]*37/);
+  assert.match(html, /Run all\s*(?:<!-- -->)?39/);
   assert.match(html, /Run file tests/);
   assert.match(html, /Test, build &amp; run/);
   assert.match(html, /Last passing build/);
 });
 
 test("the design kit, simulations, model engines, and artifact runtime remain reusable", async () => {
-  const [paperLab, experiment, capstone, workbench, projectWorkspace, projectTests, browserLabService, quickJsRunner, compilerClient, persistence, artifactRuntime, artifactService, labTypes, engines, extended, sourceSets, layout, packageJson] = await Promise.all([
+  const [paperLab, experiment, capstone, capstoneTemplate, previewFrame, workbench, projectWorkspace, projectTests, browserLabService, quickJsRunner, compilerClient, persistence, artifactRuntime, artifactService, labTypes, engines, extended, sourceSets, layout, packageJson] = await Promise.all([
     readFile(new URL("../app/components/PaperLab.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/LessonExperiment.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/BrowserChatCapstone.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/content/browser-chat/project-template.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/runtime/capstone/preview-frame.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/components/ProjectWorkbench.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/lib/project-workspace.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/lib/project-tests.ts", import.meta.url), "utf8"),
@@ -171,11 +170,17 @@ test("the design kit, simulations, model engines, and artifact runtime remain re
   assert.match(experiment, /function SystemsExperiment/);
   assert.match(experiment, /function ProductExperiment/);
   assert.match(capstone, /createMockServingStream/);
-  assert.match(capstone, /chatReducer/);
+  assert.match(capstone, /mountPreviewFrame/);
+  assert.match(capstone, /loadValidatedCapstoneBundle/);
   assert.doesNotMatch(capstone, /localStorage/);
   assert.match(capstone, /LocalModelClient/);
-  assert.match(capstone, /runtime\.model\.temperature/);
-  assert.match(capstone, /runtime\.transport\.wordsPerEvent/);
+  assert.match(capstoneTemplate, /function chatReducer/);
+  assert.match(capstoneTemplate, /__LATENT_PREVIEW_HOST__/);
+  assert.match(capstoneTemplate, /export function mount/);
+  assert.match(capstoneTemplate, /role="log"/);
+  assert.match(previewFrame, /MessageChannel/);
+  assert.match(previewFrame, /PREVIEW_FRAME_SANDBOX/);
+  assert.doesNotMatch(previewFrame, /new Function|eval\(/);
   assert.match(workbench, /Previous build/);
   assert.match(workbench, /saveProjectRuntime/);
   assert.match(workbench, /runProjectUnitTests/);

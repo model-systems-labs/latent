@@ -1,5 +1,5 @@
 import type { BrowserLabDatabase } from "./database";
-import { createPersistenceId, hashText } from "./hash";
+import { assertBundleIntegrity, createPersistenceId, hashBundleContents, hashText } from "./hash";
 import { assertStructuredValueWithinLimits, projectFileId, promotionKey } from "./pure";
 import {
   PERSISTENCE_SCHEMA_VERSION,
@@ -180,8 +180,9 @@ export class AssessmentRepository extends RepositoryBase {
     return run;
   }
 
-  async finish(runId: string, results: TestResultRecord[]) {
+  async finish(runId: string, results: TestResultRecord[], moduleHashes?: Record<string, string>) {
     assertStructuredValueWithinLimits(results);
+    if (moduleHashes) assertStructuredValueWithinLimits(moduleHashes);
     return this.database.transaction("rw", this.database.testRuns, this.database.testReceipts, async () => {
       const existingReceipt = await this.database.testReceipts.where("runId").equals(runId).first();
       if (existingReceipt) return existingReceipt;
@@ -202,6 +203,7 @@ export class AssessmentRepository extends RepositoryBase {
         passedCount,
         totalCount: results.length,
         runnerVersion: run.runnerVersion,
+        ...(moduleHashes ? { moduleHashes: { ...moduleHashes } } : {}),
         origin: "host",
         createdAt: completedAt,
       };
@@ -224,6 +226,8 @@ export type PromotePassingBuildInput = {
   testReceiptId: string;
   fileHashes: Record<string, string>;
   bundles: Record<string, string>;
+  /** Optional for caller compatibility; promotion always persists computed hashes. */
+  bundleHashes?: Record<string, string>;
   runtimeConfig: JsonValue;
   bindings: BuildBindings;
   checkpointId?: string | null;
@@ -239,12 +243,33 @@ export function assertPromotionEligibility(project: ProjectRecord, receipt: Test
   if (receipt.sourceTreeHash !== input.sourceTreeHash) throw new PersistenceInvariantError("The tested source hash does not match the build source hash.");
   if (receipt.contractVersion !== input.contractVersion) throw new PersistenceInvariantError("The test contract version does not match the build contract version.");
   if (receipt.id !== input.testReceiptId) throw new PersistenceInvariantError("The supplied test receipt was not used for this build.");
+  if (!receipt.moduleHashes) throw new PersistenceInvariantError("The test receipt has no compiler module hash manifest.");
+  if (!input.bundleHashes) throw new PersistenceInvariantError("The promoted build has no compiler module hash manifest.");
+  const receiptPaths = Object.keys(receipt.moduleHashes).sort((left, right) => left.localeCompare(right));
+  const bundlePaths = Object.keys(input.bundleHashes).sort((left, right) => left.localeCompare(right));
+  if (receiptPaths.length !== bundlePaths.length || receiptPaths.some((path, index) => path !== bundlePaths[index])) {
+    throw new PersistenceInvariantError("The promoted bundle manifest does not match the tested compiler modules.");
+  }
+  for (const path of receiptPaths) {
+    if (receipt.moduleHashes[path] !== input.bundleHashes[path]) {
+      throw new PersistenceInvariantError(`The promoted bundle for ${path} does not match the tested compiler module hash.`);
+    }
+  }
 }
 
 export class BuildRepository extends RepositoryBase {
   async promotePassing(input: PromotePassingBuildInput) {
     assertStructuredValueWithinLimits(input);
+    await assertBundleIntegrity(input.bundles, input.bundleHashes);
+    const bundleHashes = await hashBundleContents(input.bundles);
+    const verifiedInput = { ...input, bundleHashes };
     const key = promotionKey(input.projectId, input.sourceTreeHash, input.contractVersion);
+    // Web Crypto promises must settle before entering the Dexie transaction;
+    // otherwise IndexedDB may auto-commit while integrity verification waits.
+    const existingBeforeTransaction = await this.database.builds.where("promotionKey").equals(key).first();
+    if (existingBeforeTransaction) {
+      await assertBundleIntegrity(existingBeforeTransaction.bundles, existingBeforeTransaction.bundleHashes);
+    }
     return this.database.transaction("rw", this.database.projects, this.database.testReceipts, this.database.checkpoints, this.database.builds, async () => {
       const [project, receipt, existing] = await Promise.all([
         this.database.projects.get(input.projectId),
@@ -253,7 +278,7 @@ export class BuildRepository extends RepositoryBase {
       ]);
       if (!project) throw new PersistenceInvariantError(`Project ${input.projectId} does not exist.`);
       if (!receipt) throw new PersistenceInvariantError(`Test receipt ${input.testReceiptId} does not exist.`);
-      assertPromotionEligibility(project, receipt, input);
+      assertPromotionEligibility(project, receipt, verifiedInput);
 
       if (existing) {
         await this.database.projects.update(project.id, { activeBuildId: existing.id, updatedAt: this.now() });
@@ -278,6 +303,7 @@ export class BuildRepository extends RepositoryBase {
         contractVersion: input.contractVersion,
         fileHashes: { ...input.fileHashes },
         bundles: { ...input.bundles },
+        bundleHashes,
         runtimeConfig: input.runtimeConfig,
         bindings: { ...input.bindings },
         testReceiptId: receipt.id,
@@ -293,11 +319,15 @@ export class BuildRepository extends RepositoryBase {
 
   async active(projectId: string) {
     const project = await this.database.projects.get(projectId);
-    return project?.activeBuildId ? this.database.builds.get(project.activeBuildId) : undefined;
+    const build = project?.activeBuildId ? await this.database.builds.get(project.activeBuildId) : undefined;
+    if (build) await assertBundleIntegrity(build.bundles, build.bundleHashes);
+    return build;
   }
 
-  list(projectId: string) {
-    return this.database.builds.where("projectId").equals(projectId).sortBy("buildNumber");
+  async list(projectId: string) {
+    const builds = await this.database.builds.where("projectId").equals(projectId).sortBy("buildNumber");
+    await Promise.all(builds.map((build) => assertBundleIntegrity(build.bundles, build.bundleHashes)));
+    return builds;
   }
 }
 

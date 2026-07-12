@@ -10,7 +10,8 @@ export type CapstoneRuntimeConsumer =
   | "stream-consumer"
   | "generation-recovery"
   | "prompt-context"
-  | "generation-presentation";
+  | "generation-presentation"
+  | "compiled-chat-ui";
 
 export type LlmRuntimeCapabilityDefinition = RuntimeBinding & {
   consumer: CapstoneRuntimeConsumer;
@@ -57,6 +58,18 @@ function sourcePathFor(lessonId: string): string {
  */
 export const LLM_RUNTIME_CAPABILITIES: readonly LlmRuntimeCapabilityDefinition[] =
   Object.freeze([
+    {
+      bindingId: "capstone-ui-mount",
+      capability: "ui.mount",
+      modulePath: "capstone/main.tsx",
+      exportName: "mount",
+      kind: "function",
+      required: true,
+      requirement: "core",
+      consumer: "compiled-chat-ui",
+      summary:
+        "Mounts the validated React capstone inside an opaque-origin sandboxed preview frame.",
+    },
     {
       bindingId: "model-softmax",
       capability: "model.softmax",

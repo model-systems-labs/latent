@@ -36,6 +36,11 @@ function artifactFixture(overrides = {}) {
       codeHash: sha256(code),
     };
   });
+  for (const path of new Set(runtime.LLM_RUNTIME_CAPABILITIES.map((binding) => binding.modulePath))) {
+    if (modules.some((module) => module.modulePath === path)) continue;
+    const code = "var __capstone = (() => ({ mount() {} }))();";
+    modules.push({ modulePath: path, globalName: "__capstone", code, codeHash: sha256(code) });
+  }
   const sourceHash = sha256("complete learner source tree");
   const program = {
     schemaVersion: 1,
@@ -84,6 +89,7 @@ function persistedFixture(overrides = {}) {
       `var ${binding.bindingId.replaceAll("-", "_")} = (() => ({}))();`,
     ]),
   );
+  const bundleHashes = Object.fromEntries(Object.entries(bundles).map(([path, code]) => [path, sha256(code)]));
   return {
     id: "persisted-build-4",
     promotionKey: "browser-chat:source:contracts",
@@ -95,6 +101,7 @@ function persistedFixture(overrides = {}) {
     contractVersion: "llm-systems-v1",
     fileHashes,
     bundles,
+    bundleHashes,
     runtimeConfig: {},
     bindings,
     testReceiptId: "receipt-14",
@@ -109,6 +116,7 @@ test("the course binding manifest exposes real capstone capabilities with only c
   assert.deepEqual(
     runtime.LLM_RUNTIME_CAPABILITIES.map((binding) => binding.capability),
     [
+      "ui.mount",
       "model.softmax",
       "transport.encode-sse",
       "transport.parse-sse",
@@ -118,6 +126,7 @@ test("the course binding manifest exposes real capstone capabilities with only c
     ],
   );
   assert.deepEqual(runtime.REQUIRED_LLM_RUNTIME_CAPABILITIES, [
+    "ui.mount",
     "transport.parse-sse",
     "serving.should-retry",
     "chat.select-context",
@@ -146,7 +155,8 @@ test("an artifact becomes a source-free descriptor with complete and honest cont
     descriptor.contributions.filter((entry) => entry.mode === "provenance-only").length,
     9,
   );
-  assert.ok(descriptor.bindings.every((binding) => binding.executionTarget === "isolated-browser-lab-worker"));
+  assert.equal(descriptor.bindings.find((binding) => binding.capability === "ui.mount")?.executionTarget, "sandboxed-preview-frame");
+  assert.ok(descriptor.bindings.filter((binding) => binding.capability !== "ui.mount").every((binding) => binding.executionTarget === "isolated-browser-lab-worker"));
   assert.match(descriptor.fingerprints.lessonSources, /^sha256:[a-f0-9]{64}$/);
   assert.match(descriptor.fingerprints.executableModules, /^sha256:[a-f0-9]{64}$/);
   assert.doesNotMatch(JSON.stringify(descriptor), /var __lesson_/);
@@ -212,3 +222,17 @@ test("validated persisted builds produce the same safe surface and reject bindin
   );
 });
 
+test("only the compiler-hashed capstone bundle can enter the preview frame", async () => {
+  const persisted = persistedFixture();
+  const loaded = await runtime.loadValidatedCapstoneBundle(persisted);
+  assert.equal(loaded.entryPath, "capstone/main.tsx");
+  assert.equal(loaded.codeHash, persisted.bundleHashes[loaded.entryPath]);
+  assert.equal(loaded.descriptor.bindings.find((binding) => binding.capability === "ui.mount")?.executionTarget, "sandboxed-preview-frame");
+
+  const tampered = persistedFixture();
+  tampered.bundles["capstone/main.tsx"] += "\n// changed";
+  await assert.rejects(
+    runtime.loadValidatedCapstoneBundle(tampered),
+    (error) => error.code === "COMPILED_CODE_TAMPERED",
+  );
+});

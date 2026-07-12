@@ -1,5 +1,6 @@
 import type { Table } from "dexie";
 import type { BrowserLabDatabase } from "./database";
+import { assertBundleIntegrity } from "./hash";
 import {
   PERSISTENCE_TABLE_NAMES,
   PersistenceDataError,
@@ -36,6 +37,12 @@ const tables = (database: BrowserLabDatabase) => ({
 
 const transactionTables = (database: BrowserLabDatabase) => PERSISTENCE_TABLE_NAMES.map((name) => tables(database)[name]);
 
+async function assertSnapshotBundleIntegrity(snapshot: PortablePersistenceSnapshot) {
+  for (const build of snapshot.tables.builds) {
+    await assertBundleIntegrity(build.bundles, build.bundleHashes);
+  }
+}
+
 export async function exportPersistenceSnapshot(
   database: BrowserLabDatabase,
   partial: Partial<PersistenceLimits> = {},
@@ -58,7 +65,9 @@ export async function exportPersistenceSnapshot(
     exportedAt: Date.now(),
     tables: records,
   } as unknown as PortablePersistenceSnapshot;
-  return validatePortableSnapshot(snapshot, limits);
+  const validated = validatePortableSnapshot(snapshot, limits);
+  await assertSnapshotBundleIntegrity(validated);
+  return validated;
 }
 
 export function serializePersistenceSnapshot(snapshot: PortablePersistenceSnapshot, partial: Partial<PersistenceLimits> = {}) {
@@ -153,6 +162,7 @@ export async function importPersistenceSnapshot(
 ) {
   const snapshot = typeof source === "string" ? parsePortableSnapshot(source, options.limits) : validatePortableSnapshot(source, options.limits);
   assertStructuredValueWithinLimits(snapshot, options.limits);
+  await assertSnapshotBundleIntegrity(snapshot);
   await database.transaction("rw", transactionTables(database), async () => {
     if (options.mode === "replace") await replaceAll(database, snapshot);
     else await mergeAll(database, snapshot);

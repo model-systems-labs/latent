@@ -5,12 +5,13 @@ import type { BrowserLabTestResult } from "./browser-lab";
 import { getPersistenceContext } from "../platform/persistence/client";
 import type { JsonValue } from "../platform/persistence/types";
 import { LATENT_TENSOR_PATH, LATENT_TENSOR_SOURCE } from "@latent/tensor/browser-source";
+import { CANONICAL_BROWSER_CHAT_FILES } from "../content/browser-chat/project-template";
 
 export const PROJECT_STORAGE_KEY = "latent-project-v1";
 const PROJECT_CHANGE_EVENT = "latent-project-change";
 const PROJECT_ID = "browser-chat";
 
-export type ProjectCourse = "runtime" | "models" | "systems" | "backend" | "product";
+export type ProjectCourse = "runtime" | "models" | "systems" | "backend" | "product" | "app";
 
 export type ProjectFile = {
   path: string;
@@ -42,7 +43,13 @@ export type ProjectState = {
   selectedPath: string;
   runtime: ProjectRuntime;
   output: { previous: string; current: string };
-  tests: { results: Record<string, ProjectUnitResult[]>; ranAt: number; runner: "none" | "legacy" | "browser-lab-v1" };
+  tests: {
+    results: Record<string, ProjectUnitResult[]>;
+    ranAt: number;
+    runner: "none" | "legacy" | "browser-lab-v1";
+    sourceTreeHash: string | null;
+    projectRevision: number | null;
+  };
 };
 
 export type LessonProjectSeed = Omit<ProjectFile, "updatedAt">;
@@ -75,7 +82,7 @@ function runtimeFiles(): Record<string, ProjectFile> {
     { path: RUNTIME_PATHS.transport, title: "Streaming transport", content: configSource(DEFAULT_RUNTIME.transport) },
     { path: RUNTIME_PATHS.interface, title: "Chat presentation", content: configSource(DEFAULT_RUNTIME.interface) },
   ];
-  return Object.fromEntries(definitions.map((file) => [file.path, {
+  const runtime = definitions.map((file) => [file.path, {
     ...file,
     courseId: "runtime" as const,
     referenceContent: file.content,
@@ -83,7 +90,19 @@ function runtimeFiles(): Record<string, ProjectFile> {
     totalCells: 1,
     updatedAt: now,
     readOnly: file.readOnly,
-  }]));
+  }] as const);
+  const application = CANONICAL_BROWSER_CHAT_FILES.map((file) => [file.path, {
+    path: file.path,
+    courseId: "app" as const,
+    title: file.title,
+    content: file.source,
+    referenceContent: file.source,
+    verifiedCells: file.editable ? 0 : 1,
+    totalCells: 1,
+    updatedAt: now,
+    readOnly: !file.editable,
+  }] as const);
+  return Object.fromEntries([...runtime, ...application]);
 }
 
 export function emptyProjectState(): ProjectState {
@@ -93,7 +112,7 @@ export function emptyProjectState(): ProjectState {
     selectedPath: RUNTIME_PATHS.model,
     runtime: { ...DEFAULT_RUNTIME, model: { ...DEFAULT_RUNTIME.model }, transport: { ...DEFAULT_RUNTIME.transport }, interface: { ...DEFAULT_RUNTIME.interface } },
     output: { previous: "", current: "" },
-    tests: { results: {}, ranAt: 0, runner: "none" },
+    tests: { results: {}, ranAt: 0, runner: "none", sourceTreeHash: null, projectRevision: null },
   };
 }
 
@@ -137,7 +156,7 @@ function sanitizeProjectState(value: unknown): ProjectState {
       if (!raw || typeof raw !== "object") continue;
       const file = raw as Partial<ProjectFile>;
       if (typeof file.content !== "string" || typeof file.title !== "string") continue;
-      const courseId = ["runtime", "models", "systems", "backend", "product"].includes(String(file.courseId)) ? file.courseId as ProjectCourse : "runtime";
+      const courseId = ["runtime", "models", "systems", "backend", "product", "app"].includes(String(file.courseId)) ? file.courseId as ProjectCourse : "runtime";
       files[path] = {
         path,
         courseId,
@@ -171,6 +190,10 @@ function sanitizeProjectState(value: unknown): ProjectState {
     results: testResults,
     ranAt: finiteNumber(rawTests?.ranAt, 0),
     runner: rawTests?.runner === "browser-lab-v1" ? "browser-lab-v1" as const : Object.keys(testResults).length ? "legacy" as const : "none" as const,
+    sourceTreeHash: typeof rawTests?.sourceTreeHash === "string" ? rawTests.sourceTreeHash : null,
+    projectRevision: typeof rawTests?.projectRevision === "number" && Number.isSafeInteger(rawTests.projectRevision) && rawTests.projectRevision >= 0
+      ? rawTests.projectRevision
+      : null,
   };
   return { version: 1, files, selectedPath, runtime: sanitizeRuntime(candidate.runtime), output, tests };
 }
@@ -253,7 +276,7 @@ async function stateFromPersistence(): Promise<ProjectState | null> {
   for (const record of records) {
     if (files[record.path]?.readOnly) continue;
     const previous = files[record.path];
-    const courseId = ["runtime", "models", "systems", "backend", "product"].includes(record.track) ? record.track as ProjectCourse : "models";
+    const courseId = ["runtime", "models", "systems", "backend", "product", "app"].includes(record.track) ? record.track as ProjectCourse : "models";
     files[record.path] = {
       path: record.path,
       courseId,
@@ -284,9 +307,19 @@ async function stateFromPersistence(): Promise<ProjectState | null> {
     selectedPath: project.selectedPath ?? legacy.selectedPath,
     runtime: activeBuild?.runtimeConfig ?? storedRuntime ?? legacy.runtime,
     output: storedOutput ?? legacy.output,
-    tests: storedTests ?? (testsFromRuns ? { results: testsFromRuns, ranAt: latestRun?.completedAt ?? 0, runner: latestRun?.runnerVersion === "browser-lab-quickjs-v1" ? "browser-lab-v1" : "legacy" } : legacy.tests),
+    tests: storedTests ?? (testsFromRuns ? {
+      results: testsFromRuns,
+      ranAt: latestRun?.completedAt ?? 0,
+      runner: latestRun?.runnerVersion === "browser-lab-quickjs-v1" ? "browser-lab-v1" : "legacy",
+      sourceTreeHash: latestRun?.sourceTreeHash ?? null,
+      projectRevision: latestRun?.projectRevision ?? null,
+    } : legacy.tests),
   };
-  return sanitizeProjectState(candidate);
+  const restored = sanitizeProjectState(candidate);
+  if (restored.tests.projectRevision !== project.draftRevision) {
+    restored.tests = { results: {}, ranAt: 0, runner: "none", sourceTreeHash: null, projectRevision: null };
+  }
+  return restored;
 }
 
 export function initializeProjectPersistence() {
@@ -368,24 +401,31 @@ export function ensureProjectWorkspace(seeds: LessonProjectSeed[]) {
       ...state,
       files,
       selectedPath: files[selectedPath] ? selectedPath : RUNTIME_PATHS.model,
-      tests: sourceTreeChanged ? { results: {}, ranAt: 0, runner: "none" } : { ...state.tests, results: testResults },
+      tests: sourceTreeChanged
+        ? { results: {}, ranAt: 0, runner: "none", sourceTreeHash: null, projectRevision: null }
+        : { ...state.tests, results: testResults },
     };
   });
 }
 
+export function projectStateAfterFileEdit(state: ProjectState, path: string, content: string, updatedAt = Date.now()) {
+  const file = state.files[path];
+  if (!file) return state;
+  if (file.readOnly) return { ...state, selectedPath: path };
+  if (file.content === content) return { ...state, selectedPath: path };
+  return {
+    ...state,
+    selectedPath: path,
+    files: {
+      ...state.files,
+      [path]: { ...file, content, verifiedCells: file.lessonId ? 0 : file.verifiedCells, updatedAt },
+    },
+    tests: { results: {}, ranAt: 0, runner: "none" as const, sourceTreeHash: null, projectRevision: null },
+  };
+}
+
 export function saveProjectFile(path: string, content: string) {
-  return updateProjectState((state) => {
-    const file = state.files[path];
-    if (!file) return state;
-    if (file.readOnly) return { ...state, selectedPath: path };
-    if (file.content === content) return { ...state, selectedPath: path };
-    return {
-      ...state,
-      selectedPath: path,
-      files: { ...state.files, [path]: { ...file, content, updatedAt: Date.now() } },
-      tests: { results: {}, ranAt: 0, runner: "none" },
-    };
-  });
+  return updateProjectState((state) => projectStateAfterFileEdit(state, path, content));
 }
 
 export function saveLessonProjectFile(seed: LessonProjectSeed) {
@@ -395,7 +435,9 @@ export function saveLessonProjectFile(seed: LessonProjectSeed) {
     return {
       ...state,
       files: { ...state.files, [seed.path]: { ...seed, updatedAt: contentChanged ? Date.now() : existing?.updatedAt ?? Date.now() } },
-      tests: contentChanged ? { results: {}, ranAt: 0, runner: "none" } : state.tests,
+      tests: contentChanged
+        ? { results: {}, ranAt: 0, runner: "none", sourceTreeHash: null, projectRevision: null }
+        : state.tests,
     };
   });
 }
@@ -454,14 +496,22 @@ export function saveProjectRuntime(runtime: ProjectRuntime, preview: string) {
   return updateProjectState((state) => ({ ...state, runtime, output: { previous: state.output.current, current: preview } }));
 }
 
-export function saveProjectTestResults(results: ProjectUnitResult[], replaceAll = false) {
+export function saveProjectTestResults(
+  results: ProjectUnitResult[],
+  replaceAll = false,
+  sourceTreeHash: string | null = null,
+  projectRevision: number | null = null,
+) {
   return updateProjectState((state) => {
     const nextResults = replaceAll ? {} as Record<string, ProjectUnitResult[]> : { ...state.tests.results };
     for (const path of new Set(results.map((result) => result.path))) nextResults[path] = [];
     for (const result of results) {
       nextResults[result.path].push(result);
     }
-    return { ...state, tests: { results: nextResults, ranAt: Date.now(), runner: "browser-lab-v1" } };
+    return {
+      ...state,
+      tests: { results: nextResults, ranAt: Date.now(), runner: "browser-lab-v1", sourceTreeHash, projectRevision },
+    };
   });
 }
 

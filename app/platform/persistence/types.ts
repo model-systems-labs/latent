@@ -82,6 +82,8 @@ export type TestReceiptRecord = {
   readonly passedCount: number;
   readonly totalCount: number;
   readonly runnerVersion: string;
+  /** Exact compiler output manifest exercised by this source-bound run. */
+  readonly moduleHashes?: Record<string, string>;
   readonly origin: "host" | "legacy";
   readonly createdAt: number;
 };
@@ -99,6 +101,8 @@ export type BuildRecord = {
   readonly contractVersion: string;
   readonly fileHashes: Record<string, string>;
   readonly bundles: Record<string, string>;
+  /** Absent only on builds created before bundle integrity manifests existed. */
+  readonly bundleHashes?: Record<string, string>;
   readonly runtimeConfig: JsonValue;
   readonly bindings: BuildBindings;
   readonly testReceiptId: string | null;

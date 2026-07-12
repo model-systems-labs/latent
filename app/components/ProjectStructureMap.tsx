@@ -1,10 +1,13 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
-import { courseLessons, courseTracks, getTrackLessons, llmSystemsCurriculum } from "../lessons/course";
+import { courseLessons, courseTracks, getTrackLessons } from "../lessons/course";
+import { CAPSTONE_ENTRY_PATH, CANONICAL_BROWSER_CHAT_FILES } from "../content/browser-chat/project-template";
 import { useLearnerState } from "../lib/learner-state";
-import { RUNTIME_PATHS, useProjectState } from "../lib/project-workspace";
-import { projectFileStatus, type ProjectFileStatus } from "../lib/project-file-status";
+import { ensureProjectWorkspace, initializeProjectPersistence, RUNTIME_PATHS, useProjectState } from "../lib/project-workspace";
+import { projectFileStatus, projectResultsForFile, type ProjectFileStatus } from "../lib/project-file-status";
+import { canonicalProjectSeeds } from "../lib/canonical-project";
 
 type ProjectRow = {
   path: string;
@@ -41,13 +44,16 @@ function ProjectGroup({ label, rows }: { label: string; rows: ProjectRow[] }) {
 export function ProjectStructureMap() {
   const learner = useLearnerState();
   const project = useProjectState();
+  useEffect(() => {
+    void initializeProjectPersistence().then(() => { ensureProjectWorkspace(canonicalProjectSeeds()); });
+  }, []);
   const trustedResults = project.tests.runner === "browser-lab-v1" ? project.tests.results : {};
   const groups = courseTracks.map((track) => ({
     track,
     rows: getTrackLessons(track.id).map((lesson): ProjectRow => {
       const path = `${lesson.courseId ?? "models"}/${lesson.implementation.filename}`;
       const file = project.files[path];
-      const verifiedCells = learner.lessons[lesson.id]?.verifiedCells.length ?? file?.verifiedCells ?? 0;
+      const verifiedCells = file?.verifiedCells ?? learner.lessons[lesson.id]?.verifiedCells.length ?? 0;
       return {
         path,
         filename: lesson.implementation.filename,
@@ -74,14 +80,24 @@ export function ProjectStructureMap() {
       results: trustedResults[path] ?? [],
     }),
   }));
-  const capstoneRow: ProjectRow = {
-    path: llmSystemsCurriculum.capstone.projectPath,
-    filename: llmSystemsCurriculum.capstone.projectPath.split("/").at(-1) ?? "BrowserChat.tsx",
-    href: "/capstone",
-    status: project.runtime.builtAt > 0
-      ? { tone: "assembled", label: "Assembled", complete: true }
-      : { tone: "pending", label: "Pending", complete: false },
-  };
+  const canonicalRows = CANONICAL_BROWSER_CHAT_FILES.map((definition): ProjectRow => {
+    const results = projectResultsForFile(
+      trustedResults,
+      definition.path,
+      definition.editable ? CAPSTONE_ENTRY_PATH : undefined,
+    );
+    return {
+      path: definition.path,
+      filename: definition.path.split("/").at(-1) ?? definition.path,
+      status: projectFileStatus({
+        isLessonFile: false,
+        readOnly: !definition.editable,
+        requiresPassingTests: definition.editable,
+        results,
+      }),
+    };
+  });
+  const rowsForFolder = (folder: string) => canonicalRows.filter((row) => row.path.startsWith(`${folder}/`));
 
   return (
     <section className="project-structure-map" aria-label="browser-chat project file structure">
@@ -94,9 +110,10 @@ export function ProjectStructureMap() {
         <p><strong>{completed} complete</strong><span>{inProgress ? ` · ${inProgress} in progress` : ""} · {pending} pending</span></p>
       </div>
       <div className="project-structure-groups">
-        <ProjectGroup label="runtime" rows={providedRows} />
+        <ProjectGroup label="runtime" rows={[...providedRows, ...rowsForFolder("runtime")]} />
         {groups.map(({ track, rows }) => <ProjectGroup label={track.id} rows={rows} key={track.id} />)}
-        <ProjectGroup label="capstone" rows={[capstoneRow]} />
+        <ProjectGroup label="vendor" rows={rowsForFolder("vendor")} />
+        <ProjectGroup label="capstone" rows={rowsForFolder("capstone")} />
       </div>
       <footer className="project-structure-footer">
         <p>Open any source file to edit it. A file changes state only when its behavioral checks pass.</p>

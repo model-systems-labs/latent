@@ -7,6 +7,7 @@ let vite;
 let course;
 let manifestModule;
 let lms;
+let fileStatus;
 
 before(async () => {
   vite = await createServer({
@@ -16,10 +17,11 @@ before(async () => {
     appType: "custom",
     logLevel: "silent",
   });
-  [course, manifestModule, lms] = await Promise.all([
+  [course, manifestModule, lms, fileStatus] = await Promise.all([
     vite.ssrLoadModule("/app/lessons/course.ts"),
     vite.ssrLoadModule("/app/content/llm-systems/manifest.ts"),
     vite.ssrLoadModule("/packages/course-kit/src/curriculum.ts"),
+    vite.ssrLoadModule("/app/lib/project-file-status.ts"),
   ]);
 });
 
@@ -83,5 +85,28 @@ test("manifest validation rejects ambiguous files and unreachable source lessons
   assert.throws(
     () => lms.deriveCurriculum(manifestModule.llmSystemsManifest, sourceLessons),
     /source lesson is not assigned to a module: unassigned-lesson/,
+  );
+});
+
+test("project files expose clear pending, complete, provided, and failure states", () => {
+  assert.deepEqual(
+    fileStatus.projectFileStatus({ isLessonFile: true, verifiedCells: 0, totalCells: 3 }),
+    { tone: "pending", label: "Pending", complete: false },
+  );
+  assert.deepEqual(
+    fileStatus.projectFileStatus({ isLessonFile: true, verifiedCells: 2, totalCells: 3 }),
+    { tone: "in-progress", label: "2/3 complete", complete: false },
+  );
+  assert.deepEqual(
+    fileStatus.projectFileStatus({ isLessonFile: true, verifiedCells: 3, totalCells: 3 }),
+    { tone: "complete", label: "Complete", complete: true },
+  );
+  assert.deepEqual(
+    fileStatus.projectFileStatus({ isLessonFile: false, readOnly: true }),
+    { tone: "provided", label: "Provided", complete: true },
+  );
+  assert.deepEqual(
+    fileStatus.projectFileStatus({ isLessonFile: true, verifiedCells: 3, totalCells: 3, results: [{ passed: false }] }),
+    { tone: "failed", label: "Needs work", complete: false },
   );
 });

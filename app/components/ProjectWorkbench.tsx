@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { CodeEditor } from "../features/ide/CodeEditor";
 import { courseLessons } from "../lessons/course";
 import { llmSystemsCurriculum } from "../lessons/course";
@@ -17,6 +18,7 @@ import { createCapstoneRuntimeDescriptor, llmRuntimeBindingManifest } from "../r
 import { downloadArtifact, latestProjectBuildArtifact, recordProjectBuildArtifact, recordValidatedProjectLessonArtifacts } from "../features/artifacts/lesson-artifacts";
 import type { ArtifactEnvelope } from "@latent/artifact-runtime";
 import { lessonImplementationSource } from "../lessons/implementation-source";
+import { projectFileStatus } from "../lib/project-file-status";
 import {
   compileProject,
   ensureProjectWorkspace,
@@ -55,6 +57,16 @@ const groups: Array<{ id: ProjectCourse; label: string }> = [
   { id: "product", label: "04 · Chat integration" },
 ];
 
+type ProjectTreeEntry = {
+  path: string;
+  courseId: ProjectCourse;
+  title: string;
+  lessonId?: string;
+  verifiedCells: number;
+  totalCells: number;
+  readOnly?: boolean;
+};
+
 export function ProjectWorkbench() {
   const learner = useLearnerState();
   const student = learner.artifacts.characterRnn ?? null;
@@ -76,12 +88,34 @@ export function ProjectWorkbench() {
 
   const filesByGroup = useMemo(() => groups.map((group) => ({
     ...group,
-    files: Object.values(project.files).filter((file) => file.courseId === group.id).sort((left, right) => left.path.localeCompare(right.path)),
+    files: group.id === "runtime"
+      ? Object.values(project.files).filter((file) => file.courseId === group.id).sort((left, right) => left.path.localeCompare(right.path))
+      : courseLessons.filter((lesson) => lesson.courseId === group.id).map((lesson): ProjectTreeEntry => {
+          const path = `${lesson.courseId ?? "models"}/${lesson.implementation.filename}`;
+          return project.files[path] ?? {
+            path,
+            courseId: group.id,
+            title: lesson.title,
+            lessonId: lesson.id,
+            verifiedCells: 0,
+            totalCells: lesson.implementation.codeBlocks.length,
+          };
+        }),
   })), [project.files]);
-  const verifiedFiles = Object.values(project.files).filter((file) => file.lessonId && file.verifiedCells >= file.totalCells).length;
   const draft = selected ? drafts[selected.path] ?? selected.content : "";
   const dirty = Boolean(selected && draft !== selected.content);
   const trustedResults = project.tests.runner === "browser-lab-v1" ? project.tests.results : {};
+  const statusForFile = (file: ProjectTreeEntry) => {
+    const verifiedCells = file.lessonId ? learner.lessons[file.lessonId]?.verifiedCells.length ?? file.verifiedCells : file.verifiedCells;
+    return projectFileStatus({
+      isLessonFile: Boolean(file.lessonId),
+      readOnly: file.readOnly,
+      verifiedCells,
+      totalCells: file.totalCells,
+      results: trustedResults[file.path] ?? [],
+    });
+  };
+  const verifiedFiles = filesByGroup.flatMap((group) => group.files).filter((file) => file.lessonId && statusForFile(file).complete).length;
   const selectedTests = selected ? trustedResults[selected.path] ?? [] : [];
   const allTests = Object.values(trustedResults).flat();
   const passingTests = allTests.filter((test) => test.passed).length;
@@ -243,15 +277,33 @@ export function ProjectWorkbench() {
           {filesByGroup.map((group) => (
             <section key={group.id}>
               <span>{group.label}</span>
-              {group.files.map((file) => (
-                <button className={file.path === project.selectedPath ? "active" : ""} type="button" onClick={() => openFile(file.path)} key={file.path}>
-                  <i className={trustedResults[file.path]?.some((test) => !test.passed) ? "test-failed" : trustedResults[file.path]?.length ? "test-passed" : file.lessonId && file.verifiedCells >= file.totalCells ? "verified" : file.lessonId ? "draft" : "runtime"} />
-                  <span>{file.path.split("/").at(-1)}</span>
-                  {trustedResults[file.path]?.length ? <em>{trustedResults[file.path].filter((test) => test.passed).length}/{trustedResults[file.path].length} tests</em> : file.lessonId ? <em>{file.verifiedCells}/{file.totalCells}</em> : <em>untested</em>}
-                </button>
-              ))}
+              {group.files.map((file) => {
+                const status = statusForFile(file);
+                const verifiedCells = file.lessonId ? learner.lessons[file.lessonId]?.verifiedCells.length ?? file.verifiedCells : file.verifiedCells;
+                return (
+                  <button
+                    aria-label={`${file.path}, ${status.label}${file.lessonId ? `, ${verifiedCells} of ${file.totalCells} checks verified` : ""}`}
+                    className={`${file.path === project.selectedPath ? "active " : ""}status-${status.tone}`}
+                    type="button"
+                    onClick={() => openFile(file.path)}
+                    key={file.path}
+                  >
+                    <i />
+                    <span>{file.path.split("/").at(-1)}</span>
+                    <em>{status.label}</em>
+                  </button>
+                );
+              })}
             </section>
           ))}
+          <section>
+            <span>05 · Capstone</span>
+            <Link className={project.runtime.builtAt > 0 ? "status-assembled" : "status-pending"} href="/capstone">
+              <i />
+              <span>{llmSystemsCurriculum.capstone.projectPath.split("/").at(-1)}</span>
+              <em>{project.runtime.builtAt > 0 ? "Assembled" : "Pending"}</em>
+            </Link>
+          </section>
         </nav>
         <div className="project-editor-panel">
           <header><div><span>{selected?.path ?? "No file selected"}</span><strong>{selected?.title}</strong></div><div><i className={dirty ? "dirty" : "saved"} />{selected?.readOnly ? "Course library · read only" : dirty ? "Unsaved changes" : "Saved locally"}</div></header>

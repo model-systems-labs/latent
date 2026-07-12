@@ -42,6 +42,9 @@ test("each module renders its technical lesson sequence", async () => {
     assert.equal(response.status, 200, slug);
     const html = await response.text();
     for (const title of titles) assert.match(html, new RegExp(title));
+    assert.match(html, /Project structure/);
+    assert.match(html, /14(?:<!-- -->)? pending/);
+    assert.match(html, /BrowserChat\.tsx/);
   }
 });
 
@@ -106,6 +109,12 @@ test("the project IDE is a dedicated tested authoring surface", async () => {
   assert.match(html, /Project IDE/);
   assert.match(html, /lesson files verified/);
   assert.match(html, /runtime\/model.config.js/);
+  assert.match(html, /character-rnn\.js/);
+  assert.match(html, /inference-runtime\.js/);
+  assert.match(html, /streaming-transport\.js/);
+  assert.match(html, /chat-reducer\.js/);
+  assert.match(html, /BrowserChat\.tsx/);
+  assert.match(html, /Pending/);
   assert.match(html, /class="code-editor"/);
   assert.match(html, /Unit tests/);
   assert.match(html, /Run all[\s\S]*37/);

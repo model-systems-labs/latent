@@ -1,8 +1,8 @@
-import type { CourseLesson } from "../lib/lesson-types";
-import { courseTracks, productLessons, systemsLessons } from "./extended-course";
+import { llmSystemsManifest } from "../content/llm-systems/manifest";
+import { deriveCurriculum } from "../platform/lms/curriculum";
+import type { CourseLesson, CourseTrack } from "../lib/lesson-types";
+import { productLessons, systemsLessons } from "./extended-course";
 import { getLessonSources } from "./sources";
-
-export { courseTracks } from "./extended-course";
 
 const commonQuestionInstruction = `
 Answer precisely and pedagogically. Separate the source's claims from later practice. If the supplied context is insufficient, say what evidence would be needed. Do not invent quotations, page numbers, experiments, or results. Keep answers under 240 words unless the learner asks for more detail.
@@ -382,17 +382,17 @@ ${commonQuestionInstruction}`.trim(),
             { name: "counts", detail: "Frequency table used to choose the next merge." },
           ],
           code: `function countPairs(words) {
-  const counts = new Map();
+  const counts = {};
   for (const symbols of words) {
     for (let index = 0; index < symbols.length - 1; index += 1) {
       const pair = symbols[index] + "\u0000" + symbols[index + 1];
-      counts.set(pair, (counts.get(pair) ?? 0) + 1);
+      counts[pair] = (counts[pair] ?? 0) + 1;
     }
   }
   return counts;
 }`,
           checkCode: `const counts = countPairs([["l", "o", "w"], ["l", "o"]]);
-return { passed: counts.get("l\u0000o") === 2 && counts.get("o\u0000w") === 1, detail: "lo = " + counts.get("l\u0000o") };`,
+return { passed: counts["l\u0000o"] === 2 && counts["o\u0000w"] === 1, detail: "lo = " + counts["l\u0000o"] };`,
         },
         {
           id: "merge-pair",
@@ -897,12 +897,12 @@ return { passed: result.passed && result.predicted === "K", detail: "predicted "
   },
 ];
 
-export const courseLessons: CourseLesson[] = [
+const sourceLessons: CourseLesson[] = [
   ...modelLessons.map((lesson, index) => ({
     ...lesson,
     sources: getLessonSources(lesson.id),
     courseId: "models" as const,
-    courseTitle: "Language Models",
+    courseTitle: "Model Foundations",
     courseNumber: 1,
     lessonNumber: index + 1,
   })),
@@ -910,10 +910,45 @@ export const courseLessons: CourseLesson[] = [
   ...productLessons,
 ];
 
+export const llmSystemsCurriculum = deriveCurriculum(llmSystemsManifest, sourceLessons);
+
+/** Canonical lesson order now follows the program manifest rather than file declaration order. */
+export const courseLessons: CourseLesson[] = llmSystemsCurriculum.lessons.map(
+  ({ lesson }) => lesson,
+);
+
+const compatibleTrackIds: readonly CourseTrack["id"][] = [
+  "models",
+  "systems",
+  "backend",
+  "product",
+];
+
+function toCompatibleTrackId(routeSlug: string): CourseTrack["id"] {
+  const trackId = compatibleTrackIds.find((candidate) => candidate === routeSlug);
+  if (!trackId) throw new Error(`Unsupported curriculum route slug: ${routeSlug}`);
+  return trackId;
+}
+
+/**
+ * Compatibility adapter for the current course routes. Titles and membership
+ * are derived from the one-program manifest; the route layer can migrate from
+ * "course" to "module" without changing saved project paths.
+ */
+export const courseTracks: CourseTrack[] = llmSystemsCurriculum.modules.map((module) => ({
+  id: toCompatibleTrackId(module.routeSlug),
+  number: module.order,
+  title: module.title,
+  shortTitle: module.shortTitle,
+  thesis: module.thesis,
+  outcome: module.outcome,
+  lessonIds: [...module.lessonIds],
+}));
+
 export { modelLessons };
 
 export function getLesson(slug: string) {
-  return courseLessons.find((lesson) => lesson.id === slug);
+  return llmSystemsCurriculum.lessonById[slug]?.lesson;
 }
 
 export function getAdjacentLesson(lesson: CourseLesson, direction: -1 | 1) {
@@ -926,5 +961,5 @@ export function getTrack(courseId: string) {
 }
 
 export function getTrackLessons(courseId: string) {
-  return courseLessons.filter((lesson) => lesson.courseId === courseId);
+  return llmSystemsCurriculum.moduleByRouteSlug[courseId]?.lessons.map(({ lesson }) => lesson) ?? [];
 }

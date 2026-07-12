@@ -15,21 +15,22 @@ async function render(path = "/") {
   );
 }
 
-test("server-renders the complete four-course curriculum", async () => {
+test("server-renders one LLM Systems program with four technical modules", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /Build an LLM chat system/);
-  assert.match(html, /Language Models/);
-  assert.match(html, /LLM Runtime Systems/);
-  assert.match(html, /Mock Backend Systems/);
-  assert.match(html, /Chat Product/);
+  assert.match(html, /Build an LLM system in your browser/);
+  assert.match(html, /Model Foundations/);
+  assert.match(html, /Inference Runtime/);
+  assert.match(html, /LLM Serving/);
+  assert.match(html, /Chat Integration/);
   assert.match(html, /Browser Chat/);
   assert.equal((html.match(/class="course-track-card"/g) ?? []).length, 4);
+  assert.doesNotMatch(html, /Mock Backend Systems/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/i);
 });
 
-test("each course renders its technical lesson sequence", async () => {
+test("each module renders its technical lesson sequence", async () => {
   const courses = [
     ["models", ["Character RNNs", "Neural Language Models", "Subword Tokenization", "Additive Attention", "Transformers", "In-Context Learning"]],
     ["systems", ["Inference Runtime", "Scheduling and Memory"]],
@@ -101,24 +102,26 @@ test("the project IDE is a dedicated tested authoring surface", async () => {
   assert.match(html, /Project IDE/);
   assert.match(html, /Your project/);
   assert.match(html, /runtime\/model.config.js/);
-  assert.match(html, /Project file editor/);
+  assert.match(html, /class="code-editor"/);
   assert.match(html, /Unit tests/);
-  assert.match(html, /Run all 37/);
+  assert.match(html, /Run all[\s\S]*37/);
   assert.match(html, /Run file tests/);
   assert.match(html, /Test, build &amp; run/);
   assert.match(html, /Last passing build/);
 });
 
 test("the design kit, simulations, and model engines remain reusable", async () => {
-  const [paperLab, experiment, capstone, workbench, projectWorkspace, projectTests, labStore, labRunner, labTypes, engines, extended, sourceSets, layout, packageJson] = await Promise.all([
+  const [paperLab, experiment, capstone, workbench, projectWorkspace, projectTests, browserLabService, quickJsRunner, compilerClient, persistence, labTypes, engines, extended, sourceSets, layout, packageJson] = await Promise.all([
     readFile(new URL("../app/components/PaperLab.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/LessonExperiment.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/BrowserChatCapstone.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/ProjectWorkbench.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/lib/project-workspace.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/lib/project-tests.ts", import.meta.url), "utf8"),
-    readFile(new URL("../app/lib/browser-lab/local-store.ts", import.meta.url), "utf8"),
-    readFile(new URL("../app/lib/browser-lab/test-runner.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/features/ide/browser-lab-service.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/platform/browser-lab/worker/quickjs-engine.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/platform/browser-lab/compiler/client.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/platform/persistence/index.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/lib/browser-lab/types.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/lib/lab-engines.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/lessons/extended-course.ts", import.meta.url), "utf8"),
@@ -129,10 +132,10 @@ test("the design kit, simulations, and model engines remain reusable", async () 
   for (const component of ["HeaderSection", "ParagraphSection", "DiagramSection", "TextBoxSection", "CodingSection"]) assert.match(paperLab, new RegExp(`export function ${component}`));
   assert.match(experiment, /function SystemsExperiment/);
   assert.match(experiment, /function ProductExperiment/);
-  assert.match(capstone, /createSseStream/);
+  assert.match(capstone, /createMockServingStream/);
   assert.match(capstone, /chatReducer/);
-  assert.match(capstone, /localStorage/);
-  assert.match(capstone, /@huggingface\/transformers/);
+  assert.doesNotMatch(capstone, /localStorage/);
+  assert.match(capstone, /LocalModelClient/);
   assert.match(capstone, /runtime\.model\.temperature/);
   assert.match(capstone, /runtime\.transport\.wordsPerEvent/);
   assert.match(workbench, /Previous build/);
@@ -141,18 +144,20 @@ test("the design kit, simulations, and model engines remain reusable", async () 
   assert.match(workbench, /Build blocked/);
   assert.match(projectWorkspace, /latent-project-v1/);
   assert.match(projectWorkspace, /compileProject/);
-  assert.match(projectTests, /runBrowserLabContract/);
-  assert.match(projectTests, /Runtime contract/);
-  assert.match(labStore, /createDeviceLocalStore/);
-  assert.match(labStore, /localStorage/);
-  assert.match(labRunner, /runBrowserLabContract/);
-  assert.match(labRunner, /gateBrowserLabBuild/);
+  assert.match(projectTests, /runLessonContracts/);
+  assert.match(projectTests, /Runtime configuration/);
+  assert.match(browserLabService, /BrowserLabWorkerClient/);
+  assert.doesNotMatch(browserLabService, /new Function|eval\(/);
+  assert.match(quickJsRunner, /QuickJSSandboxEngine/);
+  assert.match(compilerClient, /BrowserLabCompilerClient/);
+  assert.match(persistence, /initializePersistence/);
   assert.match(labTypes, /BrowserLabFile/);
   assert.match(labTypes, /BrowserLabBuildGate/);
   assert.match(engines, /trainCharacterRnn/);
   assert.match(engines, /topK/);
   assert.match(extended, /systemsLessons/);
-  assert.match(extended, /Mock Backend Systems/);
+  assert.match(extended, /LLM Serving/);
+  assert.doesNotMatch(extended, /Mock Backend Systems/);
   assert.match(extended, /productLessons/);
   assert.equal((sourceSets.match(/role: /g) ?? []).length, 42);
   assert.equal((sourceSets.match(/^  (?:"[^"]+"|[a-z-]+): \[$/gm) ?? []).length, 14);
@@ -163,28 +168,17 @@ test("the design kit, simulations, and model engines remain reusable", async () 
   await assert.rejects(access(new URL("../app/_sites-preview", templateRoot)));
 });
 
-test("all browser-rendered reference cells pass their behavioral contracts", async () => {
+test("all browser-rendered reference cells route behavior to host-owned contracts", async () => {
   const slugs = [
     "character-rnns", "neural-language-models", "subword-tokenization", "additive-attention", "transformers", "in-context-learning",
     "inference-runtime", "streaming-transport", "scheduling-memory", "reliability-observability",
     "conversation-state", "streaming-react", "chat-actions-context", "chat-product-quality",
   ];
-  const cells = [];
+  let cellCount = 0;
   for (const slug of slugs) {
     const html = await (await render(`/lessons/${slug}`)).text();
-    cells.push(...[...html.matchAll(/data-reference-code="([^"]*)" data-check-code="([^"]*)"/g)].map((match) => ({
-      slug,
-      reference: decodeURIComponent(match[1]),
-      check: decodeURIComponent(match[2]),
-    })));
+    cellCount += (html.match(/data-reference-code=/g) ?? []).length;
+    assert.doesNotMatch(html, /data-check-code=/, slug);
   }
-  assert.equal(cells.length, 34);
-  for (const [index, cell] of cells.entries()) {
-    try {
-      const result = new Function(`"use strict";\n${cell.reference}\n${cell.check}`)();
-      assert.equal(result.passed, true, `${cell.slug} cell ${index + 1}: ${result.detail}`);
-    } catch (error) {
-      assert.fail(`${cell.slug} cell ${index + 1}: ${error instanceof Error ? error.message : error}\n${cell.reference}\n${cell.check}`);
-    }
-  }
+  assert.equal(cellCount, 34);
 });

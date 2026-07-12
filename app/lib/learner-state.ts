@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 import type { RnnCheckpoint, RnnResult } from "./lab-engines";
+import { getPersistenceContext } from "../platform/persistence/client";
+import { lessonProgressId } from "../platform/persistence/pure";
+import type { JsonValue } from "../platform/persistence/types";
 
 export const LEARNER_STATE_KEY = "latent-learner-v2";
 const CHANGE_EVENT = "latent-learner-state-change";
@@ -74,7 +77,7 @@ function sanitizeLearnerState(value: unknown): LearnerState {
   return { version: 2, lessons, artifacts: characterRnn ? { characterRnn } : {} };
 }
 
-export function loadLearnerState(): LearnerState {
+function loadLegacyLearnerState(): LearnerState {
   if (typeof window === "undefined") return emptyLearnerState();
   try {
     const serialized = window.localStorage.getItem(LEARNER_STATE_KEY);
@@ -84,10 +87,113 @@ export function loadLearnerState(): LearnerState {
   }
 }
 
+let cachedLearner: LearnerState | null = null;
+let learnerHydration: Promise<void> | null = null;
+let learnerPersistenceQueue: Promise<void> = Promise.resolve();
+
+export function loadLearnerState(): LearnerState {
+  return cachedLearner ?? loadLegacyLearnerState();
+}
+
+function moduleForLesson(lessonId: string) {
+  if (["character-rnns", "neural-language-models", "subword-tokenization", "additive-attention", "transformers", "in-context-learning"].includes(lessonId)) return "model-foundations";
+  if (["inference-runtime", "scheduling-memory"].includes(lessonId)) return "inference-runtime";
+  if (["streaming-transport", "reliability-observability"].includes(lessonId)) return "llm-serving";
+  return "chat-integration";
+}
+
+async function persistLearnerState(state: LearnerState) {
+  const { database, repositories } = await getPersistenceContext();
+  if (!(await repositories.projects.get("browser-chat"))) {
+    await repositories.projects.create({ id: "browser-chat", title: "Browser Chat", courseId: "llm-systems" });
+  }
+  await Promise.all(Object.entries(state.lessons).map(([lessonId, lesson]) => repositories.progress.put({
+    id: lessonProgressId("llm-systems", lessonId),
+    courseId: "llm-systems",
+    moduleId: moduleForLesson(lessonId),
+    lessonId,
+    status: lesson.experimentComplete && lesson.verifiedCells.length ? "completed" : "in-progress",
+    verifiedCellIds: lesson.verifiedCells,
+    experimentComplete: lesson.experimentComplete,
+    hiddenBlockIds: lesson.hiddenBlocks,
+    answers: lesson.answers,
+    lastProjectPath: null,
+    updatedAt: lesson.updatedAt,
+  })));
+  const artifact = state.artifacts.characterRnn;
+  if (artifact) {
+    const id = `character-rnn:${artifact.trainedAt}`;
+    if (!(await database.checkpoints.get(id))) {
+      await repositories.checkpoints.add({
+        id,
+        projectId: "browser-chat",
+        buildId: null,
+        kind: "character-rnn",
+        formatVersion: 1,
+        payload: artifact.checkpoint as unknown as JsonValue,
+        metrics: {
+          finalLoss: artifact.finalLoss,
+          parameters: artifact.parameters,
+          vocabularySize: artifact.vocabularySize,
+        },
+        createdAt: artifact.trainedAt,
+      });
+    }
+  }
+}
+
+function scheduleLearnerPersistence(state: LearnerState) {
+  learnerPersistenceQueue = learnerPersistenceQueue
+    .then(() => persistLearnerState(state))
+    .catch((error) => console.error("Learner progress persistence failed", error));
+}
+
 function storeLearnerState(state: LearnerState) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(LEARNER_STATE_KEY, JSON.stringify(state));
-  window.dispatchEvent(new CustomEvent(CHANGE_EVENT));
+  cachedLearner = sanitizeLearnerState(state);
+  scheduleLearnerPersistence(cachedLearner);
+  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent(CHANGE_EVENT));
+}
+
+export function initializeLearnerPersistence() {
+  if (typeof window === "undefined") return Promise.resolve();
+  learnerHydration ??= (async () => {
+    const { database, repositories } = await getPersistenceContext();
+    const [progress, checkpointRecords] = await Promise.all([
+      repositories.progress.forCourse("llm-systems"),
+      database.checkpoints.where("projectId").equals("browser-chat").filter((record) => record.kind === "character-rnn").sortBy("createdAt"),
+    ]);
+    if (!cachedLearner) {
+      const legacy = loadLegacyLearnerState();
+      const lessons = { ...legacy.lessons };
+      for (const record of progress) {
+        lessons[record.lessonId] = {
+          verifiedCells: record.verifiedCellIds,
+          experimentComplete: record.experimentComplete,
+          hiddenBlocks: record.hiddenBlockIds,
+          answers: record.answers,
+          updatedAt: record.updatedAt,
+        };
+      }
+      const checkpoint = checkpointRecords.at(-1);
+      const restored = checkpoint && validCheckpoint(checkpoint.payload)
+        ? {
+            checkpoint: checkpoint.payload,
+            finalLoss: checkpoint.metrics.finalLoss ?? 0,
+            parameters: checkpoint.metrics.parameters ?? 0,
+            vocabularySize: checkpoint.metrics.vocabularySize ?? 0,
+            trainedAt: checkpoint.createdAt,
+          }
+        : legacy.artifacts.characterRnn;
+      cachedLearner = { version: 2, lessons, artifacts: restored ? { characterRnn: restored } : {} };
+    }
+    scheduleLearnerPersistence(cachedLearner);
+    window.dispatchEvent(new CustomEvent(CHANGE_EVENT));
+  })().catch((error) => {
+    console.error("Learner progress hydration failed", error);
+    cachedLearner ??= loadLegacyLearnerState();
+    window.dispatchEvent(new CustomEvent(CHANGE_EVENT));
+  });
+  return learnerHydration;
 }
 
 export function updateLearnerState(update: (state: LearnerState) => LearnerState) {
@@ -151,6 +257,7 @@ export function useLearnerState() {
   useEffect(() => {
     const refresh = () => setState(loadLearnerState());
     refresh();
+    void initializeLearnerPersistence();
     window.addEventListener(CHANGE_EVENT, refresh);
     window.addEventListener("storage", refresh);
     return () => {

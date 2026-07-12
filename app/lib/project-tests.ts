@@ -1,7 +1,6 @@
 "use client";
 
-import { courseLessons } from "../lessons/course";
-import { runBrowserLabContract } from "./browser-lab";
+import { runLessonContracts, type BrowserLabProjectRun } from "../features/ide/browser-lab-service";
 import {
   compileProject,
   RUNTIME_PATHS,
@@ -10,16 +9,17 @@ import {
   type ProjectUnitResult,
 } from "./project-workspace";
 
-export function runProjectUnitTests(files: Record<string, ProjectFile>, runtime: ProjectRuntime, onlyPath?: string) {
-  const results: ProjectUnitResult[] = [];
-  for (const lesson of courseLessons) {
-    const path = `${lesson.courseId ?? "models"}/${lesson.implementation.filename}`;
-    if (onlyPath && path !== onlyPath) continue;
-    const source = files[path]?.content ?? "";
-    for (const block of lesson.implementation.codeBlocks) {
-      results.push(runBrowserLabContract({ path, source, id: `${lesson.id}:${block.id}`, label: block.label, assertion: block.checkCode }));
-    }
-  }
+export type ProjectTestRun = Omit<BrowserLabProjectRun, "results"> & {
+  results: ProjectUnitResult[];
+};
+
+export async function runProjectUnitTests(
+  files: Record<string, ProjectFile>,
+  runtime: ProjectRuntime,
+  onlyPath?: string,
+): Promise<ProjectTestRun> {
+  const lessonRun = await runLessonContracts(files, { onlyPath });
+  const results = [...lessonRun.results];
   const runtimePaths = Object.values(RUNTIME_PATHS);
   if (!onlyPath || runtimePaths.includes(onlyPath as (typeof runtimePaths)[number])) {
     const compile = compileProject(files, runtime);
@@ -29,11 +29,11 @@ export function runProjectUnitTests(files: Record<string, ProjectFile>, runtime:
       results.push({
         id: `${path}:contract`,
         path,
-        label: "Runtime contract",
+        label: "Runtime configuration",
         passed: !error,
         detail: error ?? "JSON module parses and satisfies its typed runtime bounds.",
       });
     }
   }
-  return results;
+  return { ...lessonRun, results };
 }

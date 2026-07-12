@@ -15,7 +15,7 @@ import {
   type TransformerResult,
 } from "../lib/lab-engines";
 import { markExperimentComplete, saveCharacterRnnArtifact } from "../lib/learner-state";
-import { runCapstoneQualityAudit, selectCompleteTurnContext } from "../lib/capstone-contract";
+import { runCapstoneQualityAudit, selectCompleteTurnContext, type ContextMessage } from "../lib/capstone-contract";
 
 type ModelMessage = { role: "system" | "user" | "assistant"; content: string };
 type TextGenerator = (
@@ -524,7 +524,7 @@ function ProductExperiment({ variant, onComplete }: { variant: ProductVariant } 
     { action: "TOKEN_DELTA", status: "streaming", content: "A causal mask removes future positions." },
     { action: "COMPLETE", status: "complete", content: "A causal mask removes future positions." },
   ];
-  const contextMessages = [
+  const contextMessages: ContextMessage[] = [
     { id: "m1", role: "system", tokens: 8, text: "Technical tutor instructions" },
     { id: "m2", role: "user", tokens: 12, text: "Earlier question about tokenization" },
     { id: "m3", role: "assistant", tokens: 18, text: "Earlier tokenizer explanation" },

@@ -1,4 +1,4 @@
-import type { CourseLesson, CourseTrack } from "../lib/lesson-types";
+import type { CourseLesson } from "../lib/lesson-types";
 import { getLessonSources } from "./sources";
 
 type ExtendedLessonInput = Pick<
@@ -15,7 +15,7 @@ function makeLesson(input: ExtendedLessonInput): CourseLesson {
     ...input,
     sources: getLessonSources(input.id),
     paperContext: `
-This lesson is "${input.title}" in the ${input.courseTitle} course.
+This lesson is "${input.title}" in the ${input.courseTitle} module of Build an LLM System in Your Browser.
 Primary reference: "${input.paperTitle}" by ${input.authors} (${input.year}).
 ${compactContext}
 - The browser experiment is a bounded implementation of the mechanism described in the lesson.
@@ -30,7 +30,7 @@ export const systemsLessons: CourseLesson[] = [
     id: "inference-runtime",
     number: 7,
     courseId: "systems",
-    courseTitle: "LLM Runtime Systems",
+    courseTitle: "Inference Runtime",
     courseNumber: 2,
     lessonNumber: 1,
     mode: "core-mechanism",
@@ -120,7 +120,7 @@ return { passed: bytes === 204800, detail: (bytes / 1024).toFixed(0) + " KiB" };
     id: "streaming-transport",
     number: 8,
     courseId: "backend",
-    courseTitle: "Mock Backend Systems",
+    courseTitle: "LLM Serving",
     courseNumber: 3,
     lessonNumber: 1,
     mode: "core-mechanism",
@@ -216,7 +216,7 @@ return { passed: first.events.length === 0 && second.events[0].data.delta === "h
     id: "scheduling-memory",
     number: 9,
     courseId: "systems",
-    courseTitle: "LLM Runtime Systems",
+    courseTitle: "Inference Runtime",
     courseNumber: 2,
     lessonNumber: 2,
     mode: "core-mechanism",
@@ -305,7 +305,7 @@ return { passed: active.length === 1 && active[0].id === "b" && active[0].remain
     id: "reliability-observability",
     number: 10,
     courseId: "backend",
-    courseTitle: "Mock Backend Systems",
+    courseTitle: "LLM Serving",
     courseNumber: 3,
     lessonNumber: 2,
     mode: "core-mechanism",
@@ -397,7 +397,7 @@ export const productLessons: CourseLesson[] = [
     id: "conversation-state",
     number: 11,
     courseId: "product",
-    courseTitle: "Chat Product",
+    courseTitle: "Chat Integration",
     courseNumber: 4,
     lessonNumber: 1,
     mode: "core-mechanism",
@@ -481,7 +481,7 @@ return { passed: next[0].content === "Hello" && next[1].content === "fixed", det
     id: "streaming-react",
     number: 12,
     courseId: "product",
-    courseTitle: "Chat Product",
+    courseTitle: "Chat Integration",
     courseNumber: 4,
     lessonNumber: 2,
     mode: "core-mechanism",
@@ -559,7 +559,7 @@ return { passed: near === true && reading === false, detail: "near bottom follow
     id: "chat-actions-context",
     number: 13,
     courseId: "product",
-    courseTitle: "Chat Product",
+    courseTitle: "Chat Integration",
     courseNumber: 4,
     lessonNumber: 3,
     mode: "core-mechanism",
@@ -656,7 +656,7 @@ return { passed: branch.parentUserId === "m4" && branch.attemptId === "a2" && br
     id: "chat-product-quality",
     number: 14,
     courseId: "product",
-    courseTitle: "Chat Product",
+    courseTitle: "Chat Integration",
     courseNumber: 4,
     lessonNumber: 4,
     mode: "core-mechanism",
@@ -739,43 +739,4 @@ return { passed: known === "Processing context" && unknown === "Ready", detail: 
     },
     experiment: { kind: "product", variant: "quality", title: "Audit the chat product", intro: "Run the full keyboard, persistence, announcement, recovery, and latency-state checklist against the capstone interface." },
   }),
-];
-
-export const courseTracks: CourseTrack[] = [
-  {
-    id: "models",
-    number: 1,
-    title: "Language Models",
-    shortTitle: "Model",
-    thesis: "Build the numerical path from tokens to a trained causal language model and real local inference.",
-    outcome: "A learner-trained model checkpoint and a frozen local-model evaluation harness.",
-    lessonIds: ["character-rnns", "neural-language-models", "subword-tokenization", "additive-attention", "transformers", "in-context-learning"],
-  },
-  {
-    id: "systems",
-    number: 2,
-    title: "LLM Runtime Systems",
-    shortTitle: "Runtime",
-    thesis: "Build the LLM-specific inference lifecycle, KV-cache memory model, and continuous batching scheduler.",
-    outcome: "An executable inference runtime model with explicit prefill, decode, memory, and scheduling behavior.",
-    lessonIds: systemsLessons.filter((lesson) => lesson.courseId === "systems").map((lesson) => lesson.id),
-  },
-  {
-    id: "backend",
-    number: 3,
-    title: "Mock Backend Systems",
-    shortTitle: "Backend",
-    thesis: "Build a deterministic backend boundary for streaming, cancellation, retries, failures, and observability without pretending it is an LLM runtime.",
-    outcome: "A tested mock SSE backend and failure-injection harness for the browser chat product.",
-    lessonIds: systemsLessons.filter((lesson) => lesson.courseId === "backend").map((lesson) => lesson.id),
-  },
-  {
-    id: "product",
-    number: 4,
-    title: "Chat Product",
-    shortTitle: "React",
-    thesis: "Build the React state machine and interaction system that turns model events into a usable chat product.",
-    outcome: "A polished streaming chat interface with persistence, recovery, and accessible state.",
-    lessonIds: productLessons.map((lesson) => lesson.id),
-  },
 ];

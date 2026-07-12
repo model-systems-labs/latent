@@ -2,18 +2,26 @@
 
 import Link from "next/link";
 import { useEffect, useReducer, useRef, useState } from "react";
-import { sampleCharacterRnn, trainCharacterRnn } from "../lib/lab-engines";
+import { sampleCharacterRnn } from "../lib/lab-engines";
 import { loadLearnerState, saveCharacterRnnArtifact, type SavedRnnArtifact } from "../lib/learner-state";
 import { useProjectState } from "../lib/project-workspace";
+import { loadCapstoneConversation, persistCapstoneConversation } from "../features/capstone/conversation-store";
+import { LocalModelClient } from "../runtime/model/local-model-client";
+import type { ModelMessage } from "../runtime/model/protocol";
+import { trainCharacterRnnInWorker } from "../runtime/model/train-character-client";
+import { createCapstoneRuntimeDescriptor, type CapstoneRuntimeDescriptor } from "../runtime/bindings";
+import { getPersistenceContext } from "../platform/persistence/client";
 import {
-  CAPSTONE_STORAGE_KEY,
+  consumeSse,
+  createMockServingStream,
+  type MockServingScenario,
+} from "../runtime/serving/sse";
+import {
   CHAT_LOG_ACCESSIBILITY,
   canRegenerate,
   composerKeyAction,
   lastUserForBackend,
   messagesForBackend,
-  parseCapstoneRecord,
-  serializeCapstoneRecord,
   type CapstoneBackend,
   type PersistedChatMessage,
 } from "../lib/capstone-contract";
@@ -25,8 +33,6 @@ type ChatAction =
   | { type: "delta"; id: string; delta: string }
   | { type: "terminal"; id: string; status: PersistedChatMessage["status"] }
   | { type: "reset"; messages: PersistedChatMessage[] };
-type ModelMessage = { role: "system" | "user" | "assistant"; content: string };
-type TextGenerator = (input: ModelMessage[], options?: Record<string, unknown>) => Promise<unknown>;
 type MetricState = { queueMs: number; modelMs: number; ttftMs: number; tokens: number; durationMs: number; events: number };
 
 function welcomeMessage(backend: CapstoneBackend): PersistedChatMessage {
@@ -36,7 +42,7 @@ function welcomeMessage(backend: CapstoneBackend): PersistedChatMessage {
     backend,
     status: "complete",
     content: backend === "student"
-      ? "This conversation uses the character RNN checkpoint produced in Course 01. Its output is a prompt-conditioned character continuation, not a general-purpose answer."
+      ? "This conversation uses the character RNN checkpoint produced in Module 01. Its output is a prompt-conditioned character continuation, not a general-purpose answer."
       : "This conversation uses a real local 135M Transformer. Course-note grounding replaces unsupported drafts when a matching technical source is available.",
   };
 }
@@ -50,17 +56,6 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
     messages: state.messages.map((message) => message.id === action.id && message.status === "streaming" ? { ...message, content: message.content + action.delta } : message),
   };
   return { messages: state.messages.map((message) => message.id === action.id ? { ...message, status: action.status } : message) };
-}
-
-function extractGeneratedText(result: unknown) {
-  if (!Array.isArray(result) || !result.length) return "";
-  const generated = (result[0] as { generated_text?: unknown }).generated_text;
-  if (typeof generated === "string") return generated;
-  if (Array.isArray(generated)) {
-    const final = generated.at(-1) as { content?: unknown } | undefined;
-    return typeof final?.content === "string" ? final.content : "";
-  }
-  return "";
 }
 
 const COURSE_GROUNDING = [
@@ -101,55 +96,6 @@ function applyCourseGrounding(question: string, rawDraft: string) {
   };
 }
 
-function createSseStream(text: string, signal: AbortSignal, wordsPerEvent = 1, delayMs = 24) {
-  const encoder = new TextEncoder();
-  const words = text.match(/\S+\s*/g) ?? [text];
-  const pieces = Array.from({ length: Math.ceil(words.length / wordsPerEvent) }, (_, index) => words.slice(index * wordsPerEvent, (index + 1) * wordsPerEvent).join(""));
-  return new ReadableStream<Uint8Array>({
-    start(controller) {
-      let index = 0;
-      const push = () => {
-        if (signal.aborted) {
-          controller.enqueue(encoder.encode(`event: cancelled\ndata: {}\n\n`));
-          controller.close();
-          return;
-        }
-        if (index >= pieces.length) {
-          controller.enqueue(encoder.encode(`event: done\ndata: {"tokens":${pieces.length}}\n\n`));
-          controller.close();
-          return;
-        }
-        const frame = `event: token\ndata: ${JSON.stringify({ delta: pieces[index] })}\n\n`;
-        const midpoint = Math.max(1, Math.floor(frame.length * 0.62));
-        controller.enqueue(encoder.encode(frame.slice(0, midpoint)));
-        controller.enqueue(encoder.encode(frame.slice(midpoint)));
-        index += 1;
-        window.setTimeout(push, delayMs);
-      };
-      window.setTimeout(push, Math.min(120, delayMs * 3));
-    },
-  });
-}
-
-async function consumeSse(stream: ReadableStream<Uint8Array>, onEvent: (event: string, data: Record<string, unknown>) => void) {
-  const reader = stream.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const frames = buffer.split("\n\n");
-    buffer = frames.pop() ?? "";
-    for (const frame of frames) {
-      const lines = frame.split("\n");
-      const event = lines.find((line) => line.startsWith("event: "))?.slice(7) ?? "message";
-      const raw = lines.find((line) => line.startsWith("data: "))?.slice(6) ?? "{}";
-      onEvent(event, JSON.parse(raw) as Record<string, unknown>);
-    }
-  }
-}
-
 export function BrowserChatCapstone() {
   const project = useProjectState();
   const runtime = project.runtime;
@@ -165,38 +111,78 @@ export function BrowserChatCapstone() {
   const [requestPhase, setRequestPhase] = useState("ready");
   const [metrics, setMetrics] = useState<MetricState>({ queueMs: 0, modelMs: 0, ttftMs: 0, tokens: 0, durationMs: 0, events: 0 });
   const [groundingSource, setGroundingSource] = useState<string | null>(null);
-  const generatorRef = useRef<TextGenerator | null>(null);
+  const [servingScenario, setServingScenario] = useState<MockServingScenario>("healthy");
+  const [activeDescriptor, setActiveDescriptor] = useState<CapstoneRuntimeDescriptor | null>(null);
+  const modelClientRef = useRef<LocalModelClient | null>(null);
+  const activeModelRequestRef = useRef<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
+    let active = true;
+    void (async () => {
       const learner = loadLearnerState();
       setStudent(learner.artifacts.characterRnn ?? null);
-      const saved = parseCapstoneRecord(window.localStorage.getItem(CAPSTONE_STORAGE_KEY));
+      const saved = await loadCapstoneConversation();
+      if (!active) return;
       setMode(saved?.selectedBackend ?? "student");
-      dispatch({ type: "reset", messages: saved?.messages.length ? saved.messages : initialMessages });
+      const restoredMessages = saved?.messages.length
+        ? [
+            welcomeMessage("student"),
+            welcomeMessage("local"),
+            ...saved.messages.filter((message) => (
+              !message.id.startsWith("welcome-")
+              && !message.content.startsWith("This conversation uses the character RNN checkpoint produced in")
+              && !message.content.startsWith("This conversation uses a real local 135M Transformer")
+            )),
+          ]
+        : initialMessages;
+      dispatch({ type: "reset", messages: restoredMessages });
       setHydrated(true);
-    }, 0);
-    return () => window.clearTimeout(timer);
+    })().catch(() => {
+      if (!active) return;
+      dispatch({ type: "reset", messages: initialMessages });
+      setHydrated(true);
+    });
+    return () => { active = false; };
   }, []);
 
   useEffect(() => {
     if (!hydrated || state.messages.some((message) => message.status === "streaming")) return;
-    try {
-      window.localStorage.setItem(CAPSTONE_STORAGE_KEY, serializeCapstoneRecord({ version: 2, selectedBackend: mode, messages: state.messages }));
-    } catch {}
+    void persistCapstoneConversation(mode, state.messages).catch((error) => console.error("Conversation persistence failed", error));
   }, [hydrated, mode, state.messages]);
 
-  const trainStudent = () => {
+  useEffect(() => () => {
+    modelClientRef.current?.dispose();
+    modelClientRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      const { repositories } = await getPersistenceContext();
+      const build = await repositories.builds.active("browser-chat");
+      if (!build || !active) return;
+      const descriptor = await createCapstoneRuntimeDescriptor(build);
+      if (active) setActiveDescriptor(descriptor);
+    })().catch(() => {
+      if (active) setActiveDescriptor(null);
+    });
+    return () => { active = false; };
+  }, [runtime.buildNumber]);
+
+  const trainStudent = async () => {
     setTraining(true);
     setRequestPhase("training");
-    window.setTimeout(() => {
-      const trained = trainCharacterRnn(600);
+    try {
+      const trained = await trainCharacterRnnInWorker(600);
       saveCharacterRnnArtifact(trained);
       setStudent({ checkpoint: trained.checkpoint, finalLoss: trained.finalLoss, parameters: trained.parameters, vocabularySize: trained.vocabularySize, trainedAt: Date.now() });
+    } catch {
+      setRequestPhase("error");
+    } finally {
       setTraining(false);
-      setRequestPhase("ready");
-    }, 40);
+      window.setTimeout(() => setRequestPhase("ready"), 450);
+    }
   };
 
   const loadLocalModel = async () => {
@@ -205,27 +191,17 @@ export function BrowserChatCapstone() {
     setModelProgress(0);
     setRequestPhase("loading");
     try {
-      const transformers = await import("@huggingface/transformers");
-      const progressCallback = (info: unknown) => {
-        const update = info as { progress?: number; file?: string };
-        if (typeof update.progress === "number") setModelProgress(Math.round(update.progress));
-        if (update.file) setModelDetail(update.file.split("/").at(-1) ?? update.file);
-      };
-      const common = { dtype: "q4", progress_callback: progressCallback };
-      let generator: TextGenerator;
-      if ("gpu" in navigator) {
-        try {
-          generator = await transformers.pipeline("text-generation", "onnx-community/SmolLM2-135M-Instruct-ONNX", { ...common, device: "webgpu" }) as unknown as TextGenerator;
-        } catch {
-          generator = await transformers.pipeline("text-generation", "onnx-community/SmolLM2-135M-Instruct-ONNX", { ...common, device: "wasm" }) as unknown as TextGenerator;
-        }
-      } else {
-        generator = await transformers.pipeline("text-generation", "onnx-community/SmolLM2-135M-Instruct-ONNX", { ...common, device: "wasm" }) as unknown as TextGenerator;
-      }
-      generatorRef.current = generator;
+      const client = modelClientRef.current ?? new LocalModelClient();
+      modelClientRef.current = client;
+      const loaded = await client.load({
+        onProgress: (progress, detail) => {
+          setModelProgress(progress);
+          setModelDetail(detail);
+        },
+      });
       setModelStatus("ready");
       setModelProgress(100);
-      setModelDetail("SmolLM2-135M-Instruct · q4 · local");
+      setModelDetail(loaded.detail);
       setRequestPhase("ready");
     } catch (error) {
       setModelStatus("error");
@@ -234,14 +210,14 @@ export function BrowserChatCapstone() {
     }
   };
 
-  const generateResponse = async (userText: string, generationSeed: number) => {
+  const generateResponse = async (userText: string, generationSeed: number, requestId: string, signal: AbortSignal) => {
     if (mode === "student") {
       if (!student) throw new Error("Train the student model first.");
       const continuation = sampleCharacterRnn(student.checkpoint, userText, runtime.model.maxTokens, runtime.model.temperature, runtime.model.seed + generationSeed, runtime.model.topK);
       return `${runtime.interface.responsePrefix}Prompt-conditioned character continuation:\n\n…${userText.slice(-32)}${continuation}`;
     }
-    const generator = generatorRef.current;
-    if (!generator) throw new Error("Load the local model first.");
+    const client = modelClientRef.current;
+    if (!client || modelStatus !== "ready") throw new Error("Load the local model first.");
     const context: ModelMessage[] = [
       { role: "system", content: "Answer in concise technical prose. If uncertain, state uncertainty. Do not use markdown headings." },
       ...messagesForBackend(state.messages, "local")
@@ -250,8 +226,24 @@ export function BrowserChatCapstone() {
         .map((message) => ({ role: message.role, content: message.content } as ModelMessage)),
       { role: "user", content: userText },
     ];
-    const result = await generator(context, { max_new_tokens: Math.min(runtime.model.maxTokens, 120), do_sample: true, temperature: runtime.model.temperature, top_k: runtime.model.topK || undefined, top_p: 0.9, repetition_penalty: 1.08 });
-    const raw = extractGeneratedText(result).trim() || "The local model returned no text.";
+    let raw = "";
+    const interrupt = () => client.cancel(requestId);
+    signal.addEventListener("abort", interrupt, { once: true });
+    activeModelRequestRef.current = requestId;
+    try {
+      await client.generate(requestId, context, {
+        maxTokens: Math.min(runtime.model.maxTokens, 160),
+        temperature: runtime.model.temperature,
+        topK: runtime.model.topK,
+      }, {
+        onDelta: (delta) => { raw += delta; },
+      });
+    } finally {
+      signal.removeEventListener("abort", interrupt);
+      if (activeModelRequestRef.current === requestId) activeModelRequestRef.current = null;
+    }
+    if (signal.aborted) throw new DOMException("Aborted", "AbortError");
+    raw = raw.trim() || "The local model returned no text.";
     const grounded = applyCourseGrounding(userText, raw);
     setGroundingSource(grounded.source);
     return `${runtime.interface.responsePrefix}${grounded.text}`;
@@ -276,22 +268,27 @@ export function BrowserChatCapstone() {
       await new Promise((resolve) => window.setTimeout(resolve, 12));
       setRequestPhase("prefill");
       const modelStarted = performance.now();
-      const response = await generateResponse(userText, Number(requestId.slice(2)) % 100000);
+      const response = await generateResponse(userText, Number(requestId.slice(2)) % 100000, requestId, controller.signal);
       const modelMs = performance.now() - modelStarted;
       if (controller.signal.aborted) throw new DOMException("Aborted", "AbortError");
       setRequestPhase("streaming");
       let firstEvent = 0;
       let eventCount = 0;
       let tokens = 0;
-      await consumeSse(createSseStream(response, controller.signal, runtime.transport.wordsPerEvent, runtime.transport.delayMs), (event, data) => {
+      await consumeSse(createMockServingStream(response, controller.signal, {
+        wordsPerEvent: runtime.transport.wordsPerEvent,
+        delayMs: runtime.transport.delayMs,
+        scenario: servingScenario,
+      }), (event) => {
         eventCount += 1;
-        if (!firstEvent && event === "token") firstEvent = performance.now();
-        if (event === "token") {
-          const delta = String(data.delta ?? "");
+        if (!firstEvent && event.type === "token") firstEvent = performance.now();
+        if (event.type === "token") {
+          const delta = event.data.delta;
           tokens += delta.match(/\S+/g)?.length ?? 0;
           dispatch({ type: "delta", id: assistantId, delta });
         }
-        if (event === "cancelled") dispatch({ type: "terminal", id: assistantId, status: "cancelled" });
+        if (event.type === "cancelled") dispatch({ type: "terminal", id: assistantId, status: "cancelled" });
+        if (event.type === "error") throw new Error(`${event.data.code}: ${event.data.message}`);
       });
       if (controller.signal.aborted) {
         dispatch({ type: "terminal", id: assistantId, status: "cancelled" });
@@ -303,6 +300,10 @@ export function BrowserChatCapstone() {
       setMetrics({ queueMs: 12, modelMs: Math.round(modelMs), ttftMs: Math.round((firstEvent || performance.now()) - started), tokens, durationMs: Math.round(performance.now() - started), events: eventCount });
     } catch (error) {
       const cancelled = error instanceof DOMException && error.name === "AbortError";
+      if (!cancelled) {
+        const detail = error instanceof Error ? error.message : "The generation request failed.";
+        dispatch({ type: "delta", id: assistantId, delta: `Generation failed: ${detail}` });
+      }
       dispatch({ type: "terminal", id: assistantId, status: cancelled ? "cancelled" : "error" });
       setRequestPhase(cancelled ? "cancelled" : "error");
     } finally {
@@ -311,7 +312,11 @@ export function BrowserChatCapstone() {
     }
   };
 
-  const stop = () => abortRef.current?.abort();
+  const stop = () => {
+    abortRef.current?.abort();
+    const requestId = activeModelRequestRef.current;
+    if (requestId) modelClientRef.current?.cancel(requestId);
+  };
   const generating = ["queued", "prefill", "streaming"].includes(requestPhase);
   const regenerate = () => {
     const lastUser = lastUserForBackend(state.messages, mode);
@@ -338,7 +343,7 @@ export function BrowserChatCapstone() {
       <header className="capstone-topbar">
         <Link className="wordmark" href="/"><i />latent</Link>
         <div><span>Capstone</span><strong>Browser Chat</strong></div>
-        <nav><Link href="/workspace">IDE</Link><Link href="/courses/models">Model</Link><Link href="/courses/systems">Runtime</Link><Link href="/courses/backend">Mock backend</Link><Link href="/courses/product">React</Link></nav>
+        <nav><Link href="/workspace">IDE</Link><Link href="/courses/models">Model</Link><Link href="/courses/systems">Runtime</Link><Link href="/courses/backend">Serving</Link><Link href="/courses/product">React</Link></nav>
       </header>
       <div className="capstone-layout">
         <aside className="capstone-sidebar">
@@ -346,7 +351,7 @@ export function BrowserChatCapstone() {
             <span>Model backend</span>
             <div className="mode-switch"><button disabled={generating} className={mode === "student" ? "active" : ""} type="button" onClick={() => switchMode("student")}>Student model</button><button disabled={generating} className={mode === "local" ? "active" : ""} type="button" onClick={() => switchMode("local")}>Local chat model</button></div>
             {mode === "student" ? (
-              <div className="backend-card"><strong>18-unit character RNN</strong><p>{student ? "Checkpoint restored from device-local Course 01 state." : "Train here or complete Character RNNs to create a reusable local checkpoint."}</p>{student ? <dl><div><dt>Parameters</dt><dd>{student.parameters.toLocaleString()}</dd></div><div><dt>Final loss</dt><dd>{student.finalLoss.toFixed(3)}</dd></div></dl> : null}<button type="button" onClick={trainStudent} disabled={training}>{training ? "Training…" : student ? "Retrain model" : "Train model"}</button></div>
+              <div className="backend-card"><strong>18-unit character RNN</strong><p>{student ? "Checkpoint restored from device-local Module 01 state." : "Train here or complete Character RNNs to create a reusable local checkpoint."}</p>{student ? <dl><div><dt>Parameters</dt><dd>{student.parameters.toLocaleString()}</dd></div><div><dt>Final loss</dt><dd>{student.finalLoss.toFixed(3)}</dd></div></dl> : null}<button type="button" onClick={() => void trainStudent()} disabled={training}>{training ? "Training…" : student ? "Retrain model" : "Train model"}</button></div>
             ) : (
               <div className="backend-card"><strong>SmolLM2-135M · q4</strong><p>Real local generation with an explicit course-note grounding layer. Raw unmatched drafts remain labeled unverified.</p><div className="load-progress"><i><b style={{ width: `${modelProgress}%` }} /></i><em>{modelDetail}</em></div><button type="button" onClick={loadLocalModel} disabled={modelStatus === "loading" || modelStatus === "ready"}>{modelStatus === "ready" ? "Model ready" : modelStatus === "loading" ? `${modelProgress}% loaded` : "Load ~181 MB"}</button></div>
             )}
@@ -356,7 +361,7 @@ export function BrowserChatCapstone() {
             <div className="phase-row">{["queued", "prefill", "streaming"].map((phase) => <i className={requestPhase === phase ? "active" : ""} key={phase}>{phase}</i>)}</div>
             {runtime.interface.showMetrics ? <dl><div><dt>Queue</dt><dd>{metrics.queueMs} ms</dd></div><div><dt>Model</dt><dd>{metrics.modelMs} ms</dd></div><div><dt>TTFT</dt><dd>{metrics.ttftMs} ms</dd></div><div><dt>Events</dt><dd>{metrics.events}</dd></div><div><dt>Tokens</dt><dd>{metrics.tokens}</dd></div><div><dt>Total</dt><dd>{metrics.durationMs} ms</dd></div></dl> : <p>Metrics hidden by runtime/interface.config.js.</p>}
           </section>
-          <section className="transport-panel"><span>Mock backend · build {runtime.buildNumber}</span><strong>SSE-compatible ReadableStream</strong><code>{runtime.transport.wordsPerEvent} words/event · {runtime.transport.delayMs} ms</code><p>The deterministic mock backend controls delivery; it does not simulate model computation.</p></section>
+          <section className="transport-panel"><span>Serving adapter · build {runtime.buildNumber}</span><strong>SSE-compatible ReadableStream</strong><code>{runtime.transport.wordsPerEvent} words/event · {runtime.transport.delayMs} ms</code><p>The deterministic adapter controls delivery and failure injection; model computation stays in its own worker.</p><div className="active-build-proof"><span>{activeDescriptor ? `${activeDescriptor.contributions.length}/14 tested modules` : "Legacy build"}</span><code>{activeDescriptor ? activeDescriptor.fingerprints.sourceTree.slice(7, 19) : "Rebuild in the IDE to create a source-bound artifact"}</code></div><label><span>Failure scenario</span><select value={servingScenario} onChange={(event) => setServingScenario(event.target.value as MockServingScenario)} disabled={generating}><option value="healthy">Healthy stream</option><option value="slow-first-token">Slow first token</option><option value="timeout-before-first-token">Queue timeout</option><option value="malformed-frame">Malformed frame</option></select></label></section>
           <footer><span>Device-local · {mode} conversation</span><button type="button" onClick={reset}>Clear current backend</button></footer>
         </aside>
         <section className="chat-workspace">

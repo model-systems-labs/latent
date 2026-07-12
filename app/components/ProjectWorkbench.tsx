@@ -1,11 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CodeEditor } from "../features/ide/CodeEditor";
 import { courseLessons } from "../lessons/course";
+import { llmSystemsCurriculum } from "../lessons/course";
 import { sampleCharacterRnn } from "../lib/lab-engines";
 import { loadLearnerState, useLearnerState } from "../lib/learner-state";
 import { runProjectUnitTests } from "../lib/project-tests";
 import { gateBrowserLabBuild } from "../lib/browser-lab";
+import { createBuildArtifact } from "../platform/browser-lab";
+import { getPersistenceContext } from "../platform/persistence/client";
+import { exportPersistenceSnapshot, importPersistenceSnapshot, persistenceSnapshotBlob } from "../platform/persistence/portable";
+import type { JsonValue } from "../platform/persistence/types";
+import { llmSystemsContractSuite } from "../content/llm-systems/contracts";
+import { createCapstoneRuntimeDescriptor, llmRuntimeBindingManifest } from "../runtime/bindings";
 import {
   compileProject,
   ensureProjectWorkspace,
@@ -38,11 +46,11 @@ function lessonSeed(lesson: (typeof courseLessons)[number]): LessonProjectSeed {
 }
 
 const groups: Array<{ id: ProjectCourse; label: string }> = [
-  { id: "runtime", label: "Runtime adapters" },
-  { id: "models", label: "01 · Model" },
-  { id: "systems", label: "02 · LLM Runtime" },
-  { id: "backend", label: "03 · Mock Backend" },
-  { id: "product", label: "04 · React" },
+  { id: "runtime", label: "Runtime configuration" },
+  { id: "models", label: "01 · Model foundations" },
+  { id: "systems", label: "02 · Inference runtime" },
+  { id: "backend", label: "03 · LLM serving" },
+  { id: "product", label: "04 · Chat integration" },
 ];
 
 export function ProjectWorkbench() {
@@ -53,9 +61,13 @@ export function ProjectWorkbench() {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<string[]>([]);
   const [message, setMessage] = useState("Edit a file, save it locally, then build the project.");
+  const [working, setWorking] = useState(false);
+  const importRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     ensureProjectWorkspace(courseLessons.map(lessonSeed));
+    const path = new URL(window.location.href).searchParams.get("file");
+    if (path) selectProjectFile(path);
   }, []);
 
   const filesByGroup = useMemo(() => groups.map((group) => ({
@@ -65,9 +77,27 @@ export function ProjectWorkbench() {
   const verifiedFiles = Object.values(project.files).filter((file) => file.lessonId && file.verifiedCells >= file.totalCells).length;
   const draft = selected ? drafts[selected.path] ?? selected.content : "";
   const dirty = Boolean(selected && draft !== selected.content);
-  const selectedTests = selected ? project.tests.results[selected.path] ?? [] : [];
-  const allTests = Object.values(project.tests.results).flat();
+  const trustedResults = project.tests.runner === "browser-lab-v1" ? project.tests.results : {};
+  const selectedTests = selected ? trustedResults[selected.path] ?? [] : [];
+  const allTests = Object.values(trustedResults).flat();
   const passingTests = allTests.filter((test) => test.passed).length;
+
+  useEffect(() => {
+    if (!selected || !dirty) return;
+    const timer = window.setTimeout(() => {
+      saveProjectFile(selected.path, draft);
+      setMessage(`${selected.path} autosaved. Run its tests when you are ready.`);
+    }, 650);
+    return () => window.clearTimeout(timer);
+  }, [draft, dirty, selected]);
+
+  const openFile = (path: string) => {
+    setErrors([]);
+    selectProjectFile(path);
+    const url = new URL(window.location.href);
+    url.searchParams.set("file", path);
+    window.history.replaceState({}, "", url);
+  };
 
   const save = () => {
     if (!selected) return project;
@@ -77,56 +107,121 @@ export function ProjectWorkbench() {
     return next;
   };
 
-  const build = () => {
+  const build = async () => {
+    if (working) return;
+    setWorking(true);
     const saved = save();
-    const unitResults = runProjectUnitTests(saved.files, saved.runtime);
-    saveProjectTestResults(unitResults, true);
-    const gate = gateBrowserLabBuild(unitResults);
-    if (!gate.canPromote) {
+    setMessage("Compiling the virtual project in an isolated worker…");
+    try {
+      const run = await runProjectUnitTests(saved.files, saved.runtime);
+      saveProjectTestResults(run.results, true);
+      const gate = gateBrowserLabBuild(run.results);
+      if (!gate.canPromote) {
+        setErrors([]);
+        setMessage(`Build blocked: ${gate.failures.length} of ${gate.total} unit tests failed. The last passing build remains active.`);
+        return;
+      }
+      const result = compileProject(saved.files, saved.runtime);
+      if (!result.ok || !run.program || !run.receipt || !run.persistenceReceipt) {
+        setErrors(result.ok ? ["The isolated build did not produce a promotable receipt."] : result.errors);
+        setMessage("Build stopped. Fix the failing compiler or runtime contract and run again.");
+        return;
+      }
+      const { repositories } = await getPersistenceContext();
+      const [existingBuilds, fileRecords] = await Promise.all([
+        repositories.builds.list("browser-chat"),
+        repositories.projects.listFiles("browser-chat"),
+      ]);
+      await createBuildArtifact({
+        artifactId: `artifact-${crypto.randomUUID()}`,
+        buildNumber: (existingBuilds.at(-1)?.buildNumber ?? 0) + 1,
+        program: run.program,
+        receipt: run.receipt,
+        bindingManifest: llmRuntimeBindingManifest,
+        expectedCases: llmSystemsContractSuite.contracts.flatMap((contract) => contract.cases.map((exerciseCase) => ({ contractId: contract.id, caseId: exerciseCase.id }))),
+      });
+      const promoted = await repositories.builds.promotePassing({
+        projectId: "browser-chat",
+        projectRevision: run.projectRevision,
+        sourceTreeHash: run.sourceHash,
+        contractVersion: llmSystemsContractSuite.contractVersion,
+        testReceiptId: run.persistenceReceipt.id,
+        fileHashes: Object.fromEntries(fileRecords.map((file) => [file.path, file.sourceHash])),
+        bundles: Object.fromEntries(run.program.modules.map((compiledModule) => [compiledModule.modulePath, compiledModule.code])),
+        runtimeConfig: result.runtime as unknown as JsonValue,
+        bindings: Object.fromEntries(llmRuntimeBindingManifest.bindings.map((binding) => [binding.capability, { modulePath: binding.modulePath, exportName: binding.exportName }])),
+      });
+      const descriptor = await createCapstoneRuntimeDescriptor(promoted);
+      const activeRuntime = { ...result.runtime, buildNumber: promoted.buildNumber, builtAt: promoted.createdAt };
       setErrors([]);
-      setMessage(`Build blocked: ${gate.failures.length} of ${gate.total} unit tests failed. The last passing build remains active.`);
-      return;
+      let nextPreview: string;
+      if (student) {
+        const generated = sampleCharacterRnn(
+          student.checkpoint,
+          "the signal crossed",
+          activeRuntime.model.maxTokens,
+          activeRuntime.model.temperature,
+          activeRuntime.model.seed,
+          activeRuntime.model.topK,
+        );
+        nextPreview = `${activeRuntime.interface.responsePrefix}…the signal crossed${generated}`;
+      } else {
+        nextPreview = `${activeRuntime.interface.responsePrefix}Build ready. Train the Module 01 model to generate a checkpoint-backed preview.`;
+      }
+      saveProjectRuntime(activeRuntime, nextPreview);
+      setMessage(`Build ${promoted.buildNumber} is active. ${descriptor.contributions.length} tested lesson modules now contribute to the chatbot.`);
+    } catch (error) {
+      setErrors([error instanceof Error ? error.message : "The isolated build failed."]);
+      setMessage("Build stopped safely. The last passing build remains active.");
+    } finally {
+      setWorking(false);
     }
-    const result = compileProject(saved.files, saved.runtime);
-    if (!result.ok) {
-      setErrors(result.errors);
-      setMessage("Build stopped. Fix the highlighted runtime contract and run again.");
-      return;
-    }
-    setErrors([]);
-    let nextPreview: string;
-    if (student) {
-      const generated = sampleCharacterRnn(
-        student.checkpoint,
-        "the signal crossed",
-        result.runtime.model.maxTokens,
-        result.runtime.model.temperature,
-        result.runtime.model.seed,
-        result.runtime.model.topK,
-      );
-      nextPreview = `${result.runtime.interface.responsePrefix}…the signal crossed${generated}`;
-    } else {
-      nextPreview = `${result.runtime.interface.responsePrefix}Build ready. Train the Course 01 model to generate a checkpoint-backed preview.`;
-    }
-    saveProjectRuntime(result.runtime, nextPreview);
-    setMessage(`Build ${result.runtime.buildNumber} is active. New chat requests now use these files.`);
   };
 
-  const runTests = (onlyPath?: string) => {
+  const runTests = async (onlyPath?: string) => {
+    if (working) return;
+    setWorking(true);
     const saved = save();
-    const results = runProjectUnitTests(saved.files, saved.runtime, onlyPath);
-    saveProjectTestResults(results, !onlyPath);
-    const failed = results.filter((test) => !test.passed).length;
-    setErrors([]);
-    setMessage(failed ? `${failed} of ${results.length} unit tests failed. The active build was not changed.` : `${results.length} unit tests pass. No build was created.`);
+    setMessage(onlyPath ? "Running this file in the isolated test worker…" : "Compiling and running the complete isolated test suite…");
+    try {
+      const run = await runProjectUnitTests(saved.files, saved.runtime, onlyPath);
+      saveProjectTestResults(run.results, !onlyPath);
+      const failed = run.results.filter((test) => !test.passed).length;
+      setErrors([]);
+      setMessage(failed ? `${failed} of ${run.results.length} unit tests failed. The active build was not changed.` : `${run.results.length} unit tests pass in the sandbox. No build was created.`);
+    } catch (error) {
+      setErrors([error instanceof Error ? error.message : "The isolated test run failed."]);
+      setMessage("Tests stopped safely. The active build was not changed.");
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  const exportProgress = async () => {
+    const { database } = await getPersistenceContext();
+    const snapshot = await exportPersistenceSnapshot(database);
+    const url = URL.createObjectURL(persistenceSnapshotBlob(snapshot));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `latent-browser-chat-${new Date().toISOString().slice(0, 10)}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    setMessage("Project, progress, builds, checkpoints, and conversations exported.");
+  };
+
+  const importProgress = async (file: File) => {
+    const { database } = await getPersistenceContext();
+    await importPersistenceSnapshot(database, await file.text(), { mode: "merge" });
+    setMessage("Progress imported. Reloading the project database…");
+    window.location.reload();
   };
 
   return (
     <section className="project-workbench" aria-label="Editable capstone project">
       <header>
         <div><span>Your project</span><strong>browser-chat/</strong></div>
-        <p>Every lesson writes a source file here. LLM runtime code and deterministic mock-backend code remain separate, then meet at tested adapters.</p>
-        <div className="project-progress"><strong>{verifiedFiles}/14</strong><span>lesson files verified</span></div>
+        <p>Every lesson writes a source file here. Model, runtime, serving, and interface modules stay independently testable, then meet in one passing build.</p>
+        <div className="project-header-actions"><div className="project-progress"><strong>{verifiedFiles}/{llmSystemsCurriculum.lessonCount}</strong><span>lesson files verified</span></div><div><button type="button" onClick={() => void exportProgress()}>Export</button><button type="button" onClick={() => importRef.current?.click()}>Import</button><input ref={importRef} type="file" accept="application/json,.json" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importProgress(file); event.currentTarget.value = ""; }} aria-label="Import saved Latent progress" /></div></div>
       </header>
       <div className="project-workbench-grid">
         <nav className="project-tree" aria-label="Project files">
@@ -134,10 +229,10 @@ export function ProjectWorkbench() {
             <section key={group.id}>
               <span>{group.label}</span>
               {group.files.map((file) => (
-                <button className={file.path === project.selectedPath ? "active" : ""} type="button" onClick={() => { setErrors([]); selectProjectFile(file.path); }} key={file.path}>
-                  <i className={project.tests.results[file.path]?.some((test) => !test.passed) ? "test-failed" : project.tests.results[file.path]?.length ? "test-passed" : file.lessonId && file.verifiedCells >= file.totalCells ? "verified" : file.lessonId ? "draft" : "runtime"} />
+                <button className={file.path === project.selectedPath ? "active" : ""} type="button" onClick={() => openFile(file.path)} key={file.path}>
+                  <i className={trustedResults[file.path]?.some((test) => !test.passed) ? "test-failed" : trustedResults[file.path]?.length ? "test-passed" : file.lessonId && file.verifiedCells >= file.totalCells ? "verified" : file.lessonId ? "draft" : "runtime"} />
                   <span>{file.path.split("/").at(-1)}</span>
-                  {project.tests.results[file.path]?.length ? <em>{project.tests.results[file.path].filter((test) => test.passed).length}/{project.tests.results[file.path].length} tests</em> : file.lessonId ? <em>{file.verifiedCells}/{file.totalCells}</em> : <em>untested</em>}
+                  {trustedResults[file.path]?.length ? <em>{trustedResults[file.path].filter((test) => test.passed).length}/{trustedResults[file.path].length} tests</em> : file.lessonId ? <em>{file.verifiedCells}/{file.totalCells}</em> : <em>untested</em>}
                 </button>
               ))}
             </section>
@@ -145,13 +240,13 @@ export function ProjectWorkbench() {
         </nav>
         <div className="project-editor-panel">
           <header><div><span>{selected?.path ?? "No file selected"}</span><strong>{selected?.title}</strong></div><div><i className={dirty ? "dirty" : "saved"} />{dirty ? "Unsaved changes" : "Saved locally"}</div></header>
-          <textarea aria-label="Project file editor" value={draft} onChange={(event) => setDrafts((current) => ({ ...current, [project.selectedPath]: event.target.value }))} spellCheck="false" />
-          <footer><p>{message}</p><div><button type="button" onClick={() => selected && setDrafts((current) => ({ ...current, [selected.path]: selected.referenceContent }))} disabled={!selected || draft === selected?.referenceContent}>Restore reference</button><button type="button" onClick={save} disabled={!dirty}>Save file</button><button className="build" type="button" onClick={build}>Test, build &amp; run</button></div></footer>
+          {selected ? <CodeEditor path={selected.path} value={draft} onChange={(value) => setDrafts((current) => ({ ...current, [selected.path]: value }))} onSave={save} /> : null}
+          <footer><p>{message}</p><div><button type="button" onClick={() => selected && setDrafts((current) => ({ ...current, [selected.path]: selected.referenceContent }))} disabled={working || !selected || draft === selected?.referenceContent}>Restore reference</button><button type="button" onClick={save} disabled={working || !dirty}>Save now</button><button className="build" type="button" onClick={() => void build()} disabled={working}>{working ? "Running…" : "Test, build & run"}</button></div></footer>
         </div>
         <aside className="project-inspector" aria-live="polite">
           <section className="unit-test-panel">
-            <header><div><span>Unit tests</span><strong>{allTests.length ? `${passingTests}/${allTests.length} passing` : "Not run"}</strong></div><button type="button" onClick={() => runTests()}>Run all 37</button></header>
-            <div className="selected-test-heading"><span>{selected?.path}</span><button type="button" onClick={() => selected && runTests(selected.path)} disabled={!selected}>Run file tests</button></div>
+            <header><div><span>Unit tests</span><strong>{allTests.length ? `${passingTests}/${allTests.length} passing` : "Not run"}</strong></div><button type="button" onClick={() => void runTests()} disabled={working}>Run all {llmSystemsCurriculum.testCount + 3}</button></header>
+            <div className="selected-test-heading"><span>{selected?.path}</span><button type="button" onClick={() => selected && void runTests(selected.path)} disabled={working || !selected}>Run file tests</button></div>
             <div className="unit-test-list">
               {selectedTests.length ? selectedTests.map((test) => <article className={test.passed ? "passed" : "failed"} key={test.id}><i>{test.passed ? "✓" : "×"}</i><div><strong>{test.label}</strong><p>{test.detail}</p></div></article>) : <p>Select “Run file tests” to verify this module independently of the build.</p>}
             </div>

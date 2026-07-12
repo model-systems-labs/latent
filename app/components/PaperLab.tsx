@@ -14,6 +14,7 @@ import {
   useLearnerState,
 } from "../lib/learner-state";
 import { ensureProjectWorkspace, saveLessonProjectFile, type LessonProjectSeed } from "../lib/project-workspace";
+import { runPracticeContracts } from "../features/ide/browser-lab-service";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 type CheckResult = { label: string; passed: boolean; detail: string };
@@ -208,24 +209,6 @@ export function TextBoxSection({ lesson }: { lesson: CourseLesson }) {
   );
 }
 
-function evaluateBlock(block: CodeBlock, source: string): CheckResult {
-  if (!source.trim()) return { label: block.label, passed: false, detail: "This cell is empty." };
-  try {
-    if (!block.checkCode) {
-      new Function(`"use strict";\n${source}`)();
-      return { label: block.label, passed: true, detail: "Source is syntactically valid." };
-    }
-    const result = new Function(`"use strict";\n${source}\n${block.checkCode}`)() as { passed?: unknown; detail?: unknown };
-    return {
-      label: block.label,
-      passed: result?.passed === true,
-      detail: typeof result?.detail === "string" ? result.detail : result?.passed === true ? "Behavioral check passed." : "Behavioral check failed.",
-    };
-  } catch (error) {
-    return { label: block.label, passed: false, detail: error instanceof Error ? error.message : "The cell could not run." };
-  }
-}
-
 function starterCodeFor(block: CodeBlock) {
   const signature = block.code.split("\n")[0];
   return `${signature}\n  // TODO: implement ${block.label.toLowerCase()}.\n}`;
@@ -257,6 +240,7 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
   const [cellResults, setCellResults] = useState<Record<string, CheckResult | undefined>>({});
   const [checks, setChecks] = useState<CheckResult[]>([]);
   const [practiceMessage, setPracticeMessage] = useState("The reference implementation is complete and runnable.");
+  const [runningBlockIds, setRunningBlockIds] = useState<string[]>([]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -309,25 +293,56 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
     setChecks([]);
     setPracticeMessage("Reference solution restored. Previous attempts remain available if you hide a cell again.");
   };
-  const runCell = (block: CodeBlock) => {
-    const result = evaluateBlock(block, sourceFor(block));
-    const nextVerified = result.passed ? [...new Set([...verifiedBlockIds, block.id])] : verifiedBlockIds.filter((id) => id !== block.id);
-    setVerifiedBlockIds(nextVerified);
-    recordVerifiedCells(lesson.id, nextVerified);
-    saveLessonProjectFile(projectSeedForLesson(lesson, hiddenBlocks, answers, nextVerified));
-    setCellResults((current) => ({ ...current, [block.id]: result }));
-    setPracticeMessage(result.passed ? `${block.label} passed.` : `${block.label} needs attention.`);
+  const runCell = async (block: CodeBlock) => {
+    if (runningBlockIds.length) return;
+    setRunningBlockIds([block.id]);
+    setPracticeMessage(`Compiling ${block.label} in the isolated browser lab…`);
+    try {
+      const [result] = await runPracticeContracts({
+        path: projectPath,
+        source: sourceFor(block),
+        contractIds: [`${lesson.id}/${block.id}`],
+      });
+      const check = result ?? { label: block.label, passed: false, detail: "The isolated test returned no result." };
+      const nextVerified = check.passed ? [...new Set([...verifiedBlockIds, block.id])] : verifiedBlockIds.filter((id) => id !== block.id);
+      setVerifiedBlockIds(nextVerified);
+      recordVerifiedCells(lesson.id, nextVerified);
+      saveLessonProjectFile(projectSeedForLesson(lesson, hiddenBlocks, answers, nextVerified));
+      setCellResults((current) => ({ ...current, [block.id]: check }));
+      setPracticeMessage(check.passed ? `${block.label} passed host-owned assertions.` : `${block.label} needs attention.`);
+    } catch (error) {
+      const check = { label: block.label, passed: false, detail: error instanceof Error ? error.message : "The isolated test failed." };
+      setCellResults((current) => ({ ...current, [block.id]: check }));
+      setPracticeMessage(`${block.label} stopped safely.`);
+    } finally {
+      setRunningBlockIds([]);
+    }
   };
-  const runAll = () => {
-    const results = blocks.map((block) => evaluateBlock(block, sourceFor(block)));
-    const nextVerified = blocks.filter((_, index) => results[index].passed).map((block) => block.id);
-    setVerifiedBlockIds(nextVerified);
-    recordVerifiedCells(lesson.id, nextVerified);
-    saveLessonProjectFile(projectSeedForLesson(lesson, hiddenBlocks, answers, nextVerified));
-    setChecks(results);
-    setCellResults(Object.fromEntries(blocks.map((block, index) => [block.id, results[index]])));
-    const passed = results.filter((result) => result.passed).length;
-    setPracticeMessage(passed === results.length ? "All behavioral checks pass. Run the experiment below." : `${passed} of ${results.length} behavioral checks pass.`);
+  const runAll = async () => {
+    if (runningBlockIds.length) return;
+    setRunningBlockIds(blocks.map((block) => block.id));
+    setPracticeMessage("Compiling this lesson and running every contract in an isolated worker…");
+    try {
+      const results = await runPracticeContracts({
+        path: projectPath,
+        source: blocks.map((block) => sourceFor(block)).join("\n\n"),
+        contractIds: blocks.map((block) => `${lesson.id}/${block.id}`),
+      });
+      const resultById = new Map(results.map((result) => [result.id, result]));
+      const ordered = blocks.map((block) => resultById.get(`${lesson.id}/${block.id}`) ?? { id: `${lesson.id}/${block.id}`, path: projectPath, label: block.label, passed: false, detail: "The isolated test returned no result." });
+      const nextVerified = blocks.filter((_, index) => ordered[index].passed).map((block) => block.id);
+      setVerifiedBlockIds(nextVerified);
+      recordVerifiedCells(lesson.id, nextVerified);
+      saveLessonProjectFile(projectSeedForLesson(lesson, hiddenBlocks, answers, nextVerified));
+      setChecks(ordered);
+      setCellResults(Object.fromEntries(blocks.map((block, index) => [block.id, ordered[index]])));
+      const passed = ordered.filter((result) => result.passed).length;
+      setPracticeMessage(passed === ordered.length ? "All isolated behavioral checks pass. Run the experiment below." : `${passed} of ${ordered.length} isolated behavioral checks pass.`);
+    } catch (error) {
+      setPracticeMessage(error instanceof Error ? error.message : "The isolated lesson test failed safely.");
+    } finally {
+      setRunningBlockIds([]);
+    }
   };
   const passedChecks = checks.filter((check) => check.passed).length;
   const verifiedCells = verifiedBlockIds.length;
@@ -342,7 +357,7 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
           <div className="editor-progress" aria-label={`${verifiedCells} of ${blocks.length} cells verified`}>
             <span>{verifiedCells}/{blocks.length} verified</span><i><b style={{ width: `${verifiedCells / blocks.length * 100}%` }} /></i>
           </div>
-          <div className="toolbar-actions"><button type="button" onClick={hideAll}>Practice all</button><button type="button" onClick={showSolution} disabled={hiddenBlocks.length === 0}>Restore all</button><Link href="/workspace">Open in IDE ↗</Link></div>
+          <div className="toolbar-actions"><button type="button" onClick={hideAll}>Practice all</button><button type="button" onClick={showSolution} disabled={hiddenBlocks.length === 0}>Restore all</button><Link href={`/workspace?file=${encodeURIComponent(`${lesson.courseId ?? "models"}/${lesson.implementation.filename}`)}`}>Open this file in IDE ↗</Link></div>
         </div>
         <div className="code-surface">
           {blocks.map((block, blockIndex) => {
@@ -353,14 +368,13 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
               <div
                 className={`practice-block ${hidden ? "is-hidden" : ""}`}
                 data-reference-code={encodeURIComponent(block.code)}
-                data-check-code={encodeURIComponent(block.checkCode ?? "")}
                 key={block.id}
               >
                 <div className="block-heading">
                   <div><span>0{blockIndex + 1}</span><strong>{block.label}</strong><em>{block.purpose}</em></div>
                   <div className="block-actions">
-                    <button className="run-cell-button" type="button" onClick={() => runCell(block)}>Run cell</button>
-                    <button type="button" onClick={() => toggleBlock(block)}>{hidden ? "Show reference" : "Practice cell"}</button>
+                    <button className="run-cell-button" type="button" onClick={() => void runCell(block)} disabled={runningBlockIds.length > 0}>{runningBlockIds.includes(block.id) ? "Running…" : "Run cell"}</button>
+                    <button type="button" onClick={() => toggleBlock(block)} disabled={runningBlockIds.length > 0}>{hidden ? "Show reference" : "Practice cell"}</button>
                   </div>
                 </div>
                 {block.concepts?.length ? <div className="concept-strip" aria-label={`${block.label} variables`}>{block.concepts.map((concept) => <span key={concept.name}><code>{concept.name}</code><em>{concept.detail}</em></span>)}</div> : null}
@@ -402,7 +416,7 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
             );
           })}
         </div>
-        <div className="editor-footer"><p>{practiceMessage}</p><button type="button" onClick={runAll}>Run behavioral checks</button></div>
+        <div className="editor-footer"><p>{practiceMessage}</p><button type="button" onClick={() => void runAll()} disabled={runningBlockIds.length > 0}>{runningBlockIds.length ? "Running in sandbox…" : "Run behavioral checks"}</button></div>
       </div>
       {checks.length ? (
         <div className="check-grid" aria-live="polite">
@@ -430,7 +444,7 @@ export function PaperLab({ lesson }: { lesson: CourseLesson }) {
       <header className="site-header">
         <Link className="wordmark" href="/" aria-label="Latent course home"><i />latent</Link>
         <nav aria-label="Lesson navigation"><a href="#summary">Summary</a><a href="#questions">Questions</a><a href="#implementation">Implementation</a></nav>
-        <span>{lesson.courseTitle ?? "Language Models"} · {String(trackIndex + 1).padStart(2, "0")} / {String(trackLessons.length).padStart(2, "0")}</span>
+        <span>{lesson.courseTitle ?? "Model Foundations"} · {String(trackIndex + 1).padStart(2, "0")} / {String(trackLessons.length).padStart(2, "0")}</span>
       </header>
       <article className="paper-page" id="top">
         <HeaderSection lesson={lesson} />
@@ -438,9 +452,9 @@ export function PaperLab({ lesson }: { lesson: CourseLesson }) {
         <TextBoxSection lesson={lesson} />
         <CodingSection lesson={lesson} />
         <footer className="paper-footer lesson-footer">
-          {previous ? <Link href={`/lessons/${previous.id}`}>← {previous.title}</Link> : <Link href={courseHref}>← Course</Link>}
+          {previous ? <Link href={`/lessons/${previous.id}`}>← {previous.title}</Link> : <Link href={courseHref}>← Module</Link>}
           <p>{complete ? `Lesson ${trackIndex + 1} complete` : `${progress?.verifiedCells.length ?? 0}/${lesson.implementation.codeBlocks.length} checks · ${progress?.experimentComplete ? "experiment complete" : "experiment pending"}`}</p>
-          {next ? <Link href={`/lessons/${next.id}`}>{next.title} →</Link> : <Link href={courseHref}>Course ↑</Link>}
+          {next ? <Link href={`/lessons/${next.id}`}>{next.title} →</Link> : <Link href={courseHref}>Module ↑</Link>}
         </footer>
       </article>
     </main>

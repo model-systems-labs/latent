@@ -12,7 +12,7 @@ export async function generateMetadata({ params }: { params: Promise<{ course: s
   const { course } = await params;
   const track = getTrack(course);
   if (!track) return {};
-  return { title: `${track.title} · Latent`, description: track.thesis };
+  return { title: `${track.title} module · Latent`, description: track.thesis };
 }
 
 export default async function CoursePage({ params }: { params: Promise<{ course: string }> }) {
@@ -25,13 +25,13 @@ export default async function CoursePage({ params }: { params: Promise<{ course:
   return (
     <main>
       <div className="page-atmosphere" aria-hidden="true"><span className="orbit orbit-one" /><span className="orbit orbit-two" /><span className="orbit orbit-three" /><span className="node node-one" /><span className="warm-star" /></div>
-      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><span>Course {String(track.number).padStart(2, "0")} / 04</span></header>
+      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><span>Module {String(track.number).padStart(2, "0")} / 04</span></header>
       <article className="course-page track-page">
         <header className="course-hero track-hero">
-          <p className="eyebrow">Course {String(track.number).padStart(2, "0")} · {track.shortTitle}</p>
+          <p className="eyebrow">Module {String(track.number).padStart(2, "0")} · {track.shortTitle}</p>
           <h1>{track.title}</h1>
           <p>{track.thesis}</p>
-          <div className="track-outcome"><span>Course artifact</span><strong>{track.outcome}</strong></div>
+          <div className="track-outcome"><span>Module artifact</span><strong>{track.outcome}</strong></div>
         </header>
         <CourseCurriculum title={track.title} lessons={lessons} />
         <footer className="track-navigation">

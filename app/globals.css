@@ -2612,7 +2612,7 @@ button:disabled {
 .course-track-grid {
   display: grid;
   gap: 1rem;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   margin-top: 1.2rem;
   scroll-margin-top: 1rem;
 }

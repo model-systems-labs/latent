@@ -5,12 +5,12 @@ export default function Home() {
   return (
     <main>
       <div className="page-atmosphere" aria-hidden="true"><span className="orbit orbit-one" /><span className="orbit orbit-two" /><span className="orbit orbit-three" /><span className="node node-one" /><span className="node node-two" /><span className="warm-star" /></div>
-      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><a href="#courses">Courses</a><Link href="/capstone">Capstone</Link></nav><span>Model · Platform · React</span></header>
+      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><a href="#courses">Courses</a><Link href="/workspace">IDE</Link><Link href="/capstone">Capstone</Link></nav><span>Model · Runtime · Backend · React</span></header>
       <article className="course-page full-course-page">
         <header className="course-hero full-course-hero">
-          <p className="eyebrow">Three courses · fourteen technical labs · one complete system</p>
+          <p className="eyebrow">Four courses · fourteen technical labs · one complete system</p>
           <h1>Build an LLM chat system.</h1>
-          <p>Train the model, implement the inference platform, and ship the React product—all in the browser.</p>
+          <p>Train the model, implement the LLM runtime, test it behind a mock backend, and ship the React product—all in the browser.</p>
           <div className="hero-actions"><Link href="/courses/models">Start with the model</Link><Link href="/capstone">Open the capstone</Link></div>
         </header>
         <section className="course-track-grid" id="courses">

@@ -1,6 +1,7 @@
 "use client";
 
 import { courseLessons } from "../lessons/course";
+import { runBrowserLabContract } from "./browser-lab";
 import {
   compileProject,
   RUNTIME_PATHS,
@@ -9,23 +10,6 @@ import {
   type ProjectUnitResult,
 } from "./project-workspace";
 
-function runSourceTest(path: string, source: string, id: string, label: string, checkCode?: string): ProjectUnitResult {
-  try {
-    const value = checkCode
-      ? new Function(`"use strict";\n${source}\n${checkCode}`)() as { passed?: unknown; detail?: unknown }
-      : (new Function(`"use strict";\n${source}`)(), { passed: true, detail: "Source is syntactically valid." });
-    return {
-      id,
-      path,
-      label,
-      passed: value?.passed === true,
-      detail: typeof value?.detail === "string" ? value.detail : value?.passed === true ? "Behavioral contract passed." : "Behavioral contract failed.",
-    };
-  } catch (error) {
-    return { id, path, label, passed: false, detail: error instanceof Error ? error.message : "The unit test could not run." };
-  }
-}
-
 export function runProjectUnitTests(files: Record<string, ProjectFile>, runtime: ProjectRuntime, onlyPath?: string) {
   const results: ProjectUnitResult[] = [];
   for (const lesson of courseLessons) {
@@ -33,7 +17,7 @@ export function runProjectUnitTests(files: Record<string, ProjectFile>, runtime:
     if (onlyPath && path !== onlyPath) continue;
     const source = files[path]?.content ?? "";
     for (const block of lesson.implementation.codeBlocks) {
-      results.push(runSourceTest(path, source, `${lesson.id}:${block.id}`, block.label, block.checkCode));
+      results.push(runBrowserLabContract({ path, source, id: `${lesson.id}:${block.id}`, label: block.label, assertion: block.checkCode }));
     }
   }
   const runtimePaths = Object.values(RUNTIME_PATHS);

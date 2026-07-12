@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createDeviceLocalStore, type BrowserLabTestResult } from "./browser-lab";
 
 export const PROJECT_STORAGE_KEY = "latent-project-v1";
 const PROJECT_CHANGE_EVENT = "latent-project-change";
 
-export type ProjectCourse = "runtime" | "models" | "systems" | "product";
+export type ProjectCourse = "runtime" | "models" | "systems" | "backend" | "product";
 
 export type ProjectFile = {
   path: string;
@@ -28,13 +29,7 @@ export type ProjectRuntime = {
   builtAt: number;
 };
 
-export type ProjectUnitResult = {
-  id: string;
-  path: string;
-  label: string;
-  passed: boolean;
-  detail: string;
-};
+export type ProjectUnitResult = BrowserLabTestResult;
 
 export type ProjectState = {
   version: 1;
@@ -133,7 +128,7 @@ function sanitizeProjectState(value: unknown): ProjectState {
       if (!raw || typeof raw !== "object") continue;
       const file = raw as Partial<ProjectFile>;
       if (typeof file.content !== "string" || typeof file.title !== "string") continue;
-      const courseId = ["runtime", "models", "systems", "product"].includes(String(file.courseId)) ? file.courseId as ProjectCourse : "runtime";
+      const courseId = ["runtime", "models", "systems", "backend", "product"].includes(String(file.courseId)) ? file.courseId as ProjectCourse : "runtime";
       files[path] = {
         path,
         courseId,
@@ -166,35 +161,33 @@ function sanitizeProjectState(value: unknown): ProjectState {
   return { version: 1, files, selectedPath, runtime: sanitizeRuntime(candidate.runtime), output, tests };
 }
 
-export function loadProjectState(): ProjectState {
-  if (typeof window === "undefined") return emptyProjectState();
-  try {
-    const serialized = window.localStorage.getItem(PROJECT_STORAGE_KEY);
-    return serialized ? sanitizeProjectState(JSON.parse(serialized)) : emptyProjectState();
-  } catch {
-    return emptyProjectState();
-  }
-}
+const projectStore = createDeviceLocalStore({ key: PROJECT_STORAGE_KEY, changeEvent: PROJECT_CHANGE_EVENT, empty: emptyProjectState, sanitize: sanitizeProjectState });
 
-function storeProjectState(state: ProjectState) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(PROJECT_STORAGE_KEY, JSON.stringify(state));
-  window.dispatchEvent(new CustomEvent(PROJECT_CHANGE_EVENT));
-}
+export const loadProjectState = projectStore.load;
 
 export function updateProjectState(update: (state: ProjectState) => ProjectState) {
-  const next = update(loadProjectState());
-  storeProjectState(next);
-  return next;
+  return projectStore.update(update);
 }
 
 export function ensureProjectWorkspace(seeds: LessonProjectSeed[]) {
   return updateProjectState((state) => {
     const files = { ...state.files };
+    const testResults = { ...state.tests.results };
+    let selectedPath = state.selectedPath;
     for (const seed of seeds) {
+      for (const [path, file] of Object.entries(files)) {
+        if (seed.lessonId && file.lessonId === seed.lessonId && path !== seed.path) {
+          delete files[path];
+          if (testResults[path]) {
+            testResults[seed.path] = testResults[path].map((result) => ({ ...result, path: seed.path }));
+            delete testResults[path];
+          }
+          if (selectedPath === path) selectedPath = seed.path;
+        }
+      }
       if (!files[seed.path]) files[seed.path] = { ...seed, updatedAt: Date.now() };
     }
-    return { ...state, files };
+    return { ...state, files, selectedPath: files[selectedPath] ? selectedPath : RUNTIME_PATHS.model, tests: { ...state.tests, results: testResults } };
   });
 }
 
@@ -283,12 +276,7 @@ export function useProjectState() {
   useEffect(() => {
     const refresh = () => setState(loadProjectState());
     refresh();
-    window.addEventListener(PROJECT_CHANGE_EVENT, refresh);
-    window.addEventListener("storage", refresh);
-    return () => {
-      window.removeEventListener(PROJECT_CHANGE_EVENT, refresh);
-      window.removeEventListener("storage", refresh);
-    };
+    return projectStore.subscribe(refresh);
   }, []);
   return state;
 }

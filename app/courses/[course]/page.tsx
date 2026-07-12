@@ -25,7 +25,7 @@ export default async function CoursePage({ params }: { params: Promise<{ course:
   return (
     <main>
       <div className="page-atmosphere" aria-hidden="true"><span className="orbit orbit-one" /><span className="orbit orbit-two" /><span className="orbit orbit-three" /><span className="node node-one" /><span className="warm-star" /></div>
-      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><span>Course {String(track.number).padStart(2, "0")} / 03</span></header>
+      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><span>Course {String(track.number).padStart(2, "0")} / 04</span></header>
       <article className="course-page track-page">
         <header className="course-hero track-hero">
           <p className="eyebrow">Course {String(track.number).padStart(2, "0")} · {track.shortTitle}</p>

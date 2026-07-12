@@ -5,6 +5,7 @@ import { courseLessons } from "../lessons/course";
 import { sampleCharacterRnn } from "../lib/lab-engines";
 import { loadLearnerState, useLearnerState } from "../lib/learner-state";
 import { runProjectUnitTests } from "../lib/project-tests";
+import { gateBrowserLabBuild } from "../lib/browser-lab";
 import {
   compileProject,
   ensureProjectWorkspace,
@@ -39,8 +40,9 @@ function lessonSeed(lesson: (typeof courseLessons)[number]): LessonProjectSeed {
 const groups: Array<{ id: ProjectCourse; label: string }> = [
   { id: "runtime", label: "Runtime adapters" },
   { id: "models", label: "01 · Model" },
-  { id: "systems", label: "02 · Platform" },
-  { id: "product", label: "03 · React" },
+  { id: "systems", label: "02 · LLM Runtime" },
+  { id: "backend", label: "03 · Mock Backend" },
+  { id: "product", label: "04 · React" },
 ];
 
 export function ProjectWorkbench() {
@@ -79,10 +81,10 @@ export function ProjectWorkbench() {
     const saved = save();
     const unitResults = runProjectUnitTests(saved.files, saved.runtime);
     saveProjectTestResults(unitResults, true);
-    const failedTests = unitResults.filter((test) => !test.passed);
-    if (failedTests.length) {
+    const gate = gateBrowserLabBuild(unitResults);
+    if (!gate.canPromote) {
       setErrors([]);
-      setMessage(`Build blocked: ${failedTests.length} of ${unitResults.length} unit tests failed. The last passing build remains active.`);
+      setMessage(`Build blocked: ${gate.failures.length} of ${gate.total} unit tests failed. The last passing build remains active.`);
       return;
     }
     const result = compileProject(saved.files, saved.runtime);
@@ -123,7 +125,7 @@ export function ProjectWorkbench() {
     <section className="project-workbench" aria-label="Editable capstone project">
       <header>
         <div><span>Your project</span><strong>browser-chat/</strong></div>
-        <p>Every lesson writes a source file here. The three runtime adapters compile into the live chatbot.</p>
+        <p>Every lesson writes a source file here. LLM runtime code and deterministic mock-backend code remain separate, then meet at tested adapters.</p>
         <div className="project-progress"><strong>{verifiedFiles}/14</strong><span>lesson files verified</span></div>
       </header>
       <div className="project-workbench-grid">

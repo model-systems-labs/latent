@@ -15,23 +15,25 @@ async function render(path = "/") {
   );
 }
 
-test("server-renders the complete three-course curriculum", async () => {
+test("server-renders the complete four-course curriculum", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /Build an LLM chat system/);
   assert.match(html, /Language Models/);
-  assert.match(html, /LLM Systems/);
+  assert.match(html, /LLM Runtime Systems/);
+  assert.match(html, /Mock Backend Systems/);
   assert.match(html, /Chat Product/);
   assert.match(html, /Browser Chat/);
-  assert.equal((html.match(/class="course-track-card"/g) ?? []).length, 3);
+  assert.equal((html.match(/class="course-track-card"/g) ?? []).length, 4);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/i);
 });
 
 test("each course renders its technical lesson sequence", async () => {
   const courses = [
     ["models", ["Character RNNs", "Neural Language Models", "Subword Tokenization", "Additive Attention", "Transformers", "In-Context Learning"]],
-    ["systems", ["Inference Runtime", "Streaming Transport", "Scheduling and Memory", "Reliability and Observability"]],
+    ["systems", ["Inference Runtime", "Scheduling and Memory"]],
+    ["backend", ["Streaming Transport", "Reliability and Observability"]],
     ["product", ["Conversation State", "Streaming React", "Actions and Context", "Product Quality"]],
   ];
   for (const [slug, titles] of courses) {
@@ -108,13 +110,16 @@ test("the project IDE is a dedicated tested authoring surface", async () => {
 });
 
 test("the design kit, simulations, and model engines remain reusable", async () => {
-  const [paperLab, experiment, capstone, workbench, projectWorkspace, projectTests, engines, extended, sourceSets, layout, packageJson] = await Promise.all([
+  const [paperLab, experiment, capstone, workbench, projectWorkspace, projectTests, labStore, labRunner, labTypes, engines, extended, sourceSets, layout, packageJson] = await Promise.all([
     readFile(new URL("../app/components/PaperLab.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/LessonExperiment.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/BrowserChatCapstone.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/ProjectWorkbench.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/lib/project-workspace.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/lib/project-tests.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/lib/browser-lab/local-store.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/lib/browser-lab/test-runner.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/lib/browser-lab/types.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/lib/lab-engines.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/lessons/extended-course.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/lessons/sources.ts", import.meta.url), "utf8"),
@@ -136,12 +141,18 @@ test("the design kit, simulations, and model engines remain reusable", async () 
   assert.match(workbench, /Build blocked/);
   assert.match(projectWorkspace, /latent-project-v1/);
   assert.match(projectWorkspace, /compileProject/);
-  assert.match(projectWorkspace, /localStorage/);
-  assert.match(projectTests, /new Function/);
+  assert.match(projectTests, /runBrowserLabContract/);
   assert.match(projectTests, /Runtime contract/);
+  assert.match(labStore, /createDeviceLocalStore/);
+  assert.match(labStore, /localStorage/);
+  assert.match(labRunner, /runBrowserLabContract/);
+  assert.match(labRunner, /gateBrowserLabBuild/);
+  assert.match(labTypes, /BrowserLabFile/);
+  assert.match(labTypes, /BrowserLabBuildGate/);
   assert.match(engines, /trainCharacterRnn/);
   assert.match(engines, /topK/);
   assert.match(extended, /systemsLessons/);
+  assert.match(extended, /Mock Backend Systems/);
   assert.match(extended, /productLessons/);
   assert.equal((sourceSets.match(/role: /g) ?? []).length, 42);
   assert.equal((sourceSets.match(/^  (?:"[^"]+"|[a-z-]+): \[$/gm) ?? []).length, 14);

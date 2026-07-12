@@ -24,7 +24,7 @@ export type LessonSource = {
 export type CourseLesson = {
   id: string;
   number: number;
-  courseId?: "models" | "systems" | "product";
+  courseId?: "models" | "systems" | "backend" | "product";
   courseTitle?: string;
   courseNumber?: number;
   lessonNumber?: number;
@@ -81,7 +81,7 @@ export type CourseLesson = {
 };
 
 export type CourseTrack = {
-  id: "models" | "systems" | "product";
+  id: "models" | "systems" | "backend" | "product";
   number: number;
   title: string;
   shortTitle: string;

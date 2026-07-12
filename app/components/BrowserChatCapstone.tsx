@@ -343,7 +343,7 @@ export function BrowserChatCapstone() {
       <header className="capstone-topbar">
         <Link className="wordmark" href="/"><i />latent</Link>
         <div><span>Capstone</span><strong>Browser Chat</strong></div>
-        <nav><Link href="/">Course</Link><Link href="/workspace">IDE</Link></nav>
+        <nav><Link href="/">Course</Link><Link href="/project">Project</Link><Link href="/workspace">IDE</Link></nav>
       </header>
       <div className="capstone-layout">
         <aside className="capstone-sidebar">

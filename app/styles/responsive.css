@@ -1,7 +1,8 @@
 @media (max-width: 940px) {
   .site-header,
   .paper-page,
-  .course-page {
+  .course-page,
+  .project-page {
     width: calc(100% - 2.5rem);
   }
 
@@ -104,10 +105,6 @@
     grid-template-columns: 1fr;
   }
 
-  .project-structure-groups {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .icl-results {
     grid-template-columns: 1fr;
   }
@@ -185,7 +182,8 @@
 
   .site-header,
   .paper-page,
-  .course-page {
+  .course-page,
+  .project-page {
     width: calc(100% - 1.5rem);
   }
 
@@ -391,18 +389,56 @@
     grid-template-columns: 1fr;
   }
 
-  .course-project-structure > summary {
-    gap: 0.45rem 1rem;
-    grid-template-columns: 1fr auto;
+  .project-page {
+    padding-top: 0.8rem;
   }
 
-  .course-project-structure > summary > p {
-    grid-column: 1 / -1;
-    grid-row: 2;
+  .project-page-hero {
+    padding: 4rem 0 3rem;
   }
 
-  .project-structure-groups {
+  .project-page-hero h1 {
+    font-size: clamp(3rem, 14vw, 4.4rem);
+    white-space: normal;
+  }
+
+  .project-structure-root,
+  .project-structure-progress,
+  .project-structure-footer,
+  .project-structure-note {
+    align-items: start;
+    gap: 0.85rem;
     grid-template-columns: 1fr;
+  }
+
+  .project-structure-root > p {
+    text-align: left;
+  }
+
+  .project-structure-progress p {
+    grid-row: 1;
+  }
+
+  .project-structure-group {
+    display: block;
+    padding: 0.8rem 0;
+  }
+
+  .project-structure-group header {
+    padding: 0.5rem 0 0.7rem;
+  }
+
+  .project-structure-group ul {
+    margin-left: 0.35rem;
+    padding-left: 0.9rem;
+  }
+
+  .project-structure-group li a {
+    min-height: 2.85rem;
+  }
+
+  .project-structure-note {
+    padding-top: 1.5rem;
   }
 
   .block-heading {

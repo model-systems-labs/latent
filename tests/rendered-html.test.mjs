@@ -25,6 +25,7 @@ test("server-renders one LLM Systems program with four technical modules", async
   assert.match(html, /LLM Serving/);
   assert.match(html, /Chat Integration/);
   assert.match(html, /Browser Chat/);
+  assert.match(html, /href="\/project"/);
   assert.equal((html.match(/class="course-track-card"/g) ?? []).length, 4);
   assert.doesNotMatch(html, /Mock Backend Systems/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/i);
@@ -42,10 +43,27 @@ test("each module renders its technical lesson sequence", async () => {
     assert.equal(response.status, 200, slug);
     const html = await response.text();
     for (const title of titles) assert.match(html, new RegExp(title));
-    assert.match(html, /Project structure/);
-    assert.match(html, /14(?:<!-- -->)? pending/);
-    assert.match(html, /BrowserChat\.tsx/);
+    assert.match(html, /Module progress/);
+    assert.match(html, /href="\/project"/);
+    assert.doesNotMatch(html, /Project structure|BrowserChat\.tsx/);
   }
+});
+
+test("the dedicated project route renders the complete progressive source tree", async () => {
+  const response = await render("/project");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Project structure/);
+  assert.match(html, /browser-chat\//);
+  assert.match(html, /14(?:<!-- -->)? pending/);
+  assert.match(html, /model\.config\.js/);
+  assert.match(html, /character-rnn\.js/);
+  assert.match(html, /inference-runtime\.js/);
+  assert.match(html, /streaming-transport\.js/);
+  assert.match(html, /chat-reducer\.js/);
+  assert.match(html, /BrowserChat\.tsx/);
+  assert.match(html, /href="\/workspace/);
+  assert.match(html, /href="\/capstone"/);
 });
 
 test("all fourteen lessons use the reusable learning flow", async () => {
@@ -97,6 +115,7 @@ test("the capstone contains the complete React chat system", async () => {
   assert.match(html, /Request lifecycle/);
   assert.match(html, /Train model/);
   assert.match(html, /href="\/workspace"/);
+  assert.match(html, /href="\/project"/);
   assert.doesNotMatch(html, /Project file editor/);
   assert.match(html, /Enter to send/);
   assert.match(html, /Clear current backend/);
@@ -107,6 +126,7 @@ test("the project IDE is a dedicated tested authoring surface", async () => {
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /Project IDE/);
+  assert.match(html, /href="\/project"/);
   assert.match(html, /lesson files verified/);
   assert.match(html, /runtime\/model.config.js/);
   assert.match(html, /character-rnn\.js/);

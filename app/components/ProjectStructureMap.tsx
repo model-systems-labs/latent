@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import type { CourseTrack } from "@latent/course-kit";
 import { courseLessons, courseTracks, getTrackLessons, llmSystemsCurriculum } from "../lessons/course";
 import { useLearnerState } from "../lib/learner-state";
 import { RUNTIME_PATHS, useProjectState } from "../lib/project-workspace";
@@ -21,9 +20,9 @@ const runtimeRows = [
   { path: RUNTIME_PATHS.interface },
 ];
 
-function ProjectGroup({ label, rows, active = false }: { label: string; rows: ProjectRow[]; active?: boolean }) {
+function ProjectGroup({ label, rows }: { label: string; rows: ProjectRow[] }) {
   return (
-    <section className={`project-structure-group ${active ? "active" : ""}`}>
+    <section className="project-structure-group">
       <header><span>{label}/</span><em>{rows.length} {rows.length === 1 ? "file" : "files"}</em></header>
       <ul>
         {rows.map((row) => (
@@ -39,7 +38,7 @@ function ProjectGroup({ label, rows, active = false }: { label: string; rows: Pr
   );
 }
 
-export function ProjectStructureMap({ activeCourseId }: { activeCourseId?: CourseTrack["id"] }) {
+export function ProjectStructureMap() {
   const learner = useLearnerState();
   const project = useProjectState();
   const trustedResults = project.tests.runner === "browser-lab-v1" ? project.tests.results : {};
@@ -65,6 +64,7 @@ export function ProjectStructureMap({ activeCourseId }: { activeCourseId?: Cours
   const completed = sourceRows.filter((row) => row.status.complete).length;
   const inProgress = sourceRows.filter((row) => row.status.tone === "in-progress").length;
   const pending = courseLessons.length - completed - inProgress;
+  const completion = courseLessons.length ? completed / courseLessons.length * 100 : 0;
   const providedRows = runtimeRows.map(({ path, readOnly = false }): ProjectRow => ({
     path,
     filename: path.split("/").at(-1) ?? path,
@@ -84,17 +84,24 @@ export function ProjectStructureMap({ activeCourseId }: { activeCourseId?: Cours
   };
 
   return (
-    <details className="course-project-structure">
-      <summary>
-        <div><span>Project structure</span><strong>browser-chat/</strong></div>
+    <section className="project-structure-map" aria-label="browser-chat project file structure">
+      <header className="project-structure-root">
+        <div><span>Project root</span><strong>browser-chat/</strong></div>
+        <p><span>Lesson files</span><strong>{completed} / {courseLessons.length} complete</strong></p>
+      </header>
+      <div className="project-structure-progress" aria-label={`${completed} of ${courseLessons.length} lesson files complete`}>
+        <i><b style={{ width: `${completion}%` }} /></i>
         <p><strong>{completed} complete</strong><span>{inProgress ? ` · ${inProgress} in progress` : ""} · {pending} pending</span></p>
-        <em>View files</em>
-      </summary>
+      </div>
       <div className="project-structure-groups">
         <ProjectGroup label="runtime" rows={providedRows} />
-        {groups.map(({ track, rows }) => <ProjectGroup active={track.id === activeCourseId} label={track.id} rows={rows} key={track.id} />)}
+        {groups.map(({ track, rows }) => <ProjectGroup label={track.id} rows={rows} key={track.id} />)}
         <ProjectGroup label="capstone" rows={[capstoneRow]} />
       </div>
-    </details>
+      <footer className="project-structure-footer">
+        <p>Open any source file to edit it. A file changes state only when its behavioral checks pass.</p>
+        <Link href="/workspace">Open project IDE →</Link>
+      </footer>
+    </section>
   );
 }

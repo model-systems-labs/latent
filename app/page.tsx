@@ -5,7 +5,7 @@ export default function Home() {
   return (
     <main>
       <div className="page-atmosphere" aria-hidden="true"><span className="orbit orbit-one" /><span className="orbit orbit-two" /><span className="orbit orbit-three" /><span className="node node-one" /><span className="node node-two" /><span className="warm-star" /></div>
-      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><a href="#modules">Modules</a><Link href="/workspace">IDE</Link><Link href="/capstone">Capstone</Link></nav></header>
+      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><a href="#modules">Modules</a><Link href="/project">Project</Link><Link href="/workspace">IDE</Link><Link href="/capstone">Capstone</Link></nav></header>
       <article className="course-page full-course-page">
         <header className="course-hero full-course-hero">
           <p className="eyebrow">One course · four modules · {llmSystemsCurriculum.testCount} executable contracts</p>

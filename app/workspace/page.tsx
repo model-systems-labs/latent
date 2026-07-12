@@ -13,7 +13,7 @@ export default function WorkspacePage() {
       <header className="ide-topbar">
         <Link className="wordmark" href="/"><i />latent</Link>
         <div><span>Project IDE</span><strong>browser-chat/</strong></div>
-        <nav><Link href="/courses/models">Course</Link><Link href="/capstone">Open chatbot →</Link></nav>
+        <nav><Link href="/courses/models">Course</Link><Link href="/project">Project</Link><Link href="/capstone">Open chatbot →</Link></nav>
       </header>
       <ProjectWorkbench />
     </main>

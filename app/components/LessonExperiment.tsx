@@ -105,7 +105,7 @@ function RnnExperiment({ onComplete }: ExperimentProps) {
           <LossChart values={result.losses} />
           <article className="sample-output"><span>Autoregressive sample · τ 0.78</span><p>{result.sample}</p></article>
         </div>
-      ) : <p className="experiment-empty">Training results and the generated artifact will appear here.</p>}
+      ) : <p className="experiment-empty">Results and a reusable artifact appear here.</p>}
     </>
   );
 }
@@ -151,7 +151,7 @@ function NeuralLmExperiment({ onComplete }: ExperimentProps) {
             </article>
           </div>
         </div>
-      ) : <p className="experiment-empty">The trained distribution and embedding neighbors will appear here.</p>}
+      ) : <p className="experiment-empty">Distribution and nearest words appear here.</p>}
     </>
   );
 }
@@ -184,7 +184,7 @@ function BpeExperiment({ onComplete }: ExperimentProps) {
             ))}
           </div>
         </div>
-      ) : <p className="experiment-empty">The ordered merge table and encoded artifact will appear here.</p>}
+      ) : <p className="experiment-empty">Merges and tokens appear here.</p>}
     </>
   );
 }
@@ -223,7 +223,7 @@ function AttentionExperiment({ onComplete }: ExperimentProps) {
             ])}
           </div>
         </div>
-      ) : <p className="experiment-empty">The learned output-to-source alignment matrix will appear here.</p>}
+      ) : <p className="experiment-empty">The learned alignment appears here.</p>}
     </>
   );
 }
@@ -249,7 +249,7 @@ function TransformerExperiment({ onComplete }: ExperimentProps) {
           </div>
           <div className="context-norms">{result.contextNorms.map((value, index) => <span key={`${result.tokens[index]}-${index}`}><em>{result.tokens[index]}</em><code>‖c‖ {value.toFixed(3)}</code></span>)}</div>
         </div>
-      ) : <p className="experiment-empty">The complete causal probability matrix will appear here.</p>}
+      ) : <p className="experiment-empty">The causal matrix appears here.</p>}
     </>
   );
 }
@@ -386,7 +386,7 @@ function IclExperiment({ onComplete }: ExperimentProps) {
             ))}
           </div>
         </div>
-      ) : <p className="experiment-empty">The same review queries will appear under zero-, one-, and few-shot prompts. The labels are intentionally opaque, so only the demonstrations reveal their meaning. Every raw output remains visible.</p>}
+      ) : <p className="experiment-empty">Compare zero-, one-, and few-shot results here.</p>}
     </>
   );
 }
@@ -507,7 +507,7 @@ function SystemsExperiment({ variant, onComplete }: { variant: SystemsVariant } 
           <div className="trace-list">{result.trace.map((event, index) => <div className={event.tone ?? ""} key={`${event.label}-${index}`}><span>{String(index + 1).padStart(2, "0")}</span><strong>{event.label}</strong><p>{event.detail}</p></div>)}</div>
           <pre className="simulation-artifact">{result.artifact}</pre>
         </div>
-      ) : <p className="experiment-empty">The trace, phase metrics, and executable artifact will appear here.</p>}
+      ) : <p className="experiment-empty">Trace and metrics appear here.</p>}
     </>
   );
 }
@@ -549,7 +549,7 @@ function ProductExperiment({ variant, onComplete }: { variant: ProductVariant } 
     return (
       <>
         <div className="experiment-action"><p>60 transport deltas · frame-buffered React commits · bounded live announcements</p><button type="button" onClick={() => { setRan(true); onComplete(); }}>{ran ? "Replay stream" : "Render stream"}</button></div>
-        {ran ? <div className="simulation-result product-simulation"><div className="metric-grid"><span><em>Transport deltas</em><strong>60</strong></span><span><em>Visual commits</em><strong>12</strong></span><span><em>Live announcements</em><strong>4</strong></span><span><em>Dropped text</em><strong>0</strong></span></div><article className="stream-preview"><span>Assistant · generating</span><p>A causal mask prevents each token from reading positions that occur later in the sequence. The masked logits become zero probability after softmax.</p><i><b /></i></article><p className="simulation-artifact">Reader remains 214 px from the bottom → auto-scroll paused; generation continues.</p></div> : <p className="experiment-empty">Render and accessibility metrics will appear here.</p>}
+        {ran ? <div className="simulation-result product-simulation"><div className="metric-grid"><span><em>Transport deltas</em><strong>60</strong></span><span><em>Visual commits</em><strong>12</strong></span><span><em>Live announcements</em><strong>4</strong></span><span><em>Dropped text</em><strong>0</strong></span></div><article className="stream-preview"><span>Assistant · generating</span><p>A causal mask prevents each token from reading positions that occur later in the sequence. The masked logits become zero probability after softmax.</p><i><b /></i></article><p className="simulation-artifact">Reader remains 214 px from the bottom → auto-scroll paused; generation continues.</p></div> : <p className="experiment-empty">Render and accessibility metrics appear here.</p>}
       </>
     );
   }
@@ -563,7 +563,7 @@ function ProductExperiment({ variant, onComplete }: { variant: ProductVariant } 
   }
   const checks = runCapstoneQualityAudit();
   return (
-    <><div className="experiment-action"><p>Executable contract audit · keyboard, storage, backend isolation, context, and ARIA</p><button type="button" onClick={() => { setRan(true); onComplete(); }}>{ran ? "Run audit again" : "Run product audit"}</button></div>{ran ? <div className="quality-grid">{checks.map((check) => <article className={check.passed ? "passed" : "failed"} key={check.label}><i>{check.passed ? "✓" : "×"}</i><div><strong>{check.label}</strong><p>{check.detail}</p></div></article>)}</div> : <p className="experiment-empty">The executable capstone contract audit will appear here.</p>}</>
+    <><div className="experiment-action"><p>Executable contract audit · keyboard, storage, backend isolation, context, and ARIA</p><button type="button" onClick={() => { setRan(true); onComplete(); }}>{ran ? "Run audit again" : "Run product audit"}</button></div>{ran ? <div className="quality-grid">{checks.map((check) => <article className={check.passed ? "passed" : "failed"} key={check.label}><i>{check.passed ? "✓" : "×"}</i><div><strong>{check.label}</strong><p>{check.detail}</p></div></article>)}</div> : <p className="experiment-empty">Audit results appear here.</p>}</>
   );
 }
 
@@ -572,8 +572,7 @@ export function LessonExperiment({ lesson }: { lesson: CourseLesson }) {
   return (
     <div className="experiment-lab">
       <header className="experiment-header">
-        <div><span>{lesson.modeLabel}</span><strong>{lesson.experiment.title}</strong><p>{lesson.experiment.intro}</p></div>
-        <code>{lesson.experiment.kind}</code>
+        <div><span>Experiment</span><strong>{lesson.experiment.title}</strong><p>{lesson.experiment.intro}</p></div>
       </header>
       <DatasetRecord lesson={lesson} />
       {lesson.experiment.kind === "rnn" ? <RnnExperiment onComplete={complete} /> : null}

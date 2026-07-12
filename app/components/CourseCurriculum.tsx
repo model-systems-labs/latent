@@ -21,7 +21,6 @@ export function CourseCurriculum({ title, lessons }: { title: string; lessons: C
         {lessons.map((lesson, index) => {
           const progress = learnerState.lessons[lesson.id];
           const complete = lessonIsComplete(learnerState, lesson.id, lesson.implementation.codeBlocks.length);
-          const projectPath = `${lesson.courseId ?? "models"}/${lesson.implementation.filename}`;
           return (
             <Link className={`lesson-card ${complete ? "completed" : ""}`} href={`/lessons/${lesson.id}`} key={lesson.id}>
               <span>{String(index + 1).padStart(2, "0")}</span>
@@ -29,8 +28,6 @@ export function CourseCurriculum({ title, lessons }: { title: string; lessons: C
               <div className="lesson-build">
                 <em>{lesson.modeLabel}</em>
                 <strong>{lesson.experiment.title}</strong>
-                <span>{lesson.sources.length} curated sources</span>
-                <code>{projectPath}</code>
                 <small>{complete ? "Complete on this device" : `${progress?.verifiedCells.length ?? 0}/${lesson.implementation.codeBlocks.length} checks · ${progress?.experimentComplete ? "lab run" : "lab pending"}`}</small>
               </div>
               <i>{complete ? "Review →" : "Open →"}</i>

@@ -67,17 +67,19 @@ test("all fourteen lessons use the reusable learning flow", async () => {
     assert.equal(response.status, 200, slug);
     const html = await response.text();
     assert.match(html, new RegExp(title));
-    assert.match(html, /Source set/);
-    assert.match(html, /aria-label="3 sources for/);
-    assert.match(html, /primary and supporting references/);
-    assert.match(html, /Primary claim/);
+    assert.match(html, /id="lesson-sources-title">Sources/);
+    assert.match(html, /aria-labelledby="lesson-sources-title"/);
+    assert.match(html, /3(?:<!-- -->)? references/);
+    assert.equal((html.match(/class="source-entry"/g) ?? []).length, 3);
+    assert.doesNotMatch(html, /primary and supporting references|supporting sources/);
+    assert.match(html, /Source finding/);
     assert.match(html, /Browser reproduction/);
     assert.match(html, /OpenRouter API key/);
     assert.match(html, /Practice all/);
     assert.match(html, /Run cell/);
     assert.match(html, /Run behavioral checks/);
-    assert.match(html, /Artifact Runtime/);
-    assert.match(html, /content-addressed · device-local/);
+    assert.match(html, /Artifacts/);
+    assert.match(html, /A record of what you built/);
   }
 });
 
@@ -102,7 +104,7 @@ test("the project IDE is a dedicated tested authoring surface", async () => {
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /Project IDE/);
-  assert.match(html, /Your project/);
+  assert.match(html, /lesson files verified/);
   assert.match(html, /runtime\/model.config.js/);
   assert.match(html, /class="code-editor"/);
   assert.match(html, /Unit tests/);
@@ -172,9 +174,10 @@ test("the design kit, simulations, model engines, and artifact runtime remain re
   assert.match(extended, /productLessons/);
   assert.equal((sourceSets.match(/role: /g) ?? []).length, 42);
   assert.equal((sourceSets.match(/^  (?:"[^"]+"|[a-z-]+): \[$/gm) ?? []).length, 14);
-  assert.match(paperLab, /supporting\.map\(sourceCard\)/);
+  assert.match(paperLab, /lesson\.sources\.map\(\(source\)/);
+  assert.doesNotMatch(paperLab, /supporting-sources|source\.role/);
   assert.match(paperLab, /Synthesize across these sources/);
-  assert.match(layout, /og\.png/);
+  assert.match(layout, /og-v2\.png/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   await assert.rejects(access(new URL("../app/_sites-preview", templateRoot)));
 });

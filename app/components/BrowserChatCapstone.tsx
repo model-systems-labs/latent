@@ -15,7 +15,7 @@ import {
   consumeSse,
   createMockServingStream,
   type MockServingScenario,
-} from "@latent/mock-services";
+} from "@latent/mock-services/sse";
 import {
   CHAT_LOG_ACCESSIBILITY,
   canRegenerate,
@@ -343,7 +343,7 @@ export function BrowserChatCapstone() {
       <header className="capstone-topbar">
         <Link className="wordmark" href="/"><i />latent</Link>
         <div><span>Capstone</span><strong>Browser Chat</strong></div>
-        <nav><Link href="/workspace">IDE</Link><Link href="/courses/models">Model</Link><Link href="/courses/systems">Runtime</Link><Link href="/courses/backend">Serving</Link><Link href="/courses/product">React</Link></nav>
+        <nav><Link href="/">Course</Link><Link href="/workspace">IDE</Link></nav>
       </header>
       <div className="capstone-layout">
         <aside className="capstone-sidebar">
@@ -381,7 +381,7 @@ export function BrowserChatCapstone() {
             <textarea value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={(event) => { if (composerKeyAction(event.key, event.shiftKey) === "send") { event.preventDefault(); void send(); } }} placeholder={readyForMode ? "Send a message to the selected model…" : "Prepare the selected model first…"} disabled={!readyForMode || generating} aria-label="Chat message" />
             <div><span>Enter to send · Shift+Enter for newline</span><button type="submit" disabled={!readyForMode || generating || !input.trim()}>Send</button></div>
           </form>
-          <footer className="capstone-contract"><span>Execution contract</span><p>Lesson files, edits, build settings, checkpoints, and conversations remain on this device. The active model, transport, and interface adapters above directly control new chat requests.</p></footer>
+          <footer className="capstone-contract"><p>Files, builds, checkpoints, and conversations stay on this device. The selected model and serving controls apply to the next request.</p></footer>
         </section>
       </div>
     </main>

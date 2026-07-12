@@ -13,6 +13,28 @@
     display: none;
   }
 
+  .lesson-header {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .lesson-header nav {
+    display: flex;
+    gap: 1.25rem;
+    justify-self: end;
+    max-width: 100%;
+    overflow-x: auto;
+    padding: 0.75rem 0;
+    scrollbar-width: none;
+  }
+
+  .lesson-header nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .lesson-header > span {
+    display: none;
+  }
+
   .paper-hero h1 {
     white-space: normal;
   }
@@ -20,6 +42,10 @@
   .summary-layout,
   .questions-layout {
     grid-template-columns: 1fr;
+  }
+
+  .questions-layout {
+    margin-left: 0;
   }
 
   .summary-copy {
@@ -40,6 +66,10 @@
   .key-panel > p {
     grid-row: 1 / span 3;
     margin: 0;
+  }
+
+  .key-panel > a {
+    grid-column: 2;
   }
 
   .check-grid {
@@ -76,6 +106,10 @@
 
   .icl-results {
     grid-template-columns: 1fr;
+  }
+
+  .icl-results article + article {
+    border-left: 0;
   }
 
   .course-track-grid {
@@ -159,14 +193,9 @@
     padding-top: 0.8rem;
   }
 
-  .paper-hero,
-  .paper-section {
-    border-radius: 1.1rem;
-  }
-
   .paper-hero {
-    min-height: 32rem;
-    padding: 3.5rem 1.2rem;
+    min-height: 0;
+    padding: 4rem 0;
   }
 
   .paper-hero h1 {
@@ -178,9 +207,9 @@
   }
 
   .course-hero {
-    border-radius: 1.1rem;
-    min-height: 26rem;
-    padding: 3rem 1.2rem;
+    border-radius: 0;
+    min-height: 0;
+    padding: 4rem 0;
   }
 
   .course-hero h1 {
@@ -192,16 +221,12 @@
     display: none;
   }
 
-  .source-set-grid {
+  .source-citation {
+    align-items: start;
     grid-template-columns: 1fr;
   }
 
-  .source-set-grid > a,
-  .supporting-sources > summary {
-    min-height: 0;
-  }
-
-  .supporting-sources > div {
+  .source-entry > a {
     grid-template-columns: 1fr;
   }
 
@@ -212,7 +237,7 @@
   }
 
   .paper-section {
-    padding: 2.6rem 1rem;
+    padding: 4rem 0;
   }
 
   .section-title {
@@ -222,6 +247,21 @@
 
   .summary-copy {
     columns: 1;
+  }
+
+  .summary-evidence {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    padding-left: 0;
+    padding-top: 2rem;
+  }
+
+  .key-panel > p {
+    grid-row: auto;
+  }
+
+  .key-panel > a {
+    grid-column: auto;
   }
 
   .key-panel,
@@ -239,6 +279,12 @@
   .metric-grid > span + span {
     border-left: 0;
     border-top: 1px solid var(--line);
+  }
+
+  .artifact-grid article + article {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    padding-left: 0;
   }
 
   .experiment-header,
@@ -453,13 +499,8 @@
   }
 
   .project-workbench > header {
-    align-items: start;
-    grid-template-columns: 1fr auto;
-  }
-
-  .project-workbench > header p {
-    grid-column: 1 / -1;
-    grid-row: 2;
+    align-items: center;
+    display: flex;
   }
 
   .project-workbench-grid {

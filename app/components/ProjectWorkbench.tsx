@@ -236,8 +236,6 @@ export function ProjectWorkbench() {
   return (
     <section className="project-workbench" aria-label="Editable capstone project">
       <header>
-        <div><span>Your project</span><strong>browser-chat/</strong></div>
-        <p>Every lesson writes a source file here. Model, runtime, serving, and interface modules stay independently testable, then meet in one passing build.</p>
         <div className="project-header-actions"><div className="project-progress"><strong>{verifiedFiles}/{llmSystemsCurriculum.lessonCount}</strong><span>lesson files verified</span></div><div><button type="button" onClick={() => void exportProgress()}>Export</button><button type="button" onClick={() => importRef.current?.click()}>Import</button><input ref={importRef} type="file" accept="application/json,.json" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importProgress(file); event.currentTarget.value = ""; }} aria-label="Import saved Latent progress" /></div></div>
       </header>
       <div className="project-workbench-grid">

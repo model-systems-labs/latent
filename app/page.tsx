@@ -5,7 +5,7 @@ export default function Home() {
   return (
     <main>
       <div className="page-atmosphere" aria-hidden="true"><span className="orbit orbit-one" /><span className="orbit orbit-two" /><span className="orbit orbit-three" /><span className="node node-one" /><span className="node node-two" /><span className="warm-star" /></div>
-      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><a href="#modules">Modules</a><Link href="/workspace">IDE</Link><Link href="/capstone">Capstone</Link></nav><span>Model → Runtime → Serving → React</span></header>
+      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><a href="#modules">Modules</a><Link href="/workspace">IDE</Link><Link href="/capstone">Capstone</Link></nav></header>
       <article className="course-page full-course-page">
         <header className="course-hero full-course-hero">
           <p className="eyebrow">One course · four modules · {llmSystemsCurriculum.testCount} executable contracts</p>
@@ -21,8 +21,7 @@ export default function Home() {
                 <header><span>Module {String(track.number).padStart(2, "0")}</span><em>{lessons.length} lessons</em></header>
                 <h2>{track.title}</h2>
                 <p>{track.thesis}</p>
-                <ol>{lessons.map((lesson) => <li key={lesson.id}>{lesson.title}</li>)}</ol>
-                <footer><span>{track.outcome}</span><strong>View module →</strong></footer>
+                <footer><span>{track.outcome}</span><strong>Explore module →</strong></footer>
               </Link>
             );
           })}
@@ -40,7 +39,7 @@ export default function Home() {
           </div>
         </section>
         <Link className="capstone-banner" href="/capstone"><div><span>Final project</span><h2>Browser Chat</h2><p>A functional streaming chatbot with a learner-trained model, a real local Transformer, a deterministic serving boundary, systems metrics, persistence, and accessible React interactions.</p></div><strong>Build and run →</strong></Link>
-        <footer className="course-note"><span>Execution contract</span><p>Labs distinguish live training, exact algorithms, local inference, and bounded systems simulation. The learner-trained model is small and real; the chat-quality model is pretrained and genuinely runs locally.</p></footer>
+        <footer className="course-note"><p>Labs clearly distinguish live training, local inference, and bounded systems simulation.</p></footer>
       </article>
     </main>
   );

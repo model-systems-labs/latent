@@ -21,15 +21,11 @@
 
 .course-hero {
   align-items: center;
-  backdrop-filter: blur(30px);
-  background: radial-gradient(circle at 84% 40%, rgba(204, 194, 221, 0.36), transparent 27rem), rgba(251, 249, 245, 0.62);
-  border: 1px solid rgba(79, 68, 85, 0.12);
-  border-radius: 1.6rem;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  min-height: 25rem;
-  padding: clamp(3rem, 7vw, 6rem);
+  min-height: 22rem;
+  padding: clamp(3.5rem, 7vw, 6rem) 0;
   text-align: center;
 }
 
@@ -53,24 +49,19 @@
 }
 
 .curriculum-list {
-  backdrop-filter: blur(30px);
-  background: rgba(251, 249, 245, 0.58);
-  border: 1px solid rgba(79, 68, 85, 0.12);
-  border-radius: 1.2rem;
-  margin-top: 1.2rem;
-  overflow: hidden;
+  border-bottom: 1px solid var(--line);
+  margin-top: 0.5rem;
 }
 
 .course-progress-record {
   align-items: center;
-  background: rgba(255, 255, 255, 0.38);
-  border: 1px solid var(--line);
-  border-radius: 1rem;
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
   display: grid;
   gap: 1.5rem;
   grid-template-columns: auto 1fr auto;
-  margin-bottom: 0.8rem;
-  padding: 1rem 1.2rem;
+  margin-bottom: 0;
+  padding: 1rem 0;
 }
 
 .course-progress-record > a {
@@ -119,8 +110,8 @@
   display: grid;
   gap: 1.4rem;
   grid-template-columns: 2.5rem 1.2fr 0.8fr auto;
-  min-height: 8rem;
-  padding: 1.3rem 1.5rem;
+  min-height: 7.5rem;
+  padding: 1.35rem 0;
 }
 
 .lesson-card + .lesson-card {
@@ -129,7 +120,7 @@
 
 .lesson-card:hover,
 .lesson-card:focus-visible {
-  background: rgba(255, 255, 255, 0.54);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.38), transparent);
 }
 
 .lesson-card > span {
@@ -172,23 +163,6 @@
   font-weight: 500;
 }
 
-.lesson-build span {
-  color: var(--faint);
-  font-size: 0.56rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.lesson-build code {
-  background: rgba(117, 100, 143, 0.07);
-  color: var(--violet);
-  font-size: 0.52rem;
-  overflow: hidden;
-  padding: 0.35rem 0.45rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .lesson-card > i {
   color: var(--faint);
   font-size: 0.62rem;
@@ -196,8 +170,7 @@
 }
 
 .lesson-card.completed {
-  border-color: rgba(117, 100, 143, 0.28);
-  background: rgba(255, 255, 255, 0.58);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22), transparent);
 }
 
 .lesson-build small {

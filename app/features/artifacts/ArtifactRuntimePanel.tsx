@@ -110,32 +110,34 @@ export function ArtifactRuntimePanel({ lesson, refreshKey = 0 }: { lesson: Cours
   }, [lesson.id, refreshKey]);
 
   return (
-    <section className="artifact-runtime-panel" id="artifacts" aria-labelledby="artifact-runtime-title">
-      <header className="artifact-runtime-heading">
-        <div><span>Artifact Runtime</span><h3 id="artifact-runtime-title">Replay the expensive parts. Execute the important parts.</h3></div>
-        <code>content-addressed · device-local</code>
-      </header>
-      <p className="artifact-runtime-intro">Each passing lesson turns the learner&apos;s tested source into an immutable output. The next lesson can consume that output without pretending GPU-scale work happened in this tab.</p>
-      {error ? <p className="artifact-runtime-error">{error}</p> : null}
-      {!view && !error ? <p className="artifact-runtime-loading">Loading local artifact lineage…</p> : null}
-      {view ? (
-        <>
-          {lesson.id === "character-rnns" ? <TrainingReplay view={view} /> : null}
-          <div className="artifact-lineage-grid">
-            {view.input ? <ArtifactIdentity artifact={view.input} label={lesson.id === "character-rnns" ? "Recorded training input" : "Input from previous lesson"} /> : <article className="artifact-identity pending"><span>Input pending</span><strong>Complete the previous lesson</strong><p>Its active validated artifact will become this lesson&apos;s immutable input.</p></article>}
-            {view.output ? <ArtifactIdentity artifact={view.output} label="Learner-validated output" /> : <article className="artifact-identity pending"><span>Output pending</span><strong>Pass every behavioral check</strong><p>The runtime will bind the passing source hash to a replayable, downloadable artifact.</p></article>}
-          </div>
-          {view.output ? (
-            <>
-              <ReplayFrames artifact={view.output} key={view.output.id} />
-              <div className="artifact-download-row">
-                <p><strong>{view.output.validation.passedCount}/{view.output.validation.totalCount}</strong> host-owned contracts authorize this artifact.</p>
-                <button type="button" onClick={() => void downloadArtifact(view.output!)}>Download artifact + lineage</button>
-              </div>
-            </>
-          ) : null}
-        </>
-      ) : null}
-    </section>
+    <details className="artifact-runtime-panel" id="artifacts">
+      <summary className="artifact-runtime-heading">
+        <div><span>Artifacts</span><h3 id="artifact-runtime-title">A record of what you built.</h3></div>
+        <span className="artifact-runtime-action">Inspect</span>
+      </summary>
+      <div className="artifact-runtime-body" aria-labelledby="artifact-runtime-title">
+        <p className="artifact-runtime-intro">Passing code becomes a device-local artifact that the next lesson can reuse.</p>
+        {error ? <p className="artifact-runtime-error">{error}</p> : null}
+        {!view && !error ? <p className="artifact-runtime-loading">Loading local artifact lineage…</p> : null}
+        {view ? (
+          <>
+            {lesson.id === "character-rnns" ? <TrainingReplay view={view} /> : null}
+            <div className="artifact-lineage-grid">
+              {view.input ? <ArtifactIdentity artifact={view.input} label="Input" /> : <article className="artifact-identity pending"><span>Input pending</span><strong>Complete the previous lesson</strong><p>Its validated artifact will become this lesson&apos;s input.</p></article>}
+              {view.output ? <ArtifactIdentity artifact={view.output} label="Output" /> : <article className="artifact-identity pending"><span>Output pending</span><strong>Pass every behavioral check</strong><p>Your passing source will become a replayable, downloadable artifact.</p></article>}
+            </div>
+            {view.output ? (
+              <>
+                <ReplayFrames artifact={view.output} key={view.output.id} />
+                <div className="artifact-download-row">
+                  <p><strong>{view.output.validation.passedCount}/{view.output.validation.totalCount}</strong> checks passed</p>
+                  <button type="button" onClick={() => void downloadArtifact(view.output!)}>Download with lineage</button>
+                </div>
+              </>
+            ) : null}
+          </>
+        ) : null}
+      </div>
+    </details>
   );
 }

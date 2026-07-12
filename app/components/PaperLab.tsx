@@ -3,7 +3,7 @@
 import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import type { CodeBlock, CourseLesson, LessonSource } from "@latent/course-kit";
+import type { CodeBlock, CourseLesson } from "@latent/course-kit";
 import { courseLessons } from "../lessons/course";
 import { LessonExperiment } from "./LessonExperiment";
 import {
@@ -37,16 +37,6 @@ function Atmosphere() {
 }
 
 export function HeaderSection({ lesson }: { lesson: CourseLesson }) {
-  const primary = lesson.sources[0];
-  const supporting = lesson.sources.slice(1);
-  const sourceCard = (source: LessonSource) => (
-    <a href={source.url} target="_blank" rel="noreferrer" key={`${source.role}-${source.title}`}>
-      <span>{source.role} · {source.year}</span>
-      <strong>{source.title}</strong>
-      <p>{source.relevance}</p>
-      <em>{source.authors} ↗</em>
-    </a>
-  );
   return (
     <header className="paper-hero">
       <p className="eyebrow">{lesson.eyebrow}</p>
@@ -57,19 +47,25 @@ export function HeaderSection({ lesson }: { lesson: CourseLesson }) {
         <span>{lesson.authors}</span>
         <span>{lesson.year}</span>
       </div>
-      <div className="source-set" aria-label={`${lesson.sources.length} sources for ${lesson.title}`}>
+      <section className="source-set" aria-labelledby="lesson-sources-title">
         <div className="source-set-heading">
-          <span>Source set</span>
-          <em>{lesson.sources.length} primary and supporting references</em>
+          <h2 id="lesson-sources-title">Sources</h2>
+          <span>{lesson.sources.length} references</span>
         </div>
-        <div className="source-set-grid">
-          {primary ? sourceCard(primary) : null}
-          <details className="supporting-sources">
-            <summary><span>{supporting.length} supporting sources</span><em>{supporting.map((source) => source.title).join(" · ")}</em></summary>
-            <div>{supporting.map(sourceCard)}</div>
-          </details>
-        </div>
-      </div>
+        <ul className="source-list">
+          {lesson.sources.map((source) => (
+            <li className="source-entry" key={source.url}>
+              <a href={source.url} target="_blank" rel="noreferrer">
+                <span className="source-citation">
+                  <strong>{source.title}</strong>
+                  <span>{source.authors} · {source.year} ↗</span>
+                </span>
+                <p>{source.relevance}</p>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
     </header>
   );
 }
@@ -105,9 +101,9 @@ export function ParagraphSection({ lesson }: { lesson: CourseLesson }) {
         <div className="summary-evidence">
           <DiagramSection lesson={lesson} />
           <dl className="fidelity-record">
-            <div><dt>Primary claim</dt><dd>{lesson.claims.paper}</dd></div>
+            <div><dt>Source finding</dt><dd>{lesson.claims.paper}</dd></div>
             <div><dt>Browser reproduction</dt><dd>{lesson.claims.lab}</dd></div>
-            <div><dt>Boundary</dt><dd>{lesson.claims.limit}</dd></div>
+            <div><dt>Out of scope</dt><dd>{lesson.claims.limit}</dd></div>
           </dl>
         </div>
       </div>
@@ -124,7 +120,7 @@ export function TextBoxSection({ lesson }: { lesson: CourseLesson }) {
   const [questionError, setQuestionError] = useState("");
   const [answerModel, setAnswerModel] = useState("");
   const sourceContext = lesson.sources
-    .map((source) => `- ${source.role}: "${source.title}" — ${source.authors} (${source.year}). Relevance: ${source.relevance}`)
+    .map((source) => `- "${source.title}" — ${source.authors} (${source.year}). Relevance: ${source.relevance}`)
     .join("\n");
 
   const askPaper = async (event: FormEvent) => {
@@ -174,8 +170,8 @@ export function TextBoxSection({ lesson }: { lesson: CourseLesson }) {
     <section className="paper-section questions-section" id="questions">
       <div className="section-title"><span>02</span><h2>Questions</h2></div>
       <div className="questions-layout">
-        <aside className="key-panel">
-          <p>{lesson.questions.intro}</p>
+        <p className="questions-intro">{lesson.questions.intro}</p>
+        <div className="key-panel">
           <label>
             <span>OpenRouter API key</span>
             <div className="key-input">
@@ -183,9 +179,9 @@ export function TextBoxSection({ lesson }: { lesson: CourseLesson }) {
               <button type="button" onClick={() => setShowKey((value) => !value)}>{showKey ? "Hide" : "Show"}</button>
             </div>
           </label>
-          <div className="key-note"><i /><span>Held only in this tab&apos;s memory and sent directly to OpenRouter. Refreshing clears it.</span></div>
-          <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer">Create a limited key ↗</a>
-        </aside>
+          <div className="key-note"><i /><span>Your key stays in this tab and clears on refresh.</span></div>
+          <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer">Get a key ↗</a>
+        </div>
         <div className="paper-chat">
           <div className="chat-log" aria-live="polite">
             {chat.length === 0 ? (
@@ -200,11 +196,11 @@ export function TextBoxSection({ lesson }: { lesson: CourseLesson }) {
             ))}
           </div>
           <form className="question-form" onSubmit={askPaper}>
-            <textarea aria-label="Question about the source set" value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Ask across the papers, specifications, implementations, or lesson boundaries…" />
-            <button type="submit" disabled={!openRouterKey.trim() || !question.trim() || asking}>{asking ? "Thinking…" : "Ask sources"}</button>
+            <textarea aria-label="Question about the source set" value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Ask anything about these sources…" />
+            <button type="submit" disabled={!openRouterKey.trim() || !question.trim() || asking}>{asking ? "Thinking…" : "Ask"}</button>
           </form>
           <div className="chat-status">
-            <span>{questionError || (answerModel ? `Answered by ${answerModel}` : "Grounded in the technical lesson notes")}</span>
+            <span>{questionError || (answerModel ? `Answered by ${answerModel}` : "Grounded in the lesson sources")}</span>
             {openRouterKey ? <button type="button" onClick={() => setOpenRouterKey("")}>Clear key</button> : null}
           </div>
         </div>
@@ -241,7 +237,6 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [verifiedBlockIds, setVerifiedBlockIds] = useState<string[]>([]);
   const [cellResults, setCellResults] = useState<Record<string, CheckResult | undefined>>({});
-  const [checks, setChecks] = useState<CheckResult[]>([]);
   const [practiceMessage, setPracticeMessage] = useState("The reference implementation is complete and runnable.");
   const [runningBlockIds, setRunningBlockIds] = useState<string[]>([]);
   const [artifactRevision, setArtifactRevision] = useState(0);
@@ -266,7 +261,6 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
     const nextHidden = hiddenBlocks.includes(block.id) ? hiddenBlocks.filter((id) => id !== block.id) : [...hiddenBlocks, block.id];
     const nextAnswers = { ...answers, [block.id]: answers[block.id] ?? starterCodeFor(block) };
     const nextVerified = verifiedBlockIds.filter((id) => id !== block.id);
-    setChecks([]);
     setCellResults((current) => ({ ...current, [block.id]: undefined }));
     setHiddenBlocks(nextHidden);
     setAnswers(nextAnswers);
@@ -286,7 +280,6 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
     recordVerifiedCells(lesson.id, []);
     saveLessonProjectFile(projectSeedForLesson(lesson, nextHidden, nextAnswers, []));
     setCellResults({});
-    setChecks([]);
     setPracticeMessage("All conceptual blocks are hidden. Reconstruct them in any valid way.");
   };
   const showSolution = () => {
@@ -294,7 +287,6 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
     saveLessonPractice(lesson.id, [], answers);
     saveLessonProjectFile(projectSeedForLesson(lesson, [], answers, verifiedBlockIds));
     setCellResults({});
-    setChecks([]);
     setPracticeMessage("Reference solution restored. Previous attempts remain available if you hide a cell again.");
   };
   const runCell = async (block: CodeBlock) => {
@@ -339,7 +331,6 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
       setVerifiedBlockIds(nextVerified);
       recordVerifiedCells(lesson.id, nextVerified);
       saveLessonProjectFile(projectSeedForLesson(lesson, hiddenBlocks, answers, nextVerified));
-      setChecks(ordered);
       setCellResults(Object.fromEntries(blocks.map((block, index) => [block.id, ordered[index]])));
       const passed = ordered.filter((result) => result.passed).length;
       if (passed === ordered.length) {
@@ -368,7 +359,6 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
       setRunningBlockIds([]);
     }
   };
-  const passedChecks = checks.filter((check) => check.passed).length;
   const verifiedCells = verifiedBlockIds.length;
 
   return (
@@ -377,7 +367,7 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
       <p className="implementation-intro">{lesson.implementation.intro}</p>
       {lesson.implementation.tensorOps?.length ? (
         <div className="tensor-runtime-strip">
-          <div><span>Numerical dependency</span><strong>runtime/latent-tensor.js</strong><p>The course owns shape checks and automatic differentiation; this lesson owns the model operation.</p></div>
+          <div><span>Tensor runtime</span><strong>runtime/latent-tensor.js</strong><p>Shape checks and automatic differentiation are provided; you implement the model operation.</p></div>
           <div aria-label="Latent Tensor operations used in this lesson">
             {latentTensorOperations(lesson.implementation.tensorOps).map((operation) => <span title={operation.purpose} key={operation.name}>{operation.name}</span>)}
           </div>
@@ -385,11 +375,11 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
       ) : null}
       <div className="practice-editor">
         <div className="editor-toolbar">
-          <div className="editor-file"><span>{projectPath}</span><strong>{hiddenBlocks.length === 0 ? "Complete reference · saved to capstone" : `Practice · ${hiddenBlocks.length} cells active · saved locally`}</strong></div>
+          <div className="editor-file"><span>{projectPath}</span><strong>{hiddenBlocks.length === 0 ? "Reference · saved" : `${hiddenBlocks.length} cells in practice`}</strong></div>
           <div className="editor-progress" aria-label={`${verifiedCells} of ${blocks.length} cells verified`}>
             <span>{verifiedCells}/{blocks.length} verified</span><i><b style={{ width: `${verifiedCells / blocks.length * 100}%` }} /></i>
           </div>
-          <div className="toolbar-actions"><button type="button" onClick={hideAll}>Practice all</button><button type="button" onClick={showSolution} disabled={hiddenBlocks.length === 0}>Restore all</button><Link href={`/workspace?file=${encodeURIComponent(`${lesson.courseId ?? "models"}/${lesson.implementation.filename}`)}`}>Open this file in IDE ↗</Link></div>
+          <div className="toolbar-actions"><button type="button" onClick={hideAll}>Practice all</button><button type="button" onClick={showSolution} disabled={hiddenBlocks.length === 0}>Restore all</button><Link href={`/workspace?file=${encodeURIComponent(`${lesson.courseId ?? "models"}/${lesson.implementation.filename}`)}`}>Open in IDE ↗</Link></div>
         </div>
         <div className="code-surface">
           {lesson.implementation.tensorOps?.length ? (
@@ -416,7 +406,7 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
                 {hidden ? (
                   <div className="answer-area">
                     <div className="practice-guidance">
-                      <div><span>Practice mode</span><strong>Complete the function, then run this cell.</strong></div>
+                      <div><span>Practice mode</span><strong>Complete, then run.</strong></div>
                       <button type="button" onClick={() => {
                         const nextAnswers = { ...answers, [block.id]: starterCodeFor(block) };
                         const nextVerified = verifiedBlockIds.filter((id) => id !== block.id);
@@ -437,7 +427,6 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
                       recordVerifiedCells(lesson.id, nextVerified);
                       saveLessonProjectFile(projectSeedForLesson(lesson, hiddenBlocks, nextAnswers, nextVerified));
                       setCellResults((current) => ({ ...current, [block.id]: undefined }));
-                      setChecks([]);
                       setPracticeMessage("Implementation changed. Run the affected cell again.");
                     }} spellCheck="false" />
                   </div>
@@ -445,7 +434,7 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
                   <div className="code-lines">{block.code.split("\n").map((line, lineIndex) => <div key={`${block.id}-${lineIndex}`}><span>{startLine + lineIndex}</span><code>{line || " "}</code></div>)}</div>
                 )}
                 <div className="cell-footer">
-                  {result ? <span className={result.passed ? "cell-result passed" : "cell-result failed"}><i>{result.passed ? "✓" : "×"}</i>{result.detail}</span> : <span>Not run yet · checks behavior, not exact text.</span>}
+                  {result ? <span className={result.passed ? "cell-result passed" : "cell-result failed"}><i>{result.passed ? "✓" : "×"}</i>{result.detail}</span> : <span>Not run</span>}
                 </div>
               </div>
             );
@@ -453,14 +442,8 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
         </div>
         <div className="editor-footer"><p>{practiceMessage}</p><button type="button" onClick={() => void runAll()} disabled={runningBlockIds.length > 0}>{runningBlockIds.length ? "Running in sandbox…" : "Run behavioral checks"}</button></div>
       </div>
-      {checks.length ? (
-        <div className="check-grid" aria-live="polite">
-          {checks.map((check) => <div className={check.passed ? "check passed" : "check failed"} key={check.label}><i>{check.passed ? "✓" : "×"}</i><span><strong>{check.label}</strong><em>{check.detail}</em></span></div>)}
-          <div className="check-score"><strong>{passedChecks}/{checks.length}</strong><span>checks pass</span></div>
-        </div>
-      ) : null}
-      <ArtifactRuntimePanel lesson={lesson} refreshKey={artifactRevision} />
       <LessonExperiment lesson={lesson} />
+      <ArtifactRuntimePanel lesson={lesson} refreshKey={artifactRevision} />
     </section>
   );
 }
@@ -477,7 +460,7 @@ export function PaperLab({ lesson }: { lesson: CourseLesson }) {
   return (
     <main>
       <Atmosphere />
-      <header className="site-header">
+      <header className="site-header lesson-header">
         <Link className="wordmark" href="/" aria-label="Latent course home"><i />latent</Link>
         <nav aria-label="Lesson navigation"><a href="#summary">Summary</a><a href="#questions">Questions</a><a href="#implementation">Implementation</a><a href="#artifacts">Artifacts</a></nav>
         <span>{lesson.courseTitle ?? "Model Foundations"} · {String(trackIndex + 1).padStart(2, "0")} / {String(trackLessons.length).padStart(2, "0")}</span>

@@ -10,7 +10,7 @@ The program contains four modules and fourteen lessons:
 3. LLM Serving
 4. Chat Integration
 
-Every lesson links to its primary sources, explains the technical finding, and
+Every lesson links to its curated sources, explains the technical finding, and
 includes implementation cells backed by host-owned tests. The same project files
 open in a dedicated IDE and produce the validated build used by the capstone.
 

@@ -76,6 +76,8 @@ test("all fourteen lessons use the reusable learning flow", async () => {
     assert.match(html, /Practice all/);
     assert.match(html, /Run cell/);
     assert.match(html, /Run behavioral checks/);
+    assert.match(html, /Artifact Runtime/);
+    assert.match(html, /content-addressed · device-local/);
   }
 });
 
@@ -110,8 +112,8 @@ test("the project IDE is a dedicated tested authoring surface", async () => {
   assert.match(html, /Last passing build/);
 });
 
-test("the design kit, simulations, and model engines remain reusable", async () => {
-  const [paperLab, experiment, capstone, workbench, projectWorkspace, projectTests, browserLabService, quickJsRunner, compilerClient, persistence, labTypes, engines, extended, sourceSets, layout, packageJson] = await Promise.all([
+test("the design kit, simulations, model engines, and artifact runtime remain reusable", async () => {
+  const [paperLab, experiment, capstone, workbench, projectWorkspace, projectTests, browserLabService, quickJsRunner, compilerClient, persistence, artifactRuntime, artifactService, labTypes, engines, extended, sourceSets, layout, packageJson] = await Promise.all([
     readFile(new URL("../app/components/PaperLab.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/LessonExperiment.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/BrowserChatCapstone.tsx", import.meta.url), "utf8"),
@@ -122,6 +124,8 @@ test("the design kit, simulations, and model engines remain reusable", async () 
     readFile(new URL("../app/platform/browser-lab/worker/quickjs-engine.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/platform/browser-lab/compiler/client.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/platform/persistence/index.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/platform/artifact-runtime/index.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/features/artifacts/lesson-artifacts.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/lib/browser-lab/types.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/lib/lab-engines.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/lessons/extended-course.ts", import.meta.url), "utf8"),
@@ -151,6 +155,10 @@ test("the design kit, simulations, and model engines remain reusable", async () 
   assert.match(quickJsRunner, /QuickJSSandboxEngine/);
   assert.match(compilerClient, /BrowserLabCompilerClient/);
   assert.match(persistence, /initializePersistence/);
+  assert.match(artifactRuntime, /\.\/core/);
+  assert.match(artifactRuntime, /\.\/portable/);
+  assert.match(artifactService, /recordValidatedProjectLessonArtifacts/);
+  assert.match(artifactService, /recordProjectBuildArtifact/);
   assert.match(labTypes, /BrowserLabFile/);
   assert.match(labTypes, /BrowserLabBuildGate/);
   assert.match(engines, /trainCharacterRnn/);

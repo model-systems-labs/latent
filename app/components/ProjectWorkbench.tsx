@@ -14,6 +14,8 @@ import { exportPersistenceSnapshot, importPersistenceSnapshot, persistenceSnapsh
 import type { JsonValue } from "../platform/persistence/types";
 import { llmSystemsContractSuite } from "../content/llm-systems/contracts";
 import { createCapstoneRuntimeDescriptor, llmRuntimeBindingManifest } from "../runtime/bindings";
+import { downloadArtifact, latestProjectBuildArtifact, recordProjectBuildArtifact, recordValidatedProjectLessonArtifacts } from "../features/artifacts/lesson-artifacts";
+import type { ArtifactEnvelope } from "../platform/artifact-runtime";
 import {
   compileProject,
   ensureProjectWorkspace,
@@ -62,12 +64,14 @@ export function ProjectWorkbench() {
   const [errors, setErrors] = useState<string[]>([]);
   const [message, setMessage] = useState("Edit a file, save it locally, then build the project.");
   const [working, setWorking] = useState(false);
+  const [buildArtifact, setBuildArtifact] = useState<ArtifactEnvelope | null>(null);
   const importRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     ensureProjectWorkspace(courseLessons.map(lessonSeed));
     const path = new URL(window.location.href).searchParams.get("file");
     if (path) selectProjectFile(path);
+    void latestProjectBuildArtifact().then((artifact) => setBuildArtifact(artifact ?? null)).catch(() => setBuildArtifact(null));
   }, []);
 
   const filesByGroup = useMemo(() => groups.map((group) => ({
@@ -169,7 +173,20 @@ export function ProjectWorkbench() {
         nextPreview = `${activeRuntime.interface.responsePrefix}Build ready. Train the Module 01 model to generate a checkpoint-backed preview.`;
       }
       saveProjectRuntime(activeRuntime, nextPreview);
-      setMessage(`Build ${promoted.buildNumber} is active. ${descriptor.contributions.length} tested lesson modules now contribute to the chatbot.`);
+      try {
+        await recordValidatedProjectLessonArtifacts(saved.files, run.results);
+        const artifact = await recordProjectBuildArtifact({
+          buildId: promoted.id,
+          buildNumber: promoted.buildNumber,
+          sourceTreeHash: promoted.sourceTreeHash,
+          testedModules: descriptor.contributions.length,
+          totalTests: run.results.length,
+        });
+        setBuildArtifact(artifact);
+        setMessage(`Build ${promoted.buildNumber} is active. Artifact ${artifact.contentHash.slice(7, 19)} assembles ${descriptor.contributions.length} tested lesson modules.`);
+      } catch (artifactError) {
+        setMessage(`Build ${promoted.buildNumber} is active, but its portable artifact could not be stored: ${artifactError instanceof Error ? artifactError.message : "local storage is unavailable"}`);
+      }
     } catch (error) {
       setErrors([error instanceof Error ? error.message : "The isolated build failed."]);
       setMessage("Build stopped safely. The last passing build remains active.");
@@ -261,6 +278,7 @@ export function ProjectWorkbench() {
                   <div><dt>event batch</dt><dd>{project.runtime.transport.wordsPerEvent} words</dd></div>
                   <div><dt>assistant</dt><dd>{project.runtime.interface.assistantName}</dd></div>
                 </dl>
+                {buildArtifact ? <article className="project-build-artifact"><span>Portable build artifact</span><p>{buildArtifact.links.length} lesson artifacts · {buildArtifact.contentHash.slice(7, 19)}</p><button type="button" onClick={() => void downloadArtifact(buildArtifact)}>Download build + lineage</button></article> : null}
                 {project.output.previous ? <article><span>Previous build</span><p>{project.output.previous}</p></article> : null}
                 <article className="active"><span>Active build</span><p>{project.output.current || "Pass the suite and build to create a checkpoint-backed preview."}</p></article>
               </>

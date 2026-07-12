@@ -12,6 +12,7 @@
     "test": "npm run build && node --test tests/*.test.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+    "artifacts:record-training": "node scripts/generate-recorded-training.mjs",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {

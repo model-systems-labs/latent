@@ -15,6 +15,8 @@ import {
 } from "../lib/learner-state";
 import { ensureProjectWorkspace, saveLessonProjectFile, type LessonProjectSeed } from "../lib/project-workspace";
 import { runPracticeContracts } from "../features/ide/browser-lab-service";
+import { ArtifactRuntimePanel } from "../features/artifacts/ArtifactRuntimePanel";
+import { recordValidatedLessonArtifact } from "../features/artifacts/lesson-artifacts";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 type CheckResult = { label: string; passed: boolean; detail: string };
@@ -241,6 +243,7 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
   const [checks, setChecks] = useState<CheckResult[]>([]);
   const [practiceMessage, setPracticeMessage] = useState("The reference implementation is complete and runnable.");
   const [runningBlockIds, setRunningBlockIds] = useState<string[]>([]);
+  const [artifactRevision, setArtifactRevision] = useState(0);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -323,9 +326,10 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
     setRunningBlockIds(blocks.map((block) => block.id));
     setPracticeMessage("Compiling this lesson and running every contract in an isolated worker…");
     try {
+      const combinedSource = blocks.map((block) => sourceFor(block)).join("\n\n");
       const results = await runPracticeContracts({
         path: projectPath,
-        source: blocks.map((block) => sourceFor(block)).join("\n\n"),
+        source: combinedSource,
         contractIds: blocks.map((block) => `${lesson.id}/${block.id}`),
       });
       const resultById = new Map(results.map((result) => [result.id, result]));
@@ -337,7 +341,26 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
       setChecks(ordered);
       setCellResults(Object.fromEntries(blocks.map((block, index) => [block.id, ordered[index]])));
       const passed = ordered.filter((result) => result.passed).length;
-      setPracticeMessage(passed === ordered.length ? "All isolated behavioral checks pass. Run the experiment below." : `${passed} of ${ordered.length} isolated behavioral checks pass.`);
+      if (passed === ordered.length) {
+        try {
+          const artifact = await recordValidatedLessonArtifact({
+            lessonId: lesson.id,
+            source: combinedSource,
+            results: ordered.map((result, index) => ({
+              id: result.id ?? `${lesson.id}/${blocks[index].id}`,
+              label: result.label,
+              passed: result.passed,
+              detail: result.detail,
+            })),
+          });
+          setArtifactRevision((revision) => revision + 1);
+          setPracticeMessage(`All isolated behavioral checks pass. Artifact ${artifact.contentHash.slice(7, 19)} is ready for the next lesson.`);
+        } catch (artifactError) {
+          setPracticeMessage(`All isolated behavioral checks pass, but the artifact could not be stored: ${artifactError instanceof Error ? artifactError.message : "local storage is unavailable"}`);
+        }
+      } else {
+        setPracticeMessage(`${passed} of ${ordered.length} isolated behavioral checks pass.`);
+      }
     } catch (error) {
       setPracticeMessage(error instanceof Error ? error.message : "The isolated lesson test failed safely.");
     } finally {
@@ -424,6 +447,7 @@ export function CodingSection({ lesson }: { lesson: CourseLesson }) {
           <div className="check-score"><strong>{passedChecks}/{checks.length}</strong><span>checks pass</span></div>
         </div>
       ) : null}
+      <ArtifactRuntimePanel lesson={lesson} refreshKey={artifactRevision} />
       <LessonExperiment lesson={lesson} />
     </section>
   );
@@ -443,7 +467,7 @@ export function PaperLab({ lesson }: { lesson: CourseLesson }) {
       <Atmosphere />
       <header className="site-header">
         <Link className="wordmark" href="/" aria-label="Latent course home"><i />latent</Link>
-        <nav aria-label="Lesson navigation"><a href="#summary">Summary</a><a href="#questions">Questions</a><a href="#implementation">Implementation</a></nav>
+        <nav aria-label="Lesson navigation"><a href="#summary">Summary</a><a href="#questions">Questions</a><a href="#implementation">Implementation</a><a href="#artifacts">Artifacts</a></nav>
         <span>{lesson.courseTitle ?? "Model Foundations"} · {String(trackIndex + 1).padStart(2, "0")} / {String(trackLessons.length).padStart(2, "0")}</span>
       </header>
       <article className="paper-page" id="top">

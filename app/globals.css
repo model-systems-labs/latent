@@ -3425,6 +3425,97 @@ button:disabled {
 .capstone-contract span { color: var(--violet); font-size: 0.53rem; letter-spacing: 0.08em; text-transform: uppercase; }
 .capstone-contract p { color: var(--muted); font-size: 0.58rem; line-height: 1.45; margin: 0; }
 
+.artifact-runtime-panel {
+  background:
+    radial-gradient(circle at 86% 16%, rgba(177, 151, 198, 0.16), transparent 27rem),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.72), rgba(244, 240, 246, 0.72));
+  border: 1px solid var(--line);
+  border-radius: 1.25rem;
+  margin-top: 1.5rem;
+  overflow: hidden;
+}
+
+.artifact-runtime-heading {
+  align-items: end;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  gap: 2rem;
+  justify-content: space-between;
+  padding: 1.4rem 1.5rem 1.2rem;
+}
+
+.artifact-runtime-heading > div { display: grid; gap: 0.35rem; }
+.artifact-runtime-heading span,
+.artifact-identity > span,
+.artifact-frame > span,
+.training-replay-stage header span,
+.artifact-sample > span {
+  color: var(--violet);
+  font-size: 0.53rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.artifact-runtime-heading h3 { font-family: var(--serif); font-size: clamp(1.35rem, 2.6vw, 2.1rem); font-weight: 400; margin: 0; }
+.artifact-runtime-heading > code { color: var(--muted); font-size: 0.56rem; }
+.artifact-runtime-intro { color: var(--muted); font-family: var(--serif); font-size: 0.95rem; line-height: 1.65; margin: 0; max-width: 56rem; padding: 1.2rem 1.5rem; }
+.artifact-runtime-error,
+.artifact-runtime-loading { color: var(--muted); margin: 0; padding: 1rem 1.5rem 1.5rem; }
+.artifact-runtime-error { color: var(--red); }
+
+.training-replay { border-top: 1px solid var(--line); display: grid; grid-template-columns: 9rem minmax(0, 1fr); }
+.training-replay-controls { background: rgba(68, 58, 72, 0.04); border-right: 1px solid var(--line); display: grid; padding: 0.65rem; }
+.training-replay-controls button { background: transparent; border: 0; border-radius: 0.65rem; color: var(--muted); cursor: pointer; display: grid; justify-items: start; padding: 0.72rem; text-align: left; }
+.training-replay-controls button.active { background: rgba(119, 101, 139, 0.11); color: var(--ink); }
+.training-replay-controls button span { font-family: var(--serif); font-size: 1.15rem; }
+.training-replay-controls button em { font-size: 0.48rem; font-style: normal; letter-spacing: 0.08em; text-transform: uppercase; }
+.training-replay-stage { min-width: 0; padding: 1.25rem; }
+.training-replay-stage > header { align-items: center; display: flex; justify-content: space-between; }
+.training-replay-stage > header > div { display: grid; gap: 0.25rem; }
+.training-replay-stage > header strong { font-family: var(--serif); font-size: 1.05rem; font-weight: 400; }
+.training-replay-stage > header code { color: var(--faint); font-size: 0.53rem; }
+.artifact-metrics { border-bottom: 1px solid var(--line); border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 1rem; }
+.artifact-metrics > span { display: grid; gap: 0.25rem; padding: 0.8rem; }
+.artifact-metrics > span + span { border-left: 1px solid var(--line); }
+.artifact-metrics em { color: var(--faint); font-size: 0.49rem; font-style: normal; text-transform: uppercase; }
+.artifact-metrics strong { font-family: var(--mono); font-size: 0.68rem; font-weight: 500; }
+.artifact-loss-bars { align-items: end; display: flex; gap: 2px; height: 4rem; margin: 1rem 0; overflow: hidden; }
+.artifact-loss-bars i { background: linear-gradient(to top, rgba(116, 98, 137, 0.18), rgba(116, 98, 137, 0.72)); flex: 1; min-width: 2px; }
+.artifact-sample { background: rgba(255, 255, 255, 0.62); border-left: 2px solid rgba(117, 99, 139, 0.35); padding: 0.9rem 1rem; }
+.artifact-sample p { font-family: var(--serif); font-size: 0.9rem; line-height: 1.55; margin: 0.4rem 0 0; }
+.training-replay-stage > footer { align-items: center; display: flex; gap: 1rem; justify-content: space-between; padding-top: 1rem; }
+.training-replay-stage > footer p { color: var(--muted); font-size: 0.56rem; line-height: 1.5; margin: 0; max-width: 35rem; }
+.training-replay-stage > footer > div { display: flex; flex: 0 0 auto; gap: 0.45rem; }
+.training-replay-stage button,
+.artifact-download-row button,
+.project-build-artifact button { background: transparent; border: 1px solid var(--line-strong); border-radius: 999px; color: var(--muted); cursor: pointer; font-size: 0.51rem; padding: 0.58rem 0.7rem; text-transform: uppercase; }
+
+.artifact-lineage-grid { border-top: 1px solid var(--line); display: grid; grid-template-columns: 1fr 1fr; }
+.artifact-identity { display: grid; gap: 0.5rem; min-height: 11rem; padding: 1.25rem 1.5rem; }
+.artifact-identity + .artifact-identity { border-left: 1px solid var(--line); }
+.artifact-identity strong { font-family: var(--serif); font-size: 1.05rem; font-weight: 400; }
+.artifact-identity p { color: var(--muted); font-size: 0.62rem; line-height: 1.55; margin: 0; }
+.artifact-identity > div { align-items: end; display: flex; gap: 0.5rem; margin-top: auto; }
+.artifact-identity code { background: rgba(78, 67, 85, 0.05); color: var(--muted); font-size: 0.51rem; padding: 0.34rem 0.42rem; }
+.artifact-identity.pending { background: rgba(255, 255, 255, 0.28); }
+
+.artifact-replay { border-top: 1px solid var(--line); display: grid; grid-template-columns: minmax(12rem, 0.7fr) minmax(0, 1.3fr); }
+.artifact-timeline { border-right: 1px solid var(--line); display: grid; padding: 0.75rem; }
+.artifact-timeline button { align-items: center; background: transparent; border: 0; border-radius: 0.5rem; color: var(--muted); cursor: pointer; display: grid; gap: 0.55rem; grid-template-columns: auto 1fr; padding: 0.65rem; text-align: left; }
+.artifact-timeline button.active { background: rgba(119, 101, 139, 0.09); color: var(--ink); }
+.artifact-timeline button i { border: 1px solid currentColor; border-radius: 50%; grid-row: 1 / span 2; height: 0.48rem; width: 0.48rem; }
+.artifact-timeline button.active i { background: var(--violet); }
+.artifact-timeline button span { font-size: 0.61rem; }
+.artifact-timeline button code { color: var(--faint); font-size: 0.48rem; }
+.artifact-frame { display: grid; gap: 0.45rem; padding: 1.2rem 1.5rem; }
+.artifact-frame strong { font-family: var(--serif); font-size: 1rem; font-weight: 400; }
+.artifact-frame pre { background: rgba(39, 34, 41, 0.94); border-radius: 0.65rem; color: #d9d1ca; font-family: var(--mono); font-size: 0.6rem; line-height: 1.55; margin: 0.25rem 0 0; max-height: 13rem; overflow: auto; padding: 0.9rem; white-space: pre-wrap; }
+.artifact-download-row { align-items: center; border-top: 1px solid var(--line); display: flex; justify-content: space-between; padding: 0.9rem 1.5rem; }
+.artifact-download-row p { color: var(--muted); font-size: 0.57rem; margin: 0; }
+.artifact-download-row p strong { color: var(--ink); }
+
+.project-build-artifact { max-height: none !important; overflow: visible !important; }
+.project-build-artifact button { border-color: rgba(255, 255, 255, 0.15); color: #c8c0b9; justify-self: start; }
+
 @media (max-width: 940px) {
   .site-header,
   .paper-page,
@@ -4035,6 +4126,30 @@ button:disabled {
     align-items: start;
     gap: 1rem;
   }
+
+  .artifact-runtime-heading,
+  .training-replay-stage > footer,
+  .artifact-download-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .artifact-runtime-heading > code { align-self: start; }
+  .artifact-runtime-intro { font-size: 0.86rem; }
+  .training-replay { display: flex; flex-direction: column; }
+  .training-replay-controls { border-bottom: 1px solid var(--line); border-right: 0; grid-template-columns: repeat(4, 1fr); }
+  .training-replay-controls button { justify-items: center; padding: 0.6rem 0.25rem; }
+  .artifact-metrics { grid-template-columns: 1fr 1fr; }
+  .artifact-metrics > span + span { border-left: 0; }
+  .artifact-metrics > span:nth-child(even) { border-left: 1px solid var(--line); }
+  .artifact-metrics > span:nth-child(n + 3) { border-top: 1px solid var(--line); }
+  .training-replay-stage > footer > div { display: grid; grid-template-columns: 1fr; }
+  .artifact-lineage-grid,
+  .artifact-replay { grid-template-columns: 1fr; }
+  .artifact-identity + .artifact-identity { border-left: 0; border-top: 1px solid var(--line); }
+  .artifact-timeline { border-bottom: 1px solid var(--line); border-right: 0; }
+  .artifact-download-row { gap: 0.75rem; }
+  .artifact-download-row button { width: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {

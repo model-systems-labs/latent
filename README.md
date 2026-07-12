@@ -26,6 +26,8 @@ open in a dedicated IDE and produce the validated build used by the capstone.
 - A deterministic SSE serving adapter with latency and failure injection.
 - Atomic build promotion: only source-matched, fully passing artifacts may
   replace the active capstone runtime.
+- An independent Artifact Runtime with content-addressed lineage, replay,
+  comparison, device-local storage, and portable checkpoint downloads.
 
 Learner code never executes in the application realm. The host owns the test
 assertions, compiler policy, resource limits, build receipts, and promotion gate.
@@ -39,6 +41,9 @@ assertions, compiler policy, resource limits, build receipts, and promotion gate
 - `app/runtime/model/` — character training and local Transformer workers
 - `app/runtime/serving/` — SSE transport and deterministic failure scenarios
 - `app/runtime/bindings/` — validated capstone binding descriptors
+- `app/platform/artifact-runtime/` — domain-neutral artifact, lineage, replay,
+  comparison, storage, and portable bundle contracts
+- `app/features/artifacts/` — course adapters and recorded training checkpoints
 - `tests/` — curriculum, compiler, sandbox, persistence, binding, and render tests
 
 ## Local development
@@ -58,7 +63,14 @@ npm run lint
 npm test
 ```
 
-`npm test` performs the production build and runs all 36 host-side tests.
+`npm test` performs the production build and runs all 41 host-side tests.
+
+The checked-in character-model checkpoint ladder comes from a reproducible
+deterministic run. Regenerate it after intentionally changing the trainer with:
+
+```bash
+npm run artifacts:record-training
+```
 
 ## Privacy and storage
 

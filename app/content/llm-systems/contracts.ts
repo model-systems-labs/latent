@@ -346,21 +346,54 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     exportName: "additiveScore",
     cases: [
       {
-        id: "finite-compatibility",
-        label: "Combines query and key projections into a scalar score",
+        id: "query-projection",
+        label: "Uses the learned query projection and output vector",
         args: [
-          [1, 0],
-          [0, 1],
+          [1, 2],
+          [3, -1],
           {
-            Wq: [[1, 0], [0, 1]],
-            Wk: [[1, 0], [0, 1]],
-            v: [0.5, -0.5],
+            Wq: [[2, 0], [0, -1]],
+            Wk: [[0, 0], [0, 0]],
+            v: [1, 0.5],
             bias: [0, 0],
           },
         ],
         assertions: [
-          finite("finite-score", "Produces a finite scalar score"),
-          range("balanced-score", "Combines the balanced projections", -1e-12, 1e-12),
+          range("query-score", "Project query with Wq, apply tanh, then collapse the hidden vector with v", 0.482, 0.48203),
+        ],
+      },
+      {
+        id: "key-projection",
+        label: "Uses the learned key projection and signed output vector",
+        args: [
+          [0, 0],
+          [1, 2],
+          {
+            Wq: [[0, 0], [0, 0]],
+            Wk: [[1, 0], [0, 0.5]],
+            v: [0.25, -1],
+            bias: [0, 0],
+          },
+        ],
+        assertions: [
+          range("key-score", "Project key with Wk and preserve every signed component of v", -0.57121, -0.57118),
+        ],
+      },
+      {
+        id: "bias-and-nonlinearity",
+        label: "Applies bias and tanh inside the additive scoring network",
+        args: [
+          [0, 0],
+          [0, 0],
+          {
+            Wq: [[0, 0], [0, 0]],
+            Wk: [[0, 0], [0, 0]],
+            v: [1, -2],
+            bias: [2, -1],
+          },
+        ],
+        assertions: [
+          range("nonlinear-bias-score", "Add bias before tanh; additive attention is not a plain query-key dot product", 2.4872, 2.48723),
         ],
       },
     ],
@@ -373,12 +406,32 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     cases: [
       {
         id: "ordered-alignment",
-        label: "Normalizes scores into an ordered distribution",
+        label: "Normalizes all source-position scores into one distribution",
         args: [[2, 1, 0]],
         assertions: [
-          range("largest-weight", "Assigns the most mass to the largest score", 0.66524, 0.66525, [0]),
-          range("middle-weight", "Assigns intermediate mass to the middle score", 0.24472, 0.24474, [1]),
-          range("smallest-weight", "Assigns the least mass to the smallest score", 0.09002, 0.09004, [2]),
+          range("largest-weight", "Apply one softmax across the complete scores array so the three source-position weights sum to 1", 0.66524, 0.66525, [0]),
+          range("middle-weight", "Apply one softmax across the complete scores array so the three source-position weights sum to 1", 0.24472, 0.24474, [1]),
+          range("smallest-weight", "Apply one softmax across the complete scores array so the three source-position weights sum to 1", 0.09002, 0.09004, [2]),
+        ],
+      },
+      {
+        id: "negative-scores",
+        label: "Handles negative scores as logits rather than raw proportions",
+        args: [[-1, 0, 1]],
+        assertions: [
+          range("negative-low", "Exponentiate relative scores with softmax; do not divide raw scores by their sum", 0.09002, 0.09004, [0]),
+          range("negative-middle", "Exponentiate relative scores with softmax; do not divide raw scores by their sum", 0.24472, 0.24474, [1]),
+          range("negative-high", "Exponentiate relative scores with softmax; do not divide raw scores by their sum", 0.66524, 0.66525, [2]),
+        ],
+      },
+      {
+        id: "large-logits",
+        label: "Keeps softmax finite for large compatibility scores",
+        args: [[1000, 999, 998]],
+        assertions: [
+          range("stable-largest", "Subtract max(scores) before exponentiating so large logits remain finite", 0.66524, 0.66525, [0]),
+          range("stable-middle", "Subtract max(scores) before exponentiating so large logits remain finite", 0.24472, 0.24474, [1]),
+          range("stable-smallest", "Subtract max(scores) before exponentiating so large logits remain finite", 0.09002, 0.09004, [2]),
         ],
       },
     ],
@@ -393,7 +446,13 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
         id: "weighted-state-mixture",
         label: "Combines encoder states using alignment weights",
         args: [[[1, 0], [0, 1]], [0.75, 0.25]],
-        assertions: [equal("context", "Returns the weighted context vector", [0.75, 0.25])],
+        assertions: [equal("context", "Multiply each state by its corresponding alpha, then sum coordinate-wise", [0.75, 0.25])],
+      },
+      {
+        id: "three-state-context",
+        label: "Preserves state-to-weight correspondence across every coordinate",
+        args: [[[1, 2, 3], [-1, 4, 0], [2, 0, -2]], [0.5, 0.25, 0.25]],
+        assertions: [equal("three-state-context", "Multiply each state by its corresponding alpha, then sum coordinate-wise", [0.75, 2, 1])],
       },
     ],
   }),
@@ -817,6 +876,6 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
 ];
 
 export const llmSystemsContractSuite: ContractSuite = {
-  contractVersion: "llm-systems-contracts-v3",
+  contractVersion: "llm-systems-contracts-v4",
   contracts: llmSystemsExerciseContracts,
 };

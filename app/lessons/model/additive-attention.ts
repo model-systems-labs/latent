@@ -26,22 +26,27 @@ ${commonQuestionInstruction}`.trim(),
       {
         label: "Fixed-vector bottleneck.",
         body:
-          "A conventional encoder-decoder asks one vector to preserve every source detail required for every future output. Performance degrades as relevant information must survive more compression and recurrent steps.",
+          "Without attention, the encoder must compress all n source positions into one fixed vector before decoding begins. The decoder receives that same summary while producing every output token, so details needed late in a long sequence must survive both compression and many recurrent updates.",
       },
       {
-        label: "Alignment score.",
+        label: "One decoder step.",
         body:
-          "For each output step, a small neural network scores compatibility between the decoder state and every encoder state. These content-dependent scores are normalized across source positions.",
+          "At output step t, the decoder query q_t has shape [d_s] and the encoder states H = [h_1, ..., h_n] have shape [n, d_h]. The same scorer is applied n times—once to q_t and each h_i—so it produces one scalar e_(t,i) for every source position.",
       },
       {
-        label: "Dynamic context.",
+        label: "Additive score.",
         body:
-          "The context vector is a weighted sum of encoder states. The decoder can emphasize a date's year while emitting the year and shift mass toward the month or day at later steps.",
+          "The score is e_(t,i) = v^T tanh(Wq q_t + Wk h_i + b). Wq and Wk project the query and key into a shared attention width d_a; tanh combines them nonlinearly; v collapses the d_a values to one number. This is additive attention. A dot-product scorer instead uses q_t^T h_i and has no scoring MLP inside that comparison.",
       },
       {
-        label: "Differentiable search.",
+        label: "Normalize over positions.",
         body:
-          "Because all positions receive continuous weights, the complete alignment path remains differentiable. The model learns where to look from the translation objective rather than from separately labeled word alignments.",
+          "For a fixed t, softmax is applied across the n source-position scores: alpha_(t,:) = softmax(e_(t,:)). The weights are positive and sum to 1. In the date task, the row for emitting year should place most of its mass on the source state for 2026—not merely assign a large independent score to it.",
+      },
+      {
+        label: "Construct the context.",
+        body:
+          "The step-specific context is c_t = sum_i alpha_(t,i) h_i, with shape [d_h]. Multiply each encoder state by its corresponding alignment weight, then sum coordinate-wise. The decoder uses c_t for the current output; at the month and day steps a new query produces new scores, weights, and context. Because every operation is differentiable, the translation loss can train the alignment jointly with the model.",
       },
     ],
     claims: {
@@ -50,13 +55,14 @@ ${commonQuestionInstruction}`.trim(),
       limit: "Supervised alignment roles replace the paper's end-to-end translation objective in this small experiment.",
     },
     diagram: {
-      title: "Step-specific context",
-      caption: "Every decoder step produces a new distribution over the same encoder states.",
+      title: "One output step: emit year",
+      caption: "The experiment repeats this computation for year, month, and day. Read each heatmap row across source positions: a concentrated row has one alpha near 1, while uniform attention stays at 0.333 for all three positions.",
       nodes: [
-        { label: "Encoder", value: "h_1 … h_n" },
-        { label: "Compatibility", value: "vᵀ tanh(Ws + Uh_i)" },
-        { label: "Alignment", value: "softmax(e_i)" },
-        { label: "Context", value: "Σ α_i h_i" },
+        { label: "Query", value: "q_year [d_s]" },
+        { label: "Encoder states", value: "H = [h_day, h_month, h_year] [3 × d_h]" },
+        { label: "Additive scores", value: "e = [-1.8, -0.9, 2.4] [3]" },
+        { label: "Alignment", value: "alpha = softmax(e) = [.014, .035, .951] [3]" },
+        { label: "Context", value: "c_year = .014h_day + .035h_month + .951h_year [d_h]" },
       ],
     },
     questions: {
@@ -76,7 +82,7 @@ ${commonQuestionInstruction}`.trim(),
     },
     implementation: {
       filename: "additive-attention.js",
-      intro: "Implement the scoring, normalization, and weighted context operations that turn encoder states into a step-specific representation.",
+      intro: "Implement one attention step in three isolated cells: score one query-key pair with the additive MLP, softmax all source-position scores together, then multiply each state by its matching alpha and sum by coordinate.",
       tensorOps: ["tensor", "matmul", "add", "tanh", "dot", "softmax", "weightedSum", "toArray"],
       codeBlocks: [
         {
@@ -86,7 +92,8 @@ ${commonQuestionInstruction}`.trim(),
           concepts: [
             { name: "Wq", detail: "Projects the decoder query into attention space." },
             { name: "Wk", detail: "Projects one encoder state into the same space." },
-            { name: "v", detail: "Collapses the nonlinear hidden vector to one scalar score." },
+            { name: "bias + tanh", detail: "Combines both projections nonlinearly before reduction." },
+            { name: "v", detail: "Collapses the attention-width hidden vector to one scalar score." },
           ],
           code: `function additiveScore(query, key, { Wq, Wk, v, bias }) {
   const queryTerm = matmul(tensor(Wq), tensor(query));
@@ -105,7 +112,7 @@ return { passed: Number.isFinite(score), detail: "e = " + score.toFixed(4) };`,
           purpose: "Normalize compatibility scores across source positions.",
           concepts: [
             { name: "scores", detail: "One scalar compatibility value per encoder state." },
-            { name: "softmax", detail: "Applies the stability offset and normalization." },
+            { name: "softmax", detail: "Normalizes once across every source position for this output step." },
             { name: "toArray", detail: "Returns one alignment weight per source position." },
           ],
           code: `function attentionWeights(scores) {
@@ -121,7 +128,7 @@ return { passed: weights[0] > weights[1] && Math.abs(total - 1) < 1e-9, detail: 
           purpose: "Combine encoder states using the learned alignment distribution.",
           concepts: [
             { name: "states", detail: "Encoder representation at every source position." },
-            { name: "weights", detail: "Normalized alignment mass for the current output step." },
+            { name: "weights / alpha", detail: "One normalized weight corresponding to each state." },
             { name: "dimension", detail: "Width of the resulting context vector." },
           ],
           code: `function contextVector(states, weights) {

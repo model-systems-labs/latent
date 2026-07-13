@@ -149,6 +149,22 @@ test("Subword Tokenization teaches pair identity, recounting, and ordered replay
   assert.match(html, /abc/);
 });
 
+test("Additive Attention works through one decoder step and distinguishes scoring families", async () => {
+  const response = await render("/lessons/additive-attention");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /One decoder step/);
+  assert.match(html, /Normalize over positions/);
+  assert.match(html, /Construct the context/);
+  assert.match(html, /One output step: emit year/);
+  assert.match(html, /attention-worked-example/);
+  assert.match(html, /q_year \[d_s\]/);
+  assert.match(html, /softmax\(e\) = \[\.014, \.035, \.951\]/);
+  assert.match(html, /Additive/);
+  assert.match(html, /Dot product/);
+  assert.match(html, /uniform attention stays at 0\.333/);
+});
+
 test("the capstone contains the complete React chat system", async () => {
   const response = await render("/capstone");
   assert.equal(response.status, 200);

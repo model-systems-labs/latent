@@ -306,11 +306,84 @@ test("Subword Tokenization exposes pair identity and rejects shortcuts in every 
   assert.match(orderFeedback, /array order|Replay each learned merge once in order/);
 });
 
+test("Additive Attention teaches the scoring network and rejects shortcuts in every cell", () => {
+  const byId = new Map(contracts.llmSystemsExerciseContracts.map((contract) => [contract.id, contract]));
+  const evaluate = (contract, implementation) => contract.cases.map((exerciseCase) =>
+    contractRuntime.evaluateExerciseCase(contract, exerciseCase, {
+      status: "returned",
+      value: implementation(...exerciseCase.invoke.args),
+    }));
+  const rejects = (contract, implementation) => assert.ok(evaluate(contract, implementation).some((result) => !result.passed));
+  const accepts = (contract, implementation) => assert.ok(evaluate(contract, implementation).every((result) => result.passed));
+  const project = (matrix, vector) => matrix.map((row) =>
+    row.reduce((sum, weight, index) => sum + weight * vector[index], 0));
+
+  const score = byId.get("additive-attention/additive-score");
+  assert.ok(score);
+  const dotProduct = (query, key) => query.reduce((sum, value, index) => sum + value * key[index], 0);
+  const linearScore = (query, key, { Wq, Wk, v, bias }) => {
+    const queryTerm = project(Wq, query);
+    const keyTerm = project(Wk, key);
+    return v.reduce((sum, value, index) => sum + value * (queryTerm[index] + keyTerm[index] + bias[index]), 0);
+  };
+  const additiveScore = (query, key, { Wq, Wk, v, bias }) => {
+    const queryTerm = project(Wq, query);
+    const keyTerm = project(Wk, key);
+    return v.reduce((sum, value, index) =>
+      sum + value * Math.tanh(queryTerm[index] + keyTerm[index] + bias[index]), 0);
+  };
+  rejects(score, dotProduct);
+  rejects(score, linearScore);
+  accepts(score, additiveScore);
+  const scoreFeedback = practiceFeedback.formatPracticeContractDetail(evaluate(score, dotProduct));
+  assert.match(scoreFeedback, /Wq/);
+  assert.match(scoreFeedback, /Wk/);
+  assert.match(scoreFeedback, /not a plain query-key dot product/);
+
+  const weights = byId.get("additive-attention/attention-softmax");
+  assert.ok(weights);
+  rejects(weights, (scores) => Array(scores.length).fill(1 / scores.length));
+  rejects(weights, (scores) => {
+    const total = scores.reduce((sum, value) => sum + value, 0);
+    return scores.map((value) => value / total);
+  });
+  rejects(weights, (scores) => {
+    const exponentials = scores.map(Math.exp);
+    const total = exponentials.reduce((sum, value) => sum + value, 0);
+    return exponentials.map((value) => value / total);
+  });
+  accepts(weights, (scores) => {
+    const maximum = Math.max(...scores);
+    const exponentials = scores.map((value) => Math.exp(value - maximum));
+    const total = exponentials.reduce((sum, value) => sum + value, 0);
+    return exponentials.map((value) => value / total);
+  });
+  const weightFeedback = practiceFeedback.formatPracticeContractDetail(evaluate(
+    weights,
+    (scores) => Array(scores.length).fill(1 / scores.length),
+  ));
+  assert.match(weightFeedback, /one softmax across the complete scores array/);
+  assert.equal((weightFeedback.match(/complete scores array/g) ?? []).length, 1);
+
+  const context = byId.get("additive-attention/context-vector");
+  assert.ok(context);
+  const average = (states) => states[0].map((_, coordinate) =>
+    states.reduce((sum, state) => sum + state[coordinate], 0) / states.length);
+  const winnerTakeAll = (states, alphas) => states[alphas.indexOf(Math.max(...alphas))];
+  const weightedSum = (states, alphas) => states[0].map((_, coordinate) =>
+    states.reduce((sum, state, index) => sum + state[coordinate] * alphas[index], 0));
+  rejects(context, average);
+  rejects(context, winnerTakeAll);
+  accepts(context, weightedSum);
+  const contextFeedback = practiceFeedback.formatPracticeContractDetail(evaluate(context, average));
+  assert.match(contextFeedback, /Multiply each state by its corresponding alpha, then sum coordinate-wise/);
+});
+
 test("practice verification is inseparable from the exact editor source and contract version", () => {
   const block = { id: "rnn-step", code: "function rnnStep() { return 'reference'; }" };
   const correct = "function rnnStep() { return 'correct learner answer'; }";
   const wrong = "function rnnStep() { return 'wrong learner answer'; }";
-  const currentVersion = "llm-systems-contracts-v3";
+  const currentVersion = "llm-systems-contracts-v4";
   const bound = practiceState.bindBlockVerification(
     { ids: [], sources: {}, contractVersion: null },
     block.id,
@@ -329,7 +402,7 @@ test("practice verification is inseparable from the exact editor source and cont
     bound,
   );
   assert.deepEqual(
-    practiceState.restoreSourceBoundVerification([block], [block.id], { [block.id]: correct }, bound.ids, bound.sources, "llm-systems-contracts-v2", currentVersion),
+    practiceState.restoreSourceBoundVerification([block], [block.id], { [block.id]: correct }, bound.ids, bound.sources, "llm-systems-contracts-v3", currentVersion),
     { ids: [], sources: {}, contractVersion: null },
     "the same source must be checked again after host contracts change",
   );

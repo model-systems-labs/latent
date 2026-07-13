@@ -166,21 +166,25 @@
 }
 
 @media (max-width: 650px) {
-  .bpe-rounds li > div {
+  .bpe-rounds li > div,
+  .attention-stages li > div {
     align-items: start;
     gap: 0.3rem;
     grid-template-columns: 1fr;
   }
 
-  .bpe-rounds code {
+  .bpe-rounds code,
+  .attention-stages code {
     text-align: left;
   }
 
-  .bpe-order-contrast {
+  .bpe-order-contrast,
+  .attention-score-contrast {
     grid-template-columns: 1fr;
   }
 
-  .bpe-order-contrast > span + span {
+  .bpe-order-contrast > span + span,
+  .attention-score-contrast > span + span {
     border-left: 0;
     border-top: 1px solid var(--line);
     padding-left: 0;

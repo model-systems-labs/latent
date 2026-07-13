@@ -1744,18 +1744,21 @@ button:disabled {
   margin-right: 0.4rem;
 }
 
-.bpe-worked-example {
+.bpe-worked-example,
+.attention-worked-example {
   border-bottom: 1px solid var(--line);
   border-top: 1px solid var(--line);
 }
 
-.bpe-rounds {
+.bpe-rounds,
+.attention-stages {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.bpe-rounds li {
+.bpe-rounds li,
+.attention-stages li {
   align-items: center;
   display: grid;
   gap: 0.75rem;
@@ -1764,11 +1767,13 @@ button:disabled {
   position: relative;
 }
 
-.bpe-rounds li + li {
+.bpe-rounds li + li,
+.attention-stages li + li {
   border-top: 1px solid var(--line);
 }
 
-.bpe-rounds li:not(:last-child)::after {
+.bpe-rounds li:not(:last-child)::after,
+.attention-stages li:not(:last-child)::after {
   bottom: -0.35rem;
   color: var(--violet);
   content: "↓";
@@ -1779,49 +1784,57 @@ button:disabled {
   z-index: 1;
 }
 
-.bpe-rounds li > span {
+.bpe-rounds li > span,
+.attention-stages li > span {
   color: var(--faint);
   font-family: var(--mono);
   font-size: 0.53rem;
 }
 
-.bpe-rounds li > div {
+.bpe-rounds li > div,
+.attention-stages li > div {
   align-items: baseline;
   display: grid;
   gap: 0.6rem;
   grid-template-columns: minmax(7.3rem, 0.75fr) minmax(0, 1.25fr);
 }
 
-.bpe-rounds strong {
+.bpe-rounds strong,
+.attention-stages strong {
   font-size: 0.68rem;
   font-weight: 590;
 }
 
-.bpe-rounds code {
+.bpe-rounds code,
+.attention-stages code {
   color: var(--violet-deep);
   font-size: 0.58rem;
   line-height: 1.45;
   text-align: right;
 }
 
-.bpe-order-contrast {
+.bpe-order-contrast,
+.attention-score-contrast {
   border-top: 1px solid var(--line);
   display: grid;
   grid-template-columns: 1fr 1fr;
 }
 
-.bpe-order-contrast > span {
+.bpe-order-contrast > span,
+.attention-score-contrast > span {
   display: grid;
   gap: 0.35rem;
   padding: 0.9rem 0;
 }
 
-.bpe-order-contrast > span + span {
+.bpe-order-contrast > span + span,
+.attention-score-contrast > span + span {
   border-left: 1px solid var(--line);
   padding-left: 1rem;
 }
 
-.bpe-order-contrast b {
+.bpe-order-contrast b,
+.attention-score-contrast b {
   color: var(--violet);
   font-size: 0.55rem;
   font-weight: 600;
@@ -1830,7 +1843,9 @@ button:disabled {
 }
 
 .bpe-order-contrast code,
-.bpe-order-contrast em {
+.bpe-order-contrast em,
+.attention-score-contrast code,
+.attention-score-contrast em {
   color: var(--muted);
   font-family: var(--mono);
   font-size: 0.55rem;
@@ -1838,7 +1853,8 @@ button:disabled {
   line-height: 1.45;
 }
 
-.bpe-order-contrast em {
+.bpe-order-contrast em,
+.attention-score-contrast em {
   color: var(--ink);
 }
 

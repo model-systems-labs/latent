@@ -421,7 +421,8 @@ export function BrowserChat() {
     setMetrics(EMPTY_METRICS);
     setError("");
 
-    const contextInput = [
+    const currentUser = { id: parentUserId, role: "user", content: userText, tokens: estimateTokens(userText) };
+    const historicalContext = [
       { id: "system", role: "system", content: "Answer in concise technical prose.", tokens: 9 },
       ...state.messages
         .filter((message) => message.backend === backend && message.status === "complete" && message.id !== parentUserId)
@@ -431,13 +432,20 @@ export function BrowserChat() {
           content: message.content,
           tokens: estimateTokens(message.content),
         })),
-      { id: parentUserId, role: "user", content: userText, tokens: estimateTokens(userText) },
     ];
-    const bounded = selectContext(contextInput, 2048);
+    const bounded = selectContext(historicalContext, 2048 - currentUser.tokens);
+    if (bounded.overflow || bounded.used + currentUser.tokens > 2048) {
+      activeRequest.current.status = "error";
+      dispatch({ type: "terminal", messageId: assistantId, status: "error" });
+      setPhase("error");
+      setError("Required instructions and the current prompt exceed the 2048-token request budget.");
+      return;
+    }
+    const requestContext = [...bounded.selected, currentUser];
     const requestFrame = encodeSse("request", {
       requestId,
       backend,
-      messages: bounded.selected.map((message: { role: string; content: string }) => ({
+      messages: requestContext.map((message: { role: string; content: string }) => ({
         role: message.role,
         content: message.content,
       })),

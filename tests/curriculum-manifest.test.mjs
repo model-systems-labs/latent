@@ -1024,11 +1024,151 @@ test("Streaming React preserves render deltas and applies the complete scroll-fo
   accepts(scroll, new Function(`${scrollBlock.code}; return shouldFollowStream;`)());
 });
 
+test("Actions and Context treats branches as durable records and admits only complete historical turns", () => {
+  const lesson = course.courseLessons.find((candidate) => candidate.id === "chat-actions-context");
+  assert.ok(lesson);
+  assert.equal(lesson.diagram.title, "One prefix, three actions, one request boundary");
+  assert.match(lesson.diagram.caption, /cancelled partial attempt/);
+  assert.match(lesson.diagram.caption, /complete historical pairs newest-first/);
+  assert.match(lesson.summary.map((section) => section.body).join(" "), /overflow is reported/);
+  assert.match(lesson.dataset.size, /3 action flows · 29 budgets \(14–42\)/);
+  assert.match(lesson.experiment.intro, /message \/ attempt \/ request ids/);
+
+  const byId = new Map(contracts.llmSystemsExerciseContracts.map((contract) => [contract.id, contract]));
+  const freeze = (value) => {
+    if (!value || typeof value !== "object" || Object.isFrozen(value)) return value;
+    Object.values(value).forEach(freeze);
+    return Object.freeze(value);
+  };
+  const observe = (implementation, sourceArgs) => {
+    const args = structuredClone(sourceArgs);
+    args.forEach(freeze);
+    try {
+      return { status: "returned", value: implementation(...args) };
+    } catch (reason) {
+      return {
+        status: "threw",
+        errorName: reason instanceof Error ? reason.name : "Error",
+        message: reason instanceof Error ? reason.message : String(reason),
+      };
+    }
+  };
+  const evaluate = (contract, implementation) => contract.cases.map((exerciseCase) =>
+    contractRuntime.evaluateExerciseCase(contract, exerciseCase, observe(implementation, exerciseCase.invoke.args)));
+  const rejects = (contract, implementation) => assert.ok(evaluate(contract, implementation).some((result) => !result.passed));
+  const accepts = (contract, implementation) => assert.ok(evaluate(contract, implementation).every((result) => result.passed));
+
+  const context = byId.get("chat-actions-context/context-budget");
+  assert.ok(context);
+  assert.equal(context.cases.length, 9);
+  const individualMessages = (messages, budget) => {
+    const systems = messages.filter((message) => message.role === "system");
+    const selected = [...systems];
+    let used = systems.reduce((sum, message) => sum + message.tokens, 0);
+    for (const message of [...messages.filter((message) => message.role !== "system")].reverse()) {
+      if (used + message.tokens <= budget) {
+        selected.splice(systems.length, 0, message);
+        used += message.tokens;
+      }
+    }
+    return { selected, used, overflow: used > budget };
+  };
+  const oldestFirst = (messages, budget) => {
+    const systems = messages.filter((message) => message.role === "system");
+    const turns = [];
+    for (let index = 0; index < messages.length - 1; index += 1) {
+      if (messages[index].role === "user" && messages[index + 1].role === "assistant") turns.push([messages[index], messages[index + 1]]);
+    }
+    let used = systems.reduce((sum, message) => sum + message.tokens, 0);
+    const selected = [...systems];
+    for (const turn of turns) {
+      const tokens = turn.reduce((sum, message) => sum + message.tokens, 0);
+      if (used + tokens <= budget) { selected.push(...turn); used += tokens; }
+    }
+    return { selected, used, overflow: used > budget };
+  };
+  const omitsSystem = (messages) => {
+    const selected = messages.filter((message) => message.role !== "system").slice(-2);
+    return { selected, used: selected.reduce((sum, message) => sum + message.tokens, 0), overflow: false };
+  };
+  const stopsAfterOversizedNewest = (messages, budget) => {
+    const systems = messages.filter((message) => message.role === "system");
+    const pairs = [];
+    for (let index = 0; index < messages.length - 1; index += 1) {
+      if (messages[index].role === "user" && messages[index + 1].role === "assistant") pairs.push([messages[index], messages[index + 1]]);
+    }
+    let used = systems.reduce((sum, message) => sum + message.tokens, 0);
+    const selected = [...systems];
+    for (const pair of pairs.reverse()) {
+      const tokens = pair.reduce((sum, message) => sum + message.tokens, 0);
+      if (used + tokens > budget) break;
+      selected.splice(systems.length, 0, ...pair);
+      used += tokens;
+    }
+    return { selected, used, overflow: used > budget };
+  };
+  const mutatesOrder = (messages, budget) => {
+    messages.reverse();
+    return { selected: messages, used: budget, overflow: false };
+  };
+  rejects(context, individualMessages);
+  rejects(context, oldestFirst);
+  rejects(context, omitsSystem);
+  rejects(context, stopsAfterOversizedNewest);
+  rejects(context, mutatesOrder);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(context, individualMessages)), /atomic unit/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(context, oldestFirst)), /newest-first/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(context, omitsSystem)), /required system record/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(context, stopsAfterOversizedNewest)), /continue examining older/);
+  const contextBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "context-budget");
+  assert.ok(contextBlock);
+  const contextReference = new Function(`${contextBlock.code}; return selectContext;`)();
+  accepts(context, contextReference);
+  const frozenMessages = freeze([
+    { id: "s", role: "system", tokens: 2 },
+    { id: "u", role: "user", tokens: 3 },
+    { id: "a", role: "assistant", tokens: 4 },
+  ]);
+  assert.deepEqual(contextReference(frozenMessages, 9), { selected: frozenMessages, used: 9, overflow: false });
+  assert.deepEqual(frozenMessages.map((message) => message.id), ["s", "u", "a"]);
+
+  const regeneration = byId.get("chat-actions-context/regenerate-branch");
+  assert.ok(regeneration);
+  assert.equal(regeneration.cases.length, 4);
+  const hardcoded = () => ({ messageId: "m9", parentUserId: "m4", attemptId: "a2", role: "assistant", content: "", status: "queued" });
+  const spreadsCaller = (input) => ({ ...input, role: "assistant", content: input.content ?? "", status: input.status ?? "queued" });
+  const wrongDefaults = ({ messageId, parentUserId, attemptId }) => ({ messageId, parentUserId, attemptId, role: "assistant", content: "loading", status: "streaming" });
+  const mutatesCaller = (input) => {
+    input.status = "queued";
+    return input;
+  };
+  rejects(regeneration, hardcoded);
+  rejects(regeneration, spreadsCaller);
+  rejects(regeneration, wrongDefaults);
+  rejects(regeneration, mutatesCaller);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(regeneration, hardcoded)), /supplied ids on every call/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(regeneration, spreadsCaller)), /only messageId, parentUserId, attemptId, role, content, and status/);
+  const regenerationBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "regenerate-branch");
+  assert.ok(regenerationBlock);
+  const regenerationReference = new Function(`${regenerationBlock.code}; return createRegeneration;`)();
+  accepts(regeneration, regenerationReference);
+  const frozenInput = freeze({ messageId: "m20", parentUserId: "m-u8", attemptId: "a9", renderIndex: 4 });
+  assert.deepEqual(regenerationReference(frozenInput), {
+    messageId: "m20",
+    parentUserId: "m-u8",
+    attemptId: "a9",
+    role: "assistant",
+    content: "",
+    status: "queued",
+  });
+  assert.deepEqual(Object.keys(regenerationReference(frozenInput)).sort(), ["attemptId", "content", "messageId", "parentUserId", "role", "status"]);
+});
+
 test("practice verification is inseparable from the exact editor source and contract version", () => {
   const block = { id: "rnn-step", code: "function rnnStep() { return 'reference'; }" };
   const correct = "function rnnStep() { return 'correct learner answer'; }";
   const wrong = "function rnnStep() { return 'wrong learner answer'; }";
-  const currentVersion = "llm-systems-contracts-v12";
+  const currentVersion = "llm-systems-contracts-v13";
   const bound = practiceState.bindBlockVerification(
     { ids: [], sources: {}, contractVersion: null },
     block.id,

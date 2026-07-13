@@ -15,7 +15,7 @@ import {
   type TransformerResult,
 } from "../lib/lab-engines";
 import { markExperimentComplete, saveCharacterRnnArtifact } from "../lib/learner-state";
-import { runCapstoneQualityAudit, selectCompleteTurnContext, type ContextMessage } from "../lib/capstone-contract";
+import { runCapstoneQualityAudit } from "../lib/capstone-contract";
 
 type ModelMessage = { role: "system" | "user" | "assistant"; content: string };
 type TextGenerator = (
@@ -394,6 +394,7 @@ function IclExperiment({ onComplete }: ExperimentProps) {
 type SystemsVariant = "runtime" | "streaming" | "scheduling" | "reliability";
 type ProductVariant = "state" | "streaming-ui" | "context-actions" | "quality";
 type StreamingUiProfile = "burst" | "steady" | "stalled" | "cancelled";
+type ContextActionFlow = "stop" | "retry" | "edit";
 
 const STREAMING_UI_PROFILES = {
   burst: {
@@ -705,9 +706,10 @@ function SystemsExperiment({ variant, onComplete }: { variant: SystemsVariant } 
 function ProductExperiment({ variant, onComplete }: { variant: ProductVariant } & ExperimentProps) {
   const [step, setStep] = useState(0);
   const [stateFlow, setStateFlow] = useState<"complete" | "cancel" | "regenerate">("complete");
-  const [budget, setBudget] = useState(36);
+  const [budget, setBudget] = useState(26);
   const [ran, setRan] = useState(false);
   const [streamProfile, setStreamProfile] = useState<StreamingUiProfile>("burst");
+  const [contextFlow, setContextFlow] = useState<ContextActionFlow>("stop");
   const stateTraces = {
     complete: [
       { number: 1, action: "USER_MESSAGE", status: "complete", messageId: "m-u1", attemptId: "—", requestId: "—", content: "Explain causal masking.", canStop: false, canRegenerate: false, applied: true, evidence: "state revision 0 → 1 · conversation order appends m-u1" },
@@ -734,14 +736,6 @@ function ProductExperiment({ variant, onComplete }: { variant: ProductVariant } 
       { number: 18, action: "COMPLETE", status: "complete", messageId: "m-a1", attemptId: "a-17.3", requestId: "r-17.3", content: "A causal mask sets future attention logits to negative infinity.", canStop: false, canRegenerate: true, applied: true, evidence: "revision 16 → 17 · attempt a-17.3 terminal · request resources released" },
     ],
   } as const;
-  const contextMessages: ContextMessage[] = [
-    { id: "m1", role: "system", tokens: 8, text: "Technical tutor instructions" },
-    { id: "m2", role: "user", tokens: 12, text: "Earlier question about tokenization" },
-    { id: "m3", role: "assistant", tokens: 18, text: "Earlier tokenizer explanation" },
-    { id: "m4", role: "user", tokens: 9, text: "Current question about attention" },
-  ];
-  const { selected, used } = selectCompleteTurnContext(contextMessages, budget);
-
   if (variant === "state") {
     const stateTrace = stateTraces[stateFlow];
     const current = stateTrace[Math.min(step, stateTrace.length - 1)];
@@ -799,10 +793,108 @@ function ProductExperiment({ variant, onComplete }: { variant: ProductVariant } 
     );
   }
   if (variant === "context-actions") {
+    const historyTurns = [
+      {
+        label: "Older compact turn",
+        messages: [
+          { id: "m-u1", role: "user", tokens: 4, text: "What is a causal mask?" },
+          { id: "m-a1", role: "assistant", tokens: 5, text: "It blocks attention to future positions." },
+        ],
+      },
+      {
+        label: "Newer large turn",
+        messages: [
+          { id: "m-u2", role: "user", tokens: 8, text: "Derive the complete masked-attention computation." },
+          { id: "m-a2", role: "assistant", tokens: 12, text: "Project Q, K, and V; scale QKᵀ; mask future logits; then apply softmax." },
+        ],
+      },
+    ] as const;
+    const flow = {
+      stop: {
+        label: "Stop",
+        activeUser: { id: "m-u3", tokens: 6, text: "Give one implementation detail." },
+        outcome: "Abort r-31, retain m-a3 and its visible partial text, then mark attempt a-31 cancelled.",
+        branch: "s1 → m-u3 → m-a3",
+        invalidation: "none · stop changes lifecycle state, not ancestry",
+        attempt: { messageId: "m-a3", parentUserId: "m-u3", attemptId: "a-31", requestId: "r-31", status: "cancelled", partialContent: "Set future logits", modelId: "latent-local-135m", promptVersion: "chat-v3", sampling: { temperature: 0.7, topP: 0.9 } },
+      },
+      retry: {
+        label: "Retry / regenerate",
+        activeUser: { id: "m-u3", tokens: 6, text: "Give one implementation detail." },
+        outcome: "Keep cancelled m-a3 / a-31 / r-31, then allocate queued m-a4 / a-32 / r-32 from the same m-u3 prefix.",
+        branch: "s1 → m-u3 ↘ m-a3 cancelled · ↗ m-a4 queued",
+        invalidation: "none · both assistant attempts share parent m-u3",
+        attempt: { messageId: "m-a4", parentUserId: "m-u3", attemptId: "a-32", requestId: "r-32", status: "queued", content: "", modelId: "latent-local-135m", promptVersion: "chat-v3", sampling: { temperature: 0.7, topP: 0.9 } },
+      },
+      edit: {
+        label: "Edit prompt",
+        activeUser: { id: "m-u3-e1", tokens: 8, text: "Show the exact mask assignment in JavaScript." },
+        outcome: "Create edited user revision m-u3-e1 and queued m-a5 / a-33 / r-33; retain m-a3 but invalidate it on the edited branch.",
+        branch: "s1 → m-u3-e1 → m-a5 queued",
+        invalidation: "m-u3 → m-a3 remains historical · excluded from branch m-u3-e1",
+        attempt: { messageId: "m-a5", parentUserId: "m-u3-e1", attemptId: "a-33", requestId: "r-33", status: "queued", content: "", modelId: "latent-local-135m", promptVersion: "chat-v3", sampling: { temperature: 0.7, topP: 0.9 } },
+      },
+    }[contextFlow];
+    const system = { id: "s1", role: "system", tokens: 6, text: "Answer as a concise technical tutor." } as const;
+    const requiredTokens = system.tokens + flow.activeUser.tokens;
+    let used = requiredTokens;
+    const selectedTurns: typeof historyTurns[number][] = [];
+    const decisions = new Map<string, string>();
+    for (let index = historyTurns.length - 1; index >= 0; index -= 1) {
+      const turn = historyTurns[index];
+      const tokens = turn.messages.reduce((sum, message) => sum + message.tokens, 0);
+      if (used + tokens <= budget) {
+        selectedTurns.unshift(turn);
+        used += tokens;
+        decisions.set(turn.label, `included · ${tokens} tokens fit · ${budget - used} remain`);
+      } else {
+        decisions.set(turn.label, `excluded · ${tokens} tokens exceed ${Math.max(0, budget - used)} remaining`);
+      }
+    }
+    const includedMessageIds = [system.id, ...selectedTurns.flatMap((turn) => turn.messages.map((message) => message.id)), flow.activeUser.id];
+    const attemptRecord = { ...flow.attempt, includedMessageIds };
+    const chooseContextFlow = (nextFlow: ContextActionFlow) => {
+      setContextFlow(nextFlow);
+      onComplete();
+    };
     return (
       <>
-        <div className="simulation-controls"><label><span>Context budget · {budget} tokens</span><input type="range" min="12" max="50" value={budget} onChange={(event) => { setBudget(Number(event.target.value)); onComplete(); }} /></label><code>{used}/{budget} used</code></div>
-        <div className="simulation-result product-simulation"><div className="context-stack">{contextMessages.map((message) => { const included = selected.some((item) => item.id === message.id); return <article className={included ? "included" : "excluded"} key={message.id}><span>{message.id} · {message.role}</span><p>{message.text}</p><code>{message.tokens} tokens · {included ? "included" : "excluded"}</code></article>; })}</div><div className="branch-record"><span>Regeneration record</span><code>{JSON.stringify({ parentUserId: "m4", attemptId: "a2", includedMessageIds: selected.map((message) => message.id), status: "queued" }, null, 2)}</code></div></div>
+        <div className="simulation-controls context-action-controls">
+          <span>Conversation action</span>
+          <button className={contextFlow === "stop" ? "selected" : ""} type="button" onClick={() => chooseContextFlow("stop")}>Stop</button>
+          <button className={contextFlow === "retry" ? "selected" : ""} type="button" onClick={() => chooseContextFlow("retry")}>Retry / regenerate</button>
+          <button className={contextFlow === "edit" ? "selected" : ""} type="button" onClick={() => chooseContextFlow("edit")}>Edit prompt</button>
+        </div>
+        <div className="simulation-controls context-budget-controls">
+          <label><span>Request budget · {budget} tokens</span><input aria-label="Request budget" type="range" min="14" max="42" value={budget} onChange={(event) => { setBudget(Number(event.target.value)); onComplete(); }} /></label>
+          <code>{used}/{budget} used</code>
+        </div>
+        <div className="simulation-result product-simulation context-action-result">
+          <div className="context-action-summary">
+            <span><b>Applied action</b><strong>{flow.label}</strong></span>
+            <p>{flow.outcome}</p>
+          </div>
+          <div className="context-branch-evidence">
+            <span><b>Active branch</b><code>{flow.branch}</code></span>
+            <span><b>Descendant policy</b><code>{flow.invalidation}</code></span>
+            <span><b>Retained partial</b><code>m-a3 · a-31 · r-31 · cancelled · “Set future logits”</code></span>
+          </div>
+          <div className="context-request-heading">
+            <div><span>Exact request assembly</span><strong>{includedMessageIds.join(" → ")}</strong></div>
+            <code>{used} selected / {budget} budget</code>
+          </div>
+          <div className="context-decision-list">
+            <article className="included"><span>s1 · system</span><p>{system.text}</p><code>{system.tokens} tokens · required</code></article>
+            {historyTurns.map((turn) => {
+              const included = selectedTurns.includes(turn);
+              return <article className={included ? "included" : "excluded"} key={turn.label}><span>{turn.messages.map((message) => message.id).join(" + ")} · complete turn</span><p>{turn.label}</p><code>{decisions.get(turn.label)}</code></article>;
+            })}
+            {contextFlow === "edit" ? <article className="excluded"><span>m-u3 → m-a3 · prior branch</span><p>Original prompt and cancelled descendant remain inspectable.</p><code>excluded · invalidated by edit m-u3-e1</code></article> : null}
+            <article className="included"><span>{flow.activeUser.id} · active user</span><p>{flow.activeUser.text}</p><code>{flow.activeUser.tokens} tokens · required</code></article>
+            <article className="excluded"><span>{flow.attempt.messageId} · assistant output</span><p>{flow.attempt.status === "cancelled" ? flow.attempt.partialContent : "No output yet."}</p><code>excluded · {flow.attempt.status} output is not request input</code></article>
+          </div>
+          <div className="branch-record context-attempt-record"><span>Exact attempt record</span><code>{JSON.stringify(attemptRecord, null, 2)}</code></div>
+        </div>
       </>
     );
   }

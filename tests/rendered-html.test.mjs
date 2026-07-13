@@ -445,3 +445,31 @@ test("Streaming React renders the frame timing trace and four honest profiles", 
   assert.match(html, /Run burst/);
   assert.match(html, /bounded live-region contents/);
 });
+
+test("Actions and Context renders a concrete branch, actionable flows, and an exact request ledger", async () => {
+  const response = await render("/lessons/chat-actions-context");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /One prefix, three actions, one request boundary/);
+  assert.match(html, /m-a3 · a-31 · r-31/);
+  assert.match(html, /partial “Set future logits” retained/);
+  assert.match(html, /m-a4 · a-32 · r-32/);
+  assert.match(html, /m-u3-e1 → m-a5 · a-33 · r-33/);
+  assert.match(html, /Request assembly · budget 26/);
+  assert.match(html, /m-u2 \+ m-a2/);
+  assert.match(html, /20 tokens · skip/);
+  assert.match(html, /s1 → m-u1 → m-a1 → m-u3/);
+  assert.match(html, /overflow: true/);
+  assert.match(html, /3 action flows · 29 budgets \(14–42\)/);
+  assert.match(html, />Stop</);
+  assert.match(html, />Retry \/ regenerate</);
+  assert.match(html, />Edit prompt</);
+  assert.match(html, /Request budget · (?:<!-- -->)?26(?:<!-- -->)? tokens/);
+  assert.match(html, /Exact request assembly/);
+  assert.match(html, /Retained partial/);
+  assert.match(html, /Exact attempt record/);
+  assert.match(html, /latent-local-135m/);
+  assert.match(html, /chat-v3/);
+  assert.match(html, /temperature/);
+  assert.match(html, /includedMessageIds/);
+});

@@ -88,6 +88,12 @@ test("lesson source remains external while the capstone imports its behavioral s
   assert.match(template.CAPSTONE_MAIN_SOURCE, /export function mount\(\)/);
   assert.match(template.CAPSTONE_MAIN_SOURCE, /const root = createRoot\(target\)/);
   assert.match(template.CAPSTONE_MAIN_SOURCE, /mount\(\);/);
+  assert.match(source, /const currentUser = \{ id: parentUserId, role: "user", content: userText/);
+  assert.match(source, /selectContext\(historicalContext, 2048 - currentUser\.tokens\)/);
+  assert.match(source, /bounded\.overflow \|\| bounded\.used \+ currentUser\.tokens > 2048/);
+  assert.match(source, /Required instructions and the current prompt exceed the 2048-token request budget/);
+  assert.match(source, /const requestContext = \[\.\.\.bounded\.selected, currentUser\]/);
+  assert.match(source, /messages: requestContext\.map/);
   assert.doesNotMatch(source, /localStorage/);
 });
 

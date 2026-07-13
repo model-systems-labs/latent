@@ -1258,19 +1258,142 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     cases: [
       {
         id: "newest-complete-turns",
-        label: "Retains system context and the newest complete unit that fits",
+        label: "Retains required system context and the newest complete turn that fits",
         args: [[
           { id: "s", role: "system", tokens: 4 },
-          { id: "u1", role: "user", tokens: 5 },
-          { id: "a1", role: "assistant", tokens: 6 },
-          { id: "u2", role: "user", tokens: 5 },
-        ], 10],
-        assertions: [equal("selection", "Returns the bounded context and exact token use", {
+          { id: "u1", role: "user", tokens: 3 },
+          { id: "a1", role: "assistant", tokens: 3 },
+          { id: "u2", role: "user", tokens: 4 },
+          { id: "a2", role: "assistant", tokens: 4 },
+        ], 12],
+        assertions: [equal("selection", "Keep every required system record, admit complete user-assistant pairs newest-first, and return them in chronological order with exact used tokens", {
           selected: [
             { id: "s", role: "system", tokens: 4 },
-            { id: "u2", role: "user", tokens: 5 },
+            { id: "u2", role: "user", tokens: 4 },
+            { id: "a2", role: "assistant", tokens: 4 },
+          ],
+          used: 12,
+          overflow: false,
+        })],
+      },
+      {
+        id: "skip-oversized-newer-turn",
+        label: "Skips an oversized newer pair and still admits an older pair that fits",
+        args: [[
+          { id: "s", role: "system", tokens: 2 },
+          { id: "u-old", role: "user", tokens: 3 },
+          { id: "a-old", role: "assistant", tokens: 3 },
+          { id: "u-new", role: "user", tokens: 9 },
+          { id: "a-new", role: "assistant", tokens: 9 },
+        ], 8],
+        assertions: [equal("continue-after-skip", "When a newer complete pair is too large, continue examining older complete pairs instead of stopping selection", {
+          selected: [
+            { id: "s", role: "system", tokens: 2 },
+            { id: "u-old", role: "user", tokens: 3 },
+            { id: "a-old", role: "assistant", tokens: 3 },
+          ],
+          used: 8,
+          overflow: false,
+        })],
+      },
+      {
+        id: "never-admit-half-of-pair",
+        label: "Drops a complete pair when only one individual message would fit",
+        args: [[
+          { id: "s", role: "system", tokens: 2 },
+          { id: "u1", role: "user", tokens: 5 },
+          { id: "a1", role: "assistant", tokens: 5 },
+        ], 7],
+        assertions: [equal("atomic-turn", "Measure and admit the user-assistant pair as one atomic unit; never retain just the user or just the assistant because one message fits", {
+          selected: [{ id: "s", role: "system", tokens: 2 }],
+          used: 2,
+          overflow: false,
+        })],
+      },
+      {
+        id: "exact-budget-multiple-systems",
+        label: "Includes multiple required system records and a pair at the exact boundary",
+        args: [[
+          { id: "s1", role: "system", tokens: 2 },
+          { id: "s2", role: "system", tokens: 1 },
+          { id: "u1", role: "user", tokens: 3 },
+          { id: "a1", role: "assistant", tokens: 4 },
+        ], 10],
+        assertions: [equal("inclusive-boundary", "Use <= at the budget boundary and preserve required system and conversational input order", {
+          selected: [
+            { id: "s1", role: "system", tokens: 2 },
+            { id: "s2", role: "system", tokens: 1 },
+            { id: "u1", role: "user", tokens: 3 },
+            { id: "a1", role: "assistant", tokens: 4 },
+          ],
+          used: 10,
+          overflow: false,
+        })],
+      },
+      {
+        id: "drops-orphan-half-turns",
+        label: "Never admits orphan assistants or incomplete trailing user messages",
+        args: [[
+          { id: "s", role: "system", tokens: 2 },
+          { id: "a-orphan", role: "assistant", tokens: 1 },
+          { id: "u1", role: "user", tokens: 3 },
+          { id: "a1", role: "assistant", tokens: 4 },
+          { id: "u-trailing", role: "user", tokens: 1 },
+        ], 20],
+        assertions: [equal("complete-pairs-only", "Admit only complete ordered user-assistant pairs; do not create orphan half-turns from individual messages", {
+          selected: [
+            { id: "s", role: "system", tokens: 2 },
+            { id: "u1", role: "user", tokens: 3 },
+            { id: "a1", role: "assistant", tokens: 4 },
           ],
           used: 9,
+          overflow: false,
+        })],
+      },
+      {
+        id: "empty-history",
+        label: "Returns an exact empty selection for empty history",
+        args: [[], 24],
+        assertions: [equal("empty", "Return selected [], used 0, and overflow false when there are no records", {
+          selected: [],
+          used: 0,
+          overflow: false,
+        })],
+      },
+      {
+        id: "system-only",
+        label: "Returns a system-only request prefix exactly",
+        args: [[
+          { id: "s", role: "system", tokens: 5 },
+        ], 5],
+        assertions: [equal("system-only", "Keep a required system-only prefix and count its tokens exactly", {
+          selected: [{ id: "s", role: "system", tokens: 5 }],
+          used: 5,
+          overflow: false,
+        })],
+      },
+      {
+        id: "required-system-overflow",
+        label: "Reports when required system instructions alone exceed the selector budget",
+        args: [[
+          { id: "s", role: "system", tokens: 7 },
+          { id: "u1", role: "user", tokens: 2 },
+          { id: "a1", role: "assistant", tokens: 2 },
+        ], 5],
+        assertions: [equal("overflow-signal", "Keep required system instructions, admit no historical turns, report their exact token use, and set overflow true so the caller can block or revise the request", {
+          selected: [{ id: "s", role: "system", tokens: 7 }],
+          used: 7,
+          overflow: true,
+        })],
+      },
+      {
+        id: "zero-budget-empty-history",
+        label: "Handles an empty zero-token budget without inventing records",
+        args: [[], 0],
+        assertions: [equal("zero-budget", "Return an empty non-overflow result for an empty zero-token request", {
+          selected: [],
+          used: 0,
+          overflow: false,
         })],
       },
     ],
@@ -1285,10 +1408,49 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
         id: "new-assistant-attempt",
         label: "Creates a queued assistant attempt from the same user prefix",
         args: [{ messageId: "m9", parentUserId: "m4", attemptId: "a2" }],
-        assertions: [equal("branch", "Preserves branch and attempt identity", {
+        assertions: [equal("branch", "Return the exact stable queued assistant record with the supplied message, parent-user, and attempt ids", {
           messageId: "m9",
           parentUserId: "m4",
           attemptId: "a2",
+          role: "assistant",
+          content: "",
+          status: "queued",
+        })],
+      },
+      {
+        id: "second-identity-set",
+        label: "Uses a second supplied identity set without hidden constants",
+        args: [{ messageId: "assistant-42", parentUserId: "user-17", attemptId: "attempt-8" }],
+        assertions: [equal("second-branch", "Use the supplied ids on every call and keep queued assistant defaults stable", {
+          messageId: "assistant-42",
+          parentUserId: "user-17",
+          attemptId: "attempt-8",
+          role: "assistant",
+          content: "",
+          status: "queued",
+        })],
+      },
+      {
+        id: "ignore-caller-only-fields",
+        label: "Does not copy caller-only fields or caller overrides into normalized state",
+        args: [{ messageId: "m10", parentUserId: "m5", attemptId: "a3", requestId: "r-private", content: "caller text", status: "complete", renderIndex: 9 }],
+        assertions: [equal("stable-field-set", "Return only messageId, parentUserId, attemptId, role, content, and status; ignore requestId, renderIndex, and caller overrides", {
+          messageId: "m10",
+          parentUserId: "m5",
+          attemptId: "a3",
+          role: "assistant",
+          content: "",
+          status: "queued",
+        })],
+      },
+      {
+        id: "punctuated-identities",
+        label: "Preserves opaque supplied ids exactly",
+        args: [{ messageId: "m/11", parentUserId: "user:6", attemptId: "attempt.4" }],
+        assertions: [equal("opaque-ids", "Treat ids as opaque values and do not derive one identity from another", {
+          messageId: "m/11",
+          parentUserId: "user:6",
+          attemptId: "attempt.4",
           role: "assistant",
           content: "",
           status: "queued",
@@ -1339,6 +1501,6 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
 ];
 
 export const llmSystemsContractSuite: ContractSuite = {
-  contractVersion: "llm-systems-contracts-v12",
+  contractVersion: "llm-systems-contracts-v13",
   contracts: llmSystemsExerciseContracts,
 };

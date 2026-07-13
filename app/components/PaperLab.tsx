@@ -87,13 +87,14 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
   const isReliabilityObservability = lesson.id === "reliability-observability";
   const isConversationState = lesson.id === "conversation-state";
   const isStreamingReact = lesson.id === "streaming-react";
+  const isChatActionsContext = lesson.id === "chat-actions-context";
   const recurrentSteps = [
     { time: "t − 1", input: "x_(t−1)", previous: "h_(t−2)", state: "h_(t−1)", prediction: "p(x_t)" },
     { time: "t", input: "x_t", previous: "h_(t−1)", state: "h_t", prediction: "p(x_(t+1))" },
     { time: "t + 1", input: "x_(t+1)", previous: "h_t", state: "h_(t+1)", prediction: "p(x_(t+2))" },
   ];
   return (
-    <figure className={`concept-diagram${isRecurrent ? " recurrence-diagram" : ""}${isNeuralLanguageModel ? " neural-lm-diagram" : ""}${isSubwordTokenization ? " subword-tokenization-diagram" : ""}${isAdditiveAttention ? " additive-attention-diagram" : ""}${isTransformer ? " transformer-attention-diagram" : ""}${isInContextLearning ? " icl-comparison-diagram" : ""}${isInferenceRuntime ? " inference-runtime-diagram" : ""}${isSchedulingMemory ? " scheduling-memory-diagram" : ""}${isStreamingTransport ? " streaming-transport-diagram" : ""}${isReliabilityObservability ? " reliability-observability-diagram" : ""}${isConversationState ? " conversation-state-diagram" : ""}${isStreamingReact ? " streaming-react-diagram" : ""}`}>
+    <figure className={`concept-diagram${isRecurrent ? " recurrence-diagram" : ""}${isNeuralLanguageModel ? " neural-lm-diagram" : ""}${isSubwordTokenization ? " subword-tokenization-diagram" : ""}${isAdditiveAttention ? " additive-attention-diagram" : ""}${isTransformer ? " transformer-attention-diagram" : ""}${isInContextLearning ? " icl-comparison-diagram" : ""}${isInferenceRuntime ? " inference-runtime-diagram" : ""}${isSchedulingMemory ? " scheduling-memory-diagram" : ""}${isStreamingTransport ? " streaming-transport-diagram" : ""}${isReliabilityObservability ? " reliability-observability-diagram" : ""}${isConversationState ? " conversation-state-diagram" : ""}${isStreamingReact ? " streaming-react-diagram" : ""}${isChatActionsContext ? " chat-actions-context-diagram" : ""}`}>
       <header><span>Mechanism</span><strong>{lesson.diagram.title}</strong></header>
       {isRecurrent ? (
         <div className="recurrence-unroll" role="img" aria-label="Three recurrent time steps. Each input and previous hidden state produce a new hidden state, then logits and a next-character probability. The hidden state flows into the next step and the same parameters are reused.">
@@ -394,6 +395,32 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
           <div className="streaming-terminal-policies">
             <span><b>Complete</b> flush pending text → dispatch final batch → announce completion.</span>
             <span><b>Cancel</b> drop pending text → cancel scheduled frame → reject late deltas.</span>
+          </div>
+        </div>
+      ) : isChatActionsContext ? (
+        <div className="chat-actions-worked" role="img" aria-label="A concrete conversation branch. System record s1 and user message m-u3 form the active prefix. Stopping request r-31 retains assistant message m-a3 with the partial text Set future logits and cancelled status. Retry from the same m-u3 prefix creates assistant m-a4, attempt a-32, and request r-32. Editing m-u3 creates user revision m-u3-e1, retains but invalidates the old m-a3 descendant on that branch, and creates assistant m-a5, attempt a-33, and request r-33. A request assembly example reserves system s1 and the active user prompt, then examines complete user-assistant history pairs newest-first, skips an oversized newer pair, admits an older compact pair, and emits the result in chronological order within a 26-token budget.">
+          <div className="chat-active-prefix">
+            <span><b>Required system</b><code>s1 · 6 tokens</code></span>
+            <i aria-hidden="true">→</i>
+            <span><b>Active user</b><code>m-u3 · “Give one implementation detail.”</code></span>
+          </div>
+          <div className="chat-action-branches">
+            <span><b>Stop</b><code>m-a3 · a-31 · r-31</code><em>cancelled · partial “Set future logits” retained</em></span>
+            <span><b>Retry / regenerate</b><code>m-a4 · a-32 · r-32</code><em>same parent m-u3 · new queued attempt</em></span>
+            <span><b>Edit prompt</b><code>m-u3-e1 → m-a5 · a-33 · r-33</code><em>m-a3 retained but invalid on edited branch</em></span>
+          </div>
+          <div className="chat-context-assembly">
+            <header><span>Request assembly · budget 26</span><code>21 / 26 used</code></header>
+            <ol>
+              <li className="required"><b>Required</b><span>s1 + active m-u3</span><code>6 + 6 = 12</code></li>
+              <li className="excluded"><b>Newest pair</b><span>m-u2 + m-a2</span><code>20 tokens · skip</code></li>
+              <li className="included"><b>Older pair</b><span>m-u1 + m-a1</span><code>9 tokens · admit</code></li>
+            </ol>
+            <p><b>Final chronological request</b><code>s1 → m-u1 → m-a1 → m-u3</code><span>21 / 26 tokens · no orphan half-turn</span></p>
+          </div>
+          <div className="chat-context-overflow">
+            <b>Required-prefix overflow</b>
+            <span>System instructions remain selected; <code>overflow: true</code> blocks an unchanged request instead of pretending it is bounded.</span>
           </div>
         </div>
       ) : (

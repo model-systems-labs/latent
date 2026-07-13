@@ -302,6 +302,69 @@
     text-align: left;
   }
 
+  .chat-active-prefix {
+    align-items: start;
+    gap: 0.3rem;
+    grid-template-columns: 1fr;
+  }
+
+  .chat-active-prefix > i {
+    transform: rotate(90deg);
+  }
+
+  .chat-action-branches {
+    grid-template-columns: 1fr;
+  }
+
+  .chat-action-branches > span + span {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    padding-left: 0;
+  }
+
+  .chat-context-assembly > header,
+  .chat-context-assembly > p {
+    align-items: start;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .chat-context-assembly li {
+    align-items: start;
+    grid-template-columns: 1fr;
+  }
+
+  .chat-context-overflow {
+    grid-template-columns: 1fr;
+  }
+
+  .context-action-controls,
+  .context-budget-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .context-action-summary,
+  .context-branch-evidence {
+    grid-template-columns: 1fr;
+  }
+
+  .context-branch-evidence > span + span {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    padding-left: 0;
+  }
+
+  .context-request-heading {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .context-decision-list article {
+    align-items: start;
+    grid-template-columns: 1fr;
+  }
+
   .conversation-identity-chain {
     align-items: start;
     gap: 0.25rem;

@@ -473,3 +473,20 @@ test("Actions and Context renders a concrete branch, actionable flows, and an ex
   assert.match(html, /temperature/);
   assert.match(html, /includedMessageIds/);
 });
+
+test("Product Quality renders one lifecycle, an honest 16-check audit, and the manual verification boundary", async () => {
+  const response = await render("/lessons/chat-product-quality");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /One send through reload/);
+  assert.match(html, /Visual state/);
+  assert.match(html, /Programmatic state/);
+  assert.match(html, /abort transport · cancel frame · reject late event · release request · focus composer/);
+  assert.match(html, /v1 · exact keys · ≤200 terminal messages/);
+  assert.match(html, /Automated · 16 contracts/);
+  assert.match(html, /Manual · 3 groups/);
+  assert.match(html, /16 automated contracts · 3 manual verification groups/);
+  assert.match(html, /Run 16 contract checks/);
+  assert.match(html, /no browser, assistive-technology, or device emulation claims/);
+  assert.match(html, /Run the audit to expose all 16 check-specific results/);
+});

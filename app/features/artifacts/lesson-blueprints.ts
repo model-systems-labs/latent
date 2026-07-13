@@ -178,13 +178,13 @@ const definitions: Record<string, Omit<LessonArtifactBlueprint, "lessonId" | "mo
   "chat-product-quality": {
     kind: "quality-audit",
     title: "Chat product quality audit",
-    description: "A portable audit record for keyboard behavior, storage, context isolation, recovery, and accessibility.",
+    description: "A portable 16-check contract audit with a separate manual boundary for keyboard, screen-reader, and mobile verification.",
     clock: "state", unit: "audit check",
-    payload: { areas: ["keyboard", "storage", "backend isolation", "context", "ARIA"], gate: "all checks pass" },
+    payload: { areas: ["input and focus", "persistence and context", "lifecycle and recovery", "accessibility and responsive contract"], gate: "16 automated checks pass", manual: ["keyboard", "screen reader", "mobile"] },
     frames: [
-      frame(0, 0, "Run interaction checks", { area: "keyboard and cancellation" }, { passed: 2 }),
-      frame(1, 1, "Run state checks", { area: "storage and backend isolation" }, { passed: 4 }),
-      frame(2, 2, "Run accessibility checks", { area: "ARIA and focus" }, { passed: 6 }),
+      frame(0, 0, "Run input and persistence contracts", { areas: 2 }, { passed: 8 }),
+      frame(1, 1, "Run lifecycle and access contracts", { areas: 2 }, { passed: 16 }),
+      frame(2, 2, "Record manual verification boundary", { groups: 3 }, { manualGroups: 3 }),
     ],
   },
 };

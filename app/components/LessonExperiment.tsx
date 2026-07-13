@@ -15,7 +15,7 @@ import {
   type TransformerResult,
 } from "../lib/lab-engines";
 import { markExperimentComplete, saveCharacterRnnArtifact } from "../lib/learner-state";
-import { runCapstoneQualityAudit } from "../lib/capstone-contract";
+import { MANUAL_PRODUCT_VERIFICATION, runCapstoneQualityAudit } from "../lib/capstone-contract";
 
 type ModelMessage = { role: "system" | "user" | "assistant"; content: string };
 type TextGenerator = (
@@ -899,8 +899,30 @@ function ProductExperiment({ variant, onComplete }: { variant: ProductVariant } 
     );
   }
   const checks = runCapstoneQualityAudit();
+  const categories = [...new Set(checks.map((check) => check.category))];
+  const passed = checks.filter((check) => check.passed).length;
   return (
-    <><div className="experiment-action"><p>Executable contract audit · keyboard, storage, backend isolation, context, and ARIA</p><button type="button" onClick={() => { setRan(true); onComplete(); }}>{ran ? "Run audit again" : "Run product audit"}</button></div>{ran ? <div className="quality-grid">{checks.map((check) => <article className={check.passed ? "passed" : "failed"} key={check.label}><i>{check.passed ? "✓" : "×"}</i><div><strong>{check.label}</strong><p>{check.detail}</p></div></article>)}</div> : <p className="experiment-empty">Audit results appear here.</p>}</>
+    <>
+      <div className="experiment-action"><p>Automated contract evidence · 16 deterministic checks · no browser, assistive-technology, or device emulation claims</p><button type="button" onClick={() => { setRan(true); onComplete(); }}>{ran ? "Run 16 checks again" : "Run 16 contract checks"}</button></div>
+      {ran ? (
+        <div className="quality-audit-result">
+          <div className="quality-audit-summary"><span>Automated contract result</span><strong>{passed}/{checks.length} passed</strong><code>{passed === checks.length ? "contract gate satisfied" : `${checks.length - passed} require attention`}</code></div>
+          {categories.map((category) => (
+            <section className="quality-check-group" key={category}>
+              <header><span>{category}</span><code>{checks.filter((check) => check.category === category && check.passed).length}/4</code></header>
+              <div className="quality-grid">
+                {checks.filter((check) => check.category === category).map((check) => <article className={check.passed ? "passed" : "failed"} key={check.label}><i>{check.passed ? "✓" : "×"}</i><div><strong>{check.label}</strong><p>{check.detail}</p></div></article>)}
+              </div>
+            </section>
+          ))}
+          <section className="quality-manual-boundary">
+            <header><span>Manual verification required</span><code>not automated</code></header>
+            <p>These checks need real interaction and observation. Passing the 16 contracts does not pass them.</p>
+            <ol>{MANUAL_PRODUCT_VERIFICATION.map((check) => <li key={check.label}><strong>{check.label}</strong><span>{check.detail}</span></li>)}</ol>
+          </section>
+        </div>
+      ) : <p className="experiment-empty">Run the audit to expose all 16 check-specific results and the separate manual verification list.</p>}
+    </>
   );
 }
 

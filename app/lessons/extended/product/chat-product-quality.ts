@@ -11,34 +11,35 @@ export const chatProductQualityLesson = defineExtendedLesson({
     modeLabel: "Product verification",
     eyebrow: "Quality · Persistence, a11y, latency",
     title: "Product Quality",
-    thesis: "A functional chat demo becomes a product when state survives safely, keyboard and assistive technology paths work, and latency has intentional intermediate states.",
+    thesis: "A chat product is a verifiable contract: every input, generation phase, announcement, recovery action, and persisted record must remain understandable after failure and reload.",
     paperUrl: "https://www.w3.org/WAI/ARIA/apg/patterns/log/",
     paperTitle: "Log Pattern",
     authors: "W3C WAI-ARIA Authoring Practices",
     year: "Current reference",
     summary: [
-      { label: "Persistence.", body: "Conversation records require schema versions and validation. Browser storage is appropriate for device-local history and preferences, but secrets and provider keys should remain session-only." },
-      { label: "Keyboard path.", body: "Send, stop, retry, conversation switching, settings, and message actions require visible focus and predictable keyboard behavior independent of pointer hover." },
-      { label: "Live updates.", body: "The conversation log and streaming status need carefully scoped announcements. Token-by-token aria-live output is noisy; silence is equally unhelpful." },
-      { label: "Perceived latency.", body: "Queued, loading, prefill, streaming, cancelled, and failed are distinct user states. Honest phase feedback reduces uncertainty without inventing progress percentages." },
+      { label: "One observable lifecycle.", body: "Enter queues a request; loading and prefill explain the wait; streaming adds bounded visual and programmatic updates; complete, cancelled, and error are terminal states. The visible label must come from the same phase that controls Stop and Retry." },
+      { label: "Recovery includes focus.", body: "Stop and regeneration are state transitions, not decorative buttons. Late events must be rejected, resources released, partial output labeled, and keyboard focus returned to a predictable control." },
+      { label: "Persistence is an input boundary.", body: "Reloaded history is untrusted data. A versioned record should admit only its exact safe fields, bounded terminal messages, and known roles and backends; streaming state and every secret-shaped extra field are rejected." },
+      { label: "Automation has a boundary.", body: "Pure contract checks can verify mappings, guards, serialization, and responsive requirements. They cannot prove focus order, screen-reader speech, touch ergonomics, or layout at a real viewport; those remain explicit manual checks." },
     ],
     claims: {
       paper: "Dynamic sequential content can use an accessible log pattern that preserves reading order and announces meaningful additions.",
-      lab: "The browser audits keyboard actions, live announcements, storage migration, and phase-specific latency states against a deterministic checklist.",
+      lab: "The browser runs 16 deterministic contract checks across input, persistence, lifecycle, accessibility, and responsive requirements, then names the keyboard, screen-reader, and mobile checks that still require a person.",
       limit: "Automated checks supplement rather than replace testing with real browsers, keyboards, screen readers, and users.",
     },
     diagram: {
-      title: "Product state surface",
-      caption: "The same generation lifecycle must be legible visually, programmatically, and after reload.",
+      title: "One send through reload",
+      caption: "The visual surface, programmatic status, recovery controls, and safe persisted record follow one request without claiming that automated contracts replace device testing.",
       nodes: [
-        { label: "Persist", value: "versioned local record" },
-        { label: "Operate", value: "keyboard + pointer" },
-        { label: "Announce", value: "bounded live updates" },
-        { label: "Recover", value: "cancel / retry / restore" },
+        { label: "Send", value: "Enter → queued" },
+        { label: "Wait", value: "loading → prefill" },
+        { label: "Generate", value: "streaming → bounded batches" },
+        { label: "Recover", value: "cancel / retry → composer focus" },
+        { label: "Reload", value: "validate v1 → restore terminal messages" },
       ],
     },
     questions: { intro: "Ask about local persistence, schema migration, live regions, focus management, or honest latency states.", suggestions: ["What chat data should never be persisted?", "How often should streaming text be announced?", "What should receive focus after retry?"] },
-    dataset: { name: "Product Audit", source: "Original deterministic checklist", license: "CC0", size: "16 checks · desktop and mobile", preview: "keyboard · focus · live region · storage · recovery" },
+    dataset: { name: "Product Contract Audit", source: "Original deterministic checklist", license: "CC0", size: "16 automated contracts · 3 manual verification groups", preview: "input + focus · persistence · lifecycle · accessibility + responsive contract" },
     implementation: {
       filename: "chat-quality.js",
       intro: "Implement storage validation and user-visible phase labels before running the capstone product audit.",
@@ -46,18 +47,53 @@ export const chatProductQualityLesson = defineExtendedLesson({
         {
           id: "storage-validation",
           label: "Storage validation",
-          purpose: "Accept only the current local conversation schema and safe serializable fields.",
+          purpose: "Accept only one bounded v1 conversation record made of exact safe terminal-message fields.",
           concepts: [
             { name: "version", detail: "Explicit schema version used for migration decisions." },
-            { name: "Array.isArray", detail: "Rejects malformed message collections." },
-            { name: "apiKey", detail: "Secret field that must never enter persisted chat state." },
+            { name: "exact keys", detail: "Rejects top-level and nested extras, including secret-shaped fields." },
+            { name: "terminal messages", detail: "Streaming messages are never restored as if their request were still alive." },
           ],
           code: `function validConversationRecord(record) {
-  return Boolean(record) && record.version === 1 && typeof record.id === "string" && Array.isArray(record.messages) && !("apiKey" in record);
+  const isPlainObject = (value) =>
+    Boolean(value) && typeof value === "object" && !Array.isArray(value) &&
+    Object.getPrototypeOf(value) === Object.prototype;
+  const hasExactKeys = (value, required, optional = []) => {
+    const keys = Reflect.ownKeys(value);
+    const allowed = [...required, ...optional];
+    return required.every((key) => Object.prototype.hasOwnProperty.call(value, key)) &&
+      keys.every((key) => typeof key === "string" && allowed.includes(key));
+  };
+  const validId = (value) =>
+    typeof value === "string" && value.trim().length > 0 && value.length <= 128;
+  const validMessage = (message) => {
+    if (!isPlainObject(message) || !hasExactKeys(
+      message,
+      ["id", "role", "backend", "content", "status"],
+      ["attemptId", "parentUserId"],
+    )) return false;
+    if (!validId(message.id) || !["user", "assistant"].includes(message.role)) return false;
+    if (!["student", "local"].includes(message.backend)) return false;
+    if (typeof message.content !== "string" || message.content.length > 20000) return false;
+    if (!["complete", "cancelled", "error"].includes(message.status)) return false;
+    if ("attemptId" in message && !validId(message.attemptId)) return false;
+    if ("parentUserId" in message && !validId(message.parentUserId)) return false;
+    return true;
+  };
+
+  if (!isPlainObject(record) || !hasExactKeys(record, ["version", "id", "messages"])) return false;
+  if (record.version !== 1 || !validId(record.id)) return false;
+  if (!Array.isArray(record.messages) || record.messages.length > 200) return false;
+  if (!record.messages.every(validMessage)) return false;
+  if (record.messages.reduce((sum, message) => sum + message.content.length, 0) > 200000) return false;
+  try {
+    return typeof JSON.stringify(record) === "string";
+  } catch {
+    return false;
+  }
 }`,
-          checkCode: `const safe = validConversationRecord({ version: 1, id: "c1", messages: [] });
-const secret = validConversationRecord({ version: 1, id: "c1", messages: [], apiKey: "no" });
-return { passed: safe === true && secret === false, detail: "safe accepted · secret rejected" };`,
+          checkCode: `const safe = validConversationRecord({ version: 1, id: "c1", messages: [{ id: "u1", role: "user", backend: "local", content: "Hello", status: "complete" }] });
+const secret = validConversationRecord({ version: 1, id: "c1", messages: [{ id: "u1", role: "user", backend: "local", content: "Hello", status: "complete", apiKey: "no" }] });
+return { passed: safe === true && secret === false, detail: "safe terminal message accepted · nested secret rejected" };`,
         },
         {
           id: "phase-label",
@@ -74,16 +110,17 @@ return { passed: safe === true && secret === false, detail: "safe accepted · se
     loading: "Loading model",
     prefill: "Processing context",
     streaming: "Generating",
+    complete: "Complete",
     cancelled: "Stopped",
     error: "Generation failed",
   };
-  return labels[phase] ?? "Ready";
+  return labels[phase] ?? "Status unavailable";
 }`,
           checkCode: `const known = generationStatusLabel("prefill");
 const unknown = generationStatusLabel("future-state");
-return { passed: known === "Processing context" && unknown === "Ready", detail: known + " · " + unknown };`,
+return { passed: known === "Processing context" && unknown === "Status unavailable", detail: known + " · " + unknown };`,
         },
       ],
     },
-    experiment: { kind: "product", variant: "quality", title: "Audit the chat product", intro: "Run the full keyboard, persistence, announcement, recovery, and latency-state checklist against the capstone interface." },
+    experiment: { kind: "product", variant: "quality", title: "Audit the product contract", intro: "Run 16 deterministic checks against the same contracts used by the capstone, then use the manual list for real keyboard, screen-reader, and mobile verification." },
   });

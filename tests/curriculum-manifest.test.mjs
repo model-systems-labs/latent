@@ -1164,11 +1164,53 @@ test("Actions and Context treats branches as durable records and admits only com
   assert.deepEqual(Object.keys(regenerationReference(frozenInput)).sort(), ["attemptId", "content", "messageId", "parentUserId", "role", "status"]);
 });
 
+test("Product Quality rejects shallow persistence guards and incomplete phase labels", () => {
+  const lesson = course.courseLessons.find((candidate) => candidate.id === "chat-product-quality");
+  assert.ok(lesson);
+  assert.equal(lesson.diagram.title, "One send through reload");
+  assert.match(lesson.dataset.size, /16 automated contracts · 3 manual verification groups/);
+  assert.match(lesson.claims.limit, /real browsers, keyboards, screen readers, and users/);
+
+  const byId = new Map(contracts.llmSystemsExerciseContracts.map((contract) => [contract.id, contract]));
+  const observe = (implementation, sourceArgs) => {
+    try {
+      return { status: "returned", value: implementation(...structuredClone(sourceArgs)) };
+    } catch (reason) {
+      return { status: "threw", errorName: reason instanceof Error ? reason.name : "Error", message: reason instanceof Error ? reason.message : String(reason) };
+    }
+  };
+  const evaluate = (contract, implementation) => contract.cases.map((exerciseCase) =>
+    contractRuntime.evaluateExerciseCase(contract, exerciseCase, observe(implementation, exerciseCase.invoke.args)));
+  const accepts = (contract, implementation) => assert.ok(evaluate(contract, implementation).every((result) => result.passed));
+
+  const storage = byId.get("chat-product-quality/storage-validation");
+  assert.ok(storage);
+  assert.equal(storage.cases.length, 11);
+  const shallow = (record) => Boolean(record) && record.version === 1 && typeof record.id === "string" && Array.isArray(record.messages) && !("apiKey" in record);
+  const shallowResults = evaluate(storage, shallow);
+  assert.ok(shallowResults.some((result) => !result.passed));
+  assert.match(practiceFeedback.formatPracticeContractDetail(shallowResults), /exact message keys/);
+  const storageBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "storage-validation");
+  assert.ok(storageBlock);
+  accepts(storage, new Function(`${storageBlock.code}; return validConversationRecord;`)());
+
+  const phases = byId.get("chat-product-quality/phase-label");
+  assert.ok(phases);
+  assert.equal(phases.cases.length, 8);
+  const missingComplete = (phase) => ({ queued: "Waiting for capacity", loading: "Loading model", prefill: "Processing context", streaming: "Generating", cancelled: "Stopped", error: "Generation failed" })[phase] ?? "Ready";
+  const phaseResults = evaluate(phases, missingComplete);
+  assert.ok(phaseResults.some((result) => !result.passed));
+  assert.match(practiceFeedback.formatPracticeContractDetail(phaseResults), /complete explicitly/);
+  const phaseBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "phase-label");
+  assert.ok(phaseBlock);
+  accepts(phases, new Function(`${phaseBlock.code}; return generationStatusLabel;`)());
+});
+
 test("practice verification is inseparable from the exact editor source and contract version", () => {
   const block = { id: "rnn-step", code: "function rnnStep() { return 'reference'; }" };
   const correct = "function rnnStep() { return 'correct learner answer'; }";
   const wrong = "function rnnStep() { return 'wrong learner answer'; }";
-  const currentVersion = "llm-systems-contracts-v13";
+  const currentVersion = "llm-systems-contracts-v14";
   const bound = practiceState.bindBlockVerification(
     { ids: [], sources: {}, contractVersion: null },
     block.id,

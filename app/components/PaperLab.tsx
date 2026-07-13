@@ -88,13 +88,14 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
   const isConversationState = lesson.id === "conversation-state";
   const isStreamingReact = lesson.id === "streaming-react";
   const isChatActionsContext = lesson.id === "chat-actions-context";
+  const isChatProductQuality = lesson.id === "chat-product-quality";
   const recurrentSteps = [
     { time: "t − 1", input: "x_(t−1)", previous: "h_(t−2)", state: "h_(t−1)", prediction: "p(x_t)" },
     { time: "t", input: "x_t", previous: "h_(t−1)", state: "h_t", prediction: "p(x_(t+1))" },
     { time: "t + 1", input: "x_(t+1)", previous: "h_t", state: "h_(t+1)", prediction: "p(x_(t+2))" },
   ];
   return (
-    <figure className={`concept-diagram${isRecurrent ? " recurrence-diagram" : ""}${isNeuralLanguageModel ? " neural-lm-diagram" : ""}${isSubwordTokenization ? " subword-tokenization-diagram" : ""}${isAdditiveAttention ? " additive-attention-diagram" : ""}${isTransformer ? " transformer-attention-diagram" : ""}${isInContextLearning ? " icl-comparison-diagram" : ""}${isInferenceRuntime ? " inference-runtime-diagram" : ""}${isSchedulingMemory ? " scheduling-memory-diagram" : ""}${isStreamingTransport ? " streaming-transport-diagram" : ""}${isReliabilityObservability ? " reliability-observability-diagram" : ""}${isConversationState ? " conversation-state-diagram" : ""}${isStreamingReact ? " streaming-react-diagram" : ""}${isChatActionsContext ? " chat-actions-context-diagram" : ""}`}>
+    <figure className={`concept-diagram${isRecurrent ? " recurrence-diagram" : ""}${isNeuralLanguageModel ? " neural-lm-diagram" : ""}${isSubwordTokenization ? " subword-tokenization-diagram" : ""}${isAdditiveAttention ? " additive-attention-diagram" : ""}${isTransformer ? " transformer-attention-diagram" : ""}${isInContextLearning ? " icl-comparison-diagram" : ""}${isInferenceRuntime ? " inference-runtime-diagram" : ""}${isSchedulingMemory ? " scheduling-memory-diagram" : ""}${isStreamingTransport ? " streaming-transport-diagram" : ""}${isReliabilityObservability ? " reliability-observability-diagram" : ""}${isConversationState ? " conversation-state-diagram" : ""}${isStreamingReact ? " streaming-react-diagram" : ""}${isChatActionsContext ? " chat-actions-context-diagram" : ""}${isChatProductQuality ? " chat-product-quality-diagram" : ""}`}>
       <header><span>Mechanism</span><strong>{lesson.diagram.title}</strong></header>
       {isRecurrent ? (
         <div className="recurrence-unroll" role="img" aria-label="Three recurrent time steps. Each input and previous hidden state produce a new hidden state, then logits and a next-character probability. The hidden state flows into the next step and the same parameters are reused.">
@@ -421,6 +422,29 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
           <div className="chat-context-overflow">
             <b>Required-prefix overflow</b>
             <span>System instructions remain selected; <code>overflow: true</code> blocks an unchanged request instead of pretending it is bounded.</span>
+          </div>
+        </div>
+      ) : isChatProductQuality ? (
+        <div className="quality-product-trace" role="img" aria-label="One end-to-end chat product trace. Enter sends a request, whose exact phases are queued, loading, prefill, streaming, and complete. Visual status and programmatic status expose the same phase. Streaming text is visually batched and announced in bounded semantic updates. Cancellation or retry rejects late events, releases transport and render resources, and returns focus to the composer. Reload validates an exact version 1 record containing only bounded terminal messages. Sixteen deterministic contract checks cover code-level behavior, while keyboard, screen-reader, and mobile behavior remain explicit manual verification tasks.">
+          <ol className="quality-lifecycle-trace">
+            {lesson.diagram.nodes.map((node, index) => (
+              <li key={node.label}>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <div><strong>{node.label}</strong><code>{node.value}</code></div>
+              </li>
+            ))}
+          </ol>
+          <div className="quality-state-pair">
+            <span><b>Visual state</b><code>Waiting for capacity → Loading model → Processing context → Generating → Complete</code></span>
+            <span><b>Programmatic state</b><code>status / polite / atomic · log / polite · batched additions</code></span>
+          </div>
+          <div className="quality-recovery-record">
+            <span><b>Cancel or retry</b><code>abort transport · cancel frame · reject late event · release request · focus composer</code></span>
+            <span><b>Safe reload</b><code>v1 · exact keys · ≤200 terminal messages · known role/backend/status · no secrets</code></span>
+          </div>
+          <div className="quality-verification-boundary">
+            <span><b>Automated · 16 contracts</b> mappings, guards, bounds, serialization, lifecycle, accessibility metadata, and responsive requirements.</span>
+            <span><b>Manual · 3 groups</b> actual focus order, screen-reader speech, and 320/390 px keyboard and touch behavior.</span>
           </div>
         </div>
       ) : (

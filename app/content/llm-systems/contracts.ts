@@ -1466,15 +1466,76 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     cases: [
       {
         id: "current-safe-record",
-        label: "Accepts a current serializable conversation record",
-        args: [{ version: 1, id: "c1", messages: [] }],
-        assertions: [equal("safe-record", "Accepts the safe record", true)],
+        label: "Accepts the exact current schema with terminal messages",
+        args: [{
+          version: 1,
+          id: "c1",
+          messages: [
+            { id: "u1", role: "user", backend: "local", content: "Explain masking.", status: "complete" },
+            { id: "a1", role: "assistant", backend: "local", content: "Future logits are masked.", status: "cancelled", attemptId: "attempt-1", parentUserId: "u1" },
+          ],
+        }],
+        assertions: [equal("safe-record", "Accept the exact v1 record, including supported optional attempt and parent ids", true)],
+      },
+      {
+        id: "nested-secret-field",
+        label: "Rejects secret-shaped extras inside a message",
+        args: [{ version: 1, id: "c1", messages: [{ id: "u1", role: "user", backend: "local", content: "Hello", status: "complete", providerKey: "no" }] }],
+        assertions: [equal("nested-secret-rejected", "Require exact message keys so providerKey, apiKey, and every unknown nested field are rejected", false)],
       },
       {
         id: "record-containing-secret",
-        label: "Rejects a conversation record containing an API key",
+        label: "Rejects extra top-level fields",
         args: [{ version: 1, id: "c1", messages: [], apiKey: "no" }],
-        assertions: [equal("secret-rejected", "Prevents secret persistence", false)],
+        assertions: [equal("secret-rejected", "Require exactly version, id, and messages at the top level; never persist apiKey", false)],
+      },
+      {
+        id: "streaming-message",
+        label: "Rejects a streaming message",
+        args: [{ version: 1, id: "c1", messages: [{ id: "a1", role: "assistant", backend: "local", content: "partial", status: "streaming" }] }],
+        assertions: [equal("streaming-rejected", "Persist only terminal complete, cancelled, or error messages so reload cannot resurrect an in-flight request", false)],
+      },
+      {
+        id: "unsupported-message-domain",
+        label: "Rejects unknown roles, backends, and statuses",
+        args: [{ version: 1, id: "c1", messages: [{ id: "s1", role: "system", backend: "remote", content: "secret", status: "ready" }] }],
+        assertions: [equal("domain-rejected", "Accept only user or assistant, student or local, and a supported terminal status", false)],
+      },
+      {
+        id: "blank-identities",
+        label: "Rejects blank record and message identities",
+        args: [{ version: 1, id: "   ", messages: [{ id: "", role: "user", backend: "local", content: "Hello", status: "complete" }] }],
+        assertions: [equal("blank-ids-rejected", "Require non-empty record and message ids rather than checking only typeof string", false)],
+      },
+      {
+        id: "invalid-optional-identity",
+        label: "Validates optional ancestry identities when present",
+        args: [{ version: 1, id: "c1", messages: [{ id: "a1", role: "assistant", backend: "local", content: "Hello", status: "complete", attemptId: "" }] }],
+        assertions: [equal("optional-id-rejected", "If attemptId or parentUserId is present, require the same non-empty bounded identity contract", false)],
+      },
+      {
+        id: "oversized-content",
+        label: "Rejects an oversized message",
+        args: [{ version: 1, id: "c1", messages: [{ id: "u1", role: "user", backend: "local", content: "x".repeat(20_001), status: "complete" }] }],
+        assertions: [equal("content-bound", "Bound each message to at most 20,000 characters before persistence", false)],
+      },
+      {
+        id: "too-many-messages",
+        label: "Rejects an oversized message collection",
+        args: [{ version: 1, id: "c1", messages: Array.from({ length: 201 }, (_, index) => ({ id: `m${index}`, role: "user", backend: "student", content: "x", status: "complete" })) }],
+        assertions: [equal("message-count-bound", "Bound one persisted conversation to at most 200 messages", false)],
+      },
+      {
+        id: "oversized-conversation",
+        label: "Rejects an oversized conversation payload",
+        args: [{ version: 1, id: "c1", messages: Array.from({ length: 11 }, (_, index) => ({ id: `m${index}`, role: "user", backend: "student", content: "x".repeat(20_000), status: "complete" })) }],
+        assertions: [equal("conversation-character-bound", "Keep every message within 20,000 characters and the full conversation within 200,000 characters", false)],
+      },
+      {
+        id: "non-record-input",
+        label: "Rejects arrays and malformed top-level values",
+        args: [[{ version: 1, id: "c1", messages: [] }]],
+        assertions: [equal("plain-record-required", "Require a plain object, not an array or another object kind", false)],
       },
     ],
   }),
@@ -1485,22 +1546,58 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     exportName: "generationStatusLabel",
     cases: [
       {
-        id: "known-prefill-phase",
-        label: "Labels a known generation phase honestly",
+        id: "queued-phase",
+        label: "Labels queue admission honestly",
+        args: ["queued"],
+        assertions: [equal("queued-label", "Use the exact queue-capacity label", "Waiting for capacity")],
+      },
+      {
+        id: "loading-phase",
+        label: "Labels model loading honestly",
+        args: ["loading"],
+        assertions: [equal("loading-label", "Use the exact model-loading label", "Loading model")],
+      },
+      {
+        id: "prefill-phase",
+        label: "Labels prompt prefill honestly",
         args: ["prefill"],
-        assertions: [equal("known-label", "Uses the prefill label", "Processing context")],
+        assertions: [equal("prefill-label", "Use the exact context-processing label", "Processing context")],
+      },
+      {
+        id: "streaming-phase",
+        label: "Labels active generation honestly",
+        args: ["streaming"],
+        assertions: [equal("streaming-label", "Use the exact active-generation label", "Generating")],
+      },
+      {
+        id: "complete-phase",
+        label: "Labels completion as a terminal phase",
+        args: ["complete"],
+        assertions: [equal("complete-label", "Map complete explicitly instead of falling through to a generic ready label", "Complete")],
+      },
+      {
+        id: "cancelled-phase",
+        label: "Labels cancellation honestly",
+        args: ["cancelled"],
+        assertions: [equal("cancelled-label", "Use the exact stopped label", "Stopped")],
+      },
+      {
+        id: "error-phase",
+        label: "Labels failure honestly",
+        args: ["error"],
+        assertions: [equal("error-label", "Use the exact generation-failed label", "Generation failed")],
       },
       {
         id: "unknown-future-phase",
         label: "Falls back safely for an unknown future phase",
         args: ["future-state"],
-        assertions: [equal("fallback-label", "Uses the safe fallback", "Ready")],
+        assertions: [equal("fallback-label", "Do not describe an unknown state as Ready; use the explicit unavailable fallback", "Status unavailable")],
       },
     ],
   }),
 ];
 
 export const llmSystemsContractSuite: ContractSuite = {
-  contractVersion: "llm-systems-contracts-v13",
+  contractVersion: "llm-systems-contracts-v14",
   contracts: llmSystemsExerciseContracts,
 };

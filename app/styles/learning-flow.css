@@ -2837,6 +2837,98 @@ button:disabled {
   padding: 0.78rem 0;
 }
 
+.quality-product-trace {
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+}
+
+.quality-lifecycle-trace {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.quality-lifecycle-trace li {
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+  padding: 0.8rem 0.65rem;
+}
+
+.quality-lifecycle-trace li + li {
+  border-left: 1px solid var(--line);
+}
+
+.quality-lifecycle-trace li > span,
+.quality-state-pair b,
+.quality-recovery-record b,
+.quality-verification-boundary b {
+  color: var(--violet);
+  font-family: var(--mono);
+  font-size: 0.5rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.quality-lifecycle-trace li > div,
+.quality-state-pair > span,
+.quality-recovery-record > span,
+.quality-verification-boundary > span {
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.quality-lifecycle-trace strong {
+  font-size: 0.64rem;
+  font-weight: 560;
+}
+
+.quality-lifecycle-trace code,
+.quality-state-pair code,
+.quality-recovery-record code {
+  color: var(--muted);
+  font-size: 0.5rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.quality-state-pair,
+.quality-recovery-record,
+.quality-verification-boundary {
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.quality-state-pair > span,
+.quality-recovery-record > span,
+.quality-verification-boundary > span {
+  padding: 0.82rem 0;
+}
+
+.quality-state-pair > span + span,
+.quality-recovery-record > span + span,
+.quality-verification-boundary > span + span {
+  border-left: 1px solid var(--line);
+  padding-left: 0.85rem;
+}
+
+.quality-verification-boundary > span {
+  color: var(--muted);
+  font-family: var(--serif);
+  font-size: 0.68rem;
+  line-height: 1.5;
+}
+
+.quality-verification-boundary b {
+  display: block;
+  margin-bottom: 0.28rem;
+}
+
 .scheduler-shared-workload {
   border-bottom: 1px solid var(--line);
   display: grid;
@@ -3846,7 +3938,7 @@ button:disabled {
 
 .experiment-lab .quality-grid {
   gap: 0;
-  padding: 1rem 0 0;
+  padding: 0;
 }
 
 .experiment-lab .quality-grid article {
@@ -3854,4 +3946,100 @@ button:disabled {
   border-top: 1px solid var(--line);
   padding-left: 0;
   padding-right: 0;
+}
+
+.quality-audit-result {
+  border-top: 1px solid var(--line);
+}
+
+.quality-audit-summary {
+  align-items: baseline;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(10rem, 0.8fr) minmax(8rem, 0.5fr) minmax(0, 1fr);
+  padding: 1rem 0;
+}
+
+.quality-audit-summary span,
+.quality-check-group > header span,
+.quality-manual-boundary > header span {
+  color: var(--violet);
+  font-size: 0.56rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.quality-audit-summary strong {
+  font-family: var(--serif);
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.quality-audit-summary code,
+.quality-check-group > header code,
+.quality-manual-boundary > header code {
+  color: var(--muted);
+  font-size: 0.54rem;
+  text-align: right;
+}
+
+.quality-check-group,
+.quality-manual-boundary {
+  border-top: 1px solid var(--line);
+}
+
+.quality-check-group > header,
+.quality-manual-boundary > header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  padding: 0.8rem 0 0.2rem;
+}
+
+.quality-check-group .quality-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.quality-check-group .quality-grid article:nth-child(even) {
+  padding-left: 1rem;
+}
+
+.quality-check-group .quality-grid article:nth-child(odd) {
+  padding-right: 1rem;
+}
+
+.quality-manual-boundary > p {
+  color: var(--muted);
+  font-family: var(--serif);
+  font-size: 0.72rem;
+  line-height: 1.5;
+  margin: 0.5rem 0 0;
+}
+
+.quality-manual-boundary ol {
+  list-style: none;
+  margin: 0.7rem 0 0;
+  padding: 0;
+}
+
+.quality-manual-boundary li {
+  align-items: baseline;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(9rem, 0.45fr) minmax(0, 1.55fr);
+  padding: 0.75rem 0;
+}
+
+.quality-manual-boundary li strong {
+  font-size: 0.66rem;
+  font-weight: 560;
+}
+
+.quality-manual-boundary li span {
+  color: var(--muted);
+  font-family: var(--serif);
+  font-size: 0.72rem;
+  line-height: 1.5;
 }

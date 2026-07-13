@@ -338,6 +338,22 @@
     grid-template-columns: 1fr;
   }
 
+  .quality-lifecycle-trace,
+  .quality-state-pair,
+  .quality-recovery-record,
+  .quality-verification-boundary {
+    grid-template-columns: 1fr;
+  }
+
+  .quality-lifecycle-trace li + li,
+  .quality-state-pair > span + span,
+  .quality-recovery-record > span + span,
+  .quality-verification-boundary > span + span {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    padding-left: 0;
+  }
+
   .context-action-controls,
   .context-budget-controls {
     align-items: stretch;
@@ -904,6 +920,26 @@
   .state-inspector,
   .quality-grid {
     grid-template-columns: 1fr;
+  }
+
+  .quality-audit-summary,
+  .quality-check-group .quality-grid,
+  .quality-manual-boundary li {
+    grid-template-columns: 1fr;
+  }
+
+  .quality-audit-summary {
+    gap: 0.35rem;
+  }
+
+  .quality-audit-summary code {
+    text-align: left;
+  }
+
+  .quality-check-group .quality-grid article:nth-child(even),
+  .quality-check-group .quality-grid article:nth-child(odd) {
+    padding-left: 0;
+    padding-right: 0;
   }
 
   .system-architecture article {

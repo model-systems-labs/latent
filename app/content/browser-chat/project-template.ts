@@ -311,7 +311,7 @@ function messageRecord(input: {
 
 function restoreMessages(record: unknown): Message[] {
   if (!validConversationRecord(record)) return [];
-  return record.messages.filter((message: unknown): message is Message => {
+  return record.messages.filter((message: unknown): message is Omit<Message, "createdAt"> => {
     if (!message || typeof message !== "object") return false;
     const candidate = message as Partial<Message>;
     return typeof candidate.id === "string"
@@ -319,14 +319,24 @@ function restoreMessages(record: unknown): Message[] {
       && (candidate.backend === "student" || candidate.backend === "local")
       && typeof candidate.content === "string"
       && ["complete", "cancelled", "error"].includes(String(candidate.status));
-  });
+  }).map((message: Omit<Message, "createdAt">) => ({ ...message, createdAt: 0 }));
 }
 
 function conversationRecord(messages: Message[]) {
   return {
     version: 1,
     id: "active",
-    messages: messages.filter((message) => message.status !== "streaming"),
+    messages: messages
+      .filter((message) => message.status !== "streaming")
+      .map(({ id, role, backend, content, status, attemptId, parentUserId }) => ({
+        id,
+        role,
+        backend,
+        content,
+        status,
+        ...(attemptId ? { attemptId } : {}),
+        ...(parentUserId ? { parentUserId } : {}),
+      })),
   };
 }
 
@@ -347,6 +357,7 @@ export function BrowserChat() {
   const activeHandle = useRef<GenerationHandle | null>(null);
   const activeRequest = useRef<{ id: string; status: string } | null>(null);
   const transcriptRef = useRef<HTMLDivElement | null>(null);
+  const composerRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -460,6 +471,7 @@ export function BrowserChat() {
       setPhase(nextPhase);
       activeHandle.current = null;
       window.setTimeout(followTranscript, 0);
+      window.setTimeout(() => composerRef.current?.focus(), 0);
     };
 
     activeHandle.current = startGeneration({
@@ -544,6 +556,7 @@ export function BrowserChat() {
     const activeAssistant = [...state.messages].reverse().find((message) => message.backend === backend && message.status === "streaming");
     if (activeAssistant) dispatch({ type: "terminal", messageId: activeAssistant.id, status: "cancelled" });
     setPhase("cancelled");
+    window.setTimeout(() => composerRef.current?.focus(), 0);
   };
 
   const clear = () => {
@@ -585,9 +598,9 @@ export function BrowserChat() {
           <span className="project-label">browser-chat / active build</span>
           <h1>Browser Chat</h1>
         </div>
-        <div className="phase-status" data-phase={phase}>
+        <div className="phase-status" data-phase={phase} role="status" aria-live="polite" aria-atomic="true">
           <i />
-          <span>{generating ? generationStatusLabel(phase) : phase === "error" ? "Generation failed" : "Ready"}</span>
+          <span>{generationStatusLabel(phase)}</span>
         </div>
       </header>
 
@@ -665,6 +678,7 @@ export function BrowserChat() {
 
           <form className="composer" onSubmit={(event) => { event.preventDefault(); send(); }}>
             <textarea
+              ref={composerRef}
               aria-label="Chat message"
               placeholder="Ask about the model, runtime, or serving path…"
               value={input}

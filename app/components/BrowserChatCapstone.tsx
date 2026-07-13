@@ -148,18 +148,28 @@ function generationPayload(value: PreviewJson): GenerationPayload | null {
 function safeConversationMessages(value: PreviewJson): PersistedChatMessage[] | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const payload = value as Record<string, PreviewJson>;
+  if (Object.keys(payload).length !== 1 || !("record" in payload)) return null;
   const record = payload.record;
   if (!record || typeof record !== "object" || Array.isArray(record)) return null;
   const candidate = record as Record<string, PreviewJson>;
-  if (candidate.version !== 1 || typeof candidate.id !== "string" || !Array.isArray(candidate.messages) || candidate.messages.length > 200 || "apiKey" in candidate) return null;
+  const recordKeys = Object.keys(candidate);
+  if (recordKeys.length !== 3 || !recordKeys.every((key) => ["version", "id", "messages"].includes(key))) return null;
+  if (candidate.version !== 1 || typeof candidate.id !== "string" || !candidate.id.trim() || candidate.id.length > 128
+    || !Array.isArray(candidate.messages) || candidate.messages.length > 200) return null;
   const messages: PersistedChatMessage[] = [];
   let characters = 0;
   for (const raw of candidate.messages) {
     if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
     const message = raw as Record<string, PreviewJson>;
-    if (typeof message.id !== "string" || (message.role !== "user" && message.role !== "assistant")
-      || (message.backend !== "student" && message.backend !== "local") || typeof message.content !== "string"
+    const messageKeys = Object.keys(message);
+    if (!messageKeys.every((key) => ["id", "role", "backend", "content", "status", "attemptId", "parentUserId"].includes(key))
+      || !["id", "role", "backend", "content", "status"].every((key) => key in message)) return null;
+    if (typeof message.id !== "string" || !message.id.trim() || message.id.length > 128
+      || (message.role !== "user" && message.role !== "assistant")
+      || (message.backend !== "student" && message.backend !== "local") || typeof message.content !== "string" || message.content.length > 20_000
       || (message.status !== "complete" && message.status !== "cancelled" && message.status !== "error")) return null;
+    if (("attemptId" in message && (typeof message.attemptId !== "string" || !message.attemptId.trim() || message.attemptId.length > 128))
+      || ("parentUserId" in message && (typeof message.parentUserId !== "string" || !message.parentUserId.trim() || message.parentUserId.length > 128))) return null;
     characters += message.content.length;
     if (characters > 200_000) return null;
     messages.push({

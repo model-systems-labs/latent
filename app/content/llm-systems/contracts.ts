@@ -575,7 +575,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
         id: "zero-shot-prompt",
         label: "Builds a zero-shot prompt without a phantom demonstration",
         args: [{ instruction: "  Return K or M.  ", demonstrations: "   \n ", query: "  The same held-out review.  " }],
-        assertions: [equal("prompt", "Trim fields, omit a whitespace-only demonstration section, and finish the held-out query with Label:", "Return K or M.\n\nInput: The same held-out review.\nLabel:")],
+        assertions: [equal("prompt", "Keep the trimmed instruction, omit a whitespace-only demonstration section, and finish the held-out query with Label:", "Return K or M.\n\nInput: The same held-out review.\nLabel:")],
       },
       {
         id: "one-shot-prompt",
@@ -642,14 +642,38 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     exportName: "inferencePhases",
     cases: [
       {
-        id: "prefill-and-decode",
-        label: "Separates parallel prefill tokens from serial decode iterations",
+        id: "multi-token-output",
+        label: "Counts the first generated token as a prefill sample",
         args: [96, 32],
-        assertions: [equal("phase-counts", "Accounts for all prompt and output positions", {
-          prefillTokens: 96,
-          decodeIterations: 32,
-          totalTokenPositions: 128,
-        })],
+        assertions: [
+          equal("prefill-count", "Keep all prompt tokens in the parallel prefill phase", 96, ["prefillTokens"]),
+          equal("generated-count", "Report all 32 requested output tokens as generated", 32, ["generatedTokens"]),
+          equal("decode-forwards", "Use 31 subsequent decode forwards because prefill logits sample token 1", 31, ["decodeForwards"]),
+          equal("processed-positions", "Count prompt positions plus only the 31 subsequent decode inputs", 127, ["processedTokenPositions"]),
+          equal("final-length", "Count prompt plus all generated tokens in the final sequence", 128, ["finalSequenceLength"]),
+        ],
+      },
+      {
+        id: "one-token-output",
+        label: "Produces one token directly from prefill logits",
+        args: [12, 1],
+        assertions: [
+          equal("single-generated", "Report the one token sampled from prefill logits", 1, ["generatedTokens"]),
+          equal("no-followup-decode", "Use zero subsequent decode forwards for a one-token output", 0, ["decodeForwards"]),
+          equal("single-processed-positions", "Do not count the final sampled token as another processed input", 12, ["processedTokenPositions"]),
+          equal("single-final-length", "Include the sampled token in final sequence length", 13, ["finalSequenceLength"]),
+        ],
+      },
+      {
+        id: "zero-token-output",
+        label: "Clamps the subsequent decode count at zero",
+        args: [7, 0],
+        assertions: [
+          equal("zero-generated", "Report zero generated tokens for a zero-token budget", 0, ["generatedTokens"]),
+          equal("nonnegative-decode", "Clamp maxNewTokens - 1 so decode forwards never become negative", 0, ["decodeForwards"]),
+          equal("zero-processed-positions", "Keep processed positions at the prompt length", 7, ["processedTokenPositions"]),
+          equal("zero-final-length", "Keep final sequence length at the prompt length", 7, ["finalSequenceLength"]),
+        ],
       },
     ],
   }),
@@ -660,10 +684,40 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     exportName: "kvCacheBytes",
     cases: [
       {
+        id: "key-and-value",
+        label: "Stores both a key and a value",
+        args: [{ layers: 1, kvHeads: 1, headDimension: 1, tokens: 1, bytesPerValue: 1 }],
+        assertions: [equal("key-value-factor", "Multiply by 2 because every cached position stores both key and value", 2)],
+      },
+      {
+        id: "all-layers",
+        label: "Allocates cache at every Transformer layer",
+        args: [{ layers: 3, kvHeads: 1, headDimension: 1, tokens: 1, bytesPerValue: 1 }],
+        assertions: [equal("layer-factor", "Scale the key and value cache by all 3 layers", 6)],
+      },
+      {
+        id: "kv-heads-not-query-heads",
+        label: "Uses the grouped-query model's KV-head count",
+        args: [{ layers: 1, kvHeads: 5, headDimension: 1, tokens: 1, bytesPerValue: 1 }],
+        assertions: [equal("kv-head-factor", "Scale by kvHeads; do not assume this equals the query-head count", 10)],
+      },
+      {
+        id: "token-and-head-shape",
+        label: "Stores one head vector per cached token",
+        args: [{ layers: 1, kvHeads: 1, headDimension: 4, tokens: 7, bytesPerValue: 1 }],
+        assertions: [equal("token-head-factor", "Multiply cached token length by headDimension", 56)],
+      },
+      {
+        id: "storage-width",
+        label: "Converts cached scalar count to bytes",
+        args: [{ layers: 1, kvHeads: 1, headDimension: 1, tokens: 1, bytesPerValue: 4 }],
+        assertions: [equal("bytes-per-value", "Multiply scalar count by bytesPerValue; FP32 uses twice the bytes of FP16", 8)],
+      },
+      {
         id: "fp16-cache",
-        label: "Accounts for keys and values across every layer",
-        args: [{ layers: 4, heads: 8, headDimension: 16, tokens: 100, bytesPerValue: 2 }],
-        assertions: [equal("byte-count", "Calculates the complete cache allocation", 204800)],
+        label: "Combines every factor for an FP16 cache",
+        args: [{ layers: 4, kvHeads: 8, headDimension: 16, tokens: 100, bytesPerValue: 2 }],
+        assertions: [equal("complete-byte-count", "Use 2 × layers × KV heads × tokens × head dimension × bytes per value", 204800)],
       },
     ],
   }),
@@ -956,6 +1010,6 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
 ];
 
 export const llmSystemsContractSuite: ContractSuite = {
-  contractVersion: "llm-systems-contracts-v6",
+  contractVersion: "llm-systems-contracts-v7",
   contracts: llmSystemsExerciseContracts,
 };

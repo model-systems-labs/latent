@@ -11,16 +11,16 @@ export const inferenceRuntimeLesson = defineExtendedLesson({
     modeLabel: "Runtime simulation",
     eyebrow: "Inference · Prefill and decode",
     title: "Inference Runtime",
-    thesis: "LLM inference separates a parallel prompt-prefill phase from an iterative decode phase whose state and memory grow with every generated token.",
+    thesis: "LLM inference separates parallel prompt prefill from one-position decode forwards while key-value memory grows with cached sequence positions.",
     paperUrl: "https://arxiv.org/abs/2309.06180",
     paperTitle: "Efficient Memory Management for Large Language Model Serving with PagedAttention",
     authors: "Woosuk Kwon et al.",
     year: "2023",
     summary: [
-      { label: "Two phases.", body: "Prefill processes the prompt in parallel and populates attention state. Decode then advances one token per active request, repeatedly reading model weights and the accumulated key-value cache." },
-      { label: "Memory growth.", body: "Every generated token adds keys and values for every layer. The resulting cache often dominates per-request memory and directly constrains concurrency." },
+      { label: "Two phases.", body: "Prefill processes all prompt positions in parallel, stores their keys and values, and returns logits used to sample the first output token. To produce N generated tokens, the runtime then performs max(0, N - 1) one-position decode forwards for the remaining tokens." },
+      { label: "Memory growth.", body: "Each processed sequence position adds a key and a value at every layer. Per-request bytes are 2 × layers × KV heads × tokens × head dimension × bytes per value; KV heads—not query heads—matter for grouped-query attention." },
       { label: "Isolation.", body: "Browser inference belongs in a Web Worker so model execution cannot block React rendering. Messages form an explicit boundary between product state and model state." },
-      { label: "Measurement.", body: "Time to first token reflects queueing and prefill; inter-token latency reflects decode. Combining them into one duration hides the user-visible shape of latency." },
+      { label: "Measurement.", body: "Time to first token (TTFT) measures admission through the first visible token, so it includes queueing and prefill. Inter-token latency (ITL) measures the gap between later visible tokens; tokens per second summarizes the steady decode rate. Combining them into one duration hides the user-visible latency shape." },
     ],
     claims: {
       paper: "Paged allocation reduces KV-cache waste and enables higher serving throughput under dynamic request lengths.",
@@ -28,13 +28,14 @@ export const inferenceRuntimeLesson = defineExtendedLesson({
       limit: "No GPU kernel, multi-host network, or production memory allocator is reproduced.",
     },
     diagram: {
-      title: "Request lifecycle",
-      caption: "The first visible token and later tokens are produced by different computational phases.",
+      title: "Worked request r-104",
+      caption: "A 96-token prompt and 32-token output require one prefill forward and 31 subsequent decode forwards; the final sequence contains 128 tokens.",
       nodes: [
-        { label: "Queue", value: "request admitted" },
-        { label: "Prefill", value: "prompt → KV state" },
-        { label: "Decode", value: "one token / iteration" },
-        { label: "Complete", value: "release cache pages" },
+        { label: "Queue", value: "18 ms" },
+        { label: "Prefill", value: "74 ms · 96 positions · 6 KV pages" },
+        { label: "First token", value: "sampled at TTFT 92 ms" },
+        { label: "Decode", value: "31 forwards · tokens 2–32 · 6 → 8 pages" },
+        { label: "Release", value: "8 pages returned" },
       ],
     },
     questions: {
@@ -46,7 +47,7 @@ export const inferenceRuntimeLesson = defineExtendedLesson({
       source: "Deterministic synthetic requests",
       license: "CC0",
       size: "6 requests · fixed prompt and output lengths",
-      preview: "prompt 96 → output 32 · prompt 24 → output 80",
+      preview: "r-104 · prompt 96 + output 32 = final length 128 · 1 prefill + 31 decode forwards",
     },
     implementation: {
       filename: "inference-runtime.js",
@@ -56,21 +57,27 @@ export const inferenceRuntimeLesson = defineExtendedLesson({
         {
           id: "inference-phases",
           label: "Phase accounting",
-          purpose: "Separate prefill work from iterative decode work.",
+          purpose: "Distinguish generated tokens, model forwards, processed positions, and final sequence length.",
           concepts: [
             { name: "promptTokens", detail: "Tokens processed together during prefill." },
-            { name: "maxNewTokens", detail: "Maximum number of serial decode iterations." },
-            { name: "decodeIterations", detail: "One scheduling opportunity per generated token." },
+            { name: "generatedTokens", detail: "Requested output length; the first token is sampled from prefill logits." },
+            { name: "decodeForwards", detail: "Subsequent one-position forwards: max(0, generatedTokens - 1)." },
+            { name: "processedTokenPositions", detail: "Prompt positions plus positions processed by subsequent decode forwards." },
+            { name: "finalSequenceLength", detail: "Prompt tokens plus every generated token, including the final unprocessed sample." },
           ],
           code: `function inferencePhases(promptTokens, maxNewTokens) {
+  const generatedTokens = Math.max(0, maxNewTokens);
+  const decodeForwards = Math.max(0, generatedTokens - 1);
   return {
     prefillTokens: promptTokens,
-    decodeIterations: maxNewTokens,
-    totalTokenPositions: promptTokens + maxNewTokens,
+    generatedTokens,
+    decodeForwards,
+    processedTokenPositions: promptTokens + decodeForwards,
+    finalSequenceLength: promptTokens + generatedTokens,
   };
 }`,
           checkCode: `const phases = inferencePhases(96, 32);
-return { passed: phases.prefillTokens === 96 && phases.decodeIterations === 32 && phases.totalTokenPositions === 128, detail: phases.prefillTokens + " prefill · " + phases.decodeIterations + " decode" };`,
+return { passed: phases.prefillTokens === 96 && phases.generatedTokens === 32 && phases.decodeForwards === 31 && phases.processedTokenPositions === 127 && phases.finalSequenceLength === 128, detail: phases.prefillTokens + " prefill · " + phases.decodeForwards + " subsequent decode forwards · " + phases.generatedTokens + " generated" };`,
         },
         {
           id: "kv-bytes",
@@ -79,12 +86,14 @@ return { passed: phases.prefillTokens === 96 && phases.decodeIterations === 32 &
           concepts: [
             { name: "2", detail: "Separate key and value tensors." },
             { name: "layers", detail: "Every Transformer layer owns cached states." },
+            { name: "kvHeads", detail: "Key-value heads; this may be fewer than query heads under grouped-query attention." },
+            { name: "tokens × headDimension", detail: "One head vector per cached sequence position." },
             { name: "bytesPerValue", detail: "Storage width of each cached scalar." },
           ],
-          code: `function kvCacheBytes({ layers, heads, headDimension, tokens, bytesPerValue = 2 }) {
-  return numel([2, layers, heads, tokens, headDimension]) * bytesPerValue;
+          code: `function kvCacheBytes({ layers, kvHeads, headDimension, tokens, bytesPerValue = 2 }) {
+  return numel([2, layers, kvHeads, tokens, headDimension]) * bytesPerValue;
 }`,
-          checkCode: `const bytes = kvCacheBytes({ layers: 4, heads: 8, headDimension: 16, tokens: 100, bytesPerValue: 2 });
+          checkCode: `const bytes = kvCacheBytes({ layers: 4, kvHeads: 8, headDimension: 16, tokens: 100, bytesPerValue: 2 });
 return { passed: bytes === 204800, detail: (bytes / 1024).toFixed(0) + " KiB" };`,
         },
       ],

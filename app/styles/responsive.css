@@ -166,6 +166,38 @@
 }
 
 @media (max-width: 650px) {
+  .runtime-request-spec,
+  .runtime-latency-definitions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .runtime-request-spec > span:nth-child(3),
+  .runtime-request-spec > span:nth-child(4),
+  .runtime-latency-definitions > span:nth-child(3) {
+    border-top: 1px solid var(--line);
+  }
+
+  .runtime-request-spec > span:nth-child(3),
+  .runtime-latency-definitions > span:nth-child(3) {
+    border-left: 0;
+    padding-left: 0;
+  }
+
+  .runtime-timeline li > div,
+  .runtime-cache-formula {
+    align-items: start;
+    grid-template-columns: 1fr;
+  }
+
+  .runtime-timeline code,
+  .runtime-cache-formula code {
+    text-align: left;
+  }
+
+  .runtime-cache-formula em {
+    grid-column: auto;
+  }
+
   .icl-fixed-prefix,
   .icl-condition-paths,
   .icl-inference-boundary {

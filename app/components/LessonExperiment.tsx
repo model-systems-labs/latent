@@ -411,16 +411,17 @@ function SystemsExperiment({ variant, onComplete }: { variant: SystemsVariant } 
           { label: "Queue", value: "18 ms" },
           { label: "Prefill", value: "74 ms" },
           { label: "TTFT", value: "92 ms" },
-          { label: "Decode", value: "21.4 tok/s" },
+          { label: "Decode rate", value: "21.4 tok/s" },
         ],
         trace: [
-          { label: "Admitted", detail: "request r-104 · prompt 96 tokens" },
-          { label: "Prefill", detail: "96 positions processed · 6 KV pages allocated" },
-          { label: "First token", detail: "visible after queue + prefill" },
-          { label: "Decode", detail: "32 serial iterations · cache grows to 8 pages" },
-          { label: "Complete", detail: "8 pages released to allocator" },
+          { label: "Admitted", detail: "request r-104 · prompt 96 · output budget 32 tokens" },
+          { label: "Queue", detail: "18 ms waiting for admission" },
+          { label: "Prefill", detail: "74 ms · 96 prompt positions processed · 6 KV pages allocated" },
+          { label: "First token", detail: "token 1/32 sampled from prefill logits · visible at TTFT 92 ms" },
+          { label: "Decode", detail: "31 subsequent one-position forwards produce tokens 2–32 · 21.4 tok/s · cache grows 6 → 8 pages" },
+          { label: "Complete", detail: "final sequence length 128 · 8 KV pages released" },
         ],
-        artifact: "Request r-104 preserves separate queue, prefill, and decode measurements.",
+        artifact: "TTFT = queue 18 ms + prefill 74 ms = 92 ms\noutput 32 = 1 prefill sample + 31 decode forwards\nKV pages 6 → 8 → released",
       });
       return;
     }

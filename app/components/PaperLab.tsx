@@ -81,13 +81,14 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
   const isAdditiveAttention = lesson.id === "additive-attention";
   const isTransformer = lesson.id === "transformers";
   const isInContextLearning = lesson.id === "in-context-learning";
+  const isInferenceRuntime = lesson.id === "inference-runtime";
   const recurrentSteps = [
     { time: "t − 1", input: "x_(t−1)", previous: "h_(t−2)", state: "h_(t−1)", prediction: "p(x_t)" },
     { time: "t", input: "x_t", previous: "h_(t−1)", state: "h_t", prediction: "p(x_(t+1))" },
     { time: "t + 1", input: "x_(t+1)", previous: "h_t", state: "h_(t+1)", prediction: "p(x_(t+2))" },
   ];
   return (
-    <figure className={`concept-diagram${isRecurrent ? " recurrence-diagram" : ""}${isNeuralLanguageModel ? " neural-lm-diagram" : ""}${isSubwordTokenization ? " subword-tokenization-diagram" : ""}${isAdditiveAttention ? " additive-attention-diagram" : ""}${isTransformer ? " transformer-attention-diagram" : ""}${isInContextLearning ? " icl-comparison-diagram" : ""}`}>
+    <figure className={`concept-diagram${isRecurrent ? " recurrence-diagram" : ""}${isNeuralLanguageModel ? " neural-lm-diagram" : ""}${isSubwordTokenization ? " subword-tokenization-diagram" : ""}${isAdditiveAttention ? " additive-attention-diagram" : ""}${isTransformer ? " transformer-attention-diagram" : ""}${isInContextLearning ? " icl-comparison-diagram" : ""}${isInferenceRuntime ? " inference-runtime-diagram" : ""}`}>
       <header><span>Mechanism</span><strong>{lesson.diagram.title}</strong></header>
       {isRecurrent ? (
         <div className="recurrence-unroll" role="img" aria-label="Three recurrent time steps. Each input and previous hidden state produce a new hidden state, then logits and a next-character probability. The hidden state flows into the next step and the same parameters are reused.">
@@ -220,6 +221,33 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
           <div className="icl-inference-boundary">
             <span><b>Can infer</b> whether demonstrations changed either output in this run.</span>
             <span><b>Cannot infer</b> general accuracy gains or the paper&apos;s scale result from two items.</span>
+          </div>
+        </div>
+      ) : isInferenceRuntime ? (
+        <div className="runtime-worked-example" role="img" aria-label="Worked inference timeline for request r-104. It waits 18 milliseconds, prefills a 96-token prompt in 74 milliseconds using 6 KV pages, samples the first of 32 output tokens at a 92 millisecond TTFT, performs 31 subsequent one-position decode forwards while cache grows to 8 pages, then releases all pages. The KV cache byte formula uses both key and value, every layer, KV head, cached token, head coordinate, and bytes per value.">
+          <div className="runtime-request-spec">
+            <span><b>Request</b><code>r-104</code></span>
+            <span><b>Prompt</b><code>96 tokens</code></span>
+            <span><b>Output</b><code>32 tokens</code></span>
+            <span><b>Final length</b><code>128 tokens</code></span>
+          </div>
+          <ol className="runtime-timeline">
+            {lesson.diagram.nodes.map((node, index) => (
+              <li key={node.label}>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <div><strong>{node.label}</strong><code>{node.value}</code></div>
+              </li>
+            ))}
+          </ol>
+          <div className="runtime-latency-definitions">
+            <span><b>TTFT</b><code>queue + prefill = 18 + 74 = 92 ms</code><em>admission → first visible token</em></span>
+            <span><b>ITL</b><code>gap between visible tokens</code><em>one-request decode responsiveness</em></span>
+            <span><b>tokens/s</b><code>21.4 generated / second</code><em>steady decode rate</em></span>
+          </div>
+          <div className="runtime-cache-formula">
+            <b>Per-request KV-cache bytes</b>
+            <code>2 × layers × KV heads × cached tokens × head dimension × bytes / value</code>
+            <em>2 means one key tensor + one value tensor. Under GQA, KV heads may be fewer than query heads.</em>
           </div>
         </div>
       ) : (

@@ -249,7 +249,7 @@ test("Subword Tokenization exposes pair identity and rejects shortcuts in every 
   accepts(countPairs, referenceCounts);
   const pairFeedback = practiceFeedback.formatPracticeContractDetail(evaluate(countPairs, concatenatedKeys));
   assert.match(pairFeedback, /JSON\.stringify/);
-  assert.match(pairFeedback, /do not concatenate/);
+  assert.match(pairFeedback, /2 additional cases still fail; rerun after this fix/);
 
   const mergePair = byId.get("subword-tokenization/merge-pair");
   assert.ok(mergePair);
@@ -337,8 +337,8 @@ test("Additive Attention teaches the scoring network and rejects shortcuts in ev
   accepts(score, additiveScore);
   const scoreFeedback = practiceFeedback.formatPracticeContractDetail(evaluate(score, dotProduct));
   assert.match(scoreFeedback, /Wq/);
-  assert.match(scoreFeedback, /Wk/);
-  assert.match(scoreFeedback, /not a plain query-key dot product/);
+  assert.match(scoreFeedback, /2 additional cases still fail; rerun after this fix/);
+  assert.doesNotMatch(scoreFeedback, /Wk|plain query-key dot product/);
 
   const weights = byId.get("additive-attention/attention-softmax");
   assert.ok(weights);
@@ -515,14 +515,99 @@ test("In-Context Learning holds the experiment constant and rejects prompt and s
     passed: output.includes(expected),
   })));
   assert.match(scorerFeedback, /independently/);
-  assert.match(scorerFeedback, /first standalone/);
+  assert.match(scorerFeedback, /2 additional cases still fail; rerun after this fix/);
+  assert.doesNotMatch(scorerFeedback, /first standalone/);
+});
+
+test("Inference Runtime separates sampled tokens from decode forwards and sizes every KV factor", () => {
+  const lesson = course.courseLessons.find((candidate) => candidate.id === "inference-runtime");
+  assert.ok(lesson);
+  assert.match(lesson.thesis, /cached sequence positions/);
+  assert.match(lesson.summary[0].body, /max\(0, N - 1\)/);
+  assert.match(lesson.summary[1].body, /2 × layers × KV heads × tokens × head dimension × bytes per value/);
+  assert.match(lesson.summary[3].body, /Time to first token \(TTFT\)/);
+  assert.match(lesson.summary[3].body, /Inter-token latency \(ITL\)/);
+  assert.equal(lesson.diagram.title, "Worked request r-104");
+  assert.match(lesson.diagram.caption, /31 subsequent decode forwards/);
+  assert.match(lesson.dataset.preview, /final length 128 · 1 prefill \+ 31 decode forwards/);
+
+  const byId = new Map(contracts.llmSystemsExerciseContracts.map((contract) => [contract.id, contract]));
+  const evaluate = (contract, implementation) => contract.cases.map((exerciseCase) =>
+    contractRuntime.evaluateExerciseCase(contract, exerciseCase, {
+      status: "returned",
+      value: implementation(...exerciseCase.invoke.args),
+    }));
+  const rejects = (contract, implementation) => assert.ok(evaluate(contract, implementation).some((result) => !result.passed));
+  const accepts = (contract, implementation) => assert.ok(evaluate(contract, implementation).every((result) => result.passed));
+
+  const phases = byId.get("inference-runtime/inference-phases");
+  assert.ok(phases);
+  assert.equal(phases.cases.length, 3);
+  rejects(phases, (promptTokens, maxNewTokens) => ({
+    prefillTokens: promptTokens,
+    generatedTokens: maxNewTokens,
+    decodeForwards: maxNewTokens,
+    processedTokenPositions: promptTokens + maxNewTokens,
+    finalSequenceLength: promptTokens + maxNewTokens,
+  }));
+  rejects(phases, (promptTokens, maxNewTokens) => ({
+    prefillTokens: promptTokens,
+    generatedTokens: maxNewTokens,
+    decodeForwards: maxNewTokens - 1,
+    processedTokenPositions: promptTokens + maxNewTokens - 1,
+    finalSequenceLength: promptTokens + maxNewTokens,
+  }));
+  accepts(phases, (promptTokens, maxNewTokens) => {
+    const generatedTokens = Math.max(0, maxNewTokens);
+    const decodeForwards = Math.max(0, generatedTokens - 1);
+    return {
+      prefillTokens: promptTokens,
+      generatedTokens,
+      decodeForwards,
+      processedTokenPositions: promptTokens + decodeForwards,
+      finalSequenceLength: promptTokens + generatedTokens,
+    };
+  });
+  const phaseFeedback = practiceFeedback.formatPracticeContractDetail(evaluate(phases, (promptTokens, maxNewTokens) => ({
+    prefillTokens: promptTokens,
+    generatedTokens: maxNewTokens,
+    decodeForwards: maxNewTokens,
+    processedTokenPositions: promptTokens + maxNewTokens,
+    finalSequenceLength: promptTokens + maxNewTokens,
+  })));
+  assert.match(phaseFeedback, /31 subsequent decode forwards because prefill logits sample token 1/);
+  assert.match(phaseFeedback, /1 additional case still fail; rerun after this fix/);
+  assert.doesNotMatch(phaseFeedback, /Do not count the final sampled token as another processed input/);
+
+  const cache = byId.get("inference-runtime/kv-bytes");
+  assert.ok(cache);
+  assert.equal(cache.cases.length, 6);
+  rejects(cache, ({ layers, kvHeads, headDimension, tokens, bytesPerValue = 2 }) =>
+    layers * kvHeads * headDimension * tokens * bytesPerValue);
+  rejects(cache, ({ kvHeads, headDimension, tokens, bytesPerValue = 2 }) =>
+    2 * kvHeads * headDimension * tokens * bytesPerValue);
+  rejects(cache, ({ layers, heads, headDimension, tokens, bytesPerValue = 2 }) =>
+    2 * layers * heads * headDimension * tokens * bytesPerValue);
+  accepts(cache, ({ layers, kvHeads, headDimension, tokens, bytesPerValue = 2 }) =>
+    2 * layers * kvHeads * headDimension * tokens * bytesPerValue);
+  const cacheFeedback = practiceFeedback.formatPracticeContractDetail(evaluate(cache, ({ layers, kvHeads, headDimension, tokens, bytesPerValue = 2 }) =>
+    layers * kvHeads * headDimension * tokens * bytesPerValue));
+  assert.equal(
+    evaluate(cache, ({ layers, kvHeads, headDimension, tokens, bytesPerValue = 2 }) =>
+      layers * kvHeads * headDimension * tokens * bytesPerValue).filter((result) => !result.passed).length,
+    6,
+    "the formatter must not discard complete host results",
+  );
+  assert.match(cacheFeedback, /Multiply by 2 because every cached position stores both key and value/);
+  assert.match(cacheFeedback, /5 additional cases still fail; rerun after this fix/);
+  assert.doesNotMatch(cacheFeedback, /all 3 layers|kvHeads|headDimension|FP32/);
 });
 
 test("practice verification is inseparable from the exact editor source and contract version", () => {
   const block = { id: "rnn-step", code: "function rnnStep() { return 'reference'; }" };
   const correct = "function rnnStep() { return 'correct learner answer'; }";
   const wrong = "function rnnStep() { return 'wrong learner answer'; }";
-  const currentVersion = "llm-systems-contracts-v6";
+  const currentVersion = "llm-systems-contracts-v7";
   const bound = practiceState.bindBlockVerification(
     { ids: [], sources: {}, contractVersion: null },
     block.id,

@@ -2083,6 +2083,127 @@ button:disabled {
   font-family: var(--sans);
 }
 
+.runtime-worked-example {
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+}
+
+.runtime-request-spec,
+.runtime-latency-definitions {
+  display: grid;
+}
+
+.runtime-request-spec {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.runtime-request-spec > span,
+.runtime-latency-definitions > span {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.8rem 0;
+}
+
+.runtime-request-spec > span + span,
+.runtime-latency-definitions > span + span {
+  border-left: 1px solid var(--line);
+  padding-left: 0.8rem;
+}
+
+.runtime-request-spec b,
+.runtime-latency-definitions b,
+.runtime-cache-formula b {
+  color: var(--violet);
+  font-size: 0.53rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.runtime-request-spec code,
+.runtime-latency-definitions code,
+.runtime-cache-formula code,
+.runtime-latency-definitions em,
+.runtime-cache-formula em {
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 0.53rem;
+  font-style: normal;
+  line-height: 1.45;
+}
+
+.runtime-timeline {
+  border-top: 1px solid var(--line);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.runtime-timeline li {
+  align-items: baseline;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 1.5rem minmax(0, 1fr);
+  padding: 0.72rem 0;
+}
+
+.runtime-timeline li + li {
+  border-top: 1px solid var(--line);
+}
+
+.runtime-timeline li > span {
+  color: var(--faint);
+  font-family: var(--mono);
+  font-size: 0.52rem;
+}
+
+.runtime-timeline li > div {
+  align-items: baseline;
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: minmax(5rem, 0.55fr) minmax(0, 1.45fr);
+}
+
+.runtime-timeline strong {
+  font-size: 0.66rem;
+  font-weight: 560;
+}
+
+.runtime-timeline code {
+  color: var(--violet-deep);
+  font-size: 0.55rem;
+  line-height: 1.45;
+  text-align: right;
+}
+
+.runtime-latency-definitions {
+  border-top: 1px solid var(--line);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.runtime-latency-definitions em,
+.runtime-cache-formula em {
+  color: var(--muted);
+}
+
+.runtime-cache-formula {
+  align-items: baseline;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 0.45rem 0.8rem;
+  grid-template-columns: minmax(7rem, 0.7fr) minmax(0, 1.3fr);
+  padding: 0.85rem 0;
+}
+
+.runtime-cache-formula code {
+  color: var(--violet-deep);
+  text-align: right;
+}
+
+.runtime-cache-formula em {
+  grid-column: 1 / -1;
+}
+
 .concept-diagram figcaption {
   border-top: 1px solid var(--line);
   color: var(--muted);

@@ -7,14 +7,20 @@ export function formatPracticeContractDetail(cases: readonly ExerciseCaseResult[
     return `${cases.length} isolated case${cases.length === 1 ? "" : "s"} passed host-owned assertions.`;
   }
 
-  const directions = failures.flatMap((failure) => {
-    const assertions = failure.assertions.filter((assertion) => !assertion.passed);
-    if (!assertions.length) return [{ key: failure.caseId, text: `${failure.caseLabel}: ${failure.detail}` }];
-    return assertions.map((assertion) => ({
-      key: `${failure.caseId}\u0000${assertion.label}`,
-      text: `${failure.caseLabel}: ${assertion.label}. ${assertion.detail}`,
-    }));
-  });
+  const firstFailure = failures[0];
+  const failedAssertions = firstFailure.assertions.filter((assertion) => !assertion.passed);
+  const firstAssertion = failedAssertions[0];
+  const direction = firstAssertion
+    ? `${firstFailure.caseLabel}: ${firstAssertion.label}. ${firstAssertion.detail}`
+    : `${firstFailure.caseLabel}: ${firstFailure.detail}`;
+  const additionalCases = failures.length - 1;
+  const additionalChecks = failedAssertions.length - 1;
 
-  return [...new Map(directions.map((direction) => [direction.key, direction.text])).values()].join(" · ");
+  if (additionalCases > 0) {
+    return `${direction} · ${additionalCases} additional case${additionalCases === 1 ? "" : "s"} still fail; rerun after this fix.`;
+  }
+  if (additionalChecks > 0) {
+    return `${direction} · ${additionalChecks} additional check${additionalChecks === 1 ? "" : "s"} in this case still ${additionalChecks === 1 ? "fails" : "fail"}; rerun after this fix.`;
+  }
+  return direction;
 }

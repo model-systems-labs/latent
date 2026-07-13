@@ -196,6 +196,22 @@ test("In-Context Learning renders a controlled comparison and explicit inference
   assert.match(html, /Load model · ~181 MB/);
 });
 
+test("Inference Runtime renders one unambiguous request timeline and KV formula", async () => {
+  const response = await render("/lessons/inference-runtime");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /runtime-worked-example/);
+  assert.match(html, /Worked inference timeline for request r-104/);
+  assert.match(html, /queue \+ prefill = 18 \+ 74 = 92 ms/);
+  assert.match(html, /31 forwards · tokens 2–32 · 6 → 8 pages/);
+  assert.match(html, /2 × layers × KV heads × cached tokens × head dimension × bytes \/ value/);
+  assert.match(html, /generatedTokens/);
+  assert.match(html, /decodeForwards/);
+  assert.match(html, /processedTokenPositions/);
+  assert.match(html, /finalSequenceLength/);
+  assert.match(html, /function kvCacheBytes\(\{ layers, kvHeads, headDimension, tokens, bytesPerValue = 2 \}\)/);
+});
+
 test("the consent-gated local model runtime has a statically prebundled client boundary", async () => {
   const [experiment, runtimeBoundary, viteConfig] = await Promise.all([
     readFile(new URL("../app/components/LessonExperiment.tsx", import.meta.url), "utf8"),

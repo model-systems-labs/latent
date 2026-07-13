@@ -23,6 +23,7 @@ import type { TestReceiptRecord } from "../../platform/persistence/types";
 import { flushProjectPersistence, type ProjectFile, type ProjectUnitResult } from "../../lib/project-workspace";
 import { LATENT_TENSOR_PATH, LATENT_TENSOR_SOURCE } from "@latent/tensor/browser-source";
 import { CAPSTONE_ENTRY_PATH } from "../../content/browser-chat/project-template";
+import { formatPracticeContractDetail } from "./practice-feedback";
 
 const PROJECT_ID = "browser-chat";
 const RUNNER_VERSION = "browser-lab-quickjs-v1";
@@ -78,9 +79,7 @@ function aggregateReceipt(receipt: TestReceipt, contracts: readonly ExerciseCont
       path: contract.cases[0]?.invoke.modulePath ?? "unknown",
       label: contract.label,
       passed: cases.length === contract.cases.length && failures.length === 0,
-      detail: failures.length
-        ? failures.map((failure) => `${failure.caseLabel}: ${failure.detail}`).join(" · ")
-        : `${cases.length} isolated case${cases.length === 1 ? "" : "s"} passed host-owned assertions.`,
+      detail: formatPracticeContractDetail(cases),
     };
   });
 }

@@ -45,6 +45,10 @@
     grid-template-columns: 1fr;
   }
 
+  .summary-layout.recurrence-summary {
+    grid-template-columns: 1fr;
+  }
+
   .questions-layout {
     margin-left: 0;
   }
@@ -162,6 +166,27 @@
 }
 
 @media (max-width: 650px) {
+  .unroll-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .unroll-step + .unroll-step {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .unroll-step:not(:last-child) .unroll-state::after {
+    bottom: -2rem;
+    content: "↓";
+    right: 50%;
+    top: auto;
+    transform: translateX(50%);
+  }
+
+  .unroll-equation {
+    min-height: 0;
+  }
+
   .tensor-runtime-strip {
     grid-template-columns: 1fr;
   }

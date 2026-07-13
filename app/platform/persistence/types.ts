@@ -132,6 +132,8 @@ export type LessonProgressRecord = {
   lessonId: string;
   status: LessonProgressStatus;
   verifiedCellIds: string[];
+  /** Exact cell source that earned each verification; absent on legacy records. */
+  verifiedSources?: Record<string, string>;
   experimentComplete: boolean;
   hiddenBlockIds: string[];
   answers: Record<string, string>;

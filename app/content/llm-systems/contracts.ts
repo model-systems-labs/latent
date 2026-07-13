@@ -112,6 +112,23 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
           equal("inactive-unit", "Leaves the inactive unit at zero", 0, [1]),
         ],
       },
+      {
+        id: "non-empty-recurrent-state",
+        label: "Carries information from the preceding hidden state",
+        args: [
+          [0, 0],
+          [1, -1],
+          {
+            Wxh: [[1, 0], [0, 1]],
+            Whh: [[1, 0], [0, 1]],
+            bias: [0, 0],
+          },
+        ],
+        assertions: [
+          range("positive-memory", "Use Whh and the previous state before tanh for the first unit", 0.76, 0.77, [0]),
+          range("negative-memory", "Use Whh and the previous state before tanh for the second unit", -0.77, -0.76, [1]),
+        ],
+      },
     ],
   }),
   defineExerciseContract({
@@ -126,14 +143,14 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
         args: [[0.1, 0.8, 0.1], 1],
         assertions: [
           finite("finite-loss", "Produces a finite loss"),
-          range("low-loss", "Produces the expected low loss", 0.22, 0.23),
+          range("low-loss", "Apply -log to the target probability to produce the expected low loss", 0.22, 0.23),
         ],
       },
       {
         id: "low-target-probability",
         label: "Assigns higher loss to the unlikely target",
         args: [[0.8, 0.1, 0.1], 1],
-        assertions: [range("high-loss", "Produces the expected higher loss", 2.3, 2.31)],
+        assertions: [range("high-loss", "Use the probability at targetIndex, not the largest probability", 2.3, 2.31)],
       },
     ],
   }),
@@ -147,7 +164,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
         id: "symmetric-bound",
         label: "Clips both tails while preserving in-range gradients",
         args: [[-12, -2, 0, 3, 20], 5],
-        assertions: [equal("clipped-values", "Applies the requested symmetric limit", [-5, -2, 0, 3, 5])],
+        assertions: [equal("clipped-values", "Clamp both negative and positive gradients to the symmetric limit", [-5, -2, 0, 3, 5])],
       },
     ],
   }),
@@ -732,6 +749,6 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
 ];
 
 export const llmSystemsContractSuite: ContractSuite = {
-  contractVersion: "llm-systems-contracts-v1",
+  contractVersion: "llm-systems-contracts-v2",
   contracts: llmSystemsExerciseContracts,
 };

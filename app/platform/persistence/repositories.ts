@@ -350,6 +350,7 @@ export class ProgressRepository extends RepositoryBase {
     const safe = {
       ...record,
       verifiedCellIds: [...new Set(record.verifiedCellIds)],
+      verifiedSources: record.verifiedSources ? { ...record.verifiedSources } : undefined,
       hiddenBlockIds: [...new Set(record.hiddenBlockIds)],
       answers: { ...record.answers },
       updatedAt: this.now(),

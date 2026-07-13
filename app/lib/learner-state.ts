@@ -11,6 +11,7 @@ const CHANGE_EVENT = "latent-learner-state-change";
 
 export type LessonLocalState = {
   verifiedCells: string[];
+  verifiedSources: Record<string, string>;
   experimentComplete: boolean;
   hiddenBlocks: string[];
   answers: Record<string, string>;
@@ -55,6 +56,9 @@ function sanitizeLearnerState(value: unknown): LearnerState {
       const lesson = raw as Partial<LessonLocalState>;
       lessons[lessonId] = {
         verifiedCells: Array.isArray(lesson.verifiedCells) ? lesson.verifiedCells.filter((id): id is string => typeof id === "string") : [],
+        verifiedSources: lesson.verifiedSources && typeof lesson.verifiedSources === "object"
+          ? Object.fromEntries(Object.entries(lesson.verifiedSources).filter((entry): entry is [string, string] => typeof entry[1] === "string"))
+          : {},
         experimentComplete: lesson.experimentComplete === true,
         hiddenBlocks: Array.isArray(lesson.hiddenBlocks) ? lesson.hiddenBlocks.filter((id): id is string => typeof id === "string") : [],
         answers: lesson.answers && typeof lesson.answers === "object"
@@ -114,6 +118,7 @@ async function persistLearnerState(state: LearnerState) {
     lessonId,
     status: lesson.experimentComplete && lesson.verifiedCells.length ? "completed" : "in-progress",
     verifiedCellIds: lesson.verifiedCells,
+    verifiedSources: lesson.verifiedSources,
     experimentComplete: lesson.experimentComplete,
     hiddenBlockIds: lesson.hiddenBlocks,
     answers: lesson.answers,
@@ -168,6 +173,7 @@ export function initializeLearnerPersistence() {
       for (const record of progress) {
         lessons[record.lessonId] = {
           verifiedCells: record.verifiedCellIds,
+          verifiedSources: record.verifiedSources ?? {},
           experimentComplete: record.experimentComplete,
           hiddenBlocks: record.hiddenBlockIds,
           answers: record.answers,
@@ -203,7 +209,7 @@ export function updateLearnerState(update: (state: LearnerState) => LearnerState
 }
 
 function lessonState(state: LearnerState, lessonId: string): LessonLocalState {
-  return state.lessons[lessonId] ?? { verifiedCells: [], experimentComplete: false, hiddenBlocks: [], answers: {}, updatedAt: 0 };
+  return state.lessons[lessonId] ?? { verifiedCells: [], verifiedSources: {}, experimentComplete: false, hiddenBlocks: [], answers: {}, updatedAt: 0 };
 }
 
 export function saveLessonPractice(lessonId: string, hiddenBlocks: string[], answers: Record<string, string>) {
@@ -216,12 +222,19 @@ export function saveLessonPractice(lessonId: string, hiddenBlocks: string[], ans
   }));
 }
 
-export function recordVerifiedCells(lessonId: string, verifiedCells: string[]) {
+export function recordVerifiedCells(lessonId: string, verifiedCells: string[], verifiedSources?: Record<string, string>) {
   updateLearnerState((state) => ({
     ...state,
     lessons: {
       ...state.lessons,
-      [lessonId]: { ...lessonState(state, lessonId), verifiedCells: [...new Set(verifiedCells)], updatedAt: Date.now() },
+      [lessonId]: {
+        ...lessonState(state, lessonId),
+        verifiedCells: [...new Set(verifiedCells)],
+        verifiedSources: verifiedSources ?? Object.fromEntries(
+          Object.entries(lessonState(state, lessonId).verifiedSources).filter(([id]) => verifiedCells.includes(id)),
+        ),
+        updatedAt: Date.now(),
+      },
     },
   }));
 }

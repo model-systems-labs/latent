@@ -104,6 +104,21 @@ test("all fourteen lessons use the reusable learning flow", async () => {
   }
 });
 
+test("Character RNNs teaches the unrolled mechanism and gates practice until restoration", async () => {
+  const response = await render("/lessons/character-rnns");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Represent the sequence/);
+  assert.match(html, /Assign credit through time/);
+  assert.match(html, /recurrence-unroll/);
+  assert.match(html, /Hidden-state flow/);
+  assert.match(html, /Generation loop/);
+  assert.match(html, /Shared at every position/);
+  assert.match(html, /aria-busy="true"/);
+  assert.match(html, /Restoring saved work/);
+  assert.match(html, /Restoring your saved practice before editing is enabled/);
+});
+
 test("the capstone contains the complete React chat system", async () => {
   const response = await render("/capstone");
   assert.equal(response.status, 200);

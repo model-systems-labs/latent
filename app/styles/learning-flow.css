@@ -409,6 +409,10 @@ main {
   grid-template-columns: minmax(0, 1fr) minmax(22rem, 0.86fr);
 }
 
+.summary-layout.recurrence-summary {
+  grid-template-columns: minmax(20rem, 0.82fr) minmax(31rem, 1.28fr);
+}
+
 .summary-copy {
   color: #403c39;
   font-family: var(--serif);
@@ -809,6 +813,14 @@ button:disabled {
   box-shadow: 0 28px 80px rgba(34, 28, 39, 0.12);
   color: #eee9e2;
   overflow: hidden;
+}
+
+.practice-editor[aria-busy="true"] {
+  cursor: progress;
+}
+
+.practice-editor[aria-busy="true"] .code-surface {
+  opacity: 0.72;
 }
 
 .editor-toolbar {
@@ -1497,6 +1509,128 @@ button:disabled {
   color: var(--violet-deep);
   font-size: 0.62rem;
   text-align: right;
+}
+
+.recurrence-diagram > header {
+  padding-bottom: 1.2rem;
+}
+
+.recurrence-unroll {
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+}
+
+.unroll-columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.unroll-step {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 1rem 0.8rem 1.15rem;
+  text-align: center;
+}
+
+.unroll-step + .unroll-step {
+  border-left: 1px solid var(--line);
+}
+
+.unroll-time {
+  color: var(--violet);
+  font-family: var(--mono);
+  font-size: 0.56rem;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.9rem;
+  text-transform: uppercase;
+}
+
+.unroll-input,
+.unroll-output,
+.unroll-state {
+  color: var(--ink);
+  display: grid;
+  font-size: 0.72rem;
+  gap: 0.25rem;
+  justify-items: center;
+}
+
+.unroll-state {
+  background: rgba(120, 98, 142, 0.09);
+  border: 1px solid rgba(120, 98, 142, 0.22);
+  border-radius: 999px;
+  color: var(--violet-deep);
+  min-width: 5.5rem;
+  padding: 0.58rem 0.8rem;
+  position: relative;
+}
+
+.unroll-step:not(:last-child) .unroll-state::after {
+  color: var(--violet);
+  content: "→";
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  position: absolute;
+  right: -2.05rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+}
+
+.unroll-input small,
+.unroll-state small {
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 0.52rem;
+  font-weight: 450;
+}
+
+.unroll-step > i {
+  color: var(--faint);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-style: normal;
+  line-height: 1;
+  margin: 0.45rem 0;
+}
+
+.unroll-equation {
+  color: var(--muted);
+  font-size: 0.5rem;
+  line-height: 1.45;
+  margin-top: 0.5rem;
+  min-height: 2.2rem;
+}
+
+.unroll-output {
+  color: var(--violet-deep);
+  font-size: 0.56rem;
+  line-height: 1.4;
+}
+
+.unroll-rails {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.9rem 0;
+}
+
+.unroll-rails span {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.55rem;
+  line-height: 1.45;
+}
+
+.unroll-rails b {
+  color: var(--ink);
+  display: inline-block;
+  font-family: var(--sans);
+  font-size: 0.55rem;
+  font-weight: 600;
+  margin-right: 0.45rem;
+  min-width: 7.2rem;
 }
 
 .concept-diagram figcaption {

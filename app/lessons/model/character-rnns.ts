@@ -25,24 +25,29 @@ This lesson concerns Andrej Karpathy's 2015 technical essay "The Unreasonable Ef
 ${commonQuestionInstruction}`.trim(),
     summary: [
       {
-        label: "State transition.",
+        label: "Represent the sequence.",
         body:
-          "At position t, the model combines the current character vector x_t with the previous hidden state h_(t-1). The same matrices are reused across the entire sequence, so a fixed parameter set can process inputs of arbitrary length.",
+          "Start with a small vocabulary, such as {a, b, space}. Each input x_t is a one-hot vector: the slot for the current character is 1 and every other slot is 0. The subscript t simply means the character at the current position in the sequence.",
       },
       {
-        label: "Training objective.",
+        label: "Update the memory.",
         body:
-          "The output state is projected to one logit per character. Softmax converts those logits into a next-character distribution, and cross-entropy penalizes the probability assigned to the observed next character.",
+          "The transition h_t = tanh(Wxh x_t + Whh h_(t-1) + b) mixes the current character with the previous hidden state. For example, after reading “th”, h_(t-1) can carry evidence about “t” while x_t identifies “h”. The same Wxh, Whh, and b are reused at every position; only the input and state change.",
       },
       {
-        label: "Temporal credit.",
+        label: "Predict and score.",
         body:
-          "Backpropagation through time unrolls the recurrent transition and accumulates parameter gradients from multiple positions. Repeated multiplication through the hidden transition can produce unstable gradients, which motivates clipping and gated recurrent architectures.",
+          "A second projection turns h_t into one raw score, or logit, per possible next character. Softmax converts the logits into probabilities. Cross-entropy is -log p(target): predicting the observed next character with probability 0.8 costs about 0.22, while probability 0.1 costs about 2.30.",
       },
       {
-        label: "Generation.",
+        label: "Assign credit through time.",
         body:
-          "After training, the model samples a character, feeds it back as the next input, and repeats. It does not store sentences explicitly; regularities emerge because predicting the next character rewards useful internal state.",
+          "Training unrolls several recurrent steps and differentiates the total loss backward through them—backpropagation through time, or BPTT. This lab uses a short window (truncated BPTT) instead of the entire corpus. Because Whh is multiplied into the gradient at every step, gradients can grow rapidly; clipping caps each update before it changes the weights.",
+      },
+      {
+        label: "Generate autoregressively.",
+        body:
+          "At inference time, sample one character from the predicted distribution, encode that character as the next x, update the hidden state, and repeat. The model never retrieves a stored sentence. Its output reflects patterns that helped it reduce next-character loss during training.",
       },
     ],
     claims: {
@@ -52,7 +57,7 @@ ${commonQuestionInstruction}`.trim(),
     },
     diagram: {
       title: "Unrolled recurrent computation",
-      caption: "The transition parameters are shared at every position; only the state and input change.",
+      caption: "Read left to right. Each state passes information to the next position; each prediction supplies the character that can be fed back as the next input. Wxh, Whh, Why, and the biases are shared across all three columns.",
       nodes: [
         { label: "Input", value: "x_t" },
         { label: "Previous state", value: "h_(t-1)" },
@@ -78,7 +83,7 @@ ${commonQuestionInstruction}`.trim(),
     implementation: {
       filename: "character-rnn.js",
       intro:
-        "The complete reference implementation is visible. Hide one transition, loss, or stabilization block and reconstruct it while the rest of the program remains in place.",
+        "Reconstruct the three operations used in the training loop. Start with the recurrent transition: it must use both x_t and h_(t-1). Then implement -log p(target) and symmetric clipping. Each cell runs independently, so a mistake in one operation will not erase passing work in another.",
       tensorOps: ["tensor", "matmul", "add", "tanh", "nllLoss", "clip", "toArray"],
       codeBlocks: [
         {
@@ -86,9 +91,9 @@ ${commonQuestionInstruction}`.trim(),
           label: "Recurrent transition",
           purpose: "Combine the current input with the previous hidden state.",
           concepts: [
-            { name: "input", detail: "One-hot character vector for the current position." },
-            { name: "previous", detail: "Hidden state carried from the preceding position." },
-            { name: "tanh", detail: "Differentiable bounded nonlinearity applied to each hidden unit." },
+            { name: "input / x_t", detail: "One-hot vector identifying the current character." },
+            { name: "previous / h_(t-1)", detail: "Numeric memory carried from the preceding position." },
+            { name: "Math.tanh", detail: "Bounds each new hidden value between -1 and 1." },
           ],
           code: `function rnnStep(input, previous, { Wxh, Whh, bias }) {
   const inputProjection = matmul(tensor(Wxh), tensor(input));
@@ -107,7 +112,7 @@ return { passed: state.length === 2 && state[0] > 0.7 && state[1] === 0, detail:
           concepts: [
             { name: "probabilities", detail: "Normalized next-character distribution." },
             { name: "targetIndex", detail: "Vocabulary index of the observed next character." },
-            { name: "nllLoss", detail: "Applies the finite logarithm boundary inside the tensor runtime." },
+            { name: "nllLoss", detail: "Computes -log(probabilities[targetIndex]) safely." },
           ],
           code: `function crossEntropy(probabilities, targetIndex) {
   return nllLoss(tensor(probabilities), targetIndex).item();
@@ -122,7 +127,7 @@ return { passed: Number.isFinite(good) && good < bad, detail: "correct target lo
           purpose: "Bound the update produced by unstable recurrent gradients.",
           concepts: [
             { name: "limit", detail: "Largest allowed absolute gradient value." },
-            { name: "clip", detail: "Applies both gradient boundaries element by element." },
+            { name: "clip", detail: "Clamps every value to the interval [-limit, limit]." },
             { name: "toArray", detail: "Returns a plain vector at the lesson boundary." },
           ],
           code: `function clipGradients(gradients, limit = 5) {

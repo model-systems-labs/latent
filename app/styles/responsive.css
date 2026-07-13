@@ -163,6 +163,30 @@
   }
 
   .project-output { border-left: 1px solid rgba(255, 255, 255, 0.1); border-top: 0; }
+
+  .lesson-outcome-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .knowledge-check {
+    border-bottom: 1px solid var(--line);
+    border-right: 0;
+    padding-right: 0;
+  }
+
+  .lesson-change-record {
+    padding-left: 0;
+  }
+
+  .first-run > header,
+  .first-run-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .first-run-controls {
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    border-right: 0;
+  }
 }
 
 @media (max-width: 650px) {
@@ -1191,6 +1215,292 @@
   .artifact-timeline { border-bottom: 1px solid var(--line); border-right: 0; }
   .artifact-download-row { gap: 0.75rem; }
   .artifact-download-row button { width: 100%; }
+
+  .lesson-change-record > header,
+  .knowledge-check > footer,
+  .lesson-change-record dl,
+  .module-checkpoint-card,
+  .checkpoint-change,
+  .checkpoint-console-grid,
+  .checkpoint-repair,
+  .checkpoint-files a {
+    grid-template-columns: 1fr;
+  }
+
+  .knowledge-check > footer,
+  .lesson-change-record footer,
+  .checkpoint-readiness,
+  .checkpoint-console > header,
+  .checkpoint-navigation {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .behavior-change {
+    align-items: start;
+    grid-template-columns: 1fr;
+  }
+
+  .behavior-change > i,
+  .checkpoint-change > i {
+    transform: rotate(90deg);
+  }
+
+  .lesson-change-record dl > div + div {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    padding-left: 0;
+  }
+
+  .lesson-change-record footer a,
+  .knowledge-check button {
+    text-align: center;
+    width: 100%;
+  }
+
+  .module-checkpoint-card {
+    gap: 0.8rem;
+  }
+
+  .module-checkpoint-page {
+    padding-top: 0.8rem;
+    width: calc(100% - 1.5rem);
+  }
+
+  .module-checkpoint-hero {
+    padding: 4rem 0 2.5rem;
+  }
+
+  .module-checkpoint-hero h1 {
+    font-size: clamp(3rem, 14vw, 4.4rem);
+  }
+
+  .checkpoint-readiness {
+    display: grid;
+    gap: 0.55rem;
+  }
+
+  .checkpoint-console > header {
+    gap: 1rem;
+  }
+
+  .checkpoint-console > header > div:last-child {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .checkpoint-console button {
+    width: 100%;
+  }
+
+  .checkpoint-console-grid ol {
+    border-left: 0;
+    border-top: 1px solid rgba(255,255,255,0.09);
+  }
+
+  .checkpoint-files a {
+    gap: 0.35rem;
+  }
+
+  .checkpoint-navigation {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .first-run {
+    margin-bottom: 4rem;
+  }
+
+  .first-run > header,
+  .first-run-output {
+    grid-template-columns: 1fr;
+  }
+
+  .first-run > header {
+    align-items: start;
+    gap: 1.2rem;
+  }
+
+  .first-run-output article + article {
+    border-left: 0;
+    border-top: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .first-run-output article p {
+    min-height: 11rem;
+  }
+
+  .first-run > footer {
+    align-items: start;
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+
+  .project-timeline > header,
+  .learning-data-panel > header,
+  .project-timeline-controls {
+    align-items: start;
+    grid-template-columns: 1fr;
+  }
+
+  .project-timeline-controls > div {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .project-timeline-controls label span { text-align: left; }
+
+  .timeline-provided-files,
+  .timeline-capstone-files,
+  .project-timeline > footer,
+  .learning-data-panel > footer {
+    align-items: start;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .timeline-provided-files code,
+  .timeline-capstone-files code { text-align: left; }
+
+  .project-timeline-view li a {
+    align-items: start;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .learning-data-panel dl {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .learning-data-panel dl > div:nth-child(3) { border-left: 0; }
+  .learning-data-panel dl > div:nth-child(n + 3) { border-top: 1px solid var(--line); }
+
+  .learning-data-panel > footer > div {
+    align-items: stretch;
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .learning-data-panel button,
+  .learning-data-panel a { text-align: center; }
+
+  .sources-page {
+    padding-top: 0.8rem;
+    width: calc(100% - 1.5rem);
+  }
+
+  .sources-hero {
+    padding: 4rem 0 3rem;
+  }
+
+  .sources-hero h1 {
+    font-size: clamp(3rem, 14vw, 4.4rem);
+  }
+
+  .source-policy,
+  .lesson-source-index > article,
+  .runtime-notices > div > a,
+  .lesson-source-index li a,
+  .lesson-source-index article > footer {
+    grid-template-columns: 1fr;
+  }
+
+  .runtime-notices > header,
+  .lesson-source-index > header {
+    align-items: start;
+    flex-direction: column;
+    gap: 0.7rem;
+  }
+
+  .lesson-source-index article > footer {
+    align-items: start;
+    grid-column: 1;
+    gap: 0.3rem;
+  }
+
+  .mobile-ide-tabs {
+    background: #1f1d21;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    position: sticky;
+    top: 0;
+    z-index: 12;
+  }
+
+  .mobile-ide-tabs button {
+    background: transparent;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    color: #7d7772;
+    font-size: 0.58rem;
+    min-height: 3rem;
+    padding: 0.5rem 0.2rem;
+    text-transform: uppercase;
+  }
+
+  .mobile-ide-tabs button.active {
+    border-bottom-color: #bba8cc;
+    color: #eee8e0;
+  }
+
+  .project-header-actions button,
+  .project-file-history button {
+    min-height: 2.75rem;
+    padding-block: 0.65rem;
+  }
+
+  .project-file-history > div {
+    min-height: 3.2rem;
+  }
+
+  .project-workbench-grid[data-mobile-view="files"] > .project-editor-panel,
+  .project-workbench-grid[data-mobile-view="files"] > .project-inspector,
+  .project-workbench-grid[data-mobile-view="code"] > .project-tree,
+  .project-workbench-grid[data-mobile-view="code"] > .project-inspector,
+  .project-workbench-grid[data-mobile-view="tests"] > .project-tree,
+  .project-workbench-grid[data-mobile-view="tests"] > .project-editor-panel,
+  .project-workbench-grid[data-mobile-view="output"] > .project-tree,
+  .project-workbench-grid[data-mobile-view="output"] > .project-editor-panel {
+    display: none;
+  }
+
+  .project-workbench-grid[data-mobile-view="files"] > .project-tree {
+    display: block;
+    max-height: none;
+    min-height: calc(100dvh - 11rem);
+    overflow: visible;
+    padding: 0.8rem;
+  }
+
+  .project-workbench-grid[data-mobile-view="files"] > .project-tree section {
+    margin-bottom: 1rem;
+    width: 100%;
+  }
+
+  .project-workbench-grid[data-mobile-view="code"] > .project-editor-panel {
+    display: grid;
+    min-height: calc(100dvh - 11rem);
+  }
+
+  .project-workbench-grid[data-mobile-view="tests"] > .project-inspector,
+  .project-workbench-grid[data-mobile-view="output"] > .project-inspector {
+    border-top: 0;
+    display: flex;
+    min-height: calc(100dvh - 11rem);
+  }
+
+  .project-workbench-grid[data-mobile-view="tests"] .project-output,
+  .project-workbench-grid[data-mobile-view="output"] .unit-test-panel {
+    display: none;
+  }
+
+  .project-workbench-grid[data-mobile-view="output"] .project-output {
+    border-top: 0;
+    display: block;
+    min-height: calc(100dvh - 11rem);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

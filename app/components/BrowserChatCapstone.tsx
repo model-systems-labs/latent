@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { sampleCharacterRnn } from "@latent/model-lab/character-rnn";
 import { loadLearnerState, saveCharacterRnnArtifact, type SavedRnnArtifact } from "../lib/learner-state";
 import { useProjectState } from "../lib/project-workspace";
+import { recordLearningEvent } from "../lib/learning-analytics";
 import { loadCapstoneConversation, persistCapstoneConversation } from "../features/capstone/conversation-store";
 import { LocalModelClient } from "../runtime/model/local-model-client";
 import type { ModelMessage } from "../runtime/model/protocol";
@@ -472,7 +473,7 @@ export function BrowserChatCapstone() {
           <span>{status === "loading" ? "Restoring project" : status === "ready" ? "Verified project build" : "Canonical project required"}</span>
           <h1>{status === "loading" ? "Loading Browser Chat…" : status === "ready" ? "Run Browser Chat." : "Build the repository in the IDE."}</h1>
           <p>{detail}</p>
-          {status === "ready" ? <button type="button" onClick={() => setRunRequested(true)}>Run verified preview</button> : null}
+          {status === "ready" ? <button type="button" onClick={() => { setRunRequested(true); void recordLearningEvent("capstone_started", { outcome: "passed" }); }}>Run verified preview</button> : null}
           {status !== "loading" && status !== "ready" ? <Link href="/workspace?file=capstone%2FBrowserChat.tsx">Open the project IDE →</Link> : null}
         </section>
       )}

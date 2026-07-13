@@ -23,6 +23,9 @@ import { lessonImplementationPrelude, lessonImplementationSource } from "../less
 import { canonicalProjectSeeds } from "../lib/canonical-project";
 import { bindBlockVerification, invalidateBlockVerification, practiceBlockSource, restoreSourceBoundVerification, waitForPracticeHydration } from "../features/ide/practice-state";
 import { llmSystemsContractSuite } from "../content/llm-systems/contracts";
+import { LessonOutcome } from "./LessonOutcome";
+import { moduleCheckpoint } from "../content/llm-systems/learning";
+import { recordLearningEvent } from "../lib/learning-analytics";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 type CheckResult = { label: string; passed: boolean; detail: string };
@@ -760,6 +763,11 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
       saveLessonProjectFile(projectSeedForLesson(lesson, hiddenSnapshot, answersSnapshot, nextVerified));
       setCellResults((current) => ({ ...current, [block.id]: check }));
       setPracticeMessage(check.passed ? `${block.label} passed host-owned assertions.` : `${block.label} needs attention. Review the failed behavior below; your other cells were not changed.`);
+      void recordLearningEvent("cell_check_completed", {
+        lessonId: lesson.id,
+        moduleId: lesson.courseId,
+        outcome: check.passed ? "passed" : "failed",
+      });
     } catch (error) {
       const check = { label: block.label, passed: false, detail: error instanceof Error ? error.message : "The isolated test failed." };
       setCellResults((current) => ({ ...current, [block.id]: check }));
@@ -798,6 +806,12 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
       setCellResults(Object.fromEntries(blocks.map((block, index) => [block.id, ordered[index]])));
       const passed = ordered.filter((result) => result.passed).length;
       if (passed === ordered.length) {
+        void recordLearningEvent("lesson_checks_completed", {
+          lessonId: lesson.id,
+          moduleId: lesson.courseId,
+          outcome: "passed",
+          count: ordered.length,
+        });
         try {
           const artifact = await recordValidatedLessonArtifact({
             lessonId: lesson.id,
@@ -925,6 +939,7 @@ export function PaperLab({ lesson }: { lesson: CourseLesson }) {
   const courseHref = `/courses/${lesson.courseId ?? "models"}`;
   const progress = learnerState.lessons[lesson.id];
   const complete = lessonIsComplete(learnerState, lesson.id, lesson.implementation.codeBlocks.length);
+  const checkpoint = moduleCheckpoint(lesson.courseId ?? "models");
   return (
     <main>
       <Atmosphere />
@@ -938,10 +953,11 @@ export function PaperLab({ lesson }: { lesson: CourseLesson }) {
         <ParagraphSection lesson={lesson} />
         <TextBoxSection lesson={lesson} />
         <CodingSection lesson={lesson} />
+        <LessonOutcome lesson={lesson} />
         <footer className="paper-footer lesson-footer">
           {previous ? <Link href={`/lessons/${previous.id}`}>← {previous.title}</Link> : <Link href={courseHref}>← Module</Link>}
           <p>{complete ? `Lesson ${trackIndex + 1} complete` : `${progress?.verifiedCells.length ?? 0}/${lesson.implementation.codeBlocks.length} checks · ${progress?.experimentComplete ? "experiment complete" : "experiment pending"}`}</p>
-          {next ? <Link href={`/lessons/${next.id}`}>{next.title} →</Link> : <Link href={courseHref}>Module ↑</Link>}
+          {next ? <Link href={`/lessons/${next.id}`}>{next.title} →</Link> : checkpoint ? <Link href={`/checkpoints/${checkpoint.courseId}`}>Module checkpoint →</Link> : <Link href={courseHref}>Module ↑</Link>}
         </footer>
       </article>
     </main>

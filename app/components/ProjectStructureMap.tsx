@@ -5,9 +5,9 @@ import Link from "next/link";
 import { courseLessons, courseTracks, getTrackLessons } from "../lessons/course";
 import { CAPSTONE_ENTRY_PATH, CANONICAL_BROWSER_CHAT_FILES } from "../content/browser-chat/project-template";
 import { useLearnerState } from "../lib/learner-state";
-import { ensureProjectWorkspace, initializeProjectPersistence, RUNTIME_PATHS, useProjectState } from "../lib/project-workspace";
+import { RUNTIME_PATHS, useProjectState } from "../lib/project-workspace";
 import { projectFileStatus, projectResultsForFile, type ProjectFileStatus } from "../lib/project-file-status";
-import { canonicalProjectSeeds } from "../lib/canonical-project";
+import { reconcileCanonicalProject } from "../lib/canonical-project";
 
 type ProjectRow = {
   path: string;
@@ -45,7 +45,7 @@ export function ProjectStructureMap() {
   const learner = useLearnerState();
   const project = useProjectState();
   useEffect(() => {
-    void initializeProjectPersistence().then(() => { ensureProjectWorkspace(canonicalProjectSeeds()); });
+    void reconcileCanonicalProject();
   }, []);
   const trustedResults = project.tests.runner === "browser-lab-v1" ? project.tests.results : {};
   const groups = courseTracks.map((track) => ({

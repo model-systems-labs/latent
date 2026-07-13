@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ProjectStructureMap } from "../components/ProjectStructureMap";
+import { ProjectTimeline } from "../components/ProjectTimeline";
+import { LearningDataPanel } from "../components/LearningDataPanel";
 
 export const metadata: Metadata = {
   title: "Project structure · Latent",
@@ -23,10 +25,12 @@ export default function ProjectPage() {
           <div className="hero-actions"><Link href="/workspace">Open the IDE</Link><Link href="/courses/models">Continue the course</Link></div>
         </header>
         <ProjectStructureMap />
+        <ProjectTimeline />
         <section className="project-structure-note">
           <span>Progress model</span>
           <p>Source, test results, and build artifacts are saved on this device. Lesson checks verify each file independently, so unfinished work never invalidates the files you have already completed.</p>
         </section>
+        <LearningDataPanel />
       </article>
     </main>
   );

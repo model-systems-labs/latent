@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { headers } from "next/headers";
-import { CanonicalProjectBootstrap } from "./components/CanonicalProjectBootstrap";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -50,7 +49,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <CanonicalProjectBootstrap />
         {children}
       </body>
     </html>

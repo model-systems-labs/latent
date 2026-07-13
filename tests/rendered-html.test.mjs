@@ -490,3 +490,72 @@ test("Product Quality renders one lifecycle, an honest 16-check audit, and the m
   assert.match(html, /no browser, assistive-technology, or device emulation claims/);
   assert.match(html, /Run the audit to expose all 16 check-specific results/);
 });
+
+test("homepage offers an honest first model run before the curriculum", async () => {
+  const response = await render("/");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /First run · actual training/);
+  assert.match(html, /Change inference, observe behavior/);
+  assert.match(html, /Train and generate/);
+  assert.match(html, /1,267-parameter model|1,267 parameters/);
+  assert.match(html, /temperature 1\.05 · top-k off/);
+  assert.match(html, /temperature 0\.72 · top-k 5/);
+});
+
+test("every lesson renders the shared prediction and project-handoff contract", async () => {
+  for (const lessonId of ["character-rnns", "inference-runtime", "streaming-transport", "chat-product-quality"]) {
+    const response = await render(`/lessons/${lessonId}`);
+    assert.equal(response.status, 200, lessonId);
+    const html = await response.text();
+    assert.match(html, /Prediction check/, lessonId);
+    assert.match(html, /Project handoff/, lessonId);
+    assert.match(html, /Before/, lessonId);
+    assert.match(html, /After/, lessonId);
+    assert.match(html, /Open changed file/, lessonId);
+  }
+});
+
+test("all four executable module checkpoints render their exact project boundary", async () => {
+  for (const [slug, title] of [
+    ["models", "Generate from learned state"],
+    ["systems", "Trace one inference request"],
+    ["backend", "Stream across the serving boundary"],
+    ["product", "Assemble the product state machine"],
+  ]) {
+    const response = await render(`/checkpoints/${slug}`);
+    assert.equal(response.status, 200, slug);
+    const html = await response.text();
+    assert.match(html, new RegExp(title), slug);
+    assert.match(html, /Executable checkpoint/, slug);
+    assert.match(html, /Restoring project/, slug);
+    assert.match(html, /Before this module/, slug);
+    assert.match(html, /After this module/, slug);
+  }
+});
+
+test("project route exposes the timeline, local learning data, and recovery language", async () => {
+  const response = await render("/project");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /See the repository accumulate/);
+  assert.match(html, /Lesson 01/);
+  assert.match(html, /Lesson 07/);
+  assert.match(html, /Lesson 14/);
+  assert.match(html, /Your activity stays on this device/);
+  assert.match(html, /No analytics endpoint is configured/);
+});
+
+test("sources route lists the research, dataset, model, and runtime boundaries", async () => {
+  const response = await render("/sources");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Sources and licenses/);
+  assert.match(html, /Research remains with its authors/);
+  assert.match(html, /SmolLM2-135M-Instruct/);
+  assert.match(html, /Transformers\.js/);
+  assert.match(html, /Apache-2\.0/);
+  assert.match(html, /Course bibliography/);
+  assert.match(html, /Character RNNs/);
+  assert.match(html, /Product Quality/);
+});

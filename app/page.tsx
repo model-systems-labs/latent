@@ -1,18 +1,20 @@
 import Link from "next/link";
 import { courseTracks, getTrackLessons, llmSystemsCurriculum } from "./lessons/course";
+import { FirstRunExperience } from "./components/FirstRunExperience";
 
 export default function Home() {
   return (
     <main>
       <div className="page-atmosphere" aria-hidden="true"><span className="orbit orbit-one" /><span className="orbit orbit-two" /><span className="orbit orbit-three" /><span className="node node-one" /><span className="node node-two" /><span className="warm-star" /></div>
-      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><a href="#modules">Modules</a><Link href="/project">Project</Link><Link href="/workspace">IDE</Link><Link href="/capstone">Capstone</Link></nav></header>
+      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><a href="#modules">Modules</a><Link href="/project">Project</Link><Link href="/workspace">IDE</Link><Link href="/capstone">Capstone</Link><Link href="/sources">Sources</Link></nav></header>
       <article className="course-page full-course-page">
         <header className="course-hero full-course-hero">
           <p className="eyebrow">One course · four modules · {llmSystemsCurriculum.testCount} executable contracts</p>
           <h1>Build an LLM system in your browser.</h1>
           <p>Implement the model foundations, inference runtime, serving boundary, and React integration that produce a working local chatbot.</p>
-          <div className="hero-actions"><Link href="/courses/models">Start with the model</Link><Link href="/capstone">Open the capstone</Link></div>
+          <div className="hero-actions"><a href="#first-run">Run the first model</a><Link href="/courses/models">Start the course</Link></div>
         </header>
+        <FirstRunExperience />
         <section className="course-track-grid" id="modules" aria-label="LLM Systems modules">
           {courseTracks.map((track) => {
             const lessons = getTrackLessons(track.id);
@@ -39,7 +41,7 @@ export default function Home() {
           </div>
         </section>
         <Link className="capstone-banner" href="/capstone"><div><span>Final project</span><h2>Browser Chat</h2><p>A functional streaming chatbot with a learner-trained model, a real local Transformer, a deterministic serving boundary, systems metrics, persistence, and accessible React interactions.</p></div><strong>Build and run →</strong></Link>
-        <footer className="course-note"><p>Labs clearly distinguish live training, local inference, and bounded systems simulation.</p></footer>
+        <footer className="course-note"><p>Labs clearly distinguish live training, local inference, and bounded systems simulation.</p><Link href="/sources">Sources, datasets, and licenses →</Link></footer>
       </article>
     </main>
   );

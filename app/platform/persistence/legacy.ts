@@ -167,6 +167,8 @@ function decodeProject(raw: unknown, timestamp: number, fingerprint: string) {
       content: value.content,
       referenceContent: typeof value.referenceContent === "string" ? value.referenceContent : null,
       lessonId: typeof value.lessonId === "string" ? value.lessonId : null,
+      verifiedCells: typeof value.verifiedCells === "number" && Number.isFinite(value.verifiedCells) ? Math.max(0, Math.round(value.verifiedCells)) : 0,
+      totalCells: typeof value.totalCells === "number" && Number.isFinite(value.totalCells) ? Math.max(1, Math.round(value.totalCells)) : 1,
       revision: 1,
       sourceHash,
       createdAt: updatedAt,

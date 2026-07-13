@@ -64,6 +64,12 @@ test("route-independent reconciliation persists the complete canonical tree and 
   assert.equal(canonical.canonicalLessonSeeds().length, 14);
   assert.equal(template.CANONICAL_BROWSER_CHAT_FILES.length, 6);
 
+  const metadataSeed = canonical.canonicalLessonSeeds()[0];
+  workspace.ensureProjectWorkspace([{ ...metadataSeed, verifiedCells: 2 }]);
+  await workspace.flushProjectPersistence();
+  assert.equal(workspace.loadProjectState().files[metadataSeed.path].verifiedCells, 2);
+  assert.equal((await repositories.projects.getFile("browser-chat", metadataSeed.path)).verifiedCells, 2);
+
   const editedSource = "// Learner-owned Browser Chat edit\nexport function BrowserChat() { return null; }";
   workspace.saveProjectFile(template.CAPSTONE_COMPONENT_PATH, editedSource);
   await workspace.flushProjectPersistence();

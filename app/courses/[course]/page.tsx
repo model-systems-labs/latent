@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { courseTracks, getTrack, getTrackLessons } from "../../lessons/course";
 import { CourseCurriculum } from "../../components/CourseCurriculum";
+import { moduleCheckpoint } from "../../content/llm-systems/learning";
 
 export function generateStaticParams() {
   return courseTracks.map((track) => ({ course: track.id }));
@@ -22,6 +23,7 @@ export default async function CoursePage({ params }: { params: Promise<{ course:
   const lessons = getTrackLessons(track.id);
   const previous = courseTracks[track.number - 2];
   const next = courseTracks[track.number];
+  const checkpoint = moduleCheckpoint(track.id);
   return (
     <main>
       <div className="page-atmosphere" aria-hidden="true"><span className="orbit orbit-one" /><span className="orbit orbit-two" /><span className="orbit orbit-three" /><span className="node node-one" /><span className="warm-star" /></div>
@@ -34,6 +36,13 @@ export default async function CoursePage({ params }: { params: Promise<{ course:
           <div className="track-outcome"><span>Module artifact</span><strong>{track.outcome}</strong></div>
         </header>
         <CourseCurriculum title={track.title} lessons={lessons} />
+        {checkpoint ? (
+          <Link className="module-checkpoint-card" href={`/checkpoints/${track.id}`}>
+            <span>{checkpoint.label}</span>
+            <div><strong>{checkpoint.title}</strong><p>{checkpoint.objective}</p></div>
+            <em>Run checkpoint →</em>
+          </Link>
+        ) : null}
         <footer className="track-navigation">
           {previous ? <Link href={`/courses/${previous.id}`}>← {previous.title}</Link> : <Link href="/">← Curriculum</Link>}
           {next ? <Link href={`/courses/${next.id}`}>{next.title} →</Link> : <Link href="/capstone">Build the capstone →</Link>}

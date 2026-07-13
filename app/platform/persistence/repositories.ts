@@ -56,6 +56,8 @@ export type SaveProjectFileInput = {
   content: string;
   referenceContent?: string | null;
   lessonId?: string | null;
+  verifiedCells?: number;
+  totalCells?: number;
   reason?: FileRevisionReason;
 };
 
@@ -93,6 +95,13 @@ export class ProjectRepository extends RepositoryBase {
     return this.database.files.get(projectFileId(projectId, path));
   }
 
+  listFileRevisions(projectId: string, path: string) {
+    return this.database.fileRevisions
+      .where("fileId")
+      .equals(projectFileId(projectId, path))
+      .sortBy("revision");
+  }
+
   async selectFile(projectId: string, path: string | null) {
     if (path && !(await this.getFile(projectId, path))) throw new PersistenceInvariantError(`Cannot select missing file ${path}.`);
     const updated = await this.database.projects.update(projectId, { selectedPath: path, updatedAt: this.now() });
@@ -120,6 +129,8 @@ export class ProjectRepository extends RepositoryBase {
         content: input.content,
         referenceContent: input.referenceContent ?? existing?.referenceContent ?? null,
         lessonId: input.lessonId ?? existing?.lessonId ?? null,
+        verifiedCells: input.verifiedCells ?? existing?.verifiedCells ?? 0,
+        totalCells: input.totalCells ?? existing?.totalCells ?? 1,
         revision,
         sourceHash,
         createdAt: existing?.createdAt ?? timestamp,
@@ -354,6 +365,10 @@ export class ProgressRepository extends RepositoryBase {
       verifiedContractVersion: typeof record.verifiedContractVersion === "string" ? record.verifiedContractVersion : undefined,
       hiddenBlockIds: [...new Set(record.hiddenBlockIds)],
       answers: { ...record.answers },
+      knowledgeAnswers: record.knowledgeAnswers ? { ...record.knowledgeAnswers } : undefined,
+      knowledgeVerifiedIds: record.knowledgeVerifiedIds
+        ? [...new Set(record.knowledgeVerifiedIds)]
+        : undefined,
       updatedAt: this.now(),
     };
     assertStructuredValueWithinLimits(safe);

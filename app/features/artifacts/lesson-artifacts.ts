@@ -5,6 +5,7 @@ import { getArtifactRuntime } from "@latent/artifact-runtime/client";
 import { lessonArtifactBlueprintById, lessonArtifactBlueprints, previousArtifactLessonId } from "./lesson-blueprints";
 import { recordedTrainingRegistry } from "./training-scenarios";
 import { llmSystemsContractSuite } from "../../content/llm-systems/contracts";
+import { downloadBrowserBlob } from "../../lib/browser-download";
 
 export type ValidatedLessonResult = { id: string; label: string; passed: boolean; detail: string };
 
@@ -128,10 +129,5 @@ export async function latestProjectBuildArtifact() {
 export async function downloadArtifact(artifact: ArtifactEnvelope) {
   const { store } = await getArtifactRuntime();
   const bundle = await store.bundle(artifact.id);
-  const url = URL.createObjectURL(artifactBundleBlob(bundle));
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = `${artifact.kind}-${artifact.contentHash.slice(7, 15)}.latent-artifact.json`;
-  anchor.click();
-  URL.revokeObjectURL(url);
+  downloadBrowserBlob(artifactBundleBlob(bundle), `${artifact.kind}-${artifact.contentHash.slice(7, 15)}.latent-artifact.json`);
 }

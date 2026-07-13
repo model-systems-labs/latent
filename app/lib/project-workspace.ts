@@ -240,6 +240,8 @@ async function persistProjectState(state: ProjectState) {
       content: file.content,
       referenceContent: file.referenceContent,
       lessonId: file.lessonId ?? null,
+      verifiedCells: file.verifiedCells,
+      totalCells: file.totalCells,
       reason: "edit",
     });
   }
@@ -284,8 +286,8 @@ async function stateFromPersistence(): Promise<ProjectState | null> {
       content: record.content,
       referenceContent: record.referenceContent ?? previous?.referenceContent ?? record.content,
       lessonId: record.lessonId ?? previous?.lessonId,
-      verifiedCells: previous?.verifiedCells ?? 0,
-      totalCells: previous?.totalCells ?? 1,
+      verifiedCells: Math.max(0, Math.round(finiteNumber(record.verifiedCells, previous?.verifiedCells ?? 0))),
+      totalCells: Math.max(1, Math.round(finiteNumber(record.totalCells, previous?.totalCells ?? 1))),
       updatedAt: record.updatedAt,
       readOnly: false,
     };
@@ -395,6 +397,27 @@ export function ensureProjectWorkspace(seeds: LessonProjectSeed[]) {
           updatedAt: nextContent === current.content ? current.updatedAt : Date.now(),
         };
         sourceTreeChanged = true;
+      } else {
+        const current = files[seed.path];
+        const nextReadOnly = seed.readOnly ?? current.readOnly;
+        if (
+          current.courseId !== seed.courseId
+          || current.lessonId !== seed.lessonId
+          || current.title !== seed.title
+          || current.verifiedCells !== seed.verifiedCells
+          || current.totalCells !== seed.totalCells
+          || current.readOnly !== nextReadOnly
+        ) {
+          files[seed.path] = {
+            ...current,
+            courseId: seed.courseId,
+            lessonId: seed.lessonId,
+            title: seed.title,
+            verifiedCells: seed.verifiedCells,
+            totalCells: seed.totalCells,
+            readOnly: nextReadOnly,
+          };
+        }
       }
     }
     return {

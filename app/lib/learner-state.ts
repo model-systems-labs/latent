@@ -16,6 +16,8 @@ export type LessonLocalState = {
   experimentComplete: boolean;
   hiddenBlocks: string[];
   answers: Record<string, string>;
+  knowledgeAnswers: Record<string, string>;
+  knowledgeVerified: string[];
   updatedAt: number;
 };
 
@@ -66,6 +68,12 @@ function sanitizeLearnerState(value: unknown): LearnerState {
         answers: lesson.answers && typeof lesson.answers === "object"
           ? Object.fromEntries(Object.entries(lesson.answers).filter((entry): entry is [string, string] => typeof entry[1] === "string"))
           : {},
+        knowledgeAnswers: lesson.knowledgeAnswers && typeof lesson.knowledgeAnswers === "object"
+          ? Object.fromEntries(Object.entries(lesson.knowledgeAnswers).filter((entry): entry is [string, string] => typeof entry[1] === "string"))
+          : {},
+        knowledgeVerified: Array.isArray(lesson.knowledgeVerified)
+          ? lesson.knowledgeVerified.filter((id): id is string => typeof id === "string")
+          : [],
         updatedAt: typeof lesson.updatedAt === "number" ? lesson.updatedAt : 0,
       };
     }
@@ -126,6 +134,8 @@ async function persistLearnerState(state: LearnerState) {
     experimentComplete: lesson.experimentComplete,
     hiddenBlockIds: lesson.hiddenBlocks,
     answers: lesson.answers,
+    knowledgeAnswers: lesson.knowledgeAnswers,
+    knowledgeVerifiedIds: lesson.knowledgeVerified,
     lastProjectPath: null,
     updatedAt: lesson.updatedAt,
   })));
@@ -182,6 +192,8 @@ export function initializeLearnerPersistence() {
           experimentComplete: record.experimentComplete,
           hiddenBlocks: record.hiddenBlockIds,
           answers: record.answers,
+          knowledgeAnswers: record.knowledgeAnswers ?? {},
+          knowledgeVerified: record.knowledgeVerifiedIds ?? [],
           updatedAt: record.updatedAt,
         };
       }
@@ -215,7 +227,17 @@ export function updateLearnerState(update: (state: LearnerState) => LearnerState
 }
 
 function lessonState(state: LearnerState, lessonId: string): LessonLocalState {
-  return state.lessons[lessonId] ?? { verifiedCells: [], verifiedSources: {}, verifiedContractVersion: null, experimentComplete: false, hiddenBlocks: [], answers: {}, updatedAt: 0 };
+  return state.lessons[lessonId] ?? {
+    verifiedCells: [],
+    verifiedSources: {},
+    verifiedContractVersion: null,
+    experimentComplete: false,
+    hiddenBlocks: [],
+    answers: {},
+    knowledgeAnswers: {},
+    knowledgeVerified: [],
+    updatedAt: 0,
+  };
 }
 
 export function saveLessonPractice(lessonId: string, hiddenBlocks: string[], answers: Record<string, string>) {
@@ -261,6 +283,32 @@ export function markExperimentComplete(lessonId: string) {
   }));
 }
 
+export function recordKnowledgeCheck(
+  lessonId: string,
+  checkId: string,
+  choiceId: string,
+  correct: boolean,
+) {
+  return updateLearnerState((state) => {
+    const current = lessonState(state, lessonId);
+    const verified = correct
+      ? [...new Set([...current.knowledgeVerified, checkId])]
+      : current.knowledgeVerified.filter((id) => id !== checkId);
+    return {
+      ...state,
+      lessons: {
+        ...state.lessons,
+        [lessonId]: {
+          ...current,
+          knowledgeAnswers: { ...current.knowledgeAnswers, [checkId]: choiceId },
+          knowledgeVerified: verified,
+          updatedAt: Date.now(),
+        },
+      },
+    };
+  });
+}
+
 export function saveCharacterRnnArtifact(result: RnnResult) {
   updateLearnerState((state) => ({
     ...state,
@@ -296,4 +344,8 @@ export function useLearnerState() {
 export function lessonIsComplete(state: LearnerState, lessonId: string, totalCells: number) {
   const lesson = state.lessons[lessonId];
   return Boolean(lesson?.experimentComplete && lesson.verifiedCells.length >= totalCells);
+}
+
+export function lessonKnowledgeIsComplete(state: LearnerState, lessonId: string, checkId: string) {
+  return state.lessons[lessonId]?.knowledgeVerified.includes(checkId) ?? false;
 }

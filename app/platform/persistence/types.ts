@@ -26,6 +26,9 @@ export type ProjectFileRecord = {
   content: string;
   referenceContent: string | null;
   lessonId: string | null;
+  /** Lesson verification metadata; optional only on pre-productization records. */
+  verifiedCells?: number;
+  totalCells?: number;
   revision: number;
   sourceHash: string;
   createdAt: number;
@@ -139,6 +142,9 @@ export type LessonProgressRecord = {
   experimentComplete: boolean;
   hiddenBlockIds: string[];
   answers: Record<string, string>;
+  /** Prediction-check choices contain ids only; prompts and free-form text are never stored here. */
+  knowledgeAnswers?: Record<string, string>;
+  knowledgeVerifiedIds?: string[];
   lastProjectPath: string | null;
   updatedAt: number;
 };

@@ -149,6 +149,8 @@ test("progress repository preserves source-and-contract-bound lesson verificatio
     experimentComplete: false,
     hiddenBlockIds: ["merge-pair"],
     answers: { "merge-pair": "function mergePair() { return []; }" },
+    knowledgeAnswers: { "merge-order": "dependencies" },
+    knowledgeVerifiedIds: ["merge-order"],
     lastProjectPath: "models/bpe-tokenizer.js",
     updatedAt: 100,
   });
@@ -156,6 +158,27 @@ test("progress repository preserves source-and-contract-bound lesson verificatio
   assert.equal(restored.verifiedContractVersion, "llm-systems-contracts-v3");
   assert.deepEqual(restored.verifiedCellIds, ["merge-pair"]);
   assert.deepEqual(restored.verifiedSources, { "merge-pair": "function mergePair() { return []; }" });
+  assert.deepEqual(restored.knowledgeAnswers, { "merge-order": "dependencies" });
+  assert.deepEqual(restored.knowledgeVerifiedIds, ["merge-order"]);
+  await dispose(db);
+});
+
+test("project repository exposes immutable file history for learner recovery", async () => {
+  const db = database();
+  await db.open();
+  let now = 10;
+  const repositories = new persistence.PersistenceRepositories(db, { now: () => now++ });
+  await repositories.projects.create({ id: "history", title: "History", courseId: "llm-systems" });
+  await repositories.projects.saveFile({ projectId: "history", path: "models/model.js", track: "models", title: "Model", content: "export const value = 1", verifiedCells: 1, totalCells: 3 });
+  await repositories.projects.saveFile({ projectId: "history", path: "models/model.js", track: "models", title: "Model", content: "export const value = 2", reason: "edit" });
+  await repositories.projects.saveFile({ projectId: "history", path: "models/model.js", track: "models", title: "Model", content: "export const value = 1", reason: "restore" });
+  const revisions = await repositories.projects.listFileRevisions("history", "models/model.js");
+  assert.deepEqual(revisions.map((revision) => revision.revision), [1, 2, 3]);
+  assert.deepEqual(revisions.map((revision) => revision.reason), ["seed", "edit", "restore"]);
+  assert.equal(revisions[0].content, revisions[2].content);
+  const currentFile = await repositories.projects.getFile("history", "models/model.js");
+  assert.equal(currentFile.verifiedCells, 1);
+  assert.equal(currentFile.totalCells, 3);
   await dispose(db);
 });
 

@@ -405,3 +405,24 @@ test("Reliability and Observability renders an attempt-aware worked trace", asyn
   assert.match(html, /User abort/);
   assert.match(html, /request and attempt ids · phase timing · terminal and resource evidence/);
 });
+
+test("Conversation State renders a normalized update and all 18 reducer actions", async () => {
+  const response = await render("/lessons/conversation-state");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /One delta through normalized state/);
+  assert.match(html, /conversation · c-17/);
+  assert.match(html, /messagesById · m-u1/);
+  assert.match(html, /messagesById · m-a1/);
+  assert.match(html, /a-17\.2/);
+  assert.match(html, /r-17\.2/);
+  assert.match(html, /canStop: true · canRegenerate: false/);
+  assert.match(html, /18 reducer actions · 3 generation attempts/);
+  assert.match(html, /Complete · 01–06/);
+  assert.match(html, /Cancel \+ late · 07–12/);
+  assert.match(html, /Edit \+ regenerate · 13–18/);
+  assert.match(html, /messageId/);
+  assert.match(html, /attemptId/);
+  assert.match(html, /requestId/);
+  assert.match(html, /Identity evidence/);
+});

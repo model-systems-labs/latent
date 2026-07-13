@@ -58,6 +58,8 @@ function installDeterministicIntrinsics(context: QuickJSContext, seed: number, n
     const NativeSet = Set;
     const objectEntries = Object.entries;
     const objectFromEntries = Object.fromEntries;
+    const objectFreeze = Object.freeze;
+    const objectValues = Object.values;
     const arrayIsArray = Array.isArray;
     const fixedNow = ${Math.trunc(nowMs)};
     class DeterministicDate extends NativeDate {
@@ -81,7 +83,14 @@ function installDeterministicIntrinsics(context: QuickJSContext, seed: number, n
       seen.delete(value);
       return normalized;
     };
+    const freezeInvocationInput = (value, seen = new NativeSet()) => {
+      if (!value || typeof value !== "object" || seen.has(value)) return value;
+      seen.add(value);
+      for (const child of objectValues(value)) freezeInvocationInput(child, seen);
+      return objectFreeze(value);
+    };
     Object.defineProperty(globalThis, "__browserLabNormalize", { value: normalizeForHost, writable: false, configurable: false });
+    Object.defineProperty(globalThis, "__browserLabFreezeInput", { value: freezeInvocationInput, writable: false, configurable: false });
     for (const name of ["fetch", "XMLHttpRequest", "WebSocket", "localStorage", "indexedDB", "Worker", "postMessage", "importScripts"]) {
       try { delete globalThis[name]; } catch {}
     }
@@ -190,6 +199,19 @@ export class QuickJSSandboxEngine implements SandboxEngine {
         if (context.typeof(moduleHandle) !== "object") throw new VmFailure("MissingModule", `Compiled module ${compiledModule.modulePath} did not expose ${compiledModule.globalName}.`);
         if (context.typeof(functionHandle) !== "function") throw new VmFailure("MissingExport", `Export ${exerciseCase.invoke.exportName} is not a function.`);
         const args = exerciseCase.invoke.args.map((value) => createJsonHandle(context, value, argumentHandles));
+        const freezeHandle = context.getProp(globalHandle, "__browserLabFreezeInput");
+        try {
+          for (const argument of args) {
+            const frozen = context.callFunction(freezeHandle, globalHandle, [argument]);
+            try {
+              if (frozen.error) throw errorFromHandle(context, frozen.error);
+            } finally {
+              frozen.dispose();
+            }
+          }
+        } finally {
+          freezeHandle.dispose();
+        }
         const result = context.callFunction(functionHandle, moduleHandle, args);
         try {
           if (result.error) throw errorFromHandle(context, result.error);

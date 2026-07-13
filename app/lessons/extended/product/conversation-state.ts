@@ -17,31 +17,31 @@ export const conversationStateLesson = defineExtendedLesson({
     authors: "React documentation",
     year: "Current reference",
     summary: [
-      { label: "Normalized state.", body: "Conversations own ordered message ids while messages are addressable records. Stable ids allow streaming updates, retries, edits, and cancellation without relying on array position." },
-      { label: "Attempt identity.", body: "One assistant message may have multiple generation attempts. Transport request ids and UI message ids should be related but not conflated." },
-      { label: "Reducer boundary.", body: "Typed actions centralize legal transitions such as start, delta, complete, fail, cancel, edit, and regenerate. Rendering becomes a projection of state rather than a second state machine." },
-      { label: "Derived state.", body: "Flags such as canStop or canRegenerate should be derived from message and request status instead of stored independently and allowed to drift." },
+      { label: "Normalized state.", body: "A conversation stores an ordered messageIds list; messagesById stores each message once. Rendering follows the list, while streaming updates address a record by id instead of assuming the last array element is active." },
+      { label: "Three identities.", body: "messageId names the durable UI record, attemptId names one model-generation try, and requestId names one transport lifecycle. A regenerated assistant message can keep its conversation position while receiving a new attempt and request." },
+      { label: "Immutable transitions.", body: "A delta action returns a new messages collection and a new target message, preserves untouched message identities, and ignores events for missing or non-streaming targets. React can then detect exactly what changed." },
+      { label: "Derived controls.", body: "canStop is true only while the active request is streaming; canRegenerate is true only after an assistant attempt reaches a terminal state. Deriving both from normalized records prevents stored booleans from drifting." },
     ],
     claims: {
       paper: "Reducers consolidate state transitions when many event handlers update related state.",
-      lab: "A typed conversation reducer processes deterministic user, token, completion, cancellation, edit, and retry events.",
+      lab: "An 18-action deterministic trace follows three generation attempts through completion, cancellation with a rejected late delta, and edit plus regeneration.",
       limit: "The lesson models one-device state and does not implement collaborative synchronization.",
     },
     diagram: {
-      title: "Conversation domain model",
-      caption: "Stable identities separate messages, generation attempts, and transport requests.",
+      title: "One delta through normalized state",
+      caption: "A concrete update preserves conversation order while message, attempt, and request identities remain distinct.",
       nodes: [
-        { label: "Conversation", value: "ordered message ids" },
-        { label: "Message", value: "role + content + status" },
-        { label: "Attempt", value: "model + parameters" },
-        { label: "Request", value: "transport lifecycle" },
+        { label: "Conversation c-17", value: "messageIds: [m-u1, m-a1]" },
+        { label: "Message m-a1", value: "assistant · streaming · A causal" },
+        { label: "Attempt a-17.2", value: "messageId: m-a1 · requestId: r-17.2" },
+        { label: "Delta action", value: "m-a1 + ' mask' → new target record" },
       ],
     },
     questions: {
       intro: "Ask about normalized messages, reducer actions, stable identity, derived state, or generation attempts.",
       suggestions: ["Why not use array indexes as message ids?", "What state belongs to an attempt?", "Which chat flags should be derived?"],
     },
-    dataset: { name: "Conversation Event Log", source: "Original deterministic actions", license: "CC0", size: "18 actions · 3 attempts", preview: "send → start → delta × 4 → complete → edit → regenerate" },
+    dataset: { name: "Conversation Event Log", source: "Original deterministic actions", license: "CC0", size: "18 reducer actions · 3 generation attempts", preview: "complete · cancel + ignored late delta · edit + regenerate" },
     implementation: {
       filename: "chat-reducer.js",
       intro: "Implement immutable message creation and token-delta transitions before replaying a complete conversation event log.",
@@ -49,7 +49,7 @@ export const conversationStateLesson = defineExtendedLesson({
         {
           id: "create-message",
           label: "Message record",
-          purpose: "Create a stable, serializable message with explicit generation status.",
+          purpose: "Create the exact serializable message record used by normalized conversation state.",
           concepts: [
             { name: "id", detail: "Stable identity independent of render position." },
             { name: "role", detail: "User, assistant, or system domain role." },
@@ -64,7 +64,7 @@ return { passed: message.id === "m1" && message.content === "" && message.status
         {
           id: "append-delta",
           label: "Delta transition",
-          purpose: "Append one transport delta to the matching streaming message.",
+          purpose: "Immutably append one transport delta to the matching streaming message.",
           concepts: [
             { name: "messageId", detail: "Targets a stable message rather than the last array element." },
             { name: "delta", detail: "Incremental text emitted by the transport." },
@@ -82,5 +82,5 @@ return { passed: next[0].content === "Hello" && next[1].content === "fixed", det
         },
       ],
     },
-    experiment: { kind: "product", variant: "state", title: "Replay the reducer", intro: "Step through a complete conversation trace and inspect state changes, derived actions, and ignored late events." },
+    experiment: { kind: "product", variant: "state", title: "Replay the reducer", intro: "Replay all 18 actions in three focused flows; inspect message, attempt, and request ids, immutable revisions, derived controls, and the rejected late event." },
   });

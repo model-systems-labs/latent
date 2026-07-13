@@ -144,6 +144,28 @@ test("QuickJS executes pure exports without host page capabilities", async () =>
   });
 });
 
+test("QuickJS freezes host-owned invocation inputs before learner code runs", async () => {
+  const code = `var __browserLab_math = (() => ({ append: (messages, delta) => {
+    messages[0].content += delta;
+    messages.push({ id: "injected", content: delta });
+    return messages;
+  } }))();`;
+  const exerciseCase = {
+    id: "immutable-input",
+    label: "Immutable input",
+    invoke: {
+      modulePath: "src/math.js",
+      exportName: "append",
+      args: [[{ id: "a", content: "Hel", status: "streaming" }], "lo"],
+    },
+    assertions: [],
+  };
+  const { request } = await fixture({ code, exerciseCase, request: { jobId: "job-immutable-input" } });
+  const observation = await new quickjs.QuickJSSandboxEngine().observe(request, exerciseCase, () => {});
+  assert.equal(observation.status, "threw", "mutating a frozen nested object or array must not produce a passing value");
+  assert.match(observation.message, /read only|not extensible|object is not extensible/i);
+});
+
 test("QuickJS interrupts an infinite loop inside the per-case CPU limit", async () => {
   const code = "var __browserLab_math = (() => ({ spin: () => { while (true) {} } }))();";
   const exerciseCase = { id: "spin", label: "Spin", invoke: { modulePath: "src/math.js", exportName: "spin", args: [] }, assertions: [] };

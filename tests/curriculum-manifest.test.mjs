@@ -850,11 +850,111 @@ test("Reliability and Observability binds retries and events to attempt identity
   accepts(guard, new Function(`${guardBlock.code}; return acceptEvent;`)());
 });
 
+test("Conversation State enforces normalized records and immutable targeted deltas", () => {
+  const lesson = course.courseLessons.find((candidate) => candidate.id === "conversation-state");
+  assert.ok(lesson);
+  assert.match(lesson.summary[0].body, /messageIds/);
+  assert.match(lesson.summary[0].body, /messagesById/);
+  assert.match(lesson.summary[1].body, /messageId/);
+  assert.match(lesson.summary[1].body, /attemptId/);
+  assert.match(lesson.summary[1].body, /requestId/);
+  assert.match(lesson.summary[2].body, /new messages collection/);
+  assert.match(lesson.summary[2].body, /preserves untouched message identities/);
+  assert.match(lesson.summary[3].body, /canStop/);
+  assert.match(lesson.summary[3].body, /canRegenerate/);
+  assert.equal(lesson.diagram.title, "One delta through normalized state");
+  assert.match(lesson.dataset.size, /18 reducer actions · 3 generation attempts/);
+  assert.match(lesson.experiment.intro, /all 18 actions/);
+  assert.match(lesson.experiment.intro, /rejected late event/);
+
+  const byId = new Map(contracts.llmSystemsExerciseContracts.map((contract) => [contract.id, contract]));
+  const freeze = (value) => {
+    if (!value || typeof value !== "object" || Object.isFrozen(value)) return value;
+    Object.values(value).forEach(freeze);
+    return Object.freeze(value);
+  };
+  const observe = (implementation, sourceArgs) => {
+    const args = structuredClone(sourceArgs);
+    args.forEach(freeze);
+    try {
+      return { status: "returned", value: implementation(...args) };
+    } catch (reason) {
+      return {
+        status: "threw",
+        errorName: reason instanceof Error ? reason.name : "Error",
+        message: reason instanceof Error ? reason.message : String(reason),
+      };
+    }
+  };
+  const evaluate = (contract, implementation) => contract.cases.map((exerciseCase) =>
+    contractRuntime.evaluateExerciseCase(contract, exerciseCase, observe(implementation, exerciseCase.invoke.args)));
+  const rejects = (contract, implementation) => assert.ok(evaluate(contract, implementation).some((result) => !result.passed));
+  const accepts = (contract, implementation) => assert.ok(evaluate(contract, implementation).every((result) => result.passed));
+
+  const create = byId.get("conversation-state/create-message");
+  assert.ok(create);
+  assert.equal(create.cases.length, 4);
+  const defaultsOnly = ({ id, role }) => ({ id, role, content: "", status: "complete", createdAt: 0 });
+  const copiesCallerFields = (input) => ({ ...input, content: input.content ?? "", status: input.status ?? "complete", createdAt: 0 });
+  rejects(create, defaultsOnly);
+  rejects(create, copiesCallerFields);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(create, defaultsOnly)), /Use the supplied id, role, content, and status/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(create, copiesCallerFields)), /do not persist renderIndex/);
+  const createBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "create-message");
+  assert.ok(createBlock);
+  const createReference = new Function(`${createBlock.code}; return createMessage;`)();
+  accepts(create, createReference);
+  assert.deepEqual(Object.keys(createReference({ id: "m", role: "assistant" })).sort(), ["content", "createdAt", "id", "role", "status"]);
+  assert.doesNotThrow(() => JSON.stringify(createReference({ id: "m", role: "assistant" })));
+
+  const append = byId.get("conversation-state/append-delta");
+  assert.ok(append);
+  assert.equal(append.cases.length, 4);
+  const mutatesTarget = (messages, messageId, delta) => {
+    const target = messages.find((message) => message.id === messageId && message.status === "streaming");
+    if (target) target.content += delta;
+    return messages;
+  };
+  const updatesLast = (messages, _messageId, delta) => messages.map((message, index) => index === messages.length - 1 ? { ...message, content: message.content + delta } : message);
+  const ignoresStatus = (messages, messageId, delta) => messages.map((message) => message.id === messageId ? { ...message, content: message.content + delta } : message);
+  rejects(append, mutatesTarget);
+  rejects(append, updatesLast);
+  rejects(append, ignoresStatus);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(append, mutatesTarget)), /Match messageId instead of array position/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(append, updatesLast)), /Match messageId instead of array position/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(append, ignoresStatus)), /Check that the matching message is streaming/);
+  const appendBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "append-delta");
+  assert.ok(appendBlock);
+  const appendReference = new Function(`${appendBlock.code}; return appendMessageDelta;`)();
+  accepts(append, appendReference);
+
+  const before = Object.freeze([
+    Object.freeze({ id: "before", content: "keep", status: "streaming" }),
+    Object.freeze({ id: "target", content: "Hel", status: "streaming" }),
+    Object.freeze({ id: "after", content: "fixed", status: "complete" }),
+  ]);
+  const next = appendReference(before, "target", "lo");
+  assert.notEqual(next, before, "every reducer call returns a new array identity");
+  assert.equal(next[0], before[0], "the preceding untargeted record preserves identity");
+  assert.notEqual(next[1], before[1], "the targeted record receives a new object identity");
+  assert.equal(next[2], before[2], "the following untargeted record preserves identity");
+  assert.deepEqual(before, [
+    { id: "before", content: "keep", status: "streaming" },
+    { id: "target", content: "Hel", status: "streaming" },
+    { id: "after", content: "fixed", status: "complete" },
+  ], "the authored reference never mutates its input");
+  const missing = appendReference(before, "missing", "!");
+  assert.notEqual(missing, before);
+  assert.equal(missing[0], before[0]);
+  assert.equal(missing[1], before[1]);
+  assert.equal(missing[2], before[2]);
+});
+
 test("practice verification is inseparable from the exact editor source and contract version", () => {
   const block = { id: "rnn-step", code: "function rnnStep() { return 'reference'; }" };
   const correct = "function rnnStep() { return 'correct learner answer'; }";
   const wrong = "function rnnStep() { return 'wrong learner answer'; }";
-  const currentVersion = "llm-systems-contracts-v10";
+  const currentVersion = "llm-systems-contracts-v11";
   const bound = practiceState.bindBlockVerification(
     { ids: [], sources: {}, contractVersion: null },
     block.id,

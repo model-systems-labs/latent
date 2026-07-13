@@ -579,16 +579,35 @@ function SystemsExperiment({ variant, onComplete }: { variant: SystemsVariant } 
 
 function ProductExperiment({ variant, onComplete }: { variant: ProductVariant } & ExperimentProps) {
   const [step, setStep] = useState(0);
+  const [stateFlow, setStateFlow] = useState<"complete" | "cancel" | "regenerate">("complete");
   const [budget, setBudget] = useState(36);
   const [ran, setRan] = useState(false);
-  const stateTrace = [
-    { action: "USER_MESSAGE", status: "complete", content: "Explain causal masking." },
-    { action: "START_ATTEMPT", status: "queued", content: "" },
-    { action: "STREAM_START", status: "streaming", content: "" },
-    { action: "TOKEN_DELTA", status: "streaming", content: "A causal mask" },
-    { action: "TOKEN_DELTA", status: "streaming", content: "A causal mask removes future positions." },
-    { action: "COMPLETE", status: "complete", content: "A causal mask removes future positions." },
-  ];
+  const stateTraces = {
+    complete: [
+      { number: 1, action: "USER_MESSAGE", status: "complete", messageId: "m-u1", attemptId: "—", requestId: "—", content: "Explain causal masking.", canStop: false, canRegenerate: false, applied: true, evidence: "state revision 0 → 1 · conversation order appends m-u1" },
+      { number: 2, action: "START_ATTEMPT", status: "queued", messageId: "m-a1", attemptId: "a-17.1", requestId: "r-17.1", content: "", canStop: false, canRegenerate: false, applied: true, evidence: "revision 1 → 2 · new m-a1 record · m-u1 identity preserved" },
+      { number: 3, action: "STREAM_START", status: "streaming", messageId: "m-a1", attemptId: "a-17.1", requestId: "r-17.1", content: "", canStop: true, canRegenerate: false, applied: true, evidence: "revision 2 → 3 · request status queued → streaming" },
+      { number: 4, action: "TOKEN_DELTA", status: "streaming", messageId: "m-a1", attemptId: "a-17.1", requestId: "r-17.1", content: "A causal", canStop: true, canRegenerate: false, applied: true, evidence: "revision 3 → 4 · m-a1 replaced · m-u1 identity preserved" },
+      { number: 5, action: "TOKEN_DELTA", status: "streaming", messageId: "m-a1", attemptId: "a-17.1", requestId: "r-17.1", content: "A causal mask removes future positions.", canStop: true, canRegenerate: false, applied: true, evidence: "revision 4 → 5 · m-a1 replaced · ordered ids unchanged" },
+      { number: 6, action: "COMPLETE", status: "complete", messageId: "m-a1", attemptId: "a-17.1", requestId: "r-17.1", content: "A causal mask removes future positions.", canStop: false, canRegenerate: true, applied: true, evidence: "revision 5 → 6 · terminal request releases active control" },
+    ],
+    cancel: [
+      { number: 7, action: "USER_MESSAGE", status: "complete", messageId: "m-u2", attemptId: "—", requestId: "—", content: "Give one implementation detail.", canStop: false, canRegenerate: false, applied: true, evidence: "revision 6 → 7 · conversation order appends m-u2" },
+      { number: 8, action: "START_ATTEMPT", status: "queued", messageId: "m-a2", attemptId: "a-17.2", requestId: "r-17.2", content: "", canStop: false, canRegenerate: false, applied: true, evidence: "revision 7 → 8 · second message, attempt, and request ids allocated" },
+      { number: 9, action: "STREAM_START", status: "streaming", messageId: "m-a2", attemptId: "a-17.2", requestId: "r-17.2", content: "", canStop: true, canRegenerate: false, applied: true, evidence: "revision 8 → 9 · canStop derives from active streaming request" },
+      { number: 10, action: "TOKEN_DELTA", status: "streaming", messageId: "m-a2", attemptId: "a-17.2", requestId: "r-17.2", content: "Set future logits", canStop: true, canRegenerate: false, applied: true, evidence: "revision 9 → 10 · m-a2 replaced · all other messages preserved" },
+      { number: 11, action: "CANCEL_REQUEST", status: "cancelled", messageId: "m-a2", attemptId: "a-17.2", requestId: "r-17.2", content: "Set future logits", canStop: false, canRegenerate: true, applied: true, evidence: "revision 10 → 11 · partial text retained · request terminal" },
+      { number: 12, action: "TOKEN_DELTA", status: "cancelled", messageId: "m-a2", attemptId: "a-17.2", requestId: "r-17.2", content: "Set future logits", canStop: false, canRegenerate: true, applied: false, evidence: "revision remains 11 · late delta rejected · no object identities change" },
+    ],
+    regenerate: [
+      { number: 13, action: "EDIT_MESSAGE", status: "complete", messageId: "m-u1", attemptId: "—", requestId: "—", content: "Explain causal masking precisely.", canStop: false, canRegenerate: false, applied: true, evidence: "revision 11 → 12 · m-u1 revision 0 → 1 · prior record retained" },
+      { number: 14, action: "REGENERATE", status: "queued", messageId: "m-a1", attemptId: "a-17.3", requestId: "r-17.3", content: "", canStop: false, canRegenerate: false, applied: true, evidence: "revision 12 → 13 · same message position · new attempt and request ids" },
+      { number: 15, action: "STREAM_START", status: "streaming", messageId: "m-a1", attemptId: "a-17.3", requestId: "r-17.3", content: "", canStop: true, canRegenerate: false, applied: true, evidence: "revision 13 → 14 · a-17.1 remains historical · a-17.3 becomes active" },
+      { number: 16, action: "TOKEN_DELTA", status: "streaming", messageId: "m-a1", attemptId: "a-17.3", requestId: "r-17.3", content: "A causal mask", canStop: true, canRegenerate: false, applied: true, evidence: "revision 14 → 15 · active assistant record replaced immutably" },
+      { number: 17, action: "TOKEN_DELTA", status: "streaming", messageId: "m-a1", attemptId: "a-17.3", requestId: "r-17.3", content: "A causal mask sets future attention logits to negative infinity.", canStop: true, canRegenerate: false, applied: true, evidence: "revision 15 → 16 · conversation order and user records unchanged" },
+      { number: 18, action: "COMPLETE", status: "complete", messageId: "m-a1", attemptId: "a-17.3", requestId: "r-17.3", content: "A causal mask sets future attention logits to negative infinity.", canStop: false, canRegenerate: true, applied: true, evidence: "revision 16 → 17 · attempt a-17.3 terminal · request resources released" },
+    ],
+  } as const;
   const contextMessages: ContextMessage[] = [
     { id: "m1", role: "system", tokens: 8, text: "Technical tutor instructions" },
     { id: "m2", role: "user", tokens: 12, text: "Earlier question about tokenization" },
@@ -598,14 +617,23 @@ function ProductExperiment({ variant, onComplete }: { variant: ProductVariant } 
   const { selected, used } = selectCompleteTurnContext(contextMessages, budget);
 
   if (variant === "state") {
+    const stateTrace = stateTraces[stateFlow];
     const current = stateTrace[Math.min(step, stateTrace.length - 1)];
+    const setFlow = (flow: typeof stateFlow) => {
+      setStateFlow(flow);
+      setStep(0);
+      onComplete();
+    };
     return (
       <>
-        <div className="simulation-controls"><span>Reducer event</span><input aria-label="Reducer event" type="range" min="0" max={stateTrace.length - 1} value={step} onChange={(event) => { setStep(Number(event.target.value)); onComplete(); }} /><code>{step + 1}/{stateTrace.length}</code></div>
+        <div className="simulation-controls state-flow-controls"><span>Focused flow</span><button className={stateFlow === "complete" ? "selected" : ""} type="button" onClick={() => setFlow("complete")}>Complete · 01–06</button><button className={stateFlow === "cancel" ? "selected" : ""} type="button" onClick={() => setFlow("cancel")}>Cancel + late · 07–12</button><button className={stateFlow === "regenerate" ? "selected" : ""} type="button" onClick={() => setFlow("regenerate")}>Edit + regenerate · 13–18</button></div>
+        <div className="simulation-controls"><span>Reducer action</span><input aria-label="Reducer action" type="range" min="0" max={stateTrace.length - 1} value={step} onChange={(event) => { setStep(Number(event.target.value)); onComplete(); }} /><code>{String(current.number).padStart(2, "0")}/18</code></div>
         <div className="simulation-result product-simulation">
-          <div className="state-inspector"><div><span>Action</span><strong>{current.action}</strong></div><div><span>Status</span><strong>{current.status}</strong></div><div><span>Available actions</span><strong>{current.status === "streaming" ? "Stop" : current.status === "complete" ? "Retry · Edit" : "None"}</strong></div></div>
-          <article className={`mini-message ${current.status}`}><span>Assistant</span><p>{current.content || "Waiting for output…"}</p></article>
-          <div className="trace-list compact-trace">{stateTrace.map((event, index) => <button className={index === step ? "active" : index < step ? "complete" : ""} type="button" onClick={() => { setStep(index); onComplete(); }} key={`${event.action}-${index}`}><span>{index + 1}</span><strong>{event.action}</strong></button>)}</div>
+          <div className="state-inspector"><div><span>Action</span><strong>{current.action}</strong></div><div><span>Status</span><strong>{current.status}</strong></div><div><span>Reducer result</span><strong>{current.applied ? "applied" : "ignored"}</strong></div><div><span>Derived controls</span><strong>{`stop ${current.canStop ? "on" : "off"} · regenerate ${current.canRegenerate ? "on" : "off"}`}</strong></div></div>
+          <div className="state-identity-strip"><span><em>messageId</em><code>{current.messageId}</code></span><span><em>attemptId</em><code>{current.attemptId}</code></span><span><em>requestId</em><code>{current.requestId}</code></span></div>
+          <article className={`mini-message ${current.status}`}><span>{current.messageId.startsWith("m-u") ? "User" : "Assistant"} · {current.messageId}</span><p>{current.content || "Waiting for output…"}</p></article>
+          <p className={`state-revision-evidence${current.applied ? "" : " ignored"}`}><b>Identity evidence</b>{current.evidence}</p>
+          <div className="trace-list compact-trace">{stateTrace.map((event, index) => <button aria-label={`Action ${event.number}: ${event.action}`} className={index === step ? "active" : index < step ? "complete" : ""} type="button" onClick={() => { setStep(index); onComplete(); }} key={`${event.action}-${event.number}`}><span>{String(event.number).padStart(2, "0")}</span><strong>{event.action}</strong></button>)}</div>
         </div>
       </>
     );

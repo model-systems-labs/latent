@@ -85,13 +85,14 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
   const isSchedulingMemory = lesson.id === "scheduling-memory";
   const isStreamingTransport = lesson.id === "streaming-transport";
   const isReliabilityObservability = lesson.id === "reliability-observability";
+  const isConversationState = lesson.id === "conversation-state";
   const recurrentSteps = [
     { time: "t − 1", input: "x_(t−1)", previous: "h_(t−2)", state: "h_(t−1)", prediction: "p(x_t)" },
     { time: "t", input: "x_t", previous: "h_(t−1)", state: "h_t", prediction: "p(x_(t+1))" },
     { time: "t + 1", input: "x_(t+1)", previous: "h_t", state: "h_(t+1)", prediction: "p(x_(t+2))" },
   ];
   return (
-    <figure className={`concept-diagram${isRecurrent ? " recurrence-diagram" : ""}${isNeuralLanguageModel ? " neural-lm-diagram" : ""}${isSubwordTokenization ? " subword-tokenization-diagram" : ""}${isAdditiveAttention ? " additive-attention-diagram" : ""}${isTransformer ? " transformer-attention-diagram" : ""}${isInContextLearning ? " icl-comparison-diagram" : ""}${isInferenceRuntime ? " inference-runtime-diagram" : ""}${isSchedulingMemory ? " scheduling-memory-diagram" : ""}${isStreamingTransport ? " streaming-transport-diagram" : ""}${isReliabilityObservability ? " reliability-observability-diagram" : ""}`}>
+    <figure className={`concept-diagram${isRecurrent ? " recurrence-diagram" : ""}${isNeuralLanguageModel ? " neural-lm-diagram" : ""}${isSubwordTokenization ? " subword-tokenization-diagram" : ""}${isAdditiveAttention ? " additive-attention-diagram" : ""}${isTransformer ? " transformer-attention-diagram" : ""}${isInContextLearning ? " icl-comparison-diagram" : ""}${isInferenceRuntime ? " inference-runtime-diagram" : ""}${isSchedulingMemory ? " scheduling-memory-diagram" : ""}${isStreamingTransport ? " streaming-transport-diagram" : ""}${isReliabilityObservability ? " reliability-observability-diagram" : ""}${isConversationState ? " conversation-state-diagram" : ""}`}>
       <header><span>Mechanism</span><strong>{lesson.diagram.title}</strong></header>
       {isRecurrent ? (
         <div className="recurrence-unroll" role="img" aria-label="Three recurrent time steps. Each input and previous hidden state produce a new hidden state, then logits and a next-character probability. The hidden state flows into the next step and the same parameters are reused.">
@@ -339,6 +340,30 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
           <div className="reliability-guard-result">
             <span><b>Stale attempt</b><code>event r-201.1 ≠ active r-201.2 → reject</code></span>
             <span><b>Terminal attempt</b><code>r-201.2 status complete → reject</code></span>
+          </div>
+        </div>
+      ) : isConversationState ? (
+        <div className="conversation-state-worked" role="img" aria-label="A worked normalized conversation update. Conversation c-17 stores the ordered ids m-u1 and m-a1. messagesById stores a complete user record and streaming assistant record. Assistant message m-a1 belongs to generation attempt a-17.2, whose transport request is r-17.2. A token delta addressed to both m-a1 and r-17.2 returns a new state and new m-a1 record while preserving m-u1 identity. The resulting streaming status derives canStop true and canRegenerate false.">
+          <div className="conversation-normalized-records">
+            <span><b>conversation · c-17</b><code>{'messageIds: ["m-u1", "m-a1"]'}</code></span>
+            <span><b>messagesById · m-u1</b><code>{'user · complete · "Explain masking."'}</code></span>
+            <span><b>messagesById · m-a1</b><code>{'assistant · streaming · "A causal"'}</code></span>
+          </div>
+          <div className="conversation-identity-chain" aria-label="Separate message, attempt, and request identities">
+            <span><b>Message</b><code>m-a1</code><em>durable UI record</em></span>
+            <i aria-hidden="true">→</i>
+            <span><b>Attempt</b><code>a-17.2</code><em>one generation try</em></span>
+            <i aria-hidden="true">→</i>
+            <span><b>Request</b><code>r-17.2</code><em>one transport lifecycle</em></span>
+          </div>
+          <div className="conversation-delta-action">
+            <span><b>Action</b><code>{'{ type: "TOKEN_DELTA", messageId: "m-a1", requestId: "r-17.2", delta: " mask" }'}</code></span>
+            <span><b>Guard</b><code>request active ∧ message streaming → apply</code></span>
+          </div>
+          <div className="conversation-transition-result">
+            <span><b>New identities</b><code>next !== state · next.m-a1 !== state.m-a1</code></span>
+            <span><b>Preserved identity</b><code>next.m-u1 === state.m-u1</code></span>
+            <span><b>Derived controls</b><code>canStop: true · canRegenerate: false</code></span>
           </div>
         </div>
       ) : (

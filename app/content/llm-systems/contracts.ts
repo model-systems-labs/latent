@@ -1049,10 +1049,46 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     exportName: "createMessage",
     cases: [
       {
-        id: "streaming-assistant-message",
-        label: "Creates a stable serializable message",
+        id: "message-defaults",
+        label: "Creates a message with explicit defaults",
+        args: [{ id: "m-user-9", role: "user" }],
+        assertions: [equal("message-defaults", "Return exactly id, role, content, status, and createdAt; default content to an empty string, status to complete, and createdAt to zero", {
+          id: "m-user-9",
+          role: "user",
+          content: "",
+          status: "complete",
+          createdAt: 0,
+        })],
+      },
+      {
+        id: "supplied-streaming-message",
+        label: "Preserves supplied content and lifecycle status",
+        args: [{ id: "m-assistant-27", role: "assistant", content: "A causal", status: "streaming" }],
+        assertions: [equal("supplied-fields", "Use the supplied id, role, content, and status instead of replacing them with defaults", {
+          id: "m-assistant-27",
+          role: "assistant",
+          content: "A causal",
+          status: "streaming",
+          createdAt: 0,
+        })],
+      },
+      {
+        id: "stable-field-set",
+        label: "Keeps the normalized record independent of render position",
+        args: [{ id: "stable-id-not-index-2", role: "system", content: "Be concise.", status: "complete", renderIndex: 2 }],
+        assertions: [equal("stable-record", "Copy the stable id and the four domain fields only; do not persist renderIndex or other caller-only properties", {
+          id: "stable-id-not-index-2",
+          role: "system",
+          content: "Be concise.",
+          status: "complete",
+          createdAt: 0,
+        })],
+      },
+      {
+        id: "serializable-record",
+        label: "Returns deterministic JSON data",
         args: [{ id: "m1", role: "assistant", status: "streaming" }],
-        assertions: [equal("message", "Applies content and timestamp defaults", {
+        assertions: [equal("message", "Use the deterministic numeric createdAt field from the reference record", {
           id: "m1",
           role: "assistant",
           content: "",
@@ -1069,14 +1105,52 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     exportName: "appendMessageDelta",
     cases: [
       {
-        id: "targeted-streaming-message",
-        label: "Appends a delta only to the matching streaming message",
+        id: "targeted-middle-message",
+        label: "Updates only the targeted streaming message",
         args: [[
+          { id: "before", role: "assistant", content: "keep", status: "streaming" },
           { id: "a", content: "Hel", status: "streaming" },
           { id: "b", content: "fixed", status: "complete" },
         ], "a", "lo"],
-        assertions: [equal("messages", "Updates the target and preserves the completed message", [
+        assertions: [equal("messages", "Match messageId instead of array position, append the delta, and preserve every untargeted record", [
+          { id: "before", role: "assistant", content: "keep", status: "streaming" },
           { id: "a", content: "Hello", status: "streaming" },
+          { id: "b", content: "fixed", status: "complete" },
+        ])],
+      },
+      {
+        id: "completed-target",
+        label: "Ignores a delta for a non-streaming target",
+        args: [[
+          { id: "a", content: "finished", status: "complete" },
+          { id: "b", content: "still here", status: "streaming" },
+        ], "a", " late"],
+        assertions: [equal("completed-unchanged", "Check that the matching message is streaming before appending; completed output must ignore late deltas", [
+          { id: "a", content: "finished", status: "complete" },
+          { id: "b", content: "still here", status: "streaming" },
+        ])],
+      },
+      {
+        id: "missing-target",
+        label: "Ignores a delta for an unknown message id",
+        args: [[
+          { id: "a", content: "one", status: "streaming" },
+          { id: "b", content: "two", status: "complete" },
+        ], "missing", "!"],
+        assertions: [equal("missing-unchanged", "Leave every record unchanged when messageId is not present", [
+          { id: "a", content: "one", status: "streaming" },
+          { id: "b", content: "two", status: "complete" },
+        ])],
+      },
+      {
+        id: "empty-delta",
+        label: "Handles an empty transport delta",
+        args: [[
+          { id: "a", content: "partial", status: "streaming" },
+          { id: "b", content: "fixed", status: "complete" },
+        ], "a", ""],
+        assertions: [equal("empty-append", "Treat an empty delta as ordinary string concatenation without changing content or status", [
+          { id: "a", content: "partial", status: "streaming" },
           { id: "b", content: "fixed", status: "complete" },
         ])],
       },
@@ -1208,6 +1282,6 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
 ];
 
 export const llmSystemsContractSuite: ContractSuite = {
-  contractVersion: "llm-systems-contracts-v10",
+  contractVersion: "llm-systems-contracts-v11",
   contracts: llmSystemsExerciseContracts,
 };

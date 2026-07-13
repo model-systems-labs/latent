@@ -17,7 +17,7 @@ export function formatPracticeContractDetail(cases: readonly ExerciseCaseResult[
   const additionalChecks = failedAssertions.length - 1;
 
   if (additionalCases > 0) {
-    return `${direction} · ${additionalCases} additional case${additionalCases === 1 ? "" : "s"} still fail; rerun after this fix.`;
+    return `${direction} · ${additionalCases} additional case${additionalCases === 1 ? "" : "s"} still ${additionalCases === 1 ? "fails" : "fail"}; rerun after this fix.`;
   }
   if (additionalChecks > 0) {
     return `${direction} · ${additionalChecks} additional check${additionalChecks === 1 ? "" : "s"} in this case still ${additionalChecks === 1 ? "fails" : "fail"}; rerun after this fix.`;

@@ -198,6 +198,41 @@
     grid-column: auto;
   }
 
+  .scheduler-shared-workload {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .scheduler-shared-workload > span:nth-child(3),
+  .scheduler-shared-workload > span:nth-child(4) {
+    border-top: 1px solid var(--line);
+  }
+
+  .scheduler-shared-workload > span:nth-child(3) {
+    border-left: 0;
+    padding-left: 0;
+  }
+
+  .scheduler-policy-comparison,
+  .scheduler-inference-boundary {
+    grid-template-columns: 1fr;
+  }
+
+  .scheduler-policy-comparison > section:first-child {
+    padding-right: 0;
+  }
+
+  .scheduler-policy-comparison > section + section {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    padding-left: 0;
+  }
+
+  .scheduler-inference-boundary > span + span {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    padding-left: 0;
+  }
+
   .icl-fixed-prefix,
   .icl-condition-paths,
   .icl-inference-boundary {

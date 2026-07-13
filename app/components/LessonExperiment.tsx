@@ -454,17 +454,21 @@ function SystemsExperiment({ variant, onComplete }: { variant: SystemsVariant } 
           { label: "P95 wait", value: continuous ? "7 steps" : "19 steps" },
         ],
         trace: continuous ? [
-          { label: "Iteration 01", detail: "a, b, c admitted · 11 pages active" },
-          { label: "Iteration 14", detail: "a completes · d joins next iteration" },
+          { label: "Iteration 01", detail: "a, b, c admitted · d waiting · 11 pages active" },
+          { label: "Iteration 14", detail: "a routed to completed · its identity retained · KV pages released" },
+          { label: "Iteration 15", detail: "d admitted into the freed decode slot" },
           { label: "Iteration 31", detail: "b completes · 4 pages returned" },
           { label: "Iteration 88", detail: "final request completes · allocator empty" },
         ] : [
-          { label: "Batch 01", detail: "a, b, c fixed until longest request completes" },
-          { label: "Idle slots", detail: "a and c finish while their batch positions remain reserved", tone: "warning" },
-          { label: "Batch 02", detail: "waiting requests admitted after batch drain" },
+          { label: "Batch 01", detail: "a, b, c admitted · d waiting · membership fixed until the longest request completes" },
+          { label: "Iteration 14", detail: "a completes; its decode slot idles even though d is queued", tone: "warning" },
+          { label: "Idle slots", detail: "completed sequences can release memory, but this policy does not refill their batch positions", tone: "warning" },
+          { label: "Batch 02", detail: "d and other waiting requests admitted only after batch drain" },
           { label: "Iteration 116", detail: "final request completes" },
         ],
-        artifact: continuous ? "Completed requests release pages and batch positions immediately." : "Static membership leaves decode capacity idle behind the longest request.",
+        artifact: continuous
+          ? "Same arrivals · completion → identity retained → pages released → next-iteration admission.\nThis fixed workload: 88 iterations · 86% utilization · p95 wait 7."
+          : "Same arrivals · completed positions stay idle until batch drain.\nThis fixed workload: 116 iterations · 61% utilization · p95 wait 19.",
       });
       return;
     }

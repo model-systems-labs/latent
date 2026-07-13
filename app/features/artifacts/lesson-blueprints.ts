@@ -106,13 +106,13 @@ const definitions: Record<string, Omit<LessonArtifactBlueprint, "lessonId" | "mo
   "scheduling-memory": {
     kind: "scheduler-trace",
     title: "Continuous batching trace",
-    description: "A replayable request schedule with explicit admission, token budgets, cache pressure, and completion slots.",
+    description: "A replayable request schedule with explicit active and completed lanes, admission, token budgets, cache pressure, and page release.",
     clock: "step", unit: "scheduler tick",
-    payload: { policy: "continuous batching", resource: "KV-cache blocks", fairness: "age-aware" },
+    payload: { policy: "continuous batching", resource: "KV-cache blocks", decodeResult: ["active", "completed"], fairness: "age-aware" },
     frames: [
-      frame(0, 0, "Admit requests", { queued: 3, admitted: 2 }, { active: 2 }),
-      frame(1, 1, "Advance one token", { sequences: ["A", "B"] }, { batchTokens: 2 }),
-      frame(2, 2, "Recycle completed slot", { completed: "A", admitted: "C" }, { active: 2 }),
+      frame(0, 0, "Admit requests", { active: ["A", "B"], waiting: ["C"] }, { active: 2 }),
+      frame(1, 1, "Advance every active request", { active: ["B"], completed: ["A"] }, { batchTokens: 2 }),
+      frame(2, 2, "Release pages and refill slot", { releasedFor: "A", admitted: "C" }, { active: 2 }),
     ],
   },
   "streaming-transport": {

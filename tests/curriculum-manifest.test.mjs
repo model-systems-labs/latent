@@ -576,7 +576,7 @@ test("Inference Runtime separates sampled tokens from decode forwards and sizes 
     finalSequenceLength: promptTokens + maxNewTokens,
   })));
   assert.match(phaseFeedback, /31 subsequent decode forwards because prefill logits sample token 1/);
-  assert.match(phaseFeedback, /1 additional case still fail; rerun after this fix/);
+  assert.match(phaseFeedback, /1 additional case still fails; rerun after this fix/);
   assert.doesNotMatch(phaseFeedback, /Do not count the final sampled token as another processed input/);
 
   const cache = byId.get("inference-runtime/kv-bytes");
@@ -603,11 +603,109 @@ test("Inference Runtime separates sampled tokens from decode forwards and sizes 
   assert.doesNotMatch(cacheFeedback, /all 3 layers|kvHeads|headDimension|FP32/);
 });
 
+test("Scheduling and Memory preserves completion identities and catches page-boundary shortcuts", () => {
+  const lesson = course.courseLessons.find((candidate) => candidate.id === "scheduling-memory");
+  assert.ok(lesson);
+  assert.match(lesson.summary[0].body, /decode slots sit idle/);
+  assert.match(lesson.summary[1].body, /completed requests are recorded/);
+  assert.match(lesson.summary[2].body, /fewer than one page/);
+  assert.match(lesson.summary[3].body, /does not prove that continuous batching always wins/);
+  assert.equal(lesson.diagram.title, "Static versus continuous membership");
+  assert.match(lesson.diagram.nodes[3].value, /continuous 88 \/ 86% \/ 7 · static 116 \/ 61% \/ 19/);
+
+  const byId = new Map(contracts.llmSystemsExerciseContracts.map((contract) => [contract.id, contract]));
+  const evaluate = (contract, implementation) => contract.cases.map((exerciseCase) =>
+    contractRuntime.evaluateExerciseCase(contract, exerciseCase, {
+      status: "returned",
+      value: implementation(...exerciseCase.invoke.args),
+    }));
+  const rejects = (contract, implementation) => assert.ok(evaluate(contract, implementation).some((result) => !result.passed));
+  const accepts = (contract, implementation) => assert.ok(evaluate(contract, implementation).every((result) => result.passed));
+
+  const allocation = byId.get("scheduling-memory/page-allocation");
+  assert.ok(allocation);
+  assert.equal(allocation.cases.length, 4);
+  const allocateWith = (pageCount) => (tokens, pageSize = 16) => {
+    const pages = pageCount(tokens, pageSize);
+    const capacity = pages * pageSize;
+    return { pages, capacity, wastedSlots: capacity - tokens };
+  };
+  const floorAllocation = allocateWith((tokens, pageSize) => Math.floor(tokens / pageSize));
+  const alwaysExtraPage = allocateWith((tokens, pageSize) => Math.floor(tokens / pageSize) + 1);
+  const ceilingAllocation = allocateWith((tokens, pageSize) => Math.ceil(tokens / pageSize));
+  rejects(allocation, floorAllocation);
+  rejects(allocation, alwaysExtraPage);
+  accepts(allocation, ceilingAllocation);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(allocation, floorAllocation)), /Use ceiling division/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(allocation, alwaysExtraPage)), /do not add a page unconditionally/);
+
+  const iteration = byId.get("scheduling-memory/batch-step");
+  assert.ok(iteration);
+  assert.equal(iteration.cases.length, 4);
+  const oldActiveOnly = (requests) => requests
+    .map((request) => ({ ...request, remaining: request.remaining - 1, generated: request.generated + 1 }))
+    .filter((request) => request.remaining > 0);
+  const firstRequestOnly = (requests) => {
+    const active = [];
+    const completed = [];
+    requests.forEach((request, index) => {
+      if (request.remaining <= 0) completed.push({ ...request });
+      else {
+        const advanced = index === 0
+          ? { ...request, remaining: request.remaining - 1, generated: request.generated + 1 }
+          : { ...request };
+        (advanced.remaining === 0 ? completed : active).push(advanced);
+      }
+    });
+    return { active, completed };
+  };
+  const dropsCompleted = (requests) => ({
+    active: requests
+      .filter((request) => request.remaining > 0)
+      .map((request) => ({ ...request, remaining: request.remaining - 1, generated: request.generated + 1 }))
+      .filter((request) => request.remaining > 0),
+    completed: [],
+  });
+  const decodeReference = (requests) => {
+    const active = [];
+    const completed = [];
+    for (const request of requests) {
+      if (request.remaining <= 0) {
+        completed.push({ ...request });
+        continue;
+      }
+      const advanced = { ...request, remaining: request.remaining - 1, generated: request.generated + 1 };
+      (advanced.remaining === 0 ? completed : active).push(advanced);
+    }
+    return { active, completed };
+  };
+  rejects(iteration, oldActiveOnly);
+  rejects(iteration, firstRequestOnly);
+  rejects(iteration, dropsCompleted);
+  accepts(iteration, decodeReference);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(iteration, oldActiveOnly)), /separate active and completed arrays/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(iteration, firstRequestOnly)), /Advance every request/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(iteration, dropsCompleted)), /Move a request that reaches zero into completed/);
+
+  const block = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "batch-step");
+  assert.ok(block);
+  const referenceFromLesson = new Function(`${block.code}; return decodeIteration;`)();
+  const frozenRequests = Object.freeze([
+    Object.freeze({ id: "frozen-a", remaining: 1, generated: 0 }),
+    Object.freeze({ id: "frozen-b", remaining: 2, generated: 3 }),
+  ]);
+  assert.doesNotThrow(() => referenceFromLesson(frozenRequests));
+  assert.deepEqual(frozenRequests, [
+    { id: "frozen-a", remaining: 1, generated: 0 },
+    { id: "frozen-b", remaining: 2, generated: 3 },
+  ], "the authored reference must not mutate scheduler input");
+});
+
 test("practice verification is inseparable from the exact editor source and contract version", () => {
   const block = { id: "rnn-step", code: "function rnnStep() { return 'reference'; }" };
   const correct = "function rnnStep() { return 'correct learner answer'; }";
   const wrong = "function rnnStep() { return 'wrong learner answer'; }";
-  const currentVersion = "llm-systems-contracts-v7";
+  const currentVersion = "llm-systems-contracts-v8";
   const bound = practiceState.bindBlockVerification(
     { ids: [], sources: {}, contractVersion: null },
     block.id,

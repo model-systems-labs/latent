@@ -2204,6 +2204,160 @@ button:disabled {
   grid-column: 1 / -1;
 }
 
+.scheduler-shared-workload {
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.scheduler-shared-workload > span {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.8rem 0;
+}
+
+.scheduler-shared-workload > span + span {
+  border-left: 1px solid var(--line);
+  padding-left: 0.8rem;
+}
+
+.scheduler-shared-workload b,
+.scheduler-policy-comparison header span,
+.scheduler-inference-boundary b {
+  color: var(--violet);
+  font-size: 0.53rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.scheduler-shared-workload code,
+.scheduler-policy-comparison code {
+  color: var(--ink);
+  font-size: 0.53rem;
+  line-height: 1.45;
+}
+
+.scheduler-policy-comparison {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.scheduler-policy-comparison > section {
+  min-width: 0;
+  padding: 0.95rem 0;
+}
+
+.scheduler-policy-comparison > section + section {
+  border-left: 1px solid var(--line);
+  padding-left: 1rem;
+}
+
+.scheduler-policy-comparison > section:first-child {
+  padding-right: 1rem;
+}
+
+.scheduler-policy-comparison header {
+  align-items: baseline;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+.scheduler-policy-comparison header code {
+  color: var(--muted);
+  text-align: right;
+}
+
+.scheduler-policy-comparison ol {
+  border-top: 1px solid var(--line);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.scheduler-policy-comparison li {
+  align-items: baseline;
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: 2rem minmax(0, 1fr) minmax(4rem, 0.65fr);
+  padding: 0.58rem 0;
+}
+
+.scheduler-policy-comparison li + li {
+  border-top: 1px solid var(--line);
+}
+
+.scheduler-policy-comparison li b {
+  color: var(--faint);
+  font-family: var(--mono);
+  font-size: 0.5rem;
+  font-weight: 500;
+}
+
+.scheduler-policy-comparison li span,
+.scheduler-policy-comparison li em {
+  font-size: 0.56rem;
+  line-height: 1.4;
+}
+
+.scheduler-policy-comparison li em {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-style: normal;
+  text-align: right;
+}
+
+.scheduler-policy-comparison dl {
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+}
+
+.scheduler-policy-comparison dl > div {
+  display: grid;
+  gap: 0.2rem;
+  padding-top: 0.7rem;
+}
+
+.scheduler-policy-comparison dt {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.48rem;
+}
+
+.scheduler-policy-comparison dd {
+  color: var(--violet-deep);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  margin: 0;
+}
+
+.scheduler-inference-boundary {
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.scheduler-inference-boundary > span {
+  color: var(--muted);
+  font-size: 0.56rem;
+  line-height: 1.5;
+  padding: 0.8rem 0;
+}
+
+.scheduler-inference-boundary > span + span {
+  border-left: 1px solid var(--line);
+  padding-left: 1rem;
+}
+
+.scheduler-inference-boundary b {
+  display: block;
+  margin-bottom: 0.28rem;
+}
+
 .concept-diagram figcaption {
   border-top: 1px solid var(--line);
   color: var(--muted);

@@ -212,6 +212,29 @@ test("Inference Runtime renders one unambiguous request timeline and KV formula"
   assert.match(html, /function kvCacheBytes\(\{ layers, kvHeads, headDimension, tokens, bytesPerValue = 2 \}\)/);
 });
 
+test("Scheduling and Memory renders a controlled policy comparison and completion-aware API", async () => {
+  const response = await render("/lessons/scheduling-memory");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /scheduler-worked-comparison/);
+  assert.match(html, /A controlled scheduling comparison with the same arrivals and resource limits/);
+  assert.match(html, /Static batch/);
+  assert.match(html, /membership fixed/);
+  assert.match(html, /Continuous/);
+  assert.match(html, /membership per iteration/);
+  assert.match(html, /<dd>116<\/dd>/);
+  assert.match(html, /<dd>61%<\/dd>/);
+  assert.match(html, /<dd>19<\/dd>/);
+  assert.match(html, /<dd>88<\/dd>/);
+  assert.match(html, /<dd>86%<\/dd>/);
+  assert.match(html, /<dd>7<\/dd>/);
+  assert.match(html, /Can infer/);
+  assert.match(html, /Cannot infer/);
+  assert.match(html, /return \{ active, completed \}/);
+  assert.match(html, /pages × pageSize/);
+  assert.match(html, /capacity − tokens/);
+});
+
 test("the consent-gated local model runtime has a statically prebundled client boundary", async () => {
   const [experiment, runtimeBoundary, viteConfig] = await Promise.all([
     readFile(new URL("../app/components/LessonExperiment.tsx", import.meta.url), "utf8"),

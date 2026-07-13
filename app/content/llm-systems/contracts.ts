@@ -768,14 +768,44 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     exportName: "allocateKvPages",
     cases: [
       {
-        id: "partial-final-page",
-        label: "Allocates enough pages and bounds final-page waste",
-        args: [33, 16],
-        assertions: [equal("allocation", "Calculates pages, capacity, and unused slots", {
-          pages: 3,
-          capacity: 48,
-          wastedSlots: 15,
+        id: "zero-tokens",
+        label: "Allocates no storage for an empty sequence",
+        args: [0, 16],
+        assertions: [equal("empty-allocation", "Return zero pages, zero capacity, and zero waste when tokens is zero; do not add a page unconditionally", {
+          pages: 0,
+          capacity: 0,
+          wastedSlots: 0,
         })],
+      },
+      {
+        id: "exact-page-boundary",
+        label: "Does not allocate an extra page at an exact boundary",
+        args: [32, 16],
+        assertions: [
+          equal("exact-pages", "Exact multiples need tokens / pageSize pages; do not add an extra page", 2, ["pages"]),
+          equal("exact-capacity", "Compute capacity as pages × pageSize", 32, ["capacity"]),
+          equal("exact-waste", "Compute wastedSlots as capacity − tokens; an exact multiple wastes zero slots", 0, ["wastedSlots"]),
+        ],
+      },
+      {
+        id: "one-over-boundary",
+        label: "Allocates a final page for the first token past a boundary",
+        args: [33, 16],
+        assertions: [
+          equal("partial-pages", "Use ceiling division so any remainder allocates one final page", 3, ["pages"]),
+          equal("partial-capacity", "Compute capacity as pages × pageSize", 48, ["capacity"]),
+          equal("partial-waste", "Compute wastedSlots as capacity − tokens", 15, ["wastedSlots"]),
+        ],
+      },
+      {
+        id: "bounded-final-page-waste",
+        label: "Bounds fragmentation to the unused part of the final page",
+        args: [47, 16],
+        assertions: [
+          equal("bounded-capacity", "Compute capacity as pages × pageSize before measuring waste", 48, ["capacity"]),
+          equal("bounded-waste", "Compute wastedSlots as capacity − tokens", 1, ["wastedSlots"]),
+          range("less-than-one-page", "Final-page waste must stay between zero and pageSize − 1", 0, 15, ["wastedSlots"]),
+        ],
       },
     ],
   }),
@@ -786,15 +816,56 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     exportName: "decodeIteration",
     cases: [
       {
-        id: "complete-and-active-requests",
-        label: "Advances each request once and removes completed work",
+        id: "empty-iteration",
+        label: "Returns both scheduler lanes for an empty iteration",
+        args: [[]],
+        assertions: [equal("empty-lanes", "Return an object with separate active and completed arrays so the scheduler can retain completion identities", {
+          active: [],
+          completed: [],
+        })],
+      },
+      {
+        id: "advance-every-request",
+        label: "Advances every eligible request exactly once",
         args: [[
-          { id: "a", remaining: 1, generated: 0 },
-          { id: "b", remaining: 3, generated: 2 },
+          { id: "a", remaining: 2, generated: 0, tenant: "red" },
+          { id: "b", remaining: 3, generated: 4, tenant: "blue" },
         ]],
-        assertions: [equal("active-requests", "Keeps only the correctly advanced active request", [
-          { id: "b", remaining: 2, generated: 3 },
-        ])],
+        assertions: [equal("all-active", "Advance every request whose remaining count is positive by exactly one token; preserve order and metadata", [
+          { id: "a", remaining: 1, generated: 1, tenant: "red" },
+          { id: "b", remaining: 2, generated: 5, tenant: "blue" },
+        ], ["active"])],
+      },
+      {
+        id: "route-completed-request",
+        label: "Separates newly completed work without losing its identity",
+        args: [[
+          { id: "a", remaining: 1, generated: 0, pages: [2, 7] },
+          { id: "b", remaining: 3, generated: 2, pages: [4] },
+        ]],
+        assertions: [
+          equal("surviving-active", "Keep advanced requests with remaining work in active", [
+            { id: "b", remaining: 2, generated: 3, pages: [4] },
+          ], ["active"]),
+          equal("completed-identity", "Move a request that reaches zero into completed with its identity and metadata intact so pages and latency can be accounted", [
+            { id: "a", remaining: 0, generated: 1, pages: [2, 7] },
+          ], ["completed"]),
+        ],
+      },
+      {
+        id: "already-zero-and-one-token",
+        label: "Does not decode work that was already complete",
+        args: [[
+          { id: "already-done", remaining: 0, generated: 8, finishedAt: 12 },
+          { id: "last-token", remaining: 1, generated: 5, finishedAt: null },
+        ]],
+        assertions: [
+          equal("no-active-work", "A zero-token and one-token mix leaves no request active after this iteration", [], ["active"]),
+          equal("zero-token-unchanged", "Do not increment a request whose remaining count was already zero; preserve its metadata and then append the request completed in this iteration", [
+            { id: "already-done", remaining: 0, generated: 8, finishedAt: 12 },
+            { id: "last-token", remaining: 0, generated: 6, finishedAt: null },
+          ], ["completed"]),
+        ],
       },
     ],
   }),
@@ -1010,6 +1081,6 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
 ];
 
 export const llmSystemsContractSuite: ContractSuite = {
-  contractVersion: "llm-systems-contracts-v7",
+  contractVersion: "llm-systems-contracts-v8",
   contracts: llmSystemsExerciseContracts,
 };

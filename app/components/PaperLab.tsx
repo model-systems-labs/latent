@@ -82,13 +82,14 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
   const isTransformer = lesson.id === "transformers";
   const isInContextLearning = lesson.id === "in-context-learning";
   const isInferenceRuntime = lesson.id === "inference-runtime";
+  const isSchedulingMemory = lesson.id === "scheduling-memory";
   const recurrentSteps = [
     { time: "t − 1", input: "x_(t−1)", previous: "h_(t−2)", state: "h_(t−1)", prediction: "p(x_t)" },
     { time: "t", input: "x_t", previous: "h_(t−1)", state: "h_t", prediction: "p(x_(t+1))" },
     { time: "t + 1", input: "x_(t+1)", previous: "h_t", state: "h_(t+1)", prediction: "p(x_(t+2))" },
   ];
   return (
-    <figure className={`concept-diagram${isRecurrent ? " recurrence-diagram" : ""}${isNeuralLanguageModel ? " neural-lm-diagram" : ""}${isSubwordTokenization ? " subword-tokenization-diagram" : ""}${isAdditiveAttention ? " additive-attention-diagram" : ""}${isTransformer ? " transformer-attention-diagram" : ""}${isInContextLearning ? " icl-comparison-diagram" : ""}${isInferenceRuntime ? " inference-runtime-diagram" : ""}`}>
+    <figure className={`concept-diagram${isRecurrent ? " recurrence-diagram" : ""}${isNeuralLanguageModel ? " neural-lm-diagram" : ""}${isSubwordTokenization ? " subword-tokenization-diagram" : ""}${isAdditiveAttention ? " additive-attention-diagram" : ""}${isTransformer ? " transformer-attention-diagram" : ""}${isInContextLearning ? " icl-comparison-diagram" : ""}${isInferenceRuntime ? " inference-runtime-diagram" : ""}${isSchedulingMemory ? " scheduling-memory-diagram" : ""}`}>
       <header><span>Mechanism</span><strong>{lesson.diagram.title}</strong></header>
       {isRecurrent ? (
         <div className="recurrence-unroll" role="img" aria-label="Three recurrent time steps. Each input and previous hidden state produce a new hidden state, then logits and a next-character probability. The hidden state flows into the next step and the same parameters are reused.">
@@ -248,6 +249,39 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
             <b>Per-request KV-cache bytes</b>
             <code>2 × layers × KV heads × cached tokens × head dimension × bytes / value</code>
             <em>2 means one key tensor + one value tensor. Under GQA, KV heads may be fewer than query heads.</em>
+          </div>
+        </div>
+      ) : isSchedulingMemory ? (
+        <div className="scheduler-worked-comparison" role="img" aria-label="A controlled scheduling comparison with the same arrivals and resource limits. Requests a, b, and c begin active while d waits, using 11 KV pages. In the static policy, a completed slot stays idle and d waits for the longest request, resulting in 116 iterations, 61 percent utilization, and a p95 wait of 19 steps. In continuous batching, a completion is recorded, its pages are released, and d joins the next iteration, resulting in 88 iterations, 86 percent utilization, and a p95 wait of 7 steps. These fixed results isolate policy for one synthetic workload and do not establish a universal production advantage.">
+          <div className="scheduler-shared-workload">
+            <span><b>Controlled input</b><code>a · b · c active</code></span>
+            <span><b>Waiting</b><code>d</code></span>
+            <span><b>KV allocation</b><code>11 pages</code></span>
+            <span><b>Decode rule</b><code>≤ 1 token / active request</code></span>
+          </div>
+          <div className="scheduler-policy-comparison">
+            <section>
+              <header><span>Static batch</span><code>membership fixed</code></header>
+              <ol>
+                <li><b>01</b><span>a · b · c decode</span><em>d waits</em></li>
+                <li><b>14</b><span>a finishes; its slot idles</span><em>d still waits</em></li>
+                <li><b>drain</b><span>longest sequence finishes</span><em>next batch can enter</em></li>
+              </ol>
+              <dl><div><dt>Iterations</dt><dd>116</dd></div><div><dt>Utilization</dt><dd>61%</dd></div><div><dt>P95 wait</dt><dd>19</dd></div></dl>
+            </section>
+            <section>
+              <header><span>Continuous</span><code>membership per iteration</code></header>
+              <ol>
+                <li><b>01</b><span>a · b · c decode</span><em>d waits</em></li>
+                <li><b>14</b><span>a → completed; pages release</span><em>identity retained</em></li>
+                <li><b>15</b><span>d enters the freed slot</span><em>next iteration</em></li>
+              </ol>
+              <dl><div><dt>Iterations</dt><dd>88</dd></div><div><dt>Utilization</dt><dd>86%</dd></div><div><dt>P95 wait</dt><dd>7</dd></div></dl>
+            </section>
+          </div>
+          <div className="scheduler-inference-boundary">
+            <span><b>Can infer</b> completion-aware readmission improves this fixed workload under the simulator&apos;s budgets.</span>
+            <span><b>Cannot infer</b> universal production speedups without measuring overhead, fairness, prefill interference, and other arrivals.</span>
           </div>
         </div>
       ) : (

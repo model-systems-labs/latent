@@ -1968,6 +1968,121 @@ button:disabled {
   text-align: right;
 }
 
+.icl-comparison {
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+}
+
+.icl-fixed-prefix,
+.icl-condition-paths,
+.icl-inference-boundary {
+  display: grid;
+}
+
+.icl-fixed-prefix {
+  grid-template-columns: 1fr 1fr;
+}
+
+.icl-fixed-prefix > span,
+.icl-condition-paths > span,
+.icl-inference-boundary > span {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.85rem 0;
+}
+
+.icl-fixed-prefix > span + span,
+.icl-condition-paths > span + span,
+.icl-inference-boundary > span + span {
+  border-left: 1px solid var(--line);
+  padding-left: 0.9rem;
+}
+
+.icl-fixed-prefix b,
+.icl-condition-paths b,
+.icl-frozen-model b,
+.icl-inference-boundary b {
+  color: var(--violet);
+  font-size: 0.54rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.icl-fixed-prefix code,
+.icl-condition-paths code,
+.icl-frozen-model code,
+.icl-condition-paths em,
+.icl-frozen-model em {
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 0.54rem;
+  font-style: normal;
+  line-height: 1.45;
+}
+
+.icl-condition-paths {
+  border-top: 1px solid var(--line);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.icl-condition-paths em,
+.icl-frozen-model em {
+  color: var(--muted);
+}
+
+.icl-frozen-model {
+  align-items: baseline;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: 0.7fr 1.3fr auto;
+  padding: 0.85rem 0;
+}
+
+.icl-measurement-table {
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 0.51rem;
+  table-layout: fixed;
+  width: 100%;
+}
+
+.icl-measurement-table th,
+.icl-measurement-table td {
+  border-top: 1px solid var(--line);
+  font-weight: 450;
+  padding: 0.6rem 0.3rem;
+  text-align: center;
+}
+
+.icl-measurement-table th:first-child {
+  color: var(--violet-deep);
+  text-align: left;
+  width: 25%;
+}
+
+.icl-measurement-table thead th {
+  color: var(--muted);
+  font-size: 0.47rem;
+}
+
+.icl-inference-boundary {
+  border-top: 1px solid var(--line);
+  grid-template-columns: 1fr 1fr;
+}
+
+.icl-inference-boundary span {
+  color: var(--muted);
+  font-family: var(--serif);
+  font-size: 0.7rem;
+  line-height: 1.45;
+}
+
+.icl-inference-boundary b {
+  font-family: var(--sans);
+}
+
 .concept-diagram figcaption {
   border-top: 1px solid var(--line);
   color: var(--muted);

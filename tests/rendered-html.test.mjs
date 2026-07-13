@@ -180,6 +180,34 @@ test("Transformers works through a shaped causal attention matrix before the liv
   assert.match(html, /Run causal self-attention/);
 });
 
+test("In-Context Learning renders a controlled comparison and explicit inference boundary", async () => {
+  const response = await render("/lessons/in-context-learning");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /hidden activations and KV cache/);
+  assert.match(html, /icl-comparison/);
+  assert.match(html, /Same held-out queries/);
+  assert.match(html, /0 demonstrations/);
+  assert.match(html, /1 demonstration/);
+  assert.match(html, /4 demonstrations/);
+  assert.match(html, /weights updated: 0/);
+  assert.match(html, /Exact-match measurement plan for two held-out items/);
+  assert.match(html, /Cannot infer/);
+  assert.match(html, /Load model · ~181 MB/);
+});
+
+test("the consent-gated local model runtime has a statically prebundled client boundary", async () => {
+  const [experiment, runtimeBoundary, viteConfig] = await Promise.all([
+    readFile(new URL("../app/components/LessonExperiment.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/lib/local-transformer-runtime.ts", import.meta.url), "utf8"),
+    readFile(new URL("../vite.config.ts", import.meta.url), "utf8"),
+  ]);
+  assert.match(experiment, /await import\("\.\.\/lib\/local-transformer-runtime"\)/);
+  assert.doesNotMatch(experiment, /await import\("@huggingface\/transformers"\)/);
+  assert.match(runtimeBoundary, /export \{ pipeline \} from "@huggingface\/transformers"/);
+  assert.match(viteConfig, /optimizeDeps: \{ include: \["@huggingface\/transformers"\] \}/);
+});
+
 test("the capstone contains the complete React chat system", async () => {
   const response = await render("/capstone");
   assert.equal(response.status, 200);

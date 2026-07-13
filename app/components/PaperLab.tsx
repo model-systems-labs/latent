@@ -80,13 +80,14 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
   const isSubwordTokenization = lesson.id === "subword-tokenization";
   const isAdditiveAttention = lesson.id === "additive-attention";
   const isTransformer = lesson.id === "transformers";
+  const isInContextLearning = lesson.id === "in-context-learning";
   const recurrentSteps = [
     { time: "t − 1", input: "x_(t−1)", previous: "h_(t−2)", state: "h_(t−1)", prediction: "p(x_t)" },
     { time: "t", input: "x_t", previous: "h_(t−1)", state: "h_t", prediction: "p(x_(t+1))" },
     { time: "t + 1", input: "x_(t+1)", previous: "h_t", state: "h_(t+1)", prediction: "p(x_(t+2))" },
   ];
   return (
-    <figure className={`concept-diagram${isRecurrent ? " recurrence-diagram" : ""}${isNeuralLanguageModel ? " neural-lm-diagram" : ""}${isSubwordTokenization ? " subword-tokenization-diagram" : ""}${isAdditiveAttention ? " additive-attention-diagram" : ""}${isTransformer ? " transformer-attention-diagram" : ""}`}>
+    <figure className={`concept-diagram${isRecurrent ? " recurrence-diagram" : ""}${isNeuralLanguageModel ? " neural-lm-diagram" : ""}${isSubwordTokenization ? " subword-tokenization-diagram" : ""}${isAdditiveAttention ? " additive-attention-diagram" : ""}${isTransformer ? " transformer-attention-diagram" : ""}${isInContextLearning ? " icl-comparison-diagram" : ""}`}>
       <header><span>Mechanism</span><strong>{lesson.diagram.title}</strong></header>
       {isRecurrent ? (
         <div className="recurrence-unroll" role="img" aria-label="Three recurrent time steps. Each input and previous hidden state produce a new hidden state, then logits and a next-character probability. The hidden state flows into the next step and the same parameters are reused.">
@@ -194,6 +195,31 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
           <div className="transformer-block-boundary">
             <b>Complete decoder block</b>
             <code>attention output → projection → residual + norm → MLP → residual + norm</code>
+          </div>
+        </div>
+      ) : isInContextLearning ? (
+        <div className="icl-comparison" role="img" aria-label="A controlled in-context learning experiment. The instruction, two held-out queries, frozen model weights, decoding, and exact-match scorer stay fixed. Only the prefix changes from zero to one to four demonstrations. The resulting two predictions can show sensitivity to the prefix but cannot establish general few-shot improvement.">
+          <div className="icl-fixed-prefix">
+            <span><b>Fixed instruction</b><code>infer mapping · return K or M</code></span>
+            <span><b>Same held-out queries</b><code>moving story · tedious story</code></span>
+          </div>
+          <div className="icl-condition-paths" aria-label="Three prompt conditions">
+            <span><b>Zero-shot</b><code>instruction → query</code><em>0 demonstrations</em></span>
+            <span><b>One-shot</b><code>instruction → 1 example → query</code><em>1 demonstration</em></span>
+            <span><b>Few-shot</b><code>instruction → 4 examples → query</code><em>4 demonstrations</em></span>
+          </div>
+          <div className="icl-frozen-model"><b>Frozen 135M model</b><code>prefix tokens alter activations + KV cache</code><em>weights updated: 0</em></div>
+          <table className="icl-measurement-table" aria-label="Exact-match measurement plan for two held-out items">
+            <thead><tr><th scope="col">Condition</th><th scope="col">Moving / K</th><th scope="col">Tedious / M</th><th scope="col">Exact match</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">0 examples</th><td>prediction / K</td><td>prediction / M</td><td>? / 2</td></tr>
+              <tr><th scope="row">1 example</th><td>prediction / K</td><td>prediction / M</td><td>? / 2</td></tr>
+              <tr><th scope="row">4 examples</th><td>prediction / K</td><td>prediction / M</td><td>? / 2</td></tr>
+            </tbody>
+          </table>
+          <div className="icl-inference-boundary">
+            <span><b>Can infer</b> whether demonstrations changed either output in this run.</span>
+            <span><b>Cannot infer</b> general accuracy gains or the paper&apos;s scale result from two items.</span>
           </div>
         </div>
       ) : (

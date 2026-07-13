@@ -457,11 +457,72 @@ test("Transformers teaches the causal attention computation and rejects semantic
   assert.match(normFeedback, /divide by sqrt\(variance \+ epsilon\)/);
 });
 
+test("In-Context Learning holds the experiment constant and rejects prompt and scoring shortcuts", () => {
+  const lesson = course.courseLessons.find((candidate) => candidate.id === "in-context-learning");
+  assert.ok(lesson);
+  assert.match(lesson.summary[0].body, /hidden activations and KV cache/);
+  assert.match(lesson.diagram.title, /Controlled zero-, one-, and few-shot comparison/);
+  assert.match(lesson.diagram.caption, /not general few-shot ability/);
+
+  const byId = new Map(contracts.llmSystemsExerciseContracts.map((contract) => [contract.id, contract]));
+  const evaluate = (contract, implementation) => contract.cases.map((exerciseCase) =>
+    contractRuntime.evaluateExerciseCase(contract, exerciseCase, {
+      status: "returned",
+      value: implementation(...exerciseCase.invoke.args),
+    }));
+  const rejects = (contract, implementation) => assert.ok(evaluate(contract, implementation).some((result) => !result.passed));
+  const accepts = (contract, implementation) => assert.ok(evaluate(contract, implementation).every((result) => result.passed));
+
+  const formatter = byId.get("in-context-learning/format-demonstrations");
+  assert.ok(formatter);
+  rejects(formatter, (examples) => [...examples].reverse().map(({ input, label }) => `Input: ${input}\nLabel: ${label}`).join("\n\n"));
+  rejects(formatter, (examples) => examples.filter(({ input }) => input.trim()).map(({ input, label }) => `Input: ${input}\nLabel: ${label}`).join("\n"));
+  accepts(formatter, (examples) => examples.map(({ input, label }) => `Input: ${input.trim()}\nLabel: ${label.trim()}`).join("\n\n"));
+  const formatterFeedback = practiceFeedback.formatPracticeContractDetail(evaluate(formatter, (examples) =>
+    [...examples].reverse().map(({ input, label }) => `Input: ${input}\nLabel: ${label}`).join("\n\n")));
+  assert.match(formatterFeedback, /Preserve example order/);
+
+  const prompt = byId.get("in-context-learning/build-prompt");
+  assert.ok(prompt);
+  rejects(prompt, ({ instruction, demonstrations, query }) => [instruction.trim(), demonstrations.trim(), `Input: ${query.trim()}\nLabel:`].join("\n\n"));
+  rejects(prompt, ({ demonstrations, query }) => [demonstrations.trim(), `Input: ${query.trim()}\nLabel:`].filter(Boolean).join("\n\n"));
+  accepts(prompt, ({ instruction, demonstrations, query }) => {
+    const sections = [instruction.trim()];
+    if (demonstrations.trim()) sections.push(demonstrations.trim());
+    sections.push(`Input: ${query.trim()}\nLabel:`);
+    return sections.join("\n\n");
+  });
+  const promptFeedback = practiceFeedback.formatPracticeContractDetail(evaluate(prompt, ({ demonstrations, query }) =>
+    [demonstrations.trim(), `Input: ${query.trim()}\nLabel:`].filter(Boolean).join("\n\n")));
+  assert.match(promptFeedback, /instruction/);
+  assert.match(promptFeedback, /Label:/);
+
+  const scorer = byId.get("in-context-learning/exact-match");
+  assert.ok(scorer);
+  rejects(scorer, (output, expected) => ({ predicted: output.includes(expected) ? expected : null, passed: output.includes(expected) }));
+  rejects(scorer, (output, expected, allowedLabels = ["K", "M"]) => {
+    const match = output.toUpperCase().match(new RegExp(`\\b(${allowedLabels.join("|")})\\b`));
+    const predicted = match?.[1] ?? null;
+    return { predicted, passed: predicted === expected };
+  });
+  accepts(scorer, (output, expected, allowedLabels = ["K", "M"]) => {
+    const match = output.match(new RegExp(`\\b(${allowedLabels.join("|")})\\b`));
+    const predicted = match?.[1] ?? null;
+    return { predicted, passed: predicted === expected };
+  });
+  const scorerFeedback = practiceFeedback.formatPracticeContractDetail(evaluate(scorer, (output, expected) => ({
+    predicted: output.includes(expected) ? expected : null,
+    passed: output.includes(expected),
+  })));
+  assert.match(scorerFeedback, /independently/);
+  assert.match(scorerFeedback, /first standalone/);
+});
+
 test("practice verification is inseparable from the exact editor source and contract version", () => {
   const block = { id: "rnn-step", code: "function rnnStep() { return 'reference'; }" };
   const correct = "function rnnStep() { return 'correct learner answer'; }";
   const wrong = "function rnnStep() { return 'wrong learner answer'; }";
-  const currentVersion = "llm-systems-contracts-v5";
+  const currentVersion = "llm-systems-contracts-v6";
   const bound = practiceState.bindBlockVerification(
     { ids: [], sources: {}, contractVersion: null },
     block.id,

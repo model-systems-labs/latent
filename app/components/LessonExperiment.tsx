@@ -268,7 +268,7 @@ function IclExperiment({ onComplete }: ExperimentProps) {
     setModelStatus("loading");
     setError("");
     try {
-      const transformers = await import("@huggingface/transformers");
+      const transformers = await import("../lib/local-transformer-runtime");
       const progressCallback = (info: unknown) => {
         const update = info as { progress?: number; file?: string; status?: string };
         if (typeof update.progress === "number") setProgress(Math.round(update.progress));
@@ -337,7 +337,7 @@ function IclExperiment({ onComplete }: ExperimentProps) {
             return_full_text: false,
           });
           const raw = extractGeneratedText(result).trim();
-          const match = raw.toUpperCase().match(/\b(K|M)\b/);
+          const match = raw.match(/\b(K|M)\b/);
           outputs.push({ input: test.input, expected: test.expected, predicted: match?.[1] ?? null, raw });
         }
         const row = { condition: condition.name, correct: outputs.filter((output) => output.predicted === output.expected).length, total: outputs.length, outputs };

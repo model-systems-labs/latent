@@ -554,8 +554,14 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       {
         id: "ordered-examples",
         label: "Formats examples without changing their order",
-        args: [[{ input: "aa", label: "K" }, { input: "bbb", label: "M" }]],
-        assertions: [equal("formatted-text", "Uses the stable demonstration format", "Input: aa\nLabel: K\n\nInput: bbb\nLabel: M")],
+        args: [[{ input: "first review", label: "M" }, { input: "second review", label: "K" }]],
+        assertions: [equal("formatted-text", "Preserve example order and use Input then Label with one blank line between records", "Input: first review\nLabel: M\n\nInput: second review\nLabel: K")],
+      },
+      {
+        id: "trimmed-and-empty-inputs",
+        label: "Trims field edges without dropping an empty input record",
+        args: [[{ input: "  spaced review  ", label: " K " }, { input: "   ", label: "M" }]],
+        assertions: [equal("empty-input-record", "Trim input and label edges, retain every record, and keep exactly one blank line between them", "Input: spaced review\nLabel: K\n\nInput: \nLabel: M")],
       },
     ],
   }),
@@ -567,9 +573,21 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     cases: [
       {
         id: "zero-shot-prompt",
-        label: "Builds a deterministic prompt without demonstrations",
-        args: [{ instruction: "Return K or M.", demonstrations: "", query: "A sharp story." }],
-        assertions: [equal("prompt", "Separates instruction and held-out query", "Return K or M.\n\nInput: A sharp story.\nLabel:")],
+        label: "Builds a zero-shot prompt without a phantom demonstration",
+        args: [{ instruction: "  Return K or M.  ", demonstrations: "   \n ", query: "  The same held-out review.  " }],
+        assertions: [equal("prompt", "Trim fields, omit a whitespace-only demonstration section, and finish the held-out query with Label:", "Return K or M.\n\nInput: The same held-out review.\nLabel:")],
+      },
+      {
+        id: "one-shot-prompt",
+        label: "Adds one demonstration between the fixed instruction and query",
+        args: [{ instruction: "Return K or M.", demonstrations: "\nInput: Example one.\nLabel: K\n", query: "The same held-out review." }],
+        assertions: [equal("one-shot-sections", "Keep instruction, one demonstration, and the held-out query as three blank-line-separated sections", "Return K or M.\n\nInput: Example one.\nLabel: K\n\nInput: The same held-out review.\nLabel:")],
+      },
+      {
+        id: "few-shot-prompt",
+        label: "Keeps a multi-example demonstration block intact",
+        args: [{ instruction: "Return K or M.", demonstrations: "Input: Example one.\nLabel: K\n\nInput: Example two.\nLabel: M", query: "The same held-out review." }],
+        assertions: [equal("few-shot-sections", "Change only the demonstration block; preserve the identical instruction and terminal held-out query", "Return K or M.\n\nInput: Example one.\nLabel: K\n\nInput: Example two.\nLabel: M\n\nInput: The same held-out review.\nLabel:")],
       },
     ],
   }),
@@ -584,6 +602,36 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
         label: "Extracts and scores a standalone allowed label",
         args: ["The label is K.", "K"],
         assertions: [equal("scored-label", "Returns the extracted label and exact score", { predicted: "K", passed: true })],
+      },
+      {
+        id: "wrong-allowed-label",
+        label: "Extracts a wrong allowed label before comparing with gold",
+        args: ["M", "K"],
+        assertions: [equal("wrong-label", "Extract the prediction independently, then compare it with expected", { predicted: "M", passed: false })],
+      },
+      {
+        id: "first-standalone-label",
+        label: "Uses the first standalone allowed label when both appear",
+        args: ["K, then M", "M"],
+        assertions: [equal("first-label", "Extract the first standalone allowed label; expected must not choose the prediction", { predicted: "K", passed: false })],
+      },
+      {
+        id: "embedded-label",
+        label: "Rejects allowed letters embedded inside words",
+        args: ["MARK is not a standalone label.", "K"],
+        assertions: [equal("word-boundary", "Require a standalone allowed label rather than a matching character inside a word", { predicted: null, passed: false })],
+      },
+      {
+        id: "lowercase-label",
+        label: "Keeps the predeclared label casing exact",
+        args: ["the label is k", "K"],
+        assertions: [equal("label-case", "Do not normalize model output casing during exact-match extraction", { predicted: null, passed: false })],
+      },
+      {
+        id: "no-label",
+        label: "Returns null when no allowed label appears",
+        args: ["I cannot decide.", "M"],
+        assertions: [equal("missing-label", "Return null and fail when no standalone allowed label is generated", { predicted: null, passed: false })],
       },
     ],
   }),
@@ -908,6 +956,6 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
 ];
 
 export const llmSystemsContractSuite: ContractSuite = {
-  contractVersion: "llm-systems-contracts-v5",
+  contractVersion: "llm-systems-contracts-v6",
   contracts: llmSystemsExerciseContracts,
 };

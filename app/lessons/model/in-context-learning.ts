@@ -27,7 +27,7 @@ ${commonQuestionInstruction}`.trim(),
       {
         label: "Frozen parameters.",
         body:
-          "In-context learning does not perform gradient descent on the examples in the prompt. The model processes instruction, demonstrations, and query as one sequence and predicts the continuation under its existing parameters.",
+          "In-context learning does not perform gradient descent on the examples in the prompt. The model reads instruction, demonstrations, and query as one causal token sequence. Those prefix tokens change the hidden activations and KV cache used to predict the next token, while every learned weight remains fixed.",
       },
       {
         label: "Demonstrations as specification.",
@@ -37,12 +37,12 @@ ${commonQuestionInstruction}`.trim(),
       {
         label: "Evaluation design.",
         body:
-          "A persuasive few-shot result requires a fixed dataset, a defined metric, and identical test items across prompting conditions. Selecting prompts after seeing test performance can turn prompt engineering into unreported test-set optimization.",
+          "A controlled comparison changes only the number of demonstrations: the instruction, held-out queries, decoding settings, label extractor, and exact-match metric stay fixed. Selecting prompts after seeing test performance can turn prompt engineering into unreported test-set optimization.",
       },
       {
         label: "Scale dependence.",
         body:
-          "The paper's strongest results come from a model vastly larger than the one a browser can run. This lab therefore asks a narrower question: can demonstrations change the behavior of a real frozen local Transformer on a controlled task?",
+          "The paper's strongest results come from a model vastly larger than the one a browser can run. Two held-out items can reveal whether demonstrations changed this local model's outputs; they cannot establish that few-shot prompting generally improves accuracy or reproduce GPT-3's benchmark results.",
       },
     ],
     claims: {
@@ -51,8 +51,8 @@ ${commonQuestionInstruction}`.trim(),
       limit: "The local model is not GPT-3, and a two-case browser evaluation cannot reproduce the paper's benchmark claims.",
     },
     diagram: {
-      title: "Task specification in the prefix",
-      caption: "The weights are unchanged; only the token sequence supplied before the query differs.",
+      title: "Controlled zero-, one-, and few-shot comparison",
+      caption: "Only the demonstration tokens differ. Two held-out items can measure sensitivity in this run, not general few-shot ability.",
       nodes: [
         { label: "Instruction", value: "output one label" },
         { label: "Demonstrations", value: "0 · 1 · 4 examples" },
@@ -84,13 +84,13 @@ ${commonQuestionInstruction}`.trim(),
           label: "Demonstration formatter",
           purpose: "Serialize labeled examples without changing their order.",
           concepts: [
-            { name: "examples", detail: "Fixed input-label records selected before evaluation." },
-            { name: "map", detail: "Applies one stable textual schema to every record." },
-            { name: "join", detail: "Separates demonstrations with an unambiguous blank line." },
+            { name: "examples", detail: "Fixed input-label records; preserve their supplied order, including empty inputs." },
+            { name: "schema", detail: "Trim field edges and serialize every record as Input then Label." },
+            { name: "separator", detail: "Place exactly one blank line between complete records." },
           ],
           code: `function formatDemonstrations(examples) {
   return examples
-    .map(({ input, label }) => "Input: " + input + "\\nLabel: " + label)
+    .map(({ input, label }) => "Input: " + input.trim() + "\\nLabel: " + label.trim())
     .join("\\n\\n");
 }`,
           checkCode: `const text = formatDemonstrations([{ input: "aa", label: "K" }, { input: "bbb", label: "M" }]);
@@ -101,9 +101,9 @@ return { passed: text.includes("Input: aa\\nLabel: K") && text.indexOf("aa") < t
           label: "Evaluation prompt",
           purpose: "Combine the fixed instruction, selected demonstrations, and held-out query.",
           concepts: [
-            { name: "instruction", detail: "Task text held constant across conditions." },
-            { name: "demonstrations", detail: "Only experimental variable: zero, one, or several examples." },
-            { name: "query", detail: "Held-out input scored under every condition." },
+            { name: "instruction", detail: "Required task text held constant across every condition." },
+            { name: "demonstrations", detail: "Optional middle section; whitespace-only means zero-shot, not an empty example." },
+            { name: "query", detail: "Trimmed held-out input, followed by a terminal Label: for the model to continue." },
           ],
           code: `function buildPrompt({ instruction, demonstrations, query }) {
   const sections = [instruction.trim()];
@@ -120,12 +120,12 @@ return { passed: prompt === "Return K or M.\\n\\nInput: A sharp story.\\nLabel:"
           purpose: "Extract one allowed label and score it without subjective grading.",
           concepts: [
             { name: "allowedLabels", detail: "Closed set defined before model execution." },
-            { name: "match", detail: "First standalone permitted label in the generation." },
-            { name: "expected", detail: "Gold label hidden from the prompt." },
+            { name: "match", detail: "First standalone permitted label, with exact casing; labels embedded in words do not count." },
+            { name: "expected", detail: "Gold label used only after prediction extraction to compute passed." },
           ],
           code: `function exactMatchLabel(output, expected, allowedLabels = ["K", "M"]) {
   const escaped = allowedLabels.join("|");
-  const match = output.toUpperCase().match(new RegExp("\\\\b(" + escaped + ")\\\\b"));
+  const match = output.match(new RegExp("\\\\b(" + escaped + ")\\\\b"));
   const predicted = match ? match[1] : null;
   return { predicted, passed: predicted === expected };
 }`,

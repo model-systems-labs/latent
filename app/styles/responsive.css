@@ -166,6 +166,34 @@
 }
 
 @media (max-width: 650px) {
+  .icl-fixed-prefix,
+  .icl-condition-paths,
+  .icl-inference-boundary {
+    grid-template-columns: 1fr;
+  }
+
+  .icl-fixed-prefix > span + span,
+  .icl-condition-paths > span + span,
+  .icl-inference-boundary > span + span {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    padding-left: 0;
+  }
+
+  .icl-frozen-model {
+    align-items: start;
+    grid-template-columns: 1fr;
+  }
+
+  .icl-measurement-table {
+    font-size: 0.46rem;
+  }
+
+  .icl-measurement-table th,
+  .icl-measurement-table td {
+    padding: 0.55rem 0.2rem;
+  }
+
   .bpe-rounds li > div,
   .attention-stages li > div {
     align-items: start;

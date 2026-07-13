@@ -83,7 +83,7 @@ test("one typed host-owned contract covers every lesson code block", () => {
 
 test("the suite contains only data and cannot execute learner-authored checks", () => {
   const suite = contractModule.llmSystemsContractSuite;
-  assert.equal(suite.contractVersion, "llm-systems-contracts-v5");
+  assert.equal(suite.contractVersion, "llm-systems-contracts-v6");
   assert.deepEqual(suite.contracts, contractModule.llmSystemsExerciseContracts);
 
   const visit = (value) => {

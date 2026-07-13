@@ -83,13 +83,14 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
   const isInContextLearning = lesson.id === "in-context-learning";
   const isInferenceRuntime = lesson.id === "inference-runtime";
   const isSchedulingMemory = lesson.id === "scheduling-memory";
+  const isStreamingTransport = lesson.id === "streaming-transport";
   const recurrentSteps = [
     { time: "t − 1", input: "x_(t−1)", previous: "h_(t−2)", state: "h_(t−1)", prediction: "p(x_t)" },
     { time: "t", input: "x_t", previous: "h_(t−1)", state: "h_t", prediction: "p(x_(t+1))" },
     { time: "t + 1", input: "x_(t+1)", previous: "h_t", state: "h_(t+1)", prediction: "p(x_(t+2))" },
   ];
   return (
-    <figure className={`concept-diagram${isRecurrent ? " recurrence-diagram" : ""}${isNeuralLanguageModel ? " neural-lm-diagram" : ""}${isSubwordTokenization ? " subword-tokenization-diagram" : ""}${isAdditiveAttention ? " additive-attention-diagram" : ""}${isTransformer ? " transformer-attention-diagram" : ""}${isInContextLearning ? " icl-comparison-diagram" : ""}${isInferenceRuntime ? " inference-runtime-diagram" : ""}${isSchedulingMemory ? " scheduling-memory-diagram" : ""}`}>
+    <figure className={`concept-diagram${isRecurrent ? " recurrence-diagram" : ""}${isNeuralLanguageModel ? " neural-lm-diagram" : ""}${isSubwordTokenization ? " subword-tokenization-diagram" : ""}${isAdditiveAttention ? " additive-attention-diagram" : ""}${isTransformer ? " transformer-attention-diagram" : ""}${isInContextLearning ? " icl-comparison-diagram" : ""}${isInferenceRuntime ? " inference-runtime-diagram" : ""}${isSchedulingMemory ? " scheduling-memory-diagram" : ""}${isStreamingTransport ? " streaming-transport-diagram" : ""}`}>
       <header><span>Mechanism</span><strong>{lesson.diagram.title}</strong></header>
       {isRecurrent ? (
         <div className="recurrence-unroll" role="img" aria-label="Three recurrent time steps. Each input and previous hidden state produce a new hidden state, then logits and a next-character probability. The hidden state flows into the next step and the same parameters are reused.">
@@ -282,6 +283,29 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
           <div className="scheduler-inference-boundary">
             <span><b>Can infer</b> completion-aware readmission improves this fixed workload under the simulator&apos;s budgets.</span>
             <span><b>Cannot infer</b> universal production speedups without measuring overhead, fairness, prefill interference, and other arrivals.</span>
+          </div>
+        </div>
+      ) : isStreamingTransport ? (
+        <div className="transport-worked-path" role="img" aria-label="A worked streaming transport path. A UTF-8 euro character is split across two byte chunks. Streaming TextDecoder holds the first two bytes and emits the complete character after the third arrives. The practice parser receives decoded text, joins it with its text remainder, finds a blank-line frame boundary, reads event and JSON data fields, and emits a typed token event. The reducer appends that delta while render buffering remains separate from parsing.">
+          <div className="transport-byte-split">
+            <span><b>Byte chunk A</b><code>… 22 e2 82</code><em>incomplete UTF-8 · decoder holds e2 82</em></span>
+            <span><b>Byte chunk B</b><code>ac 22 7d 0a 0a</code><em>€ completes · frame delimiter arrives</em></span>
+          </div>
+          <ol className="transport-stages">
+            {lesson.diagram.nodes.map((node, index) => (
+              <li key={node.label}>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <div><strong>{node.label}</strong><code>{node.value}</code></div>
+              </li>
+            ))}
+          </ol>
+          <div className="transport-frame-contract">
+            <span><b>Decoded frame</b><code>{"event: token\ndata: {\"delta\":\"€\"}\n\n"}</code></span>
+            <span><b>Practice boundary</b><code>parseSseChunk(textRemainder, decodedText)</code></span>
+          </div>
+          <div className="transport-lifecycle-boundary">
+            <span><b>Cancellation</b> AbortSignal stops reader → parser → generator and rejects late events.</span>
+            <span><b>Render pacing</b> batches typed deltas into fewer UI commits; it never repairs byte or frame boundaries.</span>
           </div>
         </div>
       ) : (

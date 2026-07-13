@@ -603,6 +603,85 @@ test("Inference Runtime separates sampled tokens from decode forwards and sizes 
   assert.doesNotMatch(cacheFeedback, /all 3 layers|kvHeads|headDimension|FP32/);
 });
 
+test("Streaming Transport separates byte decoding, frame carry, typed events, and cancellation", () => {
+  const lesson = course.courseLessons.find((candidate) => candidate.id === "streaming-transport");
+  assert.ok(lesson);
+  assert.match(lesson.summary[0].body, /TextDecoder\.decode\(chunk, \{ stream: true \}\)/);
+  assert.match(lesson.summary[0].body, /decoded text, never raw bytes/);
+  assert.match(lesson.summary[1].body, /LF or CRLF/);
+  assert.match(lesson.summary[1].body, /default event name message/);
+  assert.match(lesson.summary[3].body, /AbortSignal must stop the reader, parser, and generator/);
+  assert.match(lesson.summary[3].body, /Render buffering is different/);
+  assert.equal(lesson.diagram.title, "One token across arbitrary chunks");
+  assert.match(lesson.diagram.caption, /TextDecoder owns byte carry/);
+  assert.match(lesson.experiment.intro, /cancel after four tokens/);
+
+  const byId = new Map(contracts.llmSystemsExerciseContracts.map((contract) => [contract.id, contract]));
+  const observe = (implementation, args) => {
+    try {
+      return { status: "returned", value: implementation(...args) };
+    } catch (reason) {
+      return {
+        status: "threw",
+        errorName: reason instanceof Error ? reason.name : "Error",
+        message: reason instanceof Error ? reason.message : String(reason),
+      };
+    }
+  };
+  const evaluate = (contract, implementation) => contract.cases.map((exerciseCase) =>
+    contractRuntime.evaluateExerciseCase(contract, exerciseCase, observe(implementation, exerciseCase.invoke.args)));
+  const rejects = (contract, implementation) => assert.ok(evaluate(contract, implementation).some((result) => !result.passed));
+  const accepts = (contract, implementation) => assert.ok(evaluate(contract, implementation).every((result) => result.passed));
+
+  const encoder = byId.get("streaming-transport/encode-sse");
+  assert.ok(encoder);
+  assert.equal(encoder.cases.length, 4);
+  const missingBlankLine = (event, data) => `event: ${event}\ndata: ${JSON.stringify(data)}\n`;
+  const manualPayload = (event, data) => `event: ${event}\ndata: ${String(data)}\n\n`;
+  const hardCodedType = (_event, data) => `event: token\ndata: ${JSON.stringify(data)}\n\n`;
+  rejects(encoder, missingBlankLine);
+  rejects(encoder, manualPayload);
+  rejects(encoder, hardCodedType);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(encoder, missingBlankLine)), /Terminate the frame with a final blank line/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(encoder, manualPayload)), /Serialize the payload with JSON\.stringify/);
+
+  const encoderBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "encode-sse");
+  assert.ok(encoderBlock);
+  const encoderReference = new Function(`${encoderBlock.code}; return encodeSse;`)();
+  accepts(encoder, encoderReference);
+
+  const parser = byId.get("streaming-transport/parse-sse");
+  assert.ok(parser);
+  assert.equal(parser.cases.length, 6);
+  const parserBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "parse-sse");
+  assert.ok(parserBlock);
+  const parserReference = new Function(`${parserBlock.code}; return parseSseChunk;`)();
+  const ignoresRemainder = (_buffer, chunk) => parserReference("", chunk);
+  const firstFrameOnly = (buffer, chunk) => {
+    const parsed = parserReference(buffer, chunk);
+    return { events: parsed.events.slice(0, 1), remainder: parsed.remainder };
+  };
+  const lfAndExactSpacesOnly = (buffer, chunk) => {
+    const frames = (buffer + chunk).split("\n\n");
+    const remainder = frames.pop() ?? "";
+    return {
+      events: frames.map((frame) => {
+        const lines = frame.split("\n");
+        const event = lines.find((line) => line.startsWith("event: "))?.slice(7) ?? "message";
+        const data = lines.find((line) => line.startsWith("data: "))?.slice(6) ?? "null";
+        return { event, data: JSON.parse(data) };
+      }),
+      remainder,
+    };
+  };
+  rejects(parser, ignoresRemainder);
+  rejects(parser, firstFrameOnly);
+  rejects(parser, lfAndExactSpacesOnly);
+  accepts(parser, parserReference);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(parser, ignoresRemainder)), /Prepend the previous remainder/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(parser, firstFrameOnly)), /Process all complete frames in order/);
+});
+
 test("Scheduling and Memory preserves completion identities and catches page-boundary shortcuts", () => {
   const lesson = course.courseLessons.find((candidate) => candidate.id === "scheduling-memory");
   assert.ok(lesson);
@@ -705,7 +784,7 @@ test("practice verification is inseparable from the exact editor source and cont
   const block = { id: "rnn-step", code: "function rnnStep() { return 'reference'; }" };
   const correct = "function rnnStep() { return 'correct learner answer'; }";
   const wrong = "function rnnStep() { return 'wrong learner answer'; }";
-  const currentVersion = "llm-systems-contracts-v8";
+  const currentVersion = "llm-systems-contracts-v9";
   const bound = practiceState.bindBlockVerification(
     { ids: [], sources: {}, contractVersion: null },
     block.id,

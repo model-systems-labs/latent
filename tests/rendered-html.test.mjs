@@ -373,3 +373,16 @@ test("all browser-rendered reference cells route behavior to host-owned contract
   }
   assert.equal(cellCount, 34);
 });
+
+test("Streaming Transport renders the worked byte path and both stream policies", async () => {
+  const response = await render("/lessons/streaming-transport");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /One token across arbitrary chunks/);
+  assert.match(html, /Byte chunk A/);
+  assert.match(html, /TextDecoder/);
+  assert.match(html, /parseSseChunk\(textRemainder, decodedText\)/);
+  assert.match(html, /Complete stream/);
+  assert.match(html, /Cancel after 4 tokens/);
+  assert.match(html, /decoded text chunks/);
+});

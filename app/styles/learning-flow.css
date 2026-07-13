@@ -2204,6 +2204,137 @@ button:disabled {
   grid-column: 1 / -1;
 }
 
+.transport-worked-path {
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+}
+
+.transport-byte-split,
+.transport-frame-contract,
+.transport-lifecycle-boundary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.transport-byte-split > span,
+.transport-frame-contract > span,
+.transport-lifecycle-boundary > span {
+  display: grid;
+  gap: 0.32rem;
+  min-width: 0;
+  padding: 0.82rem 0;
+}
+
+.transport-byte-split > span + span,
+.transport-frame-contract > span + span,
+.transport-lifecycle-boundary > span + span {
+  border-left: 1px solid var(--line);
+  padding-left: 0.9rem;
+}
+
+.transport-byte-split b,
+.transport-frame-contract b,
+.transport-lifecycle-boundary b {
+  color: var(--violet);
+  font-size: 0.53rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.transport-byte-split code,
+.transport-frame-contract code,
+.transport-byte-split em {
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 0.53rem;
+  font-style: normal;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.transport-byte-split em {
+  color: var(--muted);
+}
+
+.transport-stages {
+  border-top: 1px solid var(--line);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.transport-stages li {
+  align-items: baseline;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 1.5rem minmax(0, 1fr);
+  padding: 0.68rem 0;
+  position: relative;
+}
+
+.transport-stages li + li {
+  border-top: 1px solid var(--line);
+}
+
+.transport-stages li:not(:last-child)::after {
+  bottom: -0.34rem;
+  color: var(--violet);
+  content: "↓";
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  left: 0.46rem;
+  position: absolute;
+  z-index: 1;
+}
+
+.transport-stages li > span {
+  color: var(--faint);
+  font-family: var(--mono);
+  font-size: 0.52rem;
+}
+
+.transport-stages li > div {
+  align-items: baseline;
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: minmax(6.5rem, 0.65fr) minmax(0, 1.35fr);
+}
+
+.transport-stages strong {
+  font-size: 0.66rem;
+  font-weight: 560;
+}
+
+.transport-stages code {
+  color: var(--violet-deep);
+  font-size: 0.55rem;
+  line-height: 1.45;
+  text-align: right;
+}
+
+.transport-frame-contract,
+.transport-lifecycle-boundary {
+  border-top: 1px solid var(--line);
+}
+
+.transport-frame-contract code {
+  white-space: pre-wrap;
+}
+
+.transport-lifecycle-boundary > span {
+  color: var(--muted);
+  display: block;
+  font-family: var(--serif);
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+
+.transport-lifecycle-boundary b {
+  font-family: var(--sans);
+  margin-right: 0.32rem;
+}
+
 .scheduler-shared-workload {
   border-bottom: 1px solid var(--line);
   display: grid;

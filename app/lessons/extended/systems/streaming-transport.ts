@@ -11,30 +11,31 @@ export const streamingTransportLesson = defineExtendedLesson({
     modeLabel: "Mock protocol implementation",
     eyebrow: "Transport · SSE-compatible streams",
     title: "Streaming Transport",
-    thesis: "A chat client needs a stable event protocol that can deliver token deltas, metadata, completion, cancellation, and errors without coupling React to the model backend.",
+    thesis: "A chat client needs a transport adapter that turns arbitrarily split UTF-8 bytes into typed events while keeping parsing, cancellation, and render pacing as separate contracts.",
     paperUrl: "https://html.spec.whatwg.org/multipage/server-sent-events.html",
     paperTitle: "Server-sent events",
     authors: "WHATWG HTML Living Standard",
     year: "Living standard",
     summary: [
-      { label: "Event framing.", body: "SSE encodes named events and data fields as UTF-8 text separated by blank lines. A parser must tolerate arbitrary network chunk boundaries rather than assuming one chunk equals one event." },
-      { label: "Transport boundary.", body: "The UI should consume typed chat events, not raw model callbacks. A transport adapter can then switch among a browser worker, mock stream, or remote endpoint." },
-      { label: "Cancellation.", body: "AbortSignal is part of the request contract. Cancellation must stop transport parsing, model generation, and UI state transitions rather than merely hiding the spinner." },
-      { label: "Backpressure.", body: "Generation may produce deltas faster than React should render them. Buffering small token bursts reduces commits without changing the logical event sequence." },
+      { label: "Decode bytes before parsing frames.", body: "ReadableStream chunks are Uint8Array values, and a chunk may end midway through one UTF-8 character. TextDecoder.decode(chunk, { stream: true }) retains those incomplete bytes. The practice parser starts after this step: its chunk argument is decoded text, never raw bytes." },
+      { label: "Carry text until a frame is complete.", body: "Each SSE frame ends at a blank line. Prepend the previous text remainder, emit every complete frame, and return the unfinished suffix. This lesson supports LF or CRLF lines, an optional single space after the field colon, and the default event name message." },
+      { label: "Convert wire fields into domain events.", body: "The event field supplies the type; data lines contain a JSON payload. The transport adapter returns typed token, metrics, done, or error events so React never depends on byte boundaries or backend-specific callbacks." },
+      { label: "Keep lifecycle and presentation separate.", body: "AbortSignal must stop the reader, parser, and generator at the adapter boundary. Render buffering is different: it may batch several decoded token events into one React update, but it must not reorder events or let generation continue after cancellation." },
     ],
     claims: {
       paper: "The HTML event-stream format defines a one-way event channel with named events, data fields, reconnection behavior, and UTF-8 framing.",
-      lab: "A real ReadableStream emits and parses SSE-compatible token, metric, done, and error frames across split chunks.",
-      limit: "The stream is local and deterministic; browser networking, proxies, and multi-region disconnects are not reproduced.",
+      lab: "The deterministic browser trace compares a complete stream with cancellation after four tokens, including parser stop, generator stop, late-event count, and resource release.",
+      limit: "The stream is local; proxy buffering, reconnection fields, retry timing, and multi-region disconnects are not reproduced.",
     },
     diagram: {
-      title: "Typed token stream",
-      caption: "React sees domain events while adapters own bytes, framing, and backend differences.",
+      title: "One token across arbitrary chunks",
+      caption: "Bytes can split inside a character or frame. TextDecoder owns byte carry; parseSseChunk owns decoded-text carry; the reducer sees only typed events.",
       nodes: [
-        { label: "Generator", value: "model delta" },
-        { label: "Encoder", value: "event: token" },
-        { label: "Parser", value: "bytes → event" },
-        { label: "Reducer", value: "append delta" },
+        { label: "Byte chunks", value: "… e2 82 | ac …" },
+        { label: "TextDecoder", value: "stream: true → decoded text" },
+        { label: "Frame buffer", value: "remainder + chunk → blank line" },
+        { label: "Typed event", value: "token · { delta: ‘€’ }" },
+        { label: "Reducer", value: "append delta → render buffer" },
       ],
     },
     questions: {
@@ -46,22 +47,25 @@ export const streamingTransportLesson = defineExtendedLesson({
       source: "Original deterministic stream",
       license: "CC0",
       size: "14 frames · adversarial chunk boundaries",
-      preview: "meta → token × 10 → metrics → done",
+      preview: "complete: meta → token × 10 → metrics → done · cancel: meta → token × 4 → abort → release",
     },
     implementation: {
       filename: "streaming-transport.js",
-      intro: "Implement event framing and incremental parsing against chunks that deliberately split events in inconvenient places.",
+      intro: "Implement framing and incremental parsing against decoded text chunks. A streaming TextDecoder has already converted Uint8Array chunks to strings and retained incomplete UTF-8 bytes.",
       codeBlocks: [
         {
           id: "encode-sse",
           label: "SSE encoder",
           purpose: "Serialize one typed event using the event-stream wire format.",
           concepts: [
-            { name: "event", detail: "Stable event type such as token, metrics, done, or error." },
-            { name: "data", detail: "JSON payload kept independent of framing." },
-            { name: "blank line", detail: "Two newline characters terminate one event." },
+            { name: "event", detail: "A single safe field value such as token, metrics, done, or error; CR and LF are rejected." },
+            { name: "data", detail: "JSON.stringify escapes payload quotes and newlines without changing framing." },
+            { name: "blank line", detail: "A final empty line (\\n\\n) terminates the frame." },
           ],
           code: `function encodeSse(event, data) {
+  if (typeof event !== "string" || !event || /[\\r\\n]/.test(event)) {
+    throw new Error("event name must be non-empty and contain no CR or LF");
+  }
   return "event: " + event + "\\n" + "data: " + JSON.stringify(data) + "\\n\\n";
 }`,
           checkCode: `const frame = encodeSse("token", { delta: "hi" });
@@ -70,21 +74,33 @@ return { passed: frame === "event: token\\ndata: {\\\"delta\\\":\\\"hi\\\"}\\n\\
         {
           id: "parse-sse",
           label: "Incremental parser",
-          purpose: "Retain incomplete bytes and emit only complete events.",
+          purpose: "Retain incomplete decoded text and emit only complete typed events.",
           concepts: [
-            { name: "buffer", detail: "Unconsumed text carried across network chunks." },
-            { name: "separator", detail: "Blank line marking the end of one frame." },
-            { name: "remainder", detail: "Partial final frame saved for the next chunk." },
+            { name: "chunk", detail: "Decoded text from TextDecoder, not a Uint8Array." },
+            { name: "buffer", detail: "Unconsumed decoded text carried across network chunks." },
+            { name: "separator", detail: "An LF or CRLF blank line marking the end of one frame." },
+            { name: "remainder", detail: "Only the partial final frame is saved for the next chunk." },
           ],
           code: `function parseSseChunk(buffer, chunk) {
   const combined = buffer + chunk;
-  const frames = combined.split("\\n\\n");
+  const frames = combined.split(/\\r?\\n\\r?\\n/);
   const remainder = frames.pop() ?? "";
   const events = frames.map((frame) => {
-    const lines = frame.split("\\n");
-    const event = lines.find((line) => line.startsWith("event: "))?.slice(7) ?? "message";
-    const data = lines.find((line) => line.startsWith("data: "))?.slice(6) ?? "null";
-    return { event, data: JSON.parse(data) };
+    let event = "message";
+    const dataLines = [];
+
+    for (const line of frame.split(/\\r?\\n/)) {
+      if (!line || line.startsWith(":")) continue;
+      const colon = line.indexOf(":");
+      const field = colon === -1 ? line : line.slice(0, colon);
+      let value = colon === -1 ? "" : line.slice(colon + 1);
+      if (value.startsWith(" ")) value = value.slice(1);
+      if (field === "event" && value) event = value;
+      if (field === "data") dataLines.push(value);
+    }
+
+    const serialized = dataLines.length ? dataLines.join("\\n") : "null";
+    return { event, data: JSON.parse(serialized) };
   });
   return { events, remainder };
 }`,
@@ -94,5 +110,5 @@ return { passed: first.events.length === 0 && second.events[0].data.delta === "h
         },
       ],
     },
-    experiment: { kind: "systems", variant: "streaming", title: "Inspect the event stream", intro: "Stream a response through adversarial byte chunks, pause rendering, cancel generation, and inspect every decoded event." },
+    experiment: { kind: "systems", variant: "streaming", title: "Inspect complete and cancelled streams", intro: "Run the same deterministic response to completion or cancel after four tokens. Compare parsing, render buffering, generator stop, late events, and resource release." },
   });

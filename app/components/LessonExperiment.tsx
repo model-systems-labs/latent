@@ -396,6 +396,7 @@ type ProductVariant = "state" | "streaming-ui" | "context-actions" | "quality";
 
 function SystemsExperiment({ variant, onComplete }: { variant: SystemsVariant } & ExperimentProps) {
   const [policy, setPolicy] = useState<"static" | "continuous">("continuous");
+  const [streamPolicy, setStreamPolicy] = useState<"complete" | "cancel">("complete");
   const [failure, setFailure] = useState("queue-timeout");
   const [result, setResult] = useState<{
     metrics: Array<{ label: string; value: string }>;
@@ -426,6 +427,26 @@ function SystemsExperiment({ variant, onComplete }: { variant: SystemsVariant } 
       return;
     }
     if (variant === "streaming") {
+      if (streamPolicy === "cancel") {
+        setResult({
+          metrics: [
+            { label: "Byte chunks read", value: "8 / 17" },
+            { label: "Events parsed", value: "5 / 14" },
+            { label: "Token events", value: "4 / 10" },
+            { label: "Late events", value: "0" },
+          ],
+          trace: [
+            { label: "meta", detail: "request id and model metadata decoded" },
+            { label: "token × 4", detail: "four ordered deltas parsed; render buffer flushes the visible partial response" },
+            { label: "abort", detail: "AbortSignal crosses the adapter boundary after token 4", tone: "warning" },
+            { label: "reader", detail: "reader.cancel() stops further chunk reads; parser discards its incomplete remainder" },
+            { label: "generator", detail: "generator return path runs; tokens 5–10 are never produced" },
+            { label: "release", detail: "reader lock and generation resources released · late events ignored" },
+          ],
+          artifact: "policy cancel-after-4\nproduced tokens 4 / 10 · parsed events 5 / 14\nreader stopped yes · parser stopped yes · generator stopped yes\nlate events 0 · resources released yes",
+        });
+        return;
+      }
       setResult({
         metrics: [
           { label: "Byte chunks", value: "17" },
@@ -436,11 +457,11 @@ function SystemsExperiment({ variant, onComplete }: { variant: SystemsVariant } 
         trace: [
           { label: "meta", detail: "request id and model metadata decoded" },
           { label: "token × 4", detail: "first frame split across three byte chunks" },
-          { label: "pause", detail: "visual rendering paused; parser continues buffering" },
-          { label: "token × 6", detail: "ordered deltas recovered without duplication" },
-          { label: "done", detail: "terminal event closes parser and releases reader" },
+          { label: "render pause", detail: "React commits pause; byte decoding and frame parsing continue into a typed-event render buffer" },
+          { label: "token × 6", detail: "ordered deltas recovered without duplication; buffered deltas flush in one render" },
+          { label: "done", detail: "terminal event leaves remainder 0 B, closes parser, and releases reader" },
         ],
-        artifact: "event: token\ndata: {\"delta\":\"browser\"}\n\nevent: done\ndata: {}",
+        artifact: "policy complete\n17 chunks → 14 events → 10 token deltas\nremainder 0 B · terminal done · resources released yes",
       });
       return;
     }
@@ -502,10 +523,17 @@ function SystemsExperiment({ variant, onComplete }: { variant: SystemsVariant } 
       {variant === "scheduling" ? (
         <div className="simulation-controls"><span>Scheduling policy</span><button className={policy === "static" ? "selected" : ""} type="button" onClick={() => setPolicy("static")}>Static batch</button><button className={policy === "continuous" ? "selected" : ""} type="button" onClick={() => setPolicy("continuous")}>Continuous</button></div>
       ) : null}
+      {variant === "streaming" ? (
+        <div className="simulation-controls">
+          <span>Stream policy</span>
+          <button className={streamPolicy === "complete" ? "selected" : ""} type="button" onClick={() => { setStreamPolicy("complete"); setResult(null); }}>Complete stream</button>
+          <button className={streamPolicy === "cancel" ? "selected" : ""} type="button" onClick={() => { setStreamPolicy("cancel"); setResult(null); }}>Cancel after 4 tokens</button>
+        </div>
+      ) : null}
       {variant === "reliability" ? (
         <div className="simulation-controls"><label><span>Injected failure</span><select value={failure} onChange={(event) => setFailure(event.target.value)}><option value="queue-timeout">Queue timeout</option><option value="malformed-frame">Malformed frame</option><option value="worker-crash">Worker crash</option><option value="user-abort">User abort</option></select></label></div>
       ) : null}
-      <div className="experiment-action"><p>Deterministic browser simulation · repeatable seed · explicit resource accounting</p><button type="button" onClick={run}>{result ? "Run again" : "Run simulation"}</button></div>
+      <div className="experiment-action"><p>{variant === "streaming" ? "Same deterministic response · adversarial chunks · explicit stop and release evidence" : "Deterministic browser simulation · repeatable seed · explicit resource accounting"}</p><button type="button" onClick={run}>{result ? "Run again" : "Run simulation"}</button></div>
       {result ? (
         <div className="simulation-result">
           <div className="metric-grid">{result.metrics.map((metric) => <span key={metric.label}><em>{metric.label}</em><strong>{metric.value}</strong></span>)}</div>

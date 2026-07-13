@@ -80,6 +80,18 @@ function length(id: string, label: string, expected: number, path?: ValuePath): 
   return { id, label, kind: "length", expected, path };
 }
 
+function includes(id: string, label: string, expected: JsonValue, path?: ValuePath): HostAssertion {
+  return { id, label, kind: "includes", expected, path };
+}
+
+function matches(id: string, label: string, pattern: string, path?: ValuePath): HostAssertion {
+  return { id, label, kind: "matches", pattern, path };
+}
+
+function throwsWith(id: string, label: string, messageIncludes: string): HostAssertion {
+  return { id, label, kind: "throws", messageIncludes };
+}
+
 const negativeInfinity = { $number: "-Infinity" } as const;
 
 /**
@@ -731,7 +743,29 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
         id: "token-frame",
         label: "Serializes a token event and JSON payload",
         args: ["token", { delta: "hi" }],
-        assertions: [equal("frame", "Uses the event-stream wire format", "event: token\ndata: {\"delta\":\"hi\"}\n\n")],
+        assertions: [
+          matches("event-line", "Begin the frame with the requested event: field", "^event: token\\n"),
+          includes("json-data-line", "Serialize the payload with JSON.stringify on a data: line", "data: {\"delta\":\"hi\"}\n"),
+          matches("blank-line", "Terminate the frame with a final blank line (\\n\\n)", "\\n\\n$"),
+        ],
+      },
+      {
+        id: "typed-done-frame",
+        label: "Preserves event type instead of hard-coding token",
+        args: ["done", { reason: "stop" }],
+        assertions: [equal("done-frame", "Use the event argument for every event type", "event: done\ndata: {\"reason\":\"stop\"}\n\n")],
+      },
+      {
+        id: "escaped-error-payload",
+        label: "Escapes payload newlines and quotes without corrupting framing",
+        args: ["error", { message: "line 1\n\"quoted\"" }],
+        assertions: [equal("escaped-frame", "Let JSON.stringify escape payload text; do not concatenate object values by hand", "event: error\ndata: {\"message\":\"line 1\\n\\\"quoted\\\"\"}\n\n")],
+      },
+      {
+        id: "injected-event-name",
+        label: "Rejects an event name that could inject another field",
+        args: ["token\ndata: {\"forged\":true}", { delta: "safe" }],
+        assertions: [throwsWith("unsafe-event-name", "Reject event names containing CR or LF before serializing", "event name")],
       },
     ],
   }),
@@ -745,7 +779,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
         id: "incomplete-frame",
         label: "Retains an incomplete frame without emitting an event",
         args: ["", "event: token\ndata: {\"delta\":\"h"],
-        assertions: [equal("partial-result", "Returns no event and preserves the partial frame", {
+        assertions: [equal("partial-result", "Wait for a blank-line delimiter; return no event and preserve the partial decoded text", {
           events: [],
           remainder: "event: token\ndata: {\"delta\":\"h",
         })],
@@ -754,8 +788,47 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
         id: "continued-frame",
         label: "Completes a frame carried across a chunk boundary",
         args: ["event: token\ndata: {\"delta\":\"h", "i\"}\n\n"],
-        assertions: [equal("complete-result", "Emits the decoded event and clears the remainder", {
+        assertions: [equal("complete-result", "Prepend the previous remainder before looking for complete frames", {
           events: [{ event: "token", data: { delta: "hi" } }],
+          remainder: "",
+        })],
+      },
+      {
+        id: "split-frame-delimiter",
+        label: "Recognizes a blank-line delimiter split between chunks",
+        args: ["event: token\ndata: {\"delta\":\"!\"}\n", "\n"],
+        assertions: [equal("split-delimiter-result", "Detect the blank line after combining remainder and chunk, even when each newline arrived separately", {
+          events: [{ event: "token", data: { delta: "!" } }],
+          remainder: "",
+        })],
+      },
+      {
+        id: "multiple-frames-and-remainder",
+        label: "Emits every complete frame and carries only the unfinished suffix",
+        args: ["", "event: token\ndata: {\"delta\":\"a\"}\n\nevent: done\ndata: {}\n\nevent: metrics\ndata: {\"tok"],
+        assertions: [equal("multiple-result", "Process all complete frames in order; do not stop after the first frame", {
+          events: [
+            { event: "token", data: { delta: "a" } },
+            { event: "done", data: {} },
+          ],
+          remainder: "event: metrics\ndata: {\"tok",
+        })],
+      },
+      {
+        id: "default-event-and-tight-fields",
+        label: "Supports default message events and fields without a space",
+        args: ["", "data:{\"ok\":true}\n\n"],
+        assertions: [equal("default-event-result", "Remove at most one optional field-value space and use message when event: is absent", {
+          events: [{ event: "message", data: { ok: true } }],
+          remainder: "",
+        })],
+      },
+      {
+        id: "crlf-frame",
+        label: "Parses a CRLF-delimited JSON event",
+        args: ["", "event: done\r\ndata: {}\r\n\r\n"],
+        assertions: [equal("crlf-result", "Treat CRLF blank lines as frame delimiters rather than leaving carriage returns in field values", {
+          events: [{ event: "done", data: {} }],
           remainder: "",
         })],
       },
@@ -1081,6 +1154,6 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
 ];
 
 export const llmSystemsContractSuite: ContractSuite = {
-  contractVersion: "llm-systems-contracts-v8",
+  contractVersion: "llm-systems-contracts-v9",
   contracts: llmSystemsExerciseContracts,
 };

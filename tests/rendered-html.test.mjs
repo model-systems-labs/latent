@@ -119,6 +119,21 @@ test("Character RNNs teaches the unrolled mechanism and gates practice until res
   assert.match(html, /Restoring your saved practice before editing is enabled/);
 });
 
+test("Neural Language Models teaches the complete numeric prediction path", async () => {
+  const response = await render("/lessons/neural-language-models");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Discrete n-gram estimate/);
+  assert.match(html, /Vocabulary logits/);
+  assert.match(html, /ln\(30\)/);
+  assert.match(html, /neural-probability-path/);
+  assert.match(html, /Exact count/);
+  assert.match(html, /Learned coordinates/);
+  assert.match(html, /Stable softmax/);
+  assert.match(html, /−log \.65 = \.43/);
+  assert.match(html, /Output order/);
+});
+
 test("the capstone contains the complete React chat system", async () => {
   const response = await render("/capstone");
   assert.equal(response.status, 200);

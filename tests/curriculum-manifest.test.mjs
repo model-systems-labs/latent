@@ -153,6 +153,57 @@ test("Character RNN contracts reject two plausible semantic mistakes per cell an
   accepts(clipping, (gradients, limit) => gradients.map((value) => Math.max(-limit, Math.min(limit, value))));
 });
 
+test("Neural Language Model contracts reject plausible shortcuts and give one actionable direction", () => {
+  const byId = new Map(contracts.llmSystemsExerciseContracts.map((contract) => [contract.id, contract]));
+  const evaluate = (contract, implementation) => contract.cases.map((exerciseCase) =>
+    contractRuntime.evaluateExerciseCase(contract, exerciseCase, {
+      status: "returned",
+      value: implementation(...exerciseCase.invoke.args),
+    }));
+  const rejects = (contract, implementation) => assert.ok(evaluate(contract, implementation).some((result) => !result.passed));
+  const accepts = (contract, implementation) => assert.ok(evaluate(contract, implementation).every((result) => result.passed));
+
+  const softmax = byId.get("neural-language-models/stable-softmax");
+  assert.ok(softmax);
+  const rawExponentials = (logits) => {
+    const weights = logits.map(Math.exp);
+    const total = weights.reduce((sum, value) => sum + value, 0);
+    return weights.map((value) => value / total);
+  };
+  rejects(softmax, rawExponentials);
+  rejects(softmax, (logits) => {
+    const total = logits.reduce((sum, value) => sum + value, 0);
+    return logits.map((value) => value / total);
+  });
+  accepts(softmax, (logits) => {
+    const maximum = Math.max(...logits);
+    const weights = logits.map((value) => Math.exp(value - maximum));
+    const total = weights.reduce((sum, value) => sum + value, 0);
+    return weights.map((value) => value / total);
+  });
+  const softmaxFeedback = practiceFeedback.formatPracticeContractDetail(evaluate(softmax, rawExponentials));
+  assert.match(softmaxFeedback, /Subtract max\(logits\) before exponentiating/);
+  assert.equal((softmaxFeedback.match(/Subtract max\(logits\)/g) ?? []).length, 1);
+
+  const context = byId.get("neural-language-models/context-embedding");
+  assert.ok(context);
+  rejects(context, (indices, embeddings) => embeddings[indices[0]]);
+  rejects(context, (indices, embeddings) => indices.reduce(
+    (sum, index) => sum.map((value, coordinate) => value + embeddings[index][coordinate]),
+    Array(embeddings[0].length).fill(0),
+  ));
+  accepts(context, (indices, embeddings) => indices.reduce(
+    (sum, index) => sum.map((value, coordinate) => value + embeddings[index][coordinate] / indices.length),
+    Array(embeddings[0].length).fill(0),
+  ));
+
+  const loss = byId.get("neural-language-models/negative-log-likelihood");
+  assert.ok(loss);
+  rejects(loss, (probabilities, targetIndex) => probabilities[targetIndex]);
+  rejects(loss, (probabilities, targetIndex) => Math.log(probabilities[targetIndex]));
+  accepts(loss, (probabilities, targetIndex) => -Math.log(Math.max(probabilities[targetIndex], 1e-12)));
+});
+
 test("practice verification is inseparable from the exact editor source", () => {
   const block = { id: "rnn-step", code: "function rnnStep() { return 'reference'; }" };
   const correct = "function rnnStep() { return 'correct learner answer'; }";

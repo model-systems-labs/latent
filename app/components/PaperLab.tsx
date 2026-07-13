@@ -74,15 +74,17 @@ export function HeaderSection({ lesson }: { lesson: CourseLesson }) {
 }
 
 export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
+  const isRecurrent = lesson.id === "character-rnns";
+  const isNeuralLanguageModel = lesson.id === "neural-language-models";
   const recurrentSteps = [
     { time: "t − 1", input: "x_(t−1)", previous: "h_(t−2)", state: "h_(t−1)", prediction: "p(x_t)" },
     { time: "t", input: "x_t", previous: "h_(t−1)", state: "h_t", prediction: "p(x_(t+1))" },
     { time: "t + 1", input: "x_(t+1)", previous: "h_t", state: "h_(t+1)", prediction: "p(x_(t+2))" },
   ];
   return (
-    <figure className={`concept-diagram${lesson.id === "character-rnns" ? " recurrence-diagram" : ""}`}>
+    <figure className={`concept-diagram${isRecurrent ? " recurrence-diagram" : ""}${isNeuralLanguageModel ? " neural-lm-diagram" : ""}`}>
       <header><span>Mechanism</span><strong>{lesson.diagram.title}</strong></header>
-      {lesson.id === "character-rnns" ? (
+      {isRecurrent ? (
         <div className="recurrence-unroll" role="img" aria-label="Three recurrent time steps. Each input and previous hidden state produce a new hidden state, then logits and a next-character probability. The hidden state flows into the next step and the same parameters are reused.">
           <div className="unroll-columns">
             {recurrentSteps.map((step) => (
@@ -101,6 +103,25 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
             <span><b>Hidden-state flow</b> h_(t−1) → h_t → h_(t+1)</span>
             <span><b>Generation loop</b> sample from p(x_(t+1)) → encode as x_(t+1)</span>
             <span><b>Shared at every position</b> Wxh · Whh · Why · biases</span>
+          </div>
+        </div>
+      ) : isNeuralLanguageModel ? (
+        <div className="neural-probability-path" role="img" aria-label="A two-word context is converted to ids, embedding rows, a mean context vector, vocabulary logits, stable softmax probabilities, and negative log-likelihood for the target word. Unlike an exact count, learned vectors can share parameters across related contexts.">
+          <div className="generalization-contrast">
+            <span><b>Exact count</b><code>“the researcher” unseen → no direct trigram estimate</code></span>
+            <span><b>Learned coordinates</b><code>similar predictive use → shared embedding geometry</code></span>
+          </div>
+          <ol className="probability-stages">
+            {lesson.diagram.nodes.map((node, index) => (
+              <li key={node.label}>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <div><strong>{node.label}</strong><code>{node.value}</code></div>
+              </li>
+            ))}
+          </ol>
+          <div className="toy-vocabulary" aria-label="Toy output vocabulary labels">
+            <span><b>Output order</b> reads · writes · sleeps</span>
+            <span><b>Observed target</b> reads</span>
           </div>
         </div>
       ) : (

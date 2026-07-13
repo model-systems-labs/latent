@@ -24,24 +24,34 @@ This lesson concerns "A Neural Probabilistic Language Model" by Bengio, Ducharme
 ${commonQuestionInstruction}`.trim(),
     summary: [
       {
-        label: "Sparsity problem.",
+        label: "Discrete n-gram estimate.",
         body:
-          "A count-based model treats two contexts as unrelated unless their symbols match. Most plausible word sequences are absent even from large corpora, so memorizing observed n-grams cannot provide smooth generalization.",
+          "An n-gram model estimates the next word from an exact window of preceding words. A trigram estimate for “the researcher reads” depends on how often that exact three-word sequence occurred. If “the researcher” never appeared, its count supplies no direct evidence—even if “the analyst reads” appeared many times.",
       },
       {
-        label: "Distributed representation.",
+        label: "Embedding lookup.",
         body:
-          "Each word indexes a learned vector. The probability function consumes several context vectors, which means parameter updates can move semantically or syntactically similar words toward representations that produce similar predictions.",
+          "Assign every vocabulary word an integer id, then use that id to select one row of a trainable embedding table. That row is a short vector of continuous coordinates. For a two-word context, this lab looks up two rows and averages each coordinate to produce one context vector.",
       },
       {
-        label: "Joint optimization.",
+        label: "Vocabulary logits.",
         body:
-          "The embedding table and next-word predictor are trained together by maximizing the probability of observed text. The vectors are not manually assigned meanings; their geometry is useful only insofar as it reduces language-model loss.",
+          "A learned projection maps the context vector to one logit—a raw, unnormalized score—for every possible next word. Softmax exponentiates relative score differences and divides by their sum. Subtracting the largest logit first leaves the probabilities unchanged while preventing numerical overflow.",
       },
       {
-        label: "Persistent bottleneck.",
+        label: "Negative log-likelihood.",
         body:
-          "Computing and normalizing one score for every vocabulary item is expensive. Modern language models change the architecture and scale dramatically, but embedding lookup, logits, softmax, and cross-entropy remain central operations.",
+          "Training scores the observed next word with −log p(target). With 30 vocabulary items, a uniform model assigns probability 1/30 and has loss ln(30) ≈ 3.40. A validation loss of 2.53 corresponds to perplexity exp(2.53) ≈ 12.6: the model has reduced the effective next-word uncertainty from 30 equally likely choices.",
+      },
+      {
+        label: "Joint parameter learning.",
+        body:
+          "Backpropagation updates the output projection and the selected embedding rows together. Words acquire nearby vectors only when similar coordinates help predict their observed continuations; the nearest-neighbor list after training is evidence about the learned geometry, not a dictionary of manually assigned meanings.",
+      },
+      {
+        label: "Vocabulary-scale cost.",
+        body:
+          "The lab has 30 output words, but a production vocabulary may contain tens of thousands of tokens. Producing and normalizing one logit per vocabulary item makes the output layer expensive. Modern architectures change the context encoder, yet embedding lookup, logits, stable softmax, and negative log-likelihood remain fundamental.",
       },
     ],
     claims: {
@@ -50,13 +60,15 @@ ${commonQuestionInstruction}`.trim(),
       limit: "The lab omits the paper's hidden network depth, corpus size, and full vocabulary-softmax cost.",
     },
     diagram: {
-      title: "Neural next-word probability",
-      caption: "Word indices retrieve vectors; the predictor maps the combined context to one logit per vocabulary item.",
+      title: "Context vectors to next-word loss",
+      caption: "A numerical toy path for a three-word output vocabulary. The live experiment repeats the same operations over 30 words and learns both the embedding table and output projection.",
       nodes: [
-        { label: "Context", value: "w_(t-2), w_(t-1)" },
-        { label: "Lookup", value: "embedding vectors" },
-        { label: "Projection", value: "vocabulary logits" },
-        { label: "Objective", value: "−log p(w_t)" },
+        { label: "Context ids", value: "the analyst → [4, 17]" },
+        { label: "Embedding lookup", value: "[.6, −.2], [.2, .8]" },
+        { label: "Mean context", value: "c = [.4, .3]" },
+        { label: "Vocabulary logits", value: "z = [1.2, .1, −.4]" },
+        { label: "Stable softmax", value: "p = [.65, .22, .13]" },
+        { label: "Target loss", value: "−log .65 = .43" },
       ],
     },
     questions: {
@@ -76,7 +88,7 @@ ${commonQuestionInstruction}`.trim(),
     },
     implementation: {
       filename: "neural-language-model.js",
-      intro: "Reconstruct the numerical path from context vectors to a normalized loss before training the supplied model.",
+      intro: "Reconstruct the same numerical path shown above. First normalize logits stably, then combine every selected context row coordinate by coordinate, and finally score the observed target. Each cell runs independently before the supplied model trains.",
       tensorOps: ["tensor", "softmax", "embedding", "mean", "nllLoss", "toArray"],
       codeBlocks: [
         {
@@ -84,9 +96,9 @@ ${commonQuestionInstruction}`.trim(),
           label: "Stable softmax",
           purpose: "Normalize vocabulary logits without exponent overflow.",
           concepts: [
-            { name: "tensor", detail: "Tracks the vector shape and differentiable operation graph." },
-            { name: "softmax", detail: "Subtracts the maximum internally before normalization." },
-            { name: "toArray", detail: "Returns the normalized vocabulary distribution." },
+            { name: "logits", detail: "One raw score per vocabulary word; they are not probabilities yet." },
+            { name: "softmax", detail: "Internally subtracts max(logits), exponentiates, and normalizes." },
+            { name: "result", detail: "One finite probability per input logit, summing to 1." },
           ],
           code: `function stableSoftmax(logits) {
   return toArray(softmax(tensor(logits)));
@@ -100,9 +112,9 @@ return { passed: probabilities.every(Number.isFinite) && Math.abs(total - 1) < 1
           label: "Context representation",
           purpose: "Average the learned vectors for the context words.",
           concepts: [
-            { name: "indices", detail: "Vocabulary ids in the current context window." },
-            { name: "embeddings", detail: "Trainable lookup table indexed by word id." },
-            { name: "dimension", detail: "Width of each distributed representation." },
+            { name: "indices", detail: "Vocabulary ids for every word in the current context window." },
+            { name: "embedding", detail: "Selects one trainable table row for each id, preserving order and repeats." },
+            { name: "mean(..., 0)", detail: "Averages down the row axis, leaving one value per embedding coordinate." },
           ],
           code: `function contextEmbedding(indices, embeddings) {
   const selected = embedding(tensor(embeddings), indices);
@@ -117,8 +129,8 @@ return { passed: vector[0] === 1 && vector[1] === 2, detail: "context = [" + vec
           purpose: "Convert the target word probability into a training loss.",
           concepts: [
             { name: "targetIndex", detail: "Index of the observed next word." },
-            { name: "probability", detail: "Model mass assigned to that word." },
-            { name: "nllLoss", detail: "Uses a finite lower bound before taking the logarithm." },
+            { name: "probability", detail: "Read only the model mass at targetIndex, not the maximum value." },
+            { name: "nllLoss", detail: "Returns −log p(target) and clamps p to 10⁻¹² before taking the logarithm." },
           ],
           code: `function negativeLogLikelihood(probabilities, targetIndex) {
   return nllLoss(tensor(probabilities), targetIndex).item();

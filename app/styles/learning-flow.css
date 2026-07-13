@@ -1633,6 +1633,117 @@ button:disabled {
   min-width: 7.2rem;
 }
 
+.neural-probability-path {
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+}
+
+.generalization-contrast {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.generalization-contrast > span {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.9rem 0;
+}
+
+.generalization-contrast > span + span {
+  border-left: 1px solid var(--line);
+  padding-left: 1rem;
+}
+
+.generalization-contrast b,
+.toy-vocabulary b {
+  color: var(--violet);
+  font-size: 0.55rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.generalization-contrast code {
+  color: var(--muted);
+  font-size: 0.56rem;
+  line-height: 1.45;
+}
+
+.probability-stages {
+  border-top: 1px solid var(--line);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.probability-stages li {
+  align-items: center;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 1.4rem minmax(0, 1fr);
+  min-height: 3.35rem;
+  position: relative;
+}
+
+.probability-stages li + li {
+  border-top: 1px solid var(--line);
+}
+
+.probability-stages li:not(:last-child)::after {
+  bottom: -0.35rem;
+  color: var(--violet);
+  content: "↓";
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  left: 0.45rem;
+  position: absolute;
+  z-index: 1;
+}
+
+.probability-stages li > span {
+  color: var(--faint);
+  font-family: var(--mono);
+  font-size: 0.53rem;
+}
+
+.probability-stages li > div {
+  align-items: baseline;
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: minmax(7.3rem, 0.8fr) minmax(0, 1.2fr);
+}
+
+.probability-stages strong {
+  font-size: 0.68rem;
+  font-weight: 590;
+}
+
+.probability-stages code {
+  color: var(--violet-deep);
+  font-size: 0.61rem;
+  text-align: right;
+}
+
+.toy-vocabulary {
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem 1.3rem;
+  justify-content: space-between;
+  padding: 0.85rem 0;
+}
+
+.toy-vocabulary span {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.55rem;
+}
+
+.toy-vocabulary b {
+  font-family: var(--sans);
+  margin-right: 0.4rem;
+}
+
 .concept-diagram figcaption {
   border-top: 1px solid var(--line);
   color: var(--muted);

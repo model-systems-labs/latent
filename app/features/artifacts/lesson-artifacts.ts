@@ -3,7 +3,7 @@
 import { artifactBundleBlob, createArtifact, hashArtifactValue, type ArtifactEnvelope, type ArtifactJson } from "@latent/artifact-runtime";
 import { getArtifactRuntime } from "@latent/artifact-runtime/client";
 import { lessonArtifactBlueprintById, lessonArtifactBlueprints, previousArtifactLessonId } from "./lesson-blueprints";
-import { ensureRecordedTrainingArtifacts } from "./training-replay";
+import { recordedTrainingRegistry } from "./training-scenarios";
 import { llmSystemsContractSuite } from "../../content/llm-systems/contracts";
 
 export type ValidatedLessonResult = { id: string; label: string; passed: boolean; detail: string };
@@ -21,9 +21,9 @@ export async function recordValidatedLessonArtifact(input: {
   const blueprint = lessonArtifactBlueprintById.get(input.lessonId);
   if (!blueprint) throw new Error(`No artifact adapter is registered for ${input.lessonId}.`);
   const { store } = await getArtifactRuntime();
-  const training = await ensureRecordedTrainingArtifacts(store);
+  const training = await recordedTrainingRegistry.materializeForLesson(input.lessonId, store);
   const previousLessonId = previousArtifactLessonId(input.lessonId);
-  const previous = previousLessonId ? await store.latestForLesson(previousLessonId) : training.run;
+  const previous = previousLessonId ? await store.latestForLesson(previousLessonId) : training?.run;
   const sourceHash = await hashArtifactValue(input.source);
   const artifact = await createArtifact({
     kind: blueprint.kind,
@@ -58,14 +58,14 @@ export async function recordValidatedLessonArtifact(input: {
 
 export async function loadLessonArtifactView(lessonId: string) {
   const { store } = await getArtifactRuntime();
-  const training = await ensureRecordedTrainingArtifacts(store);
+  const training = await recordedTrainingRegistry.materializeForLesson(lessonId, store);
   const previousId = previousArtifactLessonId(lessonId);
   const [current, previous] = await Promise.all([
     store.latestForLesson(lessonId),
     previousId ? store.latestForLesson(previousId) : Promise.resolve(undefined),
   ]);
   const output = current?.mode === "learner-validated" ? current : undefined;
-  return { output, input: previous ?? (lessonId === "character-rnns" ? training.run : undefined), training };
+  return { output, input: previous ?? training?.run, training };
 }
 
 export async function recordProjectBuildArtifact(input: {
@@ -76,7 +76,6 @@ export async function recordProjectBuildArtifact(input: {
   totalTests: number;
 }) {
   const { store } = await getArtifactRuntime();
-  await ensureRecordedTrainingArtifacts(store);
   const lessonArtifacts = (await Promise.all(lessonArtifactBlueprints.map((blueprint) => store.latestForLesson(blueprint.lessonId))))
     .filter((artifact): artifact is ArtifactEnvelope => Boolean(artifact?.mode === "learner-validated"));
   const artifact = await createArtifact({

@@ -300,7 +300,7 @@ test("the design kit, simulations, model engines, and artifact runtime remain re
     readFile(new URL("../packages/artifact-runtime/src/index.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/features/artifacts/lesson-artifacts.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/lib/browser-lab/types.ts", import.meta.url), "utf8"),
-    readFile(new URL("../app/lib/lab-engines.ts", import.meta.url), "utf8"),
+    readFile(new URL("../packages/model-lab/src/character-rnn.ts", import.meta.url), "utf8"),
     Promise.all([
       readFile(new URL("../app/lessons/extended-course.ts", import.meta.url), "utf8"),
       readFile(new URL("../app/lessons/extended/systems/reliability-observability.ts", import.meta.url), "utf8"),

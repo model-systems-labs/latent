@@ -24,15 +24,17 @@
     "boundaries": "node scripts/check-package-boundaries.mjs",
     "validate": "npm run boundaries && npm run typecheck && npm run lint && npm test",
     "runtime:generate": "node scripts/generate-capstone-react-runtime.mjs",
-    "artifacts:record-training": "node scripts/generate-recorded-training.mjs",
+    "artifacts:record-training": "npm run build --workspace @latent/model-lab && npm run build --workspace @latent/training-replay && node scripts/generate-recorded-training.mjs",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
     "@latent/artifact-runtime": "*",
     "@latent/browser-lab": "*",
     "@latent/course-kit": "*",
+    "@latent/model-lab": "*",
     "@latent/mock-services": "*",
     "@latent/tensor": "*",
+    "@latent/training-replay": "*",
     "@codemirror/lang-javascript": "6.2.5",
     "@huggingface/transformers": "^3.8.1",
     "codemirror": "6.0.2",

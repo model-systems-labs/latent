@@ -15,7 +15,7 @@ const vite = await createServer({
 });
 const runtime = await vite.ssrLoadModule("/packages/artifact-runtime/src/index.ts");
 const blueprints = await vite.ssrLoadModule("/app/features/artifacts/lesson-blueprints.ts");
-const training = await vite.ssrLoadModule("/app/features/artifacts/training-replay.ts");
+const training = await vite.ssrLoadModule("/app/features/artifacts/training-scenarios/index.ts");
 const artifactService = await vite.ssrLoadModule("/app/features/artifacts/lesson-artifacts.ts");
 const artifactClient = await vite.ssrLoadModule("/packages/artifact-runtime/src/client.ts");
 const contracts = await vite.ssrLoadModule("/app/content/llm-systems/contracts.ts");
@@ -110,17 +110,18 @@ test("the Dexie adapter stores immutable lineage and round-trips portable bundle
   await destination.delete();
 });
 
-test("recorded training replay exposes real checkpoint weights and improving samples", async () => {
+test("the registered training scenario exposes real checkpoint state and improving samples", async () => {
   const database = new runtime.ArtifactRuntimeDatabase(`training-test-${crypto.randomUUID()}`);
   await database.open();
   const store = new runtime.ArtifactStore(database);
-  const result = await training.ensureRecordedTrainingArtifacts(store);
-  assert.deepEqual(result.checkpoints.map((artifact) => artifact.metrics.steps), [20, 100, 300, 600]);
+  const result = await training.recordedTrainingRegistry.materializeForLesson("character-rnns", store);
+  assert.ok(result);
+  assert.deepEqual(result.checkpoints.map((artifact) => artifact.metrics.step), [20, 100, 300, 600]);
   assert.equal(result.run.replay.frames.length, 4);
   assert.ok(result.checkpoints[0].metrics.finalLoss > result.checkpoints.at(-1).metrics.finalLoss);
   assert.equal(result.checkpoints.every((artifact) => artifact.metrics.parameters === 1267), true);
-  assert.notEqual(result.checkpoints[0].payload.sample, result.checkpoints.at(-1).payload.sample);
-  assert.equal(Array.isArray(result.checkpoints.at(-1).payload.checkpoint.Wxh), true);
+  assert.notEqual(result.recording.checkpoints[0].outputs.sample, result.recording.checkpoints.at(-1).outputs.sample);
+  assert.equal(Array.isArray(result.recording.checkpoints.at(-1).state.Wxh), true);
   assert.equal((await store.bundle(result.run.id)).artifacts.length, 5);
   database.close();
   await database.delete();

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { RnnCheckpoint, RnnResult } from "./lab-engines";
+import { assertRnnCheckpoint, type RnnCheckpoint, type RnnResult } from "@latent/model-lab/character-rnn";
 import { getPersistenceContext } from "../platform/persistence/client";
 import { lessonProgressId } from "../platform/persistence/pure";
 import type { JsonValue } from "../platform/persistence/types";
@@ -39,12 +39,12 @@ export function emptyLearnerState(): LearnerState {
   return { version: 2, lessons: {}, artifacts: {} };
 }
 
-function validCheckpoint(value: unknown): value is RnnCheckpoint {
-  if (!value || typeof value !== "object") return false;
-  const checkpoint = value as Partial<RnnCheckpoint>;
-  return checkpoint.version === 1 && Array.isArray(checkpoint.vocabulary) && Array.isArray(checkpoint.Wxh)
-    && Array.isArray(checkpoint.Whh) && Array.isArray(checkpoint.Why) && Array.isArray(checkpoint.bh)
-    && Array.isArray(checkpoint.by) && typeof checkpoint.hiddenSize === "number";
+function validCheckpoint(value: unknown): RnnCheckpoint | null {
+  try {
+    return assertRnnCheckpoint(value);
+  } catch {
+    return null;
+  }
 }
 
 function sanitizeLearnerState(value: unknown): LearnerState {
@@ -71,9 +71,10 @@ function sanitizeLearnerState(value: unknown): LearnerState {
     }
   }
   const rawArtifact = candidate.artifacts?.characterRnn;
-  const characterRnn = rawArtifact && validCheckpoint(rawArtifact.checkpoint)
+  const checkpoint = rawArtifact ? validCheckpoint(rawArtifact.checkpoint) : null;
+  const characterRnn = rawArtifact && checkpoint
     ? {
-        checkpoint: rawArtifact.checkpoint,
+        checkpoint,
         finalLoss: Number(rawArtifact.finalLoss),
         parameters: Number(rawArtifact.parameters),
         vocabularySize: Number(rawArtifact.vocabularySize),
@@ -185,9 +186,10 @@ export function initializeLearnerPersistence() {
         };
       }
       const checkpoint = checkpointRecords.at(-1);
-      const restored = checkpoint && validCheckpoint(checkpoint.payload)
+      const restoredCheckpoint = checkpoint ? validCheckpoint(checkpoint.payload) : null;
+      const restored = checkpoint && restoredCheckpoint
         ? {
-            checkpoint: checkpoint.payload,
+            checkpoint: restoredCheckpoint,
             finalLoss: checkpoint.metrics.finalLoss ?? 0,
             parameters: checkpoint.metrics.parameters ?? 0,
             vocabularySize: checkpoint.metrics.vocabularySize ?? 0,

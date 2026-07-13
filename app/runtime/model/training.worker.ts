@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 
-import { trainCharacterRnn } from "../../lib/lab-engines";
+import { trainCharacterRnn } from "@latent/model-lab/character-rnn";
 
 const scope = self as unknown as DedicatedWorkerGlobalScope;
 
@@ -13,4 +13,3 @@ scope.onmessage = (event: MessageEvent<{ type: "train-character-rnn"; steps: num
     scope.postMessage({ type: "error", message: error instanceof Error ? error.message : "Training failed" });
   }
 };
-

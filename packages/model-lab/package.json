@@ -1,0 +1,52 @@
+{
+  "name": "@latent/model-lab",
+  "version": "0.1.0",
+  "description": "Deterministic educational language-model, tokenization, attention, and transformer engines.",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./character-rnn": {
+      "types": "./dist/character-rnn.d.ts",
+      "import": "./dist/character-rnn.js"
+    },
+    "./neural-language-model": {
+      "types": "./dist/neural-language-model.d.ts",
+      "import": "./dist/neural-language-model.js"
+    },
+    "./bpe": {
+      "types": "./dist/bpe.d.ts",
+      "import": "./dist/bpe.js"
+    },
+    "./additive-attention": {
+      "types": "./dist/additive-attention.d.ts",
+      "import": "./dist/additive-attention.js"
+    },
+    "./causal-attention": {
+      "types": "./dist/causal-attention.d.ts",
+      "import": "./dist/causal-attention.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "build": "npm run clean && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test test/*.test.mjs",
+    "validate": "npm run typecheck && npm test"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  }
+}

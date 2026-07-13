@@ -5,7 +5,7 @@ import Link from "next/link";
 import { CodeEditor } from "../features/ide/CodeEditor";
 import { courseLessons } from "../lessons/course";
 import { llmSystemsCurriculum } from "../lessons/course";
-import { sampleCharacterRnn } from "../lib/lab-engines";
+import { sampleCharacterRnn } from "@latent/model-lab/character-rnn";
 import { loadLearnerState, useLearnerState } from "../lib/learner-state";
 import { runProjectUnitTests } from "../lib/project-tests";
 import { gateBrowserLabBuild } from "../lib/browser-lab";

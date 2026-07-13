@@ -1,6 +1,6 @@
 "use client";
 
-import type { RnnResult } from "../../lib/lab-engines";
+import type { RnnResult } from "@latent/model-lab/character-rnn";
 
 export function trainCharacterRnnInWorker(steps = 600, signal?: AbortSignal) {
   if (typeof Worker === "undefined") return Promise.reject(new Error("This browser cannot run the training worker."));

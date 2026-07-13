@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { sampleCharacterRnn } from "../lib/lab-engines";
+import { sampleCharacterRnn } from "@latent/model-lab/character-rnn";
 import { loadLearnerState, saveCharacterRnnArtifact, type SavedRnnArtifact } from "../lib/learner-state";
 import { useProjectState } from "../lib/project-workspace";
 import { loadCapstoneConversation, persistCapstoneConversation } from "../features/capstone/conversation-store";

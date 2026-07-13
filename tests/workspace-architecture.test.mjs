@@ -6,11 +6,13 @@ const expectedPackages = [
   "@latent/artifact-runtime",
   "@latent/browser-lab",
   "@latent/course-kit",
+  "@latent/model-lab",
   "@latent/mock-services",
   "@latent/tensor",
+  "@latent/training-replay",
 ];
 
-test("the root application orchestrates five explicit workspace packages", async () => {
+test("the root application orchestrates seven explicit workspace packages", async () => {
   const manifest = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
   assert.equal(manifest.name, "@latent/web");
   assert.deepEqual(manifest.workspaces, ["packages/*"]);
@@ -19,7 +21,7 @@ test("the root application orchestrates five explicit workspace packages", async
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
     .sort();
-  assert.deepEqual(packageDirectories, ["artifact-runtime", "browser-lab", "course-kit", "mock-services", "tensor"]);
+  assert.deepEqual(packageDirectories, ["artifact-runtime", "browser-lab", "course-kit", "mock-services", "model-lab", "tensor", "training-replay"]);
   for (const directory of packageDirectories) {
     const packageManifest = JSON.parse(await readFile(new URL(`../packages/${directory}/package.json`, import.meta.url), "utf8"));
     assert.equal(packageManifest.private, true);

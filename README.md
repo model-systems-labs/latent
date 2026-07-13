@@ -35,8 +35,10 @@ assertions, compiler policy, resource limits, build receipts, and promotion gate
 ## Project map
 
 - `packages/tensor/` — typed tensor/autograd runtime plus generated Browser Lab source
+- `packages/model-lab/` — deterministic educational model, tokenizer, and attention engines
 - `packages/browser-lab/` — VFS compiler, QuickJS sandbox, test receipts, and promotion gate
 - `packages/artifact-runtime/` — domain-neutral artifact lineage, replay, comparison, and storage
+- `packages/training-replay/` — validated model-neutral recordings, lazy scenarios, and checkpoint view models
 - `packages/course-kit/` — lesson types, curriculum schema, and curriculum compiler
 - `packages/mock-services/` — MSW handlers, SSE transport, cancellation, and failure scenarios
 - `app/content/llm-systems/` — curriculum manifest and typed exercise contracts

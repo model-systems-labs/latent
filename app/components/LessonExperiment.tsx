@@ -13,7 +13,7 @@ import {
   type NeuralLmResult,
   type RnnResult,
   type TransformerResult,
-} from "../lib/lab-engines";
+} from "@latent/model-lab";
 import { markExperimentComplete, saveCharacterRnnArtifact } from "../lib/learner-state";
 import { MANUAL_PRODUCT_VERIFICATION, runCapstoneQualityAudit } from "../lib/capstone-contract";
 

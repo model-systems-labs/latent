@@ -21,42 +21,48 @@ This lesson concerns "Neural Machine Translation of Rare Words with Subword Unit
 - Frequent patterns become compact tokens while rare forms can still be composed from smaller units.
 - Vocabulary size and encoded sequence length are coupled design choices.
 - The browser lab implements the BPE merge algorithm on a small supplied corpus; it does not reproduce the paper's translation system or BLEU results.
+- The paper trains from word-frequency data with explicit word boundaries. This teaching lab counts literal repeated word occurrences and omits boundary markers so the merge loop stays visible.
 ${commonQuestionInstruction}`.trim(),
     summary: [
       {
-        label: "Open vocabulary.",
+        label: "Representation boundary.",
         body:
-          "A word-level model must reserve a finite vocabulary, so rare or unseen forms collapse to an unknown symbol. Character models avoid unknowns but require much longer sequences and must learn common fragments repeatedly.",
+          "A word vocabulary maps every unseen word to one unknown id. A character vocabulary can spell any word made from its known base symbols, but turns common words into long sequences. Subword tokenization chooses intermediate units so the language model predicts reusable fragments rather than whole words or isolated characters.",
       },
       {
-        label: "Merge rule.",
+        label: "Training state.",
         body:
-          "BPE begins with small symbols and repeatedly merges the most frequent adjacent pair. The ordered merge list is the learned tokenizer: encoding replays those merges rather than consulting a linguistic dictionary.",
+          "BPE starts each training word as a symbol array: lower becomes [l, o, w, e, r]. It counts every adjacent pair, selects the most frequent pair, replaces every non-overlapping occurrence, then counts again. Counts must be recomputed because one merge creates new candidate pairs.",
       },
       {
-        label: "Statistical compromise.",
+        label: "Pair identity.",
         body:
-          "Frequent words or morphemes become short token sequences, while rare words remain decomposable. More merges shorten common sequences but enlarge the embedding and output vocabulary used by the language model.",
+          "A pair is two symbols, not their concatenated spelling. The pairs [a, bc] and [ab, c] would both become abc if their keys were built with simple string concatenation. The implementation uses JSON array keys such as [\"l\",\"o\"] so those candidates remain distinct and visible while debugging.",
       },
       {
-        label: "Model boundary.",
+        label: "Ordered replay.",
         body:
-          "Tokenization changes what the network predicts, the effective context length, the cost of the output layer, and how text maps back to bytes. It is part of the model system rather than neutral preprocessing.",
+          "The learned artifact is an ordered merge list. To encode new text, start from the same base symbols and attempt each learned merge exactly once in training order. For abc, applying [a,b] before [ab,c] produces [abc]; reversing the order leaves [ab,c].",
+      },
+      {
+        label: "System tradeoff.",
+        body:
+          "A larger merge budget usually shortens encoded sequences but expands the model's embedding and output matrices. Tokenizer design therefore changes context usage, parameter count, serving cost, and the exact token ids a trained model expects; it is part of the model contract, not neutral preprocessing.",
       },
     ],
     claims: {
       paper: "Subword representations improve open-vocabulary neural translation, particularly for rare words.",
       lab: "The complete BPE training and encoding algorithm runs on a fixed corpus and exposes every learned merge.",
-      limit: "Compression statistics in this lab are not translation-quality measurements.",
+      limit: "The toy trainer omits word-boundary markers, and its compression statistics are not translation-quality measurements.",
     },
     diagram: {
-      title: "Learned segmentation",
-      caption: "The tokenizer stores an ordered sequence of pair merges, not a list of linguistic rules.",
+      title: "Two BPE training rounds",
+      caption: "Counts are recomputed after every corpus-wide merge. The resulting list is replayed once, in order, when a new word is encoded.",
       nodes: [
-        { label: "Initial symbols", value: "l · o · w · e · r" },
-        { label: "Pair counts", value: "frequency(a, b)" },
-        { label: "Merge", value: "l + o → lo" },
-        { label: "Encoded word", value: "low · er" },
+        { label: "Training words", value: "l · o · w   |   l · o · w   |   l · o" },
+        { label: "Round 1 counts", value: "[l,o]: 3   [o,w]: 2   → select [l,o]" },
+        { label: "Merge 1", value: "[l,o] → lo   then recount the modified words" },
+        { label: "Round 2 counts", value: "[lo,w]: 2   → next candidate" },
       ],
     },
     questions: {
@@ -76,7 +82,7 @@ ${commonQuestionInstruction}`.trim(),
     },
     implementation: {
       filename: "bpe-tokenizer.js",
-      intro: "The tokenizer is compact enough to understand completely. Hide the pair counter, merge operation, or encoder and rebuild it.",
+      intro: "Build the tokenizer in three isolated cells. Pair counts use a visible delimiter-safe key: JSON.stringify([\"l\", \"o\"]) returns the string [\"l\",\"o\"]. The merge and encoder cells receive pairs as two-item arrays.",
       codeBlocks: [
         {
           id: "pair-counts",
@@ -84,21 +90,21 @@ ${commonQuestionInstruction}`.trim(),
           purpose: "Count candidate merges across the tokenized vocabulary.",
           concepts: [
             { name: "words", detail: "Array of words, each represented as an array of symbols." },
-            { name: "pair", detail: "Two neighboring symbols joined by a separator." },
+            { name: "JSON.stringify([left, right])", detail: "Encodes the two-symbol array as a visible key such as [\"l\",\"o\"]." },
             { name: "counts", detail: "Frequency table used to choose the next merge." },
           ],
           code: `function countPairs(words) {
   const counts = {};
   for (const symbols of words) {
     for (let index = 0; index < symbols.length - 1; index += 1) {
-      const pair = symbols[index] + "\u0000" + symbols[index + 1];
+      const pair = JSON.stringify([symbols[index], symbols[index + 1]]);
       counts[pair] = (counts[pair] ?? 0) + 1;
     }
   }
   return counts;
 }`,
           checkCode: `const counts = countPairs([["l", "o", "w"], ["l", "o"]]);
-return { passed: counts["l\u0000o"] === 2 && counts["o\u0000w"] === 1, detail: "lo = " + counts["l\u0000o"] };`,
+return { passed: counts['["l","o"]'] === 2 && counts['["o","w"]'] === 1, detail: "[l,o] = " + counts['["l","o"]'] };`,
         },
         {
           id: "merge-pair",

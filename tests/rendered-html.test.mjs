@@ -134,6 +134,21 @@ test("Neural Language Models teaches the complete numeric prediction path", asyn
   assert.match(html, /Output order/);
 });
 
+test("Subword Tokenization teaches pair identity, recounting, and ordered replay", async () => {
+  const response = await render("/lessons/subword-tokenization");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Pair identity/);
+  assert.match(html, /JSON\.stringify\(\[left, right\]\)/);
+  assert.match(html, /Two BPE training rounds/);
+  assert.match(html, /bpe-worked-example/);
+  assert.match(html, /Round 1 counts/);
+  assert.match(html, /then recount the modified words/);
+  assert.match(html, /Learned order/);
+  assert.match(html, /Reversed order/);
+  assert.match(html, /abc/);
+});
+
 test("the capstone contains the complete React chat system", async () => {
   const response = await render("/capstone");
   assert.equal(response.status, 200);

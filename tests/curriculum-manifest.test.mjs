@@ -204,23 +204,136 @@ test("Neural Language Model contracts reject plausible shortcuts and give one ac
   accepts(loss, (probabilities, targetIndex) => -Math.log(Math.max(probabilities[targetIndex], 1e-12)));
 });
 
-test("practice verification is inseparable from the exact editor source", () => {
+test("Subword Tokenization exposes pair identity and rejects shortcuts in every cell", () => {
+  const lesson = course.courseLessons.find((candidate) => candidate.id === "subword-tokenization");
+  const pairBlock = lesson?.implementation.codeBlocks.find((block) => block.id === "pair-counts");
+  assert.ok(pairBlock);
+  assert.match(pairBlock.code, /^function countPairs\(words\)/, "the practice starter must target the contracted countPairs export");
+
+  const byId = new Map(contracts.llmSystemsExerciseContracts.map((contract) => [contract.id, contract]));
+  const evaluate = (contract, implementation) => contract.cases.map((exerciseCase) =>
+    contractRuntime.evaluateExerciseCase(contract, exerciseCase, {
+      status: "returned",
+      value: implementation(...exerciseCase.invoke.args),
+    }));
+  const rejects = (contract, implementation) => assert.ok(evaluate(contract, implementation).some((result) => !result.passed));
+  const accepts = (contract, implementation) => assert.ok(evaluate(contract, implementation).every((result) => result.passed));
+
+  const countPairs = byId.get("subword-tokenization/pair-counts");
+  assert.ok(countPairs);
+  const concatenatedKeys = (words) => {
+    const counts = {};
+    for (const symbols of words) for (let index = 0; index < symbols.length - 1; index += 1) {
+      const key = symbols[index] + symbols[index + 1];
+      counts[key] = (counts[key] ?? 0) + 1;
+    }
+    return counts;
+  };
+  const uniquePairsOnly = (words) => {
+    const counts = {};
+    for (const symbols of words) for (let index = 0; index < symbols.length - 1; index += 1) {
+      counts[JSON.stringify([symbols[index], symbols[index + 1]])] = 1;
+    }
+    return counts;
+  };
+  const referenceCounts = (words) => {
+    const counts = {};
+    for (const symbols of words) for (let index = 0; index < symbols.length - 1; index += 1) {
+      const key = JSON.stringify([symbols[index], symbols[index + 1]]);
+      counts[key] = (counts[key] ?? 0) + 1;
+    }
+    return counts;
+  };
+  rejects(countPairs, concatenatedKeys);
+  rejects(countPairs, uniquePairsOnly);
+  accepts(countPairs, referenceCounts);
+  const pairFeedback = practiceFeedback.formatPracticeContractDetail(evaluate(countPairs, concatenatedKeys));
+  assert.match(pairFeedback, /JSON\.stringify/);
+  assert.match(pairFeedback, /do not concatenate/);
+
+  const mergePair = byId.get("subword-tokenization/merge-pair");
+  assert.ok(mergePair);
+  const firstOccurrenceOnly = (symbols, [left, right]) => {
+    const index = symbols.findIndex((symbol, position) => symbol === left && symbols[position + 1] === right);
+    return index < 0 ? [...symbols] : [...symbols.slice(0, index), left + right, ...symbols.slice(index + 2)];
+  };
+  const overlappingReplacement = (symbols, [left, right]) => {
+    const output = [];
+    for (let index = 0; index < symbols.length; index += 1) {
+      if (symbols[index] === left && symbols[index + 1] === right) output.push(left + right);
+      else output.push(symbols[index]);
+    }
+    return output;
+  };
+  const referenceMerge = (symbols, [left, right]) => {
+    const output = [];
+    for (let index = 0; index < symbols.length; index += 1) {
+      if (symbols[index] === left && symbols[index + 1] === right) {
+        output.push(left + right);
+        index += 1;
+      } else output.push(symbols[index]);
+    }
+    return output;
+  };
+  rejects(mergePair, firstOccurrenceOnly);
+  rejects(mergePair, overlappingReplacement);
+  accepts(mergePair, referenceMerge);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(mergePair, firstOccurrenceOnly)), /Continue scanning after the first match/);
+
+  const encodeWord = byId.get("subword-tokenization/encode-word");
+  assert.ok(encodeWord);
+  const replay = (word, merges, reverse = false, firstOnly = false) => {
+    const symbols = [...word];
+    const ordered = reverse ? [...merges].reverse() : merges;
+    for (const [left, right] of ordered) {
+      for (let index = 0; index < symbols.length - 1; index += 1) {
+        if (symbols[index] === left && symbols[index + 1] === right) {
+          symbols.splice(index, 2, left + right);
+          if (firstOnly) break;
+          index -= 1;
+        }
+      }
+    }
+    return symbols;
+  };
+  rejects(encodeWord, (word, merges) => replay(word, merges, true));
+  rejects(encodeWord, (word, merges) => replay(word, merges, false, true));
+  accepts(encodeWord, (word, merges) => replay(word, merges));
+  const orderFeedback = practiceFeedback.formatPracticeContractDetail(evaluate(
+    encodeWord,
+    (word, merges) => replay(word, merges, true),
+  ));
+  assert.match(orderFeedback, /array order|Replay each learned merge once in order/);
+});
+
+test("practice verification is inseparable from the exact editor source and contract version", () => {
   const block = { id: "rnn-step", code: "function rnnStep() { return 'reference'; }" };
   const correct = "function rnnStep() { return 'correct learner answer'; }";
   const wrong = "function rnnStep() { return 'wrong learner answer'; }";
-  const bound = practiceState.bindBlockVerification({ ids: [], sources: {} }, block.id, correct);
+  const currentVersion = "llm-systems-contracts-v3";
+  const bound = practiceState.bindBlockVerification(
+    { ids: [], sources: {}, contractVersion: null },
+    block.id,
+    correct,
+    currentVersion,
+  );
 
   assert.equal(practiceState.practiceBlockSource(block, [block.id], { [block.id]: wrong }), wrong);
   assert.deepEqual(
-    practiceState.restoreSourceBoundVerification([block], [block.id], { [block.id]: wrong }, bound.ids, bound.sources),
-    { ids: [], sources: {} },
+    practiceState.restoreSourceBoundVerification([block], [block.id], { [block.id]: wrong }, bound.ids, bound.sources, currentVersion, currentVersion),
+    { ids: [], sources: {}, contractVersion: null },
     "a verified id must not move from an older correct answer to current wrong source",
   );
   assert.deepEqual(
-    practiceState.restoreSourceBoundVerification([block], [block.id], { [block.id]: correct }, bound.ids, bound.sources),
+    practiceState.restoreSourceBoundVerification([block], [block.id], { [block.id]: correct }, bound.ids, bound.sources, currentVersion, currentVersion),
     bound,
   );
-  assert.deepEqual(practiceState.invalidateBlockVerification(bound, block.id), { ids: [], sources: {} });
+  assert.deepEqual(
+    practiceState.restoreSourceBoundVerification([block], [block.id], { [block.id]: correct }, bound.ids, bound.sources, "llm-systems-contracts-v2", currentVersion),
+    { ids: [], sources: {}, contractVersion: null },
+    "the same source must be checked again after host contracts change",
+  );
+  assert.deepEqual(practiceState.invalidateBlockVerification(bound, block.id), { ids: [], sources: {}, contractVersion: null });
 });
 
 test("practice remains locked until both project and learner hydration finish", async () => {

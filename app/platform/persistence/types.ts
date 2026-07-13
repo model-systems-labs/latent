@@ -134,6 +134,8 @@ export type LessonProgressRecord = {
   verifiedCellIds: string[];
   /** Exact cell source that earned each verification; absent on legacy records. */
   verifiedSources?: Record<string, string>;
+  /** Contract suite version that evaluated verifiedCellIds; absent on legacy records. */
+  verifiedContractVersion?: string;
   experimentComplete: boolean;
   hiddenBlockIds: string[];
   answers: Record<string, string>;

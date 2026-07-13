@@ -88,6 +88,7 @@ function decodeLearner(raw: unknown, timestamp: number, fingerprint: string) {
     if (!isRecord(value)) continue;
     const verifiedCellIds = stringArray(value.verifiedCells);
     const verifiedSources = stringRecord(value.verifiedSources);
+    const verifiedContractVersion = typeof value.verifiedContractVersion === "string" ? value.verifiedContractVersion : undefined;
     const experimentComplete = value.experimentComplete === true;
     const answers = stringRecord(value.answers);
     const hiddenBlockIds = stringArray(value.hiddenBlocks);
@@ -100,6 +101,7 @@ function decodeLearner(raw: unknown, timestamp: number, fingerprint: string) {
       status: experimentComplete ? "completed" : hasProgress ? "in-progress" : "not-started",
       verifiedCellIds,
       verifiedSources,
+      verifiedContractVersion,
       experimentComplete,
       hiddenBlockIds,
       answers,

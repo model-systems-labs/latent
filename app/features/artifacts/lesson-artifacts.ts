@@ -36,7 +36,7 @@ export async function recordValidatedLessonArtifact(input: {
     producer: { runtime: "browser-lab-quickjs", version: "1", operation: "validate-lesson-module", sourceHash },
     validation: {
       status: "passed",
-      contractVersion: "llm-systems-contracts-v1",
+      contractVersion: llmSystemsContractSuite.contractVersion,
       passedCount: input.results.length,
       totalCount: input.results.length,
     },

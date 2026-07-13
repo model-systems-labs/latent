@@ -62,7 +62,15 @@ test("legacy import is transactional, idempotent, and preserves every old key", 
     ["latent-learner-v2", JSON.stringify({
       version: 2,
       lessons: {
-        transformers: { verifiedCells: ["mask"], experimentComplete: true, hiddenBlocks: ["softmax"], answers: { softmax: "return value" }, updatedAt: 10 },
+        transformers: {
+          verifiedCells: ["mask"],
+          verifiedSources: { mask: "function mask() { return true; }" },
+          verifiedContractVersion: "llm-systems-contracts-v2",
+          experimentComplete: true,
+          hiddenBlocks: ["softmax"],
+          answers: { softmax: "return value" },
+          updatedAt: 10,
+        },
       },
       artifacts: {
         characterRnn: {
@@ -118,7 +126,36 @@ test("legacy import is transactional, idempotent, and preserves every old key", 
   assert.deepEqual(countsAfterSecond, countsAfterFirst);
   assert.deepEqual(records, before);
   assert.equal((await db.projects.get(persistence.LEGACY_PROJECT_ID)).activeBuildId?.startsWith("legacy:build:"), true);
-  assert.equal((await db.lessonProgress.get(persistence.lessonProgressId("llm-systems", "transformers"))).status, "completed");
+  const lessonProgress = await db.lessonProgress.get(persistence.lessonProgressId("llm-systems", "transformers"));
+  assert.equal(lessonProgress.status, "completed");
+  assert.equal(lessonProgress.verifiedContractVersion, "llm-systems-contracts-v2");
+  assert.equal(lessonProgress.verifiedSources.mask, "function mask() { return true; }");
+  await dispose(db);
+});
+
+test("progress repository preserves source-and-contract-bound lesson verification", async () => {
+  const db = database();
+  await db.open();
+  const repositories = new persistence.PersistenceRepositories(db, { now: () => 200 });
+  const saved = await repositories.progress.put({
+    id: persistence.lessonProgressId("llm-systems", "subword-tokenization"),
+    courseId: "llm-systems",
+    moduleId: "model-foundations",
+    lessonId: "subword-tokenization",
+    status: "in-progress",
+    verifiedCellIds: ["merge-pair"],
+    verifiedSources: { "merge-pair": "function mergePair() { return []; }" },
+    verifiedContractVersion: "llm-systems-contracts-v3",
+    experimentComplete: false,
+    hiddenBlockIds: ["merge-pair"],
+    answers: { "merge-pair": "function mergePair() { return []; }" },
+    lastProjectPath: "models/bpe-tokenizer.js",
+    updatedAt: 100,
+  });
+  const restored = await repositories.progress.get(saved.id);
+  assert.equal(restored.verifiedContractVersion, "llm-systems-contracts-v3");
+  assert.deepEqual(restored.verifiedCellIds, ["merge-pair"]);
+  assert.deepEqual(restored.verifiedSources, { "merge-pair": "function mergePair() { return []; }" });
   await dispose(db);
 });
 

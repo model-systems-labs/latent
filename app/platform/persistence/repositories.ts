@@ -351,6 +351,7 @@ export class ProgressRepository extends RepositoryBase {
       ...record,
       verifiedCellIds: [...new Set(record.verifiedCellIds)],
       verifiedSources: record.verifiedSources ? { ...record.verifiedSources } : undefined,
+      verifiedContractVersion: typeof record.verifiedContractVersion === "string" ? record.verifiedContractVersion : undefined,
       hiddenBlockIds: [...new Set(record.hiddenBlockIds)],
       answers: { ...record.answers },
       updatedAt: this.now(),

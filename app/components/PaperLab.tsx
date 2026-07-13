@@ -22,6 +22,7 @@ import { latentTensorOperations } from "@latent/tensor";
 import { lessonImplementationPrelude, lessonImplementationSource } from "../lessons/implementation-source";
 import { canonicalProjectSeeds } from "../lib/canonical-project";
 import { bindBlockVerification, invalidateBlockVerification, practiceBlockSource, restoreSourceBoundVerification, waitForPracticeHydration } from "../features/ide/practice-state";
+import { llmSystemsContractSuite } from "../content/llm-systems/contracts";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 type CheckResult = { label: string; passed: boolean; detail: string };
@@ -76,13 +77,14 @@ export function HeaderSection({ lesson }: { lesson: CourseLesson }) {
 export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
   const isRecurrent = lesson.id === "character-rnns";
   const isNeuralLanguageModel = lesson.id === "neural-language-models";
+  const isSubwordTokenization = lesson.id === "subword-tokenization";
   const recurrentSteps = [
     { time: "t − 1", input: "x_(t−1)", previous: "h_(t−2)", state: "h_(t−1)", prediction: "p(x_t)" },
     { time: "t", input: "x_t", previous: "h_(t−1)", state: "h_t", prediction: "p(x_(t+1))" },
     { time: "t + 1", input: "x_(t+1)", previous: "h_t", state: "h_(t+1)", prediction: "p(x_(t+2))" },
   ];
   return (
-    <figure className={`concept-diagram${isRecurrent ? " recurrence-diagram" : ""}${isNeuralLanguageModel ? " neural-lm-diagram" : ""}`}>
+    <figure className={`concept-diagram${isRecurrent ? " recurrence-diagram" : ""}${isNeuralLanguageModel ? " neural-lm-diagram" : ""}${isSubwordTokenization ? " subword-tokenization-diagram" : ""}`}>
       <header><span>Mechanism</span><strong>{lesson.diagram.title}</strong></header>
       {isRecurrent ? (
         <div className="recurrence-unroll" role="img" aria-label="Three recurrent time steps. Each input and previous hidden state produce a new hidden state, then logits and a next-character probability. The hidden state flows into the next step and the same parameters are reused.">
@@ -122,6 +124,29 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
           <div className="toy-vocabulary" aria-label="Toy output vocabulary labels">
             <span><b>Output order</b> reads · writes · sleeps</span>
             <span><b>Observed target</b> reads</span>
+          </div>
+        </div>
+      ) : isSubwordTokenization ? (
+        <div className="bpe-worked-example" role="img" aria-label="A tiny corpus is counted, the most frequent l-o pair is merged everywhere, and counts are recomputed. A second comparison shows that reversing learned merge order changes the segmentation of a-b-c.">
+          <ol className="bpe-rounds">
+            {lesson.diagram.nodes.map((node, index) => (
+              <li key={node.label}>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <div><strong>{node.label}</strong><code>{node.value}</code></div>
+              </li>
+            ))}
+          </ol>
+          <div className="bpe-order-contrast">
+            <span>
+              <b>Learned order</b>
+              <code>[a,b] → [ab,c]</code>
+              <em>a · b · c → ab · c → abc</em>
+            </span>
+            <span>
+              <b>Reversed order</b>
+              <code>[ab,c] → [a,b]</code>
+              <em>a · b · c → a · b · c → ab · c</em>
+            </span>
           </div>
         </div>
       ) : (
@@ -292,6 +317,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [verifiedBlockIds, setVerifiedBlockIds] = useState<string[]>([]);
   const [verifiedSources, setVerifiedSources] = useState<Record<string, string>>({});
+  const [verifiedContractVersion, setVerifiedContractVersion] = useState<string | null>(null);
   const [cellResults, setCellResults] = useState<Record<string, CheckResult | undefined>>({});
   const [practiceMessage, setPracticeMessage] = useState("The reference implementation is complete and runnable.");
   const [runningBlockIds, setRunningBlockIds] = useState<string[]>([]);
@@ -301,6 +327,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
   const answersRef = useRef<Record<string, string>>({});
   const verifiedBlockIdsRef = useRef<string[]>([]);
   const verifiedSourcesRef = useRef<Record<string, string>>({});
+  const verifiedContractVersionRef = useRef<string | null>(null);
   const runningBlockIdsRef = useRef<string[]>([]);
   const practiceReadyRef = useRef(false);
 
@@ -320,20 +347,25 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
         savedAnswers,
         saved?.verifiedCells ?? [],
         saved?.verifiedSources ?? {},
+        saved?.verifiedContractVersion,
+        llmSystemsContractSuite.contractVersion,
       );
       const savedVerified = restoredVerification.ids;
       const verifiedSources = restoredVerification.sources;
+      const verifiedContractVersion = restoredVerification.contractVersion;
       hiddenBlocksRef.current = savedHidden;
       answersRef.current = savedAnswers;
       verifiedBlockIdsRef.current = savedVerified;
       verifiedSourcesRef.current = verifiedSources;
+      verifiedContractVersionRef.current = verifiedContractVersion;
       practiceReadyRef.current = true;
       setHiddenBlocks(savedHidden);
       setAnswers(savedAnswers);
       setVerifiedBlockIds(savedVerified);
       setVerifiedSources(verifiedSources);
-      if ((saved?.verifiedCells.length ?? 0) !== savedVerified.length) {
-        recordVerifiedCells(lesson.id, savedVerified, verifiedSources);
+      setVerifiedContractVersion(verifiedContractVersion);
+      if ((saved?.verifiedCells.length ?? 0) !== savedVerified.length || (saved?.verifiedContractVersion ?? null) !== verifiedContractVersion) {
+        recordVerifiedCells(lesson.id, savedVerified, verifiedSources, verifiedContractVersion);
       }
       ensureProjectWorkspace([projectSeedForLesson(lesson, savedHidden, savedAnswers, savedVerified), ...canonicalProjectSeeds()]);
       setPracticeMessage(savedHidden.length
@@ -350,15 +382,18 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     nextAnswers: Record<string, string>,
     nextVerified: string[],
     nextVerifiedSources: Record<string, string>,
+    nextVerifiedContractVersion: string | null,
   ) => {
     hiddenBlocksRef.current = nextHidden;
     answersRef.current = nextAnswers;
     verifiedBlockIdsRef.current = nextVerified;
     verifiedSourcesRef.current = nextVerifiedSources;
+    verifiedContractVersionRef.current = nextVerifiedContractVersion;
     setHiddenBlocks(nextHidden);
     setAnswers(nextAnswers);
     setVerifiedBlockIds(nextVerified);
     setVerifiedSources(nextVerifiedSources);
+    setVerifiedContractVersion(nextVerifiedContractVersion);
   };
   const setRunning = (ids: string[]) => {
     runningBlockIdsRef.current = ids;
@@ -368,31 +403,31 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     const currentHidden = hiddenBlocksRef.current;
     const nextHidden = currentHidden.includes(block.id) ? currentHidden.filter((id) => id !== block.id) : [...currentHidden, block.id];
     const nextAnswers = { ...answersRef.current, [block.id]: answersRef.current[block.id] ?? starterCodeFor(block) };
-    const invalidated = invalidateBlockVerification({ ids: verifiedBlockIdsRef.current, sources: verifiedSourcesRef.current }, block.id);
+    const invalidated = invalidateBlockVerification({ ids: verifiedBlockIdsRef.current, sources: verifiedSourcesRef.current, contractVersion: verifiedContractVersionRef.current }, block.id);
     const nextVerified = invalidated.ids;
     const nextVerifiedSources = invalidated.sources;
     setCellResults((current) => ({ ...current, [block.id]: undefined }));
-    applyPracticeState(nextHidden, nextAnswers, nextVerified, nextVerifiedSources);
+    applyPracticeState(nextHidden, nextAnswers, nextVerified, nextVerifiedSources, invalidated.contractVersion);
     saveLessonPractice(lesson.id, nextHidden, nextAnswers);
-    recordVerifiedCells(lesson.id, nextVerified, nextVerifiedSources);
+    recordVerifiedCells(lesson.id, nextVerified, nextVerifiedSources, invalidated.contractVersion);
     saveLessonProjectFile(projectSeedForLesson(lesson, nextHidden, nextAnswers, nextVerified));
     setPracticeMessage("Implementation changed. Run the affected cell again.");
   };
   const hideAll = () => {
     const nextHidden = blocks.map((block) => block.id);
     const nextAnswers = Object.fromEntries(blocks.map((block) => [block.id, starterCodeFor(block)]));
-    applyPracticeState(nextHidden, nextAnswers, [], {});
+    applyPracticeState(nextHidden, nextAnswers, [], {}, null);
     saveLessonPractice(lesson.id, nextHidden, nextAnswers);
-    recordVerifiedCells(lesson.id, [], {});
+    recordVerifiedCells(lesson.id, [], {}, null);
     saveLessonProjectFile(projectSeedForLesson(lesson, nextHidden, nextAnswers, []));
     setCellResults({});
     setPracticeMessage("All conceptual blocks are hidden. Reconstruct them in any valid way.");
   };
   const showSolution = () => {
     const currentAnswers = answersRef.current;
-    applyPracticeState([], currentAnswers, [], {});
+    applyPracticeState([], currentAnswers, [], {}, null);
     saveLessonPractice(lesson.id, [], currentAnswers);
-    recordVerifiedCells(lesson.id, [], {});
+    recordVerifiedCells(lesson.id, [], {}, null);
     saveLessonProjectFile(projectSeedForLesson(lesson, [], currentAnswers, []));
     setCellResults({});
     setPracticeMessage("Reference solution restored. Previous attempts remain available if you hide a cell again.");
@@ -416,14 +451,14 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
         setPracticeMessage(`${block.label} changed while its check was running. Run the current source again.`);
         return;
       }
-      const currentVerification = { ids: verifiedBlockIdsRef.current, sources: verifiedSourcesRef.current };
+      const currentVerification = { ids: verifiedBlockIdsRef.current, sources: verifiedSourcesRef.current, contractVersion: verifiedContractVersionRef.current };
       const nextVerification = check.passed
-        ? bindBlockVerification(currentVerification, block.id, sourceSnapshot)
+        ? bindBlockVerification(currentVerification, block.id, sourceSnapshot, llmSystemsContractSuite.contractVersion)
         : invalidateBlockVerification(currentVerification, block.id);
       const nextVerified = nextVerification.ids;
       const nextVerifiedSources = nextVerification.sources;
-      applyPracticeState(hiddenSnapshot, answersSnapshot, nextVerified, nextVerifiedSources);
-      recordVerifiedCells(lesson.id, nextVerified, nextVerifiedSources);
+      applyPracticeState(hiddenSnapshot, answersSnapshot, nextVerified, nextVerifiedSources, nextVerification.contractVersion);
+      recordVerifiedCells(lesson.id, nextVerified, nextVerifiedSources, nextVerification.contractVersion);
       saveLessonProjectFile(projectSeedForLesson(lesson, hiddenSnapshot, answersSnapshot, nextVerified));
       setCellResults((current) => ({ ...current, [block.id]: check }));
       setPracticeMessage(check.passed ? `${block.label} passed host-owned assertions.` : `${block.label} needs attention. Review the failed behavior below; your other cells were not changed.`);
@@ -458,8 +493,9 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
       }
       const nextVerified = blocks.filter((_, index) => ordered[index].passed).map((block) => block.id);
       const nextVerifiedSources = Object.fromEntries(nextVerified.map((id) => [id, sourceSnapshots[id]]));
-      applyPracticeState(hiddenSnapshot, answersSnapshot, nextVerified, nextVerifiedSources);
-      recordVerifiedCells(lesson.id, nextVerified, nextVerifiedSources);
+      const nextVerifiedContractVersion = nextVerified.length ? llmSystemsContractSuite.contractVersion : null;
+      applyPracticeState(hiddenSnapshot, answersSnapshot, nextVerified, nextVerifiedSources, nextVerifiedContractVersion);
+      recordVerifiedCells(lesson.id, nextVerified, nextVerifiedSources, nextVerifiedContractVersion);
       saveLessonProjectFile(projectSeedForLesson(lesson, hiddenSnapshot, answersSnapshot, nextVerified));
       setCellResults(Object.fromEntries(blocks.map((block, index) => [block.id, ordered[index]])));
       const passed = ordered.filter((result) => result.passed).length;
@@ -540,12 +576,12 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
                       <button type="button" disabled={!practiceReady || runningBlockIds.length > 0} onClick={() => {
                         const currentHidden = [...hiddenBlocksRef.current];
                         const nextAnswers = { ...answersRef.current, [block.id]: starterCodeFor(block) };
-                        const invalidated = invalidateBlockVerification({ ids: verifiedBlockIdsRef.current, sources: verifiedSourcesRef.current }, block.id);
+                        const invalidated = invalidateBlockVerification({ ids: verifiedBlockIdsRef.current, sources: verifiedSourcesRef.current, contractVersion: verifiedContractVersionRef.current }, block.id);
                         const nextVerified = invalidated.ids;
                         const nextVerifiedSources = invalidated.sources;
-                        applyPracticeState(currentHidden, nextAnswers, nextVerified, nextVerifiedSources);
+                        applyPracticeState(currentHidden, nextAnswers, nextVerified, nextVerifiedSources, invalidated.contractVersion);
                         saveLessonPractice(lesson.id, currentHidden, nextAnswers);
-                        recordVerifiedCells(lesson.id, nextVerified, nextVerifiedSources);
+                        recordVerifiedCells(lesson.id, nextVerified, nextVerifiedSources, invalidated.contractVersion);
                         saveLessonProjectFile(projectSeedForLesson(lesson, currentHidden, nextAnswers, nextVerified));
                         setCellResults((current) => ({ ...current, [block.id]: undefined }));
                       }}>Reset starter</button>
@@ -553,12 +589,12 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
                     <textarea aria-label={`Reimplement ${block.label}`} value={answers[block.id] ?? ""} disabled={!practiceReady || runningBlockIds.length > 0} onChange={(event) => {
                       const currentHidden = [...hiddenBlocksRef.current];
                       const nextAnswers = { ...answersRef.current, [block.id]: event.target.value };
-                      const invalidated = invalidateBlockVerification({ ids: verifiedBlockIdsRef.current, sources: verifiedSourcesRef.current }, block.id);
+                      const invalidated = invalidateBlockVerification({ ids: verifiedBlockIdsRef.current, sources: verifiedSourcesRef.current, contractVersion: verifiedContractVersionRef.current }, block.id);
                       const nextVerified = invalidated.ids;
                       const nextVerifiedSources = invalidated.sources;
-                      applyPracticeState(currentHidden, nextAnswers, nextVerified, nextVerifiedSources);
+                      applyPracticeState(currentHidden, nextAnswers, nextVerified, nextVerifiedSources, invalidated.contractVersion);
                       saveLessonPractice(lesson.id, currentHidden, nextAnswers);
-                      recordVerifiedCells(lesson.id, nextVerified, nextVerifiedSources);
+                      recordVerifiedCells(lesson.id, nextVerified, nextVerifiedSources, invalidated.contractVersion);
                       saveLessonProjectFile(projectSeedForLesson(lesson, currentHidden, nextAnswers, nextVerified));
                       setCellResults((current) => ({ ...current, [block.id]: undefined }));
                       setPracticeMessage("Implementation changed. Run the affected cell again.");
@@ -568,7 +604,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
                   <div className="code-lines">{block.code.split("\n").map((line, lineIndex) => <div key={`${block.id}-${lineIndex}`}><span>{startLine + lineIndex}</span><code>{line || " "}</code></div>)}</div>
                 )}
                 <div className="cell-footer">
-                  {result ? <span className={result.passed ? "cell-result passed" : "cell-result failed"}><i>{result.passed ? "✓" : "×"}</i>{result.detail}</span> : verifiedBlockIds.includes(block.id) && verifiedSources[block.id] === (hidden ? answers[block.id] ?? "" : block.code) ? <span className="cell-result passed"><i>✓</i>Verified previously on this device</span> : <span>{practiceReady ? "Not run" : "Waiting for saved progress"}</span>}
+                  {result ? <span className={result.passed ? "cell-result passed" : "cell-result failed"}><i>{result.passed ? "✓" : "×"}</i>{result.detail}</span> : verifiedContractVersion === llmSystemsContractSuite.contractVersion && verifiedBlockIds.includes(block.id) && verifiedSources[block.id] === (hidden ? answers[block.id] ?? "" : block.code) ? <span className="cell-result passed"><i>✓</i>Verified previously on this device</span> : <span>{practiceReady ? "Not run" : "Waiting for saved progress"}</span>}
                 </div>
               </div>
             );

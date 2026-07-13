@@ -260,8 +260,29 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
           "l", "o", "w",
         ], ["l", "o"]]],
         assertions: [
-          equal("lo-frequency", "Counts the repeated l-o pair", 2, ["l\u0000o"]),
-          equal("ow-frequency", "Counts the single o-w pair", 1, ["o\u0000w"]),
+          equal("lo-frequency", "Use JSON.stringify([left, right]) so the visible key [\"l\",\"o\"] is counted twice", 2, ['["l","o"]']),
+          equal("ow-frequency", "Count every adjacent position in every word, including [\"o\",\"w\"]", 1, ['["o","w"]']),
+        ],
+      },
+      {
+        id: "overlapping-positions",
+        label: "Counts overlapping candidate positions before any merge occurs",
+        args: [[[
+          "a", "a", "a",
+        ]]],
+        assertions: [
+          equal("overlapping-aa-frequency", "Advance one position while counting; [\"a\",\"a\"] occurs at indices 0 and 1", 2, ['["a","a"]']),
+        ],
+      },
+      {
+        id: "unambiguous-pair-identity",
+        label: "Keeps different symbol boundaries distinct",
+        args: [[[
+          "a", "bc",
+        ], ["ab", "c"]]],
+        assertions: [
+          equal("left-boundary", "Encode the two-symbol array with JSON.stringify; do not concatenate symbols into an ambiguous key", 1, ['["a","bc"]']),
+          equal("right-boundary", "Keep [\"ab\",\"c\"] separate from [\"a\",\"bc\"]", 1, ['["ab","c"]']),
         ],
       },
     ],
@@ -276,7 +297,19 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
         id: "selected-adjacent-pair",
         label: "Merges only the selected adjacent pair",
         args: [["l", "o", "w", "e", "r"], ["l", "o"]],
-        assertions: [equal("merged-symbols", "Preserves order around the merged symbol", ["lo", "w", "e", "r"])],
+        assertions: [equal("merged-symbols", "Merge the selected neighbors and preserve every surrounding symbol in order", ["lo", "w", "e", "r"])],
+      },
+      {
+        id: "repeated-selected-pair",
+        label: "Merges every occurrence in the symbol sequence",
+        args: [["a", "b", "x", "a", "b"], ["a", "b"]],
+        assertions: [equal("all-occurrences", "Continue scanning after the first match so every selected pair is replaced", ["ab", "x", "ab"])],
+      },
+      {
+        id: "non-overlapping-replacement",
+        label: "Consumes a matched pair exactly once",
+        args: [["a", "a", "a"], ["a", "a"]],
+        assertions: [equal("non-overlapping-output", "After a match, skip the consumed right symbol; three a symbols become [\"aa\",\"a\"]", ["aa", "a"])],
       },
     ],
   }),
@@ -290,7 +323,19 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
         id: "ordered-merges",
         label: "Replays learned merges in their training order",
         args: ["lower", [["l", "o"], ["lo", "w"], ["e", "r"]]],
-        assertions: [equal("encoded-tokens", "Produces the learned subword segmentation", ["low", "er"])],
+        assertions: [equal("encoded-tokens", "Apply each learned merge in array order to produce the trained segmentation", ["low", "er"])],
+      },
+      {
+        id: "order-sensitive-replay",
+        label: "Does not revisit an earlier merge after a later merge creates its input",
+        args: ["abc", [["ab", "c"], ["a", "b"]]],
+        assertions: [equal("single-ordered-pass", "Replay each learned merge once in order; [ab,c] is unavailable before [a,b], so the result remains [\"ab\",\"c\"]", ["ab", "c"])],
+      },
+      {
+        id: "repeated-pair-in-word",
+        label: "Applies one learned merge everywhere it matches",
+        args: ["abab", [["a", "b"]]],
+        assertions: [equal("all-word-occurrences", "Scan the full word for the current merge, not only its first occurrence", ["ab", "ab"])],
       },
     ],
   }),
@@ -772,6 +817,6 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
 ];
 
 export const llmSystemsContractSuite: ContractSuite = {
-  contractVersion: "llm-systems-contracts-v2",
+  contractVersion: "llm-systems-contracts-v3",
   contracts: llmSystemsExerciseContracts,
 };

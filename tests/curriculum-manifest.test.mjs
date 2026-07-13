@@ -379,11 +379,89 @@ test("Additive Attention teaches the scoring network and rejects shortcuts in ev
   assert.match(contextFeedback, /Multiply each state by its corresponding alpha, then sum coordinate-wise/);
 });
 
+test("Transformers teaches the causal attention computation and rejects semantic shortcuts in every cell", () => {
+  const lesson = course.courseLessons.find((candidate) => candidate.id === "transformers");
+  assert.ok(lesson);
+  assert.match(lesson.summary.map((section) => section.body).join(" "), /QKᵀ/);
+  assert.match(lesson.summary.map((section) => section.body).join(" "), /before applying softmax independently across that row/);
+  assert.match(lesson.diagram.caption, /three-token worked pass/i);
+
+  const byId = new Map(contracts.llmSystemsExerciseContracts.map((contract) => [contract.id, contract]));
+  const evaluate = (contract, implementation) => contract.cases.map((exerciseCase) =>
+    contractRuntime.evaluateExerciseCase(contract, exerciseCase, {
+      status: "returned",
+      value: implementation(...exerciseCase.invoke.args),
+    }));
+  const rejects = (contract, implementation) => assert.ok(evaluate(contract, implementation).some((result) => !result.passed));
+  const accepts = (contract, implementation) => assert.ok(evaluate(contract, implementation).every((result) => result.passed));
+
+  const causalMask = byId.get("transformers/causal-mask");
+  assert.ok(causalMask);
+  const maskedValue = { $number: "-Infinity" };
+  const maskBy = (scores, predicate) => scores.map((row, rowIndex) =>
+    row.map((score, columnIndex) => predicate(rowIndex, columnIndex) ? maskedValue : score));
+  rejects(causalMask, (scores) => scores);
+  rejects(causalMask, (scores) => maskBy(scores, (row, column) => column < row));
+  rejects(causalMask, (scores) => maskBy(scores, (row, column) => column !== row));
+  accepts(causalMask, (scores) => maskBy(scores, (row, column) => column > row));
+  const maskFeedback = practiceFeedback.formatPracticeContractDetail(evaluate(causalMask, (scores) => scores));
+  assert.match(maskFeedback, /column > row/);
+
+  const attention = byId.get("transformers/scaled-attention");
+  assert.ok(attention);
+  const softmax = (scores) => {
+    const maximum = Math.max(...scores);
+    const weights = scores.map((score) => Math.exp(score - maximum));
+    const total = weights.reduce((sum, weight) => sum + weight, 0);
+    return weights.map((weight) => weight / total);
+  };
+  const attentionWithScale = (query, keys, values, scale) => {
+    const scores = keys.map((key) => key.reduce((sum, value, index) => sum + value * query[index], 0) / scale);
+    const probabilities = softmax(scores);
+    return values[0].map((_, coordinate) =>
+      values.reduce((sum, value, index) => sum + value[coordinate] * probabilities[index], 0));
+  };
+  rejects(attention, (query, keys, values) => attentionWithScale(query, keys, values, 1));
+  rejects(attention, (query, keys, values) => attentionWithScale(query, keys, values, Math.sqrt(keys.length)));
+  rejects(attention, (query, keys) => softmax(keys.map((key) => key.reduce((sum, value, index) => sum + value * query[index], 0))));
+  rejects(attention, (query, keys, values) => values[keys.map((key) => key.reduce((sum, value, index) => sum + value * query[index], 0)).indexOf(Math.max(...keys.map((key) => key.reduce((sum, value, index) => sum + value * query[index], 0))))]);
+  rejects(attention, (_query, _keys, values) => values[0].map((_, coordinate) => values.reduce((sum, value) => sum + value[coordinate], 0) / values.length));
+  accepts(attention, (query, keys, values) => attentionWithScale(query, keys, values, Math.sqrt(query.length)));
+  const attentionFeedback = practiceFeedback.formatPracticeContractDetail(evaluate(
+    attention,
+    (query, keys, values) => attentionWithScale(query, keys, values, 1),
+  ));
+  assert.match(attentionFeedback, /Divide query-key scores by sqrt\(query width\) before softmax/);
+
+  const layerNorm = byId.get("transformers/layer-norm");
+  assert.ok(layerNorm);
+  const variance = (vector, mean) => vector.reduce((sum, value) => sum + (value - mean) ** 2, 0) / vector.length;
+  rejects(layerNorm, (vector, epsilon = 1e-5) => {
+    const rms = Math.sqrt(vector.reduce((sum, value) => sum + value ** 2, 0) / vector.length + epsilon);
+    return vector.map((value) => value / rms);
+  });
+  rejects(layerNorm, (vector, epsilon = 1e-5) => {
+    const mean = vector.reduce((sum, value) => sum + value, 0) / vector.length;
+    const scale = variance(vector, mean) + epsilon;
+    return vector.map((value) => (value - mean) / scale);
+  });
+  accepts(layerNorm, (vector, epsilon = 1e-5) => {
+    const mean = vector.reduce((sum, value) => sum + value, 0) / vector.length;
+    const scale = Math.sqrt(variance(vector, mean) + epsilon);
+    return vector.map((value) => (value - mean) / scale);
+  });
+  const normFeedback = practiceFeedback.formatPracticeContractDetail(evaluate(layerNorm, (vector) => {
+    const mean = vector.reduce((sum, value) => sum + value, 0) / vector.length;
+    return vector.map((value) => value - mean);
+  }));
+  assert.match(normFeedback, /divide by sqrt\(variance \+ epsilon\)/);
+});
+
 test("practice verification is inseparable from the exact editor source and contract version", () => {
   const block = { id: "rnn-step", code: "function rnnStep() { return 'reference'; }" };
   const correct = "function rnnStep() { return 'correct learner answer'; }";
   const wrong = "function rnnStep() { return 'wrong learner answer'; }";
-  const currentVersion = "llm-systems-contracts-v4";
+  const currentVersion = "llm-systems-contracts-v5";
   const bound = practiceState.bindBlockVerification(
     { ids: [], sources: {}, contractVersion: null },
     block.id,

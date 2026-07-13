@@ -467,10 +467,21 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
         label: "Preserves visible logits and removes future logits",
         args: [[[1, 2, 3], [4, 5, 6], [7, 8, 9]]],
         assertions: [
-          equal("first-visible-logit", "Preserves the first visible logit", 1, [0, 0]),
-          equal("first-future-logit", "Masks the first future logit", negativeInfinity, [0, 1]),
-          equal("second-future-logit", "Masks the second row's future logit", negativeInfinity, [1, 2]),
-          equal("last-visible-logit", "Preserves the final visible logit", 9, [2, 2]),
+          equal("first-visible-logit", "Keep diagonal and past logits unchanged; write -Infinity only where column > row", 1, [0, 0]),
+          equal("first-future-logit", "Keep diagonal and past logits unchanged; write -Infinity only where column > row", negativeInfinity, [0, 1]),
+          equal("second-future-logit", "Keep diagonal and past logits unchanged; write -Infinity only where column > row", negativeInfinity, [1, 2]),
+          equal("last-visible-logit", "Keep diagonal and past logits unchanged; write -Infinity only where column > row", 9, [2, 2]),
+        ],
+      },
+      {
+        id: "past-and-diagonal-remain-visible",
+        label: "Keeps every past and diagonal score unchanged",
+        args: [[[11, 12, 13, 14], [21, 22, 23, 24], [31, 32, 33, 34], [41, 42, 43, 44]]],
+        assertions: [
+          equal("deep-past-logit", "Keep diagonal and past logits unchanged; write -Infinity only where column > row", 31, [2, 0]),
+          equal("near-past-logit", "Keep diagonal and past logits unchanged; write -Infinity only where column > row", 42, [3, 1]),
+          equal("middle-diagonal-logit", "Keep diagonal and past logits unchanged; write -Infinity only where column > row", 33, [2, 2]),
+          equal("far-future-logit", "Keep diagonal and past logits unchanged; write -Infinity only where column > row", negativeInfinity, [0, 3]),
         ],
       },
     ],
@@ -487,8 +498,19 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
         args: [[1, 0], [[1, 0], [0, 1]], [[2, 0], [0, 2]]],
         assertions: [
           length("output-width", "Preserves the value width", 2),
-          range("aligned-value", "Favors the query-aligned value", 1.33, 1.35, [0]),
-          range("other-value", "Assigns less weight to the other value", 0.65, 0.67, [1]),
+          range("aligned-value", "Divide query-key scores by sqrt(query width) before softmax, then mix the value rows", 1.33, 1.35, [0]),
+          range("other-value", "Divide query-key scores by sqrt(query width) before softmax, then mix the value rows", 0.65, 0.67, [1]),
+        ],
+      },
+      {
+        id: "key-width-controls-scaling",
+        label: "Uses d_k rather than key count and returns the value-shaped mixture",
+        args: [[1, 1, 1, 1], [[1, 0, 0, 0], [0, 0, 0, 0]], [[2, 0, 4], [0, 2, -2]]],
+        assertions: [
+          length("value-width", "Return the weighted value vector, not the attention probabilities", 3),
+          range("scaled-first-coordinate", "Divide query-key scores by sqrt(query width), not sqrt(number of keys), before softmax", 1.244, 1.246, [0]),
+          range("weighted-second-coordinate", "Use every softmax probability to mix value rows; do not return only the winner or the mean", 0.754, 0.756, [1]),
+          range("weighted-third-coordinate", "Use every softmax probability to mix value rows; do not return only the winner or the mean", 1.734, 1.736, [2]),
         ],
       },
     ],
@@ -505,10 +527,20 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
         args: [[1, 2, 3, 4]],
         assertions: [
           length("normalized-width", "Preserves feature width", 4),
-          range("first-feature", "Normalizes the first feature", -1.342, -1.341, [0]),
-          range("second-feature", "Normalizes the second feature", -0.448, -0.447, [1]),
-          range("third-feature", "Normalizes the third feature", 0.447, 0.448, [2]),
-          range("fourth-feature", "Normalizes the fourth feature", 1.341, 1.342, [3]),
+          range("first-feature", "Subtract the feature mean, then divide by sqrt(variance + epsilon)", -1.342, -1.341, [0]),
+          range("second-feature", "Subtract the feature mean, then divide by sqrt(variance + epsilon)", -0.448, -0.447, [1]),
+          range("third-feature", "Subtract the feature mean, then divide by sqrt(variance + epsilon)", 0.447, 0.448, [2]),
+          range("fourth-feature", "Subtract the feature mean, then divide by sqrt(variance + epsilon)", 1.341, 1.342, [3]),
+        ],
+      },
+      {
+        id: "constant-vector",
+        label: "Keeps a zero-variance representation finite",
+        args: [[5, 5, 5], 0.00001],
+        assertions: [
+          length("constant-width", "Preserve feature width", 3),
+          finite("constant-first-finite", "Subtracting the mean gives zeros; epsilon inside sqrt(variance + epsilon) keeps division finite", [0]),
+          equal("constant-values", "Subtracting the mean gives zeros; epsilon inside sqrt(variance + epsilon) keeps division finite", [0, 0, 0]),
         ],
       },
     ],
@@ -876,6 +908,6 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
 ];
 
 export const llmSystemsContractSuite: ContractSuite = {
-  contractVersion: "llm-systems-contracts-v4",
+  contractVersion: "llm-systems-contracts-v5",
   contracts: llmSystemsExerciseContracts,
 };

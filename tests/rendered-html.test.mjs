@@ -165,6 +165,21 @@ test("Additive Attention works through one decoder step and distinguishes scorin
   assert.match(html, /uniform attention stays at 0\.333/);
 });
 
+test("Transformers works through a shaped causal attention matrix before the live experiment", async () => {
+  const response = await render("/lessons/transformers");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Tensor shapes/);
+  assert.match(html, /QKᵀ/);
+  assert.match(html, /transformer-worked-example/);
+  assert.match(html, /Rows are queries · columns are keys/);
+  assert.match(html, /Three-token causal attention probability matrix/);
+  assert.match(html, /decoded/);
+  assert.match(html, /0\.46/);
+  assert.match(html, /Complete decoder block/);
+  assert.match(html, /Run causal self-attention/);
+});
+
 test("the capstone contains the complete React chat system", async () => {
   const response = await render("/capstone");
   assert.equal(response.status, 200);

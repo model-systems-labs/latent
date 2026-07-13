@@ -25,24 +25,24 @@ This lesson concerns "Attention Is All You Need" by Vaswani and colleagues.
 ${commonQuestionInstruction}`.trim(),
     summary: [
       {
-        label: "Direct interaction.",
+        label: "Tensor shapes.",
         body:
-          "A token can aggregate information from any permitted position in one attention operation. This shortens the path between distant positions relative to repeatedly passing information through recurrent state transitions.",
+          "For a sequence of n token representations X ∈ ℝⁿˣᵈmodel, learned projections produce Q and K ∈ ℝⁿˣᵈk and V ∈ ℝⁿˣᵈv. QKᵀ therefore contains one compatibility score for every query row and key column, with shape n × n.",
       },
       {
-        label: "Query, key, value.",
+        label: "Scaled compatibility.",
         body:
-          "Each token representation is projected into a query used to request information, a key used for compatibility, and a value containing information to mix. Dot products become attention logits after scaling by the key dimension.",
+          "Each query asks what information this position needs; each key describes what a position can match; each value carries the information to mix. Divide every query-key dot product by √dₖ so its magnitude does not grow with projection width and drive softmax into saturated, low-gradient probabilities.",
       },
       {
-        label: "Causal mask.",
+        label: "Mask, then normalize.",
         body:
-          "A decoder-only language model sets future-position scores to negative infinity before softmax. Every prediction can depend only on the prefix, preserving the autoregressive next-token objective.",
+          "For query row i, keep key columns j ≤ i and set every future score j > i to −Infinity before applying softmax independently across that row. Future probabilities become exactly zero; the remaining row probabilities sum to one and weight the rows of V.",
       },
       {
-        label: "Complete block.",
+        label: "Block boundary.",
         body:
-          "Attention is surrounded by learned projections, residual paths, normalization, and a position-wise MLP. The paper's contribution is an effective full architecture, not the claim that a bare attention matrix is itself a language model.",
+          "The resulting context C = softmax(mask(QKᵀ/√dₖ))V is only the attention sublayer. A usable decoder block also includes output and multi-head projections, residual paths, normalization, a position-wise MLP, and another residual path; stacked blocks operate on token-plus-position representations.",
       },
     ],
     claims: {
@@ -51,13 +51,13 @@ ${commonQuestionInstruction}`.trim(),
       limit: "This lesson executes an untrained attention block; it does not reproduce WMT training or claim that random attention weights are linguistic explanations.",
     },
     diagram: {
-      title: "Causal Transformer block",
-      caption: "The browser lab uses the decoder-side causal form that underlies autoregressive LLMs.",
+      title: "One causal self-attention head",
+      caption: "A three-token worked pass: project Q, K, and V; scale QKᵀ by √dₖ; mask future columns before row-wise softmax; then mix V. The experiment below runs the same operation with inspectable tensors.",
       nodes: [
-        { label: "Representation", value: "token + position" },
-        { label: "Projection", value: "Q · K · V" },
-        { label: "Masked attention", value: "softmax(QKᵀ / √d)" },
-        { label: "Block output", value: "residual + norm + MLP" },
+        { label: "Project", value: "XW → Q,K[3×d_k] · V[3×d_v]" },
+        { label: "Score", value: "QKᵀ[3×3] / √d_k" },
+        { label: "Normalize", value: "mask j>i to −∞ → softmax per row" },
+        { label: "Mix values", value: "P[3×3]V[3×d_v] → C[3×d_v]" },
       ],
     },
     questions: {
@@ -83,7 +83,7 @@ ${commonQuestionInstruction}`.trim(),
         {
           id: "causal-mask",
           label: "Causal mask",
-          purpose: "Remove access to future positions before normalization.",
+          purpose: "Preserve the diagonal and prefix; replace only scores where column > row with -Infinity before softmax.",
           concepts: [
             { name: "row", detail: "Query position currently producing a representation." },
             { name: "column", detail: "Key position the query might attend to." },
@@ -98,7 +98,7 @@ return { passed: masked[0][0] === 1 && masked[0][1] === -Infinity && masked[1][2
         {
           id: "scaled-attention",
           label: "Scaled dot-product attention",
-          purpose: "Turn query-key compatibility into a weighted value mixture.",
+          purpose: "Divide query-key scores by √dₖ, apply softmax, and return the probability-weighted mixture of value rows.",
           concepts: [
             { name: "scale", detail: "Square root of the key dimension." },
             { name: "scores", detail: "Dot products between one query and each key." },
@@ -116,7 +116,7 @@ return { passed: output.length === 2 && output[0] > output[1], detail: "output =
         {
           id: "layer-norm",
           label: "Layer normalization",
-          purpose: "Normalize features within one token representation.",
+          purpose: "Subtract the feature mean, then divide by √(variance + epsilon) within one token representation.",
           concepts: [
             { name: "mean", detail: "Average activation across the feature dimension." },
             { name: "variance", detail: "Average squared deviation from that mean." },

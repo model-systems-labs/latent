@@ -79,13 +79,14 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
   const isNeuralLanguageModel = lesson.id === "neural-language-models";
   const isSubwordTokenization = lesson.id === "subword-tokenization";
   const isAdditiveAttention = lesson.id === "additive-attention";
+  const isTransformer = lesson.id === "transformers";
   const recurrentSteps = [
     { time: "t − 1", input: "x_(t−1)", previous: "h_(t−2)", state: "h_(t−1)", prediction: "p(x_t)" },
     { time: "t", input: "x_t", previous: "h_(t−1)", state: "h_t", prediction: "p(x_(t+1))" },
     { time: "t + 1", input: "x_(t+1)", previous: "h_t", state: "h_(t+1)", prediction: "p(x_(t+2))" },
   ];
   return (
-    <figure className={`concept-diagram${isRecurrent ? " recurrence-diagram" : ""}${isNeuralLanguageModel ? " neural-lm-diagram" : ""}${isSubwordTokenization ? " subword-tokenization-diagram" : ""}${isAdditiveAttention ? " additive-attention-diagram" : ""}`}>
+    <figure className={`concept-diagram${isRecurrent ? " recurrence-diagram" : ""}${isNeuralLanguageModel ? " neural-lm-diagram" : ""}${isSubwordTokenization ? " subword-tokenization-diagram" : ""}${isAdditiveAttention ? " additive-attention-diagram" : ""}${isTransformer ? " transformer-attention-diagram" : ""}`}>
       <header><span>Mechanism</span><strong>{lesson.diagram.title}</strong></header>
       {isRecurrent ? (
         <div className="recurrence-unroll" role="img" aria-label="Three recurrent time steps. Each input and previous hidden state produce a new hidden state, then logits and a next-character probability. The hidden state flows into the next step and the same parameters are reused.">
@@ -163,6 +164,36 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
           <div className="attention-score-contrast">
             <span><b>Additive</b><code>vᵀ tanh(Wq q + Wk h_i + b)</code><em>learned projections + nonlinear scorer</em></span>
             <span><b>Dot product</b><code>qᵀ h_i</code><em>direct similarity; not this lesson&apos;s scorer</em></span>
+          </div>
+        </div>
+      ) : isTransformer ? (
+        <div className="transformer-worked-example" role="img" aria-label="A three-token causal attention computation. Input projections make Q, K, and V. Scaled query-key scores are masked above the diagonal and normalized row by row. The decoded row has probabilities 0.20, 0.33, and 0.46. Multiplying by value rows produces one context vector per token.">
+          <ol className="transformer-stages">
+            {lesson.diagram.nodes.map((node, index) => (
+              <li key={node.label}>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <div><strong>{node.label}</strong><code>{node.value}</code></div>
+              </li>
+            ))}
+          </ol>
+          <div className="causal-matrix-block">
+            <div className="matrix-heading">
+              <span>Rows are queries · columns are keys</span>
+              <code>P = softmax(mask(QKᵀ / √d_k))</code>
+            </div>
+            <table aria-label="Three-token causal attention probability matrix">
+              <thead><tr><th scope="col">query ↓ / key →</th><th scope="col">the</th><th scope="col">receiver</th><th scope="col">decoded</th><th scope="col">‖context‖</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">the</th><td>1.00</td><td className="masked-cell">0</td><td className="masked-cell">0</td><td>1.00</td></tr>
+                <tr><th scope="row">receiver</th><td>0.20</td><td>0.80</td><td className="masked-cell">0</td><td>0.82</td></tr>
+                <tr><th scope="row">decoded</th><td>0.20</td><td>0.33</td><td>0.46</td><td>0.60</td></tr>
+              </tbody>
+            </table>
+            <p><span>Before softmax</span> cells above the diagonal are −Infinity. <span>Toy values</span> use unit basis rows, so each probability row (rounded to two decimals) is also its context vector and yields the shown norm.</p>
+          </div>
+          <div className="transformer-block-boundary">
+            <b>Complete decoder block</b>
+            <code>attention output → projection → residual + norm → MLP → residual + norm</code>
           </div>
         </div>
       ) : (

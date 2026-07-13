@@ -1745,20 +1745,23 @@ button:disabled {
 }
 
 .bpe-worked-example,
-.attention-worked-example {
+.attention-worked-example,
+.transformer-worked-example {
   border-bottom: 1px solid var(--line);
   border-top: 1px solid var(--line);
 }
 
 .bpe-rounds,
-.attention-stages {
+.attention-stages,
+.transformer-stages {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
 .bpe-rounds li,
-.attention-stages li {
+.attention-stages li,
+.transformer-stages li {
   align-items: center;
   display: grid;
   gap: 0.75rem;
@@ -1768,12 +1771,14 @@ button:disabled {
 }
 
 .bpe-rounds li + li,
-.attention-stages li + li {
+.attention-stages li + li,
+.transformer-stages li + li {
   border-top: 1px solid var(--line);
 }
 
 .bpe-rounds li:not(:last-child)::after,
-.attention-stages li:not(:last-child)::after {
+.attention-stages li:not(:last-child)::after,
+.transformer-stages li:not(:last-child)::after {
   bottom: -0.35rem;
   color: var(--violet);
   content: "↓";
@@ -1785,14 +1790,16 @@ button:disabled {
 }
 
 .bpe-rounds li > span,
-.attention-stages li > span {
+.attention-stages li > span,
+.transformer-stages li > span {
   color: var(--faint);
   font-family: var(--mono);
   font-size: 0.53rem;
 }
 
 .bpe-rounds li > div,
-.attention-stages li > div {
+.attention-stages li > div,
+.transformer-stages li > div {
   align-items: baseline;
   display: grid;
   gap: 0.6rem;
@@ -1800,13 +1807,15 @@ button:disabled {
 }
 
 .bpe-rounds strong,
-.attention-stages strong {
+.attention-stages strong,
+.transformer-stages strong {
   font-size: 0.68rem;
   font-weight: 590;
 }
 
 .bpe-rounds code,
-.attention-stages code {
+.attention-stages code,
+.transformer-stages code {
   color: var(--violet-deep);
   font-size: 0.58rem;
   line-height: 1.45;
@@ -1856,6 +1865,107 @@ button:disabled {
 .bpe-order-contrast em,
 .attention-score-contrast em {
   color: var(--ink);
+}
+
+.causal-matrix-block {
+  border-top: 1px solid var(--line);
+  padding: 0.9rem 0 0;
+}
+
+.matrix-heading {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.8rem;
+  justify-content: space-between;
+  padding-bottom: 0.75rem;
+}
+
+.matrix-heading span,
+.transformer-block-boundary b,
+.causal-matrix-block p span {
+  color: var(--violet);
+  font-size: 0.54rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.matrix-heading code {
+  color: var(--violet-deep);
+  font-size: 0.56rem;
+}
+
+.causal-matrix-block table {
+  border-collapse: collapse;
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 0.53rem;
+  table-layout: fixed;
+  width: 100%;
+}
+
+.causal-matrix-block th,
+.causal-matrix-block td {
+  border-top: 1px solid var(--line);
+  font-weight: 450;
+  padding: 0.6rem 0.35rem;
+  text-align: center;
+}
+
+.causal-matrix-block th:first-child {
+  color: var(--muted);
+  text-align: left;
+  width: 28%;
+}
+
+.causal-matrix-block thead th {
+  color: var(--muted);
+  font-size: 0.48rem;
+}
+
+.causal-matrix-block tbody th {
+  color: var(--violet-deep);
+}
+
+.causal-matrix-block .masked-cell {
+  background: linear-gradient(135deg, transparent 46%, rgba(120, 98, 142, 0.18) 47%, rgba(120, 98, 142, 0.18) 53%, transparent 54%);
+  color: var(--faint);
+}
+
+.causal-matrix-block p {
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.53rem;
+  line-height: 1.55;
+  margin: 0;
+  padding: 0.8rem 0;
+}
+
+.causal-matrix-block p span {
+  font-family: var(--sans);
+  margin-right: 0.25rem;
+}
+
+.causal-matrix-block p span + span {
+  margin-left: 0.55rem;
+}
+
+.transformer-block-boundary {
+  align-items: baseline;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: minmax(7.3rem, 0.75fr) minmax(0, 1.25fr);
+  padding: 0.85rem 0;
+}
+
+.transformer-block-boundary code {
+  color: var(--ink);
+  font-size: 0.54rem;
+  line-height: 1.45;
+  text-align: right;
 }
 
 .concept-diagram figcaption {

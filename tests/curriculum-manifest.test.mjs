@@ -950,11 +950,85 @@ test("Conversation State enforces normalized records and immutable targeted delt
   assert.equal(missing[2], before[2]);
 });
 
+test("Streaming React preserves render deltas and applies the complete scroll-follow gate", () => {
+  const lesson = course.courseLessons.find((candidate) => candidate.id === "streaming-react");
+  assert.ok(lesson);
+  assert.equal(lesson.diagram.title, "One animation-frame commit");
+  assert.match(lesson.diagram.caption, /Typed token events are already parsed/);
+  assert.match(lesson.diagram.caption, /scrolling, announcements, and cancellation remain separate policies/);
+  assert.match(lesson.dataset.size, /60 deltas · 4 timing profiles/);
+  assert.match(lesson.experiment.intro, /burst, steady, stalled, and cancelled/);
+  assert.match(lesson.experiment.intro, /bounded live-region contents/);
+
+  const byId = new Map(contracts.llmSystemsExerciseContracts.map((contract) => [contract.id, contract]));
+  const freeze = (value) => {
+    if (!value || typeof value !== "object" || Object.isFrozen(value)) return value;
+    Object.values(value).forEach(freeze);
+    return Object.freeze(value);
+  };
+  const observe = (implementation, sourceArgs) => {
+    const args = structuredClone(sourceArgs);
+    args.forEach(freeze);
+    try {
+      return { status: "returned", value: implementation(...args) };
+    } catch (reason) {
+      return {
+        status: "threw",
+        errorName: reason instanceof Error ? reason.name : "Error",
+        message: reason instanceof Error ? reason.message : String(reason),
+      };
+    }
+  };
+  const evaluate = (contract, implementation) => contract.cases.map((exerciseCase) =>
+    contractRuntime.evaluateExerciseCase(contract, exerciseCase, observe(implementation, exerciseCase.invoke.args)));
+  const rejects = (contract, implementation) => assert.ok(evaluate(contract, implementation).some((result) => !result.passed));
+  const accepts = (contract, implementation) => assert.ok(evaluate(contract, implementation).every((result) => result.passed));
+
+  const buffer = byId.get("streaming-react/delta-buffer");
+  assert.ok(buffer);
+  assert.equal(buffer.cases.length, 4);
+  const firstOnly = (pending) => ({ text: pending[0] ?? "", remaining: [] });
+  const insertsSeparators = (pending) => ({ text: pending.join(" "), remaining: [] });
+  const sortsDeltas = (pending) => ({ text: [...pending].sort().join(""), remaining: [] });
+  const retainsPending = (pending) => ({ text: pending.join(""), remaining: [...pending] });
+  const mutatesInput = (pending) => ({ text: pending.splice(0).join(""), remaining: pending });
+  rejects(buffer, firstOnly);
+  rejects(buffer, insertsSeparators);
+  rejects(buffer, sortsDeltas);
+  rejects(buffer, retainsPending);
+  rejects(buffer, mutatesInput);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(buffer, firstOnly)), /Join every queued delta with no inserted separator/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(buffer, insertsSeparators)), /no inserted separator/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(buffer, retainsPending)), /fresh empty remaining queue/);
+  const bufferBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "delta-buffer");
+  assert.ok(bufferBlock);
+  accepts(buffer, new Function(`${bufferBlock.code}; return flushTokenBuffer;`)());
+
+  const scroll = byId.get("streaming-react/scroll-policy");
+  assert.ok(scroll);
+  assert.equal(scroll.cases.length, 7);
+  const distanceOnly = ({ distanceFromBottom, threshold = 80 }) => distanceFromBottom <= threshold;
+  const userFlagOnly = ({ userScrolledUp }) => !userScrolledUp;
+  const exclusiveBoundary = ({ distanceFromBottom, userScrolledUp, threshold = 80 }) => !userScrolledUp && distanceFromBottom < threshold;
+  const fixedThreshold = ({ distanceFromBottom, userScrolledUp }) => !userScrolledUp && distanceFromBottom <= 80;
+  rejects(scroll, distanceOnly);
+  rejects(scroll, userFlagOnly);
+  rejects(scroll, exclusiveBoundary);
+  rejects(scroll, fixedThreshold);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(scroll, distanceOnly)), /userScrolledUp override/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(scroll, userFlagOnly)), /exceeds the default 80-pixel threshold/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(scroll, exclusiveBoundary)), /distanceFromBottom <= threshold/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(scroll, fixedThreshold)), /supplied threshold/);
+  const scrollBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "scroll-policy");
+  assert.ok(scrollBlock);
+  accepts(scroll, new Function(`${scrollBlock.code}; return shouldFollowStream;`)());
+});
+
 test("practice verification is inseparable from the exact editor source and contract version", () => {
   const block = { id: "rnn-step", code: "function rnnStep() { return 'reference'; }" };
   const correct = "function rnnStep() { return 'correct learner answer'; }";
   const wrong = "function rnnStep() { return 'wrong learner answer'; }";
-  const currentVersion = "llm-systems-contracts-v11";
+  const currentVersion = "llm-systems-contracts-v12";
   const bound = practiceState.bindBlockVerification(
     { ids: [], sources: {}, contractVersion: null },
     block.id,

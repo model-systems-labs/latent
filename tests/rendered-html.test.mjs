@@ -426,3 +426,22 @@ test("Conversation State renders a normalized update and all 18 reducer actions"
   assert.match(html, /requestId/);
   assert.match(html, /Identity evidence/);
 });
+
+test("Streaming React renders the frame timing trace and four honest profiles", async () => {
+  const response = await render("/lessons/streaming-react");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /One animation-frame commit/);
+  assert.match(html, /t = 2 ms/);
+  assert.match(html, /Pending render-delta queue/);
+  assert.match(html, /requestAnimationFrame/);
+  assert.match(html, /TOKEN_BATCH/);
+  assert.match(html, /Scroll-follow gate/);
+  assert.match(html, /drop pending text → cancel scheduled frame → reject late deltas/);
+  assert.match(html, /Burst/);
+  assert.match(html, /Steady/);
+  assert.match(html, /Stalled/);
+  assert.match(html, /Cancelled/);
+  assert.match(html, /Run burst/);
+  assert.match(html, /bounded live-region contents/);
+});

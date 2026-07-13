@@ -86,13 +86,14 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
   const isStreamingTransport = lesson.id === "streaming-transport";
   const isReliabilityObservability = lesson.id === "reliability-observability";
   const isConversationState = lesson.id === "conversation-state";
+  const isStreamingReact = lesson.id === "streaming-react";
   const recurrentSteps = [
     { time: "t − 1", input: "x_(t−1)", previous: "h_(t−2)", state: "h_(t−1)", prediction: "p(x_t)" },
     { time: "t", input: "x_t", previous: "h_(t−1)", state: "h_t", prediction: "p(x_(t+1))" },
     { time: "t + 1", input: "x_(t+1)", previous: "h_t", state: "h_(t+1)", prediction: "p(x_(t+2))" },
   ];
   return (
-    <figure className={`concept-diagram${isRecurrent ? " recurrence-diagram" : ""}${isNeuralLanguageModel ? " neural-lm-diagram" : ""}${isSubwordTokenization ? " subword-tokenization-diagram" : ""}${isAdditiveAttention ? " additive-attention-diagram" : ""}${isTransformer ? " transformer-attention-diagram" : ""}${isInContextLearning ? " icl-comparison-diagram" : ""}${isInferenceRuntime ? " inference-runtime-diagram" : ""}${isSchedulingMemory ? " scheduling-memory-diagram" : ""}${isStreamingTransport ? " streaming-transport-diagram" : ""}${isReliabilityObservability ? " reliability-observability-diagram" : ""}${isConversationState ? " conversation-state-diagram" : ""}`}>
+    <figure className={`concept-diagram${isRecurrent ? " recurrence-diagram" : ""}${isNeuralLanguageModel ? " neural-lm-diagram" : ""}${isSubwordTokenization ? " subword-tokenization-diagram" : ""}${isAdditiveAttention ? " additive-attention-diagram" : ""}${isTransformer ? " transformer-attention-diagram" : ""}${isInContextLearning ? " icl-comparison-diagram" : ""}${isInferenceRuntime ? " inference-runtime-diagram" : ""}${isSchedulingMemory ? " scheduling-memory-diagram" : ""}${isStreamingTransport ? " streaming-transport-diagram" : ""}${isReliabilityObservability ? " reliability-observability-diagram" : ""}${isConversationState ? " conversation-state-diagram" : ""}${isStreamingReact ? " streaming-react-diagram" : ""}`}>
       <header><span>Mechanism</span><strong>{lesson.diagram.title}</strong></header>
       {isRecurrent ? (
         <div className="recurrence-unroll" role="img" aria-label="Three recurrent time steps. Each input and previous hidden state produce a new hidden state, then logits and a next-character probability. The hidden state flows into the next step and the same parameters are reused.">
@@ -364,6 +365,35 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
             <span><b>New identities</b><code>next !== state · next.m-a1 !== state.m-a1</code></span>
             <span><b>Preserved identity</b><code>next.m-u1 === state.m-u1</code></span>
             <span><b>Derived controls</b><code>canStop: true · canRegenerate: false</code></span>
+          </div>
+        </div>
+      ) : isStreamingReact ? (
+        <div className="streaming-react-worked" role="img" aria-label="A worked React render timing trace. Parsed token events containing A, a leading-space causal, and a leading-space euro symbol arrive at 2, 7, and 11 milliseconds. They enter a UI render-delta queue in exact order. At the 16 millisecond requestAnimationFrame boundary, the queue flushes once and dispatches one TOKEN_BATCH action containing A causal euro, producing one visual commit. A separate near-bottom gate allows scroll following, while a bounded live region announces a semantic batch. Completion flushes pending text before terminal state; cancellation drops pending text, rejects late deltas, and cancels the scheduled frame.">
+          <div className="streaming-event-arrivals">
+            <span><b>t = 2 ms</b><code>token · &quot;A&quot;</code></span>
+            <span><b>t = 7 ms</b><code>token · &quot; causal&quot;</code></span>
+            <span><b>t = 11 ms</b><code>token · &quot; €&quot;</code></span>
+          </div>
+          <ol className="streaming-render-path">
+            {lesson.diagram.nodes.map((node, index) => (
+              <li key={node.label}>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <div><strong>{node.label}</strong><code>{node.value}</code></div>
+              </li>
+            ))}
+          </ol>
+          <div className="streaming-commit-evidence">
+            <span><b>Queue before frame</b><code>[&quot;A&quot;, &quot; causal&quot;, &quot; €&quot;]</code></span>
+            <span><b>One reducer action</b><code>{'{ type: "TOKEN_BATCH", delta: "A causal €" }'}</code></span>
+            <span><b>Visible result</b><code>A causal €</code></span>
+          </div>
+          <div className="streaming-independent-policies">
+            <span><b>Scroll-follow gate</b><code>24 px ≤ 80 px ∧ userScrolledUp false → follow</code><em>evaluated independently after the visual commit</em></span>
+            <span><b>Live region</b><code>“Assistant: A causal €”</code><em>one bounded semantic announcement, not three token announcements</em></span>
+          </div>
+          <div className="streaming-terminal-policies">
+            <span><b>Complete</b> flush pending text → dispatch final batch → announce completion.</span>
+            <span><b>Cancel</b> drop pending text → cancel scheduled frame → reject late deltas.</span>
           </div>
         </div>
       ) : (

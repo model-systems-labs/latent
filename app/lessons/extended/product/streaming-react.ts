@@ -24,17 +24,18 @@ export const streamingReactLesson = defineExtendedLesson({
     ],
     claims: {
       paper: "ReadableStream exposes asynchronous chunk consumption with cancellation and backpressure-aware primitives.",
-      lab: "A React-style render scheduler buffers transport deltas, respects user scroll position, and emits bounded accessibility announcements.",
+      lab: "A deterministic React-style scheduler compares burst, steady, stalled, and cancelled delivery while exposing every visual commit, scroll decision, live announcement, and cleanup result.",
       limit: "The deterministic lab does not benchmark every browser, renderer, or assistive technology combination.",
     },
     diagram: {
-      title: "Stream-to-render pipeline",
-      caption: "Transport frequency and visual render frequency are related but deliberately not identical.",
+      title: "One animation-frame commit",
+      caption: "Typed token events are already parsed. The UI queue preserves their exact text until one animation-frame callback dispatches a render delta; scrolling, announcements, and cancellation remain separate policies.",
       nodes: [
-        { label: "ReadableStream", value: "typed events" },
-        { label: "Frame buffer", value: "merge deltas" },
-        { label: "Reducer", value: "one immutable update" },
-        { label: "View", value: "text + live region" },
+        { label: "Typed token events", value: "t=2 ‘A’ · t=7 ‘ causal’ · t=11 ‘ €’" },
+        { label: "Pending render-delta queue", value: "[‘A’, ‘ causal’, ‘ €’] · order retained" },
+        { label: "requestAnimationFrame", value: "t=16 ms · flush once" },
+        { label: "Reducer dispatch", value: "TOKEN_BATCH · delta ‘A causal €’" },
+        { label: "Visual commit", value: "one render · announcement remains bounded" },
       ],
     },
     questions: { intro: "Ask about render batching, scroll following, cancellation, live regions, or stream consumption.", suggestions: ["Why not render every token?", "When should auto-scroll stop?", "How should streaming be announced accessibly?"] },
@@ -49,8 +50,8 @@ export const streamingReactLesson = defineExtendedLesson({
           purpose: "Merge token deltas into one frame-sized visual update.",
           concepts: [
             { name: "pending", detail: "Deltas received since the previous visual commit." },
-            { name: "join", detail: "Preserves exact generation order." },
-            { name: "flush", detail: "Returns one string and clears the pending buffer." },
+            { name: "join", detail: "Preserves exact order, whitespace, empty strings, and Unicode without separators." },
+            { name: "flush", detail: "Returns one string and a fresh empty queue without mutating the read-only input." },
           ],
           code: `function flushTokenBuffer(pending) {
   return { text: pending.join(""), remaining: [] };
@@ -76,5 +77,5 @@ return { passed: near === true && reading === false, detail: "near bottom follow
         },
       ],
     },
-    experiment: { kind: "product", variant: "streaming-ui", title: "Render the token stream", intro: "Compare 60 transport deltas with buffered visual commits, cancellation, scroll-follow state, and accessibility announcements." },
+    experiment: { kind: "product", variant: "streaming-ui", title: "Render the token stream", intro: "Run the same 60-delta response through burst, steady, stalled, and cancelled timing profiles. Inspect exact visual commits, scroll-follow decisions, bounded live-region contents, and terminal cleanup." },
   });

@@ -2576,6 +2576,137 @@ button:disabled {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.streaming-react-worked {
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+}
+
+.streaming-event-arrivals,
+.streaming-commit-evidence,
+.streaming-independent-policies,
+.streaming-terminal-policies {
+  display: grid;
+}
+
+.streaming-event-arrivals,
+.streaming-commit-evidence {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.streaming-independent-policies,
+.streaming-terminal-policies {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.streaming-event-arrivals > span,
+.streaming-commit-evidence > span,
+.streaming-independent-policies > span,
+.streaming-terminal-policies > span {
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
+  padding: 0.8rem 0;
+}
+
+.streaming-event-arrivals > span + span,
+.streaming-commit-evidence > span + span,
+.streaming-independent-policies > span + span,
+.streaming-terminal-policies > span + span {
+  border-left: 1px solid var(--line);
+  padding-left: 0.85rem;
+}
+
+.streaming-event-arrivals b,
+.streaming-commit-evidence b,
+.streaming-independent-policies b,
+.streaming-terminal-policies b {
+  color: var(--violet);
+  font-size: 0.52rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.streaming-event-arrivals code,
+.streaming-commit-evidence code,
+.streaming-independent-policies code,
+.streaming-independent-policies em,
+.streaming-terminal-policies > span {
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 0.52rem;
+  font-style: normal;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.streaming-independent-policies em,
+.streaming-terminal-policies > span {
+  color: var(--muted);
+}
+
+.streaming-render-path {
+  border-top: 1px solid var(--line);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.streaming-render-path li {
+  align-items: baseline;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 1.5rem minmax(0, 1fr);
+  padding: 0.68rem 0;
+  position: relative;
+}
+
+.streaming-render-path li + li {
+  border-top: 1px solid var(--line);
+}
+
+.streaming-render-path li:not(:last-child)::after {
+  bottom: -0.34rem;
+  color: var(--violet);
+  content: "↓";
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  left: 0.46rem;
+  position: absolute;
+  z-index: 1;
+}
+
+.streaming-render-path li > span {
+  color: var(--faint);
+  font-family: var(--mono);
+  font-size: 0.52rem;
+}
+
+.streaming-render-path li > div {
+  align-items: baseline;
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: minmax(7.8rem, 0.7fr) minmax(0, 1.3fr);
+}
+
+.streaming-render-path strong {
+  font-size: 0.66rem;
+  font-weight: 560;
+}
+
+.streaming-render-path code {
+  color: var(--violet-deep);
+  font-size: 0.55rem;
+  line-height: 1.45;
+  text-align: right;
+}
+
+.streaming-commit-evidence,
+.streaming-independent-policies,
+.streaming-terminal-policies {
+  border-top: 1px solid var(--line);
+}
+
 .scheduler-shared-workload {
   border-bottom: 1px solid var(--line);
   display: grid;
@@ -3357,6 +3488,87 @@ button:disabled {
   border-radius: 0;
   padding-left: 0;
   padding-right: 0;
+}
+
+.experiment-lab .stream-preview.cancelled > span {
+  color: #8d5a54;
+}
+
+.experiment-lab .streaming-ui-trace > div {
+  grid-template-columns: 5rem minmax(7rem, 0.35fr) minmax(0, 1fr);
+}
+
+.streaming-policy-evidence {
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 1rem;
+}
+
+.streaming-policy-evidence > span {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+  padding: 0.8rem 0;
+}
+
+.streaming-policy-evidence > span + span {
+  border-left: 1px solid var(--line);
+  padding-left: 0.9rem;
+}
+
+.streaming-policy-evidence b,
+.streaming-announcement-log > span {
+  color: var(--violet);
+  font-size: 0.52rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.streaming-policy-evidence code {
+  color: var(--muted);
+  font-size: 0.54rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.streaming-announcement-log {
+  padding-top: 1rem;
+}
+
+.streaming-announcement-log ol {
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  list-style: none;
+  margin: 0.7rem 0 0;
+  padding: 0;
+}
+
+.streaming-announcement-log li {
+  align-items: baseline;
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: 1.5rem minmax(0, 1fr);
+  padding: 0.65rem 0;
+}
+
+.streaming-announcement-log li + li {
+  border-top: 1px solid var(--line);
+}
+
+.streaming-announcement-log li b {
+  color: var(--faint);
+  font-family: var(--mono);
+  font-size: 0.5rem;
+  font-weight: 500;
+}
+
+.streaming-announcement-log li code {
+  color: var(--ink);
+  font-size: 0.56rem;
+  line-height: 1.45;
 }
 
 .experiment-lab .context-stack {

@@ -393,6 +393,131 @@ function IclExperiment({ onComplete }: ExperimentProps) {
 
 type SystemsVariant = "runtime" | "streaming" | "scheduling" | "reliability";
 type ProductVariant = "state" | "streaming-ui" | "context-actions" | "quality";
+type StreamingUiProfile = "burst" | "steady" | "stalled" | "cancelled";
+
+const STREAMING_UI_PROFILES = {
+  burst: {
+    label: "Burst",
+    description: "60 deltas arrive in twelve short bursts before animation-frame boundaries.",
+    status: "complete",
+    output: "A causal mask prevents each token from reading positions that occur later in the sequence. The masked logits become zero probability after softmax.",
+    metrics: [
+      { label: "Delivered deltas", value: "60 / 60" },
+      { label: "Visual commits", value: "12" },
+      { label: "Live announcements", value: "4" },
+      { label: "Dropped text", value: "0 chars" },
+    ],
+    trace: [
+      { time: "0–15 ms", label: "Burst 01", detail: "deltas 1–5 enter the pending UI queue in arrival order; no reducer dispatch yet" },
+      { time: "16 ms", label: "Frame 01", detail: "flush 5 deltas → one TOKEN_BATCH dispatch → visual commit 1/12" },
+      { time: "32–176 ms", label: "Frames 02–11", detail: "ten more frame callbacks flush 50 deltas → commits 2–11; transport order is unchanged" },
+      { time: "192 ms", label: "Frame 12", detail: "final 5 deltas flush → commit 12/12 → pending queue length 0" },
+      { time: "193 ms", label: "Complete", detail: "terminal status committed; no scheduled frame, pending text, or open reader remains" },
+    ],
+    scroll: "Following · 24 px from bottom ≤ 80 px · userScrolledUp false",
+    announcements: [
+      "Assistant: A causal mask prevents",
+      "Assistant: each token from reading future positions",
+      "Assistant: masked logits become zero probability",
+      "Assistant response complete.",
+    ],
+    cleanup: "complete → flush final pending text → announce completion → release reader",
+    dropped: "none",
+  },
+  steady: {
+    label: "Steady",
+    description: "60 deltas arrive eight milliseconds apart, usually two per animation frame.",
+    status: "complete",
+    output: "A causal mask prevents each token from reading positions that occur later in the sequence. The masked logits become zero probability after softmax.",
+    metrics: [
+      { label: "Delivered deltas", value: "60 / 60" },
+      { label: "Visual commits", value: "30" },
+      { label: "Live announcements", value: "4" },
+      { label: "Dropped text", value: "0 chars" },
+    ],
+    trace: [
+      { time: "0–15 ms", label: "Deltas 01–02", detail: "two parsed token events queue while one frame callback is scheduled" },
+      { time: "16 ms", label: "Frame 01", detail: "flush 2 deltas → one TOKEN_BATCH dispatch → visual commit 1/30" },
+      { time: "32–464 ms", label: "Frames 02–29", detail: "56 more deltas flush in ordered pairs → commits 2–29" },
+      { time: "480 ms", label: "Frame 30", detail: "final 2 deltas flush → commit 30/30 → pending queue length 0" },
+      { time: "481 ms", label: "Complete", detail: "terminal status committed; scheduled frame cleared and reader released" },
+    ],
+    scroll: "Following · 0 px from bottom ≤ 80 px · userScrolledUp false",
+    announcements: [
+      "Assistant: A causal mask prevents",
+      "Assistant: each token from reading future positions",
+      "Assistant: masked logits become zero probability",
+      "Assistant response complete.",
+    ],
+    cleanup: "complete → pending queue already empty → announce completion → release reader",
+    dropped: "none",
+  },
+  stalled: {
+    label: "Stalled",
+    description: "The same response pauses for 440 milliseconds after delta 24, then resumes.",
+    status: "complete",
+    output: "A causal mask prevents each token from reading positions that occur later in the sequence. The masked logits become zero probability after softmax.",
+    metrics: [
+      { label: "Delivered deltas", value: "60 / 60" },
+      { label: "Visual commits", value: "14" },
+      { label: "Live announcements", value: "4" },
+      { label: "Dropped text", value: "0 chars" },
+    ],
+    trace: [
+      { time: "0–80 ms", label: "Opening bursts", detail: "deltas 1–24 flush across 5 visual commits; pending queue length returns to 0" },
+      { time: "96–520 ms", label: "Transport stall", detail: "no deltas arrive, so no frame is scheduled and no empty reducer dispatch occurs" },
+      { time: "536 ms", label: "Resume", detail: "delta 25 schedules the next animation frame without replaying old content" },
+      { time: "552–680 ms", label: "Frames 06–14", detail: "deltas 25–60 flush in order → commits 6–14; all 60 deltas are visible" },
+      { time: "681 ms", label: "Complete", detail: "terminal status committed; pending queue 0, scheduled frame none, reader released" },
+    ],
+    scroll: "Paused · 214 px from bottom > 80 px · generation continues without moving the reader",
+    announcements: [
+      "Assistant: A causal mask prevents",
+      "Assistant: response paused; partial text remains available",
+      "Assistant: masked logits become zero probability",
+      "Assistant response complete.",
+    ],
+    cleanup: "complete → flush final resumed batch → announce completion → release reader",
+    dropped: "none",
+  },
+  cancelled: {
+    label: "Cancelled",
+    description: "Cancellation arrives with three delivered deltas still pending before the next frame.",
+    status: "cancelled",
+    output: "A causal mask prevents each token from reading future",
+    metrics: [
+      { label: "Delivered deltas", value: "23 / 60" },
+      { label: "Visual commits", value: "4" },
+      { label: "Live announcements", value: "2" },
+      { label: "Dropped text", value: "11 chars" },
+    ],
+    trace: [
+      { time: "0–64 ms", label: "Committed prefix", detail: "deltas 1–20 flush across 4 frame callbacks → visual commits 1–4" },
+      { time: "65–69 ms", label: "Pending tail", detail: "deltas 21–23 form the exact uncommitted text “ positions.”; next frame is scheduled" },
+      { time: "70 ms", label: "Cancel", detail: "drop 3 pending deltas / 11 characters and cancel the scheduled animation-frame callback" },
+      { time: "70 ms", label: "Terminal", detail: "request status becomes cancelled; partial committed response remains visible" },
+      { time: "71 ms", label: "Late delta", detail: "one post-cancel event is rejected; reader cancelled and generator return path confirmed" },
+    ],
+    scroll: "Paused · 18 px from bottom but userScrolledUp true · explicit reader control wins",
+    announcements: [
+      "Assistant: A causal mask prevents each token from reading future",
+      "Assistant generation cancelled. Partial response retained.",
+    ],
+    cleanup: "cancelled → drop pending “ positions.” → cancel frame → cancel reader → reject late delta",
+    dropped: '" positions." · 3 pending deltas · 11 characters',
+  },
+} satisfies Record<StreamingUiProfile, {
+  label: string;
+  description: string;
+  status: "complete" | "cancelled";
+  output: string;
+  metrics: Array<{ label: string; value: string }>;
+  trace: Array<{ time: string; label: string; detail: string }>;
+  scroll: string;
+  announcements: string[];
+  cleanup: string;
+  dropped: string;
+}>;
 
 function SystemsExperiment({ variant, onComplete }: { variant: SystemsVariant } & ExperimentProps) {
   const [policy, setPolicy] = useState<"static" | "continuous">("continuous");
@@ -582,6 +707,7 @@ function ProductExperiment({ variant, onComplete }: { variant: ProductVariant } 
   const [stateFlow, setStateFlow] = useState<"complete" | "cancel" | "regenerate">("complete");
   const [budget, setBudget] = useState(36);
   const [ran, setRan] = useState(false);
+  const [streamProfile, setStreamProfile] = useState<StreamingUiProfile>("burst");
   const stateTraces = {
     complete: [
       { number: 1, action: "USER_MESSAGE", status: "complete", messageId: "m-u1", attemptId: "—", requestId: "—", content: "Explain causal masking.", canStop: false, canRegenerate: false, applied: true, evidence: "state revision 0 → 1 · conversation order appends m-u1" },
@@ -639,10 +765,36 @@ function ProductExperiment({ variant, onComplete }: { variant: ProductVariant } 
     );
   }
   if (variant === "streaming-ui") {
+    const profile = STREAMING_UI_PROFILES[streamProfile];
+    const chooseProfile = (nextProfile: StreamingUiProfile) => {
+      setStreamProfile(nextProfile);
+      setRan(false);
+    };
     return (
       <>
-        <div className="experiment-action"><p>60 transport deltas · frame-buffered React commits · bounded live announcements</p><button type="button" onClick={() => { setRan(true); onComplete(); }}>{ran ? "Replay stream" : "Render stream"}</button></div>
-        {ran ? <div className="simulation-result product-simulation"><div className="metric-grid"><span><em>Transport deltas</em><strong>60</strong></span><span><em>Visual commits</em><strong>12</strong></span><span><em>Live announcements</em><strong>4</strong></span><span><em>Dropped text</em><strong>0</strong></span></div><article className="stream-preview"><span>Assistant · generating</span><p>A causal mask prevents each token from reading positions that occur later in the sequence. The masked logits become zero probability after softmax.</p><i><b /></i></article><p className="simulation-artifact">Reader remains 214 px from the bottom → auto-scroll paused; generation continues.</p></div> : <p className="experiment-empty">Render and accessibility metrics appear here.</p>}
+        <div className="simulation-controls streaming-profile-controls">
+          <span>Timing profile</span>
+          {(Object.keys(STREAMING_UI_PROFILES) as StreamingUiProfile[]).map((key) => (
+            <button className={streamProfile === key ? "selected" : ""} type="button" onClick={() => chooseProfile(key)} key={key}>{STREAMING_UI_PROFILES[key].label}</button>
+          ))}
+        </div>
+        <div className="experiment-action"><p>{profile.description}</p><button type="button" onClick={() => { setRan(true); onComplete(); }}>{ran ? `Replay ${profile.label.toLowerCase()}` : `Run ${profile.label.toLowerCase()}`}</button></div>
+        {ran ? (
+          <div className="simulation-result product-simulation streaming-ui-result">
+            <div className="metric-grid">{profile.metrics.map((metric) => <span key={metric.label}><em>{metric.label}</em><strong>{metric.value}</strong></span>)}</div>
+            <article className={`stream-preview ${profile.status}`}><span>Assistant · {profile.status}</span><p>{profile.output}</p><i><b style={{ width: `${profile.status === "cancelled" ? 38 : 100}%` }} /></i></article>
+            <div className="trace-list streaming-ui-trace">{profile.trace.map((event) => <div key={`${event.time}-${event.label}`}><span>{event.time}</span><strong>{event.label}</strong><p>{event.detail}</p></div>)}</div>
+            <div className="streaming-policy-evidence">
+              <span><b>Scroll-follow result</b><code>{profile.scroll}</code></span>
+              <span><b>Terminal cleanup</b><code>{profile.cleanup}</code></span>
+              <span><b>Exact dropped text</b><code>{profile.dropped}</code></span>
+            </div>
+            <div className="streaming-announcement-log">
+              <span>Bounded live-region writes · {profile.announcements.length}</span>
+              <ol>{profile.announcements.map((announcement, index) => <li key={`${index}-${announcement}`}><b>{String(index + 1).padStart(2, "0")}</b><code>{announcement}</code></li>)}</ol>
+            </div>
+          </div>
+        ) : <p className="experiment-empty">Run this profile to inspect commits, scroll state, announcements, dropped text, and cleanup.</p>}
       </>
     );
   }

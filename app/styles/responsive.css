@@ -276,6 +276,32 @@
     padding-left: 0;
   }
 
+  .streaming-event-arrivals,
+  .streaming-commit-evidence,
+  .streaming-independent-policies,
+  .streaming-terminal-policies {
+    grid-template-columns: 1fr;
+  }
+
+  .streaming-event-arrivals > span + span,
+  .streaming-commit-evidence > span + span,
+  .streaming-independent-policies > span + span,
+  .streaming-terminal-policies > span + span {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    padding-left: 0;
+  }
+
+  .streaming-render-path li > div {
+    align-items: start;
+    gap: 0.3rem;
+    grid-template-columns: 1fr;
+  }
+
+  .streaming-render-path code {
+    text-align: left;
+  }
+
   .conversation-identity-chain {
     align-items: start;
     gap: 0.25rem;
@@ -293,6 +319,28 @@
 
   .state-flow-controls button {
     text-align: left;
+  }
+
+  .streaming-profile-controls button {
+    text-align: left;
+  }
+
+  .streaming-policy-evidence {
+    grid-template-columns: 1fr;
+  }
+
+  .streaming-policy-evidence > span + span {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    padding-left: 0;
+  }
+
+  .experiment-lab .streaming-ui-trace > div {
+    grid-template-columns: 4.5rem minmax(0, 1fr);
+  }
+
+  .experiment-lab .streaming-ui-trace > div > p {
+    grid-column: 2;
   }
 
   .state-inspector {

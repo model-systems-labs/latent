@@ -1164,10 +1164,37 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     cases: [
       {
         id: "ordered-token-burst",
-        label: "Combines queued deltas into one render update",
+        label: "Flushes every read-only queued delta in exact order",
         args: [["Hel", "lo", " ", "world"]],
-        assertions: [equal("flushed-buffer", "Preserves token order and clears the queue", {
+        assertions: [equal("flushed-buffer", "Join every queued delta with no inserted separator, then return a fresh empty remaining queue", {
           text: "Hello world",
+          remaining: [],
+        })],
+      },
+      {
+        id: "whitespace-and-unicode",
+        label: "Preserves empty, whitespace, newline, and Unicode deltas",
+        args: [["", " leading", "\n", "€", " ", "尾"]],
+        assertions: [equal("exact-text", "Preserve each delta byte-for-byte as JavaScript text, including whitespace and Unicode", {
+          text: " leading\n€ 尾",
+          remaining: [],
+        })],
+      },
+      {
+        id: "empty-queue",
+        label: "Flushes an empty queue without inventing text",
+        args: [[]],
+        assertions: [equal("empty-flush", "Return empty text and an empty remaining queue when no deltas are pending", {
+          text: "",
+          remaining: [],
+        })],
+      },
+      {
+        id: "order-is-not-sort-order",
+        label: "Keeps arrival order rather than sorting or deduplicating",
+        args: [["z", " ", "a", "a"]],
+        assertions: [equal("arrival-order", "Do not sort, deduplicate, or otherwise normalize the pending deltas", {
+          text: "z aa",
           remaining: [],
         })],
       },
@@ -1183,13 +1210,43 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
         id: "near-bottom",
         label: "Follows generation while the reader is near the bottom",
         args: [{ distanceFromBottom: 24, userScrolledUp: false }],
-        assertions: [equal("follows", "Keeps the latest output visible", true)],
+        assertions: [equal("follows", "Follow when distanceFromBottom is within the default 80-pixel threshold and the reader has not scrolled up", true)],
+      },
+      {
+        id: "exact-default-boundary",
+        label: "Includes the exact default threshold boundary",
+        args: [{ distanceFromBottom: 80, userScrolledUp: false }],
+        assertions: [equal("inclusive-boundary", "Use distanceFromBottom <= threshold so the exact boundary still follows", true)],
+      },
+      {
+        id: "beyond-default-boundary",
+        label: "Stops following beyond the default threshold",
+        args: [{ distanceFromBottom: 81, userScrolledUp: false }],
+        assertions: [equal("outside-default", "Return false when distanceFromBottom exceeds the default 80-pixel threshold", false)],
       },
       {
         id: "reader-scrolled-up",
         label: "Preserves reader control after a manual scroll",
         args: [{ distanceFromBottom: 24, userScrolledUp: true }],
-        assertions: [equal("does-not-follow", "Does not pull the reader away", false)],
+        assertions: [equal("does-not-follow", "Let userScrolledUp override a near-bottom distance so manual reading is never pulled away", false)],
+      },
+      {
+        id: "custom-threshold-inside",
+        label: "Uses a supplied custom threshold at its boundary",
+        args: [{ distanceFromBottom: 12, userScrolledUp: false, threshold: 12 }],
+        assertions: [equal("custom-inside", "Use the supplied threshold instead of a fixed 80-pixel value", true)],
+      },
+      {
+        id: "custom-threshold-outside",
+        label: "Stops beyond a supplied custom threshold",
+        args: [{ distanceFromBottom: 13, userScrolledUp: false, threshold: 12 }],
+        assertions: [equal("custom-outside", "Compare distanceFromBottom with the supplied threshold on every call", false)],
+      },
+      {
+        id: "zero-threshold",
+        label: "Honors an explicit zero threshold",
+        args: [{ distanceFromBottom: 0, userScrolledUp: false, threshold: 0 }],
+        assertions: [equal("zero-boundary", "Do not replace an explicit threshold of zero with the default", true)],
       },
     ],
   }),
@@ -1282,6 +1339,6 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
 ];
 
 export const llmSystemsContractSuite: ContractSuite = {
-  contractVersion: "llm-systems-contracts-v11",
+  contractVersion: "llm-systems-contracts-v12",
   contracts: llmSystemsExerciseContracts,
 };

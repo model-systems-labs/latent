@@ -950,21 +950,45 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     cases: [
       {
         id: "transient-before-output",
-        label: "Retries a transient failure before visible output",
+        label: "Retries the first transient attempt before visible output",
         args: [{ transient: true, tokensEmitted: 0, attempt: 0 }],
-        assertions: [equal("retry", "Allows the safe retry", true)],
+        assertions: [equal("retry", "Return true when the first attempt failed transiently, emitted nothing, and the default two-attempt budget has room", true)],
+      },
+      {
+        id: "permanent-before-output",
+        label: "Rejects a permanent failure before visible output",
+        args: [{ transient: false, tokensEmitted: 0, attempt: 0, maxAttempts: 3 }],
+        assertions: [equal("permanent-no-retry", "Return false for a non-transient failure even when no token is visible and attempts remain", false)],
       },
       {
         id: "transient-after-output",
-        label: "Rejects a transparent retry after visible output",
-        args: [{ transient: true, tokensEmitted: 3, attempt: 0 }],
-        assertions: [equal("no-retry", "Prevents duplicate visible generation", false)],
+        label: "Closes the transparent-retry boundary after visible output",
+        args: [{ transient: true, tokensEmitted: 1, attempt: 0, maxAttempts: 3 }],
+        assertions: [equal("no-retry", "Return false once tokensEmitted is greater than zero; retrying could duplicate text the user already saw", false)],
       },
       {
-        id: "attempt-limit",
-        label: "Rejects a retry at the attempt limit",
-        args: [{ transient: true, tokensEmitted: 0, attempt: 2, maxAttempts: 2 }],
-        assertions: [equal("bounded-retry", "Keeps retries bounded", false)],
+        id: "second-of-two-attempts",
+        label: "Rejects a retry from the second attempt in a two-attempt budget",
+        args: [{ transient: true, tokensEmitted: 0, attempt: 1, maxAttempts: 2 }],
+        assertions: [equal("bounded-retry", "Treat attempt as zero-based and maxAttempts as the total budget: attempt 1 is already the second and final attempt when maxAttempts is 2", false)],
+      },
+      {
+        id: "single-attempt-budget",
+        label: "Honors a one-attempt budget",
+        args: [{ transient: true, tokensEmitted: 0, attempt: 0, maxAttempts: 1 }],
+        assertions: [equal("single-attempt", "Return false when maxAttempts is 1 because the initial attempt consumed the entire budget", false)],
+      },
+      {
+        id: "custom-three-attempt-budget",
+        label: "Honors a larger custom attempt budget",
+        args: [{ transient: true, tokensEmitted: 0, attempt: 1, maxAttempts: 3 }],
+        assertions: [equal("custom-budget", "Use the supplied maxAttempts value: attempt 1 may retry once when the total budget is 3", true)],
+      },
+      {
+        id: "default-two-attempt-boundary",
+        label: "Applies the default two-attempt budget at its boundary",
+        args: [{ transient: true, tokensEmitted: 0, attempt: 1 }],
+        assertions: [equal("default-budget", "Apply the default maxAttempts of 2, making zero-based attempt 1 the final attempt", false)],
       },
     ],
   }),
@@ -976,15 +1000,45 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     cases: [
       {
         id: "late-completion-event",
-        label: "Rejects an event after a terminal state",
+        label: "Rejects an event after completion",
         args: [{ id: "r1", status: "complete" }, { requestId: "r1" }],
-        assertions: [equal("late-rejected", "Ignores the late event", false)],
+        assertions: [equal("late-rejected", "Return false after complete; terminal requests cannot accept another event", false)],
+      },
+      {
+        id: "late-error-event",
+        label: "Rejects an event after error",
+        args: [{ id: "r1", status: "error" }, { requestId: "r1" }],
+        assertions: [equal("error-rejected", "Return false after error; terminal requests cannot accept another event", false)],
+      },
+      {
+        id: "late-cancel-event",
+        label: "Rejects an event after cancellation",
+        args: [{ id: "r1", status: "cancelled" }, { requestId: "r1" }],
+        assertions: [equal("cancel-rejected", "Return false after cancelled; terminal requests cannot accept another event", false)],
       },
       {
         id: "matching-active-event",
         label: "Accepts an event for the active request",
         args: [{ id: "r2", status: "streaming" }, { requestId: "r2" }],
-        assertions: [equal("active-accepted", "Accepts the matching active event", true)],
+        assertions: [equal("active-accepted", "Return true for a matching event while the request is streaming", true)],
+      },
+      {
+        id: "matching-prefill-event",
+        label: "Accepts an event during a pre-token active phase",
+        args: [{ id: "r2", status: "prefill" }, { requestId: "r2" }],
+        assertions: [equal("prefill-accepted", "Treat prefill as active when the event carries the matching request id", true)],
+      },
+      {
+        id: "stale-attempt-event",
+        label: "Rejects an event from the retired attempt",
+        args: [{ id: "r-201.2", status: "streaming" }, { requestId: "r-201.1" }],
+        assertions: [equal("stale-rejected", "Compare request.id with event.requestId and return false for an event from an older attempt", false)],
+      },
+      {
+        id: "unknown-state-event",
+        label: "Rejects an event for an unknown non-active state",
+        args: [{ id: "r2", status: "reconnecting" }, { requestId: "r2" }],
+        assertions: [equal("unknown-rejected", "Accept only the known active states queued, loading, prefill, and streaming; return false for unknown states", false)],
       },
     ],
   }),
@@ -1154,6 +1208,6 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
 ];
 
 export const llmSystemsContractSuite: ContractSuite = {
-  contractVersion: "llm-systems-contracts-v9",
+  contractVersion: "llm-systems-contracts-v10",
   contracts: llmSystemsExerciseContracts,
 };

@@ -386,3 +386,22 @@ test("Streaming Transport renders the worked byte path and both stream policies"
   assert.match(html, /Cancel after 4 tokens/);
   assert.match(html, /decoded text chunks/);
 });
+
+test("Reliability and Observability renders an attempt-aware worked trace", async () => {
+  const response = await render("/lessons/reliability-observability");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /One request across two attempts/);
+  assert.match(html, /Logical request/);
+  assert.match(html, /r-201\.1/);
+  assert.match(html, /r-201\.2/);
+  assert.match(html, /Counterfactual · stop/);
+  assert.match(html, /Attempt 1 queue/);
+  assert.match(html, /End to end/);
+  assert.match(html, /Stale attempt/);
+  assert.match(html, /Queue timeout/);
+  assert.match(html, /Malformed frame/);
+  assert.match(html, /Worker crash/);
+  assert.match(html, /User abort/);
+  assert.match(html, /request and attempt ids · phase timing · terminal and resource evidence/);
+});

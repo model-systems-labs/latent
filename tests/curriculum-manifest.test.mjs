@@ -780,11 +780,81 @@ test("Scheduling and Memory preserves completion identities and catches page-bou
   ], "the authored reference must not mutate scheduler input");
 });
 
+test("Reliability and Observability binds retries and events to attempt identity", () => {
+  const lesson = course.courseLessons.find((candidate) => candidate.id === "reliability-observability");
+  assert.ok(lesson);
+  assert.match(lesson.summary[0].body, /logical request id/);
+  assert.match(lesson.summary[0].body, /new attempt id to every retry/);
+  assert.match(lesson.summary[1].body, /attempt is a zero-based index/);
+  assert.match(lesson.summary[1].body, /attempt \+ 1 < maxAttempts/);
+  assert.match(lesson.summary[2].body, /queued, loading, prefill, and streaming/);
+  assert.match(lesson.summary[3].body, /queue time, prefill time, time to first token/);
+  assert.equal(lesson.diagram.title, "One request across two attempts");
+  assert.match(lesson.diagram.nodes[1].value, /0 \+ 1 < 2 → retry/);
+  assert.match(lesson.diagram.nodes[4].value, /r-201\.1 token rejected/);
+  assert.match(lesson.experiment.intro, /rejected late event/);
+
+  const byId = new Map(contracts.llmSystemsExerciseContracts.map((contract) => [contract.id, contract]));
+  const observe = (implementation, args) => {
+    try {
+      return { status: "returned", value: implementation(...args) };
+    } catch (reason) {
+      return {
+        status: "threw",
+        errorName: reason instanceof Error ? reason.name : "Error",
+        message: reason instanceof Error ? reason.message : String(reason),
+      };
+    }
+  };
+  const evaluate = (contract, implementation) => contract.cases.map((exerciseCase) =>
+    contractRuntime.evaluateExerciseCase(contract, exerciseCase, observe(implementation, exerciseCase.invoke.args)));
+  const rejects = (contract, implementation) => assert.ok(evaluate(contract, implementation).some((result) => !result.passed));
+  const accepts = (contract, implementation) => assert.ok(evaluate(contract, implementation).every((result) => result.passed));
+
+  const retry = byId.get("reliability-observability/retry-policy");
+  assert.ok(retry);
+  assert.equal(retry.cases.length, 7);
+  const ignoresVisibleOutput = ({ transient, attempt, maxAttempts = 2 }) => transient && attempt + 1 < maxAttempts;
+  const ignoresClassification = ({ tokensEmitted, attempt, maxAttempts = 2 }) => tokensEmitted === 0 && attempt + 1 < maxAttempts;
+  const offByOneBudget = ({ transient, tokensEmitted, attempt, maxAttempts = 2 }) => transient && tokensEmitted === 0 && attempt < maxAttempts;
+  const capsEveryBudgetAtTwo = ({ transient, tokensEmitted, attempt, maxAttempts = 2 }) => transient && tokensEmitted === 0 && maxAttempts > 1 && attempt < 1;
+  rejects(retry, ignoresVisibleOutput);
+  rejects(retry, ignoresClassification);
+  rejects(retry, offByOneBudget);
+  rejects(retry, capsEveryBudgetAtTwo);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(retry, ignoresVisibleOutput)), /Return false once tokensEmitted is greater than zero/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(retry, ignoresClassification)), /Return false for a non-transient failure/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(retry, offByOneBudget)), /attempt 1 is already the second and final attempt/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(retry, capsEveryBudgetAtTwo)), /Use the supplied maxAttempts value/);
+  const retryBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "retry-policy");
+  assert.ok(retryBlock);
+  accepts(retry, new Function(`${retryBlock.code}; return shouldRetry;`)());
+
+  const guard = byId.get("reliability-observability/terminal-guard");
+  assert.ok(guard);
+  assert.equal(guard.cases.length, 7);
+  const terminalOnly = (request) => !["complete", "error", "cancelled"].includes(request.status);
+  const identityOnly = (request, event) => request.id === event.requestId;
+  const missesCancelled = (request, event) => !["complete", "error"].includes(request.status) && request.id === event.requestId;
+  const acceptsUnknown = (request, event) => !["complete", "error", "cancelled"].includes(request.status) && request.id === event.requestId;
+  rejects(guard, terminalOnly);
+  rejects(guard, identityOnly);
+  rejects(guard, missesCancelled);
+  rejects(guard, acceptsUnknown);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(guard, terminalOnly)), /Compare request\.id with event\.requestId/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(guard, identityOnly)), /Return false after complete/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(guard, missesCancelled)), /Return false after cancelled/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(guard, acceptsUnknown)), /Accept only the known active states/);
+  const guardBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "terminal-guard");
+  assert.ok(guardBlock);
+  accepts(guard, new Function(`${guardBlock.code}; return acceptEvent;`)());
+});
+
 test("practice verification is inseparable from the exact editor source and contract version", () => {
   const block = { id: "rnn-step", code: "function rnnStep() { return 'reference'; }" };
   const correct = "function rnnStep() { return 'correct learner answer'; }";
   const wrong = "function rnnStep() { return 'wrong learner answer'; }";
-  const currentVersion = "llm-systems-contracts-v9";
+  const currentVersion = "llm-systems-contracts-v10";
   const bound = practiceState.bindBlockVerification(
     { ids: [], sources: {}, contractVersion: null },
     block.id,

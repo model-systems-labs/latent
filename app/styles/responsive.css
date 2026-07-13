@@ -222,6 +222,46 @@
     text-align: left;
   }
 
+  .reliability-request-spec {
+    grid-template-columns: 1fr;
+  }
+
+  .reliability-request-spec > span + span,
+  .reliability-retry-branch > span + span,
+  .reliability-guard-result > span + span {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    padding-left: 0;
+  }
+
+  .reliability-trace li > div {
+    align-items: start;
+    gap: 0.3rem;
+    grid-template-columns: 1fr;
+  }
+
+  .reliability-trace code {
+    text-align: left;
+  }
+
+  .reliability-retry-branch,
+  .reliability-guard-result {
+    grid-template-columns: 1fr;
+  }
+
+  .reliability-phase-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .reliability-phase-metrics > div:nth-child(4) {
+    border-left: 0;
+    padding-left: 0;
+  }
+
+  .reliability-phase-metrics > div:nth-child(n + 4) {
+    border-top: 1px solid var(--line);
+  }
+
   .scheduler-shared-workload {
     grid-template-columns: 1fr 1fr;
   }

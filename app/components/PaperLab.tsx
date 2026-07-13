@@ -84,13 +84,14 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
   const isInferenceRuntime = lesson.id === "inference-runtime";
   const isSchedulingMemory = lesson.id === "scheduling-memory";
   const isStreamingTransport = lesson.id === "streaming-transport";
+  const isReliabilityObservability = lesson.id === "reliability-observability";
   const recurrentSteps = [
     { time: "t − 1", input: "x_(t−1)", previous: "h_(t−2)", state: "h_(t−1)", prediction: "p(x_t)" },
     { time: "t", input: "x_t", previous: "h_(t−1)", state: "h_t", prediction: "p(x_(t+1))" },
     { time: "t + 1", input: "x_(t+1)", previous: "h_t", state: "h_(t+1)", prediction: "p(x_(t+2))" },
   ];
   return (
-    <figure className={`concept-diagram${isRecurrent ? " recurrence-diagram" : ""}${isNeuralLanguageModel ? " neural-lm-diagram" : ""}${isSubwordTokenization ? " subword-tokenization-diagram" : ""}${isAdditiveAttention ? " additive-attention-diagram" : ""}${isTransformer ? " transformer-attention-diagram" : ""}${isInContextLearning ? " icl-comparison-diagram" : ""}${isInferenceRuntime ? " inference-runtime-diagram" : ""}${isSchedulingMemory ? " scheduling-memory-diagram" : ""}${isStreamingTransport ? " streaming-transport-diagram" : ""}`}>
+    <figure className={`concept-diagram${isRecurrent ? " recurrence-diagram" : ""}${isNeuralLanguageModel ? " neural-lm-diagram" : ""}${isSubwordTokenization ? " subword-tokenization-diagram" : ""}${isAdditiveAttention ? " additive-attention-diagram" : ""}${isTransformer ? " transformer-attention-diagram" : ""}${isInContextLearning ? " icl-comparison-diagram" : ""}${isInferenceRuntime ? " inference-runtime-diagram" : ""}${isSchedulingMemory ? " scheduling-memory-diagram" : ""}${isStreamingTransport ? " streaming-transport-diagram" : ""}${isReliabilityObservability ? " reliability-observability-diagram" : ""}`}>
       <header><span>Mechanism</span><strong>{lesson.diagram.title}</strong></header>
       {isRecurrent ? (
         <div className="recurrence-unroll" role="img" aria-label="Three recurrent time steps. Each input and previous hidden state produce a new hidden state, then logits and a next-character probability. The hidden state flows into the next step and the same parameters are reused.">
@@ -306,6 +307,38 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
           <div className="transport-lifecycle-boundary">
             <span><b>Cancellation</b> AbortSignal stops reader → parser → generator and rejects late events.</span>
             <span><b>Render pacing</b> batches typed deltas into fewer UI commits; it never repairs byte or frame boundaries.</span>
+          </div>
+        </div>
+      ) : isReliabilityObservability ? (
+        <div className="reliability-worked-trace" role="img" aria-label="Worked reliability trace for logical request r-201. Attempt r-201.1 times out after 120 milliseconds with zero visible tokens, so the zero-based retry predicate allows attempt r-201.2 within a total budget of two attempts. The second attempt waits 14 milliseconds, prefills for 69 milliseconds, reaches time to first token at 83 milliseconds, decodes for 338 milliseconds, completes, and releases resources. A token from retired attempt r-201.1 and a post-completion token from r-201.2 are both rejected. If the first attempt had emitted one visible token, the retry branch would be blocked.">
+          <div className="reliability-request-spec">
+            <span><b>Logical request</b><code>r-201</code></span>
+            <span><b>Attempt budget</b><code>2 total · index 0–1</code></span>
+            <span><b>Identity rule</b><code>one active attempt id</code></span>
+          </div>
+          <ol className="reliability-trace">
+            {lesson.diagram.nodes.map((node, index) => (
+              <li key={node.label}>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <div><strong>{node.label}</strong><code>{node.value}</code></div>
+              </li>
+            ))}
+          </ol>
+          <div className="reliability-retry-branch">
+            <span><b>Observed path · retry</b><code>transient · visible 0 · 0 + 1 &lt; 2</code><em>retire r-201.1 → create r-201.2</em></span>
+            <span><b>Counterfactual · stop</b><code>transient · visible 1</code><em>preserve partial output → terminal error</em></span>
+          </div>
+          <dl className="reliability-phase-metrics">
+            <div><dt>Attempt 1 queue</dt><dd>120 ms</dd></div>
+            <div><dt>Attempt 2 queue</dt><dd>14 ms</dd></div>
+            <div><dt>Prefill</dt><dd>69 ms</dd></div>
+            <div><dt>TTFT</dt><dd>83 ms</dd></div>
+            <div><dt>Decode</dt><dd>338 ms</dd></div>
+            <div><dt>End to end</dt><dd>541 ms</dd></div>
+          </dl>
+          <div className="reliability-guard-result">
+            <span><b>Stale attempt</b><code>event r-201.1 ≠ active r-201.2 → reject</code></span>
+            <span><b>Terminal attempt</b><code>r-201.2 status complete → reject</code></span>
           </div>
         </div>
       ) : (

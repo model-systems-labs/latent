@@ -495,24 +495,56 @@ function SystemsExperiment({ variant, onComplete }: { variant: SystemsVariant } 
     }
     const scenarios: Record<string, { metrics: Array<{ label: string; value: string }>; trace: Array<{ label: string; detail: string; tone?: string }>; artifact: string }> = {
       "queue-timeout": {
-        metrics: [{ label: "Retry", value: "yes" }, { label: "Tokens visible", value: "0" }, { label: "Attempts", value: "2" }, { label: "Outcome", value: "complete" }],
-        trace: [{ label: "Queued", detail: "r-201 waits beyond admission deadline" }, { label: "Timeout", detail: "transient · no output emitted", tone: "warning" }, { label: "Retry", detail: "new attempt r-201.2 enters queue" }, { label: "Complete", detail: "attempt 2 streams normally" }],
-        artifact: "Safe retry: transient failure occurred before any user-visible token.",
+        metrics: [{ label: "Retry", value: "yes" }, { label: "Tokens visible", value: "0" }, { label: "Attempts", value: "2" }, { label: "TTFT · attempt 2", value: "83 ms" }, { label: "End to end", value: "541 ms" }, { label: "Outcome", value: "complete" }],
+        trace: [
+          { label: "Admit", detail: "logical request r-201 · active attempt r-201.1 · index 0/1" },
+          { label: "Queue timeout", detail: "r-201.1 queue 120 ms · transient · visible tokens 0", tone: "warning" },
+          { label: "Retry boundary", detail: "true ∧ 0 visible ∧ 0 + 1 < 2 → retire r-201.1; create r-201.2" },
+          { label: "Queue + prefill", detail: "r-201.2 queue 14 ms + prefill 69 ms → TTFT 83 ms" },
+          { label: "Stream", detail: "r-201.2 emits 10 ordered deltas · decode 338 ms" },
+          { label: "Complete", detail: "r-201.2 streaming → complete at 421 ms for this attempt · reader and KV pages released" },
+          { label: "Late event", detail: "token tagged r-201.1 rejected because r-201.2 is the retired request's successor · no state or resource count changes", tone: "warning" },
+        ],
+        artifact: "request r-201\nattempts r-201.1 timeout → r-201.2 complete\nqueue 120 + attempt-2 total 421 = end-to-end 541 ms\nlate events rejected 1 · open readers 0 · allocated KV pages 0",
       },
       "malformed-frame": {
-        metrics: [{ label: "Retry", value: "no" }, { label: "Tokens visible", value: "6" }, { label: "Parser errors", value: "1" }, { label: "Outcome", value: "error" }],
-        trace: [{ label: "Streaming", detail: "six token events applied" }, { label: "Parse error", detail: "invalid JSON in event data", tone: "error" }, { label: "Terminal", detail: "partial output preserved · transparent retry blocked" }],
-        artifact: "Unsafe retry: visible output already escaped the attempt boundary.",
+        metrics: [{ label: "Retry", value: "no" }, { label: "Tokens visible", value: "6" }, { label: "TTFT", value: "74 ms" }, { label: "Parser errors", value: "1" }, { label: "Late rejected", value: "1" }, { label: "Outcome", value: "error" }],
+        trace: [
+          { label: "Admit", detail: "logical request r-202 · active attempt r-202.1 · index 0/1" },
+          { label: "First token", detail: "queue 12 ms + prefill 62 ms → TTFT 74 ms" },
+          { label: "Visible output", detail: "r-202.1 applies six ordered token events" },
+          { label: "Parse error", detail: "invalid JSON frame at 192 ms · classified non-transient", tone: "error" },
+          { label: "Retry boundary", detail: "non-transient ∧ visible tokens 6 → no transparent retry; partial output remains" },
+          { label: "Terminal", detail: "r-202.1 streaming → error · reader cancelled and parser remainder discarded" },
+          { label: "Late event", detail: "post-error token tagged r-202.1 rejected by terminal status · open readers 0", tone: "warning" },
+        ],
+        artifact: "request r-202 · attempt r-202.1\nqueue 12 ms · prefill 62 ms · TTFT 74 ms · error 192 ms\npartial tokens preserved 6 · retry false\nlate events rejected 1 · open readers 0 · parser remainders 0",
       },
       "worker-crash": {
-        metrics: [{ label: "Retry", value: "yes" }, { label: "Tokens visible", value: "0" }, { label: "Worker restarts", value: "1" }, { label: "Outcome", value: "complete" }],
-        trace: [{ label: "Loading", detail: "worker starts model initialization" }, { label: "Crash", detail: "worker terminates before prefill", tone: "error" }, { label: "Restart", detail: "new worker owns a fresh model lifecycle" }, { label: "Complete", detail: "request succeeds on bounded retry" }],
-        artifact: "Worker failure cannot mutate React state after its request id is retired.",
+        metrics: [{ label: "Retry", value: "yes" }, { label: "Tokens visible", value: "0" }, { label: "Worker restarts", value: "1" }, { label: "TTFT · attempt 2", value: "101 ms" }, { label: "Late rejected", value: "1" }, { label: "Outcome", value: "complete" }],
+        trace: [
+          { label: "Admit", detail: "logical request r-203 · active attempt r-203.1 · index 0/1" },
+          { label: "Worker crash", detail: "r-203.1 exits during model loading at 44 ms · transient · visible tokens 0", tone: "error" },
+          { label: "Retry boundary", detail: "true ∧ 0 visible ∧ 0 + 1 < 2 → retire attempt and terminate worker 1" },
+          { label: "Restart", detail: "worker 2 owns r-203.2 and a fresh model lifecycle · queue 16 ms + prefill 85 ms" },
+          { label: "First token", detail: "r-203.2 TTFT 101 ms · decode 302 ms" },
+          { label: "Complete", detail: "r-203.2 → complete at 403 ms for this attempt · worker 2 remains healthy; request resources released" },
+          { label: "Late event", detail: "worker 1 message tagged r-203.1 rejected against active r-203.2", tone: "warning" },
+        ],
+        artifact: "request r-203\nattempts r-203.1 crash → r-203.2 complete\nworkers started 2 · crashed 1 · request resource owners released 2/2\nlate events rejected 1 · allocated KV pages 0",
       },
       "user-abort": {
-        metrics: [{ label: "Retry", value: "no" }, { label: "Tokens visible", value: "11" }, { label: "Abort latency", value: "14 ms" }, { label: "Outcome", value: "cancelled" }],
-        trace: [{ label: "Streaming", detail: "eleven token events applied" }, { label: "Abort", detail: "signal reaches reader and worker" }, { label: "Cancelled", detail: "partial message retained · late events ignored" }],
-        artifact: "Cancellation is a terminal user action, not an infrastructure error.",
+        metrics: [{ label: "Retry", value: "no" }, { label: "Tokens visible", value: "11" }, { label: "TTFT", value: "74 ms" }, { label: "Abort latency", value: "14 ms" }, { label: "Late rejected", value: "1" }, { label: "Outcome", value: "cancelled" }],
+        trace: [
+          { label: "Admit", detail: "logical request r-204 · active attempt r-204.1 · index 0/1" },
+          { label: "First token", detail: "queue 11 ms + prefill 63 ms → TTFT 74 ms" },
+          { label: "Streaming", detail: "r-204.1 applies eleven token events before the user presses stop" },
+          { label: "Abort", detail: "AbortSignal reaches reader and worker at 286 ms · classified as a user action" },
+          { label: "Terminal", detail: "r-204.1 streaming → cancelled in 14 ms · partial message retained · retry false" },
+          { label: "Release", detail: "reader cancelled · generator return path runs · KV pages released" },
+          { label: "Late event", detail: "post-cancel token tagged r-204.1 rejected by terminal status", tone: "warning" },
+        ],
+        artifact: "request r-204 · attempt r-204.1\nqueue 11 ms · prefill 63 ms · TTFT 74 ms\nabort 286 ms → cancelled 300 ms · latency 14 ms\nlate events rejected 1 · open readers 0 · allocated KV pages 0",
       },
     };
     setResult(scenarios[failure]);
@@ -533,7 +565,7 @@ function SystemsExperiment({ variant, onComplete }: { variant: SystemsVariant } 
       {variant === "reliability" ? (
         <div className="simulation-controls"><label><span>Injected failure</span><select value={failure} onChange={(event) => setFailure(event.target.value)}><option value="queue-timeout">Queue timeout</option><option value="malformed-frame">Malformed frame</option><option value="worker-crash">Worker crash</option><option value="user-abort">User abort</option></select></label></div>
       ) : null}
-      <div className="experiment-action"><p>{variant === "streaming" ? "Same deterministic response · adversarial chunks · explicit stop and release evidence" : "Deterministic browser simulation · repeatable seed · explicit resource accounting"}</p><button type="button" onClick={run}>{result ? "Run again" : "Run simulation"}</button></div>
+      <div className="experiment-action"><p>{variant === "streaming" ? "Same deterministic response · adversarial chunks · explicit stop and release evidence" : variant === "reliability" ? "Deterministic failures · request and attempt ids · phase timing · terminal and resource evidence" : "Deterministic browser simulation · repeatable seed · explicit resource accounting"}</p><button type="button" onClick={run}>{result ? "Run again" : "Run simulation"}</button></div>
       {result ? (
         <div className="simulation-result">
           <div className="metric-grid">{result.metrics.map((metric) => <span key={metric.label}><em>{metric.label}</em><strong>{metric.value}</strong></span>)}</div>

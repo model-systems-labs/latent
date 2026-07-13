@@ -2335,6 +2335,158 @@ button:disabled {
   margin-right: 0.32rem;
 }
 
+.reliability-worked-trace {
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+}
+
+.reliability-request-spec,
+.reliability-retry-branch,
+.reliability-guard-result {
+  display: grid;
+}
+
+.reliability-request-spec {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.reliability-request-spec > span,
+.reliability-retry-branch > span,
+.reliability-guard-result > span {
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
+  padding: 0.8rem 0;
+}
+
+.reliability-request-spec > span + span,
+.reliability-retry-branch > span + span,
+.reliability-guard-result > span + span {
+  border-left: 1px solid var(--line);
+  padding-left: 0.9rem;
+}
+
+.reliability-request-spec b,
+.reliability-retry-branch b,
+.reliability-guard-result b {
+  color: var(--violet);
+  font-size: 0.53rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.reliability-request-spec code,
+.reliability-retry-branch code,
+.reliability-retry-branch em,
+.reliability-guard-result code {
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 0.53rem;
+  font-style: normal;
+  line-height: 1.48;
+  overflow-wrap: anywhere;
+}
+
+.reliability-retry-branch em {
+  color: var(--muted);
+}
+
+.reliability-trace {
+  border-top: 1px solid var(--line);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.reliability-trace li {
+  align-items: baseline;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 1.5rem minmax(0, 1fr);
+  padding: 0.68rem 0;
+  position: relative;
+}
+
+.reliability-trace li + li {
+  border-top: 1px solid var(--line);
+}
+
+.reliability-trace li:not(:last-child)::after {
+  bottom: -0.34rem;
+  color: var(--violet);
+  content: "↓";
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  left: 0.46rem;
+  position: absolute;
+  z-index: 1;
+}
+
+.reliability-trace li > span {
+  color: var(--faint);
+  font-family: var(--mono);
+  font-size: 0.52rem;
+}
+
+.reliability-trace li > div {
+  align-items: baseline;
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: minmax(7.3rem, 0.65fr) minmax(0, 1.35fr);
+}
+
+.reliability-trace strong {
+  font-size: 0.66rem;
+  font-weight: 560;
+}
+
+.reliability-trace code {
+  color: var(--violet-deep);
+  font-size: 0.55rem;
+  line-height: 1.45;
+  text-align: right;
+}
+
+.reliability-retry-branch,
+.reliability-guard-result {
+  border-top: 1px solid var(--line);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.reliability-phase-metrics {
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  margin: 0;
+}
+
+.reliability-phase-metrics > div {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+  padding: 0.75rem 0;
+}
+
+.reliability-phase-metrics > div + div {
+  border-left: 1px solid var(--line);
+  padding-left: 0.55rem;
+}
+
+.reliability-phase-metrics dt {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.46rem;
+  line-height: 1.35;
+}
+
+.reliability-phase-metrics dd {
+  color: var(--violet-deep);
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  margin: 0;
+}
+
 .scheduler-shared-workload {
   border-bottom: 1px solid var(--line);
   display: grid;

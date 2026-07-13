@@ -17,24 +17,25 @@ export const reliabilityObservabilityLesson = defineExtendedLesson({
     authors: "Google Site Reliability Engineering",
     year: "2016",
     summary: [
-      { label: "Request identity.", body: "Every generation needs a stable request id so logs, metrics, cancellation, retries, and late events can be correlated without confusing two attempts." },
-      { label: "Retry boundary.", body: "Retrying before the first token is different from retrying after visible output. Once side effects or deltas escape, transparent retry can duplicate content." },
-      { label: "Latency distribution.", body: "Averages hide tails. Time to first token, inter-token latency, completion latency, cancellation rate, and error class should be recorded separately." },
-      { label: "Failure injection.", body: "Controlled queue saturation, timeout, malformed-frame, and worker-crash scenarios make recovery paths executable rather than aspirational documentation." },
+      { label: "Request and attempt identity.", body: "Keep one logical request id across the operation, but assign a new attempt id to every retry. Stream events, logs, metrics, cancellation, and resource ownership carry the active attempt id so a delayed event from an earlier attempt cannot mutate the current one." },
+      { label: "Transparent-retry boundary.", body: "A retry is safe only when the failure is transient, zero tokens have become visible, and another attempt remains. In the practice API, attempt is a zero-based index and maxAttempts is the total attempt budget, so attempt + 1 < maxAttempts is the boundary test." },
+      { label: "Terminal event guard.", body: "Only queued, loading, prefill, and streaming requests accept matching events. Complete, error, cancelled, unknown, and stale-attempt events are rejected before they reach conversation state." },
+      { label: "Phase observability.", body: "Record queue time, prefill time, time to first token, decode duration or inter-token latency, terminal outcome, and resource release by request and attempt. Histograms and error classes preserve tail behavior that a single average hides; deterministic failure injection exercises those paths." },
     ],
     claims: {
       paper: "User-facing distributed systems should be monitored through latency, traffic, errors, and saturation with attention to distributions and symptoms.",
-      lab: "The browser injects deterministic failures and verifies request identity, bounded retries, cancellation, and phase-specific metrics.",
+      lab: "The browser injects four deterministic failures and shows logical request identity, per-attempt identity, the visible-token retry boundary, phase timings, terminal transitions, late-event rejection, and resource release.",
       limit: "Local traces cannot reproduce provider outages, cross-region partitions, or production traffic distributions.",
     },
     diagram: {
-      title: "Generation state machine",
-      caption: "Late events are ignored once a request reaches a terminal state.",
+      title: "One request across two attempts",
+      caption: "The logical request survives a retry; attempt identity does not. A visible token closes the transparent-retry branch, and terminal or stale-attempt events are rejected before state mutation.",
       nodes: [
-        { label: "Queued", value: "request id assigned" },
-        { label: "Streaming", value: "deltas + heartbeat" },
-        { label: "Terminal", value: "done / error / abort" },
-        { label: "Recorded", value: "phase metrics" },
+        { label: "Attempt r-201.1", value: "queue 120 ms → transient timeout · visible 0" },
+        { label: "Retry decision", value: "transient ∧ visible = 0 ∧ 0 + 1 < 2 → retry" },
+        { label: "Attempt r-201.2", value: "queue 14 ms + prefill 69 ms → TTFT 83 ms" },
+        { label: "Terminal", value: "10 deltas · decode 338 ms → complete · resources released" },
+        { label: "Late-event guard", value: "r-201.1 token rejected · r-201.2 post-complete token rejected" },
       ],
     },
     questions: {
@@ -45,7 +46,7 @@ export const reliabilityObservabilityLesson = defineExtendedLesson({
       name: "Failure Trace",
       source: "Deterministic injected scenarios",
       license: "CC0",
-      size: "5 failure modes · fixed seeds",
+      size: "4 failure modes · fixed seeds",
       preview: "queue timeout · malformed frame · worker crash · user abort",
     },
     implementation: {
@@ -59,10 +60,10 @@ export const reliabilityObservabilityLesson = defineExtendedLesson({
           concepts: [
             { name: "tokensEmitted", detail: "Visible output makes transparent retry unsafe." },
             { name: "transient", detail: "Classification based on the actual error type." },
-            { name: "attempt", detail: "Bounded count preventing an unending retry loop." },
+            { name: "attempt", detail: "Zero-based index of the failed attempt; maxAttempts is the total attempt budget." },
           ],
           code: `function shouldRetry({ transient, tokensEmitted, attempt, maxAttempts = 2 }) {
-  return transient && tokensEmitted === 0 && attempt < maxAttempts;
+  return transient && tokensEmitted === 0 && attempt + 1 < maxAttempts;
 }`,
           checkCode: `const before = shouldRetry({ transient: true, tokensEmitted: 0, attempt: 0 });
 const after = shouldRetry({ transient: true, tokensEmitted: 3, attempt: 0 });
@@ -73,13 +74,13 @@ return { passed: before === true && after === false, detail: "retry before outpu
           label: "Terminal-state guard",
           purpose: "Ignore late events after completion, error, or cancellation.",
           concepts: [
-            { name: "terminal", detail: "Closed set of states that cannot accept more deltas." },
-            { name: "requestId", detail: "Prevents events from an older attempt mutating the current one." },
+            { name: "active", detail: "Queued, loading, prefill, and streaming are the only event-accepting states." },
+            { name: "requestId", detail: "Names the active attempt and prevents an older attempt from mutating the current one." },
             { name: "event", detail: "Typed transport event applied only to the matching active request." },
           ],
           code: `function acceptEvent(request, event) {
-  const terminal = ["complete", "error", "cancelled"].includes(request.status);
-  return !terminal && request.id === event.requestId;
+  const active = ["queued", "loading", "prefill", "streaming"];
+  return active.includes(request.status) && request.id === event.requestId;
 }`,
           checkCode: `const late = acceptEvent({ id: "r1", status: "complete" }, { requestId: "r1" });
 const current = acceptEvent({ id: "r2", status: "streaming" }, { requestId: "r2" });
@@ -87,5 +88,5 @@ return { passed: late === false && current === true, detail: "late rejected · a
         },
       ],
     },
-    experiment: { kind: "systems", variant: "reliability", title: "Inject a generation failure", intro: "Run the same request through timeout, malformed-frame, worker-crash, and cancellation paths while inspecting its trace." },
+    experiment: { kind: "systems", variant: "reliability", title: "Inject a generation failure", intro: "Run deterministic timeout, malformed-frame, worker-crash, and cancellation paths. Each trace names its request and attempts, phase timings, retry decision, terminal transition, rejected late event, and released resources." },
   });

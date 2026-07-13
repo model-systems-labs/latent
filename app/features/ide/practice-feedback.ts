@@ -10,8 +10,11 @@ export function formatPracticeContractDetail(cases: readonly ExerciseCaseResult[
   const firstFailure = failures[0];
   const failedAssertions = firstFailure.assertions.filter((assertion) => !assertion.passed);
   const firstAssertion = failedAssertions[0];
+  const assertionDetail = firstAssertion?.detail
+    ? `${firstAssertion.detail.charAt(0).toUpperCase()}${firstAssertion.detail.slice(1)}`
+    : "";
   const direction = firstAssertion
-    ? `${firstFailure.caseLabel}: ${firstAssertion.label}. ${firstAssertion.detail}`
+    ? `${firstFailure.caseLabel}: ${firstAssertion.label}. ${assertionDetail}`
     : `${firstFailure.caseLabel}: ${firstFailure.detail}`;
   const additionalCases = failures.length - 1;
   const additionalChecks = failedAssertions.length - 1;

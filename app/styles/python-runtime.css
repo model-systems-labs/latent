@@ -1,0 +1,81 @@
+.python-mode > footer > div {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.python-mode > footer button.python-stop {
+  border-color: rgba(198, 133, 127, 0.55);
+  color: #e0b4af;
+}
+
+.python-editor-loading {
+  align-items: center;
+  color: #aaa3ad;
+  display: flex;
+  font-size: max(0.68rem, 11px);
+  justify-content: center;
+  min-height: 22rem;
+}
+
+.python-output .project-output-status {
+  display: block;
+}
+
+.python-output pre {
+  color: #d8d1da;
+  font-family: var(--mono);
+  font-size: max(0.68rem, 11px);
+  line-height: 1.6;
+  margin: 0;
+  max-height: 12rem;
+  overflow: auto;
+  overflow-wrap: normal;
+  padding: 0.7rem 0;
+  tab-size: 4;
+  white-space: pre-wrap;
+  word-break: normal;
+}
+
+.python-output pre + pre {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.python-output .python-stderr,
+.python-output .python-traceback {
+  color: #e0b4af;
+}
+
+.python-empty-output {
+  color: #aaa3ad;
+  font-size: max(0.68rem, 11px);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.python-artifact-summary {
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+  padding-top: 0.55rem;
+}
+
+@media (max-width: 650px) {
+  .python-mode > footer {
+    gap: 0.6rem;
+    padding: 0.65rem;
+  }
+
+  .python-mode > footer > div {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .python-mode > footer button,
+  .python-mode > footer button.build {
+    grid-column: auto;
+    min-width: 0;
+    padding-inline: 0.45rem;
+  }
+
+  .python-output pre {
+    max-height: 16rem;
+  }
+}

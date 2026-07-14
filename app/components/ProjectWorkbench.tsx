@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { CodeEditor } from "../features/ide/CodeEditor";
+import { PythonInspector, PythonRuntimeActions, usePythonExecution } from "../features/ide/PythonExecution";
 import { courseLessons } from "../lessons/course";
 import { llmSystemsCurriculum } from "../lessons/course";
 import { sampleCharacterRnn } from "@latent/model-lab/character-rnn";
@@ -20,6 +21,7 @@ import { downloadArtifact, latestProjectBuildArtifact, recordProjectBuildArtifac
 import type { ArtifactEnvelope } from "@latent/artifact-runtime";
 import { expectedProjectContractIdsForPath, projectFileStatus, projectLessonBuildStatus, projectResultsForFile, projectUsesIntegratedEntryReceipt, trustedProjectResults } from "../lib/project-file-status";
 import { canonicalLessonSeeds, reconcileCanonicalProject } from "../lib/canonical-project";
+import { PYTHON_CHARACTER_RNN_PATH } from "../features/python/character-rnn-source";
 import { CAPSTONE_COMPONENT_PATH, CAPSTONE_ENTRY_PATH } from "../content/browser-chat/project-template";
 import { portfolioProjectBlob, portfolioReadiness } from "../lib/portfolio-export";
 import { downloadBrowserBlob } from "../lib/browser-download";
@@ -42,6 +44,10 @@ import {
   stageProjectDraftRecovery,
   type ProjectCourse,
 } from "../lib/project-workspace";
+
+const PythonCodeEditor = lazy(() => import("../features/ide/PythonCodeEditor").then((module) => ({
+  default: module.PythonCodeEditor,
+})));
 
 const groups: Array<{ id: ProjectCourse; label: string }> = [
   { id: "runtime", label: "Runtime configuration" },
@@ -89,6 +95,13 @@ function draftDifferenceSummary(current: string, candidate: string) {
 export function ProjectWorkbench() {
   const learner = useLearnerState();
   const student = learner.artifacts.characterRnn ?? null;
+  const persistedPythonArtifact = useMemo(() => student?.origin === "python" ? {
+    finalLoss: student.finalLoss,
+    parameters: student.parameters,
+    vocabularySize: student.vocabularySize,
+    trainedAt: student.trainedAt,
+    origin: "python" as const,
+  } : null, [student]);
   const project = useProjectState();
   const persistenceError = useProjectPersistenceError();
   const selected = project.files[project.selectedPath];
@@ -134,24 +147,33 @@ export function ProjectWorkbench() {
     return () => { active = false; };
   }, []);
 
-  const filesByGroup = useMemo(() => groups.map((group) => ({
-    ...group,
-    files: group.id === "runtime" || group.id === "app"
-      ? Object.values(project.files).filter((file) => file.courseId === group.id).sort((left, right) => left.path.localeCompare(right.path))
-      : courseLessons.filter((lesson) => lesson.courseId === group.id).map((lesson): ProjectTreeEntry => {
-          const path = `${lesson.courseId ?? "models"}/${lesson.implementation.filename}`;
-          return project.files[path] ?? {
-            path,
-            courseId: group.id,
-            title: lesson.title,
-            lessonId: lesson.id,
-            verifiedCells: 0,
-            totalCells: lesson.implementation.codeBlocks.length,
-          };
-        }),
-  })), [project.files]);
+  const filesByGroup = useMemo(() => groups.map((group) => {
+    const lessonEntries = courseLessons.filter((lesson) => lesson.courseId === group.id).map((lesson): ProjectTreeEntry => {
+      const path = `${lesson.courseId ?? "models"}/${lesson.implementation.filename}`;
+      return project.files[path] ?? {
+        path,
+        courseId: group.id,
+        title: lesson.title,
+        lessonId: lesson.id,
+        verifiedCells: 0,
+        totalCells: lesson.implementation.codeBlocks.length,
+      };
+    });
+    const lessonPaths = new Set(lessonEntries.map((file) => file.path));
+    const projectEntries = Object.values(project.files)
+      .filter((file) => file.courseId === group.id && !lessonPaths.has(file.path))
+      .sort((left, right) => left.path.localeCompare(right.path));
+    return {
+      ...group,
+      files: group.id === "runtime" || group.id === "app"
+        ? Object.values(project.files).filter((file) => file.courseId === group.id).sort((left, right) => left.path.localeCompare(right.path))
+        : [...lessonEntries, ...projectEntries],
+    };
+  }), [project.files]);
   const draft = selected ? drafts[selected.path] ?? selected.content : "";
   const dirty = Boolean(selected && draft !== selected.content);
+  const isPythonFile = Boolean(selected?.path.endsWith(".py"));
+  const SelectedCodeEditor = isPythonFile ? PythonCodeEditor : CodeEditor;
   const recoveryCandidates = selected
     ? listProjectDraftRecoveryCandidates(selected.path).filter((candidate) => candidate.content !== draft)
     : [];
@@ -327,6 +349,23 @@ export function ProjectWorkbench() {
     window.setTimeout(() => void refreshRevisions(selected.path), 800);
     return next;
   };
+
+  const pythonExecution = usePythonExecution({
+    enabled: isPythonFile,
+    canTestAndTrain: selected?.path === PYTHON_CHARACTER_RNN_PATH,
+    path: selected?.path ?? "",
+    source: draft,
+    persistedArtifact: persistedPythonArtifact,
+    saveBeforeRun: async () => {
+      if (!selected || selected.readOnly || !selected.path.endsWith(".py")) {
+        throw new Error("Select an editable Python file before running the interpreter.");
+      }
+      save(false);
+      await flushProjectPersistence();
+    },
+    showPanel: setMobilePanel,
+  });
+  const interfaceWorking = working || pythonExecution.busy;
 
   const build = async () => {
     if (working) return;
@@ -556,7 +595,7 @@ export function ProjectWorkbench() {
       <nav className="mobile-ide-tabs" aria-label="Choose a project workspace view">
         {(["files", "code", "tests", "output"] as const).map((panel) => (
           <button type="button" aria-pressed={mobilePanel === panel} className={mobilePanel === panel ? "active" : ""} onClick={() => setMobilePanel(panel)} key={panel}>
-            {panel === "files" ? "Files" : panel === "code" ? "Code" : panel === "tests" ? `Tests${allTests.length ? ` ${passingTests}/${allTests.length}` : ""}` : "Output"}
+            {panel === "files" ? "Files" : panel === "code" ? "Code" : panel === "tests" ? `Tests${isPythonFile && pythonExecution.tests.length ? ` ${pythonExecution.tests.filter((test) => test.passed).length}/${pythonExecution.tests.length}` : allTests.length ? ` ${passingTests}/${allTests.length}` : ""}` : "Output"}
           </button>
         ))}
       </nav>
@@ -586,17 +625,17 @@ export function ProjectWorkbench() {
           ))}
           <Link className="project-run-capstone" href="/capstone" onClick={flushCurrentDraft}>Run active capstone →</Link>
         </nav>
-        <div className="project-editor-panel">
+        <div className={`project-editor-panel${isPythonFile ? " python-mode" : ""}`}>
           <header><div><span>{selected?.path ?? "No file selected"}</span><strong>{selected?.title}</strong></div><div><i className={dirty ? "dirty" : "saved"} />{selected?.readOnly ? "Course library · read only" : dirty ? "Unsaved draft · autosaves after 650 ms idle" : "Saved in device file history"}</div></header>
-          {selected ? <CodeEditor path={selected.path} value={draft} readOnly={Boolean(selected.readOnly || !projectReady)} onChange={(value) => {
+          {selected ? <Suspense fallback={<div className="python-editor-loading" role="status">Loading Python syntax support…</div>}><SelectedCodeEditor path={selected.path} value={draft} readOnly={Boolean(selected.readOnly || !projectReady || (isPythonFile && pythonExecution.busy))} onChange={(value) => {
             draftEpochRef.current += 1;
             const recoveryStored = stageProjectDraftRecovery(selected.path, value);
             setDrafts((current) => ({ ...current, [selected.path]: value }));
             setMessage(recoveryStored
               ? `${selected.path} has an immediate recovery copy. File history autosaves after 650 ms without typing.`
               : `${selected.path} changed. File history autosaves after 650 ms without typing; keep this tab open.`);
-          }} onSave={save} /> : null}
-          <footer><p>{selected?.readOnly ? "This is the numerical runtime imported by model lessons. Its source is visible, versioned, and protected from accidental edits." : message}</p><div><button type="button" onClick={() => {
+          }} onSave={save} /></Suspense> : null}
+          <footer><p>{selected?.readOnly ? "This is the numerical runtime imported by model lessons. Its source is visible, versioned, and protected from accidental edits." : isPythonFile ? pythonExecution.status : message}</p><div><button type="button" onClick={() => {
             if (!selected) return;
             if (!confirmReferenceRestore) {
               setConfirmReferenceRestore(true);
@@ -608,9 +647,9 @@ export function ProjectWorkbench() {
             setDrafts((current) => ({ ...current, [selected.path]: selected.referenceContent }));
             setConfirmReferenceRestore(false);
             setMessage("Reference loaded as the current draft. File history autosaves after 650 ms without typing; choose Save now to sync immediately.");
-          }} disabled={!projectReady || working || !selected || selected.readOnly || draft === selected?.referenceContent}>{confirmReferenceRestore ? "Confirm restore" : "Restore reference"}</button><button type="button" onClick={() => save()} disabled={!projectReady || working || selected?.readOnly || !dirty}>Save now</button><button className="build" type="button" onClick={() => void build()} disabled={!projectReady || working}>{working ? "Running…" : "Test, build & run"}</button></div></footer>
+          }} disabled={!projectReady || interfaceWorking || !selected || selected.readOnly || draft === selected?.referenceContent}>{confirmReferenceRestore ? "Confirm restore" : "Restore reference"}</button><button type="button" onClick={() => save()} disabled={!projectReady || interfaceWorking || selected?.readOnly || !dirty}>Save now</button>{isPythonFile ? <PythonRuntimeActions session={pythonExecution} disabled={!projectReady || working} /> : <button className="build" type="button" onClick={() => void build()} disabled={!projectReady || working}>{working ? "Running…" : "Test, build & run"}</button>}</div></footer>
         </div>
-        <aside className={`project-inspector${persistenceError ? " has-warning" : ""}`} aria-live="polite">
+        {isPythonFile && selected ? <PythonInspector session={pythonExecution} path={selected.path} persistenceError={persistenceError} /> : <aside className={`project-inspector${persistenceError ? " has-warning" : ""}`} aria-live="polite">
           {persistenceError ? <p className="persistence-warning" role="alert">Storage warning: {persistenceError}</p> : null}
           <section className="unit-test-panel">
             <header><div><span>Unit tests</span><strong>{allTests.length ? `${passingTests}/${allTests.length} passing` : "Not run"}</strong></div><button type="button" onClick={() => void runTests()} disabled={!projectReady || working}>Run all {llmSystemsCurriculum.testCount + 6}</button></header>
@@ -690,7 +729,7 @@ export function ProjectWorkbench() {
               </>
             )}
           </section>
-        </aside>
+        </aside>}
       </div>
     </section>
   );

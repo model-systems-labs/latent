@@ -611,7 +611,10 @@ export function BrowserChatCapstone() {
           const student = studentRef.current ?? loadLearnerState().artifacts.characterRnn ?? null;
           if (!student) throw new Error("Train the student model before generating.");
           const continuation = sampleCharacterRnn(student.checkpoint, latestUser, payload.options.maxTokens, payload.options.temperature, buildRuntime.model.seed, payload.options.topK);
-          response = `Prompt-conditioned character continuation:\n\n…${latestUser.slice(-32)}${continuation}`;
+          const checkpointLabel = student.origin === "python"
+            ? "Python + NumPy checkpoint"
+            : "browser-trained checkpoint";
+          response = `${checkpointLabel}\n\nPrompt-conditioned character continuation:\n\n…${latestUser.slice(-32)}${continuation}`;
           generatedUnits = continuation.length;
           generatedUnitLabel = "Generated characters";
         } else {
@@ -699,7 +702,7 @@ export function BrowserChatCapstone() {
             emit(request.requestId, "progress", { type: "progress", progress: 5, detail: "Starting training worker" });
             const trained = await trainCharacterRnnInWorker(600, controller.signal);
             saveCharacterRnnArtifact(trained);
-            studentRef.current = { checkpoint: trained.checkpoint, finalLoss: trained.finalLoss, parameters: trained.parameters, vocabularySize: trained.vocabularySize, trainedAt: Date.now() };
+            studentRef.current = { checkpoint: trained.checkpoint, finalLoss: trained.finalLoss, parameters: trained.parameters, vocabularySize: trained.vocabularySize, trainedAt: Date.now(), origin: "javascript" };
             emit(request.requestId, "progress", { type: "progress", progress: 100, detail: "Checkpoint ready" });
             respond(request.requestId, { ready: true });
           } finally {

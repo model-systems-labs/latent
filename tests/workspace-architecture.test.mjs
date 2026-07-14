@@ -8,11 +8,12 @@ const expectedPackages = [
   "@latent/course-kit",
   "@latent/model-lab",
   "@latent/mock-services",
+  "@latent/python-lab",
   "@latent/tensor",
   "@latent/training-replay",
 ];
 
-test("the root application orchestrates seven explicit workspace packages", async () => {
+test("the root application orchestrates eight explicit workspace packages", async () => {
   const manifest = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
   assert.equal(manifest.name, "@latent/web");
   assert.deepEqual(manifest.workspaces, ["packages/*"]);
@@ -21,7 +22,7 @@ test("the root application orchestrates seven explicit workspace packages", asyn
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
     .sort();
-  assert.deepEqual(packageDirectories, ["artifact-runtime", "browser-lab", "course-kit", "mock-services", "model-lab", "tensor", "training-replay"]);
+  assert.deepEqual(packageDirectories, ["artifact-runtime", "browser-lab", "course-kit", "mock-services", "model-lab", "python-lab", "tensor", "training-replay"]);
   for (const directory of packageDirectories) {
     const packageManifest = JSON.parse(await readFile(new URL(`../packages/${directory}/package.json`, import.meta.url), "utf8"));
     assert.equal(packageManifest.private, true);
@@ -30,6 +31,13 @@ test("the root application orchestrates seven explicit workspace packages", asyn
     assert.ok(packageManifest.scripts.test);
     assert.ok(packageManifest.scripts.typecheck);
   }
+});
+
+test("the source inventory attributes the browser Python runtime", async () => {
+  const source = await readFile(new URL("../app/sources/page.tsx", import.meta.url), "utf8");
+  assert.match(source, /name: "Pyodide", version: "314\.0\.2", license: "MPL-2\.0"/);
+  assert.match(source, /name: "NumPy", version: "2\.4\.3", license: "BSD-3-Clause"/);
+  assert.match(source, /name: "CodeMirror Python language", version: "6\.2\.1", license: "MIT"/);
 });
 
 test("legacy in-app package copies have been removed", async () => {

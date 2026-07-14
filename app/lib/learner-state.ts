@@ -31,6 +31,7 @@ export type SavedRnnArtifact = {
   parameters: number;
   vocabularySize: number;
   trainedAt: number;
+  origin: "javascript" | "python";
 };
 
 export type LearnerState = {
@@ -104,12 +105,23 @@ function sanitizeSavedRnnArtifact(value: unknown): SavedRnnArtifact | null {
   const artifact = value as Partial<SavedRnnArtifact>;
   const checkpoint = validCheckpoint(artifact.checkpoint);
   if (!checkpoint) return null;
+  const finalLoss = Number(artifact.finalLoss);
+  const parameters = Number(artifact.parameters);
+  const vocabularySize = Number(artifact.vocabularySize);
+  const trainedAt = Number(artifact.trainedAt);
+  if (
+    !Number.isFinite(finalLoss) || finalLoss < 0
+    || !Number.isSafeInteger(parameters) || parameters < 1
+    || !Number.isSafeInteger(vocabularySize) || vocabularySize !== checkpoint.vocabulary.length
+    || !Number.isFinite(trainedAt) || trainedAt < 0
+  ) return null;
   return {
     checkpoint,
-    finalLoss: Number(artifact.finalLoss),
-    parameters: Number(artifact.parameters),
-    vocabularySize: Number(artifact.vocabularySize),
-    trainedAt: Number(artifact.trainedAt),
+    finalLoss,
+    parameters,
+    vocabularySize,
+    trainedAt,
+    origin: artifact.origin === "python" ? "python" : "javascript",
   };
 }
 
@@ -578,6 +590,7 @@ async function persistLearnerState(state: LearnerState, previous: LearnerState |
           finalLoss: artifact.finalLoss,
           parameters: artifact.parameters,
           vocabularySize: artifact.vocabularySize,
+          pythonOrigin: artifact.origin === "python" ? 1 : 0,
         },
         createdAt: artifact.trainedAt,
       });
@@ -646,6 +659,7 @@ export function initializeLearnerPersistence() {
             parameters: checkpoint.metrics.parameters ?? 0,
             vocabularySize: checkpoint.metrics.vocabularySize ?? 0,
             trainedAt: checkpoint.createdAt,
+            origin: checkpoint.metrics.pythonOrigin === 1 ? "python" as const : "javascript" as const,
           }
       : undefined;
     const persistedState: LearnerState = { version: 2, lessons: persistedLessons, artifacts: restored ? { characterRnn: restored } : {} };
@@ -797,7 +811,11 @@ export function recordKnowledgeCheck(
   });
 }
 
-export function saveCharacterRnnArtifact(result: RnnResult) {
+export function saveCharacterRnnArtifact(
+  result: Pick<RnnResult, "checkpoint" | "finalLoss" | "parameters" | "vocabularySize">,
+  origin: SavedRnnArtifact["origin"] = "javascript",
+  trainedAt = Date.now(),
+) {
   updateLearnerState((state) => ({
     ...state,
     artifacts: {
@@ -807,7 +825,8 @@ export function saveCharacterRnnArtifact(result: RnnResult) {
         finalLoss: result.finalLoss,
         parameters: result.parameters,
         vocabularySize: result.vocabularySize,
-        trainedAt: Date.now(),
+        trainedAt,
+        origin,
       },
     },
   }));

@@ -10,9 +10,13 @@ import {
   initializeProjectPersistence,
 } from "./project-workspace";
 import type { LessonProjectSeed } from "./project-workspace";
+import {
+  PYTHON_CHARACTER_RNN_PATH,
+  PYTHON_CHARACTER_RNN_SOURCE,
+} from "../features/python/character-rnn-source";
 
 export function canonicalProjectSeeds(): LessonProjectSeed[] {
-  return CANONICAL_BROWSER_CHAT_FILES.map((file) => ({
+  const application: LessonProjectSeed[] = CANONICAL_BROWSER_CHAT_FILES.map((file) => ({
     path: file.path,
     courseId: "app",
     title: file.title,
@@ -22,6 +26,19 @@ export function canonicalProjectSeeds(): LessonProjectSeed[] {
     totalCells: 1,
     readOnly: !file.editable,
   }));
+  return [
+    {
+      path: PYTHON_CHARACTER_RNN_PATH,
+      courseId: "models",
+      title: "Character RNN · Python",
+      content: PYTHON_CHARACTER_RNN_SOURCE,
+      referenceContent: PYTHON_CHARACTER_RNN_SOURCE,
+      verifiedCells: 0,
+      totalCells: 1,
+      readOnly: false,
+    },
+    ...application,
+  ];
 }
 
 /**

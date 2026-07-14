@@ -110,6 +110,21 @@ test("all fourteen lessons use the reusable learning flow", async () => {
   }
 });
 
+test("real PyTorch handoffs are present only in framework-relevant lessons", async () => {
+  for (const slug of ["character-rnns", "neural-language-models", "additive-attention", "transformers", "inference-runtime"]) {
+    const response = await render(`/lessons/${slug}`);
+    assert.equal(response.status, 200, slug);
+    const html = await response.text();
+    assert.match(html, /Native framework handoff/);
+    assert.match(html, /PyTorch/);
+  }
+  for (const slug of ["subword-tokenization", "streaming-transport", "conversation-state"]) {
+    const response = await render(`/lessons/${slug}`);
+    assert.equal(response.status, 200, slug);
+    assert.doesNotMatch(await response.text(), /Native framework handoff/);
+  }
+});
+
 test("lesson code is syntax highlighted in the server-rendered first paint", async () => {
   const response = await render("/lessons/streaming-transport");
   assert.equal(response.status, 200);

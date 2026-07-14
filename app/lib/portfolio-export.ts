@@ -2,6 +2,11 @@ import { strToU8, zipSync } from "fflate";
 import type { CourseLesson } from "@latent/course-kit";
 import { exposeLessonFunctions } from "@latent/browser-lab/compiler";
 import { llmSystemsContractSuite } from "../content/llm-systems/contracts";
+import {
+  PYTORCH_HANDOFF_FILES,
+  PYTORCH_PORTFOLIO_README,
+  PYTORCH_REQUIREMENTS,
+} from "../content/pytorch/handoffs";
 import type { LearnerState } from "./learner-state";
 import type { ProjectFile, ProjectState, ProjectUnitResult } from "./project-workspace";
 import { trustedProjectResults } from "./project-file-status";
@@ -247,14 +252,17 @@ export function portfolioProjectFiles(input: {
     buildNumber: input.project.activeBuild?.buildNumber ?? null,
     completedLessons: completedLessons.map((lesson) => lesson.id),
     sourceFiles: sourceFiles.map((file) => file.path),
+    pytorchFiles: PYTORCH_HANDOFF_FILES.map((file) => file.path),
     portableBuildReady: readiness.ready,
     tests: { passing: readiness.passingTests, total: results.length, required: readiness.requiredTests },
   };
   const files: Record<string, string> = {
-    "README.md": `# Browser Chat\n\nA browser-first LLM systems project built through Latent. The repository contains the learner's model, runtime, serving, product, and React capstone files.\n\n## Current evidence\n\n- ${completedLessons.length}/${input.lessons.length} lessons complete\n- ${manifest.tests.passing}/${readiness.requiredTests} required host-owned tests passing\n- portable build ready: ${readiness.ready ? "yes" : "no"}\n- active build: ${input.project.activeBuild ? `#${input.project.activeBuild.buildNumber}` : "none yet"}\n\n${readiness.ready ? "" : "> This snapshot is unfinished. Return to Latent, complete every lesson-owned file, and create a passing full build before treating it as a runnable portfolio project.\n\n"}## Run locally\n\n\`\`\`bash\nnpm install\nnpm run build\nnpm run dev\n\`\`\`\n\nThe exported app uses a deterministic in-browser SSE mock so it runs without a secret or hosted backend. Read BACKEND_INTEGRATION.md before connecting a real model service.\n\n## Architecture\n\n1. \`src/models\` implements model foundations.\n2. \`src/systems\` implements inference accounting and scheduling.\n3. \`src/backend\` implements SSE framing and attempt-aware reliability.\n4. \`src/product\` implements conversation, rendering, actions, context, and quality contracts.\n5. \`src/capstone\` assembles the React application.\n`,
+    "README.md": `# Browser Chat\n\nA browser-first LLM systems project built through Latent. The repository contains the learner's model, runtime, serving, product, and React capstone files.\n\n## Current evidence\n\n- ${completedLessons.length}/${input.lessons.length} lessons complete\n- ${manifest.tests.passing}/${readiness.requiredTests} required host-owned tests passing\n- portable build ready: ${readiness.ready ? "yes" : "no"}\n- active build: ${input.project.activeBuild ? `#${input.project.activeBuild.buildNumber}` : "none yet"}\n\n${readiness.ready ? "" : "> This snapshot is unfinished. Return to Latent, complete every lesson-owned file, and create a passing full build before treating it as a runnable portfolio project.\n\n"}## Run locally\n\n\`\`\`bash\nnpm install\nnpm run build\nnpm run dev\n\`\`\`\n\nThe exported app uses a deterministic in-browser SSE mock so it runs without a secret or hosted backend. Read BACKEND_INTEGRATION.md before connecting a real model service.\n\nThe \`pytorch/\` directory is a separate native Python track containing real \`import torch\` implementations. It is not bundled into the browser app; see \`pytorch/README.md\`.\n\n## Architecture\n\n1. \`src/models\` implements transparent browser model foundations.\n2. \`pytorch\` translates selected mechanisms into native PyTorch modules and export code.\n3. \`src/systems\` implements inference accounting and scheduling.\n4. \`src/backend\` implements SSE framing and attempt-aware reliability.\n5. \`src/product\` implements conversation, rendering, actions, context, and quality contracts.\n6. \`src/capstone\` assembles the React application.\n`,
     "BACKEND_INTEGRATION.md": `# Replace the portable mock backend\n\nThe exported \`src/runtime/host-bridge.ts\` intentionally produces deterministic SSE frames in the browser. It contains no API key and makes no network request.\n\nTo connect a real service:\n\n1. Keep the exported \`StartGenerationInput\`, \`GenerationBridgeHandlers\`, and \`GenerationHandle\` interface.\n2. POST the bounded message/context payload to your own same-origin endpoint. Never ship a provider key in this client.\n3. Decode response bytes with a streaming \`TextDecoder\`, then pass decoded text through \`parseSseChunk\`.\n4. Preserve requestId and attempt identity before accepting events.\n5. Propagate AbortSignal to fetch, the stream reader, parser state, and server generation.\n6. Retry only retryable failures that occurred before visible output.\n7. Keep strict terminal persistence and exclude secrets and transient streaming records.\n\nThe learner-owned lesson files are Python and remain independently executable in CPython. The React app imports course-provided JavaScript interoperability adapters that implement the same tested boundaries without pretending the browser bundler can import Python directly.\n`,
     "TEST_REPORT.md": markdownTestReport(results),
-    "THIRD_PARTY_NOTICES.md": `# Third-party notices\n\nThis source export uses React and React DOM (MIT) and Vite (MIT). The optional model runtime in the hosted Latent course uses Transformers.js (Apache-2.0) and SmolLM2-135M-Instruct (Apache-2.0); model weights are not included in this archive. Consult the upstream license texts before redistribution.\n`,
+    "THIRD_PARTY_NOTICES.md": `# Third-party notices\n\nThis source export uses React and React DOM (MIT) and Vite (MIT). The optional model runtime in the hosted Latent course uses Transformers.js (Apache-2.0) and SmolLM2-135M-Instruct (Apache-2.0); model weights are not included in this archive. The optional native Python track depends on PyTorch (BSD-3-Clause), which is not bundled in the archive. Consult the upstream license texts before redistribution.\n`,
+    "pytorch/README.md": PYTORCH_PORTFOLIO_README,
+    "pytorch/requirements.txt": PYTORCH_REQUIREMENTS,
     "portfolio-manifest.json": JSON.stringify(manifest, null, 2),
     "package.json": JSON.stringify({
       name: "latent-browser-chat-portfolio",
@@ -270,6 +278,7 @@ export function portfolioProjectFiles(input: {
     ".gitignore": "node_modules\ndist\n.env*\n",
   };
   for (const file of sourceFiles) files[`src/${safePath(file.path)}`] = portableSource(file);
+  for (const file of PYTORCH_HANDOFF_FILES) files[safePath(file.path)] = file.code;
   return files;
 }
 

@@ -38,6 +38,11 @@ dependency cycles.
 - Training Replay owns the model-neutral recording contract, validation,
   checkpoint materialization, lazy registry, and presentation view models. The
   application owns trainers, recordings, course placement, and React rendering.
+- The PyTorch handoff is an explicit native-runtime boundary. Its source and
+  notebooks use the real PyTorch package outside Pyodide; the browser course
+  remains NumPy/Latent Tensor for mechanism work and ONNX/Transformers.js for
+  local deployment. Portfolio exports preserve both tracks without importing
+  native Python into the React bundle.
 
 Pure libraries compile to `dist/` with declarations before the web build.
 Browser Lab is intentionally source-exported inside the private workspace so

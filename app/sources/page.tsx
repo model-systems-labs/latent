@@ -17,6 +17,7 @@ const runtimeNotices = [
   { name: "CodeMirror Python language", version: "6.2.1", license: "MIT", url: "https://github.com/codemirror/lang-python", use: "Python syntax parsing and highlighting in the browser IDE." },
   { name: "Pyodide", version: "314.0.2", license: "MPL-2.0", url: "https://github.com/pyodide/pyodide", use: "CPython and its standard library compiled to WebAssembly for opt-in browser execution." },
   { name: "NumPy", version: "2.4.3", license: "BSD-3-Clause", url: "https://github.com/numpy/numpy", use: "The curated numerical array package used by local Python model labs." },
+  { name: "PyTorch", version: "2.9.0 native track", license: "BSD-3-Clause", url: "https://github.com/pytorch/pytorch", use: "Real nn.Module, autograd, optimizer, and export code in downloadable notebooks and the completed portfolio; it is not bundled into Pyodide." },
   { name: "esbuild-wasm", version: "0.28.1", license: "MIT", url: "https://github.com/evanw/esbuild", use: "Virtual TypeScript and JavaScript compilation." },
   { name: "QuickJS Emscripten", version: "0.32.0", license: "MIT", url: "https://github.com/justjake/quickjs-emscripten", use: "Bounded learner-code execution outside the application realm." },
   { name: "Mock Service Worker", version: "2.15.0", license: "MIT", url: "https://github.com/mswjs/msw", use: "Deterministic mock service and request behavior." },

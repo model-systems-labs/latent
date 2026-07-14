@@ -1,0 +1,242 @@
+.handoff {
+  border-block: 1px solid var(--line-strong);
+  margin: 2.6rem 0 1.4rem;
+}
+
+.handoff > summary {
+  align-items: center;
+  cursor: pointer;
+  display: grid;
+  gap: 1.2rem;
+  grid-template-columns: 10rem minmax(0, 1fr) auto;
+  list-style: none;
+  min-height: 5.4rem;
+  padding: 0.85rem 0;
+}
+
+.handoff > summary::-webkit-details-marker { display: none; }
+
+.kicker,
+.fileHeading span {
+  color: var(--violet);
+  font-size: max(0.68rem, 11px);
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.summaryTitle {
+  align-items: baseline;
+  display: flex;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.summaryTitle strong {
+  color: var(--violet-deep);
+  font-family: var(--mono);
+  font-size: max(0.68rem, 11px);
+  font-weight: 550;
+}
+
+.summaryTitle > span {
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 1.08rem;
+  font-weight: 450;
+  margin: 0;
+}
+
+.toggle,
+.fileHeading em {
+  color: var(--faint);
+  font-size: max(0.68rem, 11px);
+  font-style: normal;
+}
+
+.handoff > summary:focus-visible {
+  outline: 2px solid rgba(120, 91, 142, 0.45);
+  outline-offset: 4px;
+}
+
+.body {
+  display: grid;
+  gap: 1.2rem;
+  padding: 0.35rem 0 1.5rem;
+}
+
+.copy {
+  display: grid;
+  gap: 0.7rem;
+  max-width: 48rem;
+}
+
+.copy p,
+.handoff footer p {
+  color: var(--muted);
+  font-family: var(--serif);
+  font-size: 0.88rem;
+  line-height: 1.62;
+  margin: 0;
+}
+
+.copy code {
+  color: var(--violet-deep);
+  font-family: var(--mono);
+  font-size: 0.78em;
+}
+
+.mapping {
+  border-block: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+}
+
+.mapping > div {
+  display: grid;
+  gap: 0.32rem;
+  padding: 0.82rem 0.9rem 0.82rem 0;
+}
+
+.mapping > div + div {
+  border-left: 1px solid var(--line);
+  padding-left: 0.9rem;
+}
+
+.mapping dt {
+  color: var(--muted);
+  font-size: max(0.68rem, 11px);
+}
+
+.mapping dd {
+  color: var(--violet-deep);
+  font-family: var(--mono);
+  font-size: max(0.68rem, 11px);
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.fileHeading {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.fileHeading span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.editorSurface :global(.code-editor) {
+  background: #1f1e21;
+  border-radius: 0.55rem;
+  max-height: 29rem;
+  overflow: hidden;
+}
+
+.editorLoading {
+  align-items: center;
+  background: #1f1e21;
+  border-radius: 0.55rem;
+  color: #aaa3ad;
+  display: flex;
+  font-size: max(0.68rem, 11px);
+  justify-content: center;
+  min-height: 12rem;
+}
+
+.handoff footer {
+  align-items: center;
+  display: flex;
+  gap: 1.5rem;
+  justify-content: space-between;
+}
+
+.handoff footer p {
+  font-size: max(0.72rem, 12px);
+  max-width: 42rem;
+}
+
+.handoff footer > div {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.45rem;
+}
+
+.handoff footer button,
+.handoff footer a {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--ink);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: max(0.68rem, 11px);
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.62rem 0.82rem;
+}
+
+.handoff footer button:hover,
+.handoff footer button:focus-visible,
+.handoff footer a:hover,
+.handoff footer a:focus-visible {
+  border-color: var(--violet);
+  color: var(--violet-deep);
+}
+
+@media (max-width: 650px) {
+  .handoff > summary {
+    align-items: start;
+    gap: 0.35rem 0.75rem;
+    grid-template-columns: 1fr auto;
+    padding: 1rem 0;
+  }
+
+  .kicker { grid-column: 1 / -1; }
+
+  .summaryTitle {
+    align-items: start;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .mapping { grid-template-columns: 1fr; }
+
+  .mapping > div + div {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    padding-left: 0;
+  }
+
+  .fileHeading,
+  .handoff footer {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .handoff footer > div {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+
+  .handoff footer a { grid-column: 1 / -1; }
+
+  .kicker,
+  .summaryTitle strong,
+  .toggle,
+  .fileHeading span,
+  .fileHeading em,
+  .mapping dt,
+  .mapping dd,
+  .editorLoading,
+  .handoff footer button,
+  .handoff footer a {
+    font-size: max(0.75rem, 12px);
+  }
+}

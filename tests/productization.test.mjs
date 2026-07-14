@@ -107,7 +107,7 @@ test("portfolio export contains source, evidence, runnable scaffolding, and a po
     lessons: course.courseLessons,
     exportedAt: "2026-07-13T00:00:00.000Z",
   });
-  for (const path of ["README.md", "BACKEND_INTEGRATION.md", "TEST_REPORT.md", "THIRD_PARTY_NOTICES.md", "portfolio-manifest.json", "package.json", "index.html", "vite.config.ts"]) {
+  for (const path of ["README.md", "BACKEND_INTEGRATION.md", "TEST_REPORT.md", "THIRD_PARTY_NOTICES.md", "portfolio-manifest.json", "package.json", "index.html", "vite.config.ts", "pytorch/README.md", "pytorch/requirements.txt"]) {
     assert.ok(files[path], path);
   }
   assert.ok(files["src/capstone/BrowserChat.tsx"]);
@@ -119,6 +119,19 @@ test("portfolio export contains source, evidence, runnable scaffolding, and a po
   assert.equal(Object.keys(files).some((path) => path.startsWith("src/vendor/")), false);
   const manifest = JSON.parse(files["portfolio-manifest.json"]);
   assert.equal(manifest.sourceFiles.length, Object.values(project.files).filter((file) => !file.path.startsWith("vendor/")).length);
+  assert.deepEqual(manifest.pytorchFiles, [
+    "pytorch/models/additive_attention_torch.py",
+    "pytorch/models/causal_transformer_torch.py",
+    "pytorch/models/character_rnn_torch.py",
+    "pytorch/models/neural_language_model_torch.py",
+    "pytorch/systems/kv_cache_torch.py",
+  ]);
+  for (const path of manifest.pytorchFiles) {
+    assert.ok(files[path], path);
+    assert.match(files[path], /import torch|from torch import nn/);
+  }
+  assert.match(files["pytorch/README.md"], /real PyTorch package/i);
+  assert.match(files["README.md"], /pytorch\//);
   for (const adapter of courseProvidedAdapters()) {
     assert.ok(files[`src/${adapter.path}`], adapter.path);
     assert.ok(manifest.sourceFiles.includes(adapter.path), `${adapter.path} must be declared in the portable source manifest`);

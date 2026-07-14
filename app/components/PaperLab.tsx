@@ -30,7 +30,6 @@ import {
   compatiblePracticeDrafts,
   creditablePracticeBlockIds,
   editPracticeBlock,
-  invalidateBlockVerification,
   practiceDraftIsCompatible,
   practiceBlockSource,
   resetPracticeBlock,

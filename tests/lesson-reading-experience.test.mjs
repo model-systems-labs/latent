@@ -54,7 +54,7 @@ test("lesson references are a compact title-only rail while full metadata remain
   assert.match(rule(learningFlow, ".source-entry > a"), /min-height:\s*2\.75rem/);
 });
 
-test("reference and practice code both use real JavaScript syntax parsing without loading the IDE on the reading path", async () => {
+test("lesson code uses lazy syntax-aware Python editors without loading the full IDE", async () => {
   const [paperLab, syntaxCode, codeEditor, codingWorkspace] = await Promise.all([
     readFile(paperLabUrl, "utf8"),
     readFile(syntaxCodeUrl, "utf8"),
@@ -69,7 +69,10 @@ test("reference and practice code both use real JavaScript syntax parsing withou
   assert.match(syntaxCode, /highlightCode\(/);
   assert.match(syntaxCode, /role="region" tabIndex=\{0\}/);
   assert.doesNotMatch(syntaxCode, /dangerouslySetInnerHTML/);
-  assert.match(paperLab, /hidden \? "Run practice" : "Run example"/);
+  assert.match(codeEditor, /import \{ python \} from "@codemirror\/lang-python"/);
+  assert.match(codeEditor, /isPython \? python\(\) : javascript/);
+  assert.match(paperLab, /className="answer-area" data-direct-edit="true"/);
+  assert.match(paperLab, /"Running…" : "Run cell"/);
   assert.match(paperLab, /hiddenBlocks\.length === blocks\.length \? "Run practice checks"[\s\S]*?"Run all examples"/);
   assert.match(paperLab, /Example passed · practice this cell to earn verification/);
   assert.match(paperLab, /Reference examples do not earn credit/);

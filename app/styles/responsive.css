@@ -80,6 +80,23 @@
     columns: 1;
   }
 
+  .questions-disclosure > summary {
+    gap: 0.35rem 0.75rem;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .questions-disclosure > summary > span {
+    grid-column: 1 / -1;
+  }
+
+  .questions-disclosure > summary em {
+    grid-column: 1;
+  }
+
+  .questions-disclosure > summary::after {
+    grid-column: 2;
+  }
+
   .key-panel {
     display: grid;
     gap: 1rem 2rem;
@@ -690,11 +707,12 @@
 
   .paper-hero {
     min-height: 0;
-    padding: 2.5rem 0 2.2rem;
+    padding: 2rem 0 1.75rem;
   }
 
   .paper-hero h1 {
-    font-size: clamp(2.35rem, 10vw, 3.25rem);
+    font-size: clamp(2.25rem, 9vw, 2.85rem);
+    white-space: normal;
   }
 
   .course-page {
@@ -704,12 +722,24 @@
   .course-hero {
     border-radius: 0;
     min-height: 0;
-    padding: 4rem 0;
+    padding: 3rem 0 2.5rem;
   }
 
   .course-hero h1 {
-    font-size: clamp(3rem, 14vw, 4.4rem);
+    font-size: clamp(2.55rem, 10.8vw, 3.4rem);
     white-space: normal;
+  }
+
+  .full-course-hero {
+    padding: 4rem 0;
+  }
+
+  .full-course-hero h1 {
+    font-size: clamp(3rem, 14vw, 4.4rem);
+  }
+
+  .track-outcome {
+    margin-top: 1.4rem;
   }
 
   .course-header > span {
@@ -724,10 +754,11 @@
     align-items: flex-start;
     flex-direction: column;
     gap: 0.05rem;
+    margin-top: 1.2rem;
   }
 
   .paper-section {
-    padding: 3rem 0;
+    padding: 2.5rem 0;
   }
 
   .section-title {
@@ -882,12 +913,32 @@
   }
 
   .project-page-hero {
-    padding: 4rem 0 3rem;
+    padding: 2.75rem 0 2.25rem;
   }
 
   .project-page-hero h1 {
-    font-size: clamp(3rem, 14vw, 4.4rem);
+    font-size: clamp(2.55rem, 10.8vw, 3.4rem);
     white-space: normal;
+  }
+
+  .project-history-disclosure > summary {
+    gap: 0.35rem 0.75rem;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .project-history-disclosure > summary span,
+  .project-history-disclosure > summary strong {
+    grid-column: 1;
+  }
+
+  .project-history-disclosure > summary em {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .project-history-disclosure > summary::after {
+    grid-column: 2;
+    grid-row: 1 / span 3;
   }
 
   .project-structure-root,
@@ -1499,11 +1550,11 @@
   }
 
   .sources-hero {
-    padding: 4rem 0 3rem;
+    padding: 2.75rem 0 2.25rem;
   }
 
   .sources-hero h1 {
-    font-size: clamp(3rem, 14vw, 4.4rem);
+    font-size: clamp(2.55rem, 10.8vw, 3.4rem);
   }
 
   .source-policy,

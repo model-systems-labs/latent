@@ -312,14 +312,14 @@ export function capstoneRecoveryForFailure(error: unknown, progress: CapstonePro
     };
   }
   return {
-    eyebrow: "Build verification stopped",
-    title: "Rebuild the verified project.",
-    summary: "The active build no longer matches the compiler and test evidence stored with it. The previous build was not executed.",
+    eyebrow: "Project source changed",
+    title: "Build the current source.",
+    summary: "Your saved build belongs to an earlier project revision, so Latent kept it inactive. Run a fresh full build to update the preview.",
     path: progress.nextPath,
-    pathLabel: `Repair from · ${progress.nextPath}`,
+    pathLabel: `Start with · ${progress.nextPath}`,
     why: "A fresh full build rechecks source hashes, required exports, and the React entrypoint as one atomic release.",
     action: "workspace",
-    actionLabel: "Open the IDE · Test, build & run",
+    actionLabel: "Open the IDE · Build current source",
     href: workspaceHref(progress.nextPath),
     blockedStage: "build",
   };
@@ -581,6 +581,9 @@ export function BrowserChatCapstone() {
   const learner = useLearnerState();
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const sessionRef = useRef<PreviewFrameSession | null>(null);
+  const runPreviewButtonRef = useRef<HTMLButtonElement | null>(null);
+  const resetPreviewButtonRef = useRef<HTMLButtonElement | null>(null);
+  const restoreRunFocusRef = useRef(false);
   const studentRef = useRef<SavedRnnArtifact | null>(null);
   const localModelRef = useRef<LocalModelClient | null>(null);
   const [conversationWriter] = useState(() => createLatestConversationWriter());
@@ -899,6 +902,19 @@ export function BrowserChatCapstone() {
     localModelRef.current = null;
   }, []);
 
+  useEffect(() => {
+    if (status !== "ready") return;
+    const frame = window.requestAnimationFrame(() => {
+      if (runRequested) {
+        resetPreviewButtonRef.current?.focus();
+      } else if (restoreRunFocusRef.current) {
+        restoreRunFocusRef.current = false;
+        runPreviewButtonRef.current?.focus();
+      }
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [runRequested, status]);
+
   const verifiedLessons = Object.fromEntries(canonicalLessonSeeds(learner).map((seed) => [seed.path, {
     content: seed.content,
     verifiedCells: seed.verifiedCells,
@@ -930,7 +946,7 @@ export function BrowserChatCapstone() {
       </header>
       {status === "ready" && bundle && reactRuntime && buildRuntime && runRequested ? (
         <section className="compiled-capstone-runtime">
-          <header><div><span>Active project build</span><strong role="status" aria-live="polite" aria-atomic="true">{detail}</strong></div><div><code>{descriptor?.fingerprints.sourceTree.slice(7, 19)}</code><button type="button" onClick={() => setRunRequested(false)}>Reset preview</button></div></header>
+          <header><div><span>Active project build</span><strong role="status" aria-live="polite" aria-atomic="true">{detail}</strong></div><div><code>{descriptor?.fingerprints.sourceTree.slice(7, 19)}</code><button ref={resetPreviewButtonRef} type="button" onClick={() => { restoreRunFocusRef.current = true; setRunRequested(false); }}>Reset preview</button></div></header>
           <iframe ref={iframeRef} title="Browser Chat compiled project" sandbox="allow-scripts" />
         </section>
       ) : (
@@ -975,7 +991,7 @@ export function BrowserChatCapstone() {
               <p>{status === "ready" ? "The host verifies the bundle, then exposes only allowlisted capabilities across the iframe boundary." : recovery?.why}</p>
             </div>
             {status === "ready" ? (
-              <button type="button" onClick={() => { setRunRequested(true); void recordLearningEvent("capstone_started", { outcome: "passed" }); }}>
+              <button ref={runPreviewButtonRef} type="button" onClick={() => { setRunRequested(true); void recordLearningEvent("capstone_started", { outcome: "passed" }); }}>
                 Run verified preview
               </button>
             ) : recovery?.action === "retry" ? (

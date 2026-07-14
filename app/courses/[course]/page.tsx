@@ -32,7 +32,7 @@ export default async function CoursePage({ params }: { params: Promise<{ course:
         <header className="course-hero track-hero">
           <p className="eyebrow">Module {String(track.number).padStart(2, "0")} · {track.shortTitle}</p>
           <h1>{track.title}</h1>
-          <p>{track.thesis}</p>
+          <p className="course-thesis">{track.thesis}</p>
           <div className="track-outcome"><span>Module artifact</span><strong>{track.outcome}</strong></div>
         </header>
         <CourseCurriculum title={track.title} lessons={lessons} />

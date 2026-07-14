@@ -25,12 +25,17 @@ export default function ProjectPage() {
           <div className="hero-actions"><Link href="/workspace">Open the IDE</Link><Link href="/courses/models">Continue the course</Link></div>
         </header>
         <ProjectStructureMap />
-        <ProjectTimeline />
-        <section className="project-structure-note">
-          <span>Progress model</span>
-          <p>Current workspace source, test results, and active build snapshots are saved on this device. Editing a lesson source clears that file’s check verification; editing any file invalidates the current full-project test receipt. Other exact saved lesson proofs remain verified, while the last active build snapshot stays unchanged until a new full build passes.</p>
-        </section>
-        <LearningDataPanel />
+        <details className="project-history-disclosure">
+          <summary><span>Secondary project views</span><strong>History and learning data</strong><em>Inspect</em></summary>
+          <div className="project-history-body">
+            <ProjectTimeline />
+            <section className="project-structure-note">
+              <span>Progress model</span>
+              <p>Current workspace source, test results, and active build snapshots are saved on this device. Editing a lesson source clears that file’s check verification; editing any file invalidates the current full-project test receipt. Other exact saved lesson proofs remain verified, while the last active build snapshot stays unchanged until a new full build passes.</p>
+            </section>
+            <LearningDataPanel />
+          </div>
+        </details>
       </article>
     </main>
   );

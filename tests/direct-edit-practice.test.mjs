@@ -117,18 +117,46 @@ test("every lesson cell exposes an editor without a practice-mode gate and persi
 
   assert.match(source, /className="answer-area" data-direct-edit="true"/);
   assert.match(source, /ariaLabel=\{`Edit \$\{block\.label\}`\}/);
-  assert.match(source, /readOnly=\{runningBlockIds\.length > 0\}/);
+  assert.match(source, /const blockRunning = runningBlockIds\.includes\(block\.id\)/);
+  assert.match(source, /readOnly=\{blockRunning\}/);
   assert.match(source, /value=\{hidden \? answers\[block\.id\] \?\? "" : block\.code\}/);
   assert.match(source, /onChange=\{\(value\) => updateAnswer\(block, value\)\}/);
   assert.match(source, /editPracticeBlock\(practiceDraftState\(\), block\.id, value\)/);
   assert.match(source, /saveLessonPracticeAndVerification\(lesson\.id, next\.hiddenBlocks, next\.answers/);
   assert.match(source, /saveLessonProjectFile\(projectSeedForLesson\(lesson, next\.hiddenBlocks, next\.answers/);
-  assert.match(source, />Reset starter<\/button>/);
-  assert.match(source, /hidden \? "Restore reference" : "Restore draft"/);
-  assert.match(source, />Reset all<\/button>/);
-  assert.match(source, />Restore all<\/button>/);
   assert.doesNotMatch(source, />Practice cell<\/button>/);
   assert.doesNotMatch(source, /hidden \? \([\s\S]*<LessonCodeEditor[\s\S]*\) : \([\s\S]*<SyntaxCode/);
+});
+
+test("a single-cell check locks only that cell and preserves concurrent edits elsewhere", async () => {
+  const source = await readFile(paperLabUrl, "utf8");
+  const runCellSource = source.slice(source.indexOf("const runCell"), source.indexOf("const runAll"));
+
+  assert.match(runCellSource, /const currentHidden = \[\.\.\.hiddenBlocksRef\.current\]/);
+  assert.match(runCellSource, /const currentAnswers = \{ \.\.\.answersRef\.current \}/);
+  assert.match(runCellSource, /applyPracticeState\(currentHidden, currentAnswers, nextVerified/);
+  assert.match(runCellSource, /saveLessonProjectFile\(projectSeedForLesson\(lesson, currentHidden, currentAnswers, nextVerified\)\)/);
+  assert.doesNotMatch(runCellSource, /applyPracticeState\(hiddenSnapshot, answersSnapshot, nextVerified/);
+  assert.match(source, /disabled=\{!practiceReady \|\| blockRunning\}>Reset starter/);
+});
+
+test("destructive resets arm inline and recovery actions render only when usable", async () => {
+  const source = await readFile(paperLabUrl, "utf8");
+
+  assert.match(source, /onClick=\{\(\) => armBlockReset\(block\)\}/);
+  assert.match(source, /Confirm reset \$\{block\.label\} to starter code/);
+  assert.match(source, /onClick=\{\(\) => resetBlock\(block\)\}[^\n]*>Confirm reset<\/button>/);
+  assert.match(source, /onClick=\{\(\) => cancelBlockReset\(block\)\}/);
+  assert.match(source, /hidden \? <button[^\n]*Restore reference<\/button>/);
+  assert.match(source, /recoverableDraft \? <button[^\n]*Restore draft<\/button> : null/);
+  assert.match(source, /onClick=\{armResetAll\}/);
+  assert.match(source, /onClick=\{hideAll\}[^\n]*>Confirm reset all<\/button>/);
+  assert.match(source, /onClick=\{cancelResetAll\}/);
+  assert.match(source, /hiddenBlocks\.length > 0 \? <button[^\n]*Restore all<\/button> : null/);
+  assert.match(source, /aria-describedby=\{`practice-status-\$\{lesson\.id\}`\}/);
+  assert.match(source, /reset is ready\. Confirm to replace this draft with its starter, or cancel/);
+  assert.match(source, /Reset all is ready\. Confirm to replace every cell with its starter, or cancel/);
+  assert.doesNotMatch(source, /disabled=\{!practiceReady \|\| \(!hidden && !recoverableDraft\)/);
 });
 
 test("external reset and restore updates do not masquerade as learner typing", async () => {

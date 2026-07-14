@@ -130,7 +130,7 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
     <figure className={`concept-diagram${isRecurrent ? " recurrence-diagram" : ""}${isNeuralLanguageModel ? " neural-lm-diagram" : ""}${isSubwordTokenization ? " subword-tokenization-diagram" : ""}${isAdditiveAttention ? " additive-attention-diagram" : ""}${isTransformer ? " transformer-attention-diagram" : ""}${isInContextLearning ? " icl-comparison-diagram" : ""}${isInferenceRuntime ? " inference-runtime-diagram" : ""}${isSchedulingMemory ? " scheduling-memory-diagram" : ""}${isStreamingTransport ? " streaming-transport-diagram" : ""}${isReliabilityObservability ? " reliability-observability-diagram" : ""}${isConversationState ? " conversation-state-diagram" : ""}${isStreamingReact ? " streaming-react-diagram" : ""}${isChatActionsContext ? " chat-actions-context-diagram" : ""}${isChatProductQuality ? " chat-product-quality-diagram" : ""}`}>
       <header><span>Mechanism</span><strong>{lesson.diagram.title}</strong></header>
       {isRecurrent ? (
-        <div className="recurrence-unroll" role="img" aria-label="Three recurrent time steps using shared parameters. During teacher-forced training, the observed next character is the loss target and the next input. During sampled generation, a character drawn from the model probability becomes the next input.">
+        <div className="recurrence-unroll" role="group" aria-label="Three recurrent time steps using shared parameters. During teacher-forced training, the observed next character is the loss target and the next input. During sampled generation, a character drawn from the model probability becomes the next input.">
           <div className="unroll-columns">
             {recurrentSteps.map((step) => (
               <div className="unroll-step" key={step.time}>
@@ -152,7 +152,7 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
           </div>
         </div>
       ) : isNeuralLanguageModel ? (
-        <div className="neural-probability-path" role="img" aria-label="A two-word context is converted to ids, embedding rows, a mean context vector, vocabulary logits, stable softmax probabilities, and negative log-likelihood for the target word. Unlike an exact count, learned vectors can share parameters across related contexts.">
+        <div className="neural-probability-path" role="group" aria-label="A two-word context is converted to ids, embedding rows, a mean context vector, vocabulary logits, stable softmax probabilities, and negative log-likelihood for the target word. Unlike an exact count, learned vectors can share parameters across related contexts.">
           <div className="generalization-contrast">
             <span><b>Exact count</b><code>“the researcher” unseen → no direct trigram estimate</code></span>
             <span><b>Learned coordinates</b><code>similar predictive use → shared embedding geometry</code></span>
@@ -171,7 +171,7 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
           </div>
         </div>
       ) : isSubwordTokenization ? (
-        <div className="bpe-worked-example" role="img" aria-label="A tiny corpus is counted, the most frequent l-o pair is merged everywhere, and counts are recomputed. A second comparison shows that reversing learned merge order changes the segmentation of a-b-c.">
+        <div className="bpe-worked-example" role="group" aria-label="A tiny corpus is counted, the most frequent l-o pair is merged everywhere, and counts are recomputed. A second comparison shows that reversing learned merge order changes the segmentation of a-b-c.">
           <ol className="bpe-rounds">
             {lesson.diagram.nodes.map((node, index) => (
               <li key={node.label}>
@@ -194,7 +194,7 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
           </div>
         </div>
       ) : isAdditiveAttention ? (
-        <div className="attention-worked-example" role="img" aria-label="At the year decoder step, one query is compared with the day, month, and year encoder states using the additive scoring network. Softmax across the three scores puts 0.951 alignment weight on year, and the weighted sum constructs the year context vector.">
+        <div className="attention-worked-example" role="group" aria-label="At the year decoder step, one query is compared with the day, month, and year encoder states using the additive scoring network. Softmax across the three scores puts 0.951 alignment weight on year, and the weighted sum constructs the year context vector.">
           <ol className="attention-stages">
             {lesson.diagram.nodes.map((node, index) => (
               <li key={node.label}>
@@ -209,7 +209,7 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
           </div>
         </div>
       ) : isTransformer ? (
-        <div className="transformer-worked-example" role="img" aria-label="A three-token causal attention computation. Input projections make Q, K, and V. Scaled query-key scores are masked above the diagonal and normalized row by row. The decoded row has probabilities 0.20, 0.33, and 0.46. Multiplying by value rows produces one context vector per token.">
+        <div className="transformer-worked-example" role="group" aria-label="A three-token causal attention computation. Input projections make Q, K, and V. Scaled query-key scores are masked above the diagonal and normalized row by row. The decoded row has probabilities 0.20, 0.33, and 0.46. Multiplying by value rows produces one context vector per token.">
           <ol className="transformer-stages">
             {lesson.diagram.nodes.map((node, index) => (
               <li key={node.label}>
@@ -239,7 +239,7 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
           </div>
         </div>
       ) : isInContextLearning ? (
-        <div className="icl-comparison" role="img" aria-label="A controlled in-context learning experiment run by a fixed local evaluator that is separate from learner code. The instruction, two held-out queries, frozen model weights, decoding, and exact-match scorer stay fixed. Only the prefix changes from zero to one to four demonstrations. The resulting two predictions can show sensitivity to the prefix but cannot establish general few-shot improvement.">
+        <div className="icl-comparison" role="group" aria-label="A controlled in-context learning experiment run by a fixed local evaluator that is separate from learner code. The instruction, two held-out queries, frozen model weights, decoding, and exact-match scorer stay fixed. Only the prefix changes from zero to one to four demonstrations. The resulting two predictions can show sensitivity to the prefix but cannot establish general few-shot improvement.">
           <div className="icl-fixed-prefix">
             <span><b>Fixed instruction</b><code>infer mapping · return K or M</code></span>
             <span><b>Same held-out queries</b><code>moving story · tedious story</code></span>
@@ -265,7 +265,7 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
           </div>
         </div>
       ) : isInferenceRuntime ? (
-        <div className="runtime-worked-example" role="img" aria-label="Worked inference timeline for request r-104. It waits 18 milliseconds, prefills a 96-token prompt in 74 milliseconds using 6 KV pages, samples the first of 32 output tokens at a 92 millisecond TTFT, performs 31 subsequent one-position decode forwards while cache grows to 8 pages, then releases all pages. The KV cache byte formula uses both key and value, every layer, KV head, cached token, head coordinate, and bytes per value.">
+        <div className="runtime-worked-example" role="group" aria-label="Worked inference timeline for request r-104. It waits 18 milliseconds, prefills a 96-token prompt in 74 milliseconds using 6 KV pages, samples the first of 32 output tokens at a 92 millisecond TTFT, performs 31 subsequent one-position decode forwards while cache grows to 8 pages, then releases all pages. The KV cache byte formula uses both key and value, every layer, KV head, cached token, head coordinate, and bytes per value.">
           <div className="runtime-request-spec">
             <span><b>Request</b><code>r-104</code></span>
             <span><b>Prompt</b><code>96 tokens</code></span>
@@ -292,7 +292,7 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
           </div>
         </div>
       ) : isSchedulingMemory ? (
-        <div className="scheduler-worked-comparison" role="img" aria-label="A controlled scheduling comparison with the same arrivals and resource limits. Requests a, b, and c begin active while d waits, using 11 KV pages. In the static policy, a completed slot stays idle and d waits for the longest request, resulting in 116 iterations, 61 percent utilization, and a p95 wait of 19 steps. In continuous batching, a completion is recorded, its pages are released, and d joins the next iteration, resulting in 88 iterations, 86 percent utilization, and a p95 wait of 7 steps. These fixed results isolate policy for one synthetic workload and do not establish a universal production advantage.">
+        <div className="scheduler-worked-comparison" role="group" aria-label="A controlled scheduling comparison with the same arrivals and resource limits. Requests a, b, and c begin active while d waits, using 11 KV pages. In the static policy, a completed slot stays idle and d waits for the longest request, resulting in 116 iterations, 61 percent utilization, and a p95 wait of 19 steps. In continuous batching, a completion is recorded, its pages are released, and d joins the next iteration, resulting in 88 iterations, 86 percent utilization, and a p95 wait of 7 steps. These fixed results isolate policy for one synthetic workload and do not establish a universal production advantage.">
           <div className="scheduler-shared-workload">
             <span><b>Controlled input</b><code>a · b · c active</code></span>
             <span><b>Waiting</b><code>d</code></span>
@@ -325,7 +325,7 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
           </div>
         </div>
       ) : isStreamingTransport ? (
-        <div className="transport-worked-path" role="img" aria-label="A worked streaming transport path. A UTF-8 euro character is split across two byte chunks. Streaming TextDecoder holds the first two bytes and emits the complete character after the third arrives. The practice parser receives decoded text, joins it with its text remainder, finds a blank-line frame boundary, reads event and JSON data fields, and emits a typed token event. The reducer appends that delta while render buffering remains separate from parsing.">
+        <div className="transport-worked-path" role="group" aria-label="A worked streaming transport path. A UTF-8 euro character is split across two byte chunks. Streaming TextDecoder holds the first two bytes and emits the complete character after the third arrives. The practice parser receives decoded text, joins it with its text remainder, finds a blank-line frame boundary, reads event and JSON data fields, and emits a typed token event. The reducer appends that delta while render buffering remains separate from parsing.">
           <div className="transport-byte-split">
             <span><b>Byte chunk A</b><code>… 22 e2 82</code><em>incomplete UTF-8 · decoder holds e2 82</em></span>
             <span><b>Byte chunk B</b><code>ac 22 7d 0a 0a</code><em>€ completes · frame delimiter arrives</em></span>
@@ -348,7 +348,7 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
           </div>
         </div>
       ) : isReliabilityObservability ? (
-        <div className="reliability-worked-trace" role="img" aria-label="Worked reliability trace for logical request r-201. Attempt r-201.1 times out after 120 milliseconds with zero visible tokens, so the zero-based retry predicate allows attempt r-201.2 within a total budget of two attempts. The second attempt waits 14 milliseconds, prefills for 69 milliseconds, reaches time to first token at 83 milliseconds, decodes for 338 milliseconds, completes, and releases resources. A token from retired attempt r-201.1 and a post-completion token from r-201.2 are both rejected. If the first attempt had emitted one visible token, the retry branch would be blocked.">
+        <div className="reliability-worked-trace" role="group" aria-label="Worked reliability trace for logical request r-201. Attempt r-201.1 times out after 120 milliseconds with zero visible tokens, so the zero-based retry predicate allows attempt r-201.2 within a total budget of two attempts. The second attempt waits 14 milliseconds, prefills for 69 milliseconds, reaches time to first token at 83 milliseconds, decodes for 338 milliseconds, completes, and releases resources. A token from retired attempt r-201.1 and a post-completion token from r-201.2 are both rejected. If the first attempt had emitted one visible token, the retry branch would be blocked.">
           <div className="reliability-request-spec">
             <span><b>Logical request</b><code>r-201</code></span>
             <span><b>Attempt budget</b><code>2 total · index 0–1</code></span>
@@ -380,7 +380,7 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
           </div>
         </div>
       ) : isConversationState ? (
-        <div className="conversation-state-worked" role="img" aria-label="A worked normalized conversation update. Conversation c-17 stores the ordered ids m-u1 and m-a1. messagesById stores a complete user record and streaming assistant record. Assistant message m-a1 belongs to generation attempt a-17.2, whose transport request is r-17.2. A token delta addressed to both m-a1 and r-17.2 returns a new state and new m-a1 record while preserving m-u1 identity. The resulting streaming status derives canStop true and canRegenerate false.">
+        <div className="conversation-state-worked" role="group" aria-label="A worked normalized conversation update. Conversation c-17 stores the ordered ids m-u1 and m-a1. messagesById stores a complete user record and streaming assistant record. Assistant message m-a1 belongs to generation attempt a-17.2, whose transport request is r-17.2. A token delta addressed to both m-a1 and r-17.2 returns a new state and new m-a1 record while preserving m-u1 identity. The resulting streaming status derives canStop true and canRegenerate false.">
           <div className="conversation-normalized-records">
             <span><b>conversation · c-17</b><code>{'messageIds: ["m-u1", "m-a1"]'}</code></span>
             <span><b>messagesById · m-u1</b><code>{'user · complete · "Explain masking."'}</code></span>
@@ -404,7 +404,7 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
           </div>
         </div>
       ) : isStreamingReact ? (
-        <div className="streaming-react-worked" role="img" aria-label="A worked React render timing trace. Parsed token events containing A, a leading-space causal, and a leading-space euro symbol arrive at 2, 7, and 11 milliseconds. They enter a UI render-delta queue in exact order. At the 16 millisecond requestAnimationFrame boundary, the queue flushes once and dispatches one TOKEN_BATCH action containing A causal euro, producing one visual commit. A separate near-bottom gate allows scroll following, while a bounded live region announces a semantic batch. Completion flushes pending text before terminal state; cancellation drops pending text, rejects late deltas, and cancels the scheduled frame.">
+        <div className="streaming-react-worked" role="group" aria-label="A worked React render timing trace. Parsed token events containing A, a leading-space causal, and a leading-space euro symbol arrive at 2, 7, and 11 milliseconds. They enter a UI render-delta queue in exact order. At the 16 millisecond requestAnimationFrame boundary, the queue flushes once and dispatches one TOKEN_BATCH action containing A causal euro, producing one visual commit. A separate near-bottom gate allows scroll following, while a bounded live region announces a semantic batch. Completion flushes pending text before terminal state; cancellation drops pending text, rejects late deltas, and cancels the scheduled frame.">
           <div className="streaming-event-arrivals">
             <span><b>t = 2 ms</b><code>token · &quot;A&quot;</code></span>
             <span><b>t = 7 ms</b><code>token · &quot; causal&quot;</code></span>
@@ -433,7 +433,7 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
           </div>
         </div>
       ) : isChatActionsContext ? (
-        <div className="chat-actions-worked" role="img" aria-label="A concrete conversation branch. System record s1 and user message m-u3 form the active prefix. Stopping request r-31 retains assistant message m-a3 with the partial text Set future logits and cancelled status. Retry from the same m-u3 prefix creates assistant m-a4, attempt a-32, and request r-32. Editing m-u3 creates user revision m-u3-e1, retains but invalidates the old m-a3 descendant on that branch, and creates assistant m-a5, attempt a-33, and request r-33. A request assembly example reserves system s1 and the active user prompt, then examines complete user-assistant history pairs newest-first, skips an oversized newer pair, admits an older compact pair, and emits the result in chronological order within a 26-token budget.">
+        <div className="chat-actions-worked" role="group" aria-label="A concrete conversation branch. System record s1 and user message m-u3 form the active prefix. Stopping request r-31 retains assistant message m-a3 with the partial text Set future logits and cancelled status. Retry from the same m-u3 prefix creates assistant m-a4, attempt a-32, and request r-32. Editing m-u3 creates user revision m-u3-e1, retains but invalidates the old m-a3 descendant on that branch, and creates assistant m-a5, attempt a-33, and request r-33. A request assembly example reserves system s1 and the active user prompt, then examines complete user-assistant history pairs newest-first, skips an oversized newer pair, admits an older compact pair, and emits the result in chronological order within a 26-token budget.">
           <div className="chat-active-prefix">
             <span><b>Required system</b><code>s1 · 6 tokens</code></span>
             <i aria-hidden="true">→</i>
@@ -459,7 +459,7 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
           </div>
         </div>
       ) : isChatProductQuality ? (
-        <div className="quality-product-trace" role="img" aria-label="One end-to-end chat product trace. Enter sends a request, whose exact phases are queued, loading, prefill, streaming, and complete. Visual status and programmatic status expose the same phase. Streaming text is visually batched and announced in bounded semantic updates. Cancellation or retry rejects late events, releases transport and render resources, and returns focus to the composer. Reload validates an exact version 1 record containing only bounded terminal messages. Eleven executable pure checks cover deterministic code behavior. Five requirements remain unexecuted specifications, while keyboard, screen-reader, and mobile behavior remain explicit manual verification tasks.">
+        <div className="quality-product-trace" role="group" aria-label="One end-to-end chat product trace. Enter sends a request, whose exact phases are queued, loading, prefill, streaming, and complete. Visual status and programmatic status expose the same phase. Streaming text is visually batched and announced in bounded semantic updates. Cancellation or retry rejects late events, releases transport and render resources, and returns focus to the composer. Reload validates an exact version 1 record containing only bounded terminal messages. Eleven executable pure checks cover deterministic code behavior. Five requirements remain unexecuted specifications, while keyboard, screen-reader, and mobile behavior remain explicit manual verification tasks.">
           <ol className="quality-lifecycle-trace">
             {lesson.diagram.nodes.map((node, index) => (
               <li key={node.label}>
@@ -587,50 +587,56 @@ export function TextBoxSection({ lesson }: { lesson: CourseLesson }) {
   return (
     <section className="paper-section questions-section" id="questions">
       <div className="section-title"><span>02</span><h2>Questions</h2></div>
-      <div className="questions-layout">
-        <p className="questions-intro">{lesson.questions.intro}</p>
-        <div className="key-panel">
-          <label>
-            <span>OpenRouter API key</span>
-            <div className="key-input">
-              <input type={showKey ? "text" : "password"} value={openRouterKey} onChange={(event) => setOpenRouterKey(event.target.value)} placeholder="sk-or-v1-…" autoComplete="off" />
-              <button type="button" onClick={() => setShowKey((value) => !value)}>{showKey ? "Hide" : "Show"}</button>
+      <details className="questions-disclosure">
+        <summary>
+          <span><small>Optional study aid</small><strong>Ask about this lesson</strong></span>
+          <em>OpenRouter key required</em>
+        </summary>
+        <div className="questions-layout">
+          <p className="questions-intro">{lesson.questions.intro}</p>
+          <div className="key-panel">
+            <label>
+              <span>OpenRouter API key</span>
+              <div className="key-input">
+                <input type={showKey ? "text" : "password"} value={openRouterKey} onChange={(event) => setOpenRouterKey(event.target.value)} placeholder="sk-or-v1-…" autoComplete="off" />
+                <button type="button" onClick={() => setShowKey((value) => !value)}>{showKey ? "Hide" : "Show"}</button>
+              </div>
+            </label>
+            <div className="key-note"><i /><span>Latent does not store this key. Your browser sends it directly to OpenRouter for each question; OpenRouter’s policies and any account charges apply. It clears here on refresh.</span></div>
+            <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer">Get a key ↗</a>
+          </div>
+          <div className="paper-chat" aria-busy={asking}>
+            <div className="chat-log" role="log" aria-label="Questions and answers" aria-live="polite" aria-relevant="additions text">
+              {chat.length === 0 ? (
+                <div className="empty-chat">
+                  <span>Suggested questions</span>
+                  {lesson.questions.suggestions.map((suggestion) => <button type="button" key={suggestion} onClick={() => setQuestion(suggestion)}>{suggestion}</button>)}
+                </div>
+              ) : chat.map((message, index) => (
+                <div className={`chat-message ${message.role}`} key={`${message.role}-${index}`}>
+                  <span>{message.role === "user" ? "You" : "Source guide"}</span><p>{message.content}</p>
+                </div>
+              ))}
             </div>
-          </label>
-          <div className="key-note"><i /><span>Latent does not store this key. Your browser sends it directly to OpenRouter for each question; OpenRouter’s policies and any account charges apply. It clears here on refresh.</span></div>
-          <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer">Get a key ↗</a>
-        </div>
-        <div className="paper-chat" aria-busy={asking}>
-          <div className="chat-log" role="log" aria-label="Questions and answers" aria-live="polite" aria-relevant="additions text">
-            {chat.length === 0 ? (
-              <div className="empty-chat">
-                <span>Suggested questions</span>
-                {lesson.questions.suggestions.map((suggestion) => <button type="button" key={suggestion} onClick={() => setQuestion(suggestion)}>{suggestion}</button>)}
-              </div>
-            ) : chat.map((message, index) => (
-              <div className={`chat-message ${message.role}`} key={`${message.role}-${index}`}>
-                <span>{message.role === "user" ? "You" : "Source guide"}</span><p>{message.content}</p>
-              </div>
-            ))}
-          </div>
-          <form className="question-form" onSubmit={askPaper}>
-            <textarea aria-label="Question about the lesson brief" value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Ask about the lesson brief or what to verify in the linked sources…" />
-            <button type="submit" aria-describedby="paper-question-status" disabled={!openRouterKey.trim() || !question.trim() || asking}>{asking ? "Thinking…" : "Ask"}</button>
-          </form>
-          <div className="chat-status">
-            <span id="paper-question-status" role="status" aria-live="polite" aria-atomic="true">
-              {questionError
-                ? `Question failed: ${questionError}`
-                : asking
-                  ? "Asking OpenRouter from the supplied lesson brief…"
-                  : answerModel
-                    ? `Answered by ${answerModel} from the supplied lesson brief`
-                    : "Context: lesson brief + source metadata · no full-text retrieval"}
-            </span>
-            {openRouterKey ? <button type="button" onClick={() => setOpenRouterKey("")}>Clear key</button> : null}
+            <form className="question-form" onSubmit={askPaper}>
+              <textarea aria-label="Question about the lesson brief" value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Ask about the lesson brief or what to verify in the linked sources…" />
+              <button type="submit" aria-describedby="paper-question-status" disabled={!openRouterKey.trim() || !question.trim() || asking}>{asking ? "Thinking…" : "Ask"}</button>
+            </form>
+            <div className="chat-status">
+              <span id="paper-question-status" role="status" aria-live="polite" aria-atomic="true">
+                {questionError
+                  ? `Question failed: ${questionError}`
+                  : asking
+                    ? "Asking OpenRouter from the supplied lesson brief…"
+                    : answerModel
+                      ? `Answered by ${answerModel} from the supplied lesson brief`
+                      : "Context: lesson brief + source metadata · no full-text retrieval"}
+              </span>
+              {openRouterKey ? <button type="button" onClick={() => setOpenRouterKey("")}>Clear key</button> : null}
+            </div>
           </div>
         </div>
-      </div>
+      </details>
     </section>
   );
 }
@@ -684,6 +690,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
   const [runningBlockIds, setRunningBlockIds] = useState<string[]>([]);
   const [artifactRevision, setArtifactRevision] = useState(0);
   const [practiceReady, setPracticeReady] = useState(false);
+  const [pendingReset, setPendingReset] = useState<{ kind: "all" } | { kind: "block"; blockId: string } | null>(null);
   const hiddenBlocksRef = useRef<string[]>([]);
   const answersRef = useRef<Record<string, string>>({});
   const verifiedBlockIdsRef = useRef<string[]>([]);
@@ -804,13 +811,23 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     setPracticeMessage(message);
   };
   const resetBlock = (block: CodeBlock) => {
+    setPendingReset(null);
     persistBlockState(
       block,
       resetPracticeBlock(practiceDraftState(), block.id, starterCodeFor(block, lesson)),
       `${block.label} reset to its starter. Complete it, then run the cell.`,
     );
   };
+  const armBlockReset = (block: CodeBlock) => {
+    setPendingReset({ kind: "block", blockId: block.id });
+    setPracticeMessage(`${block.label} reset is ready. Confirm to replace this draft with its starter, or cancel to keep your code.`);
+  };
+  const cancelBlockReset = (block: CodeBlock) => {
+    setPendingReset(null);
+    setPracticeMessage(`${block.label} reset cancelled. Your code is unchanged.`);
+  };
   const restoreBlock = (block: CodeBlock) => {
+    setPendingReset(null);
     persistBlockState(
       block,
       restoreReferenceBlock(practiceDraftState(), block.id),
@@ -820,6 +837,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
   const recoverBlock = (block: CodeBlock) => {
     const savedDraft = answersRef.current[block.id];
     if (savedDraft === undefined || !practiceDraftIsCompatible(lesson.implementation.filename, savedDraft)) return;
+    setPendingReset(null);
     persistBlockState(
       block,
       editPracticeBlock(practiceDraftState(), block.id, savedDraft),
@@ -827,6 +845,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     );
   };
   const hideAll = () => {
+    setPendingReset(null);
     const nextHidden = blocks.map((block) => block.id);
     const nextAnswers = Object.fromEntries(blocks.map((block) => [block.id, starterCodeFor(block, lesson)]));
     applyPracticeState(nextHidden, nextAnswers, [], {}, null);
@@ -835,7 +854,16 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     setCellResults({});
     setPracticeMessage("Every cell was reset to its starter. Reconstruct them in any valid way.");
   };
+  const armResetAll = () => {
+    setPendingReset({ kind: "all" });
+    setPracticeMessage("Reset all is ready. Confirm to replace every cell with its starter, or cancel to keep your code.");
+  };
+  const cancelResetAll = () => {
+    setPendingReset(null);
+    setPracticeMessage("Reset all cancelled. Your code is unchanged.");
+  };
   const showSolution = () => {
+    setPendingReset(null);
     const currentAnswers = answersRef.current;
     applyPracticeState([], currentAnswers, [], {}, null);
     saveLessonPracticeAndVerification(lesson.id, [], currentAnswers, [], {}, null);
@@ -845,9 +873,9 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
   };
   const runCell = async (block: CodeBlock) => {
     if (!practiceReadyRef.current || runningBlockIdsRef.current.length) return;
+    setPendingReset(null);
     const sourceSnapshot = sourceFor(block);
     const hiddenSnapshot = [...hiddenBlocksRef.current];
-    const answersSnapshot = { ...answersRef.current };
     const isPracticeRun = hiddenSnapshot.includes(block.id);
     setRunning([block.id]);
     setPracticeMessage(pythonLesson
@@ -865,20 +893,22 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
         return;
       }
       const currentVerification = { ids: verifiedBlockIdsRef.current, sources: verifiedSourcesRef.current, contractVersion: verifiedContractVersionRef.current };
+      const currentHidden = [...hiddenBlocksRef.current];
+      const currentAnswers = { ...answersRef.current };
       const nextVerification = verificationAfterBlockRun(
         currentVerification,
         block.id,
         sourceSnapshot,
-        hiddenSnapshot,
+        currentHidden,
         check.passed,
         llmSystemsContractSuite.contractVersion,
       );
       const nextVerified = nextVerification.ids;
       const nextVerifiedSources = nextVerification.sources;
       if (isPracticeRun) {
-        applyPracticeState(hiddenSnapshot, answersSnapshot, nextVerified, nextVerifiedSources, nextVerification.contractVersion);
+        applyPracticeState(currentHidden, currentAnswers, nextVerified, nextVerifiedSources, nextVerification.contractVersion);
         recordVerifiedCells(lesson.id, nextVerified, nextVerifiedSources, nextVerification.contractVersion);
-        saveLessonProjectFile(projectSeedForLesson(lesson, hiddenSnapshot, answersSnapshot, nextVerified));
+        saveLessonProjectFile(projectSeedForLesson(lesson, currentHidden, currentAnswers, nextVerified));
       }
       setCellResults((current) => ({ ...current, [block.id]: check }));
       setPracticeMessage(check.passed
@@ -903,6 +933,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
   };
   const runAll = async () => {
     if (!practiceReadyRef.current || runningBlockIdsRef.current.length) return;
+    setPendingReset(null);
     const hiddenSnapshot = [...hiddenBlocksRef.current];
     const answersSnapshot = { ...answersRef.current };
     const sourceSnapshots = Object.fromEntries(blocks.map((block) => [block.id, sourceFor(block)]));
@@ -975,6 +1006,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     }
   };
   const updateAnswer = (block: CodeBlock, value: string) => {
+    setPendingReset(null);
     persistBlockState(
       block,
       editPracticeBlock(practiceDraftState(), block.id, value),
@@ -1003,7 +1035,16 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
           <div className="editor-progress" aria-label={`${verifiedCells} of ${blocks.length} cells verified`}>
             <span>{verifiedCells}/{blocks.length} verified</span><i><b style={{ width: `${verifiedCells / blocks.length * 100}%` }} /></i>
           </div>
-          <div className="toolbar-actions"><button type="button" onClick={hideAll} disabled={!practiceReady || runningBlockIds.length > 0}>Reset all</button><button type="button" onClick={showSolution} disabled={!practiceReady || hiddenBlocks.length === 0 || runningBlockIds.length > 0}>Restore all</button><Link href={`/workspace?file=${encodeURIComponent(`${lesson.courseId ?? "models"}/${lesson.implementation.filename}`)}`}>Open in IDE ↗</Link></div>
+          <div className="toolbar-actions" aria-label="Practice file actions">
+            {pendingReset?.kind === "all" ? (
+              <>
+                <button type="button" aria-label="Confirm reset all cells" aria-describedby={`practice-status-${lesson.id}`} onClick={hideAll} disabled={!practiceReady || runningBlockIds.length > 0}>Confirm reset all</button>
+                <button type="button" aria-label="Cancel reset all cells" aria-describedby={`practice-status-${lesson.id}`} onClick={cancelResetAll} disabled={runningBlockIds.length > 0}>Cancel</button>
+              </>
+            ) : <button type="button" aria-label="Reset all cells to starter code" aria-describedby={`practice-status-${lesson.id}`} onClick={armResetAll} disabled={!practiceReady || runningBlockIds.length > 0}>Reset all</button>}
+            {hiddenBlocks.length > 0 ? <button type="button" onClick={showSolution} disabled={!practiceReady || runningBlockIds.length > 0}>Restore all</button> : null}
+            <Link href={`/workspace?file=${encodeURIComponent(`${lesson.courseId ?? "models"}/${lesson.implementation.filename}`)}`}>Open in IDE ↗</Link>
+          </div>
         </div>
         <div className="code-surface">
           {implementationPrelude ? (
@@ -1017,6 +1058,8 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
               && practiceDraftIsCompatible(lesson.implementation.filename, answers[block.id]);
             const startLine = blocks.slice(0, blockIndex).reduce((line, previous) => line + previous.code.split("\n").length + 1, implementationPrelude ? 3 : 1);
             const result = cellResults[block.id];
+            const resetArmed = pendingReset?.kind === "block" && pendingReset.blockId === block.id;
+            const blockRunning = runningBlockIds.includes(block.id);
             return (
               <div
                 className={`practice-block ${hidden ? "is-hidden" : ""}`}
@@ -1027,9 +1070,14 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
                 <div className="block-heading">
                   <div><span>0{blockIndex + 1}</span><strong>{block.label}</strong><em>{block.purpose}</em></div>
                   <div className="block-actions">
-                    <button className="run-cell-button" type="button" onClick={() => void runCell(block)} disabled={!practiceReady || runningBlockIds.length > 0}>{runningBlockIds.includes(block.id) ? "Running…" : "Run cell"}</button>
-                    <button type="button" onClick={() => resetBlock(block)} disabled={!practiceReady || runningBlockIds.length > 0}>Reset starter</button>
-                    <button type="button" onClick={() => hidden ? restoreBlock(block) : recoverBlock(block)} disabled={!practiceReady || (!hidden && !recoverableDraft) || runningBlockIds.length > 0}>{hidden ? "Restore reference" : "Restore draft"}</button>
+                    <button className="run-cell-button" type="button" onClick={() => void runCell(block)} disabled={!practiceReady || runningBlockIds.length > 0}>{blockRunning ? "Running…" : "Run cell"}</button>
+                    {resetArmed ? (
+                      <>
+                        <button type="button" aria-label={`Confirm reset ${block.label} to starter code`} aria-describedby={`practice-status-${lesson.id}`} onClick={() => resetBlock(block)} disabled={!practiceReady || blockRunning}>Confirm reset</button>
+                        <button type="button" aria-label={`Cancel reset ${block.label}`} aria-describedby={`practice-status-${lesson.id}`} onClick={() => cancelBlockReset(block)} disabled={blockRunning}>Cancel</button>
+                      </>
+                    ) : <button type="button" aria-label={`Reset ${block.label} to starter code`} aria-describedby={`practice-status-${lesson.id}`} onClick={() => armBlockReset(block)} disabled={!practiceReady || blockRunning}>Reset starter</button>}
+                    {hidden ? <button type="button" onClick={() => restoreBlock(block)} disabled={!practiceReady || blockRunning}>Restore reference</button> : recoverableDraft ? <button type="button" onClick={() => recoverBlock(block)} disabled={!practiceReady || blockRunning}>Restore draft</button> : null}
                   </div>
                 </div>
                 {block.concepts?.length ? <div className="concept-strip" aria-label={`${block.label} variables`}>{block.concepts.map((concept) => <span key={concept.name}><code>{concept.name}</code><em>{concept.detail}</em></span>)}</div> : null}
@@ -1044,7 +1092,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
                         lineNumberStart={startLine}
                         onChange={(value) => updateAnswer(block, value)}
                         path={lesson.implementation.filename}
-                        readOnly={runningBlockIds.length > 0}
+                        readOnly={blockRunning}
                         value={hidden ? answers[block.id] ?? "" : block.code}
                         variant="lesson"
                       />

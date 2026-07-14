@@ -610,7 +610,7 @@ details.artifact-runtime-panel[open] > summary::after { content: "−"; }
 
 .capstone-gate-copy h1 {
   font-family: var(--serif);
-  font-size: clamp(2.55rem, 5.2vw, 4.9rem);
+  font-size: clamp(2.55rem, 4.2vw, 4.25rem);
   font-weight: 400;
   letter-spacing: -0.05em;
   line-height: 1.02;
@@ -763,7 +763,7 @@ details.artifact-runtime-panel[open] > summary::after { content: "−"; }
 
 @media (max-width: 700px) {
   .capstone-build-gate { align-content: start; min-height: calc(100vh - 4.8rem); min-height: calc(100dvh - 4.8rem); padding-top: 3rem; }
-  .capstone-gate-copy h1 { font-size: clamp(2.5rem, 12vw, 3.8rem); }
+  .capstone-gate-copy h1 { font-size: clamp(2.35rem, 10.5vw, 3rem); }
   .capstone-progress-line { gap: 0.75rem; grid-template-columns: 1fr auto; }
   .capstone-progress-line progress { grid-column: 1 / -1; grid-row: 2; }
   .capstone-progress-line > div:last-child { justify-items: end; text-align: right; }

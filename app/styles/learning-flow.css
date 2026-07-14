@@ -224,35 +224,12 @@ main {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  max-width: 54rem;
+  max-width: 64rem;
   min-height: 0;
   overflow: visible;
-  padding: clamp(3rem, 5vw, 4.25rem) 0 2.75rem;
+  padding: clamp(2.5rem, 4vw, 3.25rem) 0 2.25rem;
   position: relative;
   text-align: left;
-}
-
-.paper-hero::before,
-.paper-hero::after {
-  border: 1px solid rgba(117, 100, 143, 0.16);
-  border-radius: 50%;
-  content: "";
-  height: 25rem;
-  pointer-events: none;
-  position: absolute;
-  right: -7rem;
-  top: 0;
-  transform: rotate(-14deg);
-  width: 40rem;
-}
-
-.paper-hero::after {
-  border-color: rgba(172, 128, 90, 0.11);
-  height: 17rem;
-  right: 1rem;
-  top: 5rem;
-  transform: rotate(25deg);
-  width: 30rem;
 }
 
 .paper-hero > * {
@@ -274,11 +251,10 @@ main {
 }
 
 .paper-hero h1 {
-  font-size: clamp(2.75rem, 4.6vw, 4.5rem);
+  font-size: clamp(2.65rem, 4vw, 4rem);
   line-height: 1;
-  max-width: 18ch;
-  text-wrap: balance;
-  white-space: normal;
+  max-width: none;
+  white-space: nowrap;
 }
 
 .paper-thesis {
@@ -523,6 +499,74 @@ main {
   grid-template-columns: 1fr;
   margin-left: 0;
   max-width: 48rem;
+}
+
+.questions-disclosure {
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  max-width: 48rem;
+}
+
+.questions-disclosure > summary {
+  align-items: center;
+  cursor: pointer;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  list-style: none;
+  min-height: 5rem;
+  padding: 0.9rem 0;
+}
+
+.questions-disclosure > summary::-webkit-details-marker { display: none; }
+
+.questions-disclosure > summary > span {
+  display: grid;
+  gap: 0.28rem;
+}
+
+.questions-disclosure > summary small,
+.questions-disclosure > summary em {
+  color: var(--violet);
+  font-size: max(0.68rem, 11px);
+  font-style: normal;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.questions-disclosure > summary strong {
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 1.12rem;
+  font-weight: 400;
+}
+
+.questions-disclosure > summary em {
+  color: var(--faint);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.questions-disclosure > summary::after {
+  color: var(--violet);
+  content: "+";
+  font-family: var(--mono);
+  font-size: 1rem;
+}
+
+.questions-disclosure[open] > summary {
+  border-bottom: 1px solid var(--line);
+}
+
+.questions-disclosure[open] > summary::after { content: "−"; }
+
+.questions-disclosure > summary:focus-visible {
+  outline: 2px solid rgba(120, 91, 142, 0.45);
+  outline-offset: 3px;
+}
+
+.questions-disclosure > .questions-layout {
+  padding-top: 1.5rem;
 }
 
 .questions-intro {

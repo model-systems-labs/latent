@@ -379,6 +379,11 @@ test("the learner-facing component no longer emits the old dead-end or raw capab
   assert.match(source, /Sandboxed React preview/);
   assert.match(source, /aria-label="Verified lesson files"/);
   assert.match(source, /role="status" aria-live="polite" aria-atomic="true">\{detail\}/);
+  assert.match(source, /const restoreRunFocusRef = useRef\(false\)/);
+  assert.match(source, /resetPreviewButtonRef\.current\?\.focus\(\)/);
+  assert.match(source, /runPreviewButtonRef\.current\?\.focus\(\)/);
+  assert.match(source, /ref=\{resetPreviewButtonRef\}[\s\S]*?restoreRunFocusRef\.current = true; setRunRequested\(false\)/);
+  assert.match(source, /ref=\{runPreviewButtonRef\}[\s\S]*?setRunRequested\(true\)/);
   assert.match(styles, /height: calc\(100dvh - 4\.8rem\)/);
   assert.match(styles, /grid-template-rows: auto minmax\(0, 1fr\)/);
   assert.match(styles, /\.compiled-capstone-runtime iframe[\s\S]*height: 100%;[\s\S]*min-height: 0/);

@@ -9,6 +9,9 @@ const codeEditorUrl = new URL("app/features/ide/CodeEditor.tsx", root);
 const learningFlowUrl = new URL("app/styles/learning-flow.css", root);
 const codingWorkspaceUrl = new URL("app/styles/coding-workspace.css", root);
 const responsiveUrl = new URL("app/styles/responsive.css", root);
+const projectPageUrl = new URL("app/project/page.tsx", root);
+const projectStructureUrl = new URL("app/styles/project-structure.css", root);
+const pytorchHandoffCssUrl = new URL("app/features/pytorch/PyTorchHandoff.module.css", root);
 
 function rule(source, selector) {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -24,12 +27,36 @@ test("lessons use an editorial hierarchy instead of landing-page scale", async (
     readFile(responsiveUrl, "utf8"),
   ]);
   assert.match(learningFlow, /\.paper-hero\s*\{[^}]*min-height:\s*0/);
-  assert.match(learningFlow, /\.paper-hero h1\s*\{[^}]*font-size:\s*clamp\(2\.75rem,\s*4\.6vw,\s*4\.5rem\)/);
+  assert.match(learningFlow, /\.paper-hero h1\s*\{[^}]*font-size:\s*clamp\(2\.65rem,\s*4vw,\s*4rem\)/);
+  assert.match(learningFlow, /\.paper-hero h1\s*\{[^}]*white-space:\s*nowrap/);
   assert.match(learningFlow, /\.section-title h2\s*\{[^}]*font-size:\s*clamp\(1\.65rem,\s*2\.3vw,\s*2\.15rem\)/);
   assert.match(learningFlow, /\.paper-section\s*\{[^}]*padding:\s*clamp\(3\.25rem,\s*5vw,\s*4\.5rem\)/);
-  assert.match(responsive, /\.paper-hero h1\s*\{[^}]*font-size:\s*clamp\(2\.35rem,\s*10vw,\s*3\.25rem\)/);
+  assert.match(responsive, /\.paper-hero h1\s*\{[^}]*font-size:\s*clamp\(2\.25rem,\s*9vw,\s*2\.85rem\)[^}]*white-space:\s*normal/);
   assert.doesNotMatch(responsive.slice(0, responsive.indexOf("@media (max-width: 650px)")), /\.summary-copy\s*\{[^}]*columns:\s*2/);
   assert.doesNotMatch(paperLab, /className=\{`summary-layout/);
+});
+
+test("optional study and project views stay out of the primary reading path", async () => {
+  const [paperLab, learningFlow, projectPage, projectStructure] = await Promise.all([
+    readFile(paperLabUrl, "utf8"),
+    readFile(learningFlowUrl, "utf8"),
+    readFile(projectPageUrl, "utf8"),
+    readFile(projectStructureUrl, "utf8"),
+  ]);
+  assert.match(paperLab, /<details className="questions-disclosure">[\s\S]*?<summary>[\s\S]*?Ask about this lesson/);
+  assert.doesNotMatch(paperLab, /<details className="questions-disclosure" open/);
+  assert.match(rule(learningFlow, ".questions-disclosure > summary"), /min-height:\s*5rem/);
+  assert.match(projectPage, /<details className="project-history-disclosure">[\s\S]*?History and learning data/);
+  assert.doesNotMatch(projectPage, /<details className="project-history-disclosure" open/);
+  assert.match(rule(projectStructure, ".project-history-disclosure > summary"), /min-height:\s*5rem/);
+});
+
+test("the native PyTorch handoff cannot widen a mobile lesson", async () => {
+  const css = await readFile(pytorchHandoffCssUrl, "utf8");
+  assert.match(rule(css, ".body"), /grid-template-columns:\s*minmax\(0,\s*1fr\)/);
+  assert.match(rule(css, ".body"), /min-width:\s*0/);
+  assert.match(rule(css, ".copy"), /min-width:\s*0/);
+  assert.match(rule(css, ".editorSurface"), /min-width:\s*0/);
 });
 
 test("summary prose owns the reading flow and the mechanism is interpolated at its midpoint", async () => {

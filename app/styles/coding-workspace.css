@@ -742,7 +742,12 @@
 }
 
 .track-hero {
-  min-height: 30rem;
+  min-height: 24rem;
+  padding: clamp(2.75rem, 5vw, 4.5rem) 0;
+}
+
+.track-hero h1 {
+  font-size: clamp(3rem, 5vw, 4.8rem);
 }
 
 .track-outcome {

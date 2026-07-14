@@ -126,6 +126,17 @@ test("technical diagram labels keep an 11px floor and AA text contrast", async (
   }
 });
 
+test("technical diagrams preserve their native list and table semantics", async () => {
+  const source = await readFile(paperLabUrl, "utf8");
+  assert.doesNotMatch(source, /role="img"/);
+  assert.ok(
+    (source.match(/role="group" aria-label=/g) ?? []).length >= 14,
+    "each worked mechanism should be named without flattening its descendants into an image",
+  );
+  assert.match(source, /<table aria-label="Three-token causal attention probability matrix">/);
+  assert.match(source, /<table className="icl-measurement-table" aria-label=/);
+});
+
 test("lesson Q&A and coding controls retain 44px touch-height floors", async () => {
   const [learningFlow, codingWorkspace] = await Promise.all([
     readFile(learningFlowUrl, "utf8"),

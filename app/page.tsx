@@ -11,7 +11,7 @@ export default function Home() {
         <header className="course-hero full-course-hero">
           <p className="eyebrow">One course · four modules · {llmSystemsCurriculum.testCount} executable contracts</p>
           <h1>Build an LLM system in your browser.</h1>
-          <p>Implement the model foundations, inference runtime, serving boundary, and React integration that produce a working local chatbot.</p>
+          <p className="course-thesis">Implement the model foundations, inference runtime, serving boundary, and React integration that produce a working local chatbot.</p>
           <div className="hero-actions"><a href="#first-run">Run the first model</a><Link href="/courses/models">Start the course</Link></div>
         </header>
         <FirstRunExperience />

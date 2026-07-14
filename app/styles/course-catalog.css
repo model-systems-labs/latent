@@ -39,7 +39,7 @@
   white-space: nowrap;
 }
 
-.course-hero > p:last-child {
+.course-thesis {
   color: var(--muted);
   font-family: var(--serif);
   font-size: 1.08rem;

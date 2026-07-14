@@ -110,6 +110,9 @@ const syntaxTheme = HighlightStyle.define([
   { tag: tags.invalid, color: editorPalette.invalid, textDecoration: "underline wavy" },
 ]);
 
+const editableEditorInstruction = "Code editor. Tab indents. Press Escape, then Tab, to leave the editor.";
+const readOnlyEditorInstruction = "Read-only code example. Use the arrow keys to navigate the code. Press Escape, then Tab, to leave the code example.";
+
 export function CodeEditor({ value, path, onChange, onSave, readOnly = false, variant = "project", ariaLabel, lineNumberStart = 1 }: CodeEditorProps) {
   const isPython = path.toLowerCase().endsWith(".py");
   const instructionId = useId();
@@ -198,7 +201,9 @@ export function CodeEditor({ value, path, onChange, onSave, readOnly = false, va
         ref={hostRef}
         style={variant === "lesson" ? { height: `${Math.max(7.25, Math.min(23, value.split("\n").length * 1.5 + 2.5))}rem` } : undefined}
       />
-      <span className="sr-only" id={instructionId}>Code editor. Tab indents. Press Escape, then Tab, to leave the editor.</span>
+      <span className="sr-only" id={instructionId}>
+        {readOnly ? readOnlyEditorInstruction : editableEditorInstruction}
+      </span>
     </>
   );
 }

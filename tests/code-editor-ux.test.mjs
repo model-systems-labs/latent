@@ -90,7 +90,14 @@ test("the mobile IDE source contract preserves readable type, bounded scrolling,
   assert.match(source, /import \{ indentWithTab, temporarilySetTabFocusMode \} from "@codemirror\/commands"/);
   assert.match(source, /Prec\.high\(keymap\.of\(\[\s*\{ key: "Escape", run: temporarilySetTabFocusMode \},\s*indentWithTab/);
   assert.match(source, /"aria-describedby":\s*instructionId/);
-  assert.match(source, /Tab indents\. Press Escape, then Tab, to leave the editor\./);
+  assert.match(source, /const editableEditorInstruction = "Code editor\. Tab indents\. Press Escape, then Tab, to leave the editor\."/);
+  const readOnlyInstruction = source.match(/const readOnlyEditorInstruction = "([^"]+)"/)?.[1];
+  assert.equal(
+    readOnlyInstruction,
+    "Read-only code example. Use the arrow keys to navigate the code. Press Escape, then Tab, to leave the code example.",
+  );
+  assert.doesNotMatch(readOnlyInstruction, /Tab indents/);
+  assert.match(source, /\{readOnly \? readOnlyEditorInstruction : editableEditorInstruction\}/);
   assert.match(source, /className=\{variant === "lesson" \? "code-editor lesson-code-editor" : "code-editor"\}[\s\S]*?ref=\{hostRef\}[\s\S]*?\/>\s*<span className="sr-only" id=\{instructionId\}>/);
   assert.doesNotMatch(source, /<div className="code-editor" ref=\{hostRef\}>\s*<span/);
   assert.match(responsiveCss, /\.project-workbench-grid\[data-mobile-view="code"\][\s\S]*?\.cm-editor\s*\{[\s\S]*?font-size:\s*16px/);

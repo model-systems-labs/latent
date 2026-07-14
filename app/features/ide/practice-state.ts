@@ -35,7 +35,11 @@ export function restoreSourceBoundVerification(
   }
   const ids = verifiedIds.filter((id) => {
     const block = blocks.find((candidate) => candidate.id === id);
-    return Boolean(block && verifiedSources[id] === practiceBlockSource(block, hiddenBlocks, answers));
+    return Boolean(
+      block
+      && hiddenBlocks.includes(id)
+      && verifiedSources[id] === practiceBlockSource(block, hiddenBlocks, answers),
+    );
   });
   return {
     ids,
@@ -69,4 +73,32 @@ export function bindBlockVerification(
     sources: { ...current.sources, [blockId]: source },
     contractVersion: currentContractVersion,
   };
+}
+
+/**
+ * Reference implementations remain runnable examples, but only source run from
+ * an active practice cell can become learner verification.
+ */
+export function verificationAfterBlockRun(
+  verification: SourceBoundVerification,
+  blockId: string,
+  source: string,
+  hiddenBlocks: readonly string[],
+  passed: boolean,
+  currentContractVersion: string,
+): SourceBoundVerification {
+  if (!hiddenBlocks.includes(blockId)) return verification;
+  return passed
+    ? bindBlockVerification(verification, blockId, source, currentContractVersion)
+    : invalidateBlockVerification(verification, blockId);
+}
+
+export function creditablePracticeBlockIds(
+  blockIds: readonly string[],
+  hiddenBlocks: readonly string[],
+  passingBlockIds: readonly string[],
+) {
+  const hidden = new Set(hiddenBlocks);
+  const passing = new Set(passingBlockIds);
+  return blockIds.filter((id) => hidden.has(id) && passing.has(id));
 }

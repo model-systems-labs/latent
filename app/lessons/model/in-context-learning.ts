@@ -37,7 +37,7 @@ ${commonQuestionInstruction}`.trim(),
       {
         label: "Evaluation design.",
         body:
-          "A controlled comparison changes only the number of demonstrations: the instruction, held-out queries, decoding settings, label extractor, and exact-match metric stay fixed. Selecting prompts after seeing test performance can turn prompt engineering into unreported test-set optimization.",
+          "A controlled comparison changes only the number of demonstrations: the instruction, held-out queries, decoding settings, label extractor, and exact-match metric stay fixed. In this browser experiment, a supplied fixed local evaluator owns that complete comparison; it does not import or execute the learner's prompt and scoring functions, which the IDE verifies separately. Selecting prompts after seeing test performance can turn prompt engineering into unreported test-set optimization.",
       },
       {
         label: "Scale dependence.",
@@ -52,7 +52,7 @@ ${commonQuestionInstruction}`.trim(),
     },
     diagram: {
       title: "Controlled zero-, one-, and few-shot comparison",
-      caption: "Only the demonstration tokens differ. Two held-out items can measure sensitivity in this run, not general few-shot ability.",
+      caption: "Only the demonstration tokens differ inside the fixed local evaluator. The displayed rows are observations from two held-out items: they can measure prediction sensitivity in this run, not general few-shot ability or a monotonic benefit from adding examples.",
       nodes: [
         { label: "Instruction", value: "output one label" },
         { label: "Demonstrations", value: "0 · 1 · 4 examples" },
@@ -77,7 +77,7 @@ ${commonQuestionInstruction}`.trim(),
     },
     implementation: {
       filename: "few-shot-evaluation.js",
-      intro: "Implement deterministic prompt construction and scoring before running the same test cases through a real local model.",
+      intro: "Implement deterministic prompt construction and scoring as independently verified learner functions. The experiment below uses a separate fixed evaluator so editing these practice cells cannot change its reported comparison.",
       codeBlocks: [
         {
           id: "format-demonstrations",
@@ -149,6 +149,6 @@ return { passed: result.passed && result.predicted === "K", detail: "predicted "
     experiment: {
       kind: "icl",
       title: "Evaluate a frozen local model",
-      intro: "Download the quantized model once, then run the supplied reference evaluator over identical held-out cases. The local model is real; prompt construction and scoring do not execute the learner cells.",
+      intro: "Download the quantized model once, then run the supplied fixed local evaluator over identical held-out cases. It builds its own prompts, extracts labels, and scores exact match without importing or executing learner code. Its rows describe this two-item run; they do not show that accuracy must improve as demonstrations are added.",
     },
   } satisfies Omit<CourseLesson, "sources">;

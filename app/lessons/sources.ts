@@ -342,11 +342,11 @@ export const lessonSources: Record<string, LessonSource[]> = {
   "chat-product-quality": [
     {
       role: "Primary",
-      title: "Log Pattern",
-      authors: "W3C WAI-ARIA Authoring Practices",
-      year: "Current",
-      url: "https://www.w3.org/WAI/ARIA/apg/patterns/log/",
-      relevance: "Defines an accessible container for sequential additions such as messages in a conversation.",
+      title: "ARIA23: Using role=log to identify sequential information updates",
+      authors: "W3C Web Accessibility Initiative",
+      year: "WCAG 2.2",
+      url: "https://www.w3.org/WAI/WCAG22/Techniques/aria/ARIA23",
+      relevance: "Defines how role=log identifies sequential additions such as messages in a conversation.",
     },
     {
       role: "Specification",

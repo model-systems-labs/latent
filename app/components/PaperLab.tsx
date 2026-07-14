@@ -25,7 +25,7 @@ import { recordValidatedLessonArtifact } from "../features/artifacts/lesson-arti
 import { latentTensorOperations } from "@latent/tensor";
 import { lessonImplementationPrelude, lessonImplementationSource } from "../lessons/implementation-source";
 import { canonicalProjectSeeds } from "../lib/canonical-project";
-import { bindBlockVerification, invalidateBlockVerification, practiceBlockSource, restoreSourceBoundVerification, waitForPracticeHydration } from "../features/ide/practice-state";
+import { creditablePracticeBlockIds, invalidateBlockVerification, practiceBlockSource, restoreSourceBoundVerification, verificationAfterBlockRun, waitForPracticeHydration } from "../features/ide/practice-state";
 import { llmSystemsContractSuite } from "../content/llm-systems/contracts";
 import { LessonOutcome } from "./LessonOutcome";
 import { lessonLearningOutcome, moduleCheckpoint } from "../content/llm-systems/learning";
@@ -106,7 +106,7 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
     <figure className={`concept-diagram${isRecurrent ? " recurrence-diagram" : ""}${isNeuralLanguageModel ? " neural-lm-diagram" : ""}${isSubwordTokenization ? " subword-tokenization-diagram" : ""}${isAdditiveAttention ? " additive-attention-diagram" : ""}${isTransformer ? " transformer-attention-diagram" : ""}${isInContextLearning ? " icl-comparison-diagram" : ""}${isInferenceRuntime ? " inference-runtime-diagram" : ""}${isSchedulingMemory ? " scheduling-memory-diagram" : ""}${isStreamingTransport ? " streaming-transport-diagram" : ""}${isReliabilityObservability ? " reliability-observability-diagram" : ""}${isConversationState ? " conversation-state-diagram" : ""}${isStreamingReact ? " streaming-react-diagram" : ""}${isChatActionsContext ? " chat-actions-context-diagram" : ""}${isChatProductQuality ? " chat-product-quality-diagram" : ""}`}>
       <header><span>Mechanism</span><strong>{lesson.diagram.title}</strong></header>
       {isRecurrent ? (
-        <div className="recurrence-unroll" role="img" aria-label="Three recurrent time steps. Each input and previous hidden state produce a new hidden state, then logits and a next-character probability. The hidden state flows into the next step and the same parameters are reused.">
+        <div className="recurrence-unroll" role="img" aria-label="Three recurrent time steps using shared parameters. During teacher-forced training, the observed next character is the loss target and the next input. During sampled generation, a character drawn from the model probability becomes the next input.">
           <div className="unroll-columns">
             {recurrentSteps.map((step) => (
               <div className="unroll-step" key={step.time}>
@@ -122,7 +122,8 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
           </div>
           <div className="unroll-rails">
             <span><b>Hidden-state flow</b> h_(t−1) → h_t → h_(t+1)</span>
-            <span><b>Generation loop</b> sample from p(x_(t+1)) → encode as x_(t+1)</span>
+            <span><b>Teacher-forced training</b> observed x_(t+1) → loss target + next input</span>
+            <span><b>Sampled generation</b> sample from p(x_(t+1)) → encode as next input</span>
             <span><b>Shared at every position</b> Wxh · Whh · Why · biases</span>
           </div>
         </div>
@@ -214,7 +215,7 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
           </div>
         </div>
       ) : isInContextLearning ? (
-        <div className="icl-comparison" role="img" aria-label="A controlled in-context learning experiment. The instruction, two held-out queries, frozen model weights, decoding, and exact-match scorer stay fixed. Only the prefix changes from zero to one to four demonstrations. The resulting two predictions can show sensitivity to the prefix but cannot establish general few-shot improvement.">
+        <div className="icl-comparison" role="img" aria-label="A controlled in-context learning experiment run by a fixed local evaluator that is separate from learner code. The instruction, two held-out queries, frozen model weights, decoding, and exact-match scorer stay fixed. Only the prefix changes from zero to one to four demonstrations. The resulting two predictions can show sensitivity to the prefix but cannot establish general few-shot improvement.">
           <div className="icl-fixed-prefix">
             <span><b>Fixed instruction</b><code>infer mapping · return K or M</code></span>
             <span><b>Same held-out queries</b><code>moving story · tedious story</code></span>
@@ -234,6 +235,7 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
             </tbody>
           </table>
           <div className="icl-inference-boundary">
+            <span><b>Execution boundary</b> The fixed local evaluator builds prompts, runs the model, extracts labels, and reports this table. Learner code is checked separately and never runs here.</span>
             <span><b>Can infer</b> whether demonstrations changed either output in this run.</span>
             <span><b>Cannot infer</b> general accuracy gains or the paper&apos;s scale result from two items.</span>
           </div>
@@ -757,8 +759,9 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     const sourceSnapshot = sourceFor(block);
     const hiddenSnapshot = [...hiddenBlocksRef.current];
     const answersSnapshot = { ...answersRef.current };
+    const isPracticeRun = hiddenSnapshot.includes(block.id);
     setRunning([block.id]);
-    setPracticeMessage(`Compiling ${block.label} in the isolated browser lab…`);
+    setPracticeMessage(`${isPracticeRun ? "Checking your" : "Running the reference"} ${block.label.toLowerCase()} in the isolated browser lab…`);
     try {
       const [result] = await runPracticeContracts({
         path: projectPath,
@@ -772,21 +775,34 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
         return;
       }
       const currentVerification = { ids: verifiedBlockIdsRef.current, sources: verifiedSourcesRef.current, contractVersion: verifiedContractVersionRef.current };
-      const nextVerification = check.passed
-        ? bindBlockVerification(currentVerification, block.id, sourceSnapshot, llmSystemsContractSuite.contractVersion)
-        : invalidateBlockVerification(currentVerification, block.id);
+      const nextVerification = verificationAfterBlockRun(
+        currentVerification,
+        block.id,
+        sourceSnapshot,
+        hiddenSnapshot,
+        check.passed,
+        llmSystemsContractSuite.contractVersion,
+      );
       const nextVerified = nextVerification.ids;
       const nextVerifiedSources = nextVerification.sources;
-      applyPracticeState(hiddenSnapshot, answersSnapshot, nextVerified, nextVerifiedSources, nextVerification.contractVersion);
-      recordVerifiedCells(lesson.id, nextVerified, nextVerifiedSources, nextVerification.contractVersion);
-      saveLessonProjectFile(projectSeedForLesson(lesson, hiddenSnapshot, answersSnapshot, nextVerified));
+      if (isPracticeRun) {
+        applyPracticeState(hiddenSnapshot, answersSnapshot, nextVerified, nextVerifiedSources, nextVerification.contractVersion);
+        recordVerifiedCells(lesson.id, nextVerified, nextVerifiedSources, nextVerification.contractVersion);
+        saveLessonProjectFile(projectSeedForLesson(lesson, hiddenSnapshot, answersSnapshot, nextVerified));
+      }
       setCellResults((current) => ({ ...current, [block.id]: check }));
-      setPracticeMessage(check.passed ? `${block.label} passed host-owned assertions.` : `${block.label} needs attention. Review the failed behavior below; your other cells were not changed.`);
-      void recordLearningEvent("cell_check_completed", {
-        lessonId: lesson.id,
-        moduleId: lesson.courseId,
-        outcome: check.passed ? "passed" : "failed",
-      });
+      setPracticeMessage(check.passed
+        ? isPracticeRun
+          ? `${block.label} passed host-owned assertions and earned verification.`
+          : `${block.label} reference example passed. Practice the cell to earn verification.`
+        : `${block.label} needs attention. Review the failed behavior below; your other cells were not changed.`);
+      if (isPracticeRun) {
+        void recordLearningEvent("cell_check_completed", {
+          lessonId: lesson.id,
+          moduleId: lesson.courseId,
+          outcome: check.passed ? "passed" : "failed",
+        });
+      }
     } catch (error) {
       const check = { label: block.label, passed: false, detail: error instanceof Error ? error.message : "The isolated test failed." };
       setCellResults((current) => ({ ...current, [block.id]: check }));
@@ -801,7 +817,9 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     const answersSnapshot = { ...answersRef.current };
     const sourceSnapshots = Object.fromEntries(blocks.map((block) => [block.id, sourceFor(block)]));
     setRunning(blocks.map((block) => block.id));
-    setPracticeMessage("Compiling this lesson and running every contract in an isolated worker…");
+    setPracticeMessage(hiddenSnapshot.length
+      ? "Checking practice cells and running the remaining reference examples in an isolated worker…"
+      : "Running every reference example. Enter practice to earn verification…");
     try {
       const combinedSource = lessonImplementationSource(lesson, blocks.map((block) => sourceSnapshots[block.id]));
       const results = await runPracticeContracts({
@@ -816,15 +834,22 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
         setPracticeMessage("The lesson source changed while checks were running. Run the current source again.");
         return;
       }
-      const nextVerified = blocks.filter((_, index) => ordered[index].passed).map((block) => block.id);
+      const nextVerified = creditablePracticeBlockIds(
+        blocks.map((block) => block.id),
+        hiddenSnapshot,
+        blocks.filter((_, index) => ordered[index].passed).map((block) => block.id),
+      );
       const nextVerifiedSources = Object.fromEntries(nextVerified.map((id) => [id, sourceSnapshots[id]]));
       const nextVerifiedContractVersion = nextVerified.length ? llmSystemsContractSuite.contractVersion : null;
-      applyPracticeState(hiddenSnapshot, answersSnapshot, nextVerified, nextVerifiedSources, nextVerifiedContractVersion);
-      recordVerifiedCells(lesson.id, nextVerified, nextVerifiedSources, nextVerifiedContractVersion);
-      saveLessonProjectFile(projectSeedForLesson(lesson, hiddenSnapshot, answersSnapshot, nextVerified));
+      if (hiddenSnapshot.length) {
+        applyPracticeState(hiddenSnapshot, answersSnapshot, nextVerified, nextVerifiedSources, nextVerifiedContractVersion);
+        recordVerifiedCells(lesson.id, nextVerified, nextVerifiedSources, nextVerifiedContractVersion);
+        saveLessonProjectFile(projectSeedForLesson(lesson, hiddenSnapshot, answersSnapshot, nextVerified));
+      }
       setCellResults(Object.fromEntries(blocks.map((block, index) => [block.id, ordered[index]])));
       const passed = ordered.filter((result) => result.passed).length;
-      if (passed === ordered.length) {
+      const allBlocksInPractice = hiddenSnapshot.length === blocks.length;
+      if (passed === ordered.length && allBlocksInPractice) {
         void recordLearningEvent("lesson_checks_completed", {
           lessonId: lesson.id,
           moduleId: lesson.courseId,
@@ -848,7 +873,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
           setPracticeMessage(`All isolated behavioral checks pass, but the artifact could not be stored: ${artifactError instanceof Error ? artifactError.message : "local storage is unavailable"}`);
         }
       } else {
-        setPracticeMessage(`${passed} of ${ordered.length} isolated behavioral checks pass.`);
+        setPracticeMessage(`${passed} of ${ordered.length} executions pass; ${nextVerified.length} of ${blocks.length} practice cells are verified. Reference examples do not earn credit.`);
       }
     } catch (error) {
       setPracticeMessage(error instanceof Error ? error.message : "The isolated lesson test failed safely.");
@@ -908,7 +933,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
                 <div className="block-heading">
                   <div><span>0{blockIndex + 1}</span><strong>{block.label}</strong><em>{block.purpose}</em></div>
                   <div className="block-actions">
-                    <button className="run-cell-button" type="button" onClick={() => void runCell(block)} disabled={!practiceReady || runningBlockIds.length > 0}>{runningBlockIds.includes(block.id) ? "Running…" : "Run cell"}</button>
+                    <button className="run-cell-button" type="button" onClick={() => void runCell(block)} disabled={!practiceReady || runningBlockIds.length > 0}>{runningBlockIds.includes(block.id) ? "Running…" : hidden ? "Run practice" : "Run example"}</button>
                     <button type="button" onClick={() => toggleBlock(block)} disabled={!practiceReady || runningBlockIds.length > 0}>{hidden ? "Show reference" : "Practice cell"}</button>
                   </div>
                 </div>
@@ -945,13 +970,13 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
                   <SyntaxCode code={block.code} label={`${block.label} reference implementation`} startLine={startLine} />
                 )}
                 <div className="cell-footer" role="status" aria-label={`${block.label} check status`} aria-live="polite" aria-atomic="true">
-                  {result ? <span className={result.passed ? "cell-result passed" : "cell-result failed"}><i>{result.passed ? "✓" : "×"}</i>{result.detail}</span> : verifiedContractVersion === llmSystemsContractSuite.contractVersion && verifiedBlockIds.includes(block.id) && verifiedSources[block.id] === (hidden ? answers[block.id] ?? "" : block.code) ? <span className="cell-result passed"><i>✓</i>Verified previously on this device</span> : <span>{practiceReady ? "Not run" : "Waiting for saved progress"}</span>}
+                  {result ? <span className={result.passed ? "cell-result passed" : "cell-result failed"}><i>{result.passed ? "✓" : "×"}</i>{!hidden && result.passed ? "Example passed · practice this cell to earn verification" : result.detail}</span> : verifiedContractVersion === llmSystemsContractSuite.contractVersion && hidden && verifiedBlockIds.includes(block.id) && verifiedSources[block.id] === (answers[block.id] ?? "") ? <span className="cell-result passed"><i>✓</i>Verified previously on this device</span> : <span>{practiceReady ? hidden ? "Practice not run" : "Example not run · no progress credit" : "Waiting for saved progress"}</span>}
                 </div>
               </div>
             );
           })}
         </div>
-        <div className="editor-footer"><p id={`practice-status-${lesson.id}`} role="status" aria-live="polite" aria-atomic="true">{practiceReady ? practiceMessage : "Restoring your saved practice before editing is enabled…"}</p><button type="button" aria-describedby={`practice-status-${lesson.id}`} onClick={() => void runAll()} disabled={!practiceReady || runningBlockIds.length > 0}>{runningBlockIds.length ? "Running in sandbox…" : "Run behavioral checks"}</button></div>
+        <div className="editor-footer"><p id={`practice-status-${lesson.id}`} role="status" aria-live="polite" aria-atomic="true">{practiceReady ? practiceMessage : "Restoring your saved practice before editing is enabled…"}</p><button type="button" aria-describedby={`practice-status-${lesson.id}`} onClick={() => void runAll()} disabled={!practiceReady || runningBlockIds.length > 0}>{runningBlockIds.length ? "Running in sandbox…" : hiddenBlocks.length === blocks.length ? "Run practice checks" : hiddenBlocks.length ? "Run practice + examples" : "Run all examples"}</button></div>
       </div>
       <LessonExperiment lesson={lesson} />
       <ArtifactRuntimePanel lesson={lesson} refreshKey={artifactRevision} />

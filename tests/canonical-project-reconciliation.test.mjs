@@ -63,7 +63,7 @@ after(async () => {
   await vite?.close();
 });
 
-test("canonical lesson seeds accept only current source-bound verification", () => {
+test("canonical lesson seeds accept only current practice-source-bound verification", () => {
   const lesson = course.courseLessons[0];
   const block = lesson.implementation.codeBlocks[0];
   const lessonState = {
@@ -71,8 +71,8 @@ test("canonical lesson seeds accept only current source-bound verification", () 
     verifiedSources: { [block.id]: block.code },
     verifiedContractVersion: contracts.llmSystemsContractSuite.contractVersion,
     experimentComplete: true,
-    hiddenBlocks: [],
-    answers: {},
+    hiddenBlocks: [block.id],
+    answers: { [block.id]: block.code },
     knowledgeAnswers: {},
     knowledgeVerified: [],
     updatedAt: 0,
@@ -84,6 +84,11 @@ test("canonical lesson seeds accept only current source-bound verification", () 
   })[0];
 
   assert.equal(seedFor(lessonState).verifiedCells, 1);
+  assert.equal(seedFor({
+    ...lessonState,
+    hiddenBlocks: [],
+    answers: {},
+  }).verifiedCells, 0, "a visible reference receipt cannot become canonical learner progress");
   assert.equal(seedFor({
     ...lessonState,
     verifiedSources: { [block.id]: "// changed after verification" },

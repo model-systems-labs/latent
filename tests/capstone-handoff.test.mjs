@@ -73,7 +73,7 @@ function projectFixture({ complete = false, failedPath = null, runner = "browser
       runner,
       sourceTreeHash: runner === "browser-lab-v1" ? "sha256:fixture-source-tree" : null,
       projectRevision: runner === "browser-lab-v1" ? 1 : null,
-      contractVersion: runner === "browser-lab-v1" ? "llm-systems-contracts-v16" : null,
+      contractVersion: runner === "browser-lab-v1" ? "llm-systems-contracts-v17" : null,
       contractIdsByPath,
     },
   };

@@ -158,6 +158,23 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
           range("negative-bias", "Add bias[1] before tanh instead of dropping the bias term", -0.245, -0.2449, [1]),
         ],
       },
+      {
+        id: "off-diagonal-projections",
+        label: "Uses every matrix column in the input and recurrent projections",
+        args: [
+          [1, 0],
+          [0.5, -1],
+          {
+            Wxh: [[0, 1], [2, 0]],
+            Whh: [[1, -1], [0.5, 0.5]],
+            bias: [0.25, -0.25],
+          },
+        ],
+        assertions: [
+          range("mixed-first-unit", "Use the complete Wxh and Whh rows, including off-diagonal weights, before tanh", 0.9413, 0.9414, [0]),
+          range("mixed-second-unit", "Use the complete Wxh and Whh rows, including off-diagonal weights, before tanh", 0.9051, 0.9052, [1]),
+        ],
+      },
     ],
   }),
   defineExerciseContract({
@@ -181,6 +198,18 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
         args: [[0.8, 0.1, 0.1], 1],
         assertions: [range("high-loss", "Use the probability at targetIndex, not the largest probability", 2.3, 2.31)],
       },
+      {
+        id: "first-target-index",
+        label: "Scores a target at the beginning of the vocabulary",
+        args: [[0.7, 0.2, 0.1], 0],
+        assertions: [range("first-target-loss", "Read probabilities[targetIndex] instead of assuming a fixed target slot", 0.35, 0.36)],
+      },
+      {
+        id: "last-target-index",
+        label: "Scores a target at the end of the vocabulary",
+        args: [[0.45, 0.45, 0.1], 2],
+        assertions: [range("last-target-loss", "Read probabilities[targetIndex] instead of assuming a fixed target slot", 2.3, 2.31)],
+      },
     ],
   }),
   defineExerciseContract({
@@ -194,6 +223,12 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
         label: "Clips both tails while preserving in-range gradients",
         args: [[-12, -2, 0, 3, 20], 5],
         assertions: [equal("clipped-values", "Clamp both negative and positive gradients to the symmetric limit", [-5, -2, 0, 3, 5])],
+      },
+      {
+        id: "caller-supplied-limit",
+        label: "Uses the clipping limit supplied by the caller",
+        args: [[-7, -1, 4, 9], 3],
+        assertions: [equal("alternate-limit", "Clamp with the supplied limit instead of hard-coding the default value 5", [-3, -1, 3, 3])],
       },
     ],
   }),
@@ -273,6 +308,18 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
           finite("finite-zero-loss", "Clamp the target probability to at least 10^-12 before applying −log"),
           range("bounded-zero-loss", "Clamp the target probability to at least 10^-12 before applying −log", 27.63, 27.64),
         ],
+      },
+      {
+        id: "first-target-index",
+        label: "Scores a target at the beginning of the vocabulary",
+        args: [[0.8, 0.1, 0.1], 0],
+        assertions: [range("first-target-loss", "Use probabilities[targetIndex] instead of assuming the target is always at index 1", 0.22, 0.23)],
+      },
+      {
+        id: "last-target-index",
+        label: "Scores a target at the end of the vocabulary",
+        args: [[0.45, 0.45, 0.1], 2],
+        assertions: [range("last-target-loss", "Use probabilities[targetIndex] instead of assuming the target is always at index 1", 2.3, 2.31)],
       },
     ],
   }),
@@ -425,6 +472,23 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
           range("nonlinear-bias-score", "Add bias before tanh; additive attention is not a plain query-key dot product", 2.4872, 2.48723),
         ],
       },
+      {
+        id: "off-diagonal-projections",
+        label: "Uses off-diagonal query and key projection weights",
+        args: [
+          [1, 2],
+          [3, 1],
+          {
+            Wq: [[0, 0.2], [0.3, 0]],
+            Wk: [[0, 0.1], [0.2, 0]],
+            v: [0.7, -0.4],
+            bias: [0.05, -0.05],
+          },
+        ],
+        assertions: [
+          range("off-diagonal-score", "Apply full matrix-vector projections; each output unit can depend on every input coordinate", 0.0739, 0.074),
+        ],
+      },
     ],
   }),
   defineExerciseContract({
@@ -461,6 +525,25 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
           range("stable-largest", "Subtract max(scores) before exponentiating so large logits remain finite", 0.66524, 0.66525, [0]),
           range("stable-middle", "Subtract max(scores) before exponentiating so large logits remain finite", 0.24472, 0.24474, [1]),
           range("stable-smallest", "Subtract max(scores) before exponentiating so large logits remain finite", 0.09002, 0.09004, [2]),
+        ],
+      },
+      {
+        id: "two-source-positions",
+        label: "Normalizes a two-position source sequence",
+        args: [[0, 0]],
+        assertions: [
+          length("two-position-width", "Return one alignment weight per supplied source position", 2),
+          equal("two-position-uniform", "Normalize the complete two-position score array", [0.5, 0.5]),
+        ],
+      },
+      {
+        id: "four-source-positions",
+        label: "Normalizes a four-position source sequence",
+        args: [[3, 2, 1, 0]],
+        assertions: [
+          length("four-position-width", "Return one alignment weight per supplied source position", 4),
+          range("four-position-largest", "Apply softmax across all four supplied source positions", 0.6439, 0.644, [0]),
+          range("four-position-smallest", "Apply softmax across all four supplied source positions", 0.032, 0.0321, [3]),
         ],
       },
     ],
@@ -570,6 +653,15 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
           length("constant-width", "Preserve feature width", 3),
           finite("constant-first-finite", "Subtracting the mean gives zeros; epsilon inside sqrt(variance + epsilon) keeps division finite", [0]),
           equal("constant-values", "Subtracting the mean gives zeros; epsilon inside sqrt(variance + epsilon) keeps division finite", [0, 0, 0]),
+        ],
+      },
+      {
+        id: "caller-supplied-epsilon",
+        label: "Uses a large caller-supplied epsilon on a nonconstant vector",
+        args: [[1, 3], 1],
+        assertions: [
+          range("large-epsilon-first", "Use the supplied epsilon inside sqrt(variance + epsilon) instead of hard-coding the default", -0.708, -0.707, [0]),
+          range("large-epsilon-second", "Use the supplied epsilon inside sqrt(variance + epsilon) instead of hard-coding the default", 0.707, 0.708, [1]),
         ],
       },
     ],
@@ -1024,43 +1116,55 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       {
         id: "late-completion-event",
         label: "Rejects an event after completion",
-        args: [{ id: "r1", status: "complete" }, { requestId: "r1" }],
+        args: [{ attemptId: "a1", requestId: "r1", status: "complete" }, { attemptId: "a1", requestId: "r1" }],
         assertions: [equal("late-rejected", "Return false after complete; terminal requests cannot accept another event", false)],
       },
       {
         id: "late-error-event",
         label: "Rejects an event after error",
-        args: [{ id: "r1", status: "error" }, { requestId: "r1" }],
+        args: [{ attemptId: "a1", requestId: "r1", status: "error" }, { attemptId: "a1", requestId: "r1" }],
         assertions: [equal("error-rejected", "Return false after error; terminal requests cannot accept another event", false)],
       },
       {
         id: "late-cancel-event",
         label: "Rejects an event after cancellation",
-        args: [{ id: "r1", status: "cancelled" }, { requestId: "r1" }],
+        args: [{ attemptId: "a1", requestId: "r1", status: "cancelled" }, { attemptId: "a1", requestId: "r1" }],
         assertions: [equal("cancel-rejected", "Return false after cancelled; terminal requests cannot accept another event", false)],
       },
       {
         id: "matching-active-event",
-        label: "Accepts an event for the active request",
-        args: [{ id: "r2", status: "streaming" }, { requestId: "r2" }],
-        assertions: [equal("active-accepted", "Return true for a matching event while the request is streaming", true)],
+        label: "Accepts an event for the active attempt and transport",
+        args: [{ attemptId: "a2", requestId: "r2", status: "streaming" }, { attemptId: "a2", requestId: "r2" }],
+        assertions: [equal("active-accepted", "Return true for matching attempt and transport identities while the request is streaming", true)],
       },
       {
         id: "matching-prefill-event",
         label: "Accepts an event during a pre-token active phase",
-        args: [{ id: "r2", status: "prefill" }, { requestId: "r2" }],
-        assertions: [equal("prefill-accepted", "Treat prefill as active when the event carries the matching request id", true)],
+        args: [{ attemptId: "a2", requestId: "r2", status: "prefill" }, { attemptId: "a2", requestId: "r2" }],
+        assertions: [equal("prefill-accepted", "Treat prefill as active when the event carries matching attempt and transport identities", true)],
       },
       {
         id: "stale-attempt-event",
-        label: "Rejects an event from the retired attempt",
-        args: [{ id: "r-201.2", status: "streaming" }, { requestId: "r-201.1" }],
-        assertions: [equal("stale-rejected", "Compare request.id with event.requestId and return false for an event from an older attempt", false)],
+        label: "Rejects a retired attempt even when the logical request and transport match",
+        args: [
+          { logicalRequestId: "logical-201", attemptId: "a-201.2", requestId: "transport-201", status: "streaming" },
+          { logicalRequestId: "logical-201", attemptId: "a-201.1", requestId: "transport-201" },
+        ],
+        assertions: [equal("stale-rejected", "Compare request.attemptId with event.attemptId; a stable logical request id must not let a retired attempt mutate the active one", false)],
+      },
+      {
+        id: "stale-transport-event",
+        label: "Rejects an event from a retired transport within the active attempt",
+        args: [
+          { attemptId: "a2", requestId: "transport-2", status: "streaming" },
+          { attemptId: "a2", requestId: "transport-1" },
+        ],
+        assertions: [equal("transport-rejected", "Compare request.requestId with event.requestId so the transport lifecycle remains explicit within an attempt", false)],
       },
       {
         id: "unknown-state-event",
         label: "Rejects an event for an unknown non-active state",
-        args: [{ id: "r2", status: "reconnecting" }, { requestId: "r2" }],
+        args: [{ attemptId: "a2", requestId: "r2", status: "reconnecting" }, { attemptId: "a2", requestId: "r2" }],
         assertions: [equal("unknown-rejected", "Accept only the known active states queued, loading, prefill, and streaming; return false for unknown states", false)],
       },
     ],
@@ -1709,6 +1813,6 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
 ];
 
 export const llmSystemsContractSuite: ContractSuite = {
-  contractVersion: "llm-systems-contracts-v16",
+  contractVersion: "llm-systems-contracts-v17",
   contracts: llmSystemsExerciseContracts,
 };

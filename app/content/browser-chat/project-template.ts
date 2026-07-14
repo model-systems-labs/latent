@@ -89,6 +89,8 @@ export type BridgeMessage = {
 };
 
 export type StartGenerationInput = {
+  logicalRequestId: string;
+  attemptId: string;
   requestId: string;
   backend: ChatBackend;
   messages: BridgeMessage[];
@@ -368,7 +370,12 @@ export function BrowserChat() {
   const [preparationDetail, setPreparationDetail] = useState("Checking model state");
   const [persistencePhase, setPersistencePhase] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const activeHandle = useRef<GenerationHandle | null>(null);
-  const activeRequest = useRef<{ id: string; status: string } | null>(null);
+  const activeRequest = useRef<{
+    logicalRequestId: string;
+    attemptId: string;
+    requestId: string;
+    status: string;
+  } | null>(null);
   const transcriptRef = useRef<HTMLDivElement | null>(null);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
   const latestTerminalRecord = useRef<{ record: unknown; selectedBackend: ChatBackend } | null>(null);
@@ -456,10 +463,10 @@ export function BrowserChat() {
     }
   };
 
-  const runGeneration = (userText: string, parentUserId: string, attempt: number) => {
-    const requestId = "request-" + Date.now() + "-" + attempt;
-    const attemptId = "attempt-" + requestId;
-    const assistantId = "assistant-" + requestId;
+  const runGeneration = (userText: string, parentUserId: string, logicalRequestId: string, attempt: number) => {
+    const attemptId = logicalRequestId + ".attempt-" + attempt;
+    const requestId = logicalRequestId + ".transport-" + attempt;
+    const assistantId = "assistant-" + attemptId;
     const branch = createRegeneration({
       messageId: assistantId,
       parentUserId,
@@ -478,7 +485,7 @@ export function BrowserChat() {
         requestId: branch.requestId,
       }),
     });
-    activeRequest.current = { id: requestId, status: "queued" };
+    activeRequest.current = { logicalRequestId, attemptId, requestId, status: "queued" };
     setPhase("queued");
     setMetrics(EMPTY_METRICS);
     setError("");
@@ -504,6 +511,8 @@ export function BrowserChat() {
     }
     const requestContext = bounded.selected;
     const requestFrame = encodeSse("request", {
+      logicalRequestId,
+      attemptId,
       requestId,
       backend,
       messages: requestContext.map((message: { role: string; content: string }) => ({
@@ -515,7 +524,7 @@ export function BrowserChat() {
     let emittedTokens = 0;
 
     const finish = (status: MessageStatus, nextPhase: GenerationPhase) => {
-      if (!activeRequest.current || activeRequest.current.id !== requestId) return;
+      if (!activeRequest.current || activeRequest.current.attemptId !== attemptId || activeRequest.current.requestId !== requestId) return;
       activeRequest.current.status = nextPhase;
       dispatch({ type: "terminal", messageId: assistantId, status });
       setPhase(nextPhase);
@@ -525,6 +534,8 @@ export function BrowserChat() {
     };
 
     activeHandle.current = startGeneration({
+      logicalRequestId,
+      attemptId,
       requestId,
       backend,
       messages: requestContext.map((message: { role: string; content: string }) => ({
@@ -536,7 +547,7 @@ export function BrowserChat() {
     }, {
       onPhase(nextPhase) {
         const current = activeRequest.current;
-        if (!current || !acceptEvent(current, { requestId })) return;
+        if (!current || !acceptEvent(current, { attemptId, requestId })) return;
         current.status = nextPhase;
         setPhase(nextPhase);
         if (nextPhase === "complete") finish("complete", "complete");
@@ -544,7 +555,7 @@ export function BrowserChat() {
       },
       onChunk(chunk) {
         const current = activeRequest.current;
-        if (!current || !acceptEvent(current, { requestId })) return;
+        if (!current || !acceptEvent(current, { attemptId, requestId })) return;
         const parsed = parseSseChunk(remainder, chunk);
         remainder = parsed.remainder;
         for (const event of parsed.events) {
@@ -576,7 +587,7 @@ export function BrowserChat() {
           maxAttempts: 2,
         })) {
           finish("error", "error");
-          window.setTimeout(() => runGeneration(userText, parentUserId, attempt + 1), 80);
+          window.setTimeout(() => runGeneration(userText, parentUserId, logicalRequestId, attempt + 1), 80);
           return;
         }
         setError(bridgeError.message);
@@ -594,12 +605,12 @@ export function BrowserChat() {
       message: messageRecord({ id: userId, role: "user", backend, content: userText }),
     });
     setInput("");
-    runGeneration(userText, userId, 0);
+    runGeneration(userText, userId, "logical-" + userId, 0);
   };
 
   const regenerate = () => {
     if (!latestUser || busy) return;
-    runGeneration(latestUser.content, latestUser.id, 0);
+    runGeneration(latestUser.content, latestUser.id, "logical-regenerate-" + Date.now() + "-" + latestUser.id, 0);
   };
 
   const stop = () => {

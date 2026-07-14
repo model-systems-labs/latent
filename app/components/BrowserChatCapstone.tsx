@@ -39,6 +39,8 @@ import { CAPSTONE_COMPONENT_PATH as CANONICAL_CAPSTONE_COMPONENT_PATH } from "..
 const ALLOWED_METHODS = new Set(["initialize", "train-student", "load-local", "generate", "cancel", "persist"]);
 
 type GenerationPayload = {
+  logicalRequestId: string;
+  attemptId: string;
   requestId: string;
   backend: CapstoneBackend;
   messages: ModelMessage[];
@@ -368,11 +370,16 @@ function generationPayload(value: PreviewJson): GenerationPayload | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const candidate = value as Record<string, PreviewJson>;
   const backend = candidate.backend;
+  const logicalRequestId = candidate.logicalRequestId;
+  const attemptId = candidate.attemptId;
   const requestId = candidate.requestId;
   const requestFrame = candidate.requestFrame;
   const rawMessages = candidate.messages;
   const rawOptions = candidate.options;
-  if ((backend !== "student" && backend !== "local") || typeof requestId !== "string" || requestId.length > 128
+  if ((backend !== "student" && backend !== "local")
+    || typeof logicalRequestId !== "string" || !logicalRequestId.trim() || logicalRequestId.length > 128
+    || typeof attemptId !== "string" || !attemptId.trim() || attemptId.length > 128
+    || typeof requestId !== "string" || !requestId.trim() || requestId.length > 128
     || typeof requestFrame !== "string" || requestFrame.length > 64_000 || !Array.isArray(rawMessages)
     || rawMessages.length > 32 || !rawOptions || typeof rawOptions !== "object" || Array.isArray(rawOptions)) return null;
   const messages: ModelMessage[] = [];
@@ -387,6 +394,8 @@ function generationPayload(value: PreviewJson): GenerationPayload | null {
   }
   const options = rawOptions as Record<string, PreviewJson>;
   return {
+    logicalRequestId,
+    attemptId,
     requestId,
     backend,
     messages,

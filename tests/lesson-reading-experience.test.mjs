@@ -69,6 +69,10 @@ test("reference and practice code both use real JavaScript syntax parsing withou
   assert.match(syntaxCode, /highlightCode\(/);
   assert.match(syntaxCode, /role="region" tabIndex=\{0\}/);
   assert.doesNotMatch(syntaxCode, /dangerouslySetInnerHTML/);
+  assert.match(paperLab, /hidden \? "Run practice" : "Run example"/);
+  assert.match(paperLab, /hiddenBlocks\.length === blocks\.length \? "Run practice checks"[\s\S]*?"Run all examples"/);
+  assert.match(paperLab, /Example passed · practice this cell to earn verification/);
+  assert.match(paperLab, /Reference examples do not earn credit/);
   assert.match(codeEditor, /variant === "lesson" \? lessonTheme/);
   assert.match(codeEditor, /lineNumbers\(\{ formatNumber: \(line\) => String\(line \+ lineNumberStart - 1\) \}\)/);
   for (const token of ["keyword", "string", "number", "comment", "variableName", "propertyName", "operator", "punctuation", "invalid"]) {

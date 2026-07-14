@@ -151,7 +151,7 @@ function completePortfolioInput() {
     runner: "browser-lab-v1",
     sourceTreeHash: "sha256:portable",
     projectRevision: 1,
-    contractVersion: "llm-systems-contracts-v16",
+    contractVersion: "llm-systems-contracts-v17",
     contractIdsByPath,
   };
   project.runtime = { ...project.runtime, buildNumber: 2, builtAt: 1 };

@@ -95,6 +95,14 @@ test("lesson source remains external while the capstone imports its behavioral s
   assert.match(source, /const requestContext = bounded\.selected/);
   assert.match(source, /messages: requestContext\.map/);
   assert.match(source, /appendMessageDelta\(state\.messages, \{[\s\S]*attemptId: action\.attemptId,[\s\S]*requestId: action\.requestId/);
+  assert.match(source, /runGeneration = \(userText: string, parentUserId: string, logicalRequestId: string, attempt: number\)/);
+  assert.match(source, /const attemptId = logicalRequestId \+ "\.attempt-" \+ attempt/);
+  assert.match(source, /const requestId = logicalRequestId \+ "\.transport-" \+ attempt/);
+  assert.match(source, /activeRequest\.current = \{ logicalRequestId, attemptId, requestId, status: "queued" \}/);
+  assert.match(source, /acceptEvent\(current, \{ attemptId, requestId \}\)/);
+  assert.match(source, /runGeneration\(userText, parentUserId, logicalRequestId, attempt \+ 1\)/);
+  assert.match(source, /runGeneration\(userText, userId, "logical-" \+ userId, 0\)/);
+  assert.match(source, /startGeneration\(\{[\s\S]*logicalRequestId,[\s\S]*attemptId,[\s\S]*requestId,/);
   assert.doesNotMatch(source, /localStorage/);
 });
 
@@ -109,7 +117,7 @@ test("editing any project source invalidates source-bound capstone verification"
     runner: "browser-lab-v1",
     sourceTreeHash: "sha256:tested-tree",
     projectRevision: 7,
-    contractVersion: "llm-systems-contracts-v16",
+    contractVersion: "llm-systems-contracts-v17",
     contractIdsByPath: {
       "capstone/main.tsx": ["compile"],
       "capstone/BrowserChat.tsx": ["compile-ui"],

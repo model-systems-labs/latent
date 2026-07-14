@@ -75,15 +75,18 @@ return { passed: before === true && after === false, detail: "retry before outpu
           purpose: "Ignore late events after completion, error, or cancellation.",
           concepts: [
             { name: "active", detail: "Queued, loading, prefill, and streaming are the only event-accepting states." },
-            { name: "requestId", detail: "Names the active attempt and prevents an older attempt from mutating the current one." },
-            { name: "event", detail: "Typed transport event applied only to the matching active request." },
+            { name: "attemptId", detail: "Changes on every retry and prevents a retired attempt from mutating the current one." },
+            { name: "requestId", detail: "Names the transport lifecycle within the active attempt." },
+            { name: "event", detail: "Typed transport event applied only to the matching active attempt and transport." },
           ],
           code: `function acceptEvent(request, event) {
   const active = ["queued", "loading", "prefill", "streaming"];
-  return active.includes(request.status) && request.id === event.requestId;
+  return active.includes(request.status)
+    && request.attemptId === event.attemptId
+    && request.requestId === event.requestId;
 }`,
-          checkCode: `const late = acceptEvent({ id: "r1", status: "complete" }, { requestId: "r1" });
-const current = acceptEvent({ id: "r2", status: "streaming" }, { requestId: "r2" });
+          checkCode: `const late = acceptEvent({ attemptId: "a1", requestId: "r1", status: "complete" }, { attemptId: "a1", requestId: "r1" });
+const current = acceptEvent({ attemptId: "a2", requestId: "r2", status: "streaming" }, { attemptId: "a2", requestId: "r2" });
 return { passed: late === false && current === true, detail: "late rejected · active accepted" };`,
         },
       ],

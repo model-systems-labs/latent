@@ -31,7 +31,7 @@ ${commonQuestionInstruction}`.trim(),
       {
         label: "One decoder step.",
         body:
-          "At output step t, the decoder query q_t has shape [d_s] and the encoder states H = [h_1, ..., h_n] have shape [n, d_h]. The same scorer is applied n times—once to q_t and each h_i—so it produces one scalar e_(t,i) for every source position.",
+          "An encoder reads the source sequence and leaves one state h_i at each source position. A decoder produces the target sequence one token at a time; immediately before output step t, its current decoder state becomes the query q_t, which can look back at every encoder state. In notation, q_t has shape [d_s] and the encoder states H = [h_1, ..., h_n] have shape [n, d_h]. The same scorer is applied n times—once to q_t and each h_i—so it produces one scalar e_(t,i) for every source position.",
       },
       {
         label: "Additive score.",

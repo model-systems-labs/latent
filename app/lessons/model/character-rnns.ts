@@ -18,6 +18,7 @@ export const characterRnnsLesson = {
 This lesson concerns Andrej Karpathy's 2015 technical essay "The Unreasonable Effectiveness of Recurrent Neural Networks."
 - A recurrent network applies the same learned transition at every sequence position and carries a hidden state forward.
 - A character language model receives a character, predicts a distribution over the next character, and is trained with softmax cross-entropy.
+- During teacher-forced training, the observed next character is the loss target and the next recurrent input; the model's sampled prediction is not fed back.
 - Backpropagation through time assigns credit through the unrolled recurrent computation.
 - Generated text is sampled autoregressively: each sampled character becomes the next input.
 - The essay demonstrates that models trained only for next-character prediction can learn local syntax, document structure, and longer patterns.
@@ -45,9 +46,9 @@ ${commonQuestionInstruction}`.trim(),
           "Training unrolls several recurrent steps and differentiates the total loss backward through them—backpropagation through time, or BPTT. This lab uses a short window (truncated BPTT) instead of the entire corpus. Because Whh is multiplied into the gradient at every step, gradients can grow rapidly; clipping caps each update before it changes the weights.",
       },
       {
-        label: "Generate autoregressively.",
+        label: "Teacher forcing and sampled generation.",
         body:
-          "At inference time, sample one character from the predicted distribution, encode that character as the next x, update the hidden state, and repeat. The model never retrieves a stored sentence. Its output reflects patterns that helped it reduce next-character loss during training.",
+          "During teacher-forced training, the observed corpus character x_(t+1) is both the cross-entropy loss target and the next input, regardless of what the model predicted. During sampled generation, there is no observed target: sample a character from p(x_(t+1)), encode that sample as the next input, update the hidden state, and repeat. The recurrence is shared, but the source of the next input is different.",
       },
     ],
     claims: {
@@ -56,8 +57,8 @@ ${commonQuestionInstruction}`.trim(),
       limit: "The supplied corpus and model are deliberately tiny; this does not reproduce the essay's multi-layer LSTM results.",
     },
     diagram: {
-      title: "Unrolled recurrent computation",
-      caption: "Read left to right. Each state passes information to the next position; each prediction supplies the character that can be fed back as the next input. Wxh, Whh, Why, and the biases are shared across all three columns.",
+      title: "Training and generation",
+      caption: "Read left to right. Teacher-forced training feeds the observed x_(t+1) into the next column and uses it as the loss target; the model's prediction is not fed back. Sampled generation instead draws x_(t+1) from the predicted distribution and feeds that sample into the next column. Wxh, Whh, Why, and the biases are shared in both paths.",
       nodes: [
         { label: "Input", value: "x_t" },
         { label: "Previous state", value: "h_(t-1)" },

@@ -42,7 +42,7 @@ ${commonQuestionInstruction}`.trim(),
       {
         label: "Block boundary.",
         body:
-          "The resulting context C = softmax(mask(QKᵀ/√dₖ))V is only the attention sublayer. A usable decoder block also includes output and multi-head projections, residual paths, normalization, a position-wise MLP, and another residual path; stacked blocks operate on token-plus-position representations.",
+          "The resulting context C = softmax(mask(QKᵀ/√dₖ))V is only the attention sublayer. A usable decoder block also includes output and multi-head projections, residual paths, normalization, a position-wise MLP, and another residual path; stacked blocks operate on token-plus-position representations. The exercise below implements only the non-affine normalization core. A full affine layer normalization then applies learned per-feature gain gamma and bias beta; those two learned parameters are deliberately omitted here.",
       },
     ],
     claims: {
@@ -115,12 +115,13 @@ return { passed: output.length === 2 && output[0] > output[1], detail: "output =
         },
         {
           id: "layer-norm",
-          label: "Layer normalization",
-          purpose: "Subtract the feature mean, then divide by √(variance + epsilon) within one token representation.",
+          label: "Non-affine layer normalization",
+          purpose: "Standardize one token across features without the learned gain gamma and bias beta applied by a full affine layer normalization.",
           concepts: [
             { name: "mean", detail: "Average activation across the feature dimension." },
             { name: "variance", detail: "Average squared deviation from that mean." },
             { name: "epsilon", detail: "Stability constant inside the square root." },
+            { name: "omitted affine terms", detail: "A full layer norm applies learned per-feature gain gamma and bias beta after this normalization." },
           ],
           code: `function layerNorm(vector, epsilon = 1e-5) {
   return toArray(normalizeLayer(tensor(vector), epsilon));

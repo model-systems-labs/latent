@@ -8,6 +8,7 @@ const workbenchUrl = new URL("../app/components/ProjectWorkbench.tsx", import.me
 const pythonCssUrl = new URL("../app/styles/python-runtime.css", import.meta.url);
 const responsiveCssUrl = new URL("../app/styles/responsive.css", import.meta.url);
 const globalsUrl = new URL("../app/globals.css", import.meta.url);
+const viteConfigUrl = new URL("../vite.config.ts", import.meta.url);
 
 test("Python is an explicit, lazy runtime rather than part of page startup", async () => {
   const source = await readFile(executionUrl, "utf8");
@@ -65,13 +66,21 @@ test("the project tree surfaces Python once without changing lesson completion s
 });
 
 test("the Python editor has native syntax highlighting and the same keyboard escape hatch", async () => {
-  const source = await readFile(editorUrl, "utf8");
+  const [source, viteConfig] = await Promise.all([
+    readFile(editorUrl, "utf8"),
+    readFile(viteConfigUrl, "utf8"),
+  ]);
   assert.match(source, /import \{ python \} from "@codemirror\/lang-python"/);
   assert.match(source, /python\(\)/);
   assert.match(source, /syntaxHighlighting\(pythonSyntaxTheme\)/);
   assert.match(source, /EditorState\.tabSize\.of\(4\)/);
   assert.match(source, /\{ key: "Escape", run: temporarilySetTabFocusMode \}/);
   assert.match(source, /Python code editor\. Tab indents four spaces\. Press Escape, then Tab, to leave the editor\./);
+  assert.match(
+    viteConfig,
+    /optimizeDeps:[\s\S]*?include: \[[\s\S]*?"@codemirror\/lang-python"/,
+    "the first lazy Python-editor click must not request an unprepared Vite dependency chunk",
+  );
 });
 
 test("Python evidence stays readable and uses the existing mobile Tests and Output views", async () => {

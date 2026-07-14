@@ -100,8 +100,8 @@ test("all fourteen lessons use the reusable learning flow", async () => {
     assert.match(html, /lesson brief \+ source metadata · no full-text retrieval/);
     assert.doesNotMatch(html, /Grounded in the lesson sources|Your key stays in this tab/);
     assert.match(html, /Practice all/);
-    assert.match(html, /Run cell/);
-    assert.match(html, /Run behavioral checks/);
+    assert.match(html, /Run example/);
+    assert.match(html, /Run all examples/);
     assert.match(html, /Artifacts/);
     assert.match(html, /A source-bound validation receipt/);
     assert.match(html, /course-authored references/);
@@ -126,7 +126,9 @@ test("Character RNNs teaches the unrolled mechanism and gates practice until res
   assert.match(html, /Assign credit through time/);
   assert.match(html, /recurrence-unroll/);
   assert.match(html, /Hidden-state flow/);
-  assert.match(html, /Generation loop/);
+  assert.match(html, /Teacher-forced training/);
+  assert.match(html, /observed x_\(t\+1\).*loss target \+ next input/);
+  assert.match(html, /Sampled generation/);
   assert.match(html, /Shared at every position/);
   assert.match(html, /aria-busy="true"/);
   assert.match(html, /Restoring saved work/);
@@ -168,6 +170,8 @@ test("Additive Attention works through one decoder step and distinguishes scorin
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /One decoder step/);
+  assert.match(html, /An encoder reads the source sequence/);
+  assert.match(html, /current decoder state becomes the query q_t/);
   assert.match(html, /Normalize over positions/);
   assert.match(html, /Construct the context/);
   assert.match(html, /One output step: emit year/);
@@ -191,6 +195,8 @@ test("Transformers works through a shaped causal attention matrix before the liv
   assert.match(html, /decoded/);
   assert.match(html, /0\.46/);
   assert.match(html, /Complete decoder block/);
+  assert.match(html, /Non-affine layer normalization/);
+  assert.match(html, /learned gain gamma and bias beta/);
   assert.match(html, /Run causal self-attention/);
 });
 
@@ -206,6 +212,9 @@ test("In-Context Learning renders a controlled comparison and explicit inference
   assert.match(html, /4 demonstrations/);
   assert.match(html, /weights updated: 0/);
   assert.match(html, /Exact-match measurement plan for two held-out items/);
+  assert.match(html, /Execution boundary/);
+  assert.match(html, /fixed local evaluator builds prompts/);
+  assert.match(html, /Learner code is checked separately and never runs here/);
   assert.match(html, /Cannot infer/);
   assert.match(html, /Load model · ~181 MB/);
 });

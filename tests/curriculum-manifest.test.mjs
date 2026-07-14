@@ -126,9 +126,17 @@ test("manifest validation rejects ambiguous files and unreachable source lessons
 });
 
 test("Character RNN practice catches missing recurrent state and explains the failing behavior", () => {
+  const lesson = course.courseLessons.find((candidate) => candidate.id === "character-rnns");
+  assert.ok(lesson);
+  const lessonCopy = lesson.summary.map((section) => `${section.label} ${section.body}`).join(" ");
+  assert.match(lessonCopy, /Teacher forcing and sampled generation/);
+  assert.match(lessonCopy, /observed corpus character.*loss target.*next input/);
+  assert.match(lessonCopy, /sample a character.*next input/);
+  assert.match(lesson.diagram.caption, /Teacher-forced training.*prediction is not fed back/);
+
   const contract = contracts.llmSystemsExerciseContracts.find((candidate) => candidate.id === "character-rnns/rnn-step");
   assert.ok(contract);
-  assert.equal(contract.cases.length, 3);
+  assert.equal(contract.cases.length, 4);
   const recurrentCase = contract.cases.find((candidate) => candidate.id === "non-empty-recurrent-state");
   assert.ok(recurrentCase);
   assert.match(recurrentCase.label, /preceding hidden state/);
@@ -152,7 +160,7 @@ test("Character RNN practice catches missing recurrent state and explains the fa
   assert.match(detail, /outside the expected range/);
 });
 
-test("Character RNN contracts reject two plausible semantic mistakes per cell and accept the references", () => {
+test("Character RNN contracts reject plausible semantic shortcuts and accept the references", () => {
   const byId = new Map(contracts.llmSystemsExerciseContracts.map((contract) => [contract.id, contract]));
   const evaluate = (contract, implementation) => contract.cases.map((exerciseCase) =>
     contractRuntime.evaluateExerciseCase(contract, exerciseCase, {
@@ -165,20 +173,29 @@ test("Character RNN contracts reject two plausible semantic mistakes per cell an
   const rnn = byId.get("character-rnns/rnn-step");
   assert.ok(rnn);
   const project = (matrix, vector) => matrix.map((row) => row.reduce((sum, weight, index) => sum + weight * vector[index], 0));
+  const diagonalOnlyProject = (matrix, vector) => matrix.map((row, index) =>
+    (row[index] ?? 0) * (vector[index] ?? 0));
   rejects(rnn, (input, _previous, weights) => project(weights.Wxh, input).map(Math.tanh));
   rejects(rnn, (input, previous, weights) => project(weights.Wxh, input).map((value, index) => value + project(weights.Whh, previous)[index] + weights.bias[index]));
+  rejects(rnn, (input, previous, weights) => {
+    const inputProjection = diagonalOnlyProject(weights.Wxh, input);
+    const stateProjection = diagonalOnlyProject(weights.Whh, previous);
+    return inputProjection.map((value, index) => Math.tanh(value + stateProjection[index] + weights.bias[index]));
+  });
   accepts(rnn, (input, previous, weights) => project(weights.Wxh, input).map((value, index) => Math.tanh(value + project(weights.Whh, previous)[index] + weights.bias[index])));
 
   const loss = byId.get("character-rnns/cross-entropy");
   assert.ok(loss);
   rejects(loss, (probabilities, targetIndex) => probabilities[targetIndex]);
   rejects(loss, (probabilities, targetIndex) => Math.log(probabilities[targetIndex]));
+  rejects(loss, (probabilities) => -Math.log(probabilities[1]));
   accepts(loss, (probabilities, targetIndex) => -Math.log(probabilities[targetIndex]));
 
   const clipping = byId.get("character-rnns/gradient-clipping");
   assert.ok(clipping);
   rejects(clipping, (gradients, limit) => gradients.map((value) => Math.min(value, limit)));
   rejects(clipping, (gradients, limit) => gradients.map((value) => Math.max(value, -limit)));
+  rejects(clipping, (gradients) => gradients.map((value) => Math.max(-5, Math.min(5, value))));
   accepts(clipping, (gradients, limit) => gradients.map((value) => Math.max(-limit, Math.min(limit, value))));
 });
 
@@ -230,6 +247,7 @@ test("Neural Language Model contracts reject plausible shortcuts and give one ac
   assert.ok(loss);
   rejects(loss, (probabilities, targetIndex) => probabilities[targetIndex]);
   rejects(loss, (probabilities, targetIndex) => Math.log(probabilities[targetIndex]));
+  rejects(loss, (probabilities) => -Math.log(Math.max(probabilities[1], 1e-12)));
   accepts(loss, (probabilities, targetIndex) => -Math.log(Math.max(probabilities[targetIndex], 1e-12)));
 });
 
@@ -336,6 +354,14 @@ test("Subword Tokenization exposes pair identity and rejects shortcuts in every 
 });
 
 test("Additive Attention teaches the scoring network and rejects shortcuts in every cell", () => {
+  const lesson = course.courseLessons.find((candidate) => candidate.id === "additive-attention");
+  assert.ok(lesson);
+  const decoderStep = lesson.summary.find((section) => section.label === "One decoder step.");
+  assert.ok(decoderStep);
+  assert.ok(decoderStep.body.indexOf("An encoder reads") < decoderStep.body.indexOf("In notation"));
+  assert.match(decoderStep.body, /decoder produces the target sequence one token at a time/);
+  assert.match(decoderStep.body, /current decoder state becomes the query q_t/);
+
   const byId = new Map(contracts.llmSystemsExerciseContracts.map((contract) => [contract.id, contract]));
   const evaluate = (contract, implementation) => contract.cases.map((exerciseCase) =>
     contractRuntime.evaluateExerciseCase(contract, exerciseCase, {
@@ -363,10 +389,18 @@ test("Additive Attention teaches the scoring network and rejects shortcuts in ev
   };
   rejects(score, dotProduct);
   rejects(score, linearScore);
+  rejects(score, (query, key, { Wq, Wk, v, bias }) => {
+    const diagonalProject = (matrix, vector) => matrix.map((row, index) =>
+      (row[index] ?? 0) * (vector[index] ?? 0));
+    const queryTerm = diagonalProject(Wq, query);
+    const keyTerm = diagonalProject(Wk, key);
+    return v.reduce((sum, value, index) =>
+      sum + value * Math.tanh(queryTerm[index] + keyTerm[index] + bias[index]), 0);
+  });
   accepts(score, additiveScore);
   const scoreFeedback = practiceFeedback.formatPracticeContractDetail(evaluate(score, dotProduct));
   assert.match(scoreFeedback, /Wq/);
-  assert.match(scoreFeedback, /2 additional cases still fail; rerun after this fix/);
+  assert.match(scoreFeedback, /3 additional cases still fail; rerun after this fix/);
   assert.doesNotMatch(scoreFeedback, /Wk|plain query-key dot product/);
 
   const weights = byId.get("additive-attention/attention-softmax");
@@ -378,6 +412,13 @@ test("Additive Attention teaches the scoring network and rejects shortcuts in ev
   });
   rejects(weights, (scores) => {
     const exponentials = scores.map(Math.exp);
+    const total = exponentials.reduce((sum, value) => sum + value, 0);
+    return exponentials.map((value) => value / total);
+  });
+  rejects(weights, (scores) => {
+    const fixedScores = scores.slice(0, 3);
+    const maximum = Math.max(...fixedScores);
+    const exponentials = fixedScores.map((value) => Math.exp(value - maximum));
     const total = exponentials.reduce((sum, value) => sum + value, 0);
     return exponentials.map((value) => value / total);
   });
@@ -414,6 +455,11 @@ test("Transformers teaches the causal attention computation and rejects semantic
   assert.match(lesson.summary.map((section) => section.body).join(" "), /QKᵀ/);
   assert.match(lesson.summary.map((section) => section.body).join(" "), /before applying softmax independently across that row/);
   assert.match(lesson.diagram.caption, /three-token worked pass/i);
+  const layerNormBlock = lesson.implementation.codeBlocks.find((block) => block.id === "layer-norm");
+  assert.ok(layerNormBlock);
+  assert.equal(layerNormBlock.label, "Non-affine layer normalization");
+  assert.match(layerNormBlock.purpose, /learned gain gamma and bias beta/);
+  assert.match(layerNormBlock.concepts.map((concept) => concept.detail).join(" "), /full layer norm.*learned per-feature gain gamma and bias beta/);
 
   const byId = new Map(contracts.llmSystemsExerciseContracts.map((contract) => [contract.id, contract]));
   const evaluate = (contract, implementation) => contract.cases.map((exerciseCase) =>
@@ -474,6 +520,11 @@ test("Transformers teaches the causal attention computation and rejects semantic
     const scale = variance(vector, mean) + epsilon;
     return vector.map((value) => (value - mean) / scale);
   });
+  rejects(layerNorm, (vector) => {
+    const mean = vector.reduce((sum, value) => sum + value, 0) / vector.length;
+    const scale = Math.sqrt(variance(vector, mean) + 1e-5);
+    return vector.map((value) => (value - mean) / scale);
+  });
   accepts(layerNorm, (vector, epsilon = 1e-5) => {
     const mean = vector.reduce((sum, value) => sum + value, 0) / vector.length;
     const scale = Math.sqrt(variance(vector, mean) + epsilon);
@@ -492,6 +543,9 @@ test("In-Context Learning holds the experiment constant and rejects prompt and s
   assert.match(lesson.summary[0].body, /hidden activations and KV cache/);
   assert.match(lesson.diagram.title, /Controlled zero-, one-, and few-shot comparison/);
   assert.match(lesson.diagram.caption, /not general few-shot ability/);
+  assert.match(lesson.summary.find((section) => section.label === "Evaluation design.")?.body ?? "", /supplied fixed local evaluator.*does not import or execute the learner's/);
+  assert.match(lesson.experiment.intro, /fixed local evaluator.*without importing or executing learner code/);
+  assert.match(lesson.experiment.intro, /do not show that accuracy must improve/);
 
   const byId = new Map(contracts.llmSystemsExerciseContracts.map((contract) => [contract.id, contract]));
   const evaluate = (contract, implementation) => contract.cases.map((exerciseCase) =>
@@ -859,17 +913,20 @@ test("Reliability and Observability binds retries and events to attempt identity
 
   const guard = byId.get("reliability-observability/terminal-guard");
   assert.ok(guard);
-  assert.equal(guard.cases.length, 7);
+  assert.equal(guard.cases.length, 8);
   const terminalOnly = (request) => !["complete", "error", "cancelled"].includes(request.status);
-  const identityOnly = (request, event) => request.id === event.requestId;
-  const missesCancelled = (request, event) => !["complete", "error"].includes(request.status) && request.id === event.requestId;
-  const acceptsUnknown = (request, event) => !["complete", "error", "cancelled"].includes(request.status) && request.id === event.requestId;
+  const identityOnly = (request, event) => request.attemptId === event.attemptId && request.requestId === event.requestId;
+  const requestIdOnly = (request, event) => ["queued", "loading", "prefill", "streaming"].includes(request.status) && request.requestId === event.requestId;
+  const missesCancelled = (request, event) => !["complete", "error"].includes(request.status) && request.attemptId === event.attemptId && request.requestId === event.requestId;
+  const acceptsUnknown = (request, event) => !["complete", "error", "cancelled"].includes(request.status) && request.attemptId === event.attemptId && request.requestId === event.requestId;
   rejects(guard, terminalOnly);
   rejects(guard, identityOnly);
+  rejects(guard, requestIdOnly);
   rejects(guard, missesCancelled);
   rejects(guard, acceptsUnknown);
-  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(guard, terminalOnly)), /Compare request\.id with event\.requestId/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(guard, terminalOnly)), /Compare request\.attemptId with event\.attemptId/);
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(guard, identityOnly)), /Return false after complete/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(guard, requestIdOnly)), /stable logical request id must not let a retired attempt mutate/);
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(guard, missesCancelled)), /Return false after cancelled/);
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(guard, acceptsUnknown)), /Accept only the known active states/);
   const guardBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "terminal-guard");
@@ -1210,6 +1267,12 @@ test("Actions and Context treats branches as durable records and admits only com
 test("Product Quality rejects shallow persistence guards and incomplete phase labels", () => {
   const lesson = course.courseLessons.find((candidate) => candidate.id === "chat-product-quality");
   assert.ok(lesson);
+  const aria23Url = "https://www.w3.org/WAI/WCAG22/Techniques/aria/ARIA23";
+  const aria23Title = "ARIA23: Using role=log to identify sequential information updates";
+  assert.equal(lesson.paperUrl, aria23Url);
+  assert.equal(lesson.paperTitle, aria23Title);
+  assert.ok(lesson.sources.some((source) => source.url === aria23Url && source.title === aria23Title));
+  assert.doesNotMatch(JSON.stringify(lesson.sources), /\/WAI\/ARIA\/apg\/patterns\/log/);
   assert.equal(lesson.diagram.title, "One send through reload");
   assert.match(lesson.dataset.size, /11 executable pure checks · 5 specifications · 3 manual verification groups/);
   assert.match(lesson.claims.limit, /real browsers, keyboards, screen readers, and users/);
@@ -1253,7 +1316,36 @@ test("practice verification is inseparable from the exact editor source and cont
   const block = { id: "rnn-step", code: "function rnnStep() { return 'reference'; }" };
   const correct = "function rnnStep() { return 'correct learner answer'; }";
   const wrong = "function rnnStep() { return 'wrong learner answer'; }";
-  const currentVersion = "llm-systems-contracts-v16";
+  const currentVersion = "llm-systems-contracts-v17";
+  const empty = { ids: [], sources: {}, contractVersion: null };
+  assert.deepEqual(
+    practiceState.verificationAfterBlockRun(empty, block.id, block.code, [], true, currentVersion),
+    empty,
+    "a passing visible reference run remains an example and earns no learner credit",
+  );
+  const creditedPractice = practiceState.verificationAfterBlockRun(
+    empty,
+    block.id,
+    correct,
+    [block.id],
+    true,
+    currentVersion,
+  );
+  assert.deepEqual(creditedPractice, {
+    ids: [block.id],
+    sources: { [block.id]: correct },
+    contractVersion: currentVersion,
+  }, "a passing run of the active practice source earns source-bound credit");
+  assert.deepEqual(
+    practiceState.creditablePracticeBlockIds([block.id], [], [block.id]),
+    [],
+    "passing reference examples in a lesson-wide run earn no credit",
+  );
+  assert.deepEqual(
+    practiceState.creditablePracticeBlockIds([block.id], [block.id], [block.id]),
+    [block.id],
+    "passing practice sources in a lesson-wide run earn credit",
+  );
   const bound = practiceState.bindBlockVerification(
     { ids: [], sources: {}, contractVersion: null },
     block.id,
@@ -1262,6 +1354,11 @@ test("practice verification is inseparable from the exact editor source and cont
   );
 
   assert.equal(practiceState.practiceBlockSource(block, [block.id], { [block.id]: wrong }), wrong);
+  assert.deepEqual(
+    practiceState.restoreSourceBoundVerification([block], [], {}, [block.id], { [block.id]: block.code }, currentVersion, currentVersion),
+    empty,
+    "legacy verification for a visible reference is discarded on restore",
+  );
   assert.deepEqual(
     practiceState.restoreSourceBoundVerification([block], [block.id], { [block.id]: wrong }, bound.ids, bound.sources, currentVersion, currentVersion),
     { ids: [], sources: {}, contractVersion: null },

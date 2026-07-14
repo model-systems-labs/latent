@@ -44,10 +44,12 @@ export default defineConfig(async () => {
   const { cloudflare } = await import("@cloudflare/vite-plugin");
 
   return {
-    // The model loader is consent-gated and dynamically imported. Explicitly
-    // prebundle its static client boundary so the first click cannot request a
-    // dependency chunk Vite never prepared in the RSC development graph.
-    optimizeDeps: { include: ["@huggingface/transformers"] },
+    // Consent-gated and editor-only features are dynamically imported. Explicitly
+    // prebundle their static client boundaries so the first click cannot request
+    // a dependency chunk Vite never prepared in the RSC development graph.
+    optimizeDeps: {
+      include: ["@huggingface/transformers", "@codemirror/lang-python"],
+    },
     server: isCodexSeatbeltSandbox
       ? { watch: { useFsEvents: false, usePolling: true } }
       : undefined,

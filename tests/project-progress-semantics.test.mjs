@@ -38,7 +38,7 @@ test("a synchronous recovery journal restores unsaved editable bytes and invalid
       runner: "browser-lab-v1",
       sourceTreeHash: "sha256:old",
       projectRevision: 1,
-      contractVersion: "llm-systems-contracts-v16",
+      contractVersion: "llm-systems-contracts-v17",
       contractIdsByPath: { [editablePath]: ["old"] },
     },
   };
@@ -188,7 +188,7 @@ test("only source-bound browser-lab receipts can affect project readiness", () =
     results,
     sourceTreeHash: null,
     projectRevision: 4,
-    contractVersion: "llm-systems-contracts-v16",
+    contractVersion: "llm-systems-contracts-v17",
     contractIdsByPath,
   }), {});
   assert.deepEqual(fileStatus.trustedProjectResults({
@@ -196,7 +196,7 @@ test("only source-bound browser-lab receipts can affect project readiness", () =
     results,
     sourceTreeHash: "sha256:fixture",
     projectRevision: null,
-    contractVersion: "llm-systems-contracts-v16",
+    contractVersion: "llm-systems-contracts-v17",
     contractIdsByPath,
   }), {});
   assert.deepEqual(fileStatus.trustedProjectResults({
@@ -212,7 +212,7 @@ test("only source-bound browser-lab receipts can affect project readiness", () =
     results,
     sourceTreeHash: "sha256:fixture",
     projectRevision: 4,
-    contractVersion: "llm-systems-contracts-v16",
+    contractVersion: "llm-systems-contracts-v17",
     contractIdsByPath,
   }), results);
   assert.deepEqual(fileStatus.trustedProjectResults({
@@ -220,7 +220,7 @@ test("only source-bound browser-lab receipts can affect project readiness", () =
     results,
     sourceTreeHash: "sha256:fixture",
     projectRevision: 4,
-    contractVersion: "llm-systems-contracts-v16",
+    contractVersion: "llm-systems-contracts-v17",
     contractIdsByPath: {},
   }), {}, "old receipts without an authoritative scope manifest are untrusted");
 });

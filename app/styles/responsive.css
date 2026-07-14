@@ -99,17 +99,17 @@
 
   .key-panel {
     display: grid;
-    gap: 1rem 2rem;
-    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    grid-template-columns: 1fr;
   }
 
   .key-panel > p {
-    grid-row: 1 / span 3;
+    grid-row: auto;
     margin: 0;
   }
 
   .key-panel > a {
-    grid-column: 2;
+    grid-column: auto;
   }
 
   .check-grid {

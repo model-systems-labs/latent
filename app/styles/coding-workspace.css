@@ -71,7 +71,7 @@
   border: 0;
   border-radius: 0.6rem;
   box-shadow: 0 18px 48px rgba(34, 28, 39, 0.09);
-  max-width: 64rem;
+  max-width: none;
   overflow: hidden;
   padding-bottom: 0.65rem;
 }
@@ -485,11 +485,11 @@
 }
 
 .full-course-hero {
-  min-height: 34rem;
+  min-height: 0;
 }
 
 .full-course-hero h1 {
-  font-size: clamp(3.5rem, 6.4vw, 6.9rem);
+  font-size: clamp(3.5rem, 5vw, 4.25rem);
 }
 
 .hero-actions {
@@ -686,28 +686,22 @@
 
 .capstone-banner {
   align-items: center;
-  background: #242126;
-  border-radius: 1rem;
-  color: #f1ece5;
+  background: transparent;
+  border-bottom: 1px solid var(--line-strong);
+  border-radius: 0;
+  border-top: 1px solid var(--line-strong);
+  color: var(--ink);
   display: flex;
   gap: 3rem;
   justify-content: space-between;
   margin-top: 1rem;
-  overflow: hidden;
-  padding: 2.1rem;
+  overflow: visible;
+  padding: 2.25rem 0;
   position: relative;
 }
 
 .capstone-banner::after {
-  border: 1px solid rgba(188, 166, 211, 0.18);
-  border-radius: 50%;
-  content: "";
-  height: 18rem;
-  position: absolute;
-  right: -4rem;
-  top: -7rem;
-  transform: rotate(23deg);
-  width: 28rem;
+  content: none;
 }
 
 .capstone-banner > * {
@@ -724,16 +718,16 @@
 }
 
 .capstone-banner p {
-  color: #bfb7af;
+  color: var(--muted);
   font-family: var(--serif);
   font-size: 0.9rem;
   line-height: 1.55;
   margin: 0;
-  max-width: 46rem;
+  max-width: 56rem;
 }
 
 .capstone-banner > strong {
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--line-strong);
   border-radius: 999px;
   flex: 0 0 auto;
   font-size: max(0.68rem, 11px);
@@ -742,7 +736,7 @@
 }
 
 .track-hero {
-  min-height: 24rem;
+  min-height: 0;
   padding: clamp(2.75rem, 5vw, 4.5rem) 0;
 }
 

@@ -13,6 +13,7 @@ const paperLabMobileUrl = new URL("app/components/PaperLab.module.css", root);
 const projectPageUrl = new URL("app/project/page.tsx", root);
 const projectStructureUrl = new URL("app/styles/project-structure.css", root);
 const pytorchHandoffCssUrl = new URL("app/features/pytorch/PyTorchHandoff.module.css", root);
+const productizationUrl = new URL("app/styles/productization.css", root);
 
 function rule(source, selector) {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -61,14 +62,31 @@ test("the native PyTorch handoff cannot widen a mobile lesson", async () => {
   assert.match(rule(css, ".editorSurface"), /min-width:\s*0/);
 });
 
-test("summary prose owns the reading flow and the mechanism is interpolated at its midpoint", async () => {
+test("summary prose owns the reading flow and the mechanism follows the concepts it visualizes", async () => {
   const paperLab = await readFile(paperLabUrl, "utf8");
   const opening = paperLab.indexOf("{opening.map");
   const diagram = paperLab.indexOf('<div className="summary-interlude">');
   const closing = paperLab.indexOf("{closing.length ?");
   const boundary = paperLab.indexOf('<dl className="fidelity-record summary-boundary">');
   assert.ok(opening >= 0 && opening < diagram && diagram < closing && closing < boundary);
-  assert.match(paperLab, /const diagramAfter = Math\.min\(2, Math\.max\(1, Math\.ceil\(lesson\.summary\.length \/ 2\)\)\)/);
+  assert.match(paperLab, /const diagramAfter = Math\.max\(1, lesson\.summary\.length - 1\)/);
+});
+
+test("lesson prose, diagrams, questions, code, and outcomes share one editorial rail", async () => {
+  const [learningFlow, codingWorkspace, pytorch, productization] = await Promise.all([
+    readFile(learningFlowUrl, "utf8"),
+    readFile(codingWorkspaceUrl, "utf8"),
+    readFile(pytorchHandoffCssUrl, "utf8"),
+    readFile(productizationUrl, "utf8"),
+  ]);
+  assert.match(learningFlow, /\.paper-page\s*\{\s*max-width:\s*60rem/);
+  for (const selector of [".paper-hero", ".paper-thesis", ".source-set", ".section-title", ".summary-reading", ".summary-copy", ".questions-layout", ".questions-disclosure", ".implementation-intro", ".summary-boundary"]) {
+    assert.match(rule(learningFlow, selector), /max-width:\s*none/, selector);
+  }
+  assert.match(rule(codingWorkspace, ".practice-editor"), /max-width:\s*none/);
+  assert.match(rule(pytorch, ".copy"), /max-width:\s*none/);
+  assert.match(rule(productization, ".lesson-outcome-layout"), /grid-template-columns:\s*1fr/);
+  assert.match(rule(productization, ".knowledge-check"), /border-right:\s*0/);
 });
 
 test("lesson references use one responsive disclosure while full metadata remains available to assistive technology", async () => {

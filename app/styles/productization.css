@@ -53,15 +53,15 @@
 
 .first-run-layout {
   background: #211f23;
-  border-radius: 1rem;
+  border-radius: 0;
   color: #eee9e2;
   display: grid;
-  grid-template-columns: 0.72fr 1.28fr;
+  grid-template-columns: 1fr;
   overflow: hidden;
 }
 
 .first-run-controls {
-  border-right: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
   display: flex;
   flex-direction: column;
   padding: 1.4rem;
@@ -265,10 +265,10 @@
 
 .project-timeline > header,
 .learning-data-panel > header {
-  align-items: end;
+  align-items: start;
   display: grid;
-  gap: 4rem;
-  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem;
+  grid-template-columns: 1fr;
 }
 
 .project-timeline > header span,
@@ -441,12 +441,12 @@
 
 .sources-hero {
   max-width: 62rem;
-  padding: 3.75rem 0 3rem;
+  padding: 3rem 0 2.5rem;
 }
 
 .sources-hero h1 {
   font-family: var(--serif);
-  font-size: clamp(3rem, 5vw, 4.6rem);
+  font-size: clamp(3rem, 4.5vw, 4rem);
   font-weight: 400;
   letter-spacing: -0.06em;
   line-height: 0.92;
@@ -458,17 +458,19 @@
   font-family: var(--serif);
   font-size: 1.12rem;
   line-height: 1.65;
-  max-width: 48rem;
+  max-width: none;
 }
 
 .source-policy {
   border-bottom: 1px solid var(--line);
   border-top: 1px solid var(--line);
   display: grid;
-  gap: 2rem;
-  grid-template-columns: 8rem 1fr 1fr;
+  gap: 1rem;
+  grid-template-columns: 1fr;
   padding: 1.5rem 0;
 }
+
+.source-policy > div + div { border-top: 1px solid var(--line); padding-top: 1rem; }
 
 .source-policy > span,
 .runtime-notices > header span,
@@ -484,22 +486,24 @@
 
 .runtime-notices,
 .lesson-source-index {
-  margin-top: 5rem;
+  margin-top: 4rem;
 }
 
 .runtime-notices > header,
 .lesson-source-index > header {
-  align-items: end;
+  align-items: flex-start;
   border-bottom: 1px solid var(--line);
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 0.65rem;
+  justify-content: flex-start;
   padding-bottom: 1.2rem;
 }
 
 .runtime-notices h2,
 .lesson-source-index h2 {
   font-family: var(--serif);
-  font-size: clamp(2rem, 4vw, 3.6rem);
+  font-size: clamp(2rem, 3.4vw, 3.2rem);
   font-weight: 400;
   letter-spacing: -0.04em;
   margin: 0;
@@ -510,9 +514,11 @@
   border-bottom: 1px solid var(--line);
   display: grid;
   gap: 1.5rem;
-  grid-template-columns: minmax(12rem, 0.8fr) 1.2fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   padding: 1rem 0;
 }
+
+.runtime-notices a p { grid-column: 1 / -1; }
 
 .runtime-notices a > span { display: grid; gap: 0.25rem; }
 .runtime-notices a strong { font-size: 0.72rem; }
@@ -525,7 +531,7 @@
   border-bottom: 1px solid var(--line);
   display: grid;
   gap: 2rem;
-  grid-template-columns: minmax(13rem, 0.7fr) 1.3fr;
+  grid-template-columns: 1fr;
   padding: 2rem 0;
 }
 
@@ -542,13 +548,13 @@
 .lesson-source-index article > header code { color: var(--faint); font-size: max(0.68rem, 11px); }
 .lesson-source-index ul { list-style: none; margin: 0; padding: 0; }
 .lesson-source-index li + li { border-top: 1px solid var(--line); }
-.lesson-source-index li a { align-items: start; display: grid; gap: 1rem; grid-template-columns: minmax(0,0.9fr) minmax(0,1.1fr) auto; padding: 0.8rem 0; }
+.lesson-source-index li a { align-items: start; display: grid; gap: 0.35rem 1rem; grid-template-columns: minmax(0, 1fr) auto; padding: 0.8rem 0; }
 .lesson-source-index li span { display: grid; gap: 0.25rem; }
 .lesson-source-index li strong { font-size: max(0.68rem, 11px); }
 .lesson-source-index li em { color: var(--faint); font-size: max(0.68rem, 11px); font-style: normal; }
-.lesson-source-index li p { color: var(--muted); font-size: max(0.68rem, 11px); line-height: 1.5; margin: 0; }
+.lesson-source-index li p { color: var(--muted); font-size: max(0.68rem, 11px); grid-column: 1 / -1; line-height: 1.5; margin: 0; }
 .lesson-source-index li i { color: var(--violet); font-size: max(0.68rem, 11px); font-style: normal; }
-.lesson-source-index article > footer { align-items: center; display: grid; gap: 0.8rem; grid-column: 2; grid-template-columns: auto 1fr auto; }
+.lesson-source-index article > footer { align-items: start; display: grid; gap: 0.35rem; grid-column: 1; grid-template-columns: 1fr; }
 .lesson-source-index article > footer span { color: var(--violet); font-size: max(0.68rem, 11px); text-transform: uppercase; }
 .lesson-source-index article > footer p { color: var(--faint); font-size: max(0.68rem, 11px); margin: 0; }
 .lesson-source-index article > footer code { color: var(--faint); font-size: max(0.68rem, 11px); }
@@ -561,7 +567,7 @@
   border-bottom: 1px solid var(--line);
   border-top: 1px solid var(--line);
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  grid-template-columns: 1fr;
   margin-top: 2.5rem;
 }
 
@@ -572,12 +578,13 @@
 }
 
 .knowledge-check {
-  border-right: 1px solid var(--line);
-  padding-right: 2.5rem;
+  border-bottom: 1px solid var(--line);
+  border-right: 0;
+  padding-right: 0;
 }
 
 .lesson-change-record {
-  padding-left: 2.5rem;
+  padding-left: 0;
 }
 
 .knowledge-check > header,

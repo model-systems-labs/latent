@@ -518,7 +518,7 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
 }
 
 export function ParagraphSection({ lesson }: { lesson: CourseLesson }) {
-  const diagramAfter = Math.min(2, Math.max(1, Math.ceil(lesson.summary.length / 2)));
+  const diagramAfter = Math.max(1, lesson.summary.length - 1);
   const opening = lesson.summary.slice(0, diagramAfter);
   const closing = lesson.summary.slice(diagramAfter);
   return (

@@ -126,7 +126,7 @@
 }
 
 .project-structure-root span,
-.project-structure-group header,
+.project-structure-group summary,
 .project-structure-note > span {
   color: var(--faint);
   font-size: max(0.68rem, 11px);
@@ -200,26 +200,54 @@
   border-bottom: 0;
 }
 
-.project-structure-group header {
+.project-structure-group summary {
   align-content: start;
+  cursor: pointer;
   display: grid;
   gap: 0.35rem;
+  grid-template-columns: 1fr auto;
+  list-style: none;
   padding: 1.2rem 1.5rem 1.2rem 0;
 }
 
-.project-structure-group header span {
+.project-structure-group summary::-webkit-details-marker {
+  display: none;
+}
+
+.project-structure-group summary span {
   color: var(--violet);
   font-family: var(--mono);
   font-size: max(0.68rem, 11px);
   letter-spacing: 0;
+  grid-column: 1;
   text-transform: none;
 }
 
-.project-structure-group header em {
+.project-structure-group summary em {
   color: var(--faint);
   font-size: max(0.68rem, 11px);
   font-style: normal;
+  grid-column: 1;
   letter-spacing: 0.08em;
+}
+
+.project-structure-group summary::after {
+  color: var(--violet);
+  content: "−";
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  margin-top: 0.1rem;
+}
+
+.project-structure-group:not([open]) summary::after {
+  content: "+";
+}
+
+.project-structure-group summary:focus-visible {
+  outline: 2px solid rgba(120, 91, 142, 0.45);
+  outline-offset: 3px;
 }
 
 .project-structure-group ul {

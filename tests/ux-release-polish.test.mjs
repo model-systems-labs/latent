@@ -10,6 +10,7 @@ const learningFlowStylesUrl = new URL("../app/styles/learning-flow.css", import.
 const productizationStylesUrl = new URL("../app/styles/productization.css", import.meta.url);
 const projectStructureStylesUrl = new URL("../app/styles/project-structure.css", import.meta.url);
 const responsiveStylesUrl = new URL("../app/styles/responsive.css", import.meta.url);
+const paperLabMobileStylesUrl = new URL("../app/components/PaperLab.module.css", import.meta.url);
 const projectTemplateUrl = new URL("../app/content/browser-chat/project-template.ts", import.meta.url);
 const projectWorkbenchUrl = new URL("../app/components/ProjectWorkbench.tsx", import.meta.url);
 const lessonExperimentUrl = new URL("../app/components/LessonExperiment.tsx", import.meta.url);
@@ -216,18 +217,23 @@ test("revision queries and restore actions are bound to the currently selected f
   assert.match(source, /if \(!revisionCanRestore\(selected\.path, revision\.path\)\)[\s\S]*?contents were not restored/);
 });
 
-test("mobile top-level navigation remains visible, scrollable, and touch sized", async () => {
-  const source = await readFile(responsiveStylesUrl, "utf8");
+test("top-level navigation fits phones, preserves tablet scrolling, and keeps touch targets", async () => {
+  const [source, lessonMobile] = await Promise.all([
+    readFile(responsiveStylesUrl, "utf8"),
+    readFile(paperLabMobileStylesUrl, "utf8"),
+  ]);
   const mobileHeader = source.slice(source.indexOf("@media (max-width: 940px)"), source.indexOf("@media (max-width: 650px)"));
   assert.match(mobileHeader, /\.site-header nav \{[\s\S]*?display: flex;[\s\S]*?overflow-x: auto/);
   assert.match(mobileHeader, /\.site-header nav a \{[\s\S]*?min-height: 2\.75rem/);
   assert.doesNotMatch(mobileHeader, /\.site-header nav \{[^}]*display: none/);
   const narrowHeader = source.slice(source.indexOf("@media (max-width: 650px)"), source.indexOf("@media (prefers-reduced-motion"));
-  assert.match(narrowHeader, /\.ide-topbar nav,[\s\S]*?\.capstone-topbar nav \{[\s\S]*?display: flex;[\s\S]*?overflow-x: auto/);
-  assert.match(narrowHeader, /\.ide-topbar nav a,[\s\S]*?\.capstone-topbar nav a \{[\s\S]*?min-height: 2\.75rem/);
-  assert.match(narrowHeader, /\.compiled-capstone-runtime \{[\s\S]*?height: calc\(100dvh - 5\.75rem\)/);
-  assert.match(narrowHeader, /\.lesson-header nav \{[\s\S]*?gap: 0\.7rem;[\s\S]*?justify-self: stretch/);
-  assert.match(narrowHeader, /\.lesson-header nav a \{[\s\S]*?font-size: max\(0\.68rem, 11px\);[\s\S]*?letter-spacing: 0\.06em/);
+  assert.match(narrowHeader, /\.site-header nav \{[\s\S]*?display: grid;[\s\S]*?overflow: visible/);
+  assert.match(narrowHeader, /\.ide-topbar nav a,[\s\S]*?\.capstone-topbar nav a \{[\s\S]*?display: none/);
+  assert.match(narrowHeader, /\.ide-topbar nav a:last-child,[\s\S]*?\.capstone-topbar nav a:last-child \{[^}]*min-height: 2\.75rem/);
+  assert.match(narrowHeader, /\.compiled-capstone-runtime \{[\s\S]*?height: calc\(100dvh - 3\.75rem\)/);
+  assert.match(narrowHeader, /@media \(max-width: 940px\) and \(max-height: 500px\)[\s\S]*?height: calc\(100dvh - 2\.75rem\)/);
+  assert.match(lessonMobile, /\.lessonShell :global\(\.lesson-header nav\) \{[^}]*grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/);
+  assert.match(lessonMobile, /\.lessonShell :global\(\.nav-label-short\) \{ display: inline; \}/);
 });
 
 test("the in-context-learning loader honestly defers disposal when upstream cannot abort a download", async () => {

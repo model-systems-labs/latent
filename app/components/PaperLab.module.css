@@ -1,0 +1,82 @@
+.lessonShell :global(.source-set-title) { cursor: pointer; display: inline-flex; list-style: none; }
+.lessonShell :global(.source-set-title::-webkit-details-marker),
+.lessonShell :global(.source-set-title em) { display: none; }
+.lessonShell :global(.source-set-title::marker) { content: ""; }
+.lessonShell :global(.source-set-title:focus-visible) { outline: 2px solid rgba(120, 91, 142, 0.45); outline-offset: 3px; }
+
+@media (max-width: 650px), (max-width: 940px) and (max-height: 500px) {
+  .lessonShell :global(.lesson-header nav) {
+    gap: 0;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    justify-self: stretch;
+  }
+
+  .lessonShell :global(.lesson-header nav a) { letter-spacing: 0.035em; }
+  .lessonShell :global(.nav-label-full) { display: none; }
+  .lessonShell :global(.nav-label-short) { display: inline; }
+  .lessonShell :global(.paper-page) { padding-top: 0.4rem; }
+  .lessonShell :global(.paper-hero) { min-height: 0; padding: 1.5rem 0 1.35rem; }
+  .lessonShell :global(.paper-hero h1) { font-size: clamp(2.15rem, 9vw, 2.65rem); white-space: normal; }
+  .lessonShell :global(.paper-thesis) { margin-top: 0.85rem; }
+  .lessonShell :global(.hero-record) { margin-top: 0.6rem; }
+  .lessonShell :global(.hero-record span:nth-child(n + 2)) { display: none; }
+
+  .lessonShell :global(.source-set) { border-block: 1px solid var(--line); display: block; margin-top: 1rem; }
+  .lessonShell :global(.source-set-title) { align-items: center; display: grid; gap: 0.7rem; grid-template-columns: 1fr auto auto; min-height: 3.25rem; padding: 0.35rem 0; width: 100%; }
+  .lessonShell :global(.source-set-title em) { color: var(--violet); display: inline; font-style: normal; grid-column: 2; }
+  .lessonShell :global(.source-set-title::after) { color: var(--violet); content: "+"; font-family: var(--mono); grid-column: 3; }
+  .lessonShell :global(.source-set[open] .source-set-title::after) { content: "−"; }
+  .lessonShell :global(.source-set .source-list) { border-top: 1px solid var(--line); display: grid; gap: 0; padding: 0.15rem 0; }
+  .lessonShell :global(.source-set .source-entry + .source-entry) { border-top: 1px solid var(--line); }
+  .lessonShell :global(.source-set .source-entry > a) { min-height: 2.75rem; width: 100%; }
+
+  .lessonShell :global(.paper-section) { padding: 2.1rem 0; }
+  .lessonShell :global(.section-title) { gap: 0.5rem; grid-template-columns: 1fr; margin-bottom: 1.3rem; }
+  .lessonShell :global(.summary-interlude) { margin: 1.75rem 0; padding: 1.1rem 0; }
+  .lessonShell :global(.questions-section) { padding: 1.1rem 0; }
+  .lessonShell :global(.questions-section > .section-title),
+  .lessonShell :global(.questions-disclosure > summary small),
+  .lessonShell :global(.questions-disclosure > summary em) { display: none; }
+  .lessonShell :global(.questions-disclosure) { border-top: 0; }
+  .lessonShell :global(.questions-disclosure > summary) { grid-template-columns: 1fr auto; min-height: 3.75rem; padding: 0.55rem 0; }
+  .lessonShell :global(.questions-disclosure > summary > span) { display: block; grid-column: 1; }
+  .lessonShell :global(.questions-disclosure > summary strong) { font-size: 1.05rem; }
+  .lessonShell :global(.questions-disclosure > summary::after) { grid-column: 2; grid-row: 1; }
+
+  .lessonShell :global(.tensor-runtime-strip) { gap: 0.55rem; grid-template-columns: 1fr; margin: 0.85rem 0; padding: 0.7rem 0; }
+  .lessonShell :global(.tensor-runtime-strip p) { display: none; }
+  .lessonShell :global(.tensor-runtime-strip > div:first-child) { align-items: baseline; display: flex; flex-wrap: wrap; gap: 0.25rem 0.5rem; }
+  .lessonShell :global(.tensor-runtime-strip > div:last-child) { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; scrollbar-width: none; }
+  .lessonShell :global(.tensor-runtime-strip > div:last-child::-webkit-scrollbar) { display: none; }
+  .lessonShell :global(.implementation-section .practice-editor) { border-inline: 0; border-radius: 0; box-shadow: none; margin-left: -0.75rem; max-width: calc(100% + 1.5rem); width: calc(100% + 1.5rem); }
+  .lessonShell :global(.implementation-section .code-surface) { padding-inline: 0; }
+
+  .lessonShell :global(.editor-toolbar) { align-items: end; display: grid; gap: 0.7rem; grid-template-columns: minmax(0, 1fr) auto; padding: 0.75rem; }
+  .lessonShell :global(.editor-file) { grid-column: 1; min-width: 0; }
+  .lessonShell :global(.editor-file strong) { display: none; }
+  .lessonShell :global(.editor-progress) { grid-column: 2; justify-items: end; width: 5.25rem; }
+  .lessonShell :global(.editor-progress > i) { width: 5.25rem; }
+  .lessonShell :global(.toolbar-actions) { display: flex; grid-column: 1 / -1; width: 100%; }
+  .lessonShell :global(.toolbar-actions > *) { flex: 1 1 0; min-width: 0; }
+  .lessonShell :global(.toolbar-actions a) { grid-column: auto; text-align: center; }
+
+  .lessonShell :global(.block-heading) { align-items: start; flex-direction: column; gap: 0.7rem; padding: 0.7rem 0.75rem; }
+  .lessonShell :global(.block-heading > div) { align-items: start; flex-wrap: wrap; }
+  .lessonShell :global(.block-heading > div:first-child) { display: grid; grid-template-columns: auto 1fr; }
+  .lessonShell :global(.block-heading > div:first-child > span) { grid-row: 1 / span 2; }
+  .lessonShell :global(.block-heading > div:first-child em) { display: -webkit-box; grid-column: 2; line-height: 1.45; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+  .lessonShell :global(.block-actions) { display: flex !important; gap: 0.35rem !important; width: 100%; }
+  .lessonShell :global(.block-actions button) { flex: 1 1 0; min-width: 0; width: auto; }
+  .lessonShell :global(.block-actions .run-cell-button) { grid-column: auto; }
+  .lessonShell :global(.practice-guidance) { display: none; }
+  .lessonShell :global(.practice-block) { display: flex; flex-direction: column; }
+  .lessonShell :global(.practice-block .block-heading) { order: 1; }
+  .lessonShell :global(.practice-block .answer-area) { order: 2; }
+  .lessonShell :global(.practice-block .concept-strip) { order: 3; }
+  .lessonShell :global(.practice-block .cell-footer) { order: 4; }
+  .lessonShell :global(.block-heading button) { width: auto; }
+  .lessonShell :global(.concept-strip) { flex-direction: row; flex-wrap: nowrap; gap: 0.75rem; overflow-x: auto; padding: 0.65rem 0.75rem; scrollbar-width: none; }
+  .lessonShell :global(.concept-strip::-webkit-scrollbar) { display: none; }
+  .lessonShell :global(.concept-strip span) { display: inline-flex; flex: 0 0 auto; width: auto; }
+  .lessonShell :global(.concept-strip span + span::before) { display: none; }
+}

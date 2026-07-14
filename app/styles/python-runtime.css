@@ -57,7 +57,7 @@
   padding-top: 0.55rem;
 }
 
-@media (max-width: 650px) {
+@media (max-width: 650px), (max-width: 940px) and (max-height: 500px) {
   .python-mode > footer {
     gap: 0.6rem;
     padding: 0.65rem;

@@ -9,6 +9,7 @@ const codeEditorUrl = new URL("app/features/ide/CodeEditor.tsx", root);
 const learningFlowUrl = new URL("app/styles/learning-flow.css", root);
 const codingWorkspaceUrl = new URL("app/styles/coding-workspace.css", root);
 const responsiveUrl = new URL("app/styles/responsive.css", root);
+const paperLabMobileUrl = new URL("app/components/PaperLab.module.css", root);
 const projectPageUrl = new URL("app/project/page.tsx", root);
 const projectStructureUrl = new URL("app/styles/project-structure.css", root);
 const pytorchHandoffCssUrl = new URL("app/features/pytorch/PyTorchHandoff.module.css", root);
@@ -21,17 +22,18 @@ function rule(source, selector) {
 }
 
 test("lessons use an editorial hierarchy instead of landing-page scale", async () => {
-  const [paperLab, learningFlow, responsive] = await Promise.all([
+  const [paperLab, learningFlow, responsive, lessonMobile] = await Promise.all([
     readFile(paperLabUrl, "utf8"),
     readFile(learningFlowUrl, "utf8"),
     readFile(responsiveUrl, "utf8"),
+    readFile(paperLabMobileUrl, "utf8"),
   ]);
   assert.match(learningFlow, /\.paper-hero\s*\{[^}]*min-height:\s*0/);
   assert.match(learningFlow, /\.paper-hero h1\s*\{[^}]*font-size:\s*clamp\(2\.65rem,\s*4vw,\s*4rem\)/);
   assert.match(learningFlow, /\.paper-hero h1\s*\{[^}]*white-space:\s*nowrap/);
   assert.match(learningFlow, /\.section-title h2\s*\{[^}]*font-size:\s*clamp\(1\.65rem,\s*2\.3vw,\s*2\.15rem\)/);
   assert.match(learningFlow, /\.paper-section\s*\{[^}]*padding:\s*clamp\(3\.25rem,\s*5vw,\s*4\.5rem\)/);
-  assert.match(responsive, /\.paper-hero h1\s*\{[^}]*font-size:\s*clamp\(2\.25rem,\s*9vw,\s*2\.85rem\)[^}]*white-space:\s*normal/);
+  assert.match(lessonMobile, /\.lessonShell :global\(\.paper-hero h1\)\s*\{[^}]*font-size:\s*clamp\(2\.15rem,\s*9vw,\s*2\.65rem\)[^}]*white-space:\s*normal/);
   assert.doesNotMatch(responsive.slice(0, responsive.indexOf("@media (max-width: 650px)")), /\.summary-copy\s*\{[^}]*columns:\s*2/);
   assert.doesNotMatch(paperLab, /className=\{`summary-layout/);
 });
@@ -69,16 +71,22 @@ test("summary prose owns the reading flow and the mechanism is interpolated at i
   assert.match(paperLab, /const diagramAfter = Math\.min\(2, Math\.max\(1, Math\.ceil\(lesson\.summary\.length \/ 2\)\)\)/);
 });
 
-test("lesson references are a compact title-only rail while full metadata remains available to assistive technology", async () => {
-  const [paperLab, learningFlow] = await Promise.all([
+test("lesson references use one responsive disclosure while full metadata remains available to assistive technology", async () => {
+  const [paperLab, learningFlow, lessonMobile] = await Promise.all([
     readFile(paperLabUrl, "utf8"),
     readFile(learningFlowUrl, "utf8"),
+    readFile(paperLabMobileUrl, "utf8"),
   ]);
-  assert.match(paperLab, /id="lesson-sources-title">References/);
+  assert.match(paperLab, /function SourceSet[\s\S]*?useState\(false\)/, "references must not paint expanded before the mobile viewport is known");
+  assert.match(paperLab, /<details className="source-set" open=\{open\}[\s\S]*?aria-labelledby="lesson-sources-title"[\s\S]*?<summary className="source-set-title"><span id="lesson-sources-title">References<\/span><em>\{lesson\.sources\.length\}<\/em><\/summary>/);
+  assert.equal(paperLab.match(/<ul className="source-list">/g)?.length, 1, "references must have one semantic copy");
   assert.match(paperLab, /aria-label=\{`\$\{source\.title\} — \$\{source\.authors\}, \$\{source\.year\}\. \$\{source\.relevance\}`\}/);
   assert.doesNotMatch(paperLab, /<p>\{source\.relevance\}<\/p>/);
   assert.match(rule(learningFlow, ".source-list"), /display:\s*flex/);
   assert.match(rule(learningFlow, ".source-entry > a"), /min-height:\s*2\.75rem/);
+  assert.match(lessonMobile, /\.lessonShell :global\(\.source-set-title\)\s*\{[^}]*min-height:\s*3\.25rem/);
+  assert.match(lessonMobile, /\.lessonShell :global\(\.source-set-title\)\s*\{[^}]*list-style:\s*none/);
+  assert.match(lessonMobile, /\.lessonShell :global\(\.source-set\[open\] \.source-set-title::after\)/);
 });
 
 test("lesson code uses lazy syntax-aware Python editors without loading the full IDE", async () => {

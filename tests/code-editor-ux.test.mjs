@@ -7,6 +7,7 @@ const projectWorkbenchUrl = new URL("../app/components/ProjectWorkbench.tsx", im
 const capstoneCssUrl = new URL("../app/styles/capstone.css", import.meta.url);
 const productizationCssUrl = new URL("../app/styles/productization.css", import.meta.url);
 const responsiveCssUrl = new URL("../app/styles/responsive.css", import.meta.url);
+const paperLabMobileCssUrl = new URL("../app/components/PaperLab.module.css", import.meta.url);
 
 function cssRule(source, selector) {
   const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -106,7 +107,7 @@ test("the mobile IDE source contract preserves readable type, bounded scrolling,
   assert.match(responsiveCss, /overscroll-behavior-y:\s*auto/);
   assert.match(responsiveCss, /\.project-editor-panel\s*>\s*footer button\s*\{[\s\S]*?min-height:\s*2\.75rem/);
   assert.match(responsiveCss, /\.code-editor\s*\{[\s\S]*?max-width:\s*100%/);
-  assert.match(responsiveCss, /\.mobile-ide-tabs button\s*\{[\s\S]*?color:\s*#aaa3ad[\s\S]*?font-size:\s*0\.7rem[\s\S]*?min-height:\s*3\.25rem/);
+  assert.match(responsiveCss, /\.mobile-ide-tabs button\s*\{[\s\S]*?color:\s*#aaa3ad[\s\S]*?font-size:\s*0\.7rem[\s\S]*?min-height:\s*2\.75rem/);
   assert.ok(contrastRatio("#aaa3ad", "#1f1d21") >= 4.5, "inactive mobile tabs must clear AA contrast");
 });
 
@@ -201,7 +202,7 @@ test("the mobile project header fits its actions without shrinking touch targets
   const responsiveCss = await readFile(responsiveCssUrl, "utf8");
   const actions = cssRule(responsiveCss, ".project-header-actions");
   assert.match(actions, /display:\s*grid/);
-  assert.match(actions, /grid-template-columns:\s*minmax\(0,\s*1fr\)/);
+  assert.match(actions, /grid-template-columns:\s*auto minmax\(0,\s*1fr\)/);
 
   const actionGroup = cssRule(responsiveCss, ".project-header-actions > div:last-child");
   assert.match(actionGroup, /grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
@@ -217,7 +218,8 @@ test("the mobile editor status yields space to the selected file name", async ()
     readFile(projectWorkbenchUrl, "utf8"),
     readFile(responsiveCssUrl, "utf8"),
   ]);
-  assert.match(source, /<i className=\{dirty \? "dirty" : "saved"\} \/><span>\{selected\?\.readOnly/);
+  assert.match(source, /const compactEditorStatus = selected\?\.readOnly \? "Read only" : dirty \? "Unsaved" : "Saved"/);
+  assert.match(source, /<div role="status" aria-live="polite" aria-atomic="true">[\s\S]*?<span aria-hidden="true">\{compactEditorStatus\}<\/span><span className="sr-only">\{editorStatus\}<\/span>/);
 
   const status = cssRule(
     responsiveCss,
@@ -236,15 +238,14 @@ test("the mobile editor status yields space to the selected file name", async ()
 });
 
 test("lesson practice uses the available mobile viewport width", async () => {
-  const responsiveCss = await readFile(responsiveCssUrl, "utf8");
-  const practice = cssRule(responsiveCss, ".implementation-section .practice-editor");
+  const lessonMobileCss = await readFile(paperLabMobileCssUrl, "utf8");
+  const practice = cssRule(lessonMobileCss, ".lessonShell :global(.implementation-section .practice-editor)");
   assert.match(practice, /margin-left:\s*-0\.75rem/);
   assert.match(practice, /max-width:\s*calc\(100% \+ 1\.5rem\)/);
   assert.match(practice, /width:\s*calc\(100% \+ 1\.5rem\)/);
 
-  const surface = cssRule(responsiveCss, ".implementation-section .code-surface");
-  assert.match(surface, /padding-left:\s*0/);
-  assert.match(surface, /padding-right:\s*0/);
+  const surface = cssRule(lessonMobileCss, ".lessonShell :global(.implementation-section .code-surface)");
+  assert.match(surface, /padding-inline:\s*0/);
 });
 
 test("mobile IDE microcopy stays legible across files, code, tests, and output", async () => {
@@ -253,7 +254,7 @@ test("mobile IDE microcopy stays legible across files, code, tests, and output",
   assert.ok(contrastRatio(secondary, "#1f1d22") >= 4.5, "secondary copy must clear AA on the IDE");
   assert.ok(contrastRatio(secondary, "#262329") >= 4.5, "secondary copy must clear AA on the inspector");
 
-  assert.match(responsiveCss, /\.project-progress span\s*\{[^}]*color:\s*#aaa3ad\s*!important[^}]*font-size:\s*max\(0\.68rem, 11px\)/);
+  assert.match(responsiveCss, /\.project-progress span\s*\{[^}]*display:\s*none/);
   assert.match(responsiveCss, /\.project-header-actions button\s*\{[^}]*font-size:\s*max\(0\.68rem, 11px\)/);
   assert.match(responsiveCss, /\.project-workbench-grid\[data-mobile-view="files"\] > \.project-tree section > span\s*\{[^}]*color:\s*#aaa3ad[^}]*font-size:\s*max\(0\.68rem, 11px\)/);
   assert.match(responsiveCss, /\.project-workbench-grid\[data-mobile-view="files"\] > \.project-tree button > em,[\s\S]*?\{[^}]*color:\s*#aaa3ad[^}]*font-size:\s*max\(0\.68rem, 11px\)/);

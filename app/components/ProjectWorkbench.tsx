@@ -118,6 +118,7 @@ export function ProjectWorkbench() {
   const [confirmReferenceRestore, setConfirmReferenceRestore] = useState(false);
   const [, setRecoveryRevision] = useState(0);
   const importRef = useRef<HTMLInputElement | null>(null);
+  const saveNowRef = useRef<HTMLButtonElement | null>(null);
   const draftEpochRef = useRef(0);
   const revisionRequestRef = useRef(0);
   const selectedPathRef = useRef<string | null>(selected?.path ?? null);
@@ -605,16 +606,22 @@ export function ProjectWorkbench() {
     setMobilePanel("code");
     window.setTimeout(() => void refreshRevisions(selected.path), 800);
   };
+  const editorStatus = selected?.readOnly
+    ? "Course library · read only"
+    : dirty
+      ? "Unsaved draft · autosaves after 650 ms idle"
+      : "Saved in device file history";
+  const compactEditorStatus = selected?.readOnly ? "Read only" : dirty ? "Unsaved" : "Saved";
 
   return (
     <section className="project-workbench" aria-label="Editable capstone project">
       <header>
-        <div className="project-header-actions"><div className="project-progress"><strong>{verifiedFiles}/{llmSystemsCurriculum.lessonCount}</strong><span>lesson files verified</span></div><div><button type="button" onClick={exportPortfolio} aria-label={portfolioStatus.ready ? "Download verified portfolio ZIP" : "Portfolio ZIP — complete every lesson and create a passing full build to unlock"} title={portfolioStatus.ready ? "Download the verified standalone project" : "Finish every lesson and create a passing full build first"}>Portfolio ZIP</button><button type="button" onClick={() => void exportProgress()} disabled={working}>Backup</button><button type="button" onClick={() => importRef.current?.click()} disabled={working}>Import</button><input ref={importRef} type="file" accept="application/json,.json" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importProgress(file); event.currentTarget.value = ""; }} aria-label="Import saved Latent progress" /></div></div>
+        <div className="project-header-actions"><div className="project-progress"><strong>{verifiedFiles}/{llmSystemsCurriculum.lessonCount}</strong><span>lesson files verified</span></div><div><button type="button" onClick={exportPortfolio} aria-label={portfolioStatus.ready ? "Download verified portfolio ZIP" : "Portfolio ZIP — complete every lesson and create a passing full build to unlock"} title={portfolioStatus.ready ? "Download the verified standalone project" : "Finish every lesson and create a passing full build first"}>Portfolio</button><button type="button" onClick={() => void exportProgress()} disabled={working}>Backup</button><button type="button" onClick={() => importRef.current?.click()} disabled={working}>Import</button><input ref={importRef} type="file" accept="application/json,.json" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importProgress(file); event.currentTarget.value = ""; }} aria-label="Import saved Latent progress" /></div></div>
       </header>
       <nav className="mobile-ide-tabs" aria-label="Choose a project workspace view">
         {(["files", "code", "tests", "output"] as const).map((panel) => (
           <button type="button" aria-pressed={mobilePanel === panel} className={mobilePanel === panel ? "active" : ""} onClick={() => setMobilePanel(panel)} key={panel}>
-            {panel === "files" ? "Files" : panel === "code" ? "Code" : panel === "tests" ? `Tests${isPythonFile && pythonExecution.tests.length ? ` ${pythonExecution.tests.filter((test) => test.passed).length}/${pythonExecution.tests.length}` : allTests.length ? ` ${passingTests}/${allTests.length}` : ""}` : "Output"}
+            {panel === "files" ? "Files" : panel === "code" ? "Code" : panel === "tests" ? "Tests" : "Output"}
           </button>
         ))}
       </nav>
@@ -645,7 +652,7 @@ export function ProjectWorkbench() {
           <Link className="project-run-capstone" href="/capstone" onClick={flushCurrentDraft}>Run active capstone →</Link>
         </nav>
         <div className={`project-editor-panel${isPythonFile ? " python-mode" : ""}`}>
-          <header><div><span>{selected?.path ?? "No file selected"}</span><strong>{selected?.title}</strong></div><div><i className={dirty ? "dirty" : "saved"} /><span>{selected?.readOnly ? "Course library · read only" : dirty ? "Unsaved draft · autosaves after 650 ms idle" : "Saved in device file history"}</span></div></header>
+          <header><div><span>{selected?.path ?? "No file selected"}</span><strong>{selected?.title}</strong></div><div role="status" aria-live="polite" aria-atomic="true"><i className={dirty ? "dirty" : "saved"} /><span aria-hidden="true">{compactEditorStatus}</span><span className="sr-only">{editorStatus}</span></div></header>
           {selected ? <Suspense fallback={<div className="python-editor-loading" role="status">Loading Python syntax support…</div>}><SelectedCodeEditor path={selected.path} value={draft} readOnly={Boolean(selected.readOnly || !projectReady || (isPythonFile && pythonExecution.busy))} onChange={(value) => {
             draftEpochRef.current += 1;
             const recoveryStored = stageProjectDraftRecovery(selected.path, value);
@@ -666,7 +673,8 @@ export function ProjectWorkbench() {
             setDrafts((current) => ({ ...current, [selected.path]: selected.referenceContent }));
             setConfirmReferenceRestore(false);
             setMessage("Reference loaded as the current draft. File history autosaves after 650 ms without typing; choose Save now to sync immediately.");
-          }} disabled={!projectReady || interfaceWorking || !selected || selected.readOnly || draft === selected?.referenceContent}>{confirmReferenceRestore ? "Confirm restore" : "Restore reference"}</button><button type="button" onClick={() => save()} disabled={!projectReady || interfaceWorking || selected?.readOnly || !dirty}>Save now</button>{isPythonFile ? <PythonRuntimeActions session={pythonExecution} disabled={!projectReady || working} /> : <button className="build" type="button" onClick={() => void build()} disabled={!projectReady || working}>{working ? "Running…" : "Test, build & run"}</button>}</div></footer>
+            window.setTimeout(() => saveNowRef.current?.focus(), 0);
+          }} disabled={!projectReady || interfaceWorking || !selected || selected.readOnly || draft === selected?.referenceContent}>{confirmReferenceRestore ? "Confirm restore" : "Restore reference"}</button><button ref={saveNowRef} type="button" onClick={() => save()} disabled={!projectReady || interfaceWorking || selected?.readOnly || !dirty}>Save now</button>{isPythonFile ? <PythonRuntimeActions session={pythonExecution} disabled={!projectReady || working} /> : <button className="build" type="button" onClick={() => void build()} disabled={!projectReady || working}>{working ? "Running…" : "Test, build & run"}</button>}</div></footer>
         </div>
         {isPythonFile && selected ? <PythonInspector session={pythonExecution} path={selected.path} persistenceError={persistenceError} /> : <aside className={`project-inspector${persistenceError ? " has-warning" : ""}`} aria-live="polite">
           {persistenceError ? <p className="persistence-warning" role="alert">Storage warning: {persistenceError}</p> : null}

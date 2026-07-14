@@ -43,6 +43,7 @@ import { LessonOutcome } from "./LessonOutcome";
 import { lessonLearningOutcome, moduleCheckpoint } from "../content/llm-systems/learning";
 import { recordLearningEvent } from "../lib/learning-analytics";
 import { SyntaxCode } from "../features/ide/SyntaxCode";
+import styles from "./PaperLab.module.css";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 type CheckResult = { label: string; passed: boolean; detail: string };
@@ -76,6 +77,38 @@ function Atmosphere() {
   );
 }
 
+function SourceSet({ lesson }: { lesson: CourseLesson }) {
+  // Start collapsed so the server-rendered mobile page never paints a large
+  // references rail before the responsive preference is known.
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const mobile = window.matchMedia("(max-width: 650px), (max-width: 940px) and (max-height: 500px)");
+    const syncForViewport = () => setOpen(!mobile.matches);
+    syncForViewport();
+    mobile.addEventListener("change", syncForViewport);
+    return () => mobile.removeEventListener("change", syncForViewport);
+  }, []);
+
+  return (
+    <details className="source-set" open={open} onToggle={(event) => setOpen(event.currentTarget.open)} aria-labelledby="lesson-sources-title">
+      <summary className="source-set-title"><span id="lesson-sources-title">References</span><em>{lesson.sources.length}</em></summary>
+      <ul className="source-list">
+        {lesson.sources.map((source) => (
+          <li className="source-entry" key={source.url}>
+            <a href={source.url} target="_blank" rel="noreferrer" aria-label={`${source.title} — ${source.authors}, ${source.year}. ${source.relevance}`}>
+              <span className="source-citation">
+                <strong>{source.title}</strong>
+                <span aria-hidden="true">↗</span>
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
 export function HeaderSection({ lesson }: { lesson: CourseLesson }) {
   return (
     <header className="paper-hero">
@@ -87,21 +120,7 @@ export function HeaderSection({ lesson }: { lesson: CourseLesson }) {
         <span>{lesson.authors}</span>
         <span>{lesson.year}</span>
       </div>
-      <section className="source-set" aria-labelledby="lesson-sources-title">
-        <h2 className="source-set-title" id="lesson-sources-title">References</h2>
-        <ul className="source-list">
-          {lesson.sources.map((source) => (
-            <li className="source-entry" key={source.url}>
-              <a href={source.url} target="_blank" rel="noreferrer" aria-label={`${source.title} — ${source.authors}, ${source.year}. ${source.relevance}`}>
-                <span className="source-citation">
-                  <strong>{source.title}</strong>
-                  <span aria-hidden="true">↗</span>
-                </span>
-              </a>
-            </li>
-          ))}
-        </ul>
-      </section>
+      <SourceSet lesson={lesson} />
     </header>
   );
 }
@@ -1179,11 +1198,16 @@ export function PaperLab({ lesson }: { lesson: CourseLesson }) {
   const checkpoint = moduleCheckpoint(lesson.courseId ?? "models");
   const [recoveryRevision, setRecoveryRevision] = useState(0);
   return (
-    <main>
+    <main className={styles.lessonShell}>
       <Atmosphere />
       <header className="site-header lesson-header">
         <Link className="wordmark" href="/" aria-label="Latent course home"><i />latent</Link>
-        <nav aria-label="Lesson navigation"><a href="#summary">Summary</a><a href="#questions">Questions</a><a href="#implementation">Implementation</a><a href="#artifacts">Artifacts</a></nav>
+        <nav aria-label="Lesson navigation">
+          <a href="#summary" aria-label="Summary"><span className="nav-label-full">Summary</span><span className="nav-label-short">Summary</span></a>
+          <a href="#questions" aria-label="Questions"><span className="nav-label-full">Questions</span><span className="nav-label-short">Ask</span></a>
+          <a href="#implementation" aria-label="Implementation"><span className="nav-label-full">Implementation</span><span className="nav-label-short">Code</span></a>
+          <a href="#artifacts" aria-label="Artifacts"><span className="nav-label-full">Artifacts</span><span className="nav-label-short">Results</span></a>
+        </nav>
         <span>{lesson.courseTitle ?? "Model Foundations"} · {String(trackIndex + 1).padStart(2, "0")} / {String(trackLessons.length).padStart(2, "0")}</span>
       </header>
       {persistenceError ? <p className="persistence-warning lesson-persistence-warning" role="alert">Storage warning: {persistenceError}</p> : null}

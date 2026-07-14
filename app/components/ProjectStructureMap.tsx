@@ -23,10 +23,23 @@ const runtimeRows = [
   { path: RUNTIME_PATHS.interface },
 ];
 
-function ProjectGroup({ label, rows }: { label: string; rows: ProjectRow[] }) {
+function ProjectGroup({ label, rows, mobileDefaultOpen }: { label: string; rows: ProjectRow[]; mobileDefaultOpen: boolean }) {
+  // Keep the server-rendered tree compact on phones; the viewport effect opens
+  // every group on desktop and only the current group on mobile.
+  const [open, setOpen] = useState(false);
+  const complete = rows.filter((row) => row.status.complete).length;
+
+  useEffect(() => {
+    const mobile = window.matchMedia("(max-width: 650px), (max-width: 940px) and (max-height: 500px)");
+    const syncForViewport = () => setOpen(mobile.matches ? mobileDefaultOpen : true);
+    syncForViewport();
+    mobile.addEventListener("change", syncForViewport);
+    return () => mobile.removeEventListener("change", syncForViewport);
+  }, [mobileDefaultOpen]);
+
   return (
-    <section className="project-structure-group">
-      <header><span>{label}/</span><em>{rows.length} {rows.length === 1 ? "file" : "files"}</em></header>
+    <details className="project-structure-group" open={open} onToggle={(event) => setOpen(event.currentTarget.open)}>
+      <summary><span>{label}/</span><em>{complete}/{rows.length} ready</em></summary>
       <ul>
         {rows.map((row) => (
           <li className={`status-${row.status.tone}`} key={row.path}>
@@ -37,7 +50,7 @@ function ProjectGroup({ label, rows }: { label: string; rows: ProjectRow[] }) {
           </li>
         ))}
       </ul>
-    </section>
+    </details>
   );
 }
 
@@ -116,6 +129,14 @@ export function ProjectStructureMap() {
     };
   });
   const rowsForFolder = (folder: string) => canonicalRows.filter((row) => row.path.startsWith(`${folder}/`));
+  const projectGroups = [
+    { label: "runtime", rows: [...providedRows, ...rowsForFolder("runtime")] },
+    ...groups.map(({ track, rows }) => ({ label: track.id, rows })),
+    { label: "vendor", rows: rowsForFolder("vendor") },
+    { label: "capstone", rows: rowsForFolder("capstone") },
+  ];
+  const firstIncompleteGroup = projectGroups.findIndex((group) => group.rows.some((row) => !row.status.complete));
+  const mobileOpenGroup = firstIncompleteGroup >= 0 ? firstIncompleteGroup : 0;
 
   return (
     <section className="project-structure-map" aria-label="browser-chat project file structure">
@@ -140,10 +161,14 @@ export function ProjectStructureMap() {
         <p><strong>{sourceProgress.verified} build-ready</strong><span> · {progressDetails}</span></p>
       </div>
       <div className="project-structure-groups">
-        <ProjectGroup label="runtime" rows={[...providedRows, ...rowsForFolder("runtime")]} />
-        {groups.map(({ track, rows }) => <ProjectGroup label={track.id} rows={rows} key={track.id} />)}
-        <ProjectGroup label="vendor" rows={rowsForFolder("vendor")} />
-        <ProjectGroup label="capstone" rows={rowsForFolder("capstone")} />
+        {projectGroups.map((group, index) => (
+          <ProjectGroup
+            label={group.label}
+            rows={group.rows}
+            mobileDefaultOpen={index === mobileOpenGroup}
+            key={group.label}
+          />
+        ))}
       </div>
       <footer className="project-structure-footer">
         <p>A lesson source is build-ready after either its exact saved lesson proof matches the file, or a complete current IDE receipt passes every expected contract. Any trusted failure overrides both. Lesson completion also requires its lab.</p>

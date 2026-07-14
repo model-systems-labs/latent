@@ -348,6 +348,7 @@ test("project views expose current completion, repository history, and accessibl
   assert.match(workbench, /Nothing was imported\. The current project remains open and unchanged\./);
   assert.match(workbench, /await importPersistenceSnapshot[\s\S]*?catch \(error\)/, "malformed or conflicting backups must be handled without an unhandled rejection");
   assert.match(structure, /trustedProjectResults\(project\.tests\)/);
+  assert.match(structure, /function ProjectGroup[\s\S]*?useState\(false\)/, "project folders must not paint fully expanded before the mobile viewport is known");
   assert.match(timeline, /trustedProjectResults\(project\.tests\)/);
   assert.match(workbench, /trustedProjectResults\(project\.tests\)/);
 

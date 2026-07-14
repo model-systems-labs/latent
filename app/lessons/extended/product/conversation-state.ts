@@ -49,35 +49,38 @@ export const conversationStateLesson = defineExtendedLesson({
         {
           id: "create-message",
           label: "Message record",
-          purpose: "Create the exact serializable message record used by normalized conversation state.",
+          purpose: "Create the exact serializable message record, including the active attempt and transport identities for assistant output.",
           concepts: [
             { name: "id", detail: "Stable identity independent of render position." },
             { name: "role", detail: "User, assistant, or system domain role." },
-            { name: "status", detail: "Explicit lifecycle used to derive available actions." },
+            { name: "attemptId / requestId", detail: "Generation and transport identities; null for records that do not own a model request." },
           ],
-          code: `function createMessage({ id, role, content = "", status = "complete" }) {
-  return { id, role, content, status, createdAt: 0 };
+          code: `function createMessage({ id, role, content = "", status = "complete", attemptId = null, requestId = null }) {
+  return { id, role, content, status, attemptId, requestId, createdAt: 0 };
 }`,
-          checkCode: `const message = createMessage({ id: "m1", role: "assistant", status: "streaming" });
-return { passed: message.id === "m1" && message.content === "" && message.status === "streaming" && message.createdAt === 0, detail: message.role + " · " + message.status };`,
+          checkCode: `const message = createMessage({ id: "m1", role: "assistant", status: "streaming", attemptId: "a1", requestId: "r1" });
+return { passed: message.id === "m1" && message.attemptId === "a1" && message.requestId === "r1" && message.createdAt === 0, detail: message.attemptId + " · " + message.requestId };`,
         },
         {
           id: "append-delta",
           label: "Delta transition",
-          purpose: "Immutably append one transport delta to the matching streaming message.",
+          purpose: "Immutably append one transport delta only when its message, attempt, and request identities all match the active streaming record.",
           concepts: [
             { name: "messageId", detail: "Targets a stable message rather than the last array element." },
+            { name: "attemptId / requestId", detail: "Reject late events from a retired generation or transport lifecycle." },
             { name: "delta", detail: "Incremental text emitted by the transport." },
-            { name: "map", detail: "Produces a new message array for React state identity." },
           ],
-          code: `function appendMessageDelta(messages, messageId, delta) {
+          code: `function appendMessageDelta(messages, { messageId, attemptId, requestId, delta }) {
   return messages.map((message) =>
-    message.id === messageId && message.status === "streaming"
+    message.id === messageId &&
+    message.attemptId === attemptId &&
+    message.requestId === requestId &&
+    message.status === "streaming"
       ? { ...message, content: message.content + delta }
       : message,
   );
 }`,
-          checkCode: `const next = appendMessageDelta([{ id: "a", content: "Hel", status: "streaming" }, { id: "b", content: "fixed", status: "complete" }], "a", "lo");
+          checkCode: `const next = appendMessageDelta([{ id: "a", attemptId: "a1", requestId: "r1", content: "Hel", status: "streaming" }, { id: "b", content: "fixed", status: "complete" }], { messageId: "a", attemptId: "a1", requestId: "r1", delta: "lo" });
 return { passed: next[0].content === "Hello" && next[1].content === "fixed", detail: next[0].content };`,
         },
       ],

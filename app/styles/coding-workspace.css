@@ -19,7 +19,7 @@
 .tensor-import-line > span,
 .tensor-import-line > em {
   color: var(--faint);
-  font-size: 0.54rem;
+  font-size: max(0.68rem, 11px);
   font-style: normal;
   letter-spacing: 0.11em;
   text-transform: uppercase;
@@ -33,7 +33,7 @@
 
 .tensor-runtime-strip p {
   color: var(--muted);
-  font-size: 0.66rem;
+  font-size: max(0.68rem, 11px);
   line-height: 1.45;
   margin: 0.15rem 0 0;
 }
@@ -48,7 +48,7 @@
 .tensor-runtime-strip > div:last-child span {
   color: #5f4d6d;
   font-family: var(--mono);
-  font-size: 0.58rem;
+  font-size: max(0.68rem, 11px);
   padding: 0.32rem 0;
 }
 
@@ -85,7 +85,7 @@
 
 .editor-progress > span {
   color: #a79f98;
-  font-size: 0.57rem;
+  font-size: max(0.68rem, 11px);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -128,7 +128,7 @@
 .tensor-import-line code {
   color: #d9c8e7;
   font-family: var(--mono);
-  font-size: 0.66rem;
+  font-size: max(0.68rem, 11px);
   overflow-wrap: anywhere;
 }
 
@@ -174,7 +174,7 @@
 
 .block-heading em {
   color: #c2bab3;
-  font-size: 0.65rem;
+  font-size: max(0.68rem, 11px);
 }
 
 .block-actions {
@@ -184,7 +184,26 @@
 }
 
 .block-actions button {
+  min-height: 2.75rem;
   min-width: 6.6rem;
+}
+
+.toolbar-actions button,
+.toolbar-actions a,
+.practice-guidance button,
+.editor-footer button,
+.cell-footer button {
+  align-items: center;
+  display: inline-flex;
+  font-size: max(0.68rem, 11px);
+  justify-content: center;
+  min-height: 2.75rem;
+}
+
+.cell-footer > span,
+.editor-footer p {
+  color: #a9a19a;
+  font-size: max(0.68rem, 11px);
 }
 
 .block-actions .run-cell-button {
@@ -209,12 +228,12 @@
 
 .concept-strip code {
   color: #e1d2ef;
-  font-size: 0.65rem;
+  font-size: max(0.68rem, 11px);
 }
 
 .concept-strip em {
   color: #bbb3ac;
-  font-size: 0.62rem;
+  font-size: max(0.68rem, 11px);
 }
 
 .code-lines {
@@ -253,14 +272,14 @@
 
 .practice-guidance span {
   color: #c9afd9;
-  font-size: 0.56rem;
+  font-size: max(0.68rem, 11px);
   letter-spacing: 0.11em;
   text-transform: uppercase;
 }
 
 .practice-guidance strong {
   color: #e9e1da;
-  font-size: 0.65rem;
+  font-size: max(0.68rem, 11px);
   font-weight: 500;
 }
 
@@ -270,7 +289,7 @@
   border-radius: 999px;
   color: #c8c0b9;
   cursor: pointer;
-  font-size: 0.59rem;
+  font-size: max(0.68rem, 11px);
   padding: 0.5rem 0.7rem;
 }
 
@@ -331,7 +350,7 @@
 .hero-actions a {
   border: 1px solid var(--line-strong);
   border-radius: 999px;
-  font-size: 0.65rem;
+  font-size: max(0.68rem, 11px);
   letter-spacing: 0.08em;
   padding: 0.85rem 1.05rem;
   text-transform: uppercase;
@@ -389,7 +408,7 @@
 .system-architecture > header span,
 .track-outcome span {
   color: var(--violet);
-  font-size: 0.58rem;
+  font-size: max(0.68rem, 11px);
   font-style: normal;
   letter-spacing: 0.11em;
   text-transform: uppercase;
@@ -452,7 +471,7 @@
 
 .course-track-card footer strong {
   color: var(--violet-deep);
-  font-size: 0.64rem;
+  font-size: max(0.68rem, 11px);
   font-weight: 550;
 }
 
@@ -494,7 +513,7 @@
 .system-architecture article span {
   color: var(--violet);
   font-family: var(--mono);
-  font-size: 0.55rem;
+  font-size: max(0.68rem, 11px);
 }
 
 .system-architecture article strong {
@@ -505,7 +524,7 @@
 
 .system-architecture article code {
   color: var(--muted);
-  font-size: 0.56rem;
+  font-size: max(0.68rem, 11px);
   line-height: 1.5;
 }
 
@@ -566,7 +585,7 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 999px;
   flex: 0 0 auto;
-  font-size: 0.64rem;
+  font-size: max(0.68rem, 11px);
   font-weight: 500;
   padding: 0.8rem 1rem;
 }
@@ -601,7 +620,7 @@
 
 .track-navigation a {
   border-bottom: 1px solid var(--line-strong);
-  font-size: 0.66rem;
+  font-size: max(0.68rem, 11px);
   padding-bottom: 0.25rem;
 }
 
@@ -616,7 +635,7 @@
 .simulation-controls > span,
 .simulation-controls label > span {
   color: var(--muted);
-  font-size: 0.6rem;
+  font-size: max(0.68rem, 11px);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -637,7 +656,7 @@
   background: rgba(255, 255, 255, 0.56);
   border: 1px solid var(--line-strong);
   border-radius: 0.5rem;
-  font-size: 0.68rem;
+  font-size: max(0.68rem, 11px);
   padding: 0.55rem 0.7rem;
 }
 
@@ -646,7 +665,7 @@
   border: 1px solid var(--line-strong);
   border-radius: 999px;
   cursor: pointer;
-  font-size: 0.62rem;
+  font-size: max(0.68rem, 11px);
   padding: 0.55rem 0.75rem;
 }
 
@@ -658,7 +677,7 @@
 
 .simulation-controls > code {
   color: var(--violet-deep);
-  font-size: 0.62rem;
+  font-size: max(0.68rem, 11px);
   margin-left: auto;
 }
 
@@ -691,18 +710,18 @@
 .trace-list > div > span {
   color: var(--faint);
   font-family: var(--mono);
-  font-size: 0.55rem;
+  font-size: max(0.68rem, 11px);
 }
 
 .trace-list > div > strong {
-  font-size: 0.68rem;
+  font-size: max(0.68rem, 11px);
   font-weight: 560;
 }
 
 .trace-list > div > p {
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 0.58rem;
+  font-size: max(0.68rem, 11px);
   line-height: 1.45;
   margin: 0;
 }
@@ -715,7 +734,7 @@
   border-radius: 0.65rem;
   color: #ded6ce;
   font-family: var(--mono);
-  font-size: 0.62rem;
+  font-size: max(0.68rem, 11px);
   line-height: 1.6;
   margin: 1rem 0 0;
   overflow-x: auto;
@@ -738,8 +757,8 @@
 }
 
 .state-inspector > div + div { border-left: 1px solid var(--line); }
-.state-inspector span, .branch-record > span { color: var(--muted); font-size: 0.56rem; letter-spacing: 0.08em; text-transform: uppercase; }
-.state-inspector strong { color: var(--violet-deep); font-family: var(--mono); font-size: 0.68rem; font-weight: 500; }
+.state-inspector span, .branch-record > span { color: var(--muted); font-size: max(0.68rem, 11px); letter-spacing: 0.08em; text-transform: uppercase; }
+.state-inspector strong { color: var(--violet-deep); font-family: var(--mono); font-size: max(0.68rem, 11px); font-weight: 500; }
 
 .state-identity-strip {
   border-bottom: 1px solid var(--line);
@@ -761,7 +780,7 @@
 
 .state-identity-strip em {
   color: var(--muted);
-  font-size: 0.54rem;
+  font-size: max(0.68rem, 11px);
   font-style: normal;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -769,7 +788,7 @@
 
 .state-identity-strip code {
   color: var(--violet-deep);
-  font-size: 0.62rem;
+  font-size: max(0.68rem, 11px);
 }
 
 .state-revision-evidence {
@@ -779,7 +798,7 @@
   color: var(--muted);
   display: flex;
   font-family: var(--mono);
-  font-size: 0.58rem;
+  font-size: max(0.68rem, 11px);
   gap: 0.75rem;
   line-height: 1.45;
   margin: 1rem 0 0;
@@ -788,7 +807,7 @@
 
 .state-revision-evidence b {
   color: var(--violet);
-  font-size: 0.52rem;
+  font-size: max(0.68rem, 11px);
   letter-spacing: 0.07em;
   text-transform: uppercase;
 }
@@ -809,7 +828,7 @@
 .mini-message > span,
 .stream-preview > span {
   color: var(--violet);
-  font-size: 0.57rem;
+  font-size: max(0.68rem, 11px);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -840,8 +859,8 @@
 
 .compact-trace button.active { background: var(--violet-wash); }
 .compact-trace button.complete { color: var(--green); }
-.compact-trace button span { font-family: var(--mono); font-size: 0.54rem; }
-.compact-trace button strong { font-size: 0.55rem; font-weight: 500; }
+.compact-trace button span { font-family: var(--mono); font-size: max(0.68rem, 11px); }
+.compact-trace button strong { font-size: max(0.68rem, 11px); font-weight: 500; }
 
 .stream-preview > i {
   background: rgba(118, 104, 137, 0.1);
@@ -869,7 +888,7 @@
 
 .context-stack article.excluded { opacity: 0.38; }
 .context-stack article.included { background: rgba(118, 104, 137, 0.08); border-color: rgba(118, 104, 137, 0.24); }
-.context-stack article span, .context-stack article code { color: var(--muted); font-family: var(--mono); font-size: 0.56rem; }
+.context-stack article span, .context-stack article code { color: var(--muted); font-family: var(--mono); font-size: max(0.68rem, 11px); }
 .context-stack article p { font-family: var(--serif); font-size: 0.8rem; margin: 0; }
 
 .branch-record {
@@ -882,7 +901,7 @@
 }
 
 .branch-record > span { color: #cbb6dc; }
-.branch-record > code { color: #ded6ce; font-size: 0.62rem; line-height: 1.55; white-space: pre-wrap; }
+.branch-record > code { color: #ded6ce; font-size: max(0.68rem, 11px); line-height: 1.55; white-space: pre-wrap; }
 
 .quality-grid {
   display: grid;
@@ -899,6 +918,6 @@
   padding: 0.9rem;
 }
 
-.quality-grid article > i { align-items: center; border: 1px solid var(--green); border-radius: 999px; color: var(--green); display: flex; font-size: 0.58rem; font-style: normal; height: 1.25rem; justify-content: center; width: 1.25rem; }
-.quality-grid article strong { font-size: 0.68rem; font-weight: 560; }
+.quality-grid article > i { align-items: center; border: 1px solid var(--green); border-radius: 999px; color: var(--green); display: flex; font-size: max(0.68rem, 11px); font-style: normal; height: 1.25rem; justify-content: center; width: 1.25rem; }
+.quality-grid article strong { font-size: max(0.68rem, 11px); font-weight: 560; }
 .quality-grid article p { color: var(--muted); font-family: var(--serif); font-size: 0.76rem; line-height: 1.45; margin: 0.3rem 0 0; }

@@ -1,17 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { consumeSse, createMockServingStream } from "@latent/mock-services/sse";
 import { sampleCharacterRnn } from "@latent/model-lab/character-rnn";
 import { moduleCheckpoint } from "../content/llm-systems/learning";
 import { llmSystemsCurriculum } from "../lessons/course";
-import { lessonIsComplete, lessonKnowledgeIsComplete, useLearnerState } from "../lib/learner-state";
+import { lessonImplementationIsComplete, lessonKnowledgeIsComplete, useLearnerState } from "../lib/learner-state";
 import { reconcileCanonicalProject } from "../lib/canonical-project";
 import { runProjectUnitTests } from "../lib/project-tests";
 import { saveProjectTestResults, useProjectState, type ProjectUnitResult } from "../lib/project-workspace";
 import { recordLearningEvent } from "../lib/learning-analytics";
 import { lessonLearningOutcome } from "../content/llm-systems/learning";
+import {
+  ModuleCheckpointAttemptCoordinator,
+  type ModuleCheckpointAttempt,
+} from "../lib/module-checkpoint-attempt";
 
 type CheckpointStatus = "idle" | "verifying" | "running" | "passed" | "failed" | "cancelled";
 
@@ -27,7 +31,28 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
   const [score, setScore] = useState({ passed: 0, total: 0 });
   const [failures, setFailures] = useState<ProjectUnitResult[]>([]);
   const [ready, setReady] = useState(false);
-  const controllerRef = useRef<AbortController | null>(null);
+  const [cancelRequested, setCancelRequested] = useState(false);
+  const [attemptCoordinator] = useState(() => new ModuleCheckpointAttemptCoordinator());
+
+  const ownsAttempt = (attempt: ModuleCheckpointAttempt) => attemptCoordinator.owns(attempt);
+  const setAttemptStatus = (attempt: ModuleCheckpointAttempt, next: CheckpointStatus) => {
+    if (ownsAttempt(attempt)) setStatus(next);
+  };
+  const setAttemptDetail = (attempt: ModuleCheckpointAttempt, next: string) => {
+    if (ownsAttempt(attempt)) setDetail(next);
+  };
+  const replaceAttemptOutput = (attempt: ModuleCheckpointAttempt, next: string) => {
+    if (ownsAttempt(attempt)) setOutput(next);
+  };
+  const updateAttemptOutput = (attempt: ModuleCheckpointAttempt, update: (current: string) => string) => {
+    if (ownsAttempt(attempt)) setOutput(update);
+  };
+  const replaceAttemptTrace = (attempt: ModuleCheckpointAttempt, next: string[]) => {
+    if (ownsAttempt(attempt)) setTrace(next);
+  };
+  const updateAttemptTrace = (attempt: ModuleCheckpointAttempt, update: (current: string[]) => string[]) => {
+    if (ownsAttempt(attempt)) setTrace(update);
+  };
 
   useEffect(() => {
     let active = true;
@@ -36,34 +61,34 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
       setStatus("failed");
       setDetail(error instanceof Error ? error.message : "The saved project could not be restored.");
     });
-    return () => { active = false; controllerRef.current?.abort(); };
-  }, []);
+    return () => { active = false; attemptCoordinator.invalidate(); };
+  }, [attemptCoordinator]);
 
   const lessonReadiness = useMemo(() => curriculumModule.lessons.map(({ lesson, projectPath }) => {
     const check = lessonLearningOutcome(lesson.id).check;
     return {
       lesson,
       projectPath,
-      implementation: lessonIsComplete(learner, lesson.id, lesson.implementation.codeBlocks.length),
+      implementation: lessonImplementationIsComplete(learner, lesson.id, lesson.implementation.codeBlocks.length),
       knowledge: lessonKnowledgeIsComplete(learner, lesson.id, check.id),
     };
   }), [learner, curriculumModule.lessons]);
   const readyLessons = lessonReadiness.filter((item) => item.implementation).length;
   const masteredLessons = lessonReadiness.filter((item) => item.knowledge).length;
 
-  const runModuleBehavior = async () => {
+  const runModuleBehavior = async (attempt: ModuleCheckpointAttempt) => {
     if (courseId === "models") {
       const artifact = learner.artifacts.characterRnn;
       if (!artifact) {
-        setOutput("No learner-trained checkpoint is available. Run the Character RNN experiment, then return to compare open and constrained sampling from the same weights.");
-        setTrace(["checkpoint lookup → missing", "generation withheld → no fabricated weights"]);
+        replaceAttemptOutput(attempt, "No learner-trained checkpoint is available. Run the Character RNN experiment, then return to compare open and constrained sampling from the same weights.");
+        replaceAttemptTrace(attempt, ["checkpoint lookup → missing", "generation withheld → no fabricated weights"]);
         return "failed" as const;
       }
       const prompt = "the system ";
       const open = sampleCharacterRnn(artifact.checkpoint, prompt, 120, 0.9, 71, 0);
       const constrained = sampleCharacterRnn(artifact.checkpoint, prompt, 120, 0.72, 71, 5);
-      setOutput(`OPEN SAMPLING\n…${prompt}${open}\n\nTOP-K = 5\n…${prompt}${constrained}`);
-      setTrace([
+      replaceAttemptOutput(attempt, `OPEN SAMPLING\n…${prompt}${open}\n\nTOP-K = 5\n…${prompt}${constrained}`);
+      replaceAttemptTrace(attempt, [
         "prompt characters → vocabulary ids",
         "recurrent transition → prefix-conditioned hidden state",
         "output projection → logits → stable softmax",
@@ -75,14 +100,16 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
     if (courseId === "systems") {
       const promptTokens = 96;
       const decodeTokens = Math.min(24, project.runtime.model.maxTokens);
+      const subsequentDecodeForwards = Math.max(0, decodeTokens - 1);
       const kvUnits = promptTokens + decodeTokens;
-      setOutput([
+      replaceAttemptOutput(attempt, [
+        "worked integration trace · fixed teaching data; learner files were verified separately",
         `request accepted · prompt ${promptTokens} tokens`,
-        `prefill · ${promptTokens} positions in parallel · KV length ${promptTokens}`,
-        `decode · ${decodeTokens} serial iterations · KV length ${kvUnits}`,
+        `prefill · ${promptTokens} positions in parallel · first generated token sampled · KV length ${promptTokens}`,
+        `decode · ${subsequentDecodeForwards} subsequent one-position forwards · KV length ${kvUnits}`,
         `complete · ${decodeTokens} generated tokens · cache released`,
       ].join("\n"));
-      setTrace([
+      replaceAttemptTrace(attempt, [
         "queue → admission checks capacity",
         "prefill → first-token state",
         "continuous batch → one decode position per active request",
@@ -92,27 +119,26 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
     }
 
     if (courseId === "backend") {
-      const controller = new AbortController();
-      controllerRef.current = controller;
-      setOutput("");
-      setTrace(["request r-checkpoint-1 admitted", "waiting for first SSE frame"]);
+      const { controller } = attempt;
+      replaceAttemptOutput(attempt, "");
+      replaceAttemptTrace(attempt, ["request r-checkpoint-1 admitted", "waiting for first SSE frame"]);
       const text = "The verified serving path preserves UTF-8 text, typed event boundaries, cancellation, and request identity.";
       const stream = createMockServingStream(text, controller.signal, project.runtime.transport);
       await consumeSse(stream, (event) => {
+        if (!ownsAttempt(attempt)) return;
         if (event.type === "token") {
-          setOutput((current) => current + event.data.delta);
-          setTrace((current) => [...current.slice(-4), `token event · ${JSON.stringify(event.data.delta)}`]);
+          updateAttemptOutput(attempt, (current) => current + event.data.delta);
+          updateAttemptTrace(attempt, (current) => [...current.slice(-4), `token event · ${JSON.stringify(event.data.delta)}`]);
         }
-        if (event.type === "done") setTrace((current) => [...current, `done · ${event.data.tokens} token events`]);
-        if (event.type === "cancelled") setTrace((current) => [...current, "cancelled · reader closed"]);
-        if (event.type === "error") setTrace((current) => [...current, `error · ${event.data.code}`]);
+        if (event.type === "done") updateAttemptTrace(attempt, (current) => [...current, `done · ${event.data.tokens} token events`]);
+        if (event.type === "cancelled") updateAttemptTrace(attempt, (current) => [...current, "cancelled · reader closed"]);
+        if (event.type === "error") updateAttemptTrace(attempt, (current) => [...current, `error · ${event.data.code}`]);
       });
-      const finalStatus = controller.signal.aborted ? "cancelled" as const : "passed" as const;
-      controllerRef.current = null;
-      return finalStatus;
+      return controller.signal.aborted ? "cancelled" as const : "passed" as const;
     }
 
-    setOutput([
+    replaceAttemptOutput(attempt, [
+      "worked integration trace · fixed teaching data; learner files were verified separately",
       "user message → normalized record m-u1",
       "context policy → active prompt + newest complete turns",
       "request r1 / attempt a1 → queued → prefill → streaming",
@@ -120,7 +146,7 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
       "terminal assistant message → strict persistence schema",
       "focus → restored to the next usable action",
     ].join("\n"));
-    setTrace([
+    replaceAttemptTrace(attempt, [
       "state identity remains stable across rendering",
       "stop, retry, and edit create explicit lifecycle transitions",
       "unknown or streaming persistence records are rejected",
@@ -130,26 +156,47 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
   };
 
   const runCheckpoint = async () => {
-    if (status === "verifying" || status === "running") return;
-    setStatus("verifying");
-    setOutput("");
-    setTrace([]);
-    setFailures([]);
-    setDetail(`Verifying ${curriculumModule.lessonCount} project files in the isolated browser lab…`);
+    const coordinator = attemptCoordinator;
+    const attempt = coordinator.begin();
+    if (!attempt) return;
+    setCancelRequested(false);
+    setAttemptStatus(attempt, "verifying");
+    replaceAttemptOutput(attempt, "");
+    replaceAttemptTrace(attempt, []);
+    if (ownsAttempt(attempt)) setFailures([]);
+    setAttemptDetail(attempt, `Verifying ${curriculumModule.lessonCount} project files in the isolated browser lab…`);
     const results = [];
     try {
       for (const item of curriculumModule.lessons) {
         const run = await runProjectUnitTests(project.files, project.runtime, item.projectPath);
-        saveProjectTestResults(run.results, false, run.sourceHash, run.projectRevision);
+        if (!ownsAttempt(attempt)) return;
+        const committed = await saveProjectTestResults({
+          results: run.results,
+          expectedIdsByPath: run.expectedIdsByPath,
+          replaceAll: false,
+          sourceTreeHash: run.sourceHash,
+          projectRevision: run.projectRevision,
+          contractVersion: run.contractVersion,
+        });
+        if (!ownsAttempt(attempt)) return;
+        if (!committed.accepted) {
+          setAttemptStatus(attempt, "failed");
+          setAttemptDetail(attempt, committed.reason === "stale-source"
+            ? "This checkpoint result was discarded because the saved project changed while its contracts were running. Run the checkpoint again."
+            : "This checkpoint result was discarded because its contract scope is no longer current. Reload and run it again.");
+          return;
+        }
         results.push(...run.results.filter((result) => result.path === item.projectPath));
       }
       const passed = results.filter((result) => result.passed).length;
       const nextFailures = results.filter((result) => !result.passed);
-      setScore({ passed, total: results.length });
-      setFailures(nextFailures);
+      if (ownsAttempt(attempt)) {
+        setScore({ passed, total: results.length });
+        setFailures(nextFailures);
+      }
       if (!results.length || passed !== results.length) {
-        setStatus("failed");
-        setDetail(`${passed} of ${results.length} module contracts pass. Repair the first failure below; completed files stay verified.`);
+        setAttemptStatus(attempt, "failed");
+        setAttemptDetail(attempt, `${passed} of ${results.length} module contracts pass. Repair the first failure below; completed files stay verified.`);
         void recordLearningEvent("module_checkpoint_completed", {
           moduleId: definition.moduleId,
           outcome: "failed",
@@ -157,14 +204,19 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
         });
         return;
       }
-      setStatus("running");
-      setDetail("Contracts pass. Running the module-level behavior…");
-      const finalStatus = await runModuleBehavior();
-      setStatus(finalStatus);
-      setDetail(finalStatus === "cancelled"
+      setAttemptStatus(attempt, "running");
+      setAttemptDetail(attempt, courseId === "systems" || courseId === "product"
+        ? "Contracts pass. Replaying the module's fixed worked integration trace…"
+        : "Contracts pass. Running the module-level behavior…");
+      const finalStatus = await runModuleBehavior(attempt);
+      if (!ownsAttempt(attempt)) return;
+      setAttemptStatus(attempt, finalStatus);
+      setAttemptDetail(attempt, finalStatus === "cancelled"
         ? "The serving run was cancelled and its stream closed without a late update."
         : finalStatus === "passed"
-          ? `${results.length} source-bound contracts pass and the module behavior completed.`
+          ? courseId === "systems" || courseId === "product"
+            ? `${results.length} source-bound contracts pass and the fixed integration trace was replayed.`
+            : `${results.length} source-bound contracts pass and the module behavior completed.`
           : "The code contracts pass, but this behavior requires the learner-trained checkpoint produced by the module experiment.");
       void recordLearningEvent("module_checkpoint_completed", {
         moduleId: definition.moduleId,
@@ -172,16 +224,18 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
         count: results.length,
       });
     } catch (error) {
-      setStatus("failed");
-      setDetail(error instanceof Error ? error.message : "The module checkpoint stopped safely.");
+      setAttemptStatus(attempt, "failed");
+      setAttemptDetail(attempt, error instanceof Error ? error.message : "The module checkpoint stopped safely.");
+    } finally {
+      if (coordinator.settle(attempt)) setCancelRequested(false);
     }
   };
 
   const cancel = () => {
-    controllerRef.current?.abort();
-    controllerRef.current = null;
-    setStatus("cancelled");
-    setDetail("Cancellation requested. No new stream events will be accepted.");
+    const attempt = attemptCoordinator.cancelCurrent();
+    if (!attempt) return;
+    setCancelRequested(true);
+    setAttemptDetail(attempt, "Cancellation requested. Waiting for the stream to close; rerun stays unavailable until it settles.");
   };
 
   return (
@@ -207,7 +261,7 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
         <header>
           <div><span>Executable checkpoint</span><strong className={`status-${status}`}>{status}</strong></div>
           <div>
-            {courseId === "backend" && status === "running" ? <button type="button" onClick={cancel}>Cancel stream</button> : null}
+            {courseId === "backend" && status === "running" ? <button type="button" onClick={cancel} disabled={cancelRequested}>{cancelRequested ? "Cancelling…" : "Cancel stream"}</button> : null}
             <button className="primary" type="button" onClick={() => void runCheckpoint()} disabled={!ready || status === "verifying" || status === "running"}>
               {!ready ? "Restoring project…" : status === "idle" ? "Verify and run" : status === "verifying" || status === "running" ? "Running…" : "Run checkpoint again"}
             </button>

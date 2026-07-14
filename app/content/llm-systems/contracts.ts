@@ -141,6 +141,23 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
           range("negative-memory", "Use Whh and the previous state before tanh for the second unit", -0.77, -0.76, [1]),
         ],
       },
+      {
+        id: "non-zero-bias",
+        label: "Adds the learned bias before the nonlinearity",
+        args: [
+          [0, 0],
+          [0, 0],
+          {
+            Wxh: [[0, 0], [0, 0]],
+            Whh: [[0, 0], [0, 0]],
+            bias: [0.5, -0.25],
+          },
+        ],
+        assertions: [
+          range("positive-bias", "Add bias[0] before tanh instead of dropping the bias term", 0.4621, 0.4622, [0]),
+          range("negative-bias", "Add bias[1] before tanh instead of dropping the bias term", -0.245, -0.2449, [1]),
+        ],
+      },
     ],
   }),
   defineExerciseContract({
@@ -645,6 +662,12 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
         args: ["I cannot decide.", "M"],
         assertions: [equal("missing-label", "Return null and fail when no standalone allowed label is generated", { predicted: null, passed: false })],
       },
+      {
+        id: "regex-punctuation-label",
+        label: "Treats punctuation in allowed labels as literal text",
+        args: ["Prediction: A+.", "A+", ["A+", "B?"]],
+        assertions: [equal("literal-label", "Match allowed labels literally instead of interpolating them as regular-expression syntax", { predicted: "A+", passed: true })],
+      },
     ],
   }),
   defineExerciseContract({
@@ -1052,23 +1075,27 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
         id: "message-defaults",
         label: "Creates a message with explicit defaults",
         args: [{ id: "m-user-9", role: "user" }],
-        assertions: [equal("message-defaults", "Return exactly id, role, content, status, and createdAt; default content to an empty string, status to complete, and createdAt to zero", {
+        assertions: [equal("message-defaults", "Return exactly the normalized fields; default content to empty, status to complete, attemptId and requestId to null, and createdAt to zero", {
           id: "m-user-9",
           role: "user",
           content: "",
           status: "complete",
+          attemptId: null,
+          requestId: null,
           createdAt: 0,
         })],
       },
       {
         id: "supplied-streaming-message",
         label: "Preserves supplied content and lifecycle status",
-        args: [{ id: "m-assistant-27", role: "assistant", content: "A causal", status: "streaming" }],
-        assertions: [equal("supplied-fields", "Use the supplied id, role, content, and status instead of replacing them with defaults", {
+        args: [{ id: "m-assistant-27", role: "assistant", content: "A causal", status: "streaming", attemptId: "a-27.2", requestId: "r-27.2" }],
+        assertions: [equal("supplied-fields", "Preserve the supplied message, attempt, and request identities with content and status", {
           id: "m-assistant-27",
           role: "assistant",
           content: "A causal",
           status: "streaming",
+          attemptId: "a-27.2",
+          requestId: "r-27.2",
           createdAt: 0,
         })],
       },
@@ -1081,18 +1108,22 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
           role: "system",
           content: "Be concise.",
           status: "complete",
+          attemptId: null,
+          requestId: null,
           createdAt: 0,
         })],
       },
       {
         id: "serializable-record",
         label: "Returns deterministic JSON data",
-        args: [{ id: "m1", role: "assistant", status: "streaming" }],
+        args: [{ id: "m1", role: "assistant", status: "streaming", attemptId: "a1", requestId: "r1" }],
         assertions: [equal("message", "Use the deterministic numeric createdAt field from the reference record", {
           id: "m1",
           role: "assistant",
           content: "",
           status: "streaming",
+          attemptId: "a1",
+          requestId: "r1",
           createdAt: 0,
         })],
       },
@@ -1106,52 +1137,72 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     cases: [
       {
         id: "targeted-middle-message",
-        label: "Updates only the targeted streaming message",
+        label: "Updates only the matching active attempt and request",
         args: [[
-          { id: "before", role: "assistant", content: "keep", status: "streaming" },
-          { id: "a", content: "Hel", status: "streaming" },
-          { id: "b", content: "fixed", status: "complete" },
-        ], "a", "lo"],
-        assertions: [equal("messages", "Match messageId instead of array position, append the delta, and preserve every untargeted record", [
-          { id: "before", role: "assistant", content: "keep", status: "streaming" },
-          { id: "a", content: "Hello", status: "streaming" },
-          { id: "b", content: "fixed", status: "complete" },
+          { id: "before", attemptId: "a0", requestId: "r0", content: "keep", status: "streaming" },
+          { id: "a", attemptId: "a1", requestId: "r1", content: "Hel", status: "streaming" },
+          { id: "b", attemptId: "a2", requestId: "r2", content: "fixed", status: "complete" },
+        ], { messageId: "a", attemptId: "a1", requestId: "r1", delta: "lo" }],
+        assertions: [equal("messages", "Match messageId, attemptId, and requestId, append the delta, and preserve every untargeted record", [
+          { id: "before", attemptId: "a0", requestId: "r0", content: "keep", status: "streaming" },
+          { id: "a", attemptId: "a1", requestId: "r1", content: "Hello", status: "streaming" },
+          { id: "b", attemptId: "a2", requestId: "r2", content: "fixed", status: "complete" },
         ])],
       },
       {
         id: "completed-target",
         label: "Ignores a delta for a non-streaming target",
         args: [[
-          { id: "a", content: "finished", status: "complete" },
-          { id: "b", content: "still here", status: "streaming" },
-        ], "a", " late"],
+          { id: "a", attemptId: "a1", requestId: "r1", content: "finished", status: "complete" },
+          { id: "b", attemptId: "a2", requestId: "r2", content: "still here", status: "streaming" },
+        ], { messageId: "a", attemptId: "a1", requestId: "r1", delta: " late" }],
         assertions: [equal("completed-unchanged", "Check that the matching message is streaming before appending; completed output must ignore late deltas", [
-          { id: "a", content: "finished", status: "complete" },
-          { id: "b", content: "still here", status: "streaming" },
+          { id: "a", attemptId: "a1", requestId: "r1", content: "finished", status: "complete" },
+          { id: "b", attemptId: "a2", requestId: "r2", content: "still here", status: "streaming" },
+        ])],
+      },
+      {
+        id: "stale-attempt",
+        label: "Rejects a late delta from a retired generation attempt",
+        args: [[
+          { id: "a", attemptId: "a2", requestId: "r2", content: "new", status: "streaming" },
+        ], { messageId: "a", attemptId: "a1", requestId: "r2", delta: " stale" }],
+        assertions: [equal("stale-attempt-unchanged", "Reject the event when attemptId does not match the message's active attempt", [
+          { id: "a", attemptId: "a2", requestId: "r2", content: "new", status: "streaming" },
+        ])],
+      },
+      {
+        id: "stale-request",
+        label: "Rejects a late delta from a retired transport request",
+        args: [[
+          { id: "a", attemptId: "a2", requestId: "r2", content: "new", status: "streaming" },
+        ], { messageId: "a", attemptId: "a2", requestId: "r1", delta: " stale" }],
+        assertions: [equal("stale-request-unchanged", "Reject the event when requestId does not match the active transport lifecycle", [
+          { id: "a", attemptId: "a2", requestId: "r2", content: "new", status: "streaming" },
         ])],
       },
       {
         id: "missing-target",
         label: "Ignores a delta for an unknown message id",
         args: [[
-          { id: "a", content: "one", status: "streaming" },
-          { id: "b", content: "two", status: "complete" },
-        ], "missing", "!"],
+          { id: "a", attemptId: "a1", requestId: "r1", content: "one", status: "streaming" },
+          { id: "b", attemptId: "a2", requestId: "r2", content: "two", status: "complete" },
+        ], { messageId: "missing", attemptId: "a1", requestId: "r1", delta: "!" }],
         assertions: [equal("missing-unchanged", "Leave every record unchanged when messageId is not present", [
-          { id: "a", content: "one", status: "streaming" },
-          { id: "b", content: "two", status: "complete" },
+          { id: "a", attemptId: "a1", requestId: "r1", content: "one", status: "streaming" },
+          { id: "b", attemptId: "a2", requestId: "r2", content: "two", status: "complete" },
         ])],
       },
       {
         id: "empty-delta",
         label: "Handles an empty transport delta",
         args: [[
-          { id: "a", content: "partial", status: "streaming" },
-          { id: "b", content: "fixed", status: "complete" },
-        ], "a", ""],
+          { id: "a", attemptId: "a1", requestId: "r1", content: "partial", status: "streaming" },
+          { id: "b", attemptId: "a2", requestId: "r2", content: "fixed", status: "complete" },
+        ], { messageId: "a", attemptId: "a1", requestId: "r1", delta: "" }],
         assertions: [equal("empty-append", "Treat an empty delta as ordinary string concatenation without changing content or status", [
-          { id: "a", content: "partial", status: "streaming" },
-          { id: "b", content: "fixed", status: "complete" },
+          { id: "a", attemptId: "a1", requestId: "r1", content: "partial", status: "streaming" },
+          { id: "b", attemptId: "a2", requestId: "r2", content: "fixed", status: "complete" },
         ])],
       },
     ],
@@ -1258,142 +1309,198 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     cases: [
       {
         id: "newest-complete-turns",
-        label: "Retains required system context and the newest complete turn that fits",
-        args: [[
-          { id: "s", role: "system", tokens: 4 },
-          { id: "u1", role: "user", tokens: 3 },
-          { id: "a1", role: "assistant", tokens: 3 },
-          { id: "u2", role: "user", tokens: 4 },
-          { id: "a2", role: "assistant", tokens: 4 },
-        ], 12],
-        assertions: [equal("selection", "Keep every required system record, admit complete user-assistant pairs newest-first, and return them in chronological order with exact used tokens", {
+        label: "Retains required inputs and the newest complete turn that fits",
+        args: [{
+          system: [{ id: "s", role: "system", tokens: 4 }],
+          history: [
+            { id: "u1", role: "user", status: "complete", tokens: 3 },
+            { id: "a1", role: "assistant", status: "complete", tokens: 3 },
+            { id: "u2", role: "user", status: "complete", tokens: 4 },
+            { id: "a2", role: "assistant", status: "complete", tokens: 4 },
+          ],
+          activeUser: { id: "u3", role: "user", status: "complete", tokens: 2 },
+          budget: 14,
+        }],
+        assertions: [equal("selection", "Keep required system and active-user records, admit complete pairs newest-first, and return the exact chronological request", {
           selected: [
             { id: "s", role: "system", tokens: 4 },
-            { id: "u2", role: "user", tokens: 4 },
-            { id: "a2", role: "assistant", tokens: 4 },
+            { id: "u2", role: "user", status: "complete", tokens: 4 },
+            { id: "a2", role: "assistant", status: "complete", tokens: 4 },
+            { id: "u3", role: "user", status: "complete", tokens: 2 },
           ],
-          used: 12,
+          used: 14,
           overflow: false,
         })],
       },
       {
         id: "skip-oversized-newer-turn",
         label: "Skips an oversized newer pair and still admits an older pair that fits",
-        args: [[
-          { id: "s", role: "system", tokens: 2 },
-          { id: "u-old", role: "user", tokens: 3 },
-          { id: "a-old", role: "assistant", tokens: 3 },
-          { id: "u-new", role: "user", tokens: 9 },
-          { id: "a-new", role: "assistant", tokens: 9 },
-        ], 8],
+        args: [{
+          system: [{ id: "s", role: "system", tokens: 2 }],
+          history: [
+            { id: "u-old", role: "user", status: "complete", tokens: 3 },
+            { id: "a-old", role: "assistant", status: "complete", tokens: 3 },
+            { id: "u-new", role: "user", status: "complete", tokens: 9 },
+            { id: "a-new", role: "assistant", status: "complete", tokens: 9 },
+          ],
+          activeUser: { id: "u-active", role: "user", status: "complete", tokens: 2 },
+          budget: 10,
+        }],
         assertions: [equal("continue-after-skip", "When a newer complete pair is too large, continue examining older complete pairs instead of stopping selection", {
           selected: [
             { id: "s", role: "system", tokens: 2 },
-            { id: "u-old", role: "user", tokens: 3 },
-            { id: "a-old", role: "assistant", tokens: 3 },
-          ],
-          used: 8,
-          overflow: false,
-        })],
-      },
-      {
-        id: "never-admit-half-of-pair",
-        label: "Drops a complete pair when only one individual message would fit",
-        args: [[
-          { id: "s", role: "system", tokens: 2 },
-          { id: "u1", role: "user", tokens: 5 },
-          { id: "a1", role: "assistant", tokens: 5 },
-        ], 7],
-        assertions: [equal("atomic-turn", "Measure and admit the user-assistant pair as one atomic unit; never retain just the user or just the assistant because one message fits", {
-          selected: [{ id: "s", role: "system", tokens: 2 }],
-          used: 2,
-          overflow: false,
-        })],
-      },
-      {
-        id: "exact-budget-multiple-systems",
-        label: "Includes multiple required system records and a pair at the exact boundary",
-        args: [[
-          { id: "s1", role: "system", tokens: 2 },
-          { id: "s2", role: "system", tokens: 1 },
-          { id: "u1", role: "user", tokens: 3 },
-          { id: "a1", role: "assistant", tokens: 4 },
-        ], 10],
-        assertions: [equal("inclusive-boundary", "Use <= at the budget boundary and preserve required system and conversational input order", {
-          selected: [
-            { id: "s1", role: "system", tokens: 2 },
-            { id: "s2", role: "system", tokens: 1 },
-            { id: "u1", role: "user", tokens: 3 },
-            { id: "a1", role: "assistant", tokens: 4 },
+            { id: "u-old", role: "user", status: "complete", tokens: 3 },
+            { id: "a-old", role: "assistant", status: "complete", tokens: 3 },
+            { id: "u-active", role: "user", status: "complete", tokens: 2 },
           ],
           used: 10,
           overflow: false,
         })],
       },
       {
-        id: "drops-orphan-half-turns",
-        label: "Never admits orphan assistants or incomplete trailing user messages",
-        args: [[
-          { id: "s", role: "system", tokens: 2 },
-          { id: "a-orphan", role: "assistant", tokens: 1 },
-          { id: "u1", role: "user", tokens: 3 },
-          { id: "a1", role: "assistant", tokens: 4 },
-          { id: "u-trailing", role: "user", tokens: 1 },
-        ], 20],
-        assertions: [equal("complete-pairs-only", "Admit only complete ordered user-assistant pairs; do not create orphan half-turns from individual messages", {
+        id: "never-admit-half-of-pair",
+        label: "Drops a complete pair when only one individual message would fit",
+        args: [{
+          system: [{ id: "s", role: "system", tokens: 2 }],
+          history: [
+            { id: "u1", role: "user", status: "complete", tokens: 5 },
+            { id: "a1", role: "assistant", status: "complete", tokens: 5 },
+          ],
+          activeUser: { id: "u-active", role: "user", status: "complete", tokens: 2 },
+          budget: 9,
+        }],
+        assertions: [equal("atomic-turn", "Measure and admit the user-assistant pair as one atomic unit; never retain just the user or just the assistant because one message fits", {
           selected: [
             { id: "s", role: "system", tokens: 2 },
-            { id: "u1", role: "user", tokens: 3 },
-            { id: "a1", role: "assistant", tokens: 4 },
+            { id: "u-active", role: "user", status: "complete", tokens: 2 },
           ],
-          used: 9,
+          used: 4,
+          overflow: false,
+        })],
+      },
+      {
+        id: "exact-budget-multiple-systems",
+        label: "Includes multiple system records, one pair, and the active user at the exact boundary",
+        args: [{
+          system: [
+            { id: "s1", role: "system", tokens: 2 },
+            { id: "s2", role: "system", tokens: 1 },
+          ],
+          history: [
+            { id: "u1", role: "user", status: "complete", tokens: 3 },
+            { id: "a1", role: "assistant", status: "complete", tokens: 4 },
+          ],
+          activeUser: { id: "u2", role: "user", status: "complete", tokens: 2 },
+          budget: 12,
+        }],
+        assertions: [equal("inclusive-boundary", "Use <= at the budget boundary and preserve required system and conversational input order", {
+          selected: [
+            { id: "s1", role: "system", tokens: 2 },
+            { id: "s2", role: "system", tokens: 1 },
+            { id: "u1", role: "user", status: "complete", tokens: 3 },
+            { id: "a1", role: "assistant", status: "complete", tokens: 4 },
+            { id: "u2", role: "user", status: "complete", tokens: 2 },
+          ],
+          used: 12,
+          overflow: false,
+        })],
+      },
+      {
+        id: "drops-orphan-half-turns",
+        label: "Never admits orphan, streaming, cancelled, or error history",
+        args: [{
+          system: [{ id: "s", role: "system", tokens: 2 }],
+          history: [
+            { id: "a-orphan", role: "assistant", status: "complete", tokens: 1 },
+            { id: "u1", role: "user", status: "complete", tokens: 3 },
+            { id: "a1", role: "assistant", status: "complete", tokens: 4 },
+            { id: "u-stream", role: "user", status: "complete", tokens: 1 },
+            { id: "a-stream", role: "assistant", status: "streaming", tokens: 1 },
+            { id: "u-cancel", role: "user", status: "complete", tokens: 1 },
+            { id: "a-cancel", role: "assistant", status: "cancelled", tokens: 1 },
+            { id: "u-trailing", role: "user", status: "complete", tokens: 1 },
+          ],
+          activeUser: { id: "u-active", role: "user", status: "complete", tokens: 2 },
+          budget: 20,
+        }],
+        assertions: [equal("complete-pairs-only", "Admit only adjacent lifecycle-complete user-assistant pairs and always retain the active user", {
+          selected: [
+            { id: "s", role: "system", tokens: 2 },
+            { id: "u1", role: "user", status: "complete", tokens: 3 },
+            { id: "a1", role: "assistant", status: "complete", tokens: 4 },
+            { id: "u-active", role: "user", status: "complete", tokens: 2 },
+          ],
+          used: 11,
           overflow: false,
         })],
       },
       {
         id: "empty-history",
-        label: "Returns an exact empty selection for empty history",
-        args: [[], 24],
-        assertions: [equal("empty", "Return selected [], used 0, and overflow false when there are no records", {
-          selected: [],
-          used: 0,
+        label: "Keeps the active user when historical context is empty",
+        args: [{
+          system: [],
+          history: [],
+          activeUser: { id: "u-active", role: "user", status: "complete", tokens: 2 },
+          budget: 24,
+        }],
+        assertions: [equal("empty-history", "The active user is a required request input even when system and history are empty", {
+          selected: [{ id: "u-active", role: "user", status: "complete", tokens: 2 }],
+          used: 2,
           overflow: false,
         })],
       },
       {
         id: "system-only",
-        label: "Returns a system-only request prefix exactly",
-        args: [[
-          { id: "s", role: "system", tokens: 5 },
-        ], 5],
-        assertions: [equal("system-only", "Keep a required system-only prefix and count its tokens exactly", {
-          selected: [{ id: "s", role: "system", tokens: 5 }],
-          used: 5,
+        label: "Returns required system and active-user inputs exactly",
+        args: [{
+          system: [{ id: "s", role: "system", tokens: 5 }],
+          history: [],
+          activeUser: { id: "u", role: "user", status: "complete", tokens: 2 },
+          budget: 7,
+        }],
+        assertions: [equal("required-inputs", "Keep system instructions before the active user and count both required records", {
+          selected: [
+            { id: "s", role: "system", tokens: 5 },
+            { id: "u", role: "user", status: "complete", tokens: 2 },
+          ],
+          used: 7,
           overflow: false,
         })],
       },
       {
-        id: "required-system-overflow",
-        label: "Reports when required system instructions alone exceed the selector budget",
-        args: [[
-          { id: "s", role: "system", tokens: 7 },
-          { id: "u1", role: "user", tokens: 2 },
-          { id: "a1", role: "assistant", tokens: 2 },
-        ], 5],
-        assertions: [equal("overflow-signal", "Keep required system instructions, admit no historical turns, report their exact token use, and set overflow true so the caller can block or revise the request", {
-          selected: [{ id: "s", role: "system", tokens: 7 }],
-          used: 7,
+        id: "required-input-overflow",
+        label: "Reports when system plus active-user inputs exceed the budget",
+        args: [{
+          system: [{ id: "s", role: "system", tokens: 7 }],
+          history: [
+            { id: "u1", role: "user", status: "complete", tokens: 2 },
+            { id: "a1", role: "assistant", status: "complete", tokens: 2 },
+          ],
+          activeUser: { id: "u-active", role: "user", status: "complete", tokens: 2 },
+          budget: 8,
+        }],
+        assertions: [equal("overflow-signal", "Keep both required inputs, admit no history, report exact use, and set overflow so the caller can block or revise", {
+          selected: [
+            { id: "s", role: "system", tokens: 7 },
+            { id: "u-active", role: "user", status: "complete", tokens: 2 },
+          ],
+          used: 9,
           overflow: true,
         })],
       },
       {
-        id: "zero-budget-empty-history",
-        label: "Handles an empty zero-token budget without inventing records",
-        args: [[], 0],
-        assertions: [equal("zero-budget", "Return an empty non-overflow result for an empty zero-token request", {
-          selected: [],
-          used: 0,
-          overflow: false,
+        id: "zero-budget-active-user",
+        label: "Reports an active-user overflow against a zero budget",
+        args: [{
+          system: [],
+          history: [],
+          activeUser: { id: "u", role: "user", status: "complete", tokens: 1 },
+          budget: 0,
+        }],
+        assertions: [equal("zero-budget", "Never drop the required active user merely to make an impossible budget appear valid", {
+          selected: [{ id: "u", role: "user", status: "complete", tokens: 1 }],
+          used: 1,
+          overflow: true,
         })],
       },
     ],
@@ -1407,11 +1514,12 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       {
         id: "new-assistant-attempt",
         label: "Creates a queued assistant attempt from the same user prefix",
-        args: [{ messageId: "m9", parentUserId: "m4", attemptId: "a2" }],
-        assertions: [equal("branch", "Return the exact stable queued assistant record with the supplied message, parent-user, and attempt ids", {
+        args: [{ messageId: "m9", parentUserId: "m4", attemptId: "a2", requestId: "r2" }],
+        assertions: [equal("branch", "Return the exact queued assistant record with separate message, parent-user, attempt, and request ids", {
           messageId: "m9",
           parentUserId: "m4",
           attemptId: "a2",
+          requestId: "r2",
           role: "assistant",
           content: "",
           status: "queued",
@@ -1420,11 +1528,12 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       {
         id: "second-identity-set",
         label: "Uses a second supplied identity set without hidden constants",
-        args: [{ messageId: "assistant-42", parentUserId: "user-17", attemptId: "attempt-8" }],
+        args: [{ messageId: "assistant-42", parentUserId: "user-17", attemptId: "attempt-8", requestId: "request-8" }],
         assertions: [equal("second-branch", "Use the supplied ids on every call and keep queued assistant defaults stable", {
           messageId: "assistant-42",
           parentUserId: "user-17",
           attemptId: "attempt-8",
+          requestId: "request-8",
           role: "assistant",
           content: "",
           status: "queued",
@@ -1433,11 +1542,12 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       {
         id: "ignore-caller-only-fields",
         label: "Does not copy caller-only fields or caller overrides into normalized state",
-        args: [{ messageId: "m10", parentUserId: "m5", attemptId: "a3", requestId: "r-private", content: "caller text", status: "complete", renderIndex: 9 }],
-        assertions: [equal("stable-field-set", "Return only messageId, parentUserId, attemptId, role, content, and status; ignore requestId, renderIndex, and caller overrides", {
+        args: [{ messageId: "m10", parentUserId: "m5", attemptId: "a3", requestId: "r3", content: "caller text", status: "complete", renderIndex: 9, modelId: "caller-model" }],
+        assertions: [equal("stable-field-set", "Return the four identity fields plus normalized assistant defaults; ignore renderIndex, modelId, and caller overrides", {
           messageId: "m10",
           parentUserId: "m5",
           attemptId: "a3",
+          requestId: "r3",
           role: "assistant",
           content: "",
           status: "queued",
@@ -1446,11 +1556,12 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       {
         id: "punctuated-identities",
         label: "Preserves opaque supplied ids exactly",
-        args: [{ messageId: "m/11", parentUserId: "user:6", attemptId: "attempt.4" }],
+        args: [{ messageId: "m/11", parentUserId: "user:6", attemptId: "attempt.4", requestId: "request/4" }],
         assertions: [equal("opaque-ids", "Treat ids as opaque values and do not derive one identity from another", {
           messageId: "m/11",
           parentUserId: "user:6",
           attemptId: "attempt.4",
+          requestId: "request/4",
           role: "assistant",
           content: "",
           status: "queued",
@@ -1598,6 +1709,6 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
 ];
 
 export const llmSystemsContractSuite: ContractSuite = {
-  contractVersion: "llm-systems-contracts-v14",
+  contractVersion: "llm-systems-contracts-v16",
   contracts: llmSystemsExerciseContracts,
 };

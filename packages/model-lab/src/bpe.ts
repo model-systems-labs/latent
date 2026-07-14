@@ -31,6 +31,7 @@ function applyMerge(symbols: string[], pair: [string, string]) {
 export function trainBpe(mergeBudget = 12): BpeResult {
   integerInRange(mergeBudget, "mergeBudget", 0, 10_000);
   let words = BPE_CORPUS.flatMap((line) => line.split(" ")).map((word) => [...word]);
+  const vocabulary = new Set(words.flat());
   const initialTokenCount = words.reduce((sum, word) => sum + word.length, 0);
   const merges: Array<{ pair: [string, string]; count: number }> = [];
   for (let step = 0; step < mergeBudget; step += 1) {
@@ -45,6 +46,7 @@ export function trainBpe(mergeBudget = 12): BpeResult {
     if (!best || best[1] < 2) break;
     const pair = best[0].split("\u0000") as [string, string];
     merges.push({ pair, count: best[1] });
+    vocabulary.add(pair[0] + pair[1]);
     words = words.map((word) => applyMerge(word, pair));
   }
 
@@ -53,7 +55,6 @@ export function trainBpe(mergeBudget = 12): BpeResult {
     for (const merge of merges) symbols = applyMerge(symbols, merge.pair);
     return wordIndex === 0 ? symbols : ["▁", ...symbols];
   });
-  const vocabulary = new Set(words.flat());
   return {
     merges,
     encoded,

@@ -32,7 +32,7 @@ function ReplayFrames({ artifact }: { artifact: ArtifactEnvelope }) {
     <div className="artifact-replay">
       <div className="artifact-timeline" role="group" aria-label={`${artifact.title} replay frames`}>
         {frames.map((frame, index) => (
-          <button className={index === selected ? "active" : ""} type="button" key={`${frame.index}-${frame.label}`} onClick={() => setSelected(index)}>
+          <button aria-pressed={index === selected} className={index === selected ? "active" : ""} type="button" key={`${frame.index}-${frame.label}`} onClick={() => setSelected(index)}>
             <i />
             <span>{frame.label}</span>
             <code>{frame.at} {artifact.replay?.unit}</code>
@@ -40,7 +40,7 @@ function ReplayFrames({ artifact }: { artifact: ArtifactEnvelope }) {
         ))}
       </div>
       <article className="artifact-frame">
-        <span>Replay frame {active.index + 1} / {frames.length}</span>
+        <span>Course-authored reference frame {active.index + 1} / {frames.length}</span>
         <strong>{active.label}</strong>
         <pre>{JSON.stringify(active.payload, null, 2)}</pre>
       </article>
@@ -65,19 +65,19 @@ export function ArtifactRuntimePanel({ lesson, refreshKey = 0 }: { lesson: Cours
   return (
     <details className="artifact-runtime-panel" id="artifacts">
       <summary className="artifact-runtime-heading">
-        <div><span>Artifacts</span><h3 id="artifact-runtime-title">A record of what you built.</h3></div>
+        <div><span>Artifacts</span><h3 id="artifact-runtime-title">A source-bound validation receipt.</h3></div>
         <span className="artifact-runtime-action">Inspect</span>
       </summary>
       <div className="artifact-runtime-body" aria-labelledby="artifact-runtime-title">
-        <p className="artifact-runtime-intro">Passing code becomes a device-local artifact that the next lesson can reuse.</p>
+        <p className="artifact-runtime-intro">Passing code stores its source hash and contract results on this device. The replay frames are course-authored references for the mechanism, not output computed from your implementation.</p>
         {error ? <p className="artifact-runtime-error">{error}</p> : null}
         {!view && !error ? <p className="artifact-runtime-loading">Loading local artifact lineage…</p> : null}
         {view ? (
           <>
             {view.training ? <RecordedTrainingPanel key={view.training.scenario.id} replay={view.training} onDownload={downloadArtifact} /> : null}
             <div className="artifact-lineage-grid">
-              {view.input ? <ArtifactIdentity artifact={view.input} label="Input" /> : <article className="artifact-identity pending"><span>Input pending</span><strong>Complete the previous lesson</strong><p>Its validated artifact will become this lesson&apos;s input.</p></article>}
-              {view.output ? <ArtifactIdentity artifact={view.output} label="Output" /> : <article className="artifact-identity pending"><span>Output pending</span><strong>Pass every behavioral check</strong><p>Your passing source will become a replayable, downloadable artifact.</p></article>}
+              {view.input ? <ArtifactIdentity artifact={view.input} label="Prior receipt" /> : <article className="artifact-identity pending"><span>Prior receipt pending</span><strong>Complete the previous lesson</strong><p>Its source-bound validation receipt will become this lesson&apos;s lineage input.</p></article>}
+              {view.output ? <ArtifactIdentity artifact={view.output} label="Validation receipt" /> : <article className="artifact-identity pending"><span>Receipt pending</span><strong>Pass every behavioral check</strong><p>Your passing source and contract evidence will become a downloadable validation receipt.</p></article>}
             </div>
             {view.output ? (
               <>

@@ -88,12 +88,13 @@ test("lesson source remains external while the capstone imports its behavioral s
   assert.match(template.CAPSTONE_MAIN_SOURCE, /export function mount\(\)/);
   assert.match(template.CAPSTONE_MAIN_SOURCE, /const root = createRoot\(target\)/);
   assert.match(template.CAPSTONE_MAIN_SOURCE, /mount\(\);/);
-  assert.match(source, /const currentUser = \{ id: parentUserId, role: "user", content: userText/);
-  assert.match(source, /selectContext\(historicalContext, 2048 - currentUser\.tokens\)/);
-  assert.match(source, /bounded\.overflow \|\| bounded\.used \+ currentUser\.tokens > 2048/);
+  assert.match(source, /const currentUser = \{ id: parentUserId, role: "user", status: "complete", content: userText/);
+  assert.match(source, /selectContext\(\{ system: systemContext, history: historicalContext, activeUser: currentUser, budget: 2048 \}\)/);
+  assert.match(source, /if \(bounded\.overflow\)/);
   assert.match(source, /Required instructions and the current prompt exceed the 2048-token request budget/);
-  assert.match(source, /const requestContext = \[\.\.\.bounded\.selected, currentUser\]/);
+  assert.match(source, /const requestContext = bounded\.selected/);
   assert.match(source, /messages: requestContext\.map/);
+  assert.match(source, /appendMessageDelta\(state\.messages, \{[\s\S]*attemptId: action\.attemptId,[\s\S]*requestId: action\.requestId/);
   assert.doesNotMatch(source, /localStorage/);
 });
 
@@ -108,6 +109,11 @@ test("editing any project source invalidates source-bound capstone verification"
     runner: "browser-lab-v1",
     sourceTreeHash: "sha256:tested-tree",
     projectRevision: 7,
+    contractVersion: "llm-systems-contracts-v16",
+    contractIdsByPath: {
+      "capstone/main.tsx": ["compile"],
+      "capstone/BrowserChat.tsx": ["compile-ui"],
+    },
   };
   const next = workspace.projectStateAfterFileEdit(
     state,
@@ -121,6 +127,8 @@ test("editing any project source invalidates source-bound capstone verification"
     runner: "none",
     sourceTreeHash: null,
     projectRevision: null,
+    contractVersion: null,
+    contractIdsByPath: {},
   });
   assert.equal(next.files["capstone/BrowserChat.tsx"].updatedAt, 200);
 });

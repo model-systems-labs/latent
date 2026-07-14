@@ -1,3 +1,7 @@
+import {
+  isValidatedPersistedBuild,
+  type ValidatedPersistedBuild,
+} from "../../platform/persistence/pure";
 import type { BuildRecord } from "../../platform/persistence/types";
 import {
   BrowserLabError,
@@ -283,7 +287,7 @@ async function normalizeArtifact(artifact: BuildArtifact): Promise<NormalizedBui
   };
 }
 
-async function normalizePersistedBuild(build: BuildRecord): Promise<NormalizedBuild> {
+async function normalizePersistedBuild(build: ValidatedPersistedBuild): Promise<NormalizedBuild> {
   assertPositiveBuildIdentity(build);
   if (build.schemaVersion !== 1 || build.provenance !== "validated") {
     fail("UNVALIDATED_ACTIVE_BUILD", "Only a validated persisted build may power the capstone.");
@@ -338,8 +342,8 @@ async function normalizePersistedBuild(build: BuildRecord): Promise<NormalizedBu
   };
 }
 
-function isBuildArtifact(build: BuildArtifact | BuildRecord): build is BuildArtifact {
-  return "artifactId" in build && "program" in build && "bindingManifest" in build;
+function isBuildArtifact(build: BuildArtifact | ValidatedPersistedBuild): build is BuildArtifact {
+  return Boolean(build) && typeof build === "object" && "artifactId" in build && "program" in build && "bindingManifest" in build;
 }
 
 async function fingerprintEntries(
@@ -358,11 +362,13 @@ async function fingerprintEntries(
  * evaluates learner code in the application realm.
  */
 export async function createCapstoneRuntimeDescriptor(
-  build: BuildArtifact | BuildRecord,
+  build: BuildArtifact | ValidatedPersistedBuild,
 ): Promise<CapstoneRuntimeDescriptor> {
   const normalized = isBuildArtifact(build)
     ? await normalizeArtifact(build)
-    : await normalizePersistedBuild(build);
+    : isValidatedPersistedBuild(build)
+      ? await normalizePersistedBuild(build)
+      : fail("UNVALIDATED_ACTIVE_BUILD", "A bare persisted build cannot claim a host-owned passing receipt. Load it through the validated build repository.");
   const bindings = safeBindingReferences(normalized.bindingManifest);
   const capabilitiesByPath = new Map<string, string[]>();
   for (const binding of bindings) {
@@ -435,13 +441,79 @@ export type ValidatedCapstoneBundle = {
   codeHash: SourceHash;
 };
 
+export type CertifiedCapstoneRuntimeConfig = Readonly<{
+  version: 1;
+  model: Readonly<{ temperature: number; topK: number; maxTokens: number; seed: number }>;
+  transport: Readonly<{ wordsPerEvent: number; delayMs: number }>;
+  interface: Readonly<{ assistantName: string; responsePrefix: string; showMetrics: boolean }>;
+  buildNumber: number;
+  builtAt: number;
+}>;
+
+function plainRuntimeRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value)
+    && (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null);
+}
+
+function hasExactRuntimeKeys(value: Record<string, unknown>, keys: readonly string[]) {
+  const actual = Object.keys(value).sort();
+  const expected = [...keys].sort();
+  return actual.length === expected.length && actual.every((key, index) => key === expected[index]);
+}
+
+function boundedRuntimeNumber(value: unknown, minimum: number, maximum: number, integer = false): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= minimum && value <= maximum
+    && (!integer || Number.isInteger(value));
+}
+
+/** Returns only the immutable runtime configuration stored with this exact certified build. */
+export function certifiedCapstoneRuntimeConfig(build: ValidatedPersistedBuild): CertifiedCapstoneRuntimeConfig {
+  if (!isValidatedPersistedBuild(build)) {
+    fail("UNVALIDATED_RUNTIME_CONFIG", "A bare build record cannot provide capstone runtime authority.");
+  }
+  const root = build.runtimeConfig;
+  if (!plainRuntimeRecord(root) || !hasExactRuntimeKeys(root, ["version", "model", "transport", "interface", "buildNumber", "builtAt"]) || root.version !== 1) {
+    fail("INVALID_RUNTIME_CONFIG", "The certified build does not retain the exact runtime configuration schema.");
+  }
+  const model = root.model;
+  const transport = root.transport;
+  const presentation = root.interface;
+  if (!plainRuntimeRecord(model) || !hasExactRuntimeKeys(model, ["temperature", "topK", "maxTokens", "seed"])
+    || !boundedRuntimeNumber(model.temperature, 0.2, 1.8)
+    || !boundedRuntimeNumber(model.topK, 0, 64, true)
+    || !boundedRuntimeNumber(model.maxTokens, 40, 160, true)
+    || !boundedRuntimeNumber(model.seed, 0, 99_999, true)) {
+    fail("INVALID_RUNTIME_CONFIG", "The certified build model configuration is missing or outside its supported bounds.");
+  }
+  if (!plainRuntimeRecord(transport) || !hasExactRuntimeKeys(transport, ["wordsPerEvent", "delayMs"])
+    || !boundedRuntimeNumber(transport.wordsPerEvent, 1, 12, true)
+    || !boundedRuntimeNumber(transport.delayMs, 0, 200, true)) {
+    fail("INVALID_RUNTIME_CONFIG", "The certified build transport configuration is missing or outside its supported bounds.");
+  }
+  if (!plainRuntimeRecord(presentation) || !hasExactRuntimeKeys(presentation, ["assistantName", "responsePrefix", "showMetrics"])
+    || typeof presentation.assistantName !== "string" || !presentation.assistantName.trim()
+    || presentation.assistantName !== presentation.assistantName.trim() || presentation.assistantName.length > 24
+    || typeof presentation.responsePrefix !== "string" || presentation.responsePrefix.length > 60
+    || typeof presentation.showMetrics !== "boolean") {
+    fail("INVALID_RUNTIME_CONFIG", "The certified build interface configuration is missing or outside its supported bounds.");
+  }
+  return Object.freeze({
+    version: 1 as const,
+    model: Object.freeze({ temperature: model.temperature, topK: model.topK, maxTokens: model.maxTokens, seed: model.seed }),
+    transport: Object.freeze({ wordsPerEvent: transport.wordsPerEvent, delayMs: transport.delayMs }),
+    interface: Object.freeze({ assistantName: presentation.assistantName, responsePrefix: presentation.responsePrefix, showMetrics: presentation.showMetrics }),
+    buildNumber: build.buildNumber,
+    builtAt: build.createdAt,
+  });
+}
+
 /**
  * Returns executable UI bytes only after the active build, canonical binding,
  * and persisted compiler hash have all been verified. Callers must execute the
  * code in the opaque-origin preview frame, never in the application realm.
  */
 export async function loadValidatedCapstoneBundle(
-  build: BuildArtifact | BuildRecord,
+  build: BuildArtifact | ValidatedPersistedBuild,
 ): Promise<ValidatedCapstoneBundle> {
   const descriptor = await createCapstoneRuntimeDescriptor(build);
   const binding = descriptor.bindings.find((candidate) => candidate.capability === "ui.mount");

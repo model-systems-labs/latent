@@ -37,8 +37,11 @@ test("the neural language model learns a normalized prediction distribution", ()
 
 test("BPE training reduces token count with an ordered deterministic merge table", () => {
   const result = modelLab.trainBpe(12);
+  const initial = modelLab.trainBpe(0);
   assert.equal(result.finalTokenCount < result.initialTokenCount, true);
   assert.equal(result.merges.length > 0, true);
+  assert.equal(result.vocabularySize > initial.vocabularySize, true);
+  assert.equal(result.vocabularySize, initial.vocabularySize + result.merges.length);
   assert.deepEqual(modelLab.trainBpe(12), result);
   assert.equal(result.encoded.includes("▁"), true);
 });

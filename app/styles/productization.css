@@ -16,27 +16,24 @@
 }
 
 .first-run > header {
-  align-items: end;
-  display: grid;
-  gap: 4rem;
-  grid-template-columns: 1.1fr 0.9fr;
+  display: block;
   padding-bottom: 2rem;
 }
 
 .first-run > header span,
 .first-run-controls label > span {
   color: var(--violet);
-  font-size: 0.59rem;
+  font-size: max(0.68rem, 11px);
   letter-spacing: 0.11em;
   text-transform: uppercase;
 }
 
 .first-run > header h2 {
   font-family: var(--serif);
-  font-size: clamp(2.4rem, 5vw, 4.6rem);
+  font-size: clamp(2rem, 3.8vw, 3.35rem);
   font-weight: 400;
-  letter-spacing: -0.045em;
-  line-height: 0.98;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
   margin: 0.65rem 0 0;
 }
 
@@ -47,6 +44,11 @@
   font-size: 0.92rem;
   line-height: 1.65;
   margin: 0;
+}
+
+.first-run > header p {
+  margin-top: 1rem;
+  max-width: 58rem;
 }
 
 .first-run-layout {
@@ -70,6 +72,8 @@
   gap: 0.7rem;
 }
 
+.first-run-controls label > span { color: #cbb8d9; }
+
 .first-run-controls textarea {
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.11);
@@ -88,14 +92,14 @@
   border-radius: 999px;
   color: #29252b;
   cursor: pointer;
-  font-size: 0.63rem;
+  font-size: max(0.68rem, 11px);
   margin-top: 1rem;
   padding: 0.9rem 1rem;
 }
 
 .first-run-controls > p {
-  color: #a9a19a;
-  font-size: 0.64rem;
+  color: #bdb5ae;
+  font-size: max(0.68rem, 11px);
   line-height: 1.55;
   margin: 1rem 0;
   min-height: 3rem;
@@ -125,8 +129,8 @@
 
 .environment-readiness .fallback i { background: #d5b87a; }
 .environment-readiness .blocked i { background: #d7968a; }
-.environment-readiness strong { font-size: 0.6rem; font-weight: 500; }
-.environment-readiness em { color: #837c77; font-size: 0.55rem; font-style: normal; text-align: right; }
+.environment-readiness strong { font-size: max(0.68rem, 11px); font-weight: 500; }
+.environment-readiness em { color: #b6aea8; font-size: max(0.68rem, 11px); font-style: normal; text-align: right; }
 
 .first-run-output {
   display: grid;
@@ -150,8 +154,8 @@
   padding: 1rem;
 }
 
-.first-run-output header span { color: #c3b2d1; font-size: 0.62rem; text-transform: uppercase; }
-.first-run-output header code { color: #77706b; font-size: 0.55rem; }
+.first-run-output header span { color: #d1bde0; font-size: max(0.68rem, 11px); text-transform: uppercase; }
+.first-run-output header code { color: #b6aea8; font-size: max(0.68rem, 11px); }
 .first-run-output article p {
   color: #dcd5ce;
   font-family: var(--serif);
@@ -172,7 +176,7 @@
 }
 
 .first-run > footer p { font-size: 0.72rem; }
-.first-run > footer a { border-bottom: 1px solid var(--line-strong); font-size: 0.67rem; padding-bottom: 0.25rem; }
+.first-run > footer a { border-bottom: 1px solid var(--line-strong); font-size: max(0.68rem, 11px); padding-bottom: 0.25rem; }
 
 .mobile-ide-tabs {
   display: none;
@@ -192,15 +196,15 @@
 }
 
 .project-file-history > header {
-  color: #928a84;
-  font-size: 0.58rem;
+  color: #aaa3ad;
+  font-size: max(0.68rem, 11px);
   letter-spacing: 0.08em;
   padding-bottom: 0.55rem;
   text-transform: uppercase;
 }
 
 .project-file-history > header strong {
-  color: #6e6864;
+  color: #aaa3ad;
   font-weight: 500;
 }
 
@@ -214,16 +218,29 @@
   gap: 0.15rem;
 }
 
+.project-file-history .project-recovery-candidate code {
+  color: #c7b7d1;
+  font-size: max(0.68rem, 11px);
+  line-height: 1.4;
+  max-width: 17rem;
+  overflow-wrap: anywhere;
+}
+
+.project-file-history .project-recovery-candidate > span:last-child {
+  display: flex;
+  gap: 0.35rem;
+}
+
 .project-file-history > div strong {
   color: #cfc7bf;
   font-family: var(--mono);
-  font-size: 0.61rem;
+  font-size: 0.72rem;
 }
 
 .project-file-history > div em,
 .project-file-history > p {
-  color: #716b67;
-  font-size: 0.54rem;
+  color: #aaa3ad;
+  font-size: max(0.68rem, 11px);
   font-style: normal;
   margin: 0;
 }
@@ -234,7 +251,8 @@
   border-radius: 999px;
   color: #bfb7af;
   cursor: pointer;
-  font-size: 0.55rem;
+  font-size: max(0.68rem, 11px);
+  min-height: 2.75rem;
   padding: 0.35rem 0.55rem;
 }
 
@@ -256,7 +274,7 @@
 .project-timeline > header span,
 .learning-data-panel > header span {
   color: var(--violet);
-  font-size: 0.59rem;
+  font-size: max(0.68rem, 11px);
   letter-spacing: 0.11em;
   text-transform: uppercase;
 }
@@ -302,7 +320,7 @@
   border: 1px solid var(--line-strong);
   border-radius: 999px;
   cursor: pointer;
-  font-size: 0.58rem;
+  font-size: max(0.68rem, 11px);
   padding: 0.55rem 0.7rem;
 }
 
@@ -319,7 +337,7 @@
 
 .project-timeline-controls label span {
   color: var(--faint);
-  font-size: 0.58rem;
+  font-size: max(0.68rem, 11px);
   text-align: right;
 }
 
@@ -343,9 +361,9 @@
 .project-timeline-view > header code { font-size: 0.72rem; }
 .project-timeline-view > header span,
 .timeline-provided-files span,
-.timeline-capstone-files span { color: var(--violet); font-size: 0.58rem; text-transform: uppercase; }
+.timeline-capstone-files span { color: var(--violet); font-size: max(0.68rem, 11px); text-transform: uppercase; }
 .timeline-provided-files code,
-.timeline-capstone-files code { color: var(--faint); font-size: 0.58rem; text-align: right; }
+.timeline-capstone-files code { color: var(--faint); font-size: max(0.68rem, 11px); text-align: right; }
 
 .project-timeline-view ol {
   list-style: none;
@@ -363,11 +381,11 @@
 }
 
 .project-timeline-view li.active { background: rgba(193,177,207,0.12); }
-.project-timeline-view li > span { color: var(--violet); font-family: var(--mono); font-size: 0.56rem; }
+.project-timeline-view li > span { color: var(--violet); font-family: var(--mono); font-size: max(0.68rem, 11px); }
 .project-timeline-view li a { align-items: center; display: flex; justify-content: space-between; min-width: 0; }
-.project-timeline-view li code { font-size: 0.64rem; overflow: hidden; text-overflow: ellipsis; }
-.project-timeline-view li em { color: var(--faint); font-size: 0.56rem; font-style: normal; }
-.project-timeline-view li.empty p { color: var(--faint); font-size: 0.65rem; margin: 0; }
+.project-timeline-view li code { font-size: max(0.68rem, 11px); overflow: hidden; text-overflow: ellipsis; }
+.project-timeline-view li em { color: var(--faint); font-size: max(0.68rem, 11px); font-style: normal; }
+.project-timeline-view li.empty p { color: var(--faint); font-size: max(0.68rem, 11px); margin: 0; }
 
 .project-timeline > footer {
   align-items: center;
@@ -377,9 +395,9 @@
 }
 
 .project-timeline > footer p,
-.learning-data-panel > footer p { color: var(--muted); font-size: 0.65rem; margin: 0; }
+.learning-data-panel > footer p { color: var(--muted); font-size: max(0.68rem, 11px); margin: 0; }
 .project-timeline > footer a,
-.learning-data-panel a { border-bottom: 1px solid var(--line-strong); font-size: 0.65rem; padding-bottom: 0.25rem; }
+.learning-data-panel a { border-bottom: 1px solid var(--line-strong); font-size: max(0.68rem, 11px); padding-bottom: 0.25rem; }
 
 .learning-data-panel {
   margin-bottom: 6rem;
@@ -400,7 +418,7 @@
 }
 
 .learning-data-panel dl > div + div { border-left: 1px solid var(--line); }
-.learning-data-panel dt { color: var(--faint); font-size: 0.58rem; text-transform: uppercase; }
+.learning-data-panel dt { color: var(--faint); font-size: max(0.68rem, 11px); text-transform: uppercase; }
 .learning-data-panel dd { font-family: var(--serif); font-size: 1.7rem; margin: 0; }
 
 .learning-data-panel > footer {
@@ -456,13 +474,13 @@
 .runtime-notices > header span,
 .lesson-source-index > header span {
   color: var(--violet);
-  font-size: 0.59rem;
+  font-size: max(0.68rem, 11px);
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
 .source-policy strong { font-family: var(--serif); font-size: 1rem; font-weight: 400; }
-.source-policy p { color: var(--muted); font-size: 0.68rem; line-height: 1.65; margin: 0.45rem 0 0; }
+.source-policy p { color: var(--muted); font-size: max(0.68rem, 11px); line-height: 1.65; margin: 0.45rem 0 0; }
 
 .runtime-notices,
 .lesson-source-index {
@@ -498,10 +516,10 @@
 
 .runtime-notices a > span { display: grid; gap: 0.25rem; }
 .runtime-notices a strong { font-size: 0.72rem; }
-.runtime-notices a em { color: var(--faint); font-size: 0.57rem; font-style: normal; }
-.runtime-notices a p { color: var(--muted); font-size: 0.66rem; line-height: 1.5; margin: 0; }
-.runtime-notices a code { color: var(--violet); font-size: 0.59rem; }
-.license-note { color: var(--faint); font-size: 0.6rem; line-height: 1.55; margin: 1rem 0 0; }
+.runtime-notices a em { color: var(--faint); font-size: max(0.68rem, 11px); font-style: normal; }
+.runtime-notices a p { color: var(--muted); font-size: max(0.68rem, 11px); line-height: 1.5; margin: 0; }
+.runtime-notices a code { color: var(--violet); font-size: max(0.68rem, 11px); }
+.license-note { color: var(--faint); font-size: max(0.68rem, 11px); line-height: 1.55; margin: 1rem 0 0; }
 
 .lesson-source-index > article {
   border-bottom: 1px solid var(--line);
@@ -518,22 +536,22 @@
   grid-template-columns: auto 1fr;
 }
 
-.lesson-source-index article > header > span { color: var(--violet); font-family: var(--mono); font-size: 0.58rem; }
+.lesson-source-index article > header > span { color: var(--violet); font-family: var(--mono); font-size: max(0.68rem, 11px); }
 .lesson-source-index article > header div { display: grid; gap: 0.4rem; }
 .lesson-source-index article > header strong { font-family: var(--serif); font-size: 1.25rem; font-weight: 400; }
-.lesson-source-index article > header code { color: var(--faint); font-size: 0.55rem; }
+.lesson-source-index article > header code { color: var(--faint); font-size: max(0.68rem, 11px); }
 .lesson-source-index ul { list-style: none; margin: 0; padding: 0; }
 .lesson-source-index li + li { border-top: 1px solid var(--line); }
 .lesson-source-index li a { align-items: start; display: grid; gap: 1rem; grid-template-columns: minmax(0,0.9fr) minmax(0,1.1fr) auto; padding: 0.8rem 0; }
 .lesson-source-index li span { display: grid; gap: 0.25rem; }
-.lesson-source-index li strong { font-size: 0.67rem; }
-.lesson-source-index li em { color: var(--faint); font-size: 0.55rem; font-style: normal; }
-.lesson-source-index li p { color: var(--muted); font-size: 0.62rem; line-height: 1.5; margin: 0; }
-.lesson-source-index li i { color: var(--violet); font-size: 0.65rem; font-style: normal; }
+.lesson-source-index li strong { font-size: max(0.68rem, 11px); }
+.lesson-source-index li em { color: var(--faint); font-size: max(0.68rem, 11px); font-style: normal; }
+.lesson-source-index li p { color: var(--muted); font-size: max(0.68rem, 11px); line-height: 1.5; margin: 0; }
+.lesson-source-index li i { color: var(--violet); font-size: max(0.68rem, 11px); font-style: normal; }
 .lesson-source-index article > footer { align-items: center; display: grid; gap: 0.8rem; grid-column: 2; grid-template-columns: auto 1fr auto; }
-.lesson-source-index article > footer span { color: var(--violet); font-size: 0.55rem; text-transform: uppercase; }
-.lesson-source-index article > footer p { color: var(--faint); font-size: 0.58rem; margin: 0; }
-.lesson-source-index article > footer code { color: var(--faint); font-size: 0.55rem; }
+.lesson-source-index article > footer span { color: var(--violet); font-size: max(0.68rem, 11px); text-transform: uppercase; }
+.lesson-source-index article > footer p { color: var(--faint); font-size: max(0.68rem, 11px); margin: 0; }
+.lesson-source-index article > footer code { color: var(--faint); font-size: max(0.68rem, 11px); }
 
 .lesson-outcome-section {
   padding-bottom: 6rem;
@@ -574,7 +592,7 @@
 .lesson-change-record > div > span,
 .behavior-change span {
   color: var(--violet);
-  font-size: 0.59rem;
+  font-size: max(0.68rem, 11px);
   letter-spacing: 0.11em;
   text-transform: uppercase;
 }
@@ -643,13 +661,13 @@
   border: 1px solid var(--line-strong);
   border-radius: 999px;
   cursor: pointer;
-  font-size: 0.62rem;
+  font-size: max(0.68rem, 11px);
   padding: 0.7rem 0.9rem;
 }
 
 .knowledge-check > footer p {
   color: var(--faint);
-  font-size: 0.67rem;
+  font-size: max(0.68rem, 11px);
   line-height: 1.55;
   margin: 0;
 }
@@ -664,7 +682,7 @@
 
 .lesson-change-record > header code {
   color: var(--faint);
-  font-size: 0.62rem;
+  font-size: max(0.68rem, 11px);
 }
 
 .lesson-change-record > div > p {
@@ -715,12 +733,12 @@
 
 .lesson-change-record dt {
   color: var(--faint);
-  font-size: 0.58rem;
+  font-size: max(0.68rem, 11px);
   text-transform: uppercase;
 }
 
 .lesson-change-record dd {
-  font-size: 0.68rem;
+  font-size: max(0.68rem, 11px);
   margin: 0;
 }
 
@@ -754,7 +772,7 @@
 .module-checkpoint-card > span,
 .module-checkpoint-card > em {
   color: var(--violet);
-  font-size: 0.62rem;
+  font-size: max(0.68rem, 11px);
   font-style: normal;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -815,7 +833,7 @@
 
 .checkpoint-readiness span {
   color: var(--faint);
-  font-size: 0.64rem;
+  font-size: max(0.68rem, 11px);
 }
 
 .checkpoint-readiness strong {
@@ -835,7 +853,7 @@
 
 .checkpoint-change article span {
   color: var(--violet);
-  font-size: 0.59rem;
+  font-size: max(0.68rem, 11px);
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
@@ -878,7 +896,7 @@
 
 .checkpoint-console > header span,
 .checkpoint-console > header strong {
-  font-size: 0.61rem;
+  font-size: max(0.68rem, 11px);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -896,7 +914,7 @@
 .checkpoint-detail {
   border-bottom: 1px solid rgba(255,255,255,0.08);
   color: #a59e98;
-  font-size: 0.68rem;
+  font-size: max(0.68rem, 11px);
   line-height: 1.5;
   margin: 0;
   padding: 0.8rem 1.2rem;
@@ -920,14 +938,14 @@
 .checkpoint-repair span,
 .checkpoint-repair small {
   color: #8f8781;
-  font-size: 0.54rem;
+  font-size: max(0.68rem, 11px);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .checkpoint-repair code {
   color: #dfaca2;
-  font-size: 0.63rem;
+  font-size: max(0.68rem, 11px);
 }
 
 .checkpoint-repair strong {
@@ -938,7 +956,7 @@
 
 .checkpoint-repair p {
   color: #bdb4ad;
-  font-size: 0.64rem;
+  font-size: max(0.68rem, 11px);
   line-height: 1.55;
   margin: 0;
 }
@@ -947,7 +965,7 @@
   border: 1px solid rgba(255,255,255,0.18);
   border-radius: 999px;
   color: #eee9e2;
-  font-size: 0.58rem;
+  font-size: max(0.68rem, 11px);
   padding: 0.55rem 0.75rem;
   text-align: center;
 }
@@ -987,12 +1005,12 @@
 .checkpoint-console-grid li span {
   color: #8e7e9e;
   font-family: var(--mono);
-  font-size: 0.59rem;
+  font-size: max(0.68rem, 11px);
 }
 
 .checkpoint-console-grid li p {
   color: #aaa39c;
-  font-size: 0.64rem;
+  font-size: max(0.68rem, 11px);
   line-height: 1.55;
   margin: 0;
 }
@@ -1011,8 +1029,8 @@
   padding: 0.9rem 0;
 }
 
-.checkpoint-files code { font-size: 0.68rem; }
-.checkpoint-files span { color: var(--faint); font-size: 0.6rem; }
+.checkpoint-files code { font-size: max(0.68rem, 11px); }
+.checkpoint-files span { color: var(--faint); font-size: max(0.68rem, 11px); }
 
 .checkpoint-navigation {
   display: flex;

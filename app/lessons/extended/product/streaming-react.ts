@@ -24,7 +24,7 @@ export const streamingReactLesson = defineExtendedLesson({
     ],
     claims: {
       paper: "ReadableStream exposes asynchronous chunk consumption with cancellation and backpressure-aware primitives.",
-      lab: "A deterministic React-style scheduler compares burst, steady, stalled, and cancelled delivery while exposing every visual commit, scroll decision, live announcement, and cleanup result.",
+      lab: "A deterministic worked trace compares authored burst, steady, stalled, and cancelled delivery while exposing every visual commit, scroll decision, live announcement, and cleanup result.",
       limit: "The deterministic lab does not benchmark every browser, renderer, or assistive technology combination.",
     },
     diagram: {
@@ -77,5 +77,5 @@ return { passed: near === true && reading === false, detail: "near bottom follow
         },
       ],
     },
-    experiment: { kind: "product", variant: "streaming-ui", title: "Render the token stream", intro: "Run the same 60-delta response through burst, steady, stalled, and cancelled timing profiles. Inspect exact visual commits, scroll-follow decisions, bounded live-region contents, and terminal cleanup." },
+    experiment: { kind: "product", variant: "streaming-ui", title: "Replay the token stream", intro: "Replay the same fixed 60-delta response through burst, steady, stalled, and cancelled timing profiles. Inspect authored visual commits, scroll-follow decisions, bounded live-region contents, and terminal cleanup." },
   });

@@ -18,7 +18,13 @@ export type CapstoneLocalRecord = {
 
 export type GenerationPhase = "queued" | "loading" | "prefill" | "streaming" | "complete" | "cancelled" | "error";
 export type QualityCategory = "Input and focus" | "Persistence and context" | "Lifecycle and recovery" | "Accessibility and responsive contract";
-export type QualityCheck = { category: QualityCategory; label: string; detail: string; passed: boolean };
+export type QualityCheck = {
+  category: QualityCategory;
+  label: string;
+  detail: string;
+  verification: "automated-pure" | "specification";
+  passed: boolean | null;
+};
 
 export const CAPSTONE_STORAGE_KEY = "latent-capstone-v1";
 export const CHAT_LOG_ACCESSIBILITY = { role: "log", ariaLive: "polite" } as const;
@@ -159,6 +165,12 @@ export function selectCompleteTurnContext(messages: ContextMessage[], budget: nu
 }
 
 export function runCapstoneQualityAudit(): QualityCheck[] {
+  const automated = (category: QualityCategory, label: string, detail: string, passed: boolean): QualityCheck => ({
+    category, label, detail, verification: "automated-pure", passed,
+  });
+  const specification = (category: QualityCategory, label: string, detail: string): QualityCheck => ({
+    category, label, detail, verification: "specification", passed: null,
+  });
   const messages: PersistedChatMessage[] = [
     { id: "s1", role: "user", content: "student", status: "complete", backend: "student" },
     { id: "l1", role: "user", content: "local", status: "complete", backend: "local" },
@@ -181,24 +193,24 @@ export function runCapstoneQualityAudit(): QualityCheck[] {
   const exactLabels = phases.map(generationStatusLabelContract).join(" → ");
 
   return [
-    { category: "Input and focus", label: "Enter sends", detail: "Enter without Shift resolves to send.", passed: composerKeyAction("Enter", false) === "send" },
-    { category: "Input and focus", label: "Shift+Enter preserves a newline", detail: "The same key with Shift resolves to newline, not send.", passed: composerKeyAction("Enter", true) === "newline" },
-    { category: "Input and focus", label: "Terminal focus target", detail: "Stop returns focus to composer; retry returns there after its terminal phase.", passed: terminalFocusTarget("cancel") === "composer" && terminalFocusTarget("retry") === "composer-after-terminal" },
-    { category: "Input and focus", label: "Regeneration guard", detail: "Retry needs an active-backend user message and is disabled while generating.", passed: canRegenerate(messages, "local", false) && !canRegenerate(messages, "local", true) && !canRegenerate([], "local", false) },
+    automated("Input and focus", "Enter sends", "Enter without Shift resolves to send.", composerKeyAction("Enter", false) === "send"),
+    automated("Input and focus", "Shift+Enter preserves a newline", "The same key with Shift resolves to newline, not send.", composerKeyAction("Enter", true) === "newline"),
+    specification("Input and focus", "Terminal focus target specification", "The policy names the composer as the terminal target; real keyboard focus still requires browser testing."),
+    automated("Input and focus", "Regeneration guard", "Retry needs an active-backend user message and is disabled while generating.", canRegenerate(messages, "local", false) && !canRegenerate(messages, "local", true) && !canRegenerate([], "local", false)),
 
-    { category: "Persistence and context", label: "Versioned round trip", detail: "v1 / active restores two exact terminal messages.", passed: parsed?.version === 1 && parsed.id === "active" && parsed.messages.length === 2 },
-    { category: "Persistence and context", label: "Nested secret rejection", detail: "A message containing providerKey fails the exact-field validator.", passed: parseCapstoneRecord(secretRecord) === null },
-    { category: "Persistence and context", label: "Streaming state is not persisted", detail: "The in-flight l2 record is omitted; reload cannot resurrect a dead request.", passed: !serialized.includes('"id":"l2"') && !serialized.includes("streaming") },
-    { category: "Persistence and context", label: "Backend isolation", detail: "Selecting local yields l1 and l2; student s1 stays outside that view.", passed: messagesForBackend(messages, "local").map((message) => message.id).join(",") === "l1,l2" },
+    automated("Persistence and context", "Versioned round trip", "v1 / active restores two exact terminal messages.", parsed?.version === 1 && parsed.id === "active" && parsed.messages.length === 2),
+    automated("Persistence and context", "Nested secret rejection", "A message containing providerKey fails the exact-field validator.", parseCapstoneRecord(secretRecord) === null),
+    automated("Persistence and context", "Streaming state is not persisted", "The in-flight l2 record is omitted; reload cannot resurrect a dead request.", !serialized.includes('"id":"l2"') && !serialized.includes("streaming")),
+    automated("Persistence and context", "Backend isolation", "Selecting local yields l1 and l2; student s1 stays outside that view.", messagesForBackend(messages, "local").map((message) => message.id).join(",") === "l1,l2"),
 
-    { category: "Lifecycle and recovery", label: "Every phase has an honest label", detail: exactLabels, passed: exactLabels === "Waiting for capacity → Loading model → Processing context → Generating → Complete → Stopped → Generation failed" },
-    { category: "Lifecycle and recovery", label: "Unknown phase fallback", detail: "future-state → Status unavailable (never a false Ready).", passed: generationStatusLabelContract("future-state") === "Status unavailable" },
-    { category: "Lifecycle and recovery", label: "Stale and terminal events are rejected", detail: "r2 accepts r2 while active; r1 and every post-terminal event are rejected.", passed: lifecycleEventAccepted({ requestId: "r2", terminal: false }, "r2") && !lifecycleEventAccepted({ requestId: "r2", terminal: false }, "r1") && !lifecycleEventAccepted({ requestId: "r2", terminal: true }, "r2") },
-    { category: "Lifecycle and recovery", label: "Cancellation releases every layer", detail: "Abort transport · cancel frame · reject late events · release generation.", passed: Object.values(CANCELLATION_RESOURCE_CONTRACT).every(Boolean) },
+    automated("Lifecycle and recovery", "Every phase has an honest label", exactLabels, exactLabels === "Waiting for capacity → Loading model → Processing context → Generating → Complete → Stopped → Generation failed"),
+    automated("Lifecycle and recovery", "Unknown phase fallback", "future-state → Status unavailable (never a false Ready).", generationStatusLabelContract("future-state") === "Status unavailable"),
+    automated("Lifecycle and recovery", "Stale and terminal events are rejected", "r2 accepts r2 while active; r1 and every post-terminal event are rejected.", lifecycleEventAccepted({ requestId: "r2", terminal: false }, "r2") && !lifecycleEventAccepted({ requestId: "r2", terminal: false }, "r1") && !lifecycleEventAccepted({ requestId: "r2", terminal: true }, "r2")),
+    specification("Lifecycle and recovery", "Cancellation resource specification", "The declared contract requires transport abort, render cancellation, late-event rejection, and generation release; the full-build browser receipt exercises stop and late-output rejection."),
 
-    { category: "Accessibility and responsive contract", label: "Complete-turn context", detail: "A 12-token budget selects system,u2; it never keeps orphan assistant a1.", passed: context.selected.map((message) => message.id).join(",") === "system,u2" },
-    { category: "Accessibility and responsive contract", label: "Conversation log semantics", detail: "role=log · aria-live=polite preserves ordered, meaningful additions.", passed: CHAT_LOG_ACCESSIBILITY.role === "log" && CHAT_LOG_ACCESSIBILITY.ariaLive === "polite" },
-    { category: "Accessibility and responsive contract", label: "Bounded status announcements", detail: "role=status · atomic phase updates · ≤160 chars / ≥500 ms · never token-by-token.", passed: CHAT_STATUS_ACCESSIBILITY.role === "status" && CHAT_STATUS_ACCESSIBILITY.ariaAtomic && LIVE_ANNOUNCEMENT_CONTRACT.maximumCharacters === 160 && LIVE_ANNOUNCEMENT_CONTRACT.minimumIntervalMs === 500 && !LIVE_ANNOUNCEMENT_CONTRACT.tokenByToken },
-    { category: "Accessibility and responsive contract", label: "Mobile layout requirement", detail: "320 px minimum · one column by 800 px · composer follows transcript.", passed: CAPSTONE_MOBILE_CONTRACT.minimumViewportWidth === 320 && CAPSTONE_MOBILE_CONTRACT.singleColumnAt === 800 && CAPSTONE_MOBILE_CONTRACT.composerAfterTranscript },
+    automated("Accessibility and responsive contract", "Complete-turn context", "A 12-token budget selects system,u2; it never keeps orphan assistant a1.", context.selected.map((message) => message.id).join(",") === "system,u2"),
+    specification("Accessibility and responsive contract", "Conversation log specification", "The declared role=log and aria-live=polite attributes are exercised by the full-build mounted behavior receipt; screen-reader speech remains manual."),
+    specification("Accessibility and responsive contract", "Status announcement specification", "The declared role=status, atomic update, and announcement bounds are requirements; assistive-technology timing remains manual."),
+    specification("Accessibility and responsive contract", "Mobile layout specification", "320 px support, one-column layout, and composer order are declared requirements that still need real viewport and touch verification."),
   ];
 }

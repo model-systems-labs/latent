@@ -2,6 +2,8 @@ import { CANONICAL_BROWSER_CHAT_FILES } from "../content/browser-chat/project-te
 import { initializeLearnerPersistence, loadLearnerState, type LearnerState } from "./learner-state";
 import { llmSystemsCurriculum } from "../lessons/course";
 import { lessonImplementationSource } from "../lessons/implementation-source";
+import { llmSystemsContractSuite } from "../content/llm-systems/contracts";
+import { restoreSourceBoundVerification } from "../features/ide/practice-state";
 import {
   ensureProjectWorkspace,
   flushProjectPersistence,
@@ -34,6 +36,15 @@ export function canonicalLessonSeeds(
     const local = learner.lessons[lesson.id];
     const hidden = local?.hiddenBlocks ?? [];
     const answers = local?.answers ?? {};
+    const restoredVerification = restoreSourceBoundVerification(
+      lesson.implementation.codeBlocks,
+      hidden,
+      answers,
+      local?.verifiedCells ?? [],
+      local?.verifiedSources ?? {},
+      local?.verifiedContractVersion,
+      llmSystemsContractSuite.contractVersion,
+    );
     const source = (practice: boolean) => lessonImplementationSource(
       lesson,
       lesson.implementation.codeBlocks.map((block, index) => (
@@ -49,7 +60,7 @@ export function canonicalLessonSeeds(
       title: lesson.title,
       content: source(true),
       referenceContent: source(false),
-      verifiedCells: local?.verifiedCells.length ?? 0,
+      verifiedCells: restoredVerification.ids.length,
       totalCells: lesson.implementation.codeBlocks.length,
     };
   });

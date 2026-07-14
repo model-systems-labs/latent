@@ -26,6 +26,88 @@ async function dispose(db) {
   await db.delete();
 }
 
+async function validatedPersistenceFixture(projectId = `validated-${crypto.randomUUID()}`) {
+  const db = database();
+  await db.open();
+  let timestamp = 1_000;
+  const repositories = new persistence.PersistenceRepositories(db, { now: () => timestamp++ });
+  await repositories.projects.create({ id: projectId, title: "Validated project", courseId: "llm-systems" });
+  const file = await repositories.projects.saveFile({
+    projectId,
+    path: "model.js",
+    track: "models",
+    title: "Model",
+    content: "export const model = 1",
+  });
+  const project = await repositories.projects.get(projectId);
+  const sourceTreeHash = await persistence.hashText(`${projectId}:source-tree`);
+  const contractVersion = "contracts-v1";
+  const run = await repositories.assessments.start({
+    projectId,
+    projectRevision: project.draftRevision,
+    sourceTreeHash,
+    contractVersion,
+    runnerVersion: "browser-lab-quickjs-v1",
+  });
+  const bundle = "var model = (() => ({ model: 1 }))();";
+  const bundleHash = await persistence.hashText(bundle);
+  const receipt = await repositories.assessments.finish(
+    run.id,
+    [{ contractId: "model", path: file.path, label: "Model", passed: true, detail: "Passed", durationMs: 1 }],
+    { "model.js": bundleHash },
+  );
+  const build = await repositories.builds.promotePassing({
+    projectId,
+    projectRevision: project.draftRevision,
+    sourceTreeHash,
+    contractVersion,
+    testReceiptId: receipt.id,
+    fileHashes: { [file.path]: file.sourceHash },
+    bundles: { "model.js": bundle },
+    runtimeConfig: { temperature: 0.8 },
+    bindings: { model: { modulePath: "model.js", exportName: "model" } },
+  });
+  const checkpoint = await repositories.checkpoints.add({
+    projectId,
+    buildId: build.id,
+    kind: "training",
+    formatVersion: 1,
+    payload: { weights: [1] },
+    metrics: { loss: 1 },
+  });
+  await repositories.progress.put({
+    id: persistence.lessonProgressId("llm-systems", `${projectId}-lesson`),
+    courseId: "llm-systems",
+    moduleId: "models",
+    lessonId: `${projectId}-lesson`,
+    status: "completed",
+    verifiedCellIds: ["model"],
+    verifiedSources: { model: file.content },
+    verifiedContractVersion: contractVersion,
+    experimentComplete: true,
+    hiddenBlockIds: [],
+    answers: {},
+    lastProjectPath: file.path,
+    updatedAt: timestamp,
+  });
+  await repositories.settings.put("project.tests", { passed: true, receiptId: receipt.id });
+  await repositories.settings.put("project.runtime", {
+    version: 1,
+    model: { temperature: 0.61 },
+    transport: { wordsPerEvent: 2 },
+    interface: { assistantName: "Imported" },
+    buildNumber: 7,
+    builtAt: 9_999,
+    testReceiptId: receipt.id,
+    activeBuild: { id: build.id },
+  });
+  await repositories.settings.put("project.output", {
+    previous: "prior imported output",
+    current: "claimed passing output",
+  });
+  return { db, repositories, project: await repositories.projects.get(projectId), file, run, receipt, build, checkpoint };
+}
+
 test("bounded parsers reject oversized and circular data before serialization", () => {
   const circular = {};
   circular.self = circular;
@@ -182,6 +264,40 @@ test("project repository exposes immutable file history for learner recovery", a
   await dispose(db);
 });
 
+test("project compare-and-save serializes simultaneous same-file tab edits", async () => {
+  const db = database();
+  await db.open();
+  const firstTab = new persistence.PersistenceRepositories(db);
+  const secondTab = new persistence.PersistenceRepositories(db);
+  await firstTab.projects.create({ id: "project-cas", title: "Project CAS", courseId: "llm-systems" });
+  const base = await firstTab.projects.saveFile({
+    projectId: "project-cas",
+    path: "models/shared.js",
+    track: "models",
+    title: "Shared",
+    content: "export const value = 1;",
+  });
+  const expected = { revision: base.revision, sourceHash: base.sourceHash };
+  const write = (repositories, value) => repositories.projects.saveFile({
+    projectId: "project-cas",
+    path: "models/shared.js",
+    track: "models",
+    title: "Shared",
+    content: `export const value = ${value};`,
+    expected,
+    reason: "edit",
+  });
+
+  const outcomes = await Promise.allSettled([write(firstTab, 2), write(secondTab, 3)]);
+  assert.equal(outcomes.filter((outcome) => outcome.status === "fulfilled").length, 1);
+  assert.equal(outcomes.filter((outcome) => outcome.status === "rejected").length, 1);
+  assert.match(String(outcomes.find((outcome) => outcome.status === "rejected").reason), /changed in another tab/i);
+  const final = await firstTab.projects.getFile("project-cas", "models/shared.js");
+  assert.ok(final.content === "export const value = 2;" || final.content === "export const value = 3;");
+  assert.equal(final.revision, 2, "only one competing edit becomes a durable revision");
+  await dispose(db);
+});
+
 test("passing promotion is atomic, idempotent, and rejects a stale receipt", async () => {
   const db = database();
   await db.open();
@@ -238,11 +354,250 @@ test("passing promotion is atomic, idempotent, and rejects a stale receipt", asy
   assert.equal(await db.builds.count(), 1);
   assert.equal((await repositories.projects.get(project.id)).activeBuildId, first.id);
 
+  const rerun = await repositories.assessments.start({
+    projectId: project.id,
+    projectRevision: current.draftRevision,
+    sourceTreeHash: input.sourceTreeHash,
+    contractVersion: input.contractVersion,
+    runnerVersion: "runner-v1",
+  });
+  const rerunReceipt = await repositories.assessments.finish(
+    rerun.id,
+    [{ contractId: "model", path: file.path, label: "Model", passed: true, detail: "Passed again", durationMs: 1 }],
+    { runtime: runtimeBundleHash },
+  );
+  const reactivated = await repositories.builds.promotePassing({ ...input, testReceiptId: rerunReceipt.id });
+  assert.equal(reactivated.id, first.id);
+  assert.equal(reactivated.testReceiptId, receipt.id, "the immutable build keeps its original exact receipt");
+  assert.equal(await db.builds.count(), 1);
+
   await repositories.projects.saveFile({ projectId: project.id, path: "model.js", track: "models", title: "Model", content: "export const model = 2" });
   await assert.rejects(repositories.builds.promotePassing(input), /stale/i);
   assert.equal((await repositories.projects.get(project.id)).activeBuildId, first.id);
   assert.equal(await db.builds.count(), 1);
   await dispose(db);
+});
+
+test("portable validation rejects crafted build lineage and cross-project active ids", async () => {
+  const source = await validatedPersistenceFixture("portable-adversarial");
+  const snapshot = await persistence.exportPersistenceSnapshot(source.db);
+  const destination = database();
+  await destination.open();
+  const cases = [
+    ["receipt project", /different projects/i, (draft) => { draft.tables.testReceipts[0].projectId = "another-project"; }],
+    ["receipt revision", /different project revisions/i, (draft) => { draft.tables.testReceipts[0].projectRevision += 1; }],
+    ["receipt source", /different source trees/i, (draft) => { draft.tables.testReceipts[0].sourceTreeHash = "sha256:other"; }],
+    ["receipt contract", /different contract versions/i, (draft) => { draft.tables.testReceipts[0].contractVersion = "contracts-other"; }],
+    ["receipt id", /missing test receipt/i, (draft) => { draft.tables.builds[0].testReceiptId = "receipt:missing"; }],
+    ["host origin", /host-owned/i, (draft) => { draft.tables.testReceipts[0].origin = "legacy"; }],
+    ["complete pass", /complete passing/i, (draft) => { draft.tables.testReceipts[0].passedCount = 0; }],
+    ["module manifest", /receipt hash/i, (draft) => { draft.tables.testReceipts[0].moduleHashes["model.js"] = "sha256:other"; }],
+    ["promotion key", /promotion key/i, (draft) => { draft.tables.builds[0].promotionKey = "forged"; }],
+    ["host run", /passing host test run/i, (draft) => { draft.tables.testRuns[0].status = "failed"; }],
+    ["unknown provenance", /invalid provenance/i, (draft) => { draft.tables.builds[0].provenance = "claimed-host"; }],
+    ["missing active build", /missing active build/i, (draft) => { draft.tables.projects[0].activeBuildId = "build:missing"; }],
+    ["cross-project active build", /another project's active build/i, (draft) => {
+      draft.tables.projects.push({ ...draft.tables.projects[0], id: "other-project", activeBuildId: draft.tables.builds[0].id });
+    }],
+  ];
+  for (const [label, pattern, mutate] of cases) {
+    const crafted = structuredClone(snapshot);
+    mutate(crafted);
+    await assert.rejects(
+      persistence.importPersistenceSnapshot(destination, crafted, { mode: "replace" }),
+      pattern,
+      label,
+    );
+    assert.equal(await destination.projects.count(), 0, `${label} must fail before the import transaction`);
+  }
+  await dispose(source.db);
+  await dispose(destination);
+});
+
+test("portable import restores work but strips every imported build authority", async () => {
+  const source = await validatedPersistenceFixture("portable-untrusted-authority");
+  const snapshot = await persistence.exportPersistenceSnapshot(source.db);
+  const originalActiveBuildId = snapshot.tables.projects[0].activeBuildId;
+  assert.equal(snapshot.tables.builds.length, 1);
+  assert.equal(snapshot.tables.testReceipts[0].origin, "host");
+  assert.ok(snapshot.tables.settings.some((setting) => setting.key === "project.tests"));
+
+  const destination = database();
+  await destination.open();
+  const imported = await persistence.importPersistenceSnapshot(destination, snapshot, { mode: "replace" });
+  const repositories = new persistence.PersistenceRepositories(destination);
+  assert.equal(imported.tables.projects[0].activeBuildId, null);
+  assert.deepEqual(imported.tables.testRuns, []);
+  assert.deepEqual(imported.tables.testReceipts, []);
+  assert.deepEqual(imported.tables.builds, []);
+  assert.equal(imported.tables.checkpoints[0].buildId, null);
+  assert.equal(imported.tables.settings.some((setting) => setting.key === "project.tests"), false);
+  assert.equal(snapshot.tables.projects[0].activeBuildId, originalActiveBuildId, "normalization must not mutate the caller's export");
+
+  assert.equal((await destination.projects.get("portable-untrusted-authority")).activeBuildId, null);
+  assert.equal(await destination.testRuns.count(), 0);
+  assert.equal(await destination.testReceipts.count(), 0);
+  assert.equal(await destination.builds.count(), 0);
+  assert.equal(await destination.files.count(), 1);
+  assert.equal(await destination.lessonProgress.count(), 1);
+  assert.equal((await destination.checkpoints.toArray())[0].buildId, null);
+  assert.equal(await repositories.settings.get("project.tests"), undefined);
+  assert.deepEqual(await repositories.settings.get("project.runtime"), {
+    version: 1,
+    model: { temperature: 0.61 },
+    transport: { wordsPerEvent: 2 },
+    interface: { assistantName: "Imported" },
+    buildNumber: 1,
+    builtAt: 0,
+  });
+  assert.deepEqual(await repositories.settings.get("project.output"), {
+    previous: "",
+    current: "",
+  });
+  assert.equal(await repositories.builds.activeValidated("portable-untrusted-authority"), undefined);
+
+  const project = await repositories.projects.get("portable-untrusted-authority");
+  const file = await repositories.projects.getFile(project.id, "model.js");
+  const sourceTreeHash = await persistence.hashText("fresh-local-run");
+  const run = await repositories.assessments.start({
+    projectId: project.id,
+    projectRevision: project.draftRevision,
+    sourceTreeHash,
+    contractVersion: "contracts-v1",
+    runnerVersion: "browser-lab-quickjs-v1",
+  });
+  const bundle = "var model = (() => ({ model: 2 }))();";
+  const receipt = await repositories.assessments.finish(
+    run.id,
+    [{ contractId: "model", path: file.path, label: "Model", passed: true, detail: "Passed locally", durationMs: 1 }],
+    { "model.js": await persistence.hashText(bundle) },
+  );
+  const promoted = await repositories.builds.promotePassing({
+    projectId: project.id,
+    projectRevision: project.draftRevision,
+    sourceTreeHash,
+    contractVersion: "contracts-v1",
+    testReceiptId: receipt.id,
+    fileHashes: { [file.path]: file.sourceHash },
+    bundles: { "model.js": bundle },
+    runtimeConfig: {},
+    bindings: { model: { modulePath: "model.js", exportName: "model" } },
+  });
+  assert.equal((await repositories.builds.activeValidated(project.id)).id, promoted.id);
+
+  await dispose(source.db);
+  await dispose(destination);
+});
+
+test("active build lookup fails closed for missing, cross-project, and receipt-invalid records", async () => {
+  const fixture = await validatedPersistenceFixture("active-lineage");
+  const { db, repositories, build, receipt } = fixture;
+  const active = await repositories.builds.activeValidated("active-lineage");
+  assert.equal(active.id, build.id);
+  assert.equal(Object.isFrozen(active), true);
+  assert.equal(Object.isFrozen(active.bundleHashes), true);
+
+  await repositories.projects.create({ id: "other-active-project", title: "Other", courseId: "llm-systems" });
+  await db.projects.update("other-active-project", { activeBuildId: "build:missing" });
+  await assert.rejects(repositories.builds.active("other-active-project"), /missing active build/i);
+  await db.projects.update("other-active-project", { activeBuildId: build.id });
+  await assert.rejects(repositories.builds.active("other-active-project"), /another project's active build/i);
+
+  await db.testReceipts.update(receipt.id, { passedCount: 0 });
+  await assert.rejects(repositories.builds.active("active-lineage"), /complete passing/i);
+  await assert.rejects(repositories.builds.activeValidated("active-lineage"), /complete passing/i);
+  await assert.rejects(repositories.builds.list("active-lineage"), /complete passing/i);
+
+  await db.testReceipts.update(receipt.id, { passedCount: 1 });
+  await db.builds.update(build.id, { provenance: "claimed-host" });
+  await assert.rejects(repositories.builds.active("active-lineage"), /invalid provenance/i);
+  await assert.rejects(repositories.builds.list("active-lineage"), /invalid provenance/i);
+  await dispose(db);
+});
+
+test("a certification epoch supersedes an invalid same-source legacy promotion without rewriting history", async () => {
+  const fixture = await validatedPersistenceFixture("certification-epoch-rebuild");
+  const { db, repositories, project, file, receipt, build } = fixture;
+  const legacyKey = persistence.legacyPromotionKeyV1(project.id, build.sourceTreeHash, build.contractVersion);
+  await db.builds.update(build.id, { promotionKey: legacyKey });
+  await db.testReceipts.update(receipt.id, { moduleHashes: undefined });
+  await assert.rejects(repositories.builds.activeValidated(project.id), /exact compiler module manifests/i);
+
+  const replacementRun = await repositories.assessments.start({
+    projectId: project.id,
+    projectRevision: project.draftRevision,
+    sourceTreeHash: build.sourceTreeHash,
+    contractVersion: build.contractVersion,
+    runnerVersion: "browser-lab-quickjs-v1",
+  });
+  const replacementBundle = build.bundles["model.js"];
+  const replacementReceipt = await repositories.assessments.finish(
+    replacementRun.id,
+    [{ contractId: "model", path: file.path, label: "Model", passed: true, detail: "Passed under the current certification epoch", durationMs: 1 }],
+    { "model.js": await persistence.hashText(replacementBundle) },
+  );
+  const promotion = {
+    projectId: project.id,
+    projectRevision: project.draftRevision,
+    sourceTreeHash: build.sourceTreeHash,
+    contractVersion: build.contractVersion,
+    testReceiptId: replacementReceipt.id,
+    fileHashes: { [file.path]: file.sourceHash },
+    bundles: { "model.js": replacementBundle },
+    runtimeConfig: build.runtimeConfig,
+    bindings: build.bindings,
+  };
+  const replacement = await repositories.builds.promotePassing(promotion);
+
+  assert.notEqual(replacement.id, build.id);
+  assert.equal(replacement.buildNumber, build.buildNumber + 1);
+  assert.equal(replacement.promotionKey, persistence.promotionKey(project.id, build.sourceTreeHash, build.contractVersion));
+  assert.equal((await repositories.builds.activeValidated(project.id)).id, replacement.id);
+  assert.equal((await db.builds.get(build.id)).promotionKey, legacyKey, "the rejected historical record remains immutable");
+  assert.equal((await db.testReceipts.get(receipt.id)).moduleHashes, undefined);
+  assert.equal((await repositories.builds.promotePassing(promotion)).id, replacement.id, "the current epoch remains idempotent");
+  await dispose(db);
+});
+
+test("merge import cannot replace existing local build authority", async () => {
+  const local = await validatedPersistenceFixture("portable-merge-authority");
+  const external = await validatedPersistenceFixture("portable-merge-authority");
+  const localActiveId = (await local.repositories.projects.get("portable-merge-authority")).activeBuildId;
+  const localTests = await local.repositories.settings.get("project.tests");
+  const localRuntime = await local.repositories.settings.get("project.runtime");
+  const localOutput = await local.repositories.settings.get("project.output");
+  const localCheckpoint = await local.db.checkpoints.where("projectId").equals("portable-merge-authority").first();
+
+  const selfSnapshot = await persistence.exportPersistenceSnapshot(local.db);
+  await persistence.importPersistenceSnapshot(local.db, selfSnapshot, { mode: "merge" });
+  assert.equal((await local.db.checkpoints.get(localCheckpoint.id)).buildId, localActiveId);
+
+  await external.db.projects.update("portable-merge-authority", { updatedAt: 50_000 });
+  await external.repositories.settings.put("project.tests", { passed: true, receiptId: "forged-import" });
+  await external.repositories.settings.put("project.runtime", {
+    version: 1,
+    model: { temperature: 0.99 },
+    transport: { wordsPerEvent: 20 },
+    interface: { assistantName: "External" },
+    buildNumber: 99,
+    builtAt: 50_000,
+  });
+  await external.repositories.settings.put("project.output", {
+    previous: "external previous",
+    current: "external current",
+  });
+  const snapshot = await persistence.exportPersistenceSnapshot(external.db);
+
+  await persistence.importPersistenceSnapshot(local.db, snapshot, { mode: "merge" });
+  assert.equal((await local.repositories.projects.get("portable-merge-authority")).activeBuildId, localActiveId);
+  assert.equal((await local.repositories.builds.activeValidated("portable-merge-authority")).id, localActiveId);
+  assert.deepEqual(await local.repositories.settings.get("project.tests"), localTests);
+  assert.deepEqual(await local.repositories.settings.get("project.runtime"), localRuntime);
+  assert.deepEqual(await local.repositories.settings.get("project.output"), localOutput);
+  assert.equal(await local.db.builds.count(), 1);
+  assert.equal(await local.db.testReceipts.count(), 1);
+  await dispose(local.db);
+  await dispose(external.db);
 });
 
 test("persisted bundle hashes reject changed bytes at database and portable import boundaries", async () => {

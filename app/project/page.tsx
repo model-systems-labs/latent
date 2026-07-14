@@ -6,7 +6,7 @@ import { LearningDataPanel } from "../components/LearningDataPanel";
 
 export const metadata: Metadata = {
   title: "Project structure · Latent",
-  description: "See the browser-chat project fill in as each LLM systems lesson passes its behavioral checks.",
+  description: "Inspect current source verification and historical repository snapshots for the browser-chat project.",
 };
 
 export default function ProjectPage() {
@@ -21,14 +21,14 @@ export default function ProjectPage() {
         <header className="project-page-hero">
           <p className="eyebrow">Device-local project</p>
           <h1>Project structure</h1>
-          <p>Every lesson owns a source file in one browser-chat repository. The complete tree is visible from the start; files move from pending to complete as their behavioral checks pass.</p>
+          <p>Every lesson owns a source file in one browser-chat repository. The complete tree is visible from the start; each file reports whether its behavioral checks are not started, partial, failed, or verified.</p>
           <div className="hero-actions"><Link href="/workspace">Open the IDE</Link><Link href="/courses/models">Continue the course</Link></div>
         </header>
         <ProjectStructureMap />
         <ProjectTimeline />
         <section className="project-structure-note">
           <span>Progress model</span>
-          <p>Source, test results, and build artifacts are saved on this device. Lesson checks verify each file independently, so unfinished work never invalidates the files you have already completed.</p>
+          <p>Current workspace source, test results, and active build snapshots are saved on this device. Editing a lesson source clears that file’s check verification; editing any file invalidates the current full-project test receipt. Other exact saved lesson proofs remain verified, while the last active build snapshot stays unchanged until a new full build passes.</p>
         </section>
         <LearningDataPanel />
       </article>

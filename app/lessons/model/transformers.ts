@@ -52,7 +52,7 @@ ${commonQuestionInstruction}`.trim(),
     },
     diagram: {
       title: "One causal self-attention head",
-      caption: "A three-token worked pass: project Q, K, and V; scale QKᵀ by √dₖ; mask future columns before row-wise softmax; then mix V. The experiment below runs the same operation with inspectable tensors.",
+      caption: "A three-token worked pass: learned projections normally produce Q, K, and V; scale QKᵀ by √dₖ; mask future columns before row-wise softmax; then mix V. The reference experiment uses identity projections so the supplied token-position representations serve as Q, K, and V.",
       nodes: [
         { label: "Project", value: "XW → Q,K[3×d_k] · V[3×d_v]" },
         { label: "Score", value: "QKᵀ[3×3] / √d_k" },
@@ -72,7 +72,7 @@ ${commonQuestionInstruction}`.trim(),
       name: "Causal Sequence Set",
       source: "Original synthetic course examples",
       license: "CC0",
-      size: "3 fixed token sequences",
+      size: "1 fixed six-token sequence",
       preview: "the · receiver · decoded · the · quiet · signal",
     },
     implementation: {
@@ -134,6 +134,6 @@ return { passed: Math.abs(mean) < 1e-9 && normalized.every(Number.isFinite), det
     experiment: {
       kind: "transformer",
       title: "Run causal self-attention",
-      intro: "Execute a real masked attention forward pass and inspect the complete position-by-position probability matrix.",
+      intro: "Run the supplied masked-attention forward pass with identity Q/K/V projections and inspect the complete probability matrix. The replay does not execute the learner cells.",
     },
   } satisfies Omit<CourseLesson, "sources">;

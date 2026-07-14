@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
+import { createServer as createHttpServer } from "node:http";
 import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import * as esbuild from "esbuild";
+import { chromium } from "playwright";
 import { createServer } from "vite";
 
 let vite;
@@ -12,16 +17,24 @@ let template;
 let compiler;
 let browserLab;
 let tensor;
+let behaviorRunner;
+let browser;
+let behaviorPage;
+let behaviorRuntimeSource;
+let behaviorSandboxWorkerSource;
+let behaviorSandboxWasmSource;
+let httpServer;
 
 before(async () => {
+  const root = fileURLToPath(new URL("../", import.meta.url));
   vite = await createServer({
-    root: fileURLToPath(new URL("../", import.meta.url)),
+    root,
     configFile: false,
     server: { middlewareMode: true },
     appType: "custom",
     logLevel: "silent",
   });
-  [course, implementation, contracts, template, compiler, browserLab, tensor] = await Promise.all([
+  [course, implementation, contracts, template, compiler, browserLab, tensor, behaviorRunner] = await Promise.all([
     vite.ssrLoadModule("/app/lessons/course.ts"),
     vite.ssrLoadModule("/app/lessons/implementation-source.ts"),
     vite.ssrLoadModule("/app/content/llm-systems/contracts.ts"),
@@ -29,10 +42,61 @@ before(async () => {
     vite.ssrLoadModule("/packages/browser-lab/src/compiler/index.ts"),
     vite.ssrLoadModule("/packages/browser-lab/src/index.ts"),
     vite.ssrLoadModule("/packages/tensor/src/browser-source.ts"),
+    vite.ssrLoadModule("/app/features/ide/capstone-behavior-runner.ts"),
   ]);
+  const runner = await esbuild.build({
+    stdin: {
+      contents: `import { runCapstoneBehaviorContract } from "./app/features/ide/capstone-behavior-runner.ts"; globalThis.__runCapstoneBehaviorContract = runCapstoneBehaviorContract;`,
+      resolveDir: root,
+      sourcefile: "capstone-behavior-test-entry.ts",
+      loader: "ts",
+    },
+    bundle: true,
+    platform: "browser",
+    format: "iife",
+    target: "es2022",
+    write: false,
+  });
+  const chromeCandidates = [
+    process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "/Applications/Chromium.app/Contents/MacOS/Chromium",
+    "/usr/bin/google-chrome",
+    "/usr/bin/chromium",
+  ].filter(Boolean);
+  const executablePath = chromeCandidates.find((candidate) => existsSync(candidate));
+  browser = await chromium.launch(executablePath ? { headless: true, executablePath } : { headless: true });
+  behaviorSandboxWorkerSource = await readFile(new URL("../public/capstone-sandbox-worker.js", import.meta.url), "utf8");
+  behaviorSandboxWasmSource = await readFile(new URL("../public/emscripten-module.wasm", import.meta.url));
+  httpServer = createHttpServer((request, response) => {
+    if (request.url === "/capstone-sandbox-worker.js") {
+      response.writeHead(200, { "content-type": "text/javascript; charset=utf-8", "cache-control": "no-store" });
+      response.end(behaviorSandboxWorkerSource);
+      return;
+    }
+    if (request.url === "/emscripten-module.wasm") {
+      response.writeHead(200, { "content-type": "application/wasm", "cache-control": "no-store" });
+      response.end(behaviorSandboxWasmSource);
+      return;
+    }
+    response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    response.end("<!doctype html><html><body><main>Capstone behavior host</main></body></html>");
+  });
+  await new Promise((resolve, reject) => {
+    httpServer.once("error", reject);
+    httpServer.listen(0, "127.0.0.1", resolve);
+  });
+  const address = httpServer.address();
+  behaviorPage = await browser.newPage();
+  await behaviorPage.goto(`http://127.0.0.1:${address.port}`);
+  await behaviorPage.addScriptTag({ content: runner.outputFiles[0].text });
+  behaviorRuntimeSource = await readFile(new URL("../public/capstone-react-runtime.js", import.meta.url), "utf8");
 });
 
 after(async () => {
+  await behaviorPage?.close();
+  await browser?.close();
+  if (httpServer) await new Promise((resolve) => httpServer.close(resolve));
   await vite?.close();
 });
 
@@ -85,6 +149,14 @@ async function compileCanonical(files, jobId) {
   return compiler.compileVirtualProject(job, esbuild);
 }
 
+async function runBehavior(program, fixture) {
+  const compiledEntry = program.modules.find((candidate) => candidate.modulePath === template.CAPSTONE_ENTRY_PATH);
+  assert.ok(compiledEntry);
+  return behaviorPage.evaluate(async ({ bundle, runtimeSource, fixture: behaviorFixture }) => {
+    return globalThis.__runCapstoneBehaviorContract(bundle, { runtimeSource, timeoutMs: 10_000, fixture: behaviorFixture });
+  }, { bundle: compiledEntry, runtimeSource: behaviorRuntimeSource, fixture });
+}
+
 test("the canonical IDE repository compiles its real React capstone entry", async () => {
   const program = await compileCanonical(canonicalFiles(), "canonical-capstone-compile");
   assert.equal(program.diagnostics.filter((diagnostic) => diagnostic.severity === "error").length, 0);
@@ -92,6 +164,15 @@ test("the canonical IDE repository compiles its real React capstone entry", asyn
   assert.equal(program.modules[0].modulePath, template.CAPSTONE_ENTRY_PATH);
   assert.match(program.modules[0].code, /Browser Chat/);
   assert.match(program.modules[0].code, /__LATENT_PREVIEW_HOST__/);
+});
+
+test("the behavior frame authorizes only its fixed host bootstrap and transferred assets", () => {
+  const expectedHash = `sha256-${createHash("sha256").update(behaviorRunner.CAPSTONE_BEHAVIOR_BOOTSTRAP_SOURCE).digest("base64")}`;
+  const html = behaviorRunner.createCapstoneBehaviorFrameSrcdoc();
+  assert.equal(behaviorRunner.CAPSTONE_BEHAVIOR_BOOTSTRAP_SHA256, expectedHash);
+  assert.match(html, new RegExp(`script-src '${expectedHash.replaceAll("+", "\\+")}' blob:`));
+  assert.doesNotMatch(html, /script-src 'unsafe-inline'/);
+  assert.doesNotMatch(html, /allow-same-origin|connect-src (?!'none')/);
 });
 
 test("an editable capstone source change produces a different runnable bundle", async () => {
@@ -108,4 +189,56 @@ test("an editable capstone source change produces a different runnable bundle", 
   assert.equal(edited.diagnostics.filter((diagnostic) => diagnostic.severity === "error").length, 0);
   assert.notEqual(edited.modules[0].codeHash, baseline.modules[0].codeHash);
   assert.match(edited.modules[0].code, /Ask your compiled project\./);
+});
+
+test("the host-owned mounted behavior contract passes canonical BrowserChat and rejects a blank component", async () => {
+  const canonical = await compileCanonical(canonicalFiles(), "canonical-capstone-behavior");
+  const canonicalResult = await runBehavior(canonical);
+  assert.equal(canonicalResult.passed, true, canonicalResult.detail);
+  assert.equal(canonicalResult.path, template.CAPSTONE_COMPONENT_PATH);
+  assert.match(canonicalResult.detail, /accessible chat surface/);
+  assert.match(canonicalResult.detail, /cancellation rejects late stream output/);
+  assert.match(canonicalResult.detail, /error is visible and terminal/);
+
+  const hiddenMetricsResult = await runBehavior(canonical, {
+    selectedBackend: "local",
+    assistantName: "Runtime Assistant",
+    responsePrefix: "runtime-prefix: ",
+    showMetrics: false,
+    persistFailures: 1,
+    requirePreparation: true,
+    preparationDelayMs: 180,
+  });
+  assert.equal(hiddenMetricsResult.passed, true, hiddenMetricsResult.detail);
+  assert.match(hiddenMetricsResult.detail, /restored backend and metrics visibility configuration/);
+  assert.match(hiddenMetricsResult.detail, /runtime name and response prefix affect visible streamed output/);
+  assert.match(hiddenMetricsResult.detail, /backend preparation never exposes a false Stop action/);
+  assert.match(hiddenMetricsResult.detail, /mobile inference controls remain available as a compact disclosure/);
+  assert.match(hiddenMetricsResult.detail, /mobile persistence recovery is keyboard-focusable/);
+  assert.match(hiddenMetricsResult.detail, /mobile persistence status and Clear action remain visible/);
+
+  const blankComponent = `export function BrowserChat() { return null; }`;
+  const blank = await compileCanonical(
+    canonicalFiles(new Map([[template.CAPSTONE_COMPONENT_PATH, blankComponent]])),
+    "blank-capstone-behavior",
+  );
+  assert.equal(blank.diagnostics.filter((diagnostic) => diagnostic.severity === "error").length, 0, "the adversary must remain compile-valid");
+  const blankResult = await runBehavior(blank);
+  assert.equal(blankResult.passed, false, "a compile-valid null component must not mint the behavior receipt");
+  assert.match(blankResult.detail, /accessible (?:visible )?polite conversation log|accessible chat surface/i);
+});
+
+test("the isolated preflight rejects a synchronous render loop without freezing the host page", async () => {
+  const loopingComponent = `export function BrowserChat() { while (true) {} }`;
+  const looping = await compileCanonical(
+    canonicalFiles(new Map([[template.CAPSTONE_COMPONENT_PATH, loopingComponent]])),
+    "looping-capstone-behavior",
+  );
+  assert.equal(looping.diagnostics.filter((diagnostic) => diagnostic.severity === "error").length, 0, "the adversary must remain compile-valid");
+  const startedAt = Date.now();
+  const loopingResult = await runBehavior(looping);
+  assert.equal(loopingResult.passed, false, "an unbounded render must not reach the browser mount");
+  assert.match(loopingResult.detail, /isolated QuickJS preflight rejected[\s\S]*browser mount was not started/i);
+  assert.ok(Date.now() - startedAt < 5_000, "the isolated worker should fail closed promptly");
+  assert.equal(await behaviorPage.evaluate(() => 6 * 7), 42, "the host page must remain responsive after terminating learner code");
 });

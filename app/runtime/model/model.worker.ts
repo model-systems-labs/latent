@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 
-import type { ModelWorkerRequest, ModelWorkerResponse } from "./protocol";
+import { LOCAL_MODEL_MAX_NEW_TOKENS, type ModelWorkerRequest, type ModelWorkerResponse } from "./protocol";
 
 type TextGenerator = ((input: unknown, options?: Record<string, unknown>) => Promise<unknown>) & {
   tokenizer: unknown;
@@ -54,20 +54,23 @@ async function ensureLoaded() {
 }
 
 async function generate(message: Extract<ModelWorkerRequest, { type: "generate" }>) {
-  await ensureLoaded();
-  if (!generator || !transformersModule) throw new Error("The local model is unavailable.");
+  if (!generator || !transformersModule) throw new Error("Load the local model explicitly before generating.");
   const criterion = new transformersModule.InterruptableStoppingCriteria();
   active.set(message.requestId, criterion);
+  let emittedChunks = 0;
   const streamer = new transformersModule.TextStreamer(generator.tokenizer as never, {
     skip_prompt: true,
     callback_function: (delta: string) => {
-      if (delta) emit({ type: "delta", requestId: message.requestId, delta });
+      if (delta) {
+        emittedChunks += 1;
+        emit({ type: "delta", requestId: message.requestId, delta });
+      }
     },
   });
   emit({ type: "start", requestId: message.requestId });
   try {
     await generator(message.messages, {
-      max_new_tokens: Math.min(message.options.maxTokens, 160),
+      max_new_tokens: Math.min(message.options.maxTokens, LOCAL_MODEL_MAX_NEW_TOKENS),
       do_sample: true,
       temperature: message.options.temperature,
       top_k: message.options.topK || undefined,
@@ -78,8 +81,8 @@ async function generate(message: Extract<ModelWorkerRequest, { type: "generate" 
       return_full_text: false,
     });
     emit(criterion.interrupted
-      ? { type: "cancelled", requestId: message.requestId }
-      : { type: "done", requestId: message.requestId });
+      ? { type: "cancelled", requestId: message.requestId, generatedUnits: emittedChunks, unit: "stream-chunks" }
+      : { type: "done", requestId: message.requestId, generatedUnits: emittedChunks, unit: "stream-chunks" });
   } finally {
     active.delete(message.requestId);
   }
@@ -109,4 +112,3 @@ scope.onmessage = (event: MessageEvent<ModelWorkerRequest>) => {
     message: error instanceof Error ? error.message : "Generation failed",
   }));
 };
-

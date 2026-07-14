@@ -6,9 +6,16 @@ import { getPersistenceContext } from "../platform/persistence/client";
 import type { JsonValue } from "../platform/persistence/types";
 import { LATENT_TENSOR_PATH, LATENT_TENSOR_SOURCE } from "@latent/tensor/browser-source";
 import { CANONICAL_BROWSER_CHAT_FILES } from "../content/browser-chat/project-template";
+import { llmSystemsContractSuite } from "../content/llm-systems/contracts";
+import { hashProjectSnapshotSources, projectSnapshotSourcePayload } from "../features/ide/project-snapshot";
+import type { BuildRecord } from "../platform/persistence/types";
 
 export const PROJECT_STORAGE_KEY = "latent-project-v1";
+export const PROJECT_DRAFT_RECOVERY_KEY = "latent-project-draft-recovery-v2:";
+const LEGACY_PROJECT_DRAFT_RECOVERY_KEY = "latent-project-draft-recovery-v1";
+const PROJECT_RECOVERY_SESSION_KEY = "latent-project-recovery-session-v1";
 const PROJECT_CHANGE_EVENT = "latent-project-change";
+const PROJECT_PERSISTENCE_EVENT = "latent-project-persistence";
 const PROJECT_ID = "browser-chat";
 
 export type ProjectCourse = "runtime" | "models" | "systems" | "backend" | "product" | "app";
@@ -35,6 +42,14 @@ export type ProjectRuntime = {
   builtAt: number;
 };
 
+export type ProjectActiveBuild = {
+  id: string;
+  buildNumber: number;
+  sourceTreeHash: string;
+  projectRevision: number;
+  contractVersion: string;
+};
+
 export type ProjectUnitResult = BrowserLabTestResult;
 
 export type ProjectState = {
@@ -42,6 +57,7 @@ export type ProjectState = {
   files: Record<string, ProjectFile>;
   selectedPath: string;
   runtime: ProjectRuntime;
+  activeBuild: ProjectActiveBuild | null;
   output: { previous: string; current: string };
   tests: {
     results: Record<string, ProjectUnitResult[]>;
@@ -49,7 +65,31 @@ export type ProjectState = {
     runner: "none" | "legacy" | "browser-lab-v1";
     sourceTreeHash: string | null;
     projectRevision: number | null;
+    contractVersion: string | null;
+    contractIdsByPath: Record<string, string[]>;
   };
+};
+
+export type ProjectDraftRecovery = Record<string, { content: string; updatedAt: number }>;
+export type ProjectDraftRecoveryCandidate = { sessionId: string; path: string; content: string; updatedAt: number };
+
+type ProjectPersistenceSnapshot = {
+  state: ProjectState;
+  previous: ProjectState | null;
+};
+
+export type ProjectTestCommitResult =
+  | { accepted: true }
+  | { accepted: false; reason: "stale-source" | "contract-version" | "invalid-scope" | "client-draft" };
+
+export type SaveProjectTestResultsInput = {
+  results: ProjectUnitResult[];
+  expectedIdsByPath: Readonly<Record<string, readonly string[]>>;
+  replaceAll?: boolean;
+  sourceTreeHash: string;
+  projectRevision: number;
+  contractVersion: string;
+  isClientSnapshotCurrent?: () => boolean;
 };
 
 export type LessonProjectSeed = Omit<ProjectFile, "updatedAt">;
@@ -63,7 +103,7 @@ export const RUNTIME_PATHS = {
 
 const DEFAULT_RUNTIME: ProjectRuntime = {
   version: 1,
-  model: { temperature: 0.78, topK: 0, maxTokens: 180, seed: 71 },
+  model: { temperature: 0.78, topK: 0, maxTokens: 160, seed: 71 },
   transport: { wordsPerEvent: 1, delayMs: 24 },
   interface: { assistantName: "Model", responsePrefix: "", showMetrics: true },
   buildNumber: 1,
@@ -111,8 +151,9 @@ export function emptyProjectState(): ProjectState {
     files: runtimeFiles(),
     selectedPath: RUNTIME_PATHS.model,
     runtime: { ...DEFAULT_RUNTIME, model: { ...DEFAULT_RUNTIME.model }, transport: { ...DEFAULT_RUNTIME.transport }, interface: { ...DEFAULT_RUNTIME.interface } },
+    activeBuild: null,
     output: { previous: "", current: "" },
-    tests: { results: {}, ranAt: 0, runner: "none", sourceTreeHash: null, projectRevision: null },
+    tests: { results: {}, ranAt: 0, runner: "none", sourceTreeHash: null, projectRevision: null, contractVersion: null, contractIdsByPath: {} },
   };
 }
 
@@ -142,6 +183,40 @@ function sanitizeRuntime(value: unknown): ProjectRuntime {
     },
     buildNumber: Math.max(1, Math.round(finiteNumber(runtime.buildNumber, 1))),
     builtAt: finiteNumber(runtime.builtAt, 0),
+  };
+}
+
+function sanitizeActiveBuild(value: unknown): ProjectActiveBuild | null {
+  if (!value || typeof value !== "object") return null;
+  const build = value as Partial<ProjectActiveBuild>;
+  if (
+    typeof build.id !== "string"
+    || !build.id
+    || typeof build.sourceTreeHash !== "string"
+    || typeof build.contractVersion !== "string"
+    || typeof build.buildNumber !== "number"
+    || !Number.isSafeInteger(build.buildNumber)
+    || build.buildNumber < 1
+    || typeof build.projectRevision !== "number"
+    || !Number.isSafeInteger(build.projectRevision)
+    || build.projectRevision < 0
+  ) return null;
+  return {
+    id: build.id,
+    buildNumber: build.buildNumber,
+    sourceTreeHash: build.sourceTreeHash,
+    projectRevision: build.projectRevision,
+    contractVersion: build.contractVersion,
+  };
+}
+
+export function projectActiveBuildIdentity(build: Pick<BuildRecord, "id" | "buildNumber" | "sourceTreeHash" | "projectRevision" | "contractVersion">): ProjectActiveBuild {
+  return {
+    id: build.id,
+    buildNumber: build.buildNumber,
+    sourceTreeHash: build.sourceTreeHash,
+    projectRevision: build.projectRevision,
+    contractVersion: build.contractVersion,
   };
 }
 
@@ -194,23 +269,232 @@ function sanitizeProjectState(value: unknown): ProjectState {
     projectRevision: typeof rawTests?.projectRevision === "number" && Number.isSafeInteger(rawTests.projectRevision) && rawTests.projectRevision >= 0
       ? rawTests.projectRevision
       : null,
+    contractVersion: typeof rawTests?.contractVersion === "string" ? rawTests.contractVersion : null,
+    contractIdsByPath: rawTests?.contractIdsByPath && typeof rawTests.contractIdsByPath === "object"
+      ? Object.fromEntries(Object.entries(rawTests.contractIdsByPath).flatMap(([path, ids]) => (
+          Array.isArray(ids) && ids.every((id) => typeof id === "string") ? [[path, [...ids]]] : []
+        )))
+      : {},
   };
-  return { version: 1, files, selectedPath, runtime: sanitizeRuntime(candidate.runtime), output, tests };
+  return { version: 1, files, selectedPath, runtime: sanitizeRuntime(candidate.runtime), activeBuild: sanitizeActiveBuild(candidate.activeBuild), output, tests };
+}
+
+function emptyProjectTestState(): ProjectState["tests"] {
+  return {
+    results: {},
+    ranAt: 0,
+    runner: "none",
+    sourceTreeHash: null,
+    projectRevision: null,
+    contractVersion: null,
+    contractIdsByPath: {},
+  };
+}
+
+function sanitizeProjectDraftRecovery(value: unknown): ProjectDraftRecovery {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(Object.entries(value).flatMap(([path, draft]) => {
+    if (!draft || typeof draft !== "object" || Array.isArray(draft)) return [];
+    const candidate = draft as { content?: unknown; updatedAt?: unknown };
+    if (typeof candidate.content !== "string") return [];
+    return [[path, {
+      content: candidate.content,
+      updatedAt: finiteNumber(candidate.updatedAt, 0),
+    }]];
+  }));
+}
+
+let inMemoryRecoverySessionId: string | null = null;
+
+function projectRecoverySessionId() {
+  if (inMemoryRecoverySessionId) return inMemoryRecoverySessionId;
+  if (typeof window === "undefined") return "server";
+  try {
+    const existing = window.sessionStorage?.getItem(PROJECT_RECOVERY_SESSION_KEY);
+    if (existing) return (inMemoryRecoverySessionId = existing);
+    const created = `tab-${crypto.randomUUID()}`;
+    window.sessionStorage?.setItem(PROJECT_RECOVERY_SESSION_KEY, created);
+    return (inMemoryRecoverySessionId = created);
+  } catch {
+    return (inMemoryRecoverySessionId = `tab-${crypto.randomUUID()}`);
+  }
+}
+
+export function projectDraftRecoveryStorageKey(sessionId = projectRecoverySessionId()) {
+  return `${PROJECT_DRAFT_RECOVERY_KEY}${sessionId}`;
+}
+
+function readRecoveryKey(key: string): ProjectDraftRecovery {
+  if (typeof window === "undefined") return {};
+  try {
+    const serialized = window.localStorage.getItem(key);
+    return serialized ? sanitizeProjectDraftRecovery(JSON.parse(serialized)) : {};
+  } catch {
+    return {};
+  }
+}
+
+function projectRecoveryKeys() {
+  if (typeof window === "undefined") return [];
+  const keys = new Set<string>();
+  try {
+    for (let index = 0; index < window.localStorage.length; index += 1) {
+      const key = window.localStorage.key(index);
+      if (key?.startsWith(PROJECT_DRAFT_RECOVERY_KEY)) keys.add(key);
+    }
+  } catch {
+    // Some test/private storage implementations do not expose key iteration.
+  }
+  keys.add(projectDraftRecoveryStorageKey());
+  return [...keys];
+}
+
+function readProjectDraftRecovery(): ProjectDraftRecovery {
+  const key = projectDraftRecoveryStorageKey();
+  const current = readRecoveryKey(key);
+  if (Object.keys(current).length || typeof window === "undefined") return current;
+  const legacy = readRecoveryKey(LEGACY_PROJECT_DRAFT_RECOVERY_KEY);
+  if (!Object.keys(legacy).length) return current;
+  try {
+    window.localStorage.setItem(key, JSON.stringify(legacy));
+    window.localStorage.removeItem(LEGACY_PROJECT_DRAFT_RECOVERY_KEY);
+  } catch {
+    // The legacy journal remains readable if migration storage is unavailable.
+  }
+  return legacy;
+}
+
+export function listProjectDraftRecoveryCandidates(path?: string): ProjectDraftRecoveryCandidate[] {
+  if (typeof window === "undefined") return [];
+  const candidates = projectRecoveryKeys().flatMap((key) => {
+    const sessionId = key.slice(PROJECT_DRAFT_RECOVERY_KEY.length);
+    return Object.entries(readRecoveryKey(key)).flatMap(([candidatePath, draft]) => (
+      !path || path === candidatePath ? [{ sessionId, path: candidatePath, ...draft }] : []
+    ));
+  });
+  const legacy = readRecoveryKey(LEGACY_PROJECT_DRAFT_RECOVERY_KEY);
+  for (const [candidatePath, draft] of Object.entries(legacy)) {
+    if (!path || path === candidatePath) candidates.push({ sessionId: "legacy", path: candidatePath, ...draft });
+  }
+  return candidates.sort((left, right) => right.updatedAt - left.updatedAt);
+}
+
+export function discardProjectDraftRecoveryCandidate(sessionId: string, path: string) {
+  if (typeof window === "undefined") return;
+  const key = sessionId === "legacy" ? LEGACY_PROJECT_DRAFT_RECOVERY_KEY : projectDraftRecoveryStorageKey(sessionId);
+  const recovery = readRecoveryKey(key);
+  delete recovery[path];
+  try {
+    if (Object.keys(recovery).length) window.localStorage.setItem(key, JSON.stringify(recovery));
+    else window.localStorage.removeItem(key);
+  } catch {
+    // Keep the visible candidate when storage cannot be changed.
+  }
+}
+
+export function projectStateWithRecoveredDrafts(state: ProjectState, recovery: ProjectDraftRecovery): ProjectState {
+  const files = { ...state.files };
+  let changed = false;
+  for (const [path, draft] of Object.entries(recovery)) {
+    const file = files[path];
+    if (!file || file.readOnly || file.content === draft.content) continue;
+    files[path] = {
+      ...file,
+      content: draft.content,
+      verifiedCells: file.lessonId ? 0 : file.verifiedCells,
+      updatedAt: Math.max(file.updatedAt, draft.updatedAt),
+    };
+    changed = true;
+  }
+  return changed ? { ...state, files, tests: emptyProjectTestState() } : state;
+}
+
+export function stageProjectDraftRecovery(path: string, content: string, updatedAt = Date.now()) {
+  if (typeof window === "undefined") return false;
+  try {
+    const recovery = readProjectDraftRecovery();
+    recovery[path] = { content, updatedAt };
+    window.localStorage.setItem(projectDraftRecoveryStorageKey(), JSON.stringify(recovery));
+    return true;
+  } catch {
+    // IndexedDB autosave still runs when synchronous recovery storage is unavailable.
+    return false;
+  }
+}
+
+export function loadProjectDraftRecoveryCandidate(candidate: ProjectDraftRecoveryCandidate, minimumUpdatedAt = 0) {
+  const currentSessionId = projectRecoverySessionId();
+  const restaged = stageProjectDraftRecovery(
+    candidate.path,
+    candidate.content,
+    Math.max(Date.now(), minimumUpdatedAt, candidate.updatedAt + 1),
+  );
+  if (!restaged) return false;
+  if (candidate.sessionId !== currentSessionId) {
+    discardProjectDraftRecoveryCandidate(candidate.sessionId, candidate.path);
+  }
+  return true;
+}
+
+function clearPersistedProjectDraftRecovery(state: ProjectState, durablePaths: ReadonlySet<string>) {
+  if (typeof window === "undefined") return;
+  try {
+    const recovery = readProjectDraftRecovery();
+    const remaining = Object.fromEntries(Object.entries(recovery).filter(([path, draft]) => (
+      !durablePaths.has(path) || state.files[path]?.content !== draft.content
+    )));
+    if (Object.keys(remaining).length) {
+      window.localStorage.setItem(projectDraftRecoveryStorageKey(), JSON.stringify(remaining));
+    } else {
+      window.localStorage.removeItem(projectDraftRecoveryStorageKey());
+    }
+  } catch {
+    // A stale recovery journal is harmless: hydration only reapplies its exact bytes.
+  }
+}
+
+/**
+ * Numeric revisions are ordering metadata, not byte identity. Imports can
+ * legitimately contain the same revision number with different source, so
+ * hydration re-hashes the restored VFS before admitting any saved receipt.
+ */
+export async function projectTestsForRestoredSnapshot(
+  tests: ProjectState["tests"],
+  files: Readonly<Record<string, ProjectFile>>,
+  currentProjectRevision: number,
+): Promise<ProjectState["tests"]> {
+  if (tests.runner === "none" && !Object.keys(tests.results).length) return tests;
+  if (
+    tests.runner !== "browser-lab-v1"
+    || tests.projectRevision !== currentProjectRevision
+    || tests.sourceTreeHash === null
+    || tests.contractVersion !== llmSystemsContractSuite.contractVersion
+  ) return emptyProjectTestState();
+  const currentSourceTreeHash = await hashProjectSnapshotSources(files);
+  return currentSourceTreeHash === tests.sourceTreeHash ? tests : emptyProjectTestState();
 }
 
 function loadLegacyProjectState() {
   if (typeof window === "undefined") return emptyProjectState();
   try {
     const serialized = window.localStorage.getItem(PROJECT_STORAGE_KEY);
-    return serialized ? sanitizeProjectState(JSON.parse(serialized)) : emptyProjectState();
+    if (!serialized) return emptyProjectState();
+    const legacy = sanitizeProjectState(JSON.parse(serialized));
+    // Active-build authority lives in the validated build repository. A
+    // denormalized localStorage field can never mint portfolio eligibility.
+    return projectStateWithRecoveredDrafts({ ...legacy, activeBuild: null }, readProjectDraftRecovery());
   } catch {
-    return emptyProjectState();
+    return projectStateWithRecoveredDrafts(emptyProjectState(), readProjectDraftRecovery());
   }
 }
 
 let cachedProject: ProjectState | null = null;
 let hydrationPromise: Promise<void> | null = null;
 let persistenceQueue: Promise<void> = Promise.resolve();
+let recoveredProjectPersistenceBase: ProjectState | null = null;
+let pendingPersistence: ProjectPersistenceSnapshot | null = null;
+let persistenceTimer: ReturnType<typeof setTimeout> | null = null;
+let projectPersistenceError: string | null = null;
 
 function announceProjectChange() {
   if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent(PROJECT_CHANGE_EVENT));
@@ -220,7 +504,44 @@ export function loadProjectState() {
   return cachedProject ?? loadLegacyProjectState();
 }
 
-async function persistProjectState(state: ProjectState) {
+function sameJson(left: unknown, right: unknown) {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function persistedFileMatchesProjectFile(
+  persisted: { track: string; title: string; content: string; referenceContent: string | null; lessonId: string | null; verifiedCells?: number; totalCells?: number },
+  file: ProjectFile,
+) {
+  return persisted.track === file.courseId
+    && persisted.title === file.title
+    && persisted.content === file.content
+    && persisted.referenceContent === file.referenceContent
+    && persisted.lessonId === (file.lessonId ?? null)
+    && (persisted.verifiedCells ?? 0) === file.verifiedCells
+    && (persisted.totalCells ?? 1) === file.totalCells;
+}
+
+function projectPersistencePaths(state: ProjectState, previous: ProjectState | null) {
+  if (!previous) return Object.keys(state.files);
+  return Object.keys(state.files).filter((path) => {
+    const before = previous.files[path];
+    const after = state.files[path];
+    return !before || !sameJson({ ...before, updatedAt: 0 }, { ...after, updatedAt: 0 });
+  });
+}
+
+function setProjectPersistenceError(error: unknown) {
+  projectPersistenceError = error
+    ? error instanceof Error ? error.message : "Project storage is unavailable."
+    : null;
+  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent(PROJECT_PERSISTENCE_EVENT));
+}
+
+export function getProjectPersistenceError() {
+  return projectPersistenceError;
+}
+
+async function persistProjectState(state: ProjectState, previous: ProjectState | null) {
   const { repositories } = await getPersistenceContext();
   let project = await repositories.projects.get(PROJECT_ID);
   if (!project) {
@@ -231,7 +552,22 @@ async function persistProjectState(state: ProjectState) {
       selectedPath: state.selectedPath,
     });
   }
-  for (const file of Object.values(state.files)) {
+  const changedPaths = projectPersistencePaths(state, previous);
+  const durablePaths = new Set<string>();
+  for (const path of changedPaths) {
+    const file = state.files[path];
+    const before = previous?.files[path];
+    const persisted = await repositories.projects.getFile(PROJECT_ID, path);
+    if (persisted && persistedFileMatchesProjectFile(persisted, file)) {
+      durablePaths.add(path);
+      continue;
+    }
+    if (persisted && before && !persistedFileMatchesProjectFile(persisted, before)) {
+      throw new Error(`${path} changed in another tab. Your recovery copy is safe; reload before choosing which version to keep.`);
+    }
+    if (persisted && !before) {
+      throw new Error(`${path} was created in another tab. Your recovery copy is safe; reload before choosing which version to keep.`);
+    }
     await repositories.projects.saveFile({
       projectId: PROJECT_ID,
       path: file.path,
@@ -243,34 +579,63 @@ async function persistProjectState(state: ProjectState) {
       verifiedCells: file.verifiedCells,
       totalCells: file.totalCells,
       reason: "edit",
+      expected: persisted ? { revision: persisted.revision, sourceHash: persisted.sourceHash } : null,
     });
+    durablePaths.add(path);
   }
-  await repositories.projects.selectFile(PROJECT_ID, state.selectedPath);
-  await Promise.all([
-    repositories.settings.put("project.runtime", state.runtime as unknown as JsonValue),
-    repositories.settings.put("project.output", state.output as unknown as JsonValue),
-    repositories.settings.put("project.tests", state.tests as unknown as JsonValue),
-  ]);
+  if (changedPaths.length || !previous || previous.selectedPath !== state.selectedPath) {
+    await repositories.projects.selectFile(PROJECT_ID, state.selectedPath);
+  }
+  const settings: Array<Promise<unknown>> = [];
+  if (!previous || !sameJson(previous.runtime, state.runtime)) settings.push(repositories.settings.put("project.runtime", state.runtime as unknown as JsonValue));
+  if (!previous || !sameJson(previous.output, state.output)) settings.push(repositories.settings.put("project.output", state.output as unknown as JsonValue));
+  if (!previous || !sameJson(previous.tests, state.tests)) settings.push(repositories.settings.put("project.tests", state.tests as unknown as JsonValue));
+  await Promise.all(settings);
+  return durablePaths;
 }
 
-function scheduleProjectPersistence(state: ProjectState) {
+function enqueuePendingProjectPersistence() {
+  if (persistenceTimer) clearTimeout(persistenceTimer);
+  persistenceTimer = null;
+  const pending = pendingPersistence;
+  pendingPersistence = null;
+  if (!pending) return;
   persistenceQueue = persistenceQueue
-    .then(() => persistProjectState(state))
+    .then(async () => {
+      const durablePaths = await persistProjectState(pending.state, pending.previous);
+      clearPersistedProjectDraftRecovery(pending.state, durablePaths);
+      setProjectPersistenceError(null);
+    })
     .catch((error) => {
+      setProjectPersistenceError(error);
       console.error("Project persistence failed", error);
     });
 }
 
-async function stateFromPersistence(): Promise<ProjectState | null> {
+function scheduleProjectPersistence(state: ProjectState, previous: ProjectState | null = null) {
+  if (pendingPersistence) pendingPersistence.state = state;
+  else pendingPersistence = { state, previous };
+  if (persistenceTimer) clearTimeout(persistenceTimer);
+  persistenceTimer = setTimeout(enqueuePendingProjectPersistence, 220);
+}
+
+export async function projectStateFromPersistence(): Promise<ProjectState | null> {
   const { database, repositories } = await getPersistenceContext();
   const project = await repositories.projects.get(PROJECT_ID);
   if (!project) return null;
+  const certifiedActiveBuild = repositories.builds.activeValidated(PROJECT_ID).catch((error) => {
+    // Source and recovery history must remain available after a contract
+    // upgrade invalidates an older build. Runtime authority fails closed to
+    // null; the learner can create a fresh certified build from the IDE.
+    console.warn("The saved active build was rejected and will not run.", error);
+    return null;
+  });
   const [records, storedRuntime, storedOutput, storedTests, activeBuild, runs] = await Promise.all([
     repositories.projects.listFiles(PROJECT_ID),
     repositories.settings.get<JsonValue>("project.runtime"),
     repositories.settings.get<JsonValue>("project.output"),
     repositories.settings.get<JsonValue>("project.tests"),
-    repositories.builds.active(PROJECT_ID),
+    certifiedActiveBuild,
     database.testRuns.where("projectId").equals(PROJECT_ID).sortBy("completedAt"),
   ]);
   const legacy = loadLegacyProjectState();
@@ -303,11 +668,22 @@ async function stateFromPersistence(): Promise<ProjectState | null> {
     });
     return grouped;
   }, {});
+  const activeRuntime = activeBuild
+    && activeBuild.runtimeConfig
+    && typeof activeBuild.runtimeConfig === "object"
+    && !Array.isArray(activeBuild.runtimeConfig)
+    ? {
+        ...activeBuild.runtimeConfig,
+        buildNumber: activeBuild.buildNumber,
+        builtAt: activeBuild.createdAt,
+      }
+    : null;
   const candidate = {
     version: 1,
     files,
     selectedPath: project.selectedPath ?? legacy.selectedPath,
-    runtime: activeBuild?.runtimeConfig ?? storedRuntime ?? legacy.runtime,
+    runtime: activeRuntime ?? storedRuntime ?? legacy.runtime,
+    activeBuild: activeBuild ? projectActiveBuildIdentity(activeBuild) : null,
     output: storedOutput ?? legacy.output,
     tests: storedTests ?? (testsFromRuns ? {
       results: testsFromRuns,
@@ -315,24 +691,35 @@ async function stateFromPersistence(): Promise<ProjectState | null> {
       runner: latestRun?.runnerVersion === "browser-lab-quickjs-v1" ? "browser-lab-v1" : "legacy",
       sourceTreeHash: latestRun?.sourceTreeHash ?? null,
       projectRevision: latestRun?.projectRevision ?? null,
+      contractVersion: latestRun?.contractVersion ?? null,
+      contractIdsByPath: {},
     } : legacy.tests),
   };
-  const restored = sanitizeProjectState(candidate);
-  if (restored.tests.projectRevision !== project.draftRevision) {
-    restored.tests = { results: {}, ranAt: 0, runner: "none", sourceTreeHash: null, projectRevision: null };
-  }
+  const persistedBase = sanitizeProjectState(candidate);
+  const recordsByPath = new Map(records.map((record) => [record.path, record]));
+  const safeRecovery = Object.fromEntries(Object.entries(readProjectDraftRecovery()).filter(([path, draft]) => {
+    const record = recordsByPath.get(path);
+    return !record || record.content === draft.content || draft.updatedAt > record.updatedAt;
+  }));
+  const restored = projectStateWithRecoveredDrafts(persistedBase, safeRecovery);
+  recoveredProjectPersistenceBase = restored === persistedBase ? null : persistedBase;
+  restored.tests = await projectTestsForRestoredSnapshot(restored.tests, restored.files, project.draftRevision);
+  clearPersistedProjectDraftRecovery(restored, new Set(records.filter((record) => restored.files[record.path]?.content === record.content).map((record) => record.path)));
   return restored;
 }
 
 export function initializeProjectPersistence() {
   if (typeof window === "undefined") return Promise.resolve();
   hydrationPromise ??= (async () => {
-    const persisted = await stateFromPersistence();
+    const persisted = await projectStateFromPersistence();
+    const recoveryBase = recoveredProjectPersistenceBase;
+    recoveredProjectPersistenceBase = null;
     if (cachedProject) {
-      scheduleProjectPersistence(cachedProject);
+      scheduleProjectPersistence(cachedProject, recoveryBase ?? persisted);
     } else {
       cachedProject = persisted ?? loadLegacyProjectState();
-      scheduleProjectPersistence(cachedProject);
+      if (recoveryBase) scheduleProjectPersistence(cachedProject, recoveryBase);
+      else if (!persisted) scheduleProjectPersistence(cachedProject);
     }
     announceProjectChange();
   })().catch((error) => {
@@ -345,12 +732,15 @@ export function initializeProjectPersistence() {
 
 export async function flushProjectPersistence() {
   await initializeProjectPersistence();
+  enqueuePendingProjectPersistence();
   await persistenceQueue;
+  if (projectPersistenceError) throw new Error(projectPersistenceError);
 }
 
 export function updateProjectState(update: (state: ProjectState) => ProjectState) {
-  cachedProject = sanitizeProjectState(update(loadProjectState()));
-  scheduleProjectPersistence(cachedProject);
+  const previous = loadProjectState();
+  cachedProject = sanitizeProjectState(update(previous));
+  scheduleProjectPersistence(cachedProject, previous);
   announceProjectChange();
   return cachedProject;
 }
@@ -394,17 +784,19 @@ export function ensureProjectWorkspace(seeds: LessonProjectSeed[]) {
           ...current,
           ...seed,
           content: nextContent,
+          verifiedCells: nextContent === seed.content ? seed.verifiedCells : 0,
           updatedAt: nextContent === current.content ? current.updatedAt : Date.now(),
         };
         sourceTreeChanged = true;
       } else {
         const current = files[seed.path];
         const nextReadOnly = seed.readOnly ?? current.readOnly;
+        const nextVerifiedCells = current.content === seed.content ? seed.verifiedCells : 0;
         if (
           current.courseId !== seed.courseId
           || current.lessonId !== seed.lessonId
           || current.title !== seed.title
-          || current.verifiedCells !== seed.verifiedCells
+          || current.verifiedCells !== nextVerifiedCells
           || current.totalCells !== seed.totalCells
           || current.readOnly !== nextReadOnly
         ) {
@@ -413,7 +805,7 @@ export function ensureProjectWorkspace(seeds: LessonProjectSeed[]) {
             courseId: seed.courseId,
             lessonId: seed.lessonId,
             title: seed.title,
-            verifiedCells: seed.verifiedCells,
+            verifiedCells: nextVerifiedCells,
             totalCells: seed.totalCells,
             readOnly: nextReadOnly,
           };
@@ -425,7 +817,7 @@ export function ensureProjectWorkspace(seeds: LessonProjectSeed[]) {
       files,
       selectedPath: files[selectedPath] ? selectedPath : RUNTIME_PATHS.model,
       tests: sourceTreeChanged
-        ? { results: {}, ranAt: 0, runner: "none", sourceTreeHash: null, projectRevision: null }
+        ? { results: {}, ranAt: 0, runner: "none", sourceTreeHash: null, projectRevision: null, contractVersion: null, contractIdsByPath: {} }
         : { ...state.tests, results: testResults },
     };
   });
@@ -443,23 +835,33 @@ export function projectStateAfterFileEdit(state: ProjectState, path: string, con
       ...state.files,
       [path]: { ...file, content, verifiedCells: file.lessonId ? 0 : file.verifiedCells, updatedAt },
     },
-    tests: { results: {}, ranAt: 0, runner: "none" as const, sourceTreeHash: null, projectRevision: null },
+    tests: { results: {}, ranAt: 0, runner: "none" as const, sourceTreeHash: null, projectRevision: null, contractVersion: null, contractIdsByPath: {} },
   };
 }
 
 export function saveProjectFile(path: string, content: string) {
+  stageProjectDraftRecovery(path, content);
   return updateProjectState((state) => projectStateAfterFileEdit(state, path, content));
 }
 
 export function saveLessonProjectFile(seed: LessonProjectSeed) {
+  stageProjectDraftRecovery(seed.path, seed.content);
   return updateProjectState((state) => {
     const existing = state.files[seed.path];
     const contentChanged = existing?.content !== seed.content;
+    const metadataChanged = !existing
+      || existing.courseId !== seed.courseId
+      || existing.lessonId !== seed.lessonId
+      || existing.title !== seed.title
+      || existing.referenceContent !== seed.referenceContent
+      || existing.verifiedCells !== seed.verifiedCells
+      || existing.totalCells !== seed.totalCells
+      || existing.readOnly !== seed.readOnly;
     return {
       ...state,
-      files: { ...state.files, [seed.path]: { ...seed, updatedAt: contentChanged ? Date.now() : existing?.updatedAt ?? Date.now() } },
+      files: { ...state.files, [seed.path]: { ...seed, updatedAt: contentChanged || metadataChanged ? Date.now() : existing?.updatedAt ?? Date.now() } },
       tests: contentChanged
-        ? { results: {}, ranAt: 0, runner: "none", sourceTreeHash: null, projectRevision: null }
+        ? { results: {}, ranAt: 0, runner: "none", sourceTreeHash: null, projectRevision: null, contractVersion: null, contractIdsByPath: {} }
         : state.tests,
     };
   });
@@ -493,7 +895,7 @@ export function compileProject(files: Record<string, ProjectFile>, previous: Pro
     previous = { ...previous, model: {
       temperature: rangedNumber(value.temperature, RUNTIME_PATHS.model, "temperature", 0.2, 1.8),
       topK: rangedNumber(value.topK, RUNTIME_PATHS.model, "topK", 0, 64, true),
-      maxTokens: rangedNumber(value.maxTokens, RUNTIME_PATHS.model, "maxTokens", 40, 240, true),
+      maxTokens: rangedNumber(value.maxTokens, RUNTIME_PATHS.model, "maxTokens", 40, 160, true),
       seed: rangedNumber(value.seed, RUNTIME_PATHS.model, "seed", 0, 99999, true),
     } };
   } catch (error) { errors.push(error instanceof Error ? error.message : "Model config failed."); }
@@ -515,27 +917,102 @@ export function compileProject(files: Record<string, ProjectFile>, previous: Pro
   return { ok: true as const, errors: [], runtime: { ...previous, version: 1 as const, buildNumber: previous.buildNumber + 1, builtAt: Date.now() } };
 }
 
-export function saveProjectRuntime(runtime: ProjectRuntime, preview: string) {
-  return updateProjectState((state) => ({ ...state, runtime, output: { previous: state.output.current, current: preview } }));
+export function saveProjectRuntime(runtime: ProjectRuntime, preview: string, activeBuild: ProjectActiveBuild) {
+  return updateProjectState((state) => ({ ...state, runtime, activeBuild, output: { previous: state.output.current, current: preview } }));
 }
 
-export function saveProjectTestResults(
-  results: ProjectUnitResult[],
-  replaceAll = false,
-  sourceTreeHash: string | null = null,
-  projectRevision: number | null = null,
+function normalizedProjectTestScope(
+  results: readonly ProjectUnitResult[],
+  expectedIdsByPath: Readonly<Record<string, readonly string[]>>,
+): Record<string, string[]> | null {
+  const expectedPaths = Object.keys(expectedIdsByPath).sort((left, right) => left.localeCompare(right));
+  if (!expectedPaths.length) return null;
+  const resultPaths = [...new Set(results.map((result) => result.path))].sort((left, right) => left.localeCompare(right));
+  if (resultPaths.length !== expectedPaths.length || resultPaths.some((path, index) => path !== expectedPaths[index])) return null;
+  const normalized: Record<string, string[]> = {};
+  for (const path of expectedPaths) {
+    const expected = [...expectedIdsByPath[path]].sort((left, right) => left.localeCompare(right));
+    const expectedSet = new Set(expected);
+    const actual = results.filter((result) => result.path === path).map((result) => result.id).sort((left, right) => left.localeCompare(right));
+    const actualSet = new Set(actual);
+    if (
+      !expected.length
+      || expectedSet.size !== expected.length
+      || actualSet.size !== actual.length
+      || actual.length !== expected.length
+      || actual.some((id, index) => id !== expected[index])
+    ) return null;
+    normalized[path] = expected;
+  }
+  return normalized;
+}
+
+export function projectTestResultScopeIsExact(
+  results: readonly ProjectUnitResult[],
+  expectedIdsByPath: Readonly<Record<string, readonly string[]>>,
 ) {
-  return updateProjectState((state) => {
-    const nextResults = replaceAll ? {} as Record<string, ProjectUnitResult[]> : { ...state.tests.results };
-    for (const path of new Set(results.map((result) => result.path))) nextResults[path] = [];
+  return normalizedProjectTestScope(results, expectedIdsByPath) !== null;
+}
+
+export async function saveProjectTestResults({
+  results,
+  expectedIdsByPath,
+  replaceAll = false,
+  sourceTreeHash,
+  projectRevision,
+  contractVersion,
+  isClientSnapshotCurrent = () => true,
+}: SaveProjectTestResultsInput): Promise<ProjectTestCommitResult> {
+  const normalizedScope = normalizedProjectTestScope(results, expectedIdsByPath);
+  if (!normalizedScope) return { accepted: false, reason: "invalid-scope" };
+  if (contractVersion !== llmSystemsContractSuite.contractVersion) {
+    return { accepted: false, reason: "contract-version" };
+  }
+  if (!isClientSnapshotCurrent()) return { accepted: false, reason: "client-draft" };
+  await flushProjectPersistence();
+  const { repositories } = await getPersistenceContext();
+  const [persistedProject, persistedFiles] = await Promise.all([
+    repositories.projects.get(PROJECT_ID),
+    repositories.projects.listFiles(PROJECT_ID),
+  ]);
+  const persistedSources = Object.fromEntries(persistedFiles.map((file) => [file.path, {
+    path: file.path,
+    content: file.content,
+  }]));
+  const [persistedSourceHash, persistedPayload] = await Promise.all([
+    hashProjectSnapshotSources(persistedSources),
+    Promise.resolve(projectSnapshotSourcePayload(persistedSources)),
+  ]);
+  const currentPayload = projectSnapshotSourcePayload(loadProjectState().files);
+  if (
+    !persistedProject
+    || persistedProject.draftRevision !== projectRevision
+    || persistedSourceHash !== sourceTreeHash
+    || currentPayload !== persistedPayload
+  ) {
+    return { accepted: false, reason: "stale-source" };
+  }
+  if (!isClientSnapshotCurrent()) return { accepted: false, reason: "client-draft" };
+  updateProjectState((state) => {
+    const canMerge = state.tests.runner === "browser-lab-v1"
+      && state.tests.sourceTreeHash === sourceTreeHash
+      && state.tests.projectRevision === projectRevision
+      && state.tests.contractVersion === contractVersion;
+    const nextResults = replaceAll || !canMerge ? {} as Record<string, ProjectUnitResult[]> : { ...state.tests.results };
+    const nextContractIdsByPath = replaceAll || !canMerge ? {} as Record<string, string[]> : { ...state.tests.contractIdsByPath };
+    for (const path of Object.keys(normalizedScope)) {
+      nextResults[path] = [];
+      nextContractIdsByPath[path] = normalizedScope[path];
+    }
     for (const result of results) {
       nextResults[result.path].push(result);
     }
     return {
       ...state,
-      tests: { results: nextResults, ranAt: Date.now(), runner: "browser-lab-v1", sourceTreeHash, projectRevision },
+      tests: { results: nextResults, ranAt: Date.now(), runner: "browser-lab-v1", sourceTreeHash, projectRevision, contractVersion, contractIdsByPath: nextContractIdsByPath },
     };
   });
+  return { accepted: true };
 }
 
 export function useProjectState() {
@@ -552,4 +1029,14 @@ export function useProjectState() {
     };
   }, []);
   return state;
+}
+
+export function useProjectPersistenceError() {
+  const [error, setError] = useState<string | null>(() => getProjectPersistenceError());
+  useEffect(() => {
+    const refresh = () => setError(getProjectPersistenceError());
+    window.addEventListener(PROJECT_PERSISTENCE_EVENT, refresh);
+    return () => window.removeEventListener(PROJECT_PERSISTENCE_EVENT, refresh);
+  }, []);
+  return error;
 }

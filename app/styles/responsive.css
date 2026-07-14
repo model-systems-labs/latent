@@ -7,11 +7,33 @@
   }
 
   .site-header {
+    height: auto;
     grid-template-columns: 1fr auto;
+    min-height: 5.4rem;
+    padding: 0.6rem 0 0.35rem;
+    row-gap: 0.2rem;
   }
 
   .site-header nav {
+    display: flex;
+    gap: 1.35rem;
+    grid-column: 1 / -1;
+    justify-self: stretch;
+    max-width: 100%;
+    overflow-x: auto;
+    padding: 0.15rem 0;
+    scrollbar-width: none;
+  }
+
+  .site-header nav::-webkit-scrollbar {
     display: none;
+  }
+
+  .site-header nav a {
+    align-items: center;
+    display: inline-flex;
+    flex: 0 0 auto;
+    min-height: 2.75rem;
   }
 
   .lesson-header {
@@ -21,6 +43,7 @@
   .lesson-header nav {
     display: flex;
     gap: 1.25rem;
+    grid-column: 1 / -1;
     justify-self: end;
     max-width: 100%;
     overflow-x: auto;
@@ -190,6 +213,16 @@
 }
 
 @media (max-width: 650px) {
+  .lesson-header nav {
+    gap: 0.7rem;
+    justify-self: stretch;
+  }
+
+  .lesson-header nav a {
+    font-size: max(0.68rem, 11px);
+    letter-spacing: 0.06em;
+  }
+
   .runtime-request-spec,
   .runtime-latency-definitions {
     grid-template-columns: 1fr 1fr;
@@ -539,7 +572,7 @@
   }
 
   .icl-measurement-table {
-    font-size: 0.46rem;
+    font-size: max(0.68rem, 11px);
   }
 
   .icl-measurement-table th,
@@ -1006,20 +1039,57 @@
     gap: 0.35rem;
   }
 
-  .capstone-topbar {
+  .capstone-topbar,
+  .ide-topbar {
     grid-template-columns: 1fr auto;
+    min-height: 5.75rem;
+    padding: 0.5rem 1rem 0.25rem;
+    row-gap: 0;
   }
 
-  .ide-topbar { grid-template-columns: 1fr auto; }
   .ide-topbar > div { justify-items: end; }
-  .ide-topbar nav { display: none; }
 
   .capstone-topbar > div {
     justify-items: end;
   }
 
+  .ide-topbar nav,
   .capstone-topbar nav {
+    display: flex;
+    gap: 1.35rem;
+    grid-column: 1 / -1;
+    justify-self: stretch;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .ide-topbar nav::-webkit-scrollbar,
+  .capstone-topbar nav::-webkit-scrollbar {
     display: none;
+  }
+
+  .ide-topbar nav a,
+  .capstone-topbar nav a {
+    align-items: center;
+    display: inline-flex;
+    flex: 0 0 auto;
+    font-size: max(0.68rem, 11px);
+    min-height: 2.75rem;
+  }
+
+  .ide-shell .project-workbench {
+    min-height: calc(100dvh - 5.75rem);
+  }
+
+  .compiled-capstone-runtime {
+    height: calc(100vh - 5.75rem);
+    height: calc(100dvh - 5.75rem);
+  }
+
+  .capstone-build-gate {
+    min-height: calc(100vh - 5.75rem);
+    min-height: calc(100dvh - 5.75rem);
   }
 
   .project-workbench > header {
@@ -1348,6 +1418,10 @@
     grid-template-columns: 1fr 1fr;
   }
 
+  .project-timeline-controls button {
+    min-height: 2.75rem;
+  }
+
   .project-timeline-controls label span { text-align: left; }
 
   .timeline-provided-files,
@@ -1433,9 +1507,11 @@
     background: transparent;
     border: 0;
     border-bottom: 2px solid transparent;
-    color: #7d7772;
-    font-size: 0.58rem;
-    min-height: 3rem;
+    color: #aaa3ad;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    min-height: 3.25rem;
     padding: 0.5rem 0.2rem;
     text-transform: uppercase;
   }
@@ -1445,8 +1521,24 @@
     color: #eee8e0;
   }
 
-  .project-header-actions button,
+  .mobile-ide-tabs button:focus-visible {
+    outline: 2px solid #d9bce9;
+    outline-offset: -4px;
+  }
+
+  .project-progress span {
+    color: #aaa3ad !important;
+    font-size: max(0.68rem, 11px) !important;
+  }
+
+  .project-header-actions button {
+    font-size: max(0.68rem, 11px);
+    min-height: 2.75rem;
+    padding-block: 0.65rem;
+  }
+
   .project-file-history button {
+    font-size: max(0.68rem, 11px);
     min-height: 2.75rem;
     padding-block: 0.65rem;
   }
@@ -1479,9 +1571,192 @@
     width: 100%;
   }
 
+  .project-workbench-grid[data-mobile-view="files"] > .project-tree section > span {
+    color: #aaa3ad;
+    font-size: max(0.68rem, 11px);
+  }
+
+  .project-workbench-grid[data-mobile-view="files"] > .project-tree button,
+  .project-workbench-grid[data-mobile-view="files"] > .project-tree a {
+    font-size: 0.72rem;
+    min-height: 2.75rem;
+  }
+
+  .project-workbench-grid[data-mobile-view="files"] > .project-tree button > em,
+  .project-workbench-grid[data-mobile-view="files"] > .project-tree a > em {
+    color: #aaa3ad;
+    font-size: max(0.68rem, 11px);
+  }
+
   .project-workbench-grid[data-mobile-view="code"] > .project-editor-panel {
     display: grid;
-    min-height: calc(100dvh - 11rem);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    height: calc(100vh - 11rem);
+    height: calc(100dvh - 11rem);
+    max-height: calc(100vh - 11rem);
+    max-height: calc(100dvh - 11rem);
+    max-width: 100%;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .project-workbench-grid[data-mobile-view="code"] .project-editor-panel > header {
+    align-items: start;
+    gap: 0.7rem;
+  }
+
+  .project-workbench-grid[data-mobile-view="code"] .project-editor-panel > header > div:first-child {
+    min-width: 0;
+  }
+
+  .project-workbench-grid[data-mobile-view="code"] .project-editor-panel > header > div:first-child span,
+  .project-workbench-grid[data-mobile-view="code"] .project-editor-panel > header > div:first-child strong {
+    display: block;
+    max-width: 58vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .project-workbench-grid[data-mobile-view="code"] .project-editor-panel > header > div:first-child span {
+    font-size: 0.75rem;
+  }
+
+  .project-workbench-grid[data-mobile-view="code"] .project-editor-panel > header > div:first-child strong {
+    color: #aaa3ad;
+    font-size: 0.7rem;
+  }
+
+  .project-workbench-grid[data-mobile-view="code"] .project-editor-panel > header > div:last-child {
+    color: #aaa3ad;
+    font-size: max(0.68rem, 11px);
+    flex-shrink: 0;
+  }
+
+  .project-workbench-grid[data-mobile-view="code"] .code-editor {
+    height: 100%;
+    max-height: 100%;
+    max-width: 100%;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .project-workbench-grid[data-mobile-view="code"] .code-editor .cm-editor {
+    font-size: 16px;
+    height: 100%;
+    max-height: 100%;
+    max-width: 100%;
+    min-height: 0;
+  }
+
+  .project-workbench-grid[data-mobile-view="code"] .code-editor .cm-content {
+    padding-bottom: 3.5rem;
+    padding-top: 1rem;
+  }
+
+  .project-workbench-grid[data-mobile-view="code"] .code-editor .cm-scroller {
+    -webkit-overflow-scrolling: touch;
+    height: 100%;
+    min-height: 0;
+    overflow-x: auto;
+    overflow-y: auto;
+    overscroll-behavior-x: contain;
+    overscroll-behavior-y: auto;
+    scrollbar-color: #7b7080 transparent;
+    scrollbar-width: thin;
+    touch-action: pan-x pan-y pinch-zoom;
+  }
+
+  .project-workbench-grid[data-mobile-view="code"] .code-editor .cm-scroller::-webkit-scrollbar {
+    height: 10px;
+    width: 8px;
+  }
+
+  .project-workbench-grid[data-mobile-view="code"] .code-editor .cm-scroller::-webkit-scrollbar-thumb {
+    background: #7b7080;
+    border: 3px solid #1f1e21;
+    border-radius: 999px;
+  }
+
+  .project-editor-panel > footer button {
+    font-size: max(0.68rem, 11px);
+    min-height: 2.75rem;
+  }
+
+  .project-editor-panel > footer p {
+    color: #aaa3ad;
+    font-size: 0.7rem;
+  }
+
+  .unit-test-panel > header span,
+  .selected-test-heading > span {
+    font-size: max(0.68rem, 11px);
+  }
+
+  .unit-test-panel > header strong,
+  .unit-test-list article strong {
+    font-size: 0.72rem;
+  }
+
+  .unit-test-panel button {
+    font-size: max(0.68rem, 11px);
+    min-height: 2.75rem;
+  }
+
+  .unit-test-list > p,
+  .unit-test-list article p {
+    color: #aaa3ad;
+    font-size: max(0.68rem, 11px);
+  }
+
+  .unit-test-list article > i {
+    font-size: max(0.68rem, 11px);
+    height: 1.35rem;
+    width: 1.35rem;
+  }
+
+  .project-output > header strong,
+  .project-output dd {
+    font-size: 0.72rem;
+  }
+
+  .project-output-status {
+    display: block;
+  }
+
+  .project-output dt {
+    color: #aaa3ad;
+    font-size: max(0.68rem, 11px);
+  }
+
+  .project-output article span {
+    color: #aaa3ad;
+    font-size: max(0.68rem, 11px);
+  }
+
+  .project-errors p {
+    font-size: max(0.68rem, 11px);
+  }
+
+  .project-file-history > header {
+    color: #aaa3ad;
+    font-size: max(0.68rem, 11px);
+  }
+
+  .project-file-history > header strong {
+    color: #aaa3ad;
+  }
+
+  .project-file-history > div strong {
+    font-size: 0.72rem;
+  }
+
+  .project-file-history > div em,
+  .project-file-history > p {
+    color: #aaa3ad;
+    font-size: max(0.68rem, 11px);
   }
 
   .project-workbench-grid[data-mobile-view="tests"] > .project-inspector,
@@ -1500,6 +1775,25 @@
     border-top: 0;
     display: block;
     min-height: calc(100dvh - 11rem);
+  }
+
+  .lesson-recovery-candidates {
+    grid-template-columns: 1fr;
+    margin-bottom: 3rem;
+  }
+
+  .lesson-recovery-list article {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .lesson-recovery-list article > span:last-child {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .lesson-recovery-status {
+    grid-column: 1;
   }
 }
 

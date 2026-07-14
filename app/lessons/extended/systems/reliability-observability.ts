@@ -8,7 +8,7 @@ export const reliabilityObservabilityLesson = defineExtendedLesson({
     courseNumber: 3,
     lessonNumber: 2,
     mode: "core-mechanism",
-    modeLabel: "Failure simulation",
+    modeLabel: "Worked failure trace",
     eyebrow: "Operations · Timeouts, retries, metrics",
     title: "Reliability and Observability",
     thesis: "A streaming chat request is a stateful operation whose failures must be classified, bounded, measured, and surfaced without duplicating generation or corrupting conversation state.",
@@ -24,7 +24,7 @@ export const reliabilityObservabilityLesson = defineExtendedLesson({
     ],
     claims: {
       paper: "User-facing distributed systems should be monitored through latency, traffic, errors, and saturation with attention to distributions and symptoms.",
-      lab: "The browser injects four deterministic failures and shows logical request identity, per-attempt identity, the visible-token retry boundary, phase timings, terminal transitions, late-event rejection, and resource release.",
+      lab: "Four fixed failure traces show logical request identity, per-attempt identity, the visible-token retry boundary, authored timings, terminal transitions, late-event rejection, and resource release.",
       limit: "Local traces cannot reproduce provider outages, cross-region partitions, or production traffic distributions.",
     },
     diagram: {
@@ -88,5 +88,5 @@ return { passed: late === false && current === true, detail: "late rejected · a
         },
       ],
     },
-    experiment: { kind: "systems", variant: "reliability", title: "Inject a generation failure", intro: "Run deterministic timeout, malformed-frame, worker-crash, and cancellation paths. Each trace names its request and attempts, phase timings, retry decision, terminal transition, rejected late event, and released resources." },
+    experiment: { kind: "systems", variant: "reliability", title: "Replay a generation failure", intro: "Replay authored timeout, malformed-frame, worker-crash, and cancellation paths. Each fixed trace names its request and attempts, timings, retry decision, terminal transition, rejected late event, and released resources." },
   });

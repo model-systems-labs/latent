@@ -9,6 +9,10 @@ import {
   type ProjectUnitResult,
 } from "./project-workspace";
 import { CAPSTONE_ENTRY_PATH, CANONICAL_BROWSER_CHAT_FILES } from "../content/browser-chat/project-template";
+import {
+  CAPSTONE_BEHAVIOR_COMPONENT_PATH,
+  CAPSTONE_BEHAVIOR_CONTRACT_ID,
+} from "./capstone-behavior-contract";
 
 export type ProjectTestRun = Omit<BrowserLabProjectRun, "results"> & {
   results: ProjectUnitResult[];
@@ -22,11 +26,19 @@ export async function runProjectUnitTests(
   const appPaths = new Set(CANONICAL_BROWSER_CHAT_FILES.map((file) => file.path));
   const testingCapstoneFile = Boolean(onlyPath && appPaths.has(onlyPath));
   const lessonRun = await runLessonContracts(files, { onlyPath: testingCapstoneFile ? undefined : onlyPath });
-  const results = testingCapstoneFile ? [] : [...lessonRun.results];
+  const results = testingCapstoneFile
+    ? lessonRun.results.filter((result) => result.id === CAPSTONE_BEHAVIOR_CONTRACT_ID)
+    : [...lessonRun.results];
+  const expectedIdsByPath = testingCapstoneFile
+    ? {
+      [CAPSTONE_BEHAVIOR_COMPONENT_PATH]: [CAPSTONE_BEHAVIOR_CONTRACT_ID],
+    } as Record<string, string[]>
+    : Object.fromEntries(Object.entries(lessonRun.expectedIdsByPath).map(([path, ids]) => [path, [...ids]]));
   if (!onlyPath || testingCapstoneFile) {
+    const compileId = `${CAPSTONE_ENTRY_PATH}:compile`;
     const compiled = lessonRun.program?.modules.find((module) => module.modulePath === CAPSTONE_ENTRY_PATH);
     results.push({
-      id: `${CAPSTONE_ENTRY_PATH}:compile`,
+      id: compileId,
       path: CAPSTONE_ENTRY_PATH,
       label: "Capstone application",
       passed: Boolean(compiled),
@@ -34,6 +46,7 @@ export async function runProjectUnitTests(
         ? "The complete React repository compiled from the same tested source snapshot."
         : "The capstone entry or one of its project imports did not compile.",
     });
+    expectedIdsByPath[CAPSTONE_ENTRY_PATH] = [compileId];
   }
   const runtimePaths = Object.values(RUNTIME_PATHS);
   if (!onlyPath || runtimePaths.includes(onlyPath as (typeof runtimePaths)[number])) {
@@ -48,7 +61,8 @@ export async function runProjectUnitTests(
         passed: !error,
         detail: error ?? "JSON module parses and satisfies its typed runtime bounds.",
       });
+      expectedIdsByPath[path] = [`${path}:contract`];
     }
   }
-  return { ...lessonRun, results };
+  return { ...lessonRun, results, expectedIdsByPath };
 }

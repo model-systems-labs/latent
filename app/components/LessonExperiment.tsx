@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CourseLesson } from "@latent/course-kit";
 import {
   runCausalAttention,
@@ -16,12 +16,24 @@ import {
 } from "@latent/model-lab";
 import { markExperimentComplete, saveCharacterRnnArtifact } from "../lib/learner-state";
 import { MANUAL_PRODUCT_VERIFICATION, runCapstoneQualityAudit } from "../lib/capstone-contract";
+import {
+  beginPipelineLoad,
+  createPipelineLoadLifecycle,
+  mountPipelineLoad,
+  pipelineLoadIsCurrent,
+  requestPipelineLoadCleanup,
+  settlePipelineLoad,
+  settlePipelineLoadFailure,
+} from "../lib/pipeline-load-lifecycle";
 
 type ModelMessage = { role: "system" | "user" | "assistant"; content: string };
-type TextGenerator = (
-  input: ModelMessage[] | string,
-  options?: Record<string, unknown>,
-) => Promise<unknown>;
+type TextGenerator = {
+  (
+    input: ModelMessage[] | string,
+    options?: Record<string, unknown>,
+  ): Promise<unknown>;
+  dispose?: () => Promise<void> | void;
+};
 type IclCondition = "Zero-shot" | "One-shot" | "Few-shot";
 type IclRow = {
   condition: IclCondition;
@@ -39,6 +51,14 @@ function extractGeneratedText(result: unknown) {
     return typeof finalMessage?.content === "string" ? finalMessage.content : "";
   }
   return "";
+}
+
+function disposeTextGenerator(generator: TextGenerator | null) {
+  try {
+    void Promise.resolve(generator?.dispose?.()).catch(() => undefined);
+  } catch {
+    // Disposal is best-effort during navigation; lifecycle guards still reject late UI updates.
+  }
 }
 
 function LossChart({ values }: { values: number[] }) {
@@ -175,7 +195,7 @@ function BpeExperiment({ onComplete }: ExperimentProps) {
             <span><em>Initial symbols</em><strong>{result.initialTokenCount}</strong></span>
             <span><em>Encoded symbols</em><strong>{result.finalTokenCount}</strong></span>
             <span><em>Learned merges</em><strong>{result.merges.length}</strong></span>
-            <span><em>Final vocabulary</em><strong>{result.vocabularySize}</strong></span>
+            <span><em>Learned vocabulary</em><strong>{result.vocabularySize}</strong></span>
           </div>
           <div className="token-artifact"><span>“modeling signals”</span><div>{result.encoded.map((token, index) => <code key={`${token}-${index}`}>{token}</code>)}</div></div>
           <div className="merge-list">
@@ -233,7 +253,7 @@ function TransformerExperiment({ onComplete }: ExperimentProps) {
   return (
     <>
       <div className="experiment-action">
-        <p>8-dimensional token-plus-position vectors · one causal attention head</p>
+        <p>8-dimensional token-plus-position vectors · identity Q/K/V projections · one causal attention head</p>
         <button type="button" onClick={() => { setResult(runCausalAttention()); onComplete(); }}>{result ? "Run again" : "Run attention"}</button>
       </div>
       {result ? (
@@ -256,6 +276,8 @@ function TransformerExperiment({ onComplete }: ExperimentProps) {
 
 function IclExperiment({ onComplete }: ExperimentProps) {
   const generatorRef = useRef<TextGenerator | null>(null);
+  const lifecycleRef = useRef(createPipelineLoadLifecycle());
+  const evaluationOperationRef = useRef(0);
   const [modelStatus, setModelStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [progress, setProgress] = useState(0);
   const [detail, setDetail] = useState("Model not loaded");
@@ -263,13 +285,29 @@ function IclExperiment({ onComplete }: ExperimentProps) {
   const [running, setRunning] = useState(false);
   const [rows, setRows] = useState<IclRow[]>([]);
 
+  useEffect(() => {
+    const lifecycle = lifecycleRef.current;
+    mountPipelineLoad(lifecycle);
+    return () => {
+      requestPipelineLoadCleanup(lifecycle);
+      evaluationOperationRef.current += 1;
+      const generator = generatorRef.current;
+      generatorRef.current = null;
+      disposeTextGenerator(generator);
+    };
+  }, []);
+
   const loadModel = async () => {
     if (modelStatus === "loading" || modelStatus === "ready") return;
+    const lifecycle = lifecycleRef.current;
+    const operation = beginPipelineLoad(lifecycle);
+    const isCurrent = () => pipelineLoadIsCurrent(lifecycle, operation);
     setModelStatus("loading");
     setError("");
     try {
       const transformers = await import("../lib/local-transformer-runtime");
       const progressCallback = (info: unknown) => {
+        if (!isCurrent()) return;
         const update = info as { progress?: number; file?: string; status?: string };
         if (typeof update.progress === "number") setProgress(Math.round(update.progress));
         if (update.file) setDetail(update.file.split("/").at(-1) ?? update.file);
@@ -279,20 +317,29 @@ function IclExperiment({ onComplete }: ExperimentProps) {
       let generator: TextGenerator;
       if ("gpu" in navigator) {
         try {
-          setDetail("Initializing WebGPU · q4");
+          if (isCurrent()) setDetail("Initializing WebGPU · q4");
           generator = await transformers.pipeline("text-generation", "onnx-community/SmolLM2-135M-Instruct-ONNX", { ...options, device: "webgpu" }) as unknown as TextGenerator;
         } catch {
+          if (!isCurrent()) {
+            settlePipelineLoadFailure(lifecycle, operation);
+            return;
+          }
           setDetail("WebGPU unavailable; initializing WASM · q4");
           generator = await transformers.pipeline("text-generation", "onnx-community/SmolLM2-135M-Instruct-ONNX", { ...options, device: "wasm" }) as unknown as TextGenerator;
         }
       } else {
         generator = await transformers.pipeline("text-generation", "onnx-community/SmolLM2-135M-Instruct-ONNX", { ...options, device: "wasm" }) as unknown as TextGenerator;
       }
+      if (settlePipelineLoad(lifecycle, operation) === "dispose") {
+        disposeTextGenerator(generator);
+        return;
+      }
       generatorRef.current = generator;
       setModelStatus("ready");
       setProgress(100);
       setDetail("SmolLM2-135M-Instruct · q4 · local");
     } catch (reason) {
+      if (!settlePipelineLoadFailure(lifecycle, operation)) return;
       setModelStatus("error");
       setError(reason instanceof Error ? reason.message : "The local model could not be initialized.");
     }
@@ -301,6 +348,8 @@ function IclExperiment({ onComplete }: ExperimentProps) {
   const runEvaluation = async () => {
     const generator = generatorRef.current;
     if (!generator || running) return;
+    const operation = ++evaluationOperationRef.current;
+    const isCurrent = () => lifecycleRef.current.mounted && evaluationOperationRef.current === operation;
     setRunning(true);
     setRows([]);
     setError("");
@@ -323,6 +372,7 @@ function IclExperiment({ onComplete }: ExperimentProps) {
       for (const condition of conditions) {
         const outputs: IclRow["outputs"] = [];
         for (const test of tests) {
+          if (!isCurrent()) return;
           const exampleText = condition.examples.map((example) => `Input: ${example.input}\nLabel: ${example.label}`).join("\n\n");
           const prompt = [
             "Infer how the demonstrations map short reviews to the opaque labels K and M. Classify the final review. Return exactly one capital letter: K or M.",
@@ -336,19 +386,22 @@ function IclExperiment({ onComplete }: ExperimentProps) {
             repetition_penalty: 1.05,
             return_full_text: false,
           });
+          if (!isCurrent()) return;
           const raw = extractGeneratedText(result).trim();
           const match = raw.match(/\b(K|M)\b/);
           outputs.push({ input: test.input, expected: test.expected, predicted: match?.[1] ?? null, raw });
         }
         const row = { condition: condition.name, correct: outputs.filter((output) => output.predicted === output.expected).length, total: outputs.length, outputs };
-        setRows((current) => [...current, row]);
+        if (isCurrent()) setRows((current) => [...current, row]);
       }
+      if (!isCurrent()) return;
       setDetail("Evaluation complete · frozen weights throughout");
       onComplete();
     } catch (reason) {
+      if (!isCurrent()) return;
       setError(reason instanceof Error ? reason.message : "The local evaluation stopped.");
     } finally {
-      setRunning(false);
+      if (isCurrent()) setRunning(false);
     }
   };
 
@@ -362,7 +415,7 @@ function IclExperiment({ onComplete }: ExperimentProps) {
   return (
     <>
       <div className="model-loader">
-        <div><span>Local model</span><strong>SmolLM2-135M-Instruct · q4</strong><em>{detail}</em></div>
+        <div><span>Local model</span><strong>SmolLM2-135M-Instruct · q4</strong><em>{detail}</em>{modelStatus === "loading" ? <small>Leaving this lesson suppresses further UI updates. This Transformers.js version may finish the current download before the resolved model can be disposed.</small> : null}</div>
         <i><b style={{ width: `${progress}%` }} /></i>
         <button type="button" onClick={loadModel} disabled={modelStatus === "loading" || modelStatus === "ready"}>{modelStatus === "ready" ? "Model ready" : modelStatus === "loading" ? `${progress}% downloaded` : "Load model · ~181 MB"}</button>
       </div>
@@ -679,19 +732,19 @@ function SystemsExperiment({ variant, onComplete }: { variant: SystemsVariant } 
   return (
     <>
       {variant === "scheduling" ? (
-        <div className="simulation-controls"><span>Scheduling policy</span><button className={policy === "static" ? "selected" : ""} type="button" onClick={() => setPolicy("static")}>Static batch</button><button className={policy === "continuous" ? "selected" : ""} type="button" onClick={() => setPolicy("continuous")}>Continuous</button></div>
+        <div className="simulation-controls" role="group" aria-label="Scheduling policy"><span>Scheduling policy</span><button aria-pressed={policy === "static"} className={policy === "static" ? "selected" : ""} type="button" onClick={() => { setPolicy("static"); setResult(null); }}>Static batch</button><button aria-pressed={policy === "continuous"} className={policy === "continuous" ? "selected" : ""} type="button" onClick={() => { setPolicy("continuous"); setResult(null); }}>Continuous</button></div>
       ) : null}
       {variant === "streaming" ? (
-        <div className="simulation-controls">
+        <div className="simulation-controls" role="group" aria-label="Stream policy">
           <span>Stream policy</span>
-          <button className={streamPolicy === "complete" ? "selected" : ""} type="button" onClick={() => { setStreamPolicy("complete"); setResult(null); }}>Complete stream</button>
-          <button className={streamPolicy === "cancel" ? "selected" : ""} type="button" onClick={() => { setStreamPolicy("cancel"); setResult(null); }}>Cancel after 4 tokens</button>
+          <button aria-pressed={streamPolicy === "complete"} className={streamPolicy === "complete" ? "selected" : ""} type="button" onClick={() => { setStreamPolicy("complete"); setResult(null); }}>Complete stream</button>
+          <button aria-pressed={streamPolicy === "cancel"} className={streamPolicy === "cancel" ? "selected" : ""} type="button" onClick={() => { setStreamPolicy("cancel"); setResult(null); }}>Cancel after 4 tokens</button>
         </div>
       ) : null}
       {variant === "reliability" ? (
-        <div className="simulation-controls"><label><span>Injected failure</span><select value={failure} onChange={(event) => setFailure(event.target.value)}><option value="queue-timeout">Queue timeout</option><option value="malformed-frame">Malformed frame</option><option value="worker-crash">Worker crash</option><option value="user-abort">User abort</option></select></label></div>
+        <div className="simulation-controls"><label><span>Injected failure</span><select value={failure} onChange={(event) => { setFailure(event.target.value); setResult(null); }}><option value="queue-timeout">Queue timeout</option><option value="malformed-frame">Malformed frame</option><option value="worker-crash">Worker crash</option><option value="user-abort">User abort</option></select></label></div>
       ) : null}
-      <div className="experiment-action"><p>{variant === "streaming" ? "Same deterministic response · adversarial chunks · explicit stop and release evidence" : variant === "reliability" ? "Deterministic failures · request and attempt ids · phase timing · terminal and resource evidence" : "Deterministic browser simulation · repeatable seed · explicit resource accounting"}</p><button type="button" onClick={run}>{result ? "Run again" : "Run simulation"}</button></div>
+      <div className="experiment-action"><p>{variant === "streaming" ? "Fixed worked trace · adversarial chunks · explicit stop and release evidence" : variant === "reliability" ? "Fixed worked failures · request and attempt ids · phase timing · terminal and resource evidence" : "Fixed worked trace · authored metrics · explicit resource accounting"}</p><button type="button" onClick={run}>{result ? "Replay trace again" : "Replay trace"}</button></div>
       {result ? (
         <div className="simulation-result">
           <div className="metric-grid">{result.metrics.map((metric) => <span key={metric.label}><em>{metric.label}</em><strong>{metric.value}</strong></span>)}</div>
@@ -742,18 +795,19 @@ function ProductExperiment({ variant, onComplete }: { variant: ProductVariant } 
     const setFlow = (flow: typeof stateFlow) => {
       setStateFlow(flow);
       setStep(0);
-      onComplete();
+      setRan(false);
     };
     return (
       <>
-        <div className="simulation-controls state-flow-controls"><span>Focused flow</span><button className={stateFlow === "complete" ? "selected" : ""} type="button" onClick={() => setFlow("complete")}>Complete · 01–06</button><button className={stateFlow === "cancel" ? "selected" : ""} type="button" onClick={() => setFlow("cancel")}>Cancel + late · 07–12</button><button className={stateFlow === "regenerate" ? "selected" : ""} type="button" onClick={() => setFlow("regenerate")}>Edit + regenerate · 13–18</button></div>
-        <div className="simulation-controls"><span>Reducer action</span><input aria-label="Reducer action" type="range" min="0" max={stateTrace.length - 1} value={step} onChange={(event) => { setStep(Number(event.target.value)); onComplete(); }} /><code>{String(current.number).padStart(2, "0")}/18</code></div>
+        <div className="simulation-controls state-flow-controls" role="group" aria-label="Focused reducer flow"><span>Focused flow</span><button aria-pressed={stateFlow === "complete"} className={stateFlow === "complete" ? "selected" : ""} type="button" onClick={() => setFlow("complete")}>Complete · 01–06</button><button aria-pressed={stateFlow === "cancel"} className={stateFlow === "cancel" ? "selected" : ""} type="button" onClick={() => setFlow("cancel")}>Cancel + late · 07–12</button><button aria-pressed={stateFlow === "regenerate"} className={stateFlow === "regenerate" ? "selected" : ""} type="button" onClick={() => setFlow("regenerate")}>Edit + regenerate · 13–18</button></div>
+        <div className="simulation-controls"><span>Reducer action</span><input aria-label="Reducer action" type="range" min="0" max={stateTrace.length - 1} value={step} onChange={(event) => setStep(Number(event.target.value))} /><code>{String(current.number).padStart(2, "0")}/18</code></div>
+        <div className="experiment-action"><p>Fixed authored reducer events · inspectable identities · no learner-code execution</p><button type="button" onClick={() => { setRan(true); onComplete(); }}>{ran ? "Replay selected flow again" : "Replay selected flow"}</button></div>
         <div className="simulation-result product-simulation">
           <div className="state-inspector"><div><span>Action</span><strong>{current.action}</strong></div><div><span>Status</span><strong>{current.status}</strong></div><div><span>Reducer result</span><strong>{current.applied ? "applied" : "ignored"}</strong></div><div><span>Derived controls</span><strong>{`stop ${current.canStop ? "on" : "off"} · regenerate ${current.canRegenerate ? "on" : "off"}`}</strong></div></div>
           <div className="state-identity-strip"><span><em>messageId</em><code>{current.messageId}</code></span><span><em>attemptId</em><code>{current.attemptId}</code></span><span><em>requestId</em><code>{current.requestId}</code></span></div>
           <article className={`mini-message ${current.status}`}><span>{current.messageId.startsWith("m-u") ? "User" : "Assistant"} · {current.messageId}</span><p>{current.content || "Waiting for output…"}</p></article>
           <p className={`state-revision-evidence${current.applied ? "" : " ignored"}`}><b>Identity evidence</b>{current.evidence}</p>
-          <div className="trace-list compact-trace">{stateTrace.map((event, index) => <button aria-label={`Action ${event.number}: ${event.action}`} className={index === step ? "active" : index < step ? "complete" : ""} type="button" onClick={() => { setStep(index); onComplete(); }} key={`${event.action}-${event.number}`}><span>{String(event.number).padStart(2, "0")}</span><strong>{event.action}</strong></button>)}</div>
+          <div className="trace-list compact-trace">{stateTrace.map((event, index) => <button aria-label={`Action ${event.number}: ${event.action}`} aria-current={index === step ? "step" : undefined} className={index === step ? "active" : index < step ? "complete" : ""} type="button" onClick={() => setStep(index)} key={`${event.action}-${event.number}`}><span>{String(event.number).padStart(2, "0")}</span><strong>{event.action}</strong></button>)}</div>
         </div>
       </>
     );
@@ -766,13 +820,13 @@ function ProductExperiment({ variant, onComplete }: { variant: ProductVariant } 
     };
     return (
       <>
-        <div className="simulation-controls streaming-profile-controls">
+        <div className="simulation-controls streaming-profile-controls" role="group" aria-label="Streaming timing profile">
           <span>Timing profile</span>
           {(Object.keys(STREAMING_UI_PROFILES) as StreamingUiProfile[]).map((key) => (
-            <button className={streamProfile === key ? "selected" : ""} type="button" onClick={() => chooseProfile(key)} key={key}>{STREAMING_UI_PROFILES[key].label}</button>
+            <button aria-pressed={streamProfile === key} className={streamProfile === key ? "selected" : ""} type="button" onClick={() => chooseProfile(key)} key={key}>{STREAMING_UI_PROFILES[key].label}</button>
           ))}
         </div>
-        <div className="experiment-action"><p>{profile.description}</p><button type="button" onClick={() => { setRan(true); onComplete(); }}>{ran ? `Replay ${profile.label.toLowerCase()}` : `Run ${profile.label.toLowerCase()}`}</button></div>
+        <div className="experiment-action"><p>Fixed authored timing profile · {profile.description}</p><button type="button" onClick={() => { setRan(true); onComplete(); }}>{ran ? `Replay ${profile.label.toLowerCase()} again` : `Replay ${profile.label.toLowerCase()} trace`}</button></div>
         {ran ? (
           <div className="simulation-result product-simulation streaming-ui-result">
             <div className="metric-grid">{profile.metrics.map((metric) => <span key={metric.label}><em>{metric.label}</em><strong>{metric.value}</strong></span>)}</div>
@@ -855,20 +909,21 @@ function ProductExperiment({ variant, onComplete }: { variant: ProductVariant } 
     const attemptRecord = { ...flow.attempt, includedMessageIds };
     const chooseContextFlow = (nextFlow: ContextActionFlow) => {
       setContextFlow(nextFlow);
-      onComplete();
+      setRan(false);
     };
     return (
       <>
-        <div className="simulation-controls context-action-controls">
+        <div className="simulation-controls context-action-controls" role="group" aria-label="Conversation action">
           <span>Conversation action</span>
-          <button className={contextFlow === "stop" ? "selected" : ""} type="button" onClick={() => chooseContextFlow("stop")}>Stop</button>
-          <button className={contextFlow === "retry" ? "selected" : ""} type="button" onClick={() => chooseContextFlow("retry")}>Retry / regenerate</button>
-          <button className={contextFlow === "edit" ? "selected" : ""} type="button" onClick={() => chooseContextFlow("edit")}>Edit prompt</button>
+          <button aria-pressed={contextFlow === "stop"} className={contextFlow === "stop" ? "selected" : ""} type="button" onClick={() => chooseContextFlow("stop")}>Stop</button>
+          <button aria-pressed={contextFlow === "retry"} className={contextFlow === "retry" ? "selected" : ""} type="button" onClick={() => chooseContextFlow("retry")}>Retry / regenerate</button>
+          <button aria-pressed={contextFlow === "edit"} className={contextFlow === "edit" ? "selected" : ""} type="button" onClick={() => chooseContextFlow("edit")}>Edit prompt</button>
         </div>
         <div className="simulation-controls context-budget-controls">
-          <label><span>Request budget · {budget} tokens</span><input aria-label="Request budget" type="range" min="14" max="42" value={budget} onChange={(event) => { setBudget(Number(event.target.value)); onComplete(); }} /></label>
+          <label><span>Request budget · {budget} tokens</span><input aria-label="Request budget" type="range" min="14" max="42" value={budget} onChange={(event) => { setBudget(Number(event.target.value)); setRan(false); }} /></label>
           <code>{used}/{budget} used</code>
         </div>
+        <div className="experiment-action"><p>Fixed authored branch and request trace · exact token accounting · no learner-code execution</p><button type="button" onClick={() => { setRan(true); onComplete(); }}>{ran ? "Replay selected request again" : "Replay selected request"}</button></div>
         <div className="simulation-result product-simulation context-action-result">
           <div className="context-action-summary">
             <span><b>Applied action</b><strong>{flow.label}</strong></span>
@@ -900,38 +955,48 @@ function ProductExperiment({ variant, onComplete }: { variant: ProductVariant } 
   }
   const checks = runCapstoneQualityAudit();
   const categories = [...new Set(checks.map((check) => check.category))];
-  const passed = checks.filter((check) => check.passed).length;
+  const automatedChecks = checks.filter((check) => check.verification === "automated-pure");
+  const specificationChecks = checks.filter((check) => check.verification === "specification");
+  const passed = automatedChecks.filter((check) => check.passed).length;
   return (
     <>
-      <div className="experiment-action"><p>Automated contract evidence · 16 deterministic checks · no browser, assistive-technology, or device emulation claims</p><button type="button" onClick={() => { setRan(true); onComplete(); }}>{ran ? "Run 16 checks again" : "Run 16 contract checks"}</button></div>
+      <div className="experiment-action"><p>Pure contract evidence · {automatedChecks.length} executable checks · {specificationChecks.length} declared specifications · no browser, assistive-technology, or device emulation claims</p><button type="button" onClick={() => { setRan(true); onComplete(); }}>{ran ? "Review checks again" : "Run checks + review specs"}</button></div>
       {ran ? (
         <div className="quality-audit-result">
-          <div className="quality-audit-summary"><span>Automated contract result</span><strong>{passed}/{checks.length} passed</strong><code>{passed === checks.length ? "contract gate satisfied" : `${checks.length - passed} require attention`}</code></div>
+          <div className="quality-audit-summary"><span>Pure-function contract result</span><strong>{passed}/{automatedChecks.length} passed</strong><code>{specificationChecks.length} requirements remain browser/manual work</code></div>
           {categories.map((category) => (
             <section className="quality-check-group" key={category}>
-              <header><span>{category}</span><code>{checks.filter((check) => check.category === category && check.passed).length}/4</code></header>
+              <header><span>{category}</span><code>{checks.filter((check) => check.category === category && check.verification === "automated-pure" && check.passed).length}/{checks.filter((check) => check.category === category && check.verification === "automated-pure").length} automated · {checks.filter((check) => check.category === category && check.verification === "specification").length} spec</code></header>
               <div className="quality-grid">
-                {checks.filter((check) => check.category === category).map((check) => <article className={check.passed ? "passed" : "failed"} key={check.label}><i>{check.passed ? "✓" : "×"}</i><div><strong>{check.label}</strong><p>{check.detail}</p></div></article>)}
+                {checks.filter((check) => check.category === category).map((check) => <article className={check.verification === "specification" ? "specification" : check.passed ? "passed" : "failed"} key={check.label}><i>{check.verification === "specification" ? "◇" : check.passed ? "✓" : "×"}</i><div><strong>{check.label}</strong><p>{check.detail}</p></div></article>)}
               </div>
             </section>
           ))}
           <section className="quality-manual-boundary">
             <header><span>Manual verification required</span><code>not automated</code></header>
-            <p>These checks need real interaction and observation. Passing the 16 contracts does not pass them.</p>
+            <p>The pure checks and declared specifications do not pass these real interaction and observation tasks. The full-project build separately mounts the capstone and verifies submit, stream, stop, late-event rejection, and visible error behavior.</p>
             <ol>{MANUAL_PRODUCT_VERIFICATION.map((check) => <li key={check.label}><strong>{check.label}</strong><span>{check.detail}</span></li>)}</ol>
           </section>
         </div>
-      ) : <p className="experiment-empty">Run the audit to expose all 16 check-specific results and the separate manual verification list.</p>}
+      ) : <p className="experiment-empty">Run the audit to separate executable pure checks, declared product specifications, and manual verification work.</p>}
     </>
   );
 }
 
 export function LessonExperiment({ lesson }: { lesson: CourseLesson }) {
   const complete = () => markExperimentComplete(lesson.id);
+  const isWorkedTrace = lesson.experiment.kind === "systems" || lesson.experiment.kind === "product";
   return (
     <div className="experiment-lab">
       <header className="experiment-header">
-        <div><span>Experiment</span><strong>{lesson.experiment.title}</strong><p>{lesson.experiment.intro}</p></div>
+        <div>
+          <span>{isWorkedTrace ? "Deterministic worked trace" : "Supplied reference runtime"}</span>
+          <strong>{lesson.experiment.title}</strong>
+          <p>{lesson.experiment.intro}</p>
+          <p>{isWorkedTrace
+            ? "Replay authored data to inspect the mechanism. The trace does not execute your learner file; the IDE contracts verify that implementation separately."
+            : "This supplied runtime demonstrates the mechanism; it does not execute your learner cells. Your saved implementation is verified separately by the IDE contracts."}</p>
+        </div>
       </header>
       <DatasetRecord lesson={lesson} />
       {lesson.experiment.kind === "rnn" ? <RnnExperiment onComplete={complete} /> : null}

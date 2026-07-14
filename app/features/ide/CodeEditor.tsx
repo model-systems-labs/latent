@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 import { basicSetup } from "codemirror";
 import { javascript } from "@codemirror/lang-javascript";
-import { EditorState, type Extension } from "@codemirror/state";
+import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
+import { EditorState, Prec, type Extension } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
-import { indentWithTab } from "@codemirror/commands";
+import { indentWithTab, temporarilySetTabFocusMode } from "@codemirror/commands";
+import { tags } from "@lezer/highlight";
 
 type CodeEditorProps = {
   value: string;
@@ -15,13 +17,30 @@ type CodeEditorProps = {
   readOnly?: boolean;
 };
 
+const editorPalette = {
+  background: "#1f1e21",
+  foreground: "#f0ebf2",
+  keyword: "#ddbdf2",
+  string: "#e6c99e",
+  number: "#a9d6ef",
+  comment: "#aaa3ad",
+  gutter: "#9a939d",
+  variable: "#ece7ef",
+  function: "#bed7ee",
+  property: "#b9cfdf",
+  type: "#d5c3ea",
+  punctuation: "#beb6c2",
+  operator: "#d8c7e3",
+  invalid: "#ffb4ad",
+} as const;
+
 const latentTheme = EditorView.theme({
   "&": {
     height: "100%",
     minHeight: "420px",
-    color: "#eeeaf0",
-    backgroundColor: "#1f1e21",
-    fontSize: "13px",
+    color: editorPalette.foreground,
+    backgroundColor: editorPalette.background,
+    fontSize: "14px",
   },
   ".cm-content": {
     padding: "18px 0 56px",
@@ -31,27 +50,47 @@ const latentTheme = EditorView.theme({
   },
   ".cm-line": { padding: "0 22px 0 10px" },
   ".cm-gutters": {
-    backgroundColor: "#1f1e21",
-    color: "#6f6a73",
+    backgroundColor: editorPalette.background,
+    color: editorPalette.gutter,
     borderRight: "1px solid rgba(255,255,255,.055)",
     paddingLeft: "8px",
   },
   ".cm-activeLine, .cm-activeLineGutter": { backgroundColor: "rgba(191,169,214,.065)" },
-  ".cm-selectionBackground, &.cm-focused .cm-selectionBackground": { backgroundColor: "rgba(181,151,209,.24)" },
+  ".cm-selectionBackground, &.cm-focused .cm-selectionBackground": { backgroundColor: "rgba(181,151,209,.20)" },
   ".cm-cursor, .cm-dropCursor": { borderLeftColor: "#e4c79e" },
-  ".cm-scroller": { overflow: "auto" },
-  "&.cm-focused": { outline: "none" },
+  ".cm-scroller": {
+    overflow: "auto",
+    overscrollBehaviorX: "contain",
+    overscrollBehaviorY: "auto",
+    scrollbarColor: "#6f6874 transparent",
+    scrollbarWidth: "thin",
+  },
+  ".cm-matchingBracket": {
+    backgroundColor: "rgba(190,215,238,.14)",
+    outline: "1px solid rgba(190,215,238,.42)",
+  },
+  "&.cm-focused": {
+    outline: "2px solid rgba(221,189,242,.72)",
+    outlineOffset: "-2px",
+  },
 }, { dark: true });
 
-const syntaxTheme = EditorView.baseTheme({
-  ".tok-keyword": { color: "#cab1df" },
-  ".tok-string": { color: "#d7bd8f" },
-  ".tok-number, .tok-bool, .tok-null": { color: "#b3cee4" },
-  ".tok-comment": { color: "#77727b", fontStyle: "italic" },
-  ".tok-variableName": { color: "#ddd8e0" },
-});
+const syntaxTheme = HighlightStyle.define([
+  { tag: tags.keyword, color: editorPalette.keyword, fontWeight: "600" },
+  { tag: [tags.string, tags.regexp, tags.escape], color: editorPalette.string },
+  { tag: [tags.number, tags.bool, tags.null, tags.atom], color: editorPalette.number },
+  { tag: tags.comment, color: editorPalette.comment, fontStyle: "italic" },
+  { tag: [tags.function(tags.variableName), tags.labelName], color: editorPalette.function },
+  { tag: [tags.definition(tags.variableName), tags.className, tags.typeName], color: editorPalette.type },
+  { tag: [tags.propertyName, tags.attributeName], color: editorPalette.property },
+  { tag: [tags.variableName, tags.name], color: editorPalette.variable },
+  { tag: tags.operator, color: editorPalette.operator },
+  { tag: tags.punctuation, color: editorPalette.punctuation },
+  { tag: tags.invalid, color: editorPalette.invalid, textDecoration: "underline wavy" },
+]);
 
 export function CodeEditor({ value, path, onChange, onSave, readOnly = false }: CodeEditorProps) {
+  const instructionId = useId();
   const hostRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<EditorView | null>(null);
   const changeRef = useRef(onChange);
@@ -66,7 +105,8 @@ export function CodeEditor({ value, path, onChange, onSave, readOnly = false }: 
 
   useEffect(() => {
     if (!hostRef.current) return;
-    const saveKeymap: Extension = keymap.of([
+    const saveKeymap: Extension = Prec.high(keymap.of([
+      { key: "Escape", run: temporarilySetTabFocusMode },
       indentWithTab,
       {
         key: "Mod-s",
@@ -76,7 +116,7 @@ export function CodeEditor({ value, path, onChange, onSave, readOnly = false }: 
           return true;
         },
       },
-    ]);
+    ]));
     const view = new EditorView({
       parent: hostRef.current,
       state: EditorState.create({
@@ -86,8 +126,8 @@ export function CodeEditor({ value, path, onChange, onSave, readOnly = false }: 
           javascript({ jsx: /\.[jt]sx$/.test(path), typescript: /\.tsx?$/.test(path) }),
           saveKeymap,
           latentTheme,
-          syntaxTheme,
-          EditorView.lineWrapping,
+          syntaxHighlighting(syntaxTheme),
+          EditorState.tabSize.of(2),
           EditorState.readOnly.of(readOnly),
           EditorView.editable.of(!readOnly),
           EditorView.updateListener.of((update) => {
@@ -95,6 +135,7 @@ export function CodeEditor({ value, path, onChange, onSave, readOnly = false }: 
           }),
           EditorView.contentAttributes.of({
             "aria-label": `Project file editor: ${path}`,
+            "aria-describedby": instructionId,
             spellcheck: "false",
             autocapitalize: "off",
             autocomplete: "off",
@@ -108,7 +149,7 @@ export function CodeEditor({ value, path, onChange, onSave, readOnly = false }: 
       viewRef.current = null;
     };
     // Recreate the language mode when the selected path changes.
-  }, [path, readOnly]);
+  }, [instructionId, path, readOnly]);
 
   useEffect(() => {
     const view = viewRef.current;
@@ -118,5 +159,10 @@ export function CodeEditor({ value, path, onChange, onSave, readOnly = false }: 
     view.dispatch({ changes: { from: 0, to: current.length, insert: value } });
   }, [value]);
 
-  return <div className="code-editor" ref={hostRef} />;
+  return (
+    <>
+      <div className="code-editor" ref={hostRef} />
+      <span className="sr-only" id={instructionId}>Code editor. Tab indents. Press Escape, then Tab, to leave the editor.</span>
+    </>
+  );
 }

@@ -8,7 +8,7 @@ export const schedulingMemoryLesson = defineExtendedLesson({
     courseNumber: 2,
     lessonNumber: 2,
     mode: "core-mechanism",
-    modeLabel: "Scheduler simulation",
+    modeLabel: "Worked scheduler trace",
     eyebrow: "Serving · Queues, batches, KV pages",
     title: "Scheduling and Memory",
     thesis: "Continuous batching replaces completed sequences at decode-iteration boundaries, while paged KV-cache allocation makes that turnover possible without reserving one contiguous region per request.",
@@ -24,8 +24,8 @@ export const schedulingMemoryLesson = defineExtendedLesson({
     ],
     claims: {
       paper: "Iteration-level scheduling and selective batching improve utilization for generative model serving workloads.",
-      lab: "With identical arrivals and resource limits, the deterministic simulator compares static membership with completion, page release, and immediate readmission at iteration boundaries.",
-      limit: "The fixed metrics explain this workload only; the simulator does not model scheduler overhead, fairness mechanisms, kernels, or a distributed GPU cluster.",
+      lab: "With identical authored arrivals and resource limits, a deterministic worked trace compares static membership with completion, page release, and readmission at iteration boundaries.",
+      limit: "The fixed metrics explain this workload only; the trace does not model scheduler overhead, fairness mechanisms, kernels, or a distributed GPU cluster.",
     },
     diagram: {
       title: "Static versus continuous membership",
@@ -107,5 +107,5 @@ return { passed: result.active.length === 1 && result.active[0].id === "b" && re
         },
       ],
     },
-    experiment: { kind: "systems", variant: "scheduling", title: "Schedule the workload", intro: "Compare static and continuous batches while watching queue depth, active pages, utilization, and completion latency." },
+    experiment: { kind: "systems", variant: "scheduling", title: "Replay the scheduling workload", intro: "Replay fixed static and continuous schedules while inspecting authored queue depth, active pages, utilization, and completion latency." },
   });

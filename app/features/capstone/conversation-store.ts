@@ -72,3 +72,62 @@ export async function persistCapstoneConversation(selectedBackend: CapstoneBacke
     await repositories.settings.put("capstone.selected-backend", selectedBackend);
   });
 }
+
+type ConversationWrite = {
+  selectedBackend: CapstoneBackend;
+  messages: PersistedChatMessage[];
+};
+
+type PendingConversationWrite = ConversationWrite & {
+  waiters: Array<{ resolve: () => void; reject: (error: unknown) => void }>;
+};
+
+/**
+ * Serializes IndexedDB rewrites and collapses queued snapshots to the newest
+ * terminal record. An older delete-and-rewrite can therefore never finish
+ * after a newer terminal snapshot and erase its assistant response.
+ */
+export function createLatestConversationWriter(
+  write: (selectedBackend: CapstoneBackend, messages: PersistedChatMessage[]) => Promise<void> = persistCapstoneConversation,
+) {
+  let running = false;
+  let pending: PendingConversationWrite | null = null;
+
+  const drain = async () => {
+    if (running) return;
+    running = true;
+    try {
+      while (pending) {
+        const current = pending;
+        pending = null;
+        try {
+          await write(current.selectedBackend, current.messages);
+          current.waiters.forEach((waiter) => waiter.resolve());
+        } catch (error) {
+          current.waiters.forEach((waiter) => waiter.reject(error));
+        }
+      }
+    } finally {
+      running = false;
+      if (pending) void drain();
+    }
+  };
+
+  return {
+    enqueue(selectedBackend: CapstoneBackend, messages: PersistedChatMessage[]) {
+      return new Promise<void>((resolve, reject) => {
+        const waiter = { resolve, reject };
+        if (pending) {
+          pending = {
+            selectedBackend,
+            messages,
+            waiters: [...pending.waiters, waiter],
+          };
+        } else {
+          pending = { selectedBackend, messages, waiters: [waiter] };
+        }
+        void drain();
+      });
+    },
+  };
+}

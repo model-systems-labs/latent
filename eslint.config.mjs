@@ -12,8 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // Generated, minified React runtime transferred into the isolated capstone frame.
+    // Generated, minified runtimes transferred into the isolated capstone frame.
     "public/capstone-react-runtime.js",
+    "public/capstone-sandbox-worker.js",
   ]),
 ]);
 

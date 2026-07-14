@@ -83,7 +83,7 @@ ${commonQuestionInstruction}`.trim(),
       name: "Roles and Actions",
       source: "Original synthetic course corpus",
       license: "CC0",
-      size: "24 sentences · deterministic split",
+      size: "20 sentences · deterministic example-level modulo split",
       preview: "the analyst reads the report · the model predicts the token",
     },
     implementation: {
@@ -144,6 +144,6 @@ return { passed: certain < uncertain, detail: certain.toFixed(3) + " < " + uncer
     experiment: {
       kind: "neural-lm",
       title: "Train the embedding model",
-      intro: "Fit a two-word context model, then inspect validation loss, its next-word distribution, and nearest embedding neighbors.",
+      intro: "Run the supplied two-word reference trainer, then inspect validation loss, its next-word distribution, and nearest embedding neighbors. The replay does not execute the learner cells.",
     },
   } satisfies Omit<CourseLesson, "sources">;

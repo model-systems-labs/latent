@@ -4,8 +4,9 @@ import { exposeLessonFunctions } from "@latent/browser-lab/compiler";
 import { llmSystemsContractSuite } from "../content/llm-systems/contracts";
 import type { LearnerState } from "./learner-state";
 import type { ProjectFile, ProjectState, ProjectUnitResult } from "./project-workspace";
+import { trustedProjectResults } from "./project-file-status";
 
-const PORTFOLIO_HOST_TEST_COUNT = 5;
+const PORTFOLIO_HOST_TEST_COUNT = 6;
 
 const PORTABLE_HOST_BRIDGE = `import { encodeSse, parseSseChunk } from "../backend/streaming-transport.js";
 
@@ -15,6 +16,7 @@ export type GenerationPhase = "queued" | "loading" | "prefill" | "streaming" | "
 export type PreviewInitialization = {
   buildId: string;
   buildNumber: number;
+  selectedBackend: ChatBackend;
   studentReady: boolean;
   localReady: boolean;
   runtime: {
@@ -32,7 +34,7 @@ export type StartGenerationInput = {
   requestFrame: string;
   options: { temperature: number; topK: number; maxTokens: number };
 };
-export type GenerationMetrics = { queueMs: number; modelMs: number; ttftMs: number; tokens: number; durationMs: number };
+export type GenerationMetrics = { queueMs: number; modelMs: number; ttftMs: number; generatedUnits: number; generatedUnitLabel: string; durationMs: number };
 export type GenerationBridgeHandlers = {
   onPhase(phase: GenerationPhase): void;
   onChunk(chunk: string): void;
@@ -45,6 +47,7 @@ export type PreparationEvent = { type: "progress"; progress: number; detail: str
 const STORAGE_KEY = "latent-portable-conversation-v1";
 let studentReady = false;
 let localReady = false;
+let selectedBackend: ChatBackend = "local";
 
 function restoredConversation() {
   try {
@@ -61,6 +64,7 @@ export async function initializePreview(): Promise<PreviewInitialization> {
   return {
     buildId: "portable-browser-chat",
     buildNumber: 1,
+    selectedBackend,
     studentReady,
     localReady,
     runtime: {
@@ -91,14 +95,17 @@ export async function loadLocal(onEvent?: (event: PreparationEvent) => void) {
   return result;
 }
 
-export async function persistConversation(record: unknown) {
+export async function persistConversation(record: unknown, backend: ChatBackend) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(record));
+  selectedBackend = backend;
 }
 
 export function startGeneration(input: StartGenerationInput, handlers: GenerationBridgeHandlers): GenerationHandle {
   let closed = false;
   const timers = new Set<number>();
   const started = performance.now();
+  let queueEnded = started;
+  let firstVisible = 0;
   const schedule = (action: () => void, delay: number) => {
     const timer = window.setTimeout(() => { timers.delete(timer); if (!closed) action(); }, delay);
     timers.add(timer);
@@ -107,7 +114,7 @@ export function startGeneration(input: StartGenerationInput, handlers: Generatio
   const response = \`Portable mock response: the streaming boundary received “\${latestUser.slice(0, 80)}”. Replace this adapter with your model service when you deploy.\`;
   const pieces = response.match(/\\S+\\s*/g) ?? [response];
   handlers.onPhase("queued");
-  schedule(() => handlers.onPhase("prefill"), 40);
+  schedule(() => { queueEnded = performance.now(); handlers.onPhase("prefill"); }, 40);
   schedule(() => {
     handlers.onPhase("streaming");
     pieces.forEach((piece, index) => schedule(() => {
@@ -117,10 +124,20 @@ export function startGeneration(input: StartGenerationInput, handlers: Generatio
         const first = parseSseChunk("", frame.slice(0, split));
         const second = parseSseChunk(first.remainder, frame.slice(split));
         const event = second.events[0] as { event?: string; data?: { delta?: string } } | undefined;
-        if (event?.event === "token" && typeof event.data?.delta === "string") handlers.onChunk(event.data.delta);
+        if (event?.event === "token" && typeof event.data?.delta === "string") {
+          if (!firstVisible) firstVisible = performance.now();
+          handlers.onChunk(event.data.delta);
+        }
         if (index === pieces.length - 1) {
           const durationMs = Math.round(performance.now() - started);
-          handlers.onMetrics({ queueMs: 40, modelMs: durationMs - 40, ttftMs: 85, tokens: pieces.length, durationMs });
+          handlers.onMetrics({
+            queueMs: Math.round(queueEnded - started),
+            modelMs: 0,
+            ttftMs: Math.round((firstVisible || performance.now()) - started),
+            generatedUnits: pieces.length,
+            generatedUnitLabel: "Mock word chunks",
+            durationMs,
+          });
           handlers.onPhase("complete");
           closed = true;
         }
@@ -182,20 +199,29 @@ export function portfolioReadiness(input: {
     const state = input.learner.lessons[lesson.id];
     return Boolean(state?.experimentComplete && state.verifiedCells.length >= lesson.implementation.codeBlocks.length);
   });
-  const results = Object.values(input.project.tests.results).flat();
+  const results = Object.values(trustedProjectResults(input.project.tests)).flat();
   const requiredTests = llmSystemsContractSuite.contracts.length + PORTFOLIO_HOST_TEST_COUNT;
   const passingTests = results.filter((result) => result.passed).length;
   const fullSuitePasses = input.project.tests.runner === "browser-lab-v1"
     && results.length === requiredTests
     && passingTests === requiredTests;
-  const activeBuildExists = input.project.runtime.builtAt > 0;
+  const activeBuildExists = input.project.activeBuild !== null;
+  const activeBuildMatchesTests = Boolean(
+    input.project.activeBuild
+    && input.project.tests.sourceTreeHash === input.project.activeBuild.sourceTreeHash
+    && input.project.tests.projectRevision === input.project.activeBuild.projectRevision
+    && input.project.tests.contractVersion === input.project.activeBuild.contractVersion
+    && input.project.runtime.buildNumber === input.project.activeBuild.buildNumber
+    && input.project.runtime.builtAt > 0,
+  );
   return {
-    ready: completedLessons.length === input.lessons.length && fullSuitePasses && activeBuildExists,
+    ready: completedLessons.length === input.lessons.length && fullSuitePasses && activeBuildMatchesTests,
     completedLessons,
     passingTests,
     requiredTests,
     fullSuitePasses,
     activeBuildExists,
+    activeBuildMatchesTests,
   };
 }
 
@@ -206,7 +232,7 @@ export function portfolioProjectFiles(input: {
   exportedAt?: string;
 }) {
   const exportedAt = input.exportedAt ?? new Date().toISOString();
-  const results = Object.values(input.project.tests.results).flat();
+  const results = Object.values(trustedProjectResults(input.project.tests)).flat();
   const readiness = portfolioReadiness(input);
   const completedLessons = readiness.completedLessons;
   const sourceFiles = Object.values(input.project.files)
@@ -217,14 +243,14 @@ export function portfolioProjectFiles(input: {
     version: 1,
     exportedAt,
     projectId: "browser-chat",
-    buildNumber: input.project.runtime.buildNumber,
+    buildNumber: input.project.activeBuild?.buildNumber ?? null,
     completedLessons: completedLessons.map((lesson) => lesson.id),
     sourceFiles: sourceFiles.map((file) => file.path),
     portableBuildReady: readiness.ready,
     tests: { passing: readiness.passingTests, total: results.length, required: readiness.requiredTests },
   };
   const files: Record<string, string> = {
-    "README.md": `# Browser Chat\n\nA browser-first LLM systems project built through Latent. The repository contains the learner's model, runtime, serving, product, and React capstone files.\n\n## Current evidence\n\n- ${completedLessons.length}/${input.lessons.length} lessons complete\n- ${manifest.tests.passing}/${readiness.requiredTests} required host-owned tests passing\n- portable build ready: ${readiness.ready ? "yes" : "no"}\n- active build ${input.project.runtime.buildNumber}\n\n${readiness.ready ? "" : "> This snapshot is unfinished. Return to Latent, complete every lesson-owned file, and create a passing full build before treating it as a runnable portfolio project.\n\n"}## Run locally\n\n\`\`\`bash\nnpm install\nnpm run build\nnpm run dev\n\`\`\`\n\nThe exported app uses a deterministic in-browser SSE mock so it runs without a secret or hosted backend. Read BACKEND_INTEGRATION.md before connecting a real model service.\n\n## Architecture\n\n1. \`src/models\` implements model foundations.\n2. \`src/systems\` implements inference accounting and scheduling.\n3. \`src/backend\` implements SSE framing and attempt-aware reliability.\n4. \`src/product\` implements conversation, rendering, actions, context, and quality contracts.\n5. \`src/capstone\` assembles the React application.\n`,
+    "README.md": `# Browser Chat\n\nA browser-first LLM systems project built through Latent. The repository contains the learner's model, runtime, serving, product, and React capstone files.\n\n## Current evidence\n\n- ${completedLessons.length}/${input.lessons.length} lessons complete\n- ${manifest.tests.passing}/${readiness.requiredTests} required host-owned tests passing\n- portable build ready: ${readiness.ready ? "yes" : "no"}\n- active build: ${input.project.activeBuild ? `#${input.project.activeBuild.buildNumber}` : "none yet"}\n\n${readiness.ready ? "" : "> This snapshot is unfinished. Return to Latent, complete every lesson-owned file, and create a passing full build before treating it as a runnable portfolio project.\n\n"}## Run locally\n\n\`\`\`bash\nnpm install\nnpm run build\nnpm run dev\n\`\`\`\n\nThe exported app uses a deterministic in-browser SSE mock so it runs without a secret or hosted backend. Read BACKEND_INTEGRATION.md before connecting a real model service.\n\n## Architecture\n\n1. \`src/models\` implements model foundations.\n2. \`src/systems\` implements inference accounting and scheduling.\n3. \`src/backend\` implements SSE framing and attempt-aware reliability.\n4. \`src/product\` implements conversation, rendering, actions, context, and quality contracts.\n5. \`src/capstone\` assembles the React application.\n`,
     "BACKEND_INTEGRATION.md": `# Replace the portable mock backend\n\nThe exported \`src/runtime/host-bridge.ts\` intentionally produces deterministic SSE frames in the browser. It contains no API key and makes no network request.\n\nTo connect a real service:\n\n1. Keep the exported \`StartGenerationInput\`, \`GenerationBridgeHandlers\`, and \`GenerationHandle\` interface.\n2. POST the bounded message/context payload to your own same-origin endpoint. Never ship a provider key in this client.\n3. Decode response bytes with a streaming \`TextDecoder\`, then pass decoded text through \`parseSseChunk\`.\n4. Preserve requestId and attempt identity before accepting events.\n5. Propagate AbortSignal to fetch, the stream reader, parser state, and server generation.\n6. Retry only retryable failures that occurred before visible output.\n7. Keep strict terminal persistence and exclude secrets and transient streaming records.\n\nThe lesson-owned backend and product files are already imported by the capstone and remain independently testable.\n`,
     "TEST_REPORT.md": markdownTestReport(results),
     "THIRD_PARTY_NOTICES.md": `# Third-party notices\n\nThis source export uses React and React DOM (MIT) and Vite (MIT). The optional model runtime in the hosted Latent course uses Transformers.js (Apache-2.0) and SmolLM2-135M-Instruct (Apache-2.0); model weights are not included in this archive. Consult the upstream license texts before redistribution.\n`,

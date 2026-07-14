@@ -77,7 +77,7 @@ ${commonQuestionInstruction}`.trim(),
       name: "Signal Notes",
       source: "Original synthetic course corpus",
       license: "CC0",
-      size: "430 characters · fixed split",
+      size: "1,610 characters · fixed deterministic sequence",
       preview: "the receiver counted one quiet pulse. the signal crossed the empty sky.",
     },
     implementation: {
@@ -141,6 +141,6 @@ return { passed: clipped.join(",") === "-5,-2,0,3,5", detail: clipped.join(", ")
     experiment: {
       kind: "rnn",
       title: "Train the recurrent model",
-      intro: "Run 600 truncated-BPTT updates, then inspect the loss curve and sample from the trained character distribution.",
+      intro: "Run the supplied reference trainer for 600 truncated-BPTT updates, then inspect its loss curve and sample. This replay is separate from the learner functions verified in the IDE.",
     },
   } satisfies Omit<CourseLesson, "sources">;

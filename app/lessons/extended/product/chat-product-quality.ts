@@ -20,11 +20,11 @@ export const chatProductQualityLesson = defineExtendedLesson({
       { label: "One observable lifecycle.", body: "Enter queues a request; loading and prefill explain the wait; streaming adds bounded visual and programmatic updates; complete, cancelled, and error are terminal states. The visible label must come from the same phase that controls Stop and Retry." },
       { label: "Recovery includes focus.", body: "Stop and regeneration are state transitions, not decorative buttons. Late events must be rejected, resources released, partial output labeled, and keyboard focus returned to a predictable control." },
       { label: "Persistence is an input boundary.", body: "Reloaded history is untrusted data. A versioned record should admit only its exact safe fields, bounded terminal messages, and known roles and backends; streaming state and every secret-shaped extra field are rejected." },
-      { label: "Automation has a boundary.", body: "Pure contract checks can verify mappings, guards, serialization, and responsive requirements. They cannot prove focus order, screen-reader speech, touch ergonomics, or layout at a real viewport; those remain explicit manual checks." },
+      { label: "Automation has a boundary.", body: "Pure contract checks can verify mappings, guards, serialization, and exact policy values. A separate full-build receipt mounts the capstone and drives submit, stream, stop, late-event rejection, and error behavior. Neither proves focus order, screen-reader speech, touch ergonomics, or layout at a real viewport; those remain explicit manual checks." },
     ],
     claims: {
       paper: "Dynamic sequential content can use an accessible log pattern that preserves reading order and announces meaningful additions.",
-      lab: "The browser runs 16 deterministic contract checks across input, persistence, lifecycle, accessibility, and responsive requirements, then names the keyboard, screen-reader, and mobile checks that still require a person.",
+      lab: "The lesson runs 11 executable pure checks, labels 5 unexecuted requirements as specifications, and names the keyboard, screen-reader, and mobile checks that still require a person. The full-project build adds a separate mounted behavior receipt.",
       limit: "Automated checks supplement rather than replace testing with real browsers, keyboards, screen readers, and users.",
     },
     diagram: {
@@ -39,7 +39,7 @@ export const chatProductQualityLesson = defineExtendedLesson({
       ],
     },
     questions: { intro: "Ask about local persistence, schema migration, live regions, focus management, or honest latency states.", suggestions: ["What chat data should never be persisted?", "How often should streaming text be announced?", "What should receive focus after retry?"] },
-    dataset: { name: "Product Contract Audit", source: "Original deterministic checklist", license: "CC0", size: "16 automated contracts · 3 manual verification groups", preview: "input + focus · persistence · lifecycle · accessibility + responsive contract" },
+    dataset: { name: "Product Contract Audit", source: "Original deterministic checklist", license: "CC0", size: "11 executable pure checks · 5 specifications · 3 manual verification groups", preview: "input + focus · persistence · lifecycle · accessibility + responsive contract" },
     implementation: {
       filename: "chat-quality.js",
       intro: "Implement storage validation and user-visible phase labels before running the capstone product audit.",
@@ -122,5 +122,5 @@ return { passed: known === "Processing context" && unknown === "Status unavailab
         },
       ],
     },
-    experiment: { kind: "product", variant: "quality", title: "Audit the product contract", intro: "Run 16 deterministic checks against the same contracts used by the capstone, then use the manual list for real keyboard, screen-reader, and mobile verification." },
+    experiment: { kind: "product", variant: "quality", title: "Audit the product contract", intro: "Run 11 executable pure checks, review 5 explicitly unexecuted specifications, then use the manual list for real keyboard, screen-reader, and mobile verification. The full build separately mounts the capstone for behavior checks." },
   });

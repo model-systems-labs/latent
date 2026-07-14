@@ -1,9 +1,11 @@
 import { build } from "esbuild";
-import { mkdir } from "node:fs/promises";
+import { copyFile, mkdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
-const output = resolve("public/capstone-react-runtime.js");
-await mkdir(dirname(output), { recursive: true });
+const runtimeOutput = resolve("public/capstone-react-runtime.js");
+const sandboxWorkerOutput = resolve("public/capstone-sandbox-worker.js");
+const sandboxWasmOutput = resolve("public/emscripten-module.wasm");
+await mkdir(dirname(runtimeOutput), { recursive: true });
 
 await build({
   stdin: {
@@ -21,9 +23,28 @@ await build({
   format: "iife",
   platform: "browser",
   target: "es2020",
-  outfile: output,
+  outfile: runtimeOutput,
   legalComments: "eof",
   logLevel: "silent",
 });
 
-console.log(output);
+await build({
+  entryPoints: [resolve("packages/browser-lab/src/worker/sandbox.worker.ts")],
+  bundle: true,
+  minify: true,
+  format: "esm",
+  platform: "browser",
+  target: "es2020",
+  outfile: sandboxWorkerOutput,
+  legalComments: "eof",
+  logLevel: "silent",
+});
+
+await copyFile(
+  resolve("node_modules/@jitl/quickjs-wasmfile-release-sync/dist/emscripten-module.wasm"),
+  sandboxWasmOutput,
+);
+
+console.log(runtimeOutput);
+console.log(sandboxWorkerOutput);
+console.log(sandboxWasmOutput);

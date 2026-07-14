@@ -16,28 +16,29 @@ import {
   type ProjectSnapshot,
   type SourceHash,
   type TestReceipt,
-  type VirtualSourceFile,
 } from "@latent/browser-lab";
 import { getPersistenceContext } from "../../platform/persistence/client";
 import type { TestReceiptRecord } from "../../platform/persistence/types";
 import { flushProjectPersistence, type ProjectFile, type ProjectUnitResult } from "../../lib/project-workspace";
 import { LATENT_TENSOR_PATH, LATENT_TENSOR_SOURCE } from "@latent/tensor/browser-source";
 import { CAPSTONE_ENTRY_PATH } from "../../content/browser-chat/project-template";
+import {
+  CAPSTONE_BEHAVIOR_COMPONENT_PATH,
+  CAPSTONE_BEHAVIOR_CONTRACT_ID,
+} from "../../lib/capstone-behavior-contract";
 import { formatPracticeContractDetail } from "./practice-feedback";
+import { prepareProjectSnapshotFiles } from "./project-snapshot";
+import { runCapstoneBehaviorContract } from "./capstone-behavior-runner";
 
 const PROJECT_ID = "browser-chat";
 const RUNNER_VERSION = "browser-lab-quickjs-v1";
 
-function loaderFor(path: string): VirtualSourceFile["loader"] {
+function loaderFor(path: string) {
   if (path.endsWith(".tsx")) return "tsx";
   if (path.endsWith(".ts")) return "ts";
   if (path.endsWith(".jsx")) return "jsx";
   if (path.endsWith(".json")) return "json";
   return "js";
-}
-
-function contractsForPath(path: string) {
-  return llmSystemsContractSuite.contracts.filter((contract) => contract.cases.some((exerciseCase) => exerciseCase.invoke.modulePath === path));
 }
 
 function preparationFailure(contract: ExerciseContract, detail: string): ProjectUnitResult {
@@ -48,26 +49,6 @@ function preparationFailure(contract: ExerciseContract, detail: string): Project
     passed: false,
     detail,
   };
-}
-
-function prepareSnapshotFiles(files: Record<string, ProjectFile>) {
-  const failures: ProjectUnitResult[] = [];
-  const entryPoints: string[] = [];
-  const prepared = Object.values(files).map((file): VirtualSourceFile => {
-    const contracts = contractsForPath(file.path);
-    if (!contracts.length) return { path: file.path, contents: file.content, loader: loaderFor(file.path) };
-    const exports = [...new Set(contracts.flatMap((contract) => contract.cases.map((exerciseCase) => exerciseCase.invoke.exportName)))];
-    try {
-      const contents = exposeLessonFunctions(file.content, exports);
-      entryPoints.push(file.path);
-      return { path: file.path, contents, loader: loaderFor(file.path) };
-    } catch (error) {
-      const detail = error instanceof Error ? error.message : "The lesson module could not expose its tested functions.";
-      failures.push(...contracts.map((contract) => preparationFailure(contract, detail)));
-      return { path: file.path, contents: file.content, loader: loaderFor(file.path) };
-    }
-  });
-  return { files: prepared, entryPoints, failures };
 }
 
 function aggregateReceipt(receipt: TestReceipt, contracts: readonly ExerciseContract[]): ProjectUnitResult[] {
@@ -90,8 +71,10 @@ function compileFailureResults(contracts: readonly ExerciseContract[], detail: s
 
 export type BrowserLabProjectRun = {
   results: ProjectUnitResult[];
+  expectedIdsByPath: Record<string, string[]>;
   sourceHash: SourceHash;
   projectRevision: number;
+  contractVersion: string;
   program: CompiledProgram | null;
   receipt: TestReceipt | null;
   persistenceReceipt: TestReceiptRecord | null;
@@ -170,11 +153,24 @@ export async function runLessonContracts(
   const selectedContracts = options.onlyPath
     ? llmSystemsContractSuite.contracts.filter((contract) => contract.cases.some((exerciseCase) => exerciseCase.invoke.modulePath === options.onlyPath))
     : [...llmSystemsContractSuite.contracts];
-  const prepared = prepareSnapshotFiles(files);
+  const expectedIdsByPath = selectedContracts.reduce<Record<string, string[]>>((grouped, contract) => {
+    const path = contract.cases[0]?.invoke.modulePath;
+    if (path) (grouped[path] ??= []).push(contract.id);
+    return grouped;
+  }, {});
+  const includeCapstone = !options.onlyPath;
+  if (includeCapstone) {
+    expectedIdsByPath[CAPSTONE_BEHAVIOR_COMPONENT_PATH] = [CAPSTONE_BEHAVIOR_CONTRACT_ID];
+  }
+  const preparedSnapshot = prepareProjectSnapshotFiles(files);
+  const prepared = {
+    files: preparedSnapshot.files,
+    entryPoints: preparedSnapshot.entryPoints,
+    failures: preparedSnapshot.failures.map(({ contract, detail }) => preparationFailure(contract, detail)),
+  };
   const selectedPaths = new Set(selectedContracts.flatMap((contract) => contract.cases.map((exerciseCase) => exerciseCase.invoke.modulePath)));
   const preparationFailures = prepared.failures.filter((result) => selectedPaths.has(result.path));
   const lessonEntryPoints = prepared.entryPoints.filter((path) => selectedPaths.has(path));
-  const includeCapstone = !options.onlyPath;
   const capstoneAvailable = Boolean(files[CAPSTONE_ENTRY_PATH]);
   const entryPoints = includeCapstone && capstoneAvailable
     ? [...lessonEntryPoints, CAPSTONE_ENTRY_PATH]
@@ -193,7 +189,8 @@ export async function runLessonContracts(
         ? "The canonical capstone entry is missing from this project."
         : "The lesson module is not ready to compile.")),
     ];
-    return { results, sourceHash, projectRevision: project.draftRevision, program: null, receipt: null, persistenceReceipt: null };
+    if (includeCapstone) results.push(await runCapstoneBehaviorContract(null, { signal: options.signal }));
+    return { results, expectedIdsByPath, sourceHash, projectRevision: project.draftRevision, contractVersion: llmSystemsContractSuite.contractVersion, program: null, receipt: null, persistenceReceipt: null };
   }
 
   const jobId = `compile-${crypto.randomUUID()}`;
@@ -209,10 +206,19 @@ export async function runLessonContracts(
     program = await compiler.compile(job, { signal: options.signal });
   } catch (error) {
     const detail = error instanceof Error ? error.message : "The isolated compiler failed.";
-    return { results: compileFailureResults(selectedContracts, detail), sourceHash, projectRevision: project.draftRevision, program: null, receipt: null, persistenceReceipt: null };
+    const results = compileFailureResults(selectedContracts, detail);
+    if (includeCapstone) results.push(await runCapstoneBehaviorContract(null, { signal: options.signal }));
+    return { results, expectedIdsByPath, sourceHash, projectRevision: project.draftRevision, contractVersion: llmSystemsContractSuite.contractVersion, program: null, receipt: null, persistenceReceipt: null };
   } finally {
     compiler.dispose();
   }
+
+  const capstoneBehaviorResult = includeCapstone
+    ? await runCapstoneBehaviorContract(
+      program.modules.find((module) => module.modulePath === CAPSTONE_ENTRY_PATH) ?? null,
+      { signal: options.signal },
+    )
+    : null;
 
   const suite = { contractVersion: llmSystemsContractSuite.contractVersion, contracts: selectedContracts };
   const runRequest = {
@@ -241,9 +247,14 @@ export async function runLessonContracts(
     receipt = await new BrowserLabWorkerClient().runSuite(runRequest, { signal: options.signal });
   } catch (error) {
     const detail = error instanceof Error ? error.message : "The isolated test worker failed.";
-    return { results: compileFailureResults(selectedContracts, detail), sourceHash, projectRevision: project.draftRevision, program, receipt: null, persistenceReceipt: null };
+    const results = compileFailureResults(selectedContracts, detail);
+    if (capstoneBehaviorResult) results.push(capstoneBehaviorResult);
+    return { results, expectedIdsByPath, sourceHash, projectRevision: project.draftRevision, contractVersion: llmSystemsContractSuite.contractVersion, program, receipt: null, persistenceReceipt: null };
   }
-  const results = aggregateReceipt(receipt, selectedContracts);
+  const results = [
+    ...aggregateReceipt(receipt, selectedContracts),
+    ...(capstoneBehaviorResult ? [capstoneBehaviorResult] : []),
+  ];
   const persistenceReceipt = await repositories.assessments.finish(
     assessment.id,
     results.map((result) => ({
@@ -256,5 +267,5 @@ export async function runLessonContracts(
     })),
     Object.fromEntries(program.modules.map((module) => [module.modulePath, module.codeHash])),
   );
-  return { results, sourceHash, projectRevision: project.draftRevision, program, receipt, persistenceReceipt };
+  return { results, expectedIdsByPath, sourceHash, projectRevision: project.draftRevision, contractVersion: suite.contractVersion, program, receipt, persistenceReceipt };
 }

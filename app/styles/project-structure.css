@@ -66,7 +66,7 @@
 .project-structure-group header,
 .project-structure-note > span {
   color: var(--faint);
-  font-size: 0.56rem;
+  font-size: max(0.68rem, 11px);
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
@@ -80,7 +80,7 @@
 
 .project-structure-root > p strong {
   color: var(--violet);
-  font-size: 0.62rem;
+  font-size: max(0.68rem, 11px);
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -112,7 +112,7 @@
 
 .project-structure-progress p {
   color: var(--faint);
-  font-size: 0.56rem;
+  font-size: max(0.68rem, 11px);
   letter-spacing: 0.03em;
   margin: 0;
   white-space: nowrap;
@@ -147,14 +147,14 @@
 .project-structure-group header span {
   color: var(--violet);
   font-family: var(--mono);
-  font-size: 0.68rem;
+  font-size: max(0.68rem, 11px);
   letter-spacing: 0;
   text-transform: none;
 }
 
 .project-structure-group header em {
   color: var(--faint);
-  font-size: 0.5rem;
+  font-size: max(0.68rem, 11px);
   font-style: normal;
   letter-spacing: 0.08em;
 }
@@ -192,7 +192,7 @@
   align-items: center;
   display: flex;
   font-family: var(--mono);
-  font-size: 0.64rem;
+  font-size: max(0.68rem, 11px);
   gap: 0.65rem;
   min-width: 0;
   overflow: hidden;
@@ -210,7 +210,7 @@
 
 .project-structure-group li a > em {
   color: var(--faint);
-  font-size: 0.55rem;
+  font-size: max(0.68rem, 11px);
   font-style: normal;
   white-space: nowrap;
 }
@@ -250,14 +250,14 @@
 .project-structure-footer p,
 .project-structure-note p {
   color: var(--muted);
-  font-size: 0.64rem;
+  font-size: max(0.68rem, 11px);
   line-height: 1.55;
   margin: 0;
 }
 
 .project-structure-footer a {
   color: var(--violet);
-  font-size: 0.6rem;
+  font-size: max(0.68rem, 11px);
   white-space: nowrap;
 }
 

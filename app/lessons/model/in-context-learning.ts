@@ -124,9 +124,21 @@ return { passed: prompt === "Return K or M.\\n\\nInput: A sharp story.\\nLabel:"
             { name: "expected", detail: "Gold label used only after prediction extraction to compute passed." },
           ],
           code: `function exactMatchLabel(output, expected, allowedLabels = ["K", "M"]) {
-  const escaped = allowedLabels.join("|");
-  const match = output.match(new RegExp("\\\\b(" + escaped + ")\\\\b"));
-  const predicted = match ? match[1] : null;
+  const isWord = (character) => Boolean(character) && /[A-Za-z0-9_]/.test(character);
+  let match = null;
+  for (const label of allowedLabels) {
+    if (!label) continue;
+    let start = 0;
+    while (start <= output.length - label.length) {
+      const index = output.indexOf(label, start);
+      if (index < 0) break;
+      const before = output[index - 1] || "";
+      const after = output[index + label.length] || "";
+      if (!isWord(before) && !isWord(after) && (!match || index < match.index)) match = { index, label };
+      start = index + Math.max(1, label.length);
+    }
+  }
+  const predicted = match ? match.label : null;
   return { predicted, passed: predicted === expected };
 }`,
           checkCode: `const result = exactMatchLabel("The label is K.", "K");
@@ -137,6 +149,6 @@ return { passed: result.passed && result.predicted === "K", detail: "predicted "
     experiment: {
       kind: "icl",
       title: "Evaluate a frozen local model",
-      intro: "Download the quantized model once, then compare zero-, one-, and few-shot exact-match accuracy on identical held-out cases.",
+      intro: "Download the quantized model once, then run the supplied reference evaluator over identical held-out cases. The local model is real; prompt construction and scoring do not execute the learner cells.",
     },
   } satisfies Omit<CourseLesson, "sources">;

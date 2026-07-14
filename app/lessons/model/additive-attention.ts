@@ -6,14 +6,14 @@ export const additiveAttentionLesson = {
     number: 4,
     mode: "live-training",
     modeLabel: "Live micro-training",
-    eyebrow: "Alignment · Bahdanau et al. · 2015",
+    eyebrow: "Alignment · Bahdanau et al. · 2014 / 2015",
     title: "Additive Attention",
     thesis:
       "The decoder can construct a different context vector at every output step by learning soft alignments over all encoder states.",
     paperUrl: "https://arxiv.org/abs/1409.0473",
     paperTitle: "Neural Machine Translation by Jointly Learning to Align and Translate",
     authors: "Dzmitry Bahdanau, Kyunghyun Cho, Yoshua Bengio",
-    year: "2015",
+    year: "2014 preprint · ICLR 2015",
     paperContext: `
 This lesson concerns "Neural Machine Translation by Jointly Learning to Align and Translate" by Bahdanau, Cho, and Bengio.
 - Earlier encoder-decoder systems compressed a source sentence into a single fixed-length vector.
@@ -77,7 +77,7 @@ ${commonQuestionInstruction}`.trim(),
       name: "Date Alignment",
       source: "Deterministic synthetic task",
       license: "CC0",
-      size: "3 semantic roles · 180 training cases",
+      size: "3 semantic roles · 3 fixed alignment cases · 2,000 epochs",
       preview: "14 · March · 2026  →  2026 · 03 · 14",
     },
     implementation: {
@@ -142,6 +142,6 @@ return { passed: context[0] === 0.75 && context[1] === 0.25, detail: "c = [" + c
     experiment: {
       kind: "attention",
       title: "Learn the alignment function",
-      intro: "Optimize the additive scorer, then compare its learned alignment against a fixed uniform context.",
+      intro: "Run the supplied additive-attention trainer on three fixed cases, then compare its learned alignment against a uniform baseline. The replay does not execute the learner cells.",
     },
   } satisfies Omit<CourseLesson, "sources">;

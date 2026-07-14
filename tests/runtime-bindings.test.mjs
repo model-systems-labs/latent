@@ -6,6 +6,7 @@ import { createServer } from "vite";
 
 let vite;
 let runtime;
+let persistencePure;
 
 before(async () => {
   vite = await createServer({
@@ -16,6 +17,7 @@ before(async () => {
     logLevel: "silent",
   });
   runtime = await vite.ssrLoadModule("/app/runtime/bindings/index.ts");
+  persistencePure = await vite.ssrLoadModule("/app/platform/persistence/pure.ts");
 });
 
 after(async () => {
@@ -24,6 +26,18 @@ after(async () => {
 
 function sha256(value) {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
+}
+
+function runtimeConfigFixture(overrides = {}) {
+  return {
+    version: 1,
+    model: { temperature: 0.72, topK: 24, maxTokens: 160, seed: 71 },
+    transport: { wordsPerEvent: 1, delayMs: 24 },
+    interface: { assistantName: "Build A", responsePrefix: "A: ", showMetrics: true },
+    buildNumber: 999,
+    builtAt: 999,
+    ...overrides,
+  };
 }
 
 function artifactFixture(overrides = {}) {
@@ -90,19 +104,21 @@ function persistedFixture(overrides = {}) {
     ]),
   );
   const bundleHashes = Object.fromEntries(Object.entries(bundles).map(([path, code]) => [path, sha256(code)]));
+  const sourceTreeHash = sha256("complete learner source tree");
+  const contractVersion = "llm-systems-v1";
   return {
     id: "persisted-build-4",
-    promotionKey: "browser-chat:source:contracts",
+    promotionKey: persistencePure.promotionKey("browser-chat", sourceTreeHash, contractVersion),
     projectId: "browser-chat",
     projectRevision: 14,
     schemaVersion: 1,
     buildNumber: 4,
-    sourceTreeHash: sha256("complete learner source tree"),
-    contractVersion: "llm-systems-v1",
+    sourceTreeHash,
+    contractVersion,
     fileHashes,
     bundles,
     bundleHashes,
-    runtimeConfig: {},
+    runtimeConfig: runtimeConfigFixture(),
     bindings,
     testReceiptId: "receipt-14",
     checkpointId: null,
@@ -110,6 +126,45 @@ function persistedFixture(overrides = {}) {
     createdAt: 1_700_000_000_000,
     ...overrides,
   };
+}
+
+function persistedEvidence(build) {
+  const results = [{ contractId: "full-suite", path: "capstone/main.tsx", label: "Full suite", passed: true, detail: "Passed", durationMs: 1 }];
+  const run = {
+    id: "run-14",
+    projectId: build.projectId,
+    projectRevision: build.projectRevision,
+    sourceTreeHash: build.sourceTreeHash,
+    contractVersion: build.contractVersion,
+    status: "passed",
+    results,
+    startedAt: build.createdAt - 1,
+    completedAt: build.createdAt,
+    runnerVersion: "runner-v1",
+    error: null,
+  };
+  const receipt = {
+    id: build.testReceiptId,
+    runId: run.id,
+    projectId: build.projectId,
+    projectRevision: build.projectRevision,
+    sourceTreeHash: build.sourceTreeHash,
+    contractVersion: build.contractVersion,
+    passed: true,
+    passedCount: results.length,
+    totalCount: results.length,
+    runnerVersion: run.runnerVersion,
+    moduleHashes: { ...build.bundleHashes },
+    origin: "host",
+    createdAt: build.createdAt,
+  };
+  return { receipt, run };
+}
+
+function certifiedPersistedFixture(overrides = {}) {
+  const build = persistedFixture(overrides);
+  const { receipt, run } = persistedEvidence(build);
+  return persistencePure.certifyValidatedPersistedBuild(build, receipt, run);
 }
 
 test("the course binding manifest exposes real capstone capabilities with only core seams required", () => {
@@ -203,7 +258,7 @@ test("tampered compiled code and incomplete lesson coverage cannot enter the act
 });
 
 test("validated persisted builds produce the same safe surface and reject binding drift", async () => {
-  const persisted = persistedFixture();
+  const persisted = certifiedPersistedFixture();
   const descriptor = await runtime.createCapstoneRuntimeDescriptor(persisted);
   assert.equal(descriptor.origin, "persisted-build");
   assert.equal(descriptor.compilerVersion, null);
@@ -211,11 +266,13 @@ test("validated persisted builds produce the same safe surface and reject bindin
   assert.equal(descriptor.contributions[0].hashKind, "source-file");
   assert.equal(JSON.stringify(descriptor).includes(Object.values(persisted.bundles)[0]), false);
 
-  const tampered = persistedFixture();
-  tampered.bindings["chat.select-context"] = {
+  const tamperedBuild = persistedFixture();
+  tamperedBuild.bindings["chat.select-context"] = {
     modulePath: "product/chat-actions.js",
     exportName: "selectEverything",
   };
+  const { receipt, run } = persistedEvidence(tamperedBuild);
+  const tampered = persistencePure.certifyValidatedPersistedBuild(tamperedBuild, receipt, run);
   await assert.rejects(
     runtime.createCapstoneRuntimeDescriptor(tampered),
     (error) => error.code === "RUNTIME_BINDING_TAMPERED",
@@ -223,16 +280,53 @@ test("validated persisted builds produce the same safe surface and reject bindin
 });
 
 test("only the compiler-hashed capstone bundle can enter the preview frame", async () => {
-  const persisted = persistedFixture();
+  const persisted = certifiedPersistedFixture();
   const loaded = await runtime.loadValidatedCapstoneBundle(persisted);
   assert.equal(loaded.entryPath, "capstone/main.tsx");
   assert.equal(loaded.codeHash, persisted.bundleHashes[loaded.entryPath]);
   assert.equal(loaded.descriptor.bindings.find((binding) => binding.capability === "ui.mount")?.executionTarget, "sandboxed-preview-frame");
 
-  const tampered = persistedFixture();
-  tampered.bundles["capstone/main.tsx"] += "\n// changed";
+  const tamperedBuild = persistedFixture();
+  tamperedBuild.bundles["capstone/main.tsx"] += "\n// changed";
+  const { receipt, run } = persistedEvidence(tamperedBuild);
+  const tampered = persistencePure.certifyValidatedPersistedBuild(tamperedBuild, receipt, run);
   await assert.rejects(
     runtime.loadValidatedCapstoneBundle(tampered),
     (error) => error.code === "COMPILED_CODE_TAMPERED",
+  );
+});
+
+test("capstone runtime authority stays on immutable build A when an unbuilt draft changes to B", () => {
+  const buildA = certifiedPersistedFixture({ runtimeConfig: runtimeConfigFixture() });
+  const certifiedA = runtime.certifiedCapstoneRuntimeConfig(buildA);
+  const unbuiltDraftB = runtimeConfigFixture({
+    model: { temperature: 1.4, topK: 3, maxTokens: 40, seed: 999 },
+    interface: { assistantName: "Draft B", responsePrefix: "B: ", showMetrics: false },
+  });
+  assert.equal(certifiedA.interface.assistantName, "Build A");
+  assert.equal(certifiedA.interface.responsePrefix, "A: ");
+  assert.equal(certifiedA.model.temperature, 0.72);
+  assert.notEqual(certifiedA.interface.assistantName, unbuiltDraftB.interface.assistantName);
+  assert.equal(certifiedA.buildNumber, buildA.buildNumber, "persisted config cannot forge the repository build number");
+  assert.equal(certifiedA.builtAt, buildA.createdAt, "persisted config cannot forge the repository build timestamp");
+  assert.equal(Object.isFrozen(certifiedA), true);
+  assert.equal(Object.isFrozen(certifiedA.model), true);
+
+  const invalid = certifiedPersistedFixture({
+    runtimeConfig: runtimeConfigFixture({ model: { temperature: 0.72, topK: 24, maxTokens: 161, seed: 71 } }),
+  });
+  assert.throws(() => runtime.certifiedCapstoneRuntimeConfig(invalid), (error) => error.code === "INVALID_RUNTIME_CONFIG");
+  assert.throws(() => runtime.certifiedCapstoneRuntimeConfig(persistedFixture()), (error) => error.code === "UNVALIDATED_RUNTIME_CONFIG");
+});
+
+test("a bare persisted record cannot become a trusted runtime descriptor", async () => {
+  const imported = persistedFixture();
+  await assert.rejects(
+    runtime.createCapstoneRuntimeDescriptor(imported),
+    (error) => error.code === "UNVALIDATED_ACTIVE_BUILD",
+  );
+  await assert.rejects(
+    runtime.loadValidatedCapstoneBundle(imported),
+    (error) => error.code === "UNVALIDATED_ACTIVE_BUILD",
   );
 });

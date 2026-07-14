@@ -45,7 +45,7 @@ export function LearningDataPanel() {
 
   return (
     <section className="learning-data-panel" aria-labelledby="learning-data-title">
-      <header><div><span>Privacy and learning evidence</span><h2 id="learning-data-title">Your activity stays on this device.</h2></div><p>Latent records bounded event names and pass/fail outcomes. It never places source code, prompts, chat content, API keys, or free-form answers in this event log.</p></header>
+      <header><div><span>Privacy and learning evidence</span><h2 id="learning-data-title">Device-local learning data</h2></div><p>Latent records bounded event names and pass/fail outcomes. It never places source code, prompts, chat content, API keys, or free-form answers in this event log.</p></header>
       <dl aria-label="Device-local learning event summary">
         <div><dt>First runs</dt><dd>{ready ? summary.runs : "—"}</dd></div>
         <div><dt>Code checks</dt><dd>{ready ? summary.checks : "—"}</dd></div>

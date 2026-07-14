@@ -55,7 +55,7 @@ test("the dedicated project route renders the complete progressive source tree",
   const html = await response.text();
   assert.match(html, /Project structure/);
   assert.match(html, /browser-chat\//);
-  assert.match(html, /14(?:<!-- -->)? pending/);
+  assert.match(html, /14(?:<!-- -->)? not started/);
   assert.match(html, /model\.config\.js/);
   assert.match(html, /character-rnn\.js/);
   assert.match(html, /inference-runtime\.js/);
@@ -96,11 +96,16 @@ test("all fourteen lessons use the reusable learning flow", async () => {
     assert.match(html, /Source finding/);
     assert.match(html, /Browser reproduction/);
     assert.match(html, /OpenRouter API key/);
+    assert.match(html, /Latent does not store this key/);
+    assert.match(html, /browser sends it directly to OpenRouter/);
+    assert.match(html, /lesson brief \+ source metadata · no full-text retrieval/);
+    assert.doesNotMatch(html, /Grounded in the lesson sources|Your key stays in this tab/);
     assert.match(html, /Practice all/);
     assert.match(html, /Run cell/);
     assert.match(html, /Run behavioral checks/);
     assert.match(html, /Artifacts/);
-    assert.match(html, /A record of what you built/);
+    assert.match(html, /A source-bound validation receipt/);
+    assert.match(html, /course-authored references/);
   }
 });
 
@@ -253,8 +258,8 @@ test("the capstone contains the complete React chat system", async () => {
   const html = await response.text();
   assert.match(html, /Browser Chat/);
   assert.match(html, /compiled-capstone-shell/);
-  assert.match(html, /Loading Browser Chat/);
-  assert.match(html, /Restoring project/);
+  assert.match(html, /Verifying the active build/);
+  assert.match(html, /Checking the full-project test receipt/);
   assert.match(html, /href="\/workspace"/);
   assert.match(html, /href="\/project"/);
   assert.doesNotMatch(html, /Project file editor/);
@@ -274,10 +279,10 @@ test("the project IDE is a dedicated tested authoring surface", async () => {
   assert.match(html, /streaming-transport\.js/);
   assert.match(html, /chat-reducer\.js/);
   assert.match(html, /BrowserChat\.tsx/);
-  assert.match(html, /Pending/);
+  assert.match(html, /0 of \d+ checks verified/);
   assert.match(html, /class="code-editor"/);
   assert.match(html, /Unit tests/);
-  assert.match(html, /Run all\s*(?:<!-- -->)?39/);
+  assert.match(html, /Run all\s*(?:<!-- -->)?40/);
   assert.match(html, /Run file tests/);
   assert.match(html, /Test, build &amp; run/);
   assert.match(html, /Last passing build/);
@@ -353,7 +358,9 @@ test("the design kit, simulations, model engines, and artifact runtime remain re
   assert.equal((sourceSets.match(/^  (?:"[^"]+"|[a-z-]+): \[$/gm) ?? []).length, 14);
   assert.match(paperLab, /lesson\.sources\.map\(\(source\)/);
   assert.doesNotMatch(paperLab, /supporting-sources|source\.role/);
-  assert.match(paperLab, /Synthesize across these sources/);
+  assert.match(paperLab, /linked full texts were not retrieved/);
+  assert.match(paperLab, /Treat this source list only as a reading map/);
+  assert.match(paperLab, /instead of inferring its contents/);
   assert.match(layout, /og-v2\.png/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   await assert.rejects(access(new URL("../app/_sites-preview", templateRoot)));
@@ -425,6 +432,8 @@ test("Conversation State renders a normalized update and all 18 reducer actions"
   assert.match(html, /attemptId/);
   assert.match(html, /requestId/);
   assert.match(html, /Identity evidence/);
+  assert.match(html, /Replay selected flow/);
+  assert.match(html, /no learner-code execution/);
 });
 
 test("Streaming React renders the frame timing trace and four honest profiles", async () => {
@@ -442,7 +451,8 @@ test("Streaming React renders the frame timing trace and four honest profiles", 
   assert.match(html, /Steady/);
   assert.match(html, /Stalled/);
   assert.match(html, /Cancelled/);
-  assert.match(html, /Run burst/);
+  assert.match(html, /Replay burst trace/);
+  assert.match(html, /Fixed authored timing profile/);
   assert.match(html, /bounded live-region contents/);
 });
 
@@ -472,9 +482,11 @@ test("Actions and Context renders a concrete branch, actionable flows, and an ex
   assert.match(html, /chat-v3/);
   assert.match(html, /temperature/);
   assert.match(html, /includedMessageIds/);
+  assert.match(html, /Replay selected request/);
+  assert.match(html, /exact token accounting/);
 });
 
-test("Product Quality renders one lifecycle, an honest 16-check audit, and the manual verification boundary", async () => {
+test("Product Quality separates executed checks, unexecuted specifications, and manual verification", async () => {
   const response = await render("/lessons/chat-product-quality");
   assert.equal(response.status, 200);
   const html = await response.text();
@@ -483,12 +495,14 @@ test("Product Quality renders one lifecycle, an honest 16-check audit, and the m
   assert.match(html, /Programmatic state/);
   assert.match(html, /abort transport · cancel frame · reject late event · release request · focus composer/);
   assert.match(html, /v1 · exact keys · ≤200 terminal messages/);
-  assert.match(html, /Automated · 16 contracts/);
+  assert.match(html, /Executed · 11 pure checks/);
+  assert.match(html, /Declared · 5 specifications/);
   assert.match(html, /Manual · 3 groups/);
-  assert.match(html, /16 automated contracts · 3 manual verification groups/);
-  assert.match(html, /Run 16 contract checks/);
+  assert.match(html, /11 executable pure checks · 5 specifications · 3 manual verification groups/);
+  assert.match(html, /Run checks \+ review specs/);
   assert.match(html, /no browser, assistive-technology, or device emulation claims/);
-  assert.match(html, /Run the audit to expose all 16 check-specific results/);
+  assert.match(html, /Run the audit to separate executable pure checks, declared product specifications, and manual verification work/);
+  assert.doesNotMatch(html, /Automated · 16 contracts|all 16 check-specific results/);
 });
 
 test("homepage offers an honest first model run before the curriculum", async () => {
@@ -496,9 +510,10 @@ test("homepage offers an honest first model run before the curriculum", async ()
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /First run · actual training/);
-  assert.match(html, /Change inference, observe behavior/);
+  assert.match(html, /Character-level RNN/);
+  assert.match(html, /same checkpoint under two inference policies/);
   assert.match(html, /Train and generate/);
-  assert.match(html, /1,267-parameter model|1,267 parameters/);
+  assert.match(html, /1,267-parameter character-level recurrent neural network/);
   assert.match(html, /temperature 1\.05 · top-k off/);
   assert.match(html, /temperature 0\.72 · top-k 5/);
 });
@@ -538,11 +553,11 @@ test("project route exposes the timeline, local learning data, and recovery lang
   const response = await render("/project");
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /See the repository accumulate/);
+  assert.match(html, /Repository snapshots/);
   assert.match(html, /Lesson 01/);
   assert.match(html, /Lesson 07/);
   assert.match(html, /Lesson 14/);
-  assert.match(html, /Your activity stays on this device/);
+  assert.match(html, /Device-local learning data/);
   assert.match(html, /No analytics endpoint is configured/);
 });
 

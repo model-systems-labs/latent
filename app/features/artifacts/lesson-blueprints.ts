@@ -28,7 +28,7 @@ const definitions: Record<string, Omit<LessonArtifactBlueprint, "lessonId" | "mo
     frames: [
       frame(0, 0, "Encode character", { input: "x_t", state: "h_(t-1)" }),
       frame(1, 1, "Update hidden state", { operation: "tanh(Wx + Uh + b)" }),
-      frame(2, 2, "Score next character", { operation: "softmax(Why + b)" }),
+      frame(2, 2, "Score next character", { operation: "softmax(Why · h_t + b_y)" }),
     ],
   },
   "neural-language-models": {
@@ -48,7 +48,7 @@ const definitions: Record<string, Omit<LessonArtifactBlueprint, "lessonId" | "mo
     title: "Learned subword tokenizer",
     description: "An ordered merge program whose behavior is fixed by the learner's tested pair counting and merge functions.",
     clock: "step", unit: "merge",
-    payload: { algorithm: "byte-pair encoding", boundary: "end-of-word marker", reversible: true },
+    payload: { algorithm: "byte-pair encoding", boundary: "word-local training; display-only word separator", decoder: "not implemented" },
     frames: [
       frame(0, 0, "Initialize symbols", { text: "modeling signals" }, { tokenCount: 15 }),
       frame(1, 1, "Apply frequent merge", { pair: ["i", "n"] }, { tokenCount: 13 }),
@@ -60,9 +60,9 @@ const definitions: Record<string, Omit<LessonArtifactBlueprint, "lessonId" | "mo
     title: "Additive attention alignment",
     description: "A replayable score-normalize-context transformation for aligning a query with encoder states.",
     clock: "state", unit: "alignment stage",
-    payload: { scorer: "v^T tanh(Wq + Uh)", normalization: "softmax", output: "weighted context" },
+    payload: { scorer: "v^T tanh(Wq q + Wk h_i + b)", normalization: "softmax", output: "weighted context" },
     frames: [
-      frame(0, 0, "Score encoder states", { query: "decoder state", keys: 4 }),
+      frame(0, 0, "Score encoder states", { query: "decoder state", keys: 3 }),
       frame(1, 1, "Normalize scores", { probabilityMass: 1 }, { mass: 1 }),
       frame(2, 2, "Aggregate context", { operation: "sum(alpha_i * h_i)" }),
     ],
@@ -70,13 +70,13 @@ const definitions: Record<string, Omit<LessonArtifactBlueprint, "lessonId" | "mo
   transformers: {
     kind: "causal-attention",
     title: "Causal self-attention artifact",
-    description: "The tested projection, masking, normalization, and residual path for one causal Transformer block.",
+    description: "The tested causal masking, visible-value mixing, and layer-normalization operations used within a causal Transformer block.",
     clock: "token", unit: "sequence position",
-    payload: { mask: "upper triangle = -Infinity", normalization: "row softmax", residual: true },
+    payload: { mask: "upper triangle = -Infinity", normalization: "row softmax", projections: "identity in reference experiment" },
     frames: [
-      frame(0, 0, "Project Q, K, V", { positions: 4, headDimension: 8 }),
-      frame(1, 1, "Apply causal mask", { futureProbability: 0 }, { maskedCells: 6 }),
-      frame(2, 2, "Mix visible values", { outputPositions: 4 }),
+      frame(0, 0, "Use identity Q, K, V", { positions: 6, headDimension: 8 }),
+      frame(1, 1, "Apply causal mask", { futureProbability: 0 }, { maskedCells: 15 }),
+      frame(2, 2, "Mix visible values", { outputPositions: 6 }),
     ],
   },
   "in-context-learning": {
@@ -88,7 +88,7 @@ const definitions: Record<string, Omit<LessonArtifactBlueprint, "lessonId" | "mo
     frames: [
       frame(0, 0, "Zero-shot", { demonstrations: 0 }, { demonstrations: 0 }),
       frame(1, 1, "One-shot", { demonstrations: 1 }, { demonstrations: 1 }),
-      frame(2, 2, "Few-shot", { demonstrations: 3 }, { demonstrations: 3 }),
+      frame(2, 2, "Few-shot", { demonstrations: 4 }, { demonstrations: 4 }),
     ],
   },
   "inference-runtime": {
@@ -178,12 +178,12 @@ const definitions: Record<string, Omit<LessonArtifactBlueprint, "lessonId" | "mo
   "chat-product-quality": {
     kind: "quality-audit",
     title: "Chat product quality audit",
-    description: "A portable 16-check contract audit with a separate manual boundary for keyboard, screen-reader, and mobile verification.",
+    description: "A portable audit with 11 executable pure checks, five unexecuted specifications, and a separate manual verification boundary.",
     clock: "state", unit: "audit check",
-    payload: { areas: ["input and focus", "persistence and context", "lifecycle and recovery", "accessibility and responsive contract"], gate: "16 automated checks pass", manual: ["keyboard", "screen reader", "mobile"] },
+    payload: { areas: ["input and focus", "persistence and context", "lifecycle and recovery", "accessibility and responsive contract"], gate: "11 executable pure checks pass", specifications: 5, mountedBehaviorReceipt: "full build only", manual: ["keyboard", "screen reader", "mobile"] },
     frames: [
-      frame(0, 0, "Run input and persistence contracts", { areas: 2 }, { passed: 8 }),
-      frame(1, 1, "Run lifecycle and access contracts", { areas: 2 }, { passed: 16 }),
+      frame(0, 0, "Run input and persistence checks", { areas: 2 }, { passed: 7 }),
+      frame(1, 1, "Run lifecycle checks; review specifications", { areas: 2, specifications: 5 }, { passed: 11 }),
       frame(2, 2, "Record manual verification boundary", { groups: 3 }, { manualGroups: 3 }),
     ],
   },

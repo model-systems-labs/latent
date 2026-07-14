@@ -3,10 +3,11 @@
 import Link from "next/link";
 import type { CourseLesson } from "@latent/course-kit";
 import { lessonIsComplete, useLearnerState } from "../lib/learner-state";
+import { lessonLearningOutcome } from "../content/llm-systems/learning";
 
 export function CourseCurriculum({ title, lessons }: { title: string; lessons: CourseLesson[] }) {
   const learnerState = useLearnerState();
-  const completed = lessons.filter((lesson) => lessonIsComplete(learnerState, lesson.id, lesson.implementation.codeBlocks.length)).length;
+  const completed = lessons.filter((lesson) => lessonIsComplete(learnerState, lesson.id, lesson.implementation.codeBlocks.length, lessonLearningOutcome(lesson.id).check.id)).length;
   return (
     <>
       <div className="course-progress-record" aria-label={`${completed} of ${lessons.length} lessons complete`}>
@@ -17,7 +18,7 @@ export function CourseCurriculum({ title, lessons }: { title: string; lessons: C
       <section className="curriculum-list" aria-label={`${title} lessons`}>
         {lessons.map((lesson, index) => {
           const progress = learnerState.lessons[lesson.id];
-          const complete = lessonIsComplete(learnerState, lesson.id, lesson.implementation.codeBlocks.length);
+          const complete = lessonIsComplete(learnerState, lesson.id, lesson.implementation.codeBlocks.length, lessonLearningOutcome(lesson.id).check.id);
           return (
             <Link className={`lesson-card ${complete ? "completed" : ""}`} href={`/lessons/${lesson.id}`} key={lesson.id}>
               <span>{String(index + 1).padStart(2, "0")}</span>

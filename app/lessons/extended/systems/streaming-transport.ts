@@ -110,5 +110,5 @@ return { passed: first.events.length === 0 && second.events[0].data.delta === "h
         },
       ],
     },
-    experiment: { kind: "systems", variant: "streaming", title: "Inspect complete and cancelled streams", intro: "Run the same deterministic response to completion or cancel after four tokens. Compare parsing, render buffering, generator stop, late events, and resource release." },
+    experiment: { kind: "systems", variant: "streaming", title: "Replay complete and cancelled streams", intro: "Replay the same authored response to completion or cancellation after four tokens. Compare parsing, render buffering, generator stop, late events, and resource release." },
   });

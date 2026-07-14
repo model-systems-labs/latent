@@ -12,6 +12,8 @@ let contracts;
 let practiceFeedback;
 let contractRuntime;
 let practiceState;
+let learnerStateModule;
+let artifactBlueprints;
 
 before(async () => {
   vite = await createServer({
@@ -21,7 +23,7 @@ before(async () => {
     appType: "custom",
     logLevel: "silent",
   });
-  [course, manifestModule, lms, fileStatus, contracts, practiceFeedback, contractRuntime, practiceState] = await Promise.all([
+  [course, manifestModule, lms, fileStatus, contracts, practiceFeedback, contractRuntime, practiceState, learnerStateModule, artifactBlueprints] = await Promise.all([
     vite.ssrLoadModule("/app/lessons/course.ts"),
     vite.ssrLoadModule("/app/content/llm-systems/manifest.ts"),
     vite.ssrLoadModule("/packages/course-kit/src/curriculum.ts"),
@@ -30,6 +32,8 @@ before(async () => {
     vite.ssrLoadModule("/app/features/ide/practice-feedback.ts"),
     vite.ssrLoadModule("/packages/browser-lab/src/contracts.ts"),
     vite.ssrLoadModule("/app/features/ide/practice-state.ts"),
+    vite.ssrLoadModule("/app/lib/learner-state.ts"),
+    vite.ssrLoadModule("/app/features/artifacts/lesson-blueprints.ts"),
   ]);
 });
 
@@ -75,6 +79,31 @@ test("module identity is independent from stable saved-project paths", () => {
   );
 });
 
+test("model dataset records and reference frames match the supplied runtimes", () => {
+  const expectedSizes = {
+    "character-rnns": "1,610 characters · fixed deterministic sequence",
+    "neural-language-models": "20 sentences · deterministic example-level modulo split",
+    "subword-tokenization": "6 lines · 24 words · fixed",
+    "additive-attention": "3 semantic roles · 3 fixed alignment cases · 2,000 epochs",
+    transformers: "1 fixed six-token sequence",
+    "in-context-learning": "4 demonstrations · 2 held-out cases",
+  };
+  for (const [lessonId, size] of Object.entries(expectedSizes)) {
+    assert.equal(course.courseLessons.find((lesson) => lesson.id === lessonId)?.dataset.size, size);
+  }
+  const character = artifactBlueprints.lessonArtifactBlueprintById.get("character-rnns");
+  const bpe = artifactBlueprints.lessonArtifactBlueprintById.get("subword-tokenization");
+  const additive = artifactBlueprints.lessonArtifactBlueprintById.get("additive-attention");
+  const transformer = artifactBlueprints.lessonArtifactBlueprintById.get("transformers");
+  const icl = artifactBlueprints.lessonArtifactBlueprintById.get("in-context-learning");
+  assert.match(character.frames[2].payload.operation, /Why · h_t/);
+  assert.equal(bpe.payload.decoder, "not implemented");
+  assert.equal(additive.frames[0].payload.keys, 3);
+  assert.equal(transformer.payload.projections, "identity in reference experiment");
+  assert.equal("residual" in transformer.payload, false);
+  assert.equal(icl.frames[2].payload.demonstrations, 4);
+});
+
 test("manifest validation rejects ambiguous files and unreachable source lessons", () => {
   const duplicatePathManifest = structuredClone(manifestModule.llmSystemsManifest);
   duplicatePathManifest.modules[1].lessons[0].projectPath =
@@ -99,7 +128,7 @@ test("manifest validation rejects ambiguous files and unreachable source lessons
 test("Character RNN practice catches missing recurrent state and explains the failing behavior", () => {
   const contract = contracts.llmSystemsExerciseContracts.find((candidate) => candidate.id === "character-rnns/rnn-step");
   assert.ok(contract);
-  assert.equal(contract.cases.length, 2);
+  assert.equal(contract.cases.length, 3);
   const recurrentCase = contract.cases.find((candidate) => candidate.id === "non-empty-recurrent-state");
   assert.ok(recurrentCase);
   assert.match(recurrentCase.label, /preceding hidden state/);
@@ -505,17 +534,15 @@ test("In-Context Learning holds the experiment constant and rejects prompt and s
     const predicted = match?.[1] ?? null;
     return { predicted, passed: predicted === expected };
   });
-  accepts(scorer, (output, expected, allowedLabels = ["K", "M"]) => {
-    const match = output.match(new RegExp(`\\b(${allowedLabels.join("|")})\\b`));
-    const predicted = match?.[1] ?? null;
-    return { predicted, passed: predicted === expected };
-  });
+  const scorerBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "exact-match");
+  assert.ok(scorerBlock);
+  accepts(scorer, new Function(`${scorerBlock.code}; return exactMatchLabel;`)());
   const scorerFeedback = practiceFeedback.formatPracticeContractDetail(evaluate(scorer, (output, expected) => ({
     predicted: output.includes(expected) ? expected : null,
     passed: output.includes(expected),
   })));
   assert.match(scorerFeedback, /independently/);
-  assert.match(scorerFeedback, /2 additional cases still fail; rerun after this fix/);
+  assert.match(scorerFeedback, /additional cases still fail; rerun after this fix/);
   assert.doesNotMatch(scorerFeedback, /first standalone/);
 });
 
@@ -614,7 +641,7 @@ test("Streaming Transport separates byte decoding, frame carry, typed events, an
   assert.match(lesson.summary[3].body, /Render buffering is different/);
   assert.equal(lesson.diagram.title, "One token across arbitrary chunks");
   assert.match(lesson.diagram.caption, /TextDecoder owns byte carry/);
-  assert.match(lesson.experiment.intro, /cancel after four tokens/);
+  assert.match(lesson.experiment.intro, /cancellation after four tokens/);
 
   const byId = new Map(contracts.llmSystemsExerciseContracts.map((contract) => [contract.id, contract]));
   const observe = (implementation, args) => {
@@ -898,52 +925,58 @@ test("Conversation State enforces normalized records and immutable targeted delt
   const copiesCallerFields = (input) => ({ ...input, content: input.content ?? "", status: input.status ?? "complete", createdAt: 0 });
   rejects(create, defaultsOnly);
   rejects(create, copiesCallerFields);
-  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(create, defaultsOnly)), /Use the supplied id, role, content, and status/);
-  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(create, copiesCallerFields)), /do not persist renderIndex/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(create, defaultsOnly)), /attemptId and requestId to null/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(create, copiesCallerFields)), /attemptId and requestId to null/);
   const createBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "create-message");
   assert.ok(createBlock);
   const createReference = new Function(`${createBlock.code}; return createMessage;`)();
   accepts(create, createReference);
-  assert.deepEqual(Object.keys(createReference({ id: "m", role: "assistant" })).sort(), ["content", "createdAt", "id", "role", "status"]);
+  assert.deepEqual(Object.keys(createReference({ id: "m", role: "assistant" })).sort(), ["attemptId", "content", "createdAt", "id", "requestId", "role", "status"]);
   assert.doesNotThrow(() => JSON.stringify(createReference({ id: "m", role: "assistant" })));
 
   const append = byId.get("conversation-state/append-delta");
   assert.ok(append);
-  assert.equal(append.cases.length, 4);
-  const mutatesTarget = (messages, messageId, delta) => {
-    const target = messages.find((message) => message.id === messageId && message.status === "streaming");
-    if (target) target.content += delta;
+  assert.equal(append.cases.length, 6);
+  const mutatesTarget = (messages, event) => {
+    const target = messages.find((message) => message.id === event.messageId && message.status === "streaming");
+    if (target) target.content += event.delta;
     return messages;
   };
-  const updatesLast = (messages, _messageId, delta) => messages.map((message, index) => index === messages.length - 1 ? { ...message, content: message.content + delta } : message);
-  const ignoresStatus = (messages, messageId, delta) => messages.map((message) => message.id === messageId ? { ...message, content: message.content + delta } : message);
+  const updatesLast = (messages, event) => messages.map((message, index) => index === messages.length - 1 ? { ...message, content: message.content + event.delta } : message);
+  const ignoresStatus = (messages, event) => messages.map((message) => message.id === event.messageId && message.attemptId === event.attemptId && message.requestId === event.requestId ? { ...message, content: message.content + event.delta } : message);
+  const ignoresAttempt = (messages, event) => messages.map((message) => message.id === event.messageId && message.requestId === event.requestId && message.status === "streaming" ? { ...message, content: message.content + event.delta } : message);
+  const ignoresRequest = (messages, event) => messages.map((message) => message.id === event.messageId && message.attemptId === event.attemptId && message.status === "streaming" ? { ...message, content: message.content + event.delta } : message);
   rejects(append, mutatesTarget);
   rejects(append, updatesLast);
   rejects(append, ignoresStatus);
-  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(append, mutatesTarget)), /Match messageId instead of array position/);
-  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(append, updatesLast)), /Match messageId instead of array position/);
+  rejects(append, ignoresAttempt);
+  rejects(append, ignoresRequest);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(append, mutatesTarget)), /Match messageId, attemptId, and requestId/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(append, updatesLast)), /Match messageId, attemptId, and requestId/);
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(append, ignoresStatus)), /Check that the matching message is streaming/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(append, ignoresAttempt)), /attemptId does not match/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(append, ignoresRequest)), /requestId does not match/);
   const appendBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "append-delta");
   assert.ok(appendBlock);
   const appendReference = new Function(`${appendBlock.code}; return appendMessageDelta;`)();
   accepts(append, appendReference);
 
   const before = Object.freeze([
-    Object.freeze({ id: "before", content: "keep", status: "streaming" }),
-    Object.freeze({ id: "target", content: "Hel", status: "streaming" }),
-    Object.freeze({ id: "after", content: "fixed", status: "complete" }),
+    Object.freeze({ id: "before", attemptId: "a0", requestId: "r0", content: "keep", status: "streaming" }),
+    Object.freeze({ id: "target", attemptId: "a1", requestId: "r1", content: "Hel", status: "streaming" }),
+    Object.freeze({ id: "after", attemptId: "a2", requestId: "r2", content: "fixed", status: "complete" }),
   ]);
-  const next = appendReference(before, "target", "lo");
+  const next = appendReference(before, { messageId: "target", attemptId: "a1", requestId: "r1", delta: "lo" });
   assert.notEqual(next, before, "every reducer call returns a new array identity");
   assert.equal(next[0], before[0], "the preceding untargeted record preserves identity");
   assert.notEqual(next[1], before[1], "the targeted record receives a new object identity");
   assert.equal(next[2], before[2], "the following untargeted record preserves identity");
   assert.deepEqual(before, [
-    { id: "before", content: "keep", status: "streaming" },
-    { id: "target", content: "Hel", status: "streaming" },
-    { id: "after", content: "fixed", status: "complete" },
+    { id: "before", attemptId: "a0", requestId: "r0", content: "keep", status: "streaming" },
+    { id: "target", attemptId: "a1", requestId: "r1", content: "Hel", status: "streaming" },
+    { id: "after", attemptId: "a2", requestId: "r2", content: "fixed", status: "complete" },
   ], "the authored reference never mutates its input");
-  const missing = appendReference(before, "missing", "!");
+  const missing = appendReference(before, { messageId: "missing", attemptId: "a1", requestId: "r1", delta: "!" });
   assert.notEqual(missing, before);
   assert.equal(missing[0], before[0]);
   assert.equal(missing[1], before[1]);
@@ -1061,83 +1094,92 @@ test("Actions and Context treats branches as durable records and admits only com
   const context = byId.get("chat-actions-context/context-budget");
   assert.ok(context);
   assert.equal(context.cases.length, 9);
-  const individualMessages = (messages, budget) => {
-    const systems = messages.filter((message) => message.role === "system");
-    const selected = [...systems];
-    let used = systems.reduce((sum, message) => sum + message.tokens, 0);
-    for (const message of [...messages.filter((message) => message.role !== "system")].reverse()) {
+  const individualMessages = ({ system, history, activeUser, budget }) => {
+    const selected = [...system, activeUser];
+    let used = selected.reduce((sum, message) => sum + message.tokens, 0);
+    for (const message of [...history].reverse()) {
       if (used + message.tokens <= budget) {
-        selected.splice(systems.length, 0, message);
+        selected.splice(system.length, 0, message);
         used += message.tokens;
       }
     }
     return { selected, used, overflow: used > budget };
   };
-  const oldestFirst = (messages, budget) => {
-    const systems = messages.filter((message) => message.role === "system");
+  const oldestFirst = ({ system, history, activeUser, budget }) => {
     const turns = [];
-    for (let index = 0; index < messages.length - 1; index += 1) {
-      if (messages[index].role === "user" && messages[index + 1].role === "assistant") turns.push([messages[index], messages[index + 1]]);
+    for (let index = 0; index < history.length - 1; index += 1) {
+      if (history[index].role === "user" && history[index + 1].role === "assistant") turns.push([history[index], history[index + 1]]);
     }
-    let used = systems.reduce((sum, message) => sum + message.tokens, 0);
-    const selected = [...systems];
+    let used = [...system, activeUser].reduce((sum, message) => sum + message.tokens, 0);
+    const selected = [...system];
     for (const turn of turns) {
       const tokens = turn.reduce((sum, message) => sum + message.tokens, 0);
       if (used + tokens <= budget) { selected.push(...turn); used += tokens; }
     }
+    selected.push(activeUser);
     return { selected, used, overflow: used > budget };
   };
-  const omitsSystem = (messages) => {
-    const selected = messages.filter((message) => message.role !== "system").slice(-2);
+  const omitsActiveUser = ({ system, history }) => {
+    const selected = [...system, ...history.slice(-2)];
     return { selected, used: selected.reduce((sum, message) => sum + message.tokens, 0), overflow: false };
   };
-  const stopsAfterOversizedNewest = (messages, budget) => {
-    const systems = messages.filter((message) => message.role === "system");
+  const ignoresLifecycle = ({ system, history, activeUser }) => {
+    const selected = [...system, ...history, activeUser];
+    return { selected, used: selected.reduce((sum, message) => sum + message.tokens, 0), overflow: false };
+  };
+  const stopsAfterOversizedNewest = ({ system, history, activeUser, budget }) => {
     const pairs = [];
-    for (let index = 0; index < messages.length - 1; index += 1) {
-      if (messages[index].role === "user" && messages[index + 1].role === "assistant") pairs.push([messages[index], messages[index + 1]]);
+    for (let index = 0; index < history.length - 1; index += 1) {
+      if (history[index].role === "user" && history[index + 1].role === "assistant") pairs.push([history[index], history[index + 1]]);
     }
-    let used = systems.reduce((sum, message) => sum + message.tokens, 0);
-    const selected = [...systems];
+    let used = [...system, activeUser].reduce((sum, message) => sum + message.tokens, 0);
+    const selected = [...system];
     for (const pair of pairs.reverse()) {
       const tokens = pair.reduce((sum, message) => sum + message.tokens, 0);
       if (used + tokens > budget) break;
-      selected.splice(systems.length, 0, ...pair);
+      selected.splice(system.length, 0, ...pair);
       used += tokens;
     }
+    selected.push(activeUser);
     return { selected, used, overflow: used > budget };
   };
-  const mutatesOrder = (messages, budget) => {
-    messages.reverse();
-    return { selected: messages, used: budget, overflow: false };
+  const mutatesOrder = ({ system, history, activeUser, budget }) => {
+    history.reverse();
+    return { selected: [...system, ...history, activeUser], used: budget, overflow: false };
   };
   rejects(context, individualMessages);
   rejects(context, oldestFirst);
-  rejects(context, omitsSystem);
+  rejects(context, omitsActiveUser);
+  rejects(context, ignoresLifecycle);
   rejects(context, stopsAfterOversizedNewest);
   rejects(context, mutatesOrder);
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(context, individualMessages)), /atomic unit/);
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(context, oldestFirst)), /newest-first/);
-  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(context, omitsSystem)), /required system record/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(context, omitsActiveUser)), /active-user/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(context, ignoresLifecycle)), /exact chronological request/);
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(context, stopsAfterOversizedNewest)), /continue examining older/);
   const contextBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "context-budget");
   assert.ok(contextBlock);
   const contextReference = new Function(`${contextBlock.code}; return selectContext;`)();
   accepts(context, contextReference);
-  const frozenMessages = freeze([
-    { id: "s", role: "system", tokens: 2 },
-    { id: "u", role: "user", tokens: 3 },
-    { id: "a", role: "assistant", tokens: 4 },
-  ]);
-  assert.deepEqual(contextReference(frozenMessages, 9), { selected: frozenMessages, used: 9, overflow: false });
-  assert.deepEqual(frozenMessages.map((message) => message.id), ["s", "u", "a"]);
+  const frozenInput = freeze({
+    system: [{ id: "s", role: "system", tokens: 2 }],
+    history: [
+      { id: "u", role: "user", status: "complete", tokens: 3 },
+      { id: "a", role: "assistant", status: "complete", tokens: 4 },
+    ],
+    activeUser: { id: "u2", role: "user", status: "complete", tokens: 2 },
+    budget: 11,
+  });
+  assert.deepEqual(contextReference(frozenInput), { selected: [...frozenInput.system, ...frozenInput.history, frozenInput.activeUser], used: 11, overflow: false });
+  assert.deepEqual(frozenInput.history.map((message) => message.id), ["u", "a"]);
 
   const regeneration = byId.get("chat-actions-context/regenerate-branch");
   assert.ok(regeneration);
   assert.equal(regeneration.cases.length, 4);
-  const hardcoded = () => ({ messageId: "m9", parentUserId: "m4", attemptId: "a2", role: "assistant", content: "", status: "queued" });
+  const hardcoded = () => ({ messageId: "m9", parentUserId: "m4", attemptId: "a2", requestId: "r2", role: "assistant", content: "", status: "queued" });
   const spreadsCaller = (input) => ({ ...input, role: "assistant", content: input.content ?? "", status: input.status ?? "queued" });
-  const wrongDefaults = ({ messageId, parentUserId, attemptId }) => ({ messageId, parentUserId, attemptId, role: "assistant", content: "loading", status: "streaming" });
+  const wrongDefaults = ({ messageId, parentUserId, attemptId, requestId }) => ({ messageId, parentUserId, attemptId, requestId, role: "assistant", content: "loading", status: "streaming" });
   const mutatesCaller = (input) => {
     input.status = "queued";
     return input;
@@ -1147,28 +1189,29 @@ test("Actions and Context treats branches as durable records and admits only com
   rejects(regeneration, wrongDefaults);
   rejects(regeneration, mutatesCaller);
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(regeneration, hardcoded)), /supplied ids on every call/);
-  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(regeneration, spreadsCaller)), /only messageId, parentUserId, attemptId, role, content, and status/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(regeneration, spreadsCaller)), /four identity fields/);
   const regenerationBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "regenerate-branch");
   assert.ok(regenerationBlock);
   const regenerationReference = new Function(`${regenerationBlock.code}; return createRegeneration;`)();
   accepts(regeneration, regenerationReference);
-  const frozenInput = freeze({ messageId: "m20", parentUserId: "m-u8", attemptId: "a9", renderIndex: 4 });
-  assert.deepEqual(regenerationReference(frozenInput), {
+  const frozenRegeneration = freeze({ messageId: "m20", parentUserId: "m-u8", attemptId: "a9", requestId: "r9", renderIndex: 4 });
+  assert.deepEqual(regenerationReference(frozenRegeneration), {
     messageId: "m20",
     parentUserId: "m-u8",
     attemptId: "a9",
+    requestId: "r9",
     role: "assistant",
     content: "",
     status: "queued",
   });
-  assert.deepEqual(Object.keys(regenerationReference(frozenInput)).sort(), ["attemptId", "content", "messageId", "parentUserId", "role", "status"]);
+  assert.deepEqual(Object.keys(regenerationReference(frozenRegeneration)).sort(), ["attemptId", "content", "messageId", "parentUserId", "requestId", "role", "status"]);
 });
 
 test("Product Quality rejects shallow persistence guards and incomplete phase labels", () => {
   const lesson = course.courseLessons.find((candidate) => candidate.id === "chat-product-quality");
   assert.ok(lesson);
   assert.equal(lesson.diagram.title, "One send through reload");
-  assert.match(lesson.dataset.size, /16 automated contracts · 3 manual verification groups/);
+  assert.match(lesson.dataset.size, /11 executable pure checks · 5 specifications · 3 manual verification groups/);
   assert.match(lesson.claims.limit, /real browsers, keyboards, screen readers, and users/);
 
   const byId = new Map(contracts.llmSystemsExerciseContracts.map((contract) => [contract.id, contract]));
@@ -1210,7 +1253,7 @@ test("practice verification is inseparable from the exact editor source and cont
   const block = { id: "rnn-step", code: "function rnnStep() { return 'reference'; }" };
   const correct = "function rnnStep() { return 'correct learner answer'; }";
   const wrong = "function rnnStep() { return 'wrong learner answer'; }";
-  const currentVersion = "llm-systems-contracts-v14";
+  const currentVersion = "llm-systems-contracts-v16";
   const bound = practiceState.bindBlockVerification(
     { ids: [], sources: {}, contractVersion: null },
     block.id,
@@ -1256,15 +1299,15 @@ test("practice remains locked until both project and learner hydration finish", 
 test("project files expose clear pending, complete, provided, and failure states", () => {
   assert.deepEqual(
     fileStatus.projectFileStatus({ isLessonFile: true, verifiedCells: 0, totalCells: 3 }),
-    { tone: "pending", label: "Pending", complete: false },
+    { tone: "pending", label: "0 of 3 checks verified", complete: false },
   );
   assert.deepEqual(
     fileStatus.projectFileStatus({ isLessonFile: true, verifiedCells: 2, totalCells: 3 }),
-    { tone: "in-progress", label: "2/3 complete", complete: false },
+    { tone: "in-progress", label: "2 of 3 checks verified", complete: false },
   );
   assert.deepEqual(
     fileStatus.projectFileStatus({ isLessonFile: true, verifiedCells: 3, totalCells: 3 }),
-    { tone: "complete", label: "Complete", complete: true },
+    { tone: "complete", label: "3 of 3 checks verified", complete: true },
   );
   assert.deepEqual(
     fileStatus.projectFileStatus({ isLessonFile: false, readOnly: true }),
@@ -1272,11 +1315,11 @@ test("project files expose clear pending, complete, provided, and failure states
   );
   assert.deepEqual(
     fileStatus.projectFileStatus({ isLessonFile: false, requiresPassingTests: true }),
-    { tone: "pending", label: "Pending", complete: false },
+    { tone: "pending", label: "Tests not run", complete: false },
   );
   assert.deepEqual(
     fileStatus.projectFileStatus({ isLessonFile: false, requiresPassingTests: true, results: [{ passed: true }] }),
-    { tone: "passed", label: "Tests pass", complete: true },
+    { tone: "passed", label: "IDE tests pass", complete: true },
   );
   const sharedCompile = [{ id: "capstone", path: "capstone/main.tsx", label: "Capstone", passed: true, detail: "Passed" }];
   assert.equal(
@@ -1289,6 +1332,41 @@ test("project files expose clear pending, complete, provided, and failure states
   );
   assert.deepEqual(
     fileStatus.projectFileStatus({ isLessonFile: true, verifiedCells: 3, totalCells: 3, results: [{ passed: false }] }),
-    { tone: "failed", label: "Needs work", complete: false },
+    { tone: "failed", label: "IDE tests failing", complete: false },
   );
+  assert.deepEqual(
+    fileStatus.projectFileStatus({ isLessonFile: true, verifiedCells: 1, totalCells: 3, results: [{ passed: true }] }),
+    { tone: "in-progress", label: "1 of 3 checks verified", complete: false },
+    "a partial IDE receipt cannot validate the complete lesson implementation",
+  );
+  assert.deepEqual(
+    fileStatus.projectSourceProgress([
+      { tone: "complete", label: "3 of 3 checks verified", complete: true },
+      { tone: "in-progress", label: "1 of 3 checks verified", complete: false },
+      { tone: "failed", label: "IDE tests failing", complete: false },
+      { tone: "pending", label: "0 of 2 checks verified", complete: false },
+    ]),
+    { total: 4, verified: 1, partial: 1, needsWork: 1, notStarted: 1, percentage: 25 },
+  );
+  assert.equal(fileStatus.projectTimelineVisibleFileCount(0, 4, 6), 10);
+  assert.equal(fileStatus.projectTimelineVisibleFileCount(14, 4, 6), 24);
+});
+
+test("lesson completion requires both implementation evidence and the concept prediction", () => {
+  const state = learnerStateModule.emptyLearnerState();
+  state.lessons["probe"] = {
+    verifiedCells: ["one", "two"],
+    verifiedSources: {},
+    verifiedContractVersion: contracts.llmSystemsContractSuite.contractVersion,
+    experimentComplete: true,
+    hiddenBlocks: [],
+    answers: {},
+    knowledgeAnswers: {},
+    knowledgeVerified: [],
+    updatedAt: 0,
+  };
+  assert.equal(learnerStateModule.lessonImplementationIsComplete(state, "probe", 2), true);
+  assert.equal(learnerStateModule.lessonIsComplete(state, "probe", 2, "concept-check"), false);
+  state.lessons.probe.knowledgeVerified.push("concept-check");
+  assert.equal(learnerStateModule.lessonIsComplete(state, "probe", 2, "concept-check"), true);
 });

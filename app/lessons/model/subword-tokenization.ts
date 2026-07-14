@@ -77,7 +77,7 @@ ${commonQuestionInstruction}`.trim(),
       name: "Morphology Set",
       source: "Original synthetic course corpus",
       license: "CC0",
-      size: "18 short lines · fixed",
+      size: "6 lines · 24 words · fixed",
       preview: "signal signals signaling signaled · model models modeling modeled",
     },
     implementation: {
@@ -159,6 +159,6 @@ return { passed: tokens.join("|") === "low|er", detail: tokens.join(" · ") };`,
     experiment: {
       kind: "bpe",
       title: "Train the tokenizer",
-      intro: "Choose a supplied merge budget and inspect the learned merge list, vocabulary growth, and encoded sequence length.",
+      intro: "Run the supplied reference BPE trainer with a chosen merge budget, then inspect its merge list, learned vocabulary, and encoded length. The replay does not execute the learner cells.",
     },
   } satisfies Omit<CourseLesson, "sources">;

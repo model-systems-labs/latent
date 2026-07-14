@@ -14,6 +14,7 @@ let portfolio;
 let projectWorkspace;
 let learnerState;
 let canonicalProject;
+let fileStatus;
 
 before(async () => {
   vite = await createServer({
@@ -23,13 +24,14 @@ before(async () => {
     appType: "custom",
     logLevel: "silent",
   });
-  [course, learning, portfolio, projectWorkspace, learnerState, canonicalProject] = await Promise.all([
+  [course, learning, portfolio, projectWorkspace, learnerState, canonicalProject, fileStatus] = await Promise.all([
     vite.ssrLoadModule("/app/lessons/course.ts"),
     vite.ssrLoadModule("/app/content/llm-systems/learning.ts"),
     vite.ssrLoadModule("/app/lib/portfolio-export.ts"),
     vite.ssrLoadModule("/app/lib/project-workspace.ts"),
     vite.ssrLoadModule("/app/lib/learner-state.ts"),
     vite.ssrLoadModule("/app/lib/canonical-project.ts"),
+    vite.ssrLoadModule("/app/lib/project-file-status.ts"),
   ]);
 });
 
@@ -106,7 +108,9 @@ test("portfolio export contains source, evidence, runnable scaffolding, and a po
   const manifest = JSON.parse(files["portfolio-manifest.json"]);
   assert.equal(manifest.sourceFiles.length, Object.values(project.files).filter((file) => !file.path.startsWith("vendor/")).length);
   assert.equal(manifest.portableBuildReady, false);
+  assert.equal(manifest.buildNumber, null, "an unfinished workspace must not invent active build #1");
   assert.match(files["README.md"], /snapshot is unfinished/i);
+  assert.match(files["README.md"], /active build: none yet/i);
 });
 
 function completePortfolioInput() {
@@ -128,25 +132,74 @@ function completePortfolioInput() {
   for (const seed of canonicalProject.completeCanonicalProjectSeeds(learner)) {
     project.files[seed.path] = { ...seed, updatedAt: 1 };
   }
-  const requiredTests = course.llmSystemsCurriculum.testCount + 5;
+  const requiredTests = course.llmSystemsCurriculum.testCount + 6;
+  const contractIdsByPath = Object.fromEntries(Object.keys(project.files).flatMap((path) => {
+    const ids = fileStatus.expectedProjectTestIdsForPath(path);
+    return ids.length ? [[path, ids]] : [];
+  }));
+  const results = Object.fromEntries(Object.entries(contractIdsByPath).map(([path, ids]) => [path, ids.map((id) => ({
+    id,
+    path,
+    label: id,
+    passed: true,
+    detail: "Verified by the host-owned suite.",
+  }))]));
+  assert.equal(Object.values(results).flat().length, requiredTests);
   project.tests = {
-    results: {
-      portfolio: Array.from({ length: requiredTests }, (_, index) => ({
-        id: `portfolio-${index + 1}`,
-        path: "capstone/BrowserChat.tsx",
-        label: `Portable contract ${index + 1}`,
-        passed: true,
-        detail: "Verified by the host-owned suite.",
-      })),
-    },
+    results,
     ranAt: 1,
     runner: "browser-lab-v1",
     sourceTreeHash: "sha256:portable",
     projectRevision: 1,
+    contractVersion: "llm-systems-contracts-v16",
+    contractIdsByPath,
   };
   project.runtime = { ...project.runtime, buildNumber: 2, builtAt: 1 };
+  project.activeBuild = {
+    id: "build-2",
+    buildNumber: 2,
+    sourceTreeHash: project.tests.sourceTreeHash,
+    projectRevision: project.tests.projectRevision,
+    contractVersion: project.tests.contractVersion,
+  };
   return { project, learner, lessons: course.courseLessons, exportedAt: "2026-07-13T00:00:00.000Z" };
 }
+
+test("portfolio readiness requires current receipts to match the active build snapshot", () => {
+  const historical = completePortfolioInput();
+  historical.project.activeBuild = {
+    ...historical.project.activeBuild,
+    id: "build-1",
+    buildNumber: 1,
+    sourceTreeHash: "sha256:historical-build-a",
+    projectRevision: 0,
+  };
+  const staleBuild = portfolio.portfolioReadiness(historical);
+  assert.equal(staleBuild.fullSuitePasses, true, "current workspace receipts B still pass");
+  assert.equal(staleBuild.activeBuildExists, true, "historical build A still exists");
+  assert.equal(staleBuild.activeBuildMatchesTests, false);
+  assert.equal(staleBuild.ready, false, "build A plus receipts B must remain locked");
+
+  const fileOnly = completePortfolioInput();
+  fileOnly.project.activeBuild = null;
+  const noPromotedSnapshot = portfolio.portfolioReadiness(fileOnly);
+  assert.equal(noPromotedSnapshot.fullSuitePasses, true, "all current file buckets can be present");
+  assert.equal(noPromotedSnapshot.activeBuildExists, false);
+  assert.equal(noPromotedSnapshot.activeBuildMatchesTests, false);
+  assert.equal(noPromotedSnapshot.ready, false, "file-only receipts cannot substitute for a promoted build");
+});
+
+test("portfolio readiness requires the exact mounted BrowserChat behavior receipt", () => {
+  const input = completePortfolioInput();
+  const path = "capstone/BrowserChat.tsx";
+  assert.deepEqual(input.project.tests.contractIdsByPath[path], ["capstone/BrowserChat.tsx:host-behavior-v1"]);
+  assert.equal(portfolio.portfolioReadiness(input).ready, true);
+  delete input.project.tests.results[path];
+  delete input.project.tests.contractIdsByPath[path];
+  const missingBehavior = portfolio.portfolioReadiness(input);
+  assert.equal(missingBehavior.fullSuitePasses, false);
+  assert.equal(missingBehavior.ready, false, "compile-only capstone evidence must not unlock a portfolio export");
+});
 
 test("a completed portfolio exposes lesson modules and bundles as a standalone browser app", async () => {
   const input = completePortfolioInput();
@@ -154,6 +207,7 @@ test("a completed portfolio exposes lesson modules and bundles as a standalone b
   assert.equal(readiness.ready, true);
   const files = portfolio.portfolioProjectFiles(input);
   assert.equal(JSON.parse(files["portfolio-manifest.json"]).portableBuildReady, true);
+  assert.equal(JSON.parse(files["portfolio-manifest.json"]).buildNumber, 2);
   assert.doesNotMatch(files["README.md"], /snapshot is unfinished/i);
   for (const path of [
     "src/backend/streaming-transport.js",

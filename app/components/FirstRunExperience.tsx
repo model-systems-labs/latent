@@ -70,8 +70,8 @@ export function FirstRunExperience() {
   return (
     <section className="first-run" id="first-run" aria-labelledby="first-run-title">
       <header>
-        <div><span>First run · actual training</span><h2 id="first-run-title">Change inference, observe behavior.</h2></div>
-        <p>This intentionally small 1,267-parameter model predicts characters and makes the complete train-to-sample path inspectable. Later, the same project loads a 135M-parameter local Transformer.</p>
+        <div><span>First run · actual training</span><h2 id="first-run-title">Character-level RNN</h2></div>
+        <p>Train a 1,267-parameter character-level recurrent neural network in a worker, then sample the same checkpoint under two inference policies. Later, the same project loads a 135M-parameter local Transformer.</p>
       </header>
       <div className="first-run-layout">
         <div className="first-run-controls">

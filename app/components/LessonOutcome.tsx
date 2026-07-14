@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { CourseLesson } from "@latent/course-kit";
 import { lessonLearningOutcome, moduleCheckpoint } from "../content/llm-systems/learning";
 import {
-  lessonIsComplete,
+  lessonImplementationIsComplete,
   lessonKnowledgeIsComplete,
   recordKnowledgeCheck,
   useLearnerState,
@@ -23,7 +23,7 @@ export function LessonOutcome({ lesson }: { lesson: CourseLesson }) {
   const [lastSubmittedChoice, setLastSubmittedChoice] = useState<string | null>(null);
   const choice = pendingChoice ?? storedChoice;
   const submittedChoice = lastSubmittedChoice ?? storedChoice;
-  const implementationComplete = lessonIsComplete(
+  const implementationComplete = lessonImplementationIsComplete(
     learner,
     lesson.id,
     lesson.implementation.codeBlocks.length,

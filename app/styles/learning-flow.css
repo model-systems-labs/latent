@@ -192,7 +192,7 @@ main {
 .lab-header > div:first-child > span,
 .paper-footer > span {
   color: var(--muted);
-  font-size: 0.63rem;
+  font-size: max(0.68rem, 11px);
   font-weight: 590;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -309,7 +309,7 @@ main {
 
 .source-set-heading > em {
   color: var(--muted);
-  font-size: 0.64rem;
+  font-size: max(0.68rem, 11px);
   font-style: normal;
 }
 
@@ -363,13 +363,13 @@ main {
 .source-citation span,
 .source-citation em {
   color: var(--muted);
-  font-size: 0.58rem;
+  font-size: max(0.68rem, 11px);
   font-style: normal;
 }
 
 .source-entry p {
   color: var(--muted);
-  font-size: 0.62rem;
+  font-size: max(0.68rem, 11px);
   line-height: 1.55;
   margin: 0;
 }
@@ -455,7 +455,7 @@ main {
 .diagram-control span,
 .diagram-result span {
   color: var(--muted);
-  font-size: 0.67rem;
+  font-size: max(0.68rem, 11px);
 }
 
 .diagram-control strong {
@@ -505,7 +505,7 @@ main {
 
 .probability-token code {
   color: var(--muted);
-  font-size: 0.61rem;
+  font-size: max(0.68rem, 11px);
   text-align: right;
 }
 
@@ -615,7 +615,7 @@ main {
   border: 0;
   color: var(--muted);
   cursor: pointer;
-  font-size: 0.62rem;
+  font-size: max(0.68rem, 11px);
 }
 
 .key-input button {
@@ -627,9 +627,9 @@ main {
 .key-note {
   align-items: start;
   border-top: 0;
-  color: var(--faint);
+  color: var(--muted);
   display: grid;
-  font-size: 0.64rem;
+  font-size: max(0.68rem, 11px);
   gap: 0.6rem;
   grid-template-columns: auto 1fr;
   line-height: 1.55;
@@ -648,7 +648,7 @@ main {
 .key-panel > a {
   border-bottom: 1px solid var(--line-strong);
   display: inline-block;
-  font-size: 0.68rem;
+  font-size: max(0.68rem, 11px);
   justify-self: start;
   margin-top: 0.2rem;
   padding-bottom: 0.25rem;
@@ -690,6 +690,7 @@ main {
   cursor: pointer;
   font-family: var(--serif);
   font-size: 0.9rem;
+  min-height: 2.75rem;
   padding: 0.35rem 0;
   text-align: left;
 }
@@ -758,8 +759,9 @@ main {
   border: 0;
   color: #f6f2eb;
   cursor: pointer;
-  font-size: 0.63rem;
+  font-size: max(0.68rem, 11px);
   letter-spacing: 0.09em;
+  min-height: 2.75rem;
   padding: 0.9rem 1.2rem;
   text-transform: uppercase;
 }
@@ -792,9 +794,16 @@ button:disabled {
 }
 
 .chat-status span {
-  color: var(--faint);
-  font-size: 0.6rem;
+  color: var(--muted);
+  font-size: max(0.68rem, 11px);
   line-height: 1.4;
+}
+
+.question-form button,
+.key-input button,
+.chat-status button {
+  font-size: max(0.68rem, 11px);
+  min-height: 2.75rem;
 }
 
 .implementation-intro {
@@ -842,12 +851,12 @@ button:disabled {
 .editor-toolbar > div:first-child span {
   color: #bbb3aa;
   font-family: var(--mono);
-  font-size: 0.66rem;
+  font-size: max(0.68rem, 11px);
 }
 
 .editor-toolbar > div:first-child strong {
   color: #817a74;
-  font-size: 0.57rem;
+  font-size: max(0.68rem, 11px);
   font-weight: 500;
   letter-spacing: 0.11em;
   text-transform: uppercase;
@@ -911,7 +920,7 @@ button:disabled {
 
 .block-heading em {
   color: #b8b0a9;
-  font-size: 0.64rem;
+  font-size: max(0.68rem, 11px);
   font-style: normal;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -943,12 +952,12 @@ button:disabled {
 
 .concept-strip code {
   color: #d8c9e7;
-  font-size: 0.64rem;
+  font-size: max(0.68rem, 11px);
 }
 
 .concept-strip em {
   color: #9e9790;
-  font-size: 0.61rem;
+  font-size: max(0.68rem, 11px);
   font-style: normal;
   line-height: 1.45;
 }
@@ -967,7 +976,7 @@ button:disabled {
 .code-lines > div > span {
   color: #56514e;
   font-family: var(--mono);
-  font-size: 0.66rem;
+  font-size: max(0.68rem, 11px);
   line-height: 1.6rem;
   padding-right: 0.9rem;
   text-align: right;
@@ -1029,7 +1038,7 @@ button:disabled {
   border-radius: 999px;
   color: #d7d0c8;
   cursor: pointer;
-  font-size: 0.62rem;
+  font-size: max(0.68rem, 11px);
   padding: 0.46rem 0.72rem;
 }
 
@@ -1041,7 +1050,7 @@ button:disabled {
 
 .cell-footer > span {
   color: #8f8882;
-  font-size: 0.62rem;
+  font-size: max(0.68rem, 11px);
   line-height: 1.35;
   text-align: right;
 }
@@ -1091,7 +1100,7 @@ button:disabled {
 
 .editor-footer p {
   color: #8f8882;
-  font-size: 0.64rem;
+  font-size: max(0.68rem, 11px);
   line-height: 1.45;
   margin: 0;
 }
@@ -1163,14 +1172,14 @@ button:disabled {
 }
 
 .check strong {
-  font-size: 0.68rem;
+  font-size: max(0.68rem, 11px);
   font-weight: 560;
 }
 
 .check em {
   color: var(--faint);
   font-family: var(--mono);
-  font-size: 0.57rem;
+  font-size: max(0.68rem, 11px);
   font-style: normal;
   line-height: 1.45;
 }
@@ -1193,7 +1202,7 @@ button:disabled {
 
 .check-score span {
   color: var(--muted);
-  font-size: 0.62rem;
+  font-size: max(0.68rem, 11px);
 }
 
 .live-lab {
@@ -1231,7 +1240,7 @@ button:disabled {
 
 .lab-header > div:first-child em {
   color: var(--faint);
-  font-size: 0.6rem;
+  font-size: max(0.68rem, 11px);
   font-style: normal;
 }
 
@@ -1338,14 +1347,14 @@ button:disabled {
 
 .output-grid article header span {
   color: var(--violet);
-  font-size: 0.62rem;
+  font-size: max(0.68rem, 11px);
   letter-spacing: 0.11em;
   text-transform: uppercase;
 }
 
 .output-grid article header code {
   color: var(--faint);
-  font-size: 0.56rem;
+  font-size: max(0.68rem, 11px);
 }
 
 .output-grid article p {
@@ -1361,7 +1370,7 @@ button:disabled {
 .output-grid article footer {
   border-top: 1px solid var(--line);
   color: var(--muted);
-  font-size: 0.61rem;
+  font-size: max(0.68rem, 11px);
   letter-spacing: 0.08em;
   padding: 0.75rem 1rem;
   text-transform: uppercase;
@@ -1374,7 +1383,7 @@ button:disabled {
 .generation-status {
   border-top: 1px solid var(--line);
   color: var(--faint);
-  font-size: 0.59rem;
+  font-size: max(0.68rem, 11px);
   margin: 0;
   padding: 0.7rem 1rem;
   text-align: right;
@@ -1402,7 +1411,7 @@ button:disabled {
 
 .paper-footer a {
   border-bottom: 1px solid var(--line-strong);
-  font-size: 0.66rem;
+  font-size: max(0.68rem, 11px);
   padding-bottom: 0.25rem;
 }
 
@@ -1419,7 +1428,7 @@ button:disabled {
   border: 0;
   border-radius: 0;
   color: var(--muted);
-  font-size: 0.59rem;
+  font-size: max(0.68rem, 11px);
   letter-spacing: 0.08em;
   padding: 0;
   text-transform: uppercase;
@@ -1448,6 +1457,8 @@ button:disabled {
   overflow: visible;
 }
 
+/* Technical labels stay legible without changing the diagrams' compact hierarchy. */
+
 .concept-diagram > header {
   display: flex;
   flex-direction: column;
@@ -1462,8 +1473,8 @@ button:disabled {
 .artifact-grid article > span,
 .model-loader > div span,
 .course-note span {
-  color: var(--violet);
-  font-size: 0.6rem;
+  color: var(--diagram-accent);
+  font-size: max(0.68rem, 11px);
   font-weight: 590;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -1495,9 +1506,9 @@ button:disabled {
 }
 
 .concept-flow > div > span {
-  color: var(--faint);
+  color: var(--diagram-label);
   font-family: var(--mono);
-  font-size: 0.55rem;
+  font-size: max(0.68rem, 11px);
 }
 
 .concept-flow > div > strong {
@@ -1507,7 +1518,7 @@ button:disabled {
 
 .concept-flow > div > code {
   color: var(--violet-deep);
-  font-size: 0.62rem;
+  font-size: max(0.68rem, 11px);
   text-align: right;
 }
 
@@ -1539,9 +1550,9 @@ button:disabled {
 }
 
 .unroll-time {
-  color: var(--violet);
+  color: var(--diagram-accent);
   font-family: var(--mono);
-  font-size: 0.56rem;
+  font-size: max(0.68rem, 11px);
   letter-spacing: 0.08em;
   margin-bottom: 0.9rem;
   text-transform: uppercase;
@@ -1568,7 +1579,7 @@ button:disabled {
 }
 
 .unroll-step:not(:last-child) .unroll-state::after {
-  color: var(--violet);
+  color: var(--diagram-accent);
   content: "→";
   font-family: var(--mono);
   font-size: 0.9rem;
@@ -1583,12 +1594,12 @@ button:disabled {
 .unroll-state small {
   color: var(--muted);
   font-family: var(--sans);
-  font-size: 0.52rem;
+  font-size: max(0.68rem, 11px);
   font-weight: 450;
 }
 
 .unroll-step > i {
-  color: var(--faint);
+  color: var(--diagram-label);
   font-family: var(--mono);
   font-size: 0.7rem;
   font-style: normal;
@@ -1598,7 +1609,7 @@ button:disabled {
 
 .unroll-equation {
   color: var(--muted);
-  font-size: 0.5rem;
+  font-size: max(0.68rem, 11px);
   line-height: 1.45;
   margin-top: 0.5rem;
   min-height: 2.2rem;
@@ -1606,7 +1617,7 @@ button:disabled {
 
 .unroll-output {
   color: var(--violet-deep);
-  font-size: 0.56rem;
+  font-size: max(0.68rem, 11px);
   line-height: 1.4;
 }
 
@@ -1619,7 +1630,7 @@ button:disabled {
 .unroll-rails span {
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 0.55rem;
+  font-size: max(0.68rem, 11px);
   line-height: 1.45;
 }
 
@@ -1627,7 +1638,7 @@ button:disabled {
   color: var(--ink);
   display: inline-block;
   font-family: var(--sans);
-  font-size: 0.55rem;
+  font-size: max(0.68rem, 11px);
   font-weight: 600;
   margin-right: 0.45rem;
   min-width: 7.2rem;
@@ -1656,8 +1667,8 @@ button:disabled {
 
 .generalization-contrast b,
 .toy-vocabulary b {
-  color: var(--violet);
-  font-size: 0.55rem;
+  color: var(--diagram-accent);
+  font-size: max(0.68rem, 11px);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1665,7 +1676,7 @@ button:disabled {
 
 .generalization-contrast code {
   color: var(--muted);
-  font-size: 0.56rem;
+  font-size: max(0.68rem, 11px);
   line-height: 1.45;
 }
 
@@ -1691,19 +1702,19 @@ button:disabled {
 
 .probability-stages li:not(:last-child)::after {
   bottom: -0.35rem;
-  color: var(--violet);
+  color: var(--diagram-accent);
   content: "↓";
   font-family: var(--mono);
-  font-size: 0.65rem;
+  font-size: max(0.68rem, 11px);
   left: 0.45rem;
   position: absolute;
   z-index: 1;
 }
 
 .probability-stages li > span {
-  color: var(--faint);
+  color: var(--diagram-label);
   font-family: var(--mono);
-  font-size: 0.53rem;
+  font-size: max(0.68rem, 11px);
 }
 
 .probability-stages li > div {
@@ -1714,13 +1725,13 @@ button:disabled {
 }
 
 .probability-stages strong {
-  font-size: 0.68rem;
+  font-size: max(0.68rem, 11px);
   font-weight: 590;
 }
 
 .probability-stages code {
   color: var(--violet-deep);
-  font-size: 0.61rem;
+  font-size: max(0.68rem, 11px);
   text-align: right;
 }
 
@@ -1736,7 +1747,7 @@ button:disabled {
 .toy-vocabulary span {
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 0.55rem;
+  font-size: max(0.68rem, 11px);
 }
 
 .toy-vocabulary b {
@@ -1780,10 +1791,10 @@ button:disabled {
 .attention-stages li:not(:last-child)::after,
 .transformer-stages li:not(:last-child)::after {
   bottom: -0.35rem;
-  color: var(--violet);
+  color: var(--diagram-accent);
   content: "↓";
   font-family: var(--mono);
-  font-size: 0.65rem;
+  font-size: max(0.68rem, 11px);
   left: 0.45rem;
   position: absolute;
   z-index: 1;
@@ -1792,9 +1803,9 @@ button:disabled {
 .bpe-rounds li > span,
 .attention-stages li > span,
 .transformer-stages li > span {
-  color: var(--faint);
+  color: var(--diagram-label);
   font-family: var(--mono);
-  font-size: 0.53rem;
+  font-size: max(0.68rem, 11px);
 }
 
 .bpe-rounds li > div,
@@ -1809,7 +1820,7 @@ button:disabled {
 .bpe-rounds strong,
 .attention-stages strong,
 .transformer-stages strong {
-  font-size: 0.68rem;
+  font-size: max(0.68rem, 11px);
   font-weight: 590;
 }
 
@@ -1817,7 +1828,7 @@ button:disabled {
 .attention-stages code,
 .transformer-stages code {
   color: var(--violet-deep);
-  font-size: 0.58rem;
+  font-size: max(0.68rem, 11px);
   line-height: 1.45;
   text-align: right;
 }
@@ -1844,8 +1855,8 @@ button:disabled {
 
 .bpe-order-contrast b,
 .attention-score-contrast b {
-  color: var(--violet);
-  font-size: 0.55rem;
+  color: var(--diagram-accent);
+  font-size: max(0.68rem, 11px);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1857,7 +1868,7 @@ button:disabled {
 .attention-score-contrast em {
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 0.55rem;
+  font-size: max(0.68rem, 11px);
   font-style: normal;
   line-height: 1.45;
 }
@@ -1884,8 +1895,8 @@ button:disabled {
 .matrix-heading span,
 .transformer-block-boundary b,
 .causal-matrix-block p span {
-  color: var(--violet);
-  font-size: 0.54rem;
+  color: var(--diagram-accent);
+  font-size: max(0.68rem, 11px);
   font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -1893,14 +1904,14 @@ button:disabled {
 
 .matrix-heading code {
   color: var(--violet-deep);
-  font-size: 0.56rem;
+  font-size: max(0.68rem, 11px);
 }
 
 .causal-matrix-block table {
   border-collapse: collapse;
   color: var(--ink);
   font-family: var(--mono);
-  font-size: 0.53rem;
+  font-size: max(0.68rem, 11px);
   table-layout: fixed;
   width: 100%;
 }
@@ -1921,7 +1932,7 @@ button:disabled {
 
 .causal-matrix-block thead th {
   color: var(--muted);
-  font-size: 0.48rem;
+  font-size: max(0.68rem, 11px);
 }
 
 .causal-matrix-block tbody th {
@@ -1930,14 +1941,14 @@ button:disabled {
 
 .causal-matrix-block .masked-cell {
   background: linear-gradient(135deg, transparent 46%, rgba(120, 98, 142, 0.18) 47%, rgba(120, 98, 142, 0.18) 53%, transparent 54%);
-  color: var(--faint);
+  color: var(--diagram-label);
 }
 
 .causal-matrix-block p {
   border-top: 1px solid var(--line);
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 0.53rem;
+  font-size: max(0.68rem, 11px);
   line-height: 1.55;
   margin: 0;
   padding: 0.8rem 0;
@@ -1963,7 +1974,7 @@ button:disabled {
 
 .transformer-block-boundary code {
   color: var(--ink);
-  font-size: 0.54rem;
+  font-size: max(0.68rem, 11px);
   line-height: 1.45;
   text-align: right;
 }
@@ -2002,8 +2013,8 @@ button:disabled {
 .icl-condition-paths b,
 .icl-frozen-model b,
 .icl-inference-boundary b {
-  color: var(--violet);
-  font-size: 0.54rem;
+  color: var(--diagram-accent);
+  font-size: max(0.68rem, 11px);
   font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -2016,7 +2027,7 @@ button:disabled {
 .icl-frozen-model em {
   color: var(--ink);
   font-family: var(--mono);
-  font-size: 0.54rem;
+  font-size: max(0.68rem, 11px);
   font-style: normal;
   line-height: 1.45;
 }
@@ -2043,7 +2054,7 @@ button:disabled {
 .icl-measurement-table {
   border-collapse: collapse;
   font-family: var(--mono);
-  font-size: 0.51rem;
+  font-size: max(0.68rem, 11px);
   table-layout: fixed;
   width: 100%;
 }
@@ -2064,7 +2075,7 @@ button:disabled {
 
 .icl-measurement-table thead th {
   color: var(--muted);
-  font-size: 0.47rem;
+  font-size: max(0.68rem, 11px);
 }
 
 .icl-inference-boundary {
@@ -2113,8 +2124,8 @@ button:disabled {
 .runtime-request-spec b,
 .runtime-latency-definitions b,
 .runtime-cache-formula b {
-  color: var(--violet);
-  font-size: 0.53rem;
+  color: var(--diagram-accent);
+  font-size: max(0.68rem, 11px);
   font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -2127,7 +2138,7 @@ button:disabled {
 .runtime-cache-formula em {
   color: var(--ink);
   font-family: var(--mono);
-  font-size: 0.53rem;
+  font-size: max(0.68rem, 11px);
   font-style: normal;
   line-height: 1.45;
 }
@@ -2152,9 +2163,9 @@ button:disabled {
 }
 
 .runtime-timeline li > span {
-  color: var(--faint);
+  color: var(--diagram-label);
   font-family: var(--mono);
-  font-size: 0.52rem;
+  font-size: max(0.68rem, 11px);
 }
 
 .runtime-timeline li > div {
@@ -2165,13 +2176,13 @@ button:disabled {
 }
 
 .runtime-timeline strong {
-  font-size: 0.66rem;
+  font-size: max(0.68rem, 11px);
   font-weight: 560;
 }
 
 .runtime-timeline code {
   color: var(--violet-deep);
-  font-size: 0.55rem;
+  font-size: max(0.68rem, 11px);
   line-height: 1.45;
   text-align: right;
 }
@@ -2235,8 +2246,8 @@ button:disabled {
 .transport-byte-split b,
 .transport-frame-contract b,
 .transport-lifecycle-boundary b {
-  color: var(--violet);
-  font-size: 0.53rem;
+  color: var(--diagram-accent);
+  font-size: max(0.68rem, 11px);
   font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -2247,7 +2258,7 @@ button:disabled {
 .transport-byte-split em {
   color: var(--ink);
   font-family: var(--mono);
-  font-size: 0.53rem;
+  font-size: max(0.68rem, 11px);
   font-style: normal;
   line-height: 1.5;
   overflow-wrap: anywhere;
@@ -2279,19 +2290,19 @@ button:disabled {
 
 .transport-stages li:not(:last-child)::after {
   bottom: -0.34rem;
-  color: var(--violet);
+  color: var(--diagram-accent);
   content: "↓";
   font-family: var(--mono);
-  font-size: 0.62rem;
+  font-size: max(0.68rem, 11px);
   left: 0.46rem;
   position: absolute;
   z-index: 1;
 }
 
 .transport-stages li > span {
-  color: var(--faint);
+  color: var(--diagram-label);
   font-family: var(--mono);
-  font-size: 0.52rem;
+  font-size: max(0.68rem, 11px);
 }
 
 .transport-stages li > div {
@@ -2302,13 +2313,13 @@ button:disabled {
 }
 
 .transport-stages strong {
-  font-size: 0.66rem;
+  font-size: max(0.68rem, 11px);
   font-weight: 560;
 }
 
 .transport-stages code {
   color: var(--violet-deep);
-  font-size: 0.55rem;
+  font-size: max(0.68rem, 11px);
   line-height: 1.45;
   text-align: right;
 }
@@ -2369,8 +2380,8 @@ button:disabled {
 .reliability-request-spec b,
 .reliability-retry-branch b,
 .reliability-guard-result b {
-  color: var(--violet);
-  font-size: 0.53rem;
+  color: var(--diagram-accent);
+  font-size: max(0.68rem, 11px);
   font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -2382,7 +2393,7 @@ button:disabled {
 .reliability-guard-result code {
   color: var(--ink);
   font-family: var(--mono);
-  font-size: 0.53rem;
+  font-size: max(0.68rem, 11px);
   font-style: normal;
   line-height: 1.48;
   overflow-wrap: anywhere;
@@ -2414,19 +2425,19 @@ button:disabled {
 
 .reliability-trace li:not(:last-child)::after {
   bottom: -0.34rem;
-  color: var(--violet);
+  color: var(--diagram-accent);
   content: "↓";
   font-family: var(--mono);
-  font-size: 0.62rem;
+  font-size: max(0.68rem, 11px);
   left: 0.46rem;
   position: absolute;
   z-index: 1;
 }
 
 .reliability-trace li > span {
-  color: var(--faint);
+  color: var(--diagram-label);
   font-family: var(--mono);
-  font-size: 0.52rem;
+  font-size: max(0.68rem, 11px);
 }
 
 .reliability-trace li > div {
@@ -2437,13 +2448,13 @@ button:disabled {
 }
 
 .reliability-trace strong {
-  font-size: 0.66rem;
+  font-size: max(0.68rem, 11px);
   font-weight: 560;
 }
 
 .reliability-trace code {
   color: var(--violet-deep);
-  font-size: 0.55rem;
+  font-size: max(0.68rem, 11px);
   line-height: 1.45;
   text-align: right;
 }
@@ -2476,14 +2487,14 @@ button:disabled {
 .reliability-phase-metrics dt {
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 0.46rem;
+  font-size: max(0.68rem, 11px);
   line-height: 1.35;
 }
 
 .reliability-phase-metrics dd {
   color: var(--violet-deep);
   font-family: var(--mono);
-  font-size: 0.64rem;
+  font-size: max(0.68rem, 11px);
   margin: 0;
 }
 
@@ -2517,8 +2528,8 @@ button:disabled {
 .conversation-identity-chain b,
 .conversation-delta-action b,
 .conversation-transition-result b {
-  color: var(--violet);
-  font-size: 0.52rem;
+  color: var(--diagram-accent);
+  font-size: max(0.68rem, 11px);
   font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -2531,7 +2542,7 @@ button:disabled {
 .conversation-transition-result code {
   color: var(--ink);
   font-family: var(--mono);
-  font-size: 0.52rem;
+  font-size: max(0.68rem, 11px);
   font-style: normal;
   line-height: 1.5;
   overflow-wrap: anywhere;
@@ -2552,9 +2563,9 @@ button:disabled {
 }
 
 .conversation-identity-chain > i {
-  color: var(--violet);
+  color: var(--diagram-accent);
   font-family: var(--mono);
-  font-size: 0.65rem;
+  font-size: max(0.68rem, 11px);
   font-style: normal;
 }
 
@@ -2620,8 +2631,8 @@ button:disabled {
 .streaming-commit-evidence b,
 .streaming-independent-policies b,
 .streaming-terminal-policies b {
-  color: var(--violet);
-  font-size: 0.52rem;
+  color: var(--diagram-accent);
+  font-size: max(0.68rem, 11px);
   font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -2634,7 +2645,7 @@ button:disabled {
 .streaming-terminal-policies > span {
   color: var(--ink);
   font-family: var(--mono);
-  font-size: 0.52rem;
+  font-size: max(0.68rem, 11px);
   font-style: normal;
   line-height: 1.5;
   overflow-wrap: anywhere;
@@ -2667,19 +2678,19 @@ button:disabled {
 
 .streaming-render-path li:not(:last-child)::after {
   bottom: -0.34rem;
-  color: var(--violet);
+  color: var(--diagram-accent);
   content: "↓";
   font-family: var(--mono);
-  font-size: 0.62rem;
+  font-size: max(0.68rem, 11px);
   left: 0.46rem;
   position: absolute;
   z-index: 1;
 }
 
 .streaming-render-path li > span {
-  color: var(--faint);
+  color: var(--diagram-label);
   font-family: var(--mono);
-  font-size: 0.52rem;
+  font-size: max(0.68rem, 11px);
 }
 
 .streaming-render-path li > div {
@@ -2690,13 +2701,13 @@ button:disabled {
 }
 
 .streaming-render-path strong {
-  font-size: 0.66rem;
+  font-size: max(0.68rem, 11px);
   font-weight: 560;
 }
 
 .streaming-render-path code {
   color: var(--violet-deep);
-  font-size: 0.55rem;
+  font-size: max(0.68rem, 11px);
   line-height: 1.45;
   text-align: right;
 }
@@ -2729,9 +2740,9 @@ button:disabled {
 }
 
 .chat-active-prefix > i {
-  color: var(--violet);
+  color: var(--diagram-accent);
   font-family: var(--mono);
-  font-size: 0.65rem;
+  font-size: max(0.68rem, 11px);
   font-style: normal;
 }
 
@@ -2741,8 +2752,8 @@ button:disabled {
 .chat-context-assembly li b,
 .chat-context-assembly p b,
 .chat-context-overflow b {
-  color: var(--violet);
-  font-size: 0.52rem;
+  color: var(--diagram-accent);
+  font-size: max(0.68rem, 11px);
   font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -2757,7 +2768,7 @@ button:disabled {
 .chat-context-overflow span {
   color: var(--ink);
   font-family: var(--mono);
-  font-size: 0.52rem;
+  font-size: max(0.68rem, 11px);
   font-style: normal;
   line-height: 1.5;
   overflow-wrap: anywhere;
@@ -2818,7 +2829,7 @@ button:disabled {
 
 .chat-context-assembly li.included code,
 .chat-context-assembly li.required code {
-  color: var(--green);
+  color: var(--diagram-positive);
 }
 
 .chat-context-assembly li.excluded {
@@ -2865,9 +2876,9 @@ button:disabled {
 .quality-state-pair b,
 .quality-recovery-record b,
 .quality-verification-boundary b {
-  color: var(--violet);
+  color: var(--diagram-accent);
   font-family: var(--mono);
-  font-size: 0.5rem;
+  font-size: max(0.68rem, 11px);
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -2883,7 +2894,7 @@ button:disabled {
 }
 
 .quality-lifecycle-trace strong {
-  font-size: 0.64rem;
+  font-size: max(0.68rem, 11px);
   font-weight: 560;
 }
 
@@ -2891,17 +2902,22 @@ button:disabled {
 .quality-state-pair code,
 .quality-recovery-record code {
   color: var(--muted);
-  font-size: 0.5rem;
+  font-size: max(0.68rem, 11px);
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
 
 .quality-state-pair,
-.quality-recovery-record,
-.quality-verification-boundary {
+.quality-recovery-record {
   border-top: 1px solid var(--line);
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.quality-verification-boundary {
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .quality-state-pair > span,
@@ -2920,7 +2936,7 @@ button:disabled {
 .quality-verification-boundary > span {
   color: var(--muted);
   font-family: var(--serif);
-  font-size: 0.68rem;
+  font-size: max(0.68rem, 11px);
   line-height: 1.5;
 }
 
@@ -2949,8 +2965,8 @@ button:disabled {
 .scheduler-shared-workload b,
 .scheduler-policy-comparison header span,
 .scheduler-inference-boundary b {
-  color: var(--violet);
-  font-size: 0.53rem;
+  color: var(--diagram-accent);
+  font-size: max(0.68rem, 11px);
   font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -2959,7 +2975,7 @@ button:disabled {
 .scheduler-shared-workload code,
 .scheduler-policy-comparison code {
   color: var(--ink);
-  font-size: 0.53rem;
+  font-size: max(0.68rem, 11px);
   line-height: 1.45;
 }
 
@@ -3015,15 +3031,15 @@ button:disabled {
 }
 
 .scheduler-policy-comparison li b {
-  color: var(--faint);
+  color: var(--diagram-label);
   font-family: var(--mono);
-  font-size: 0.5rem;
+  font-size: max(0.68rem, 11px);
   font-weight: 500;
 }
 
 .scheduler-policy-comparison li span,
 .scheduler-policy-comparison li em {
-  font-size: 0.56rem;
+  font-size: max(0.68rem, 11px);
   line-height: 1.4;
 }
 
@@ -3050,7 +3066,7 @@ button:disabled {
 .scheduler-policy-comparison dt {
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 0.48rem;
+  font-size: max(0.68rem, 11px);
 }
 
 .scheduler-policy-comparison dd {
@@ -3068,7 +3084,7 @@ button:disabled {
 
 .scheduler-inference-boundary > span {
   color: var(--muted);
-  font-size: 0.56rem;
+  font-size: max(0.68rem, 11px);
   line-height: 1.5;
   padding: 0.8rem 0;
 }
@@ -3108,8 +3124,8 @@ button:disabled {
 
 .fidelity-record dt,
 .dataset-record dt {
-  color: var(--violet);
-  font-size: 0.57rem;
+  color: var(--diagram-accent);
+  font-size: max(0.68rem, 11px);
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
@@ -3163,7 +3179,7 @@ button:disabled {
   background: transparent;
   border-radius: 0;
   color: var(--violet-deep);
-  font-size: 0.57rem;
+  font-size: max(0.68rem, 11px);
   padding: 0.25rem 0;
 }
 
@@ -3190,7 +3206,7 @@ button:disabled {
 .dataset-record > div em {
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 0.58rem;
+  font-size: max(0.68rem, 11px);
   font-style: normal;
   line-height: 1.55;
 }
@@ -3222,7 +3238,7 @@ button:disabled {
 
 .experiment-action p {
   color: var(--faint);
-  font-size: 0.62rem;
+  font-size: max(0.68rem, 11px);
   line-height: 1.45;
   margin: 0;
 }
@@ -3234,7 +3250,7 @@ button:disabled {
   border-radius: 999px;
   color: #f6f2eb;
   cursor: pointer;
-  font-size: 0.61rem;
+  font-size: max(0.68rem, 11px);
   letter-spacing: 0.08em;
   padding: 0.78rem 1rem;
   text-transform: uppercase;
@@ -3255,7 +3271,7 @@ button:disabled {
 
 .bpe-action label span {
   color: var(--muted);
-  font-size: 0.62rem;
+  font-size: max(0.68rem, 11px);
 }
 
 .bpe-action input {
@@ -3298,7 +3314,7 @@ button:disabled {
 
 .metric-grid em {
   color: var(--muted);
-  font-size: 0.55rem;
+  font-size: max(0.68rem, 11px);
   font-style: normal;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -3350,7 +3366,7 @@ button:disabled {
 
 .sample-output span {
   color: var(--violet);
-  font-size: 0.58rem;
+  font-size: max(0.68rem, 11px);
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
@@ -3389,7 +3405,7 @@ button:disabled {
 
 .artifact-row strong,
 .neighbor-row strong {
-  font-size: 0.68rem;
+  font-size: max(0.68rem, 11px);
   font-weight: 550;
 }
 
@@ -3407,7 +3423,7 @@ button:disabled {
 .artifact-row code,
 .neighbor-row code {
   color: var(--muted);
-  font-size: 0.56rem;
+  font-size: max(0.68rem, 11px);
   text-align: right;
 }
 
@@ -3471,13 +3487,13 @@ button:disabled {
 .merge-list em,
 .merge-list strong {
   color: var(--faint);
-  font-size: 0.55rem;
+  font-size: max(0.68rem, 11px);
   font-style: normal;
   font-weight: 500;
 }
 
 .merge-list code {
-  font-size: 0.61rem;
+  font-size: max(0.68rem, 11px);
 }
 
 .attention-matrix {
@@ -3498,7 +3514,7 @@ button:disabled {
 
 .attention-matrix > strong {
   color: var(--muted);
-  font-size: 0.6rem;
+  font-size: max(0.68rem, 11px);
   font-weight: 550;
 }
 
@@ -3507,7 +3523,7 @@ button:disabled {
   border-radius: 0.4rem;
   color: #332d39;
   font-family: var(--mono);
-  font-size: 0.63rem;
+  font-size: max(0.68rem, 11px);
   font-style: normal;
 }
 
@@ -3527,7 +3543,7 @@ button:disabled {
 
 .causal-note strong {
   color: var(--violet);
-  font-size: 0.6rem;
+  font-size: max(0.68rem, 11px);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -3562,7 +3578,7 @@ button:disabled {
 
 .context-norms code {
   color: var(--faint);
-  font-size: 0.55rem;
+  font-size: max(0.68rem, 11px);
 }
 
 .model-loader {
@@ -3587,8 +3603,15 @@ button:disabled {
 
 .model-loader > div em {
   color: var(--faint);
-  font-size: 0.57rem;
+  font-size: max(0.68rem, 11px);
   font-style: normal;
+}
+
+.model-loader > div small {
+  color: var(--muted);
+  font-size: max(0.68rem, 11px);
+  line-height: 1.45;
+  max-width: 38rem;
 }
 
 .model-loader > i {
@@ -3631,7 +3654,7 @@ button:disabled {
 
 .icl-results article header span {
   color: var(--violet);
-  font-size: 0.6rem;
+  font-size: max(0.68rem, 11px);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -3661,7 +3684,7 @@ button:disabled {
 }
 
 .icl-results code {
-  font-size: 0.58rem;
+  font-size: max(0.68rem, 11px);
 }
 
 .icl-results code.passed { color: var(--green); }
@@ -3743,7 +3766,7 @@ button:disabled {
 .streaming-policy-evidence b,
 .streaming-announcement-log > span {
   color: var(--violet);
-  font-size: 0.52rem;
+  font-size: max(0.68rem, 11px);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -3751,7 +3774,7 @@ button:disabled {
 
 .streaming-policy-evidence code {
   color: var(--muted);
-  font-size: 0.54rem;
+  font-size: max(0.68rem, 11px);
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
@@ -3783,13 +3806,13 @@ button:disabled {
 .streaming-announcement-log li b {
   color: var(--faint);
   font-family: var(--mono);
-  font-size: 0.5rem;
+  font-size: max(0.68rem, 11px);
   font-weight: 500;
 }
 
 .streaming-announcement-log li code {
   color: var(--ink);
-  font-size: 0.56rem;
+  font-size: max(0.68rem, 11px);
   line-height: 1.45;
 }
 
@@ -3834,7 +3857,7 @@ button:disabled {
 .context-request-heading span,
 .context-decision-list article > span {
   color: var(--violet);
-  font-size: 0.52rem;
+  font-size: max(0.68rem, 11px);
   font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -3875,7 +3898,7 @@ button:disabled {
 .context-request-heading code,
 .context-decision-list code {
   color: var(--muted);
-  font-size: 0.54rem;
+  font-size: max(0.68rem, 11px);
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
@@ -3896,7 +3919,7 @@ button:disabled {
 
 .context-request-heading strong {
   font-family: var(--mono);
-  font-size: 0.62rem;
+  font-size: max(0.68rem, 11px);
   font-weight: 500;
   overflow-wrap: anywhere;
 }
@@ -3964,7 +3987,7 @@ button:disabled {
 .quality-check-group > header span,
 .quality-manual-boundary > header span {
   color: var(--violet);
-  font-size: 0.56rem;
+  font-size: max(0.68rem, 11px);
   font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -3980,7 +4003,7 @@ button:disabled {
 .quality-check-group > header code,
 .quality-manual-boundary > header code {
   color: var(--muted);
-  font-size: 0.54rem;
+  font-size: max(0.68rem, 11px);
   text-align: right;
 }
 
@@ -4033,7 +4056,7 @@ button:disabled {
 }
 
 .quality-manual-boundary li strong {
-  font-size: 0.66rem;
+  font-size: max(0.68rem, 11px);
   font-weight: 560;
 }
 
@@ -4042,4 +4065,93 @@ button:disabled {
   font-family: var(--serif);
   font-size: 0.72rem;
   line-height: 1.5;
+}
+
+.persistence-warning {
+  background: rgba(136, 77, 47, 0.09);
+  border: 1px solid rgba(136, 77, 47, 0.28);
+  border-radius: 0.75rem;
+  color: #6f3928;
+  font-size: max(0.72rem, 12px);
+  line-height: 1.5;
+  margin: 0;
+  padding: 0.75rem 0.9rem;
+}
+
+.lesson-persistence-warning {
+  margin: 1rem auto 0;
+  max-width: min(72rem, calc(100% - 2rem));
+  position: relative;
+  z-index: 3;
+}
+
+.lesson-recovery-candidates {
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: minmax(13rem, 0.75fr) minmax(0, 1.25fr);
+  margin: 0 auto 4.5rem;
+  padding: 1.5rem 0;
+  width: min(72rem, calc(100% - 2rem));
+}
+
+.lesson-recovery-candidates h2 {
+  font-family: var(--serif);
+  font-size: clamp(1.35rem, 2vw, 1.8rem);
+  font-weight: 450;
+  margin: 0.35rem 0 0.55rem;
+}
+
+.lesson-recovery-candidates > div:first-child > p:last-child,
+.lesson-recovery-status {
+  color: var(--muted);
+  font-size: max(0.72rem, 12px);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.lesson-recovery-list article {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 0.85rem 0;
+}
+
+.lesson-recovery-list article:first-child {
+  border-top: 0;
+}
+
+.lesson-recovery-list article > span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.lesson-recovery-list article > span:last-child {
+  flex-direction: row;
+  flex-shrink: 0;
+}
+
+.lesson-recovery-list strong {
+  font-size: max(0.72rem, 12px);
+  font-weight: 600;
+}
+
+.lesson-recovery-list em {
+  color: var(--muted);
+  font-size: max(0.68rem, 11px);
+  font-style: normal;
+}
+
+.lesson-recovery-list button {
+  min-height: 2.75rem;
+  padding: 0.55rem 0.8rem;
+}
+
+.lesson-recovery-status {
+  grid-column: 2;
+  min-height: 1.2rem;
 }

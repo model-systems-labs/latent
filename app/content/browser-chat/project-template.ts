@@ -68,6 +68,7 @@ export type GenerationPhase = "queued" | "loading" | "prefill" | "streaming" | "
 export type PreviewInitialization = {
   buildId: string;
   buildNumber: number;
+  selectedBackend: ChatBackend;
   studentReady: boolean;
   localReady: boolean;
   runtime: {
@@ -103,7 +104,8 @@ export type GenerationMetrics = {
   queueMs: number;
   modelMs: number;
   ttftMs: number;
-  tokens: number;
+  generatedUnits: number;
+  generatedUnitLabel: string;
   durationMs: number;
 };
 
@@ -176,8 +178,8 @@ export function loadLocal(onEvent?: (event: PreparationEvent) => void) {
   });
 }
 
-export function persistConversation(record: unknown) {
-  return previewHost.request<void>("persist", { record });
+export function persistConversation(record: unknown, selectedBackend: ChatBackend) {
+  return previewHost.request<void>("persist", { record, selectedBackend });
 }
 
 export function startGeneration(
@@ -250,13 +252,14 @@ type Message = {
   status: MessageStatus;
   createdAt: number;
   parentUserId?: string;
-  attemptId?: string;
+  attemptId?: string | null;
+  requestId?: string | null;
 };
 
 type ChatState = { messages: Message[] };
 type ChatAction =
   | { type: "append"; message: Message }
-  | { type: "delta"; messageId: string; delta: string }
+  | { type: "delta"; messageId: string; attemptId: string; requestId: string; delta: string }
   | { type: "terminal"; messageId: string; status: MessageStatus }
   | { type: "replace"; messages: Message[] };
 
@@ -264,14 +267,20 @@ const EMPTY_METRICS: GenerationMetrics = {
   queueMs: 0,
   modelMs: 0,
   ttftMs: 0,
-  tokens: 0,
+  generatedUnits: 0,
+  generatedUnitLabel: "Generated units",
   durationMs: 0,
 };
 
 function chatReducer(state: ChatState, action: ChatAction): ChatState {
   if (action.type === "append") return { messages: [...state.messages, action.message] };
   if (action.type === "delta") {
-    return { messages: appendMessageDelta(state.messages, action.messageId, action.delta) };
+    return { messages: appendMessageDelta(state.messages, {
+      messageId: action.messageId,
+      attemptId: action.attemptId,
+      requestId: action.requestId,
+      delta: action.delta,
+    }) };
   }
   if (action.type === "terminal") {
     return {
@@ -295,6 +304,7 @@ function messageRecord(input: {
   status?: MessageStatus;
   parentUserId?: string;
   attemptId?: string;
+  requestId?: string;
 }): Message {
   return {
     ...createMessage({
@@ -302,10 +312,11 @@ function messageRecord(input: {
       role: input.role,
       content: input.content || "",
       status: input.status || "complete",
+      attemptId: input.attemptId || null,
+      requestId: input.requestId || null,
     }),
     backend: input.backend,
     parentUserId: input.parentUserId,
-    attemptId: input.attemptId,
   } as Message;
 }
 
@@ -353,11 +364,17 @@ export function BrowserChat() {
   const [maxTokens, setMaxTokens] = useState(160);
   const [preview, setPreview] = useState<PreviewInitialization | null>(null);
   const [preparing, setPreparing] = useState(false);
+  const [controlsOpen, setControlsOpen] = useState(true);
   const [preparationDetail, setPreparationDetail] = useState("Checking model state");
+  const [persistencePhase, setPersistencePhase] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const activeHandle = useRef<GenerationHandle | null>(null);
   const activeRequest = useRef<{ id: string; status: string } | null>(null);
   const transcriptRef = useRef<HTMLDivElement | null>(null);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
+  const latestTerminalRecord = useRef<{ record: unknown; selectedBackend: ChatBackend } | null>(null);
+  const persistenceGeneration = useRef(0);
+  const terminalConversation = useMemo(() => conversationRecord(state.messages), [state.messages]);
+  const terminalConversationIdentity = JSON.stringify(terminalConversation);
 
   useEffect(() => {
     let active = true;
@@ -365,9 +382,10 @@ export function BrowserChat() {
       if (!active) return;
       dispatch({ type: "replace", messages: restoreMessages(initialization.conversation) });
       setPreview(initialization);
+      setBackend(initialization.selectedBackend);
       setTemperature(initialization.runtime.model.temperature);
       setTopK(initialization.runtime.model.topK);
-      setMaxTokens(initialization.runtime.model.maxTokens);
+      setMaxTokens(Math.min(160, initialization.runtime.model.maxTokens));
       setPreparationDetail("Active build #" + initialization.buildNumber);
       setHydrated(true);
     }).catch((initializationError) => {
@@ -384,11 +402,41 @@ export function BrowserChat() {
 
   useEffect(() => {
     if (!hydrated) return;
-    const record = conversationRecord(state.messages);
-    if (validConversationRecord(record)) void persistConversation(record).catch(() => undefined);
-  }, [hydrated, state.messages]);
+    const record: unknown = JSON.parse(terminalConversationIdentity);
+    if (!validConversationRecord(record)) return;
+    latestTerminalRecord.current = { record, selectedBackend: backend };
+    const generation = ++persistenceGeneration.current;
+    setPersistencePhase("saving");
+    void persistConversation(record, backend).then(() => {
+      if (persistenceGeneration.current === generation) setPersistencePhase("saved");
+    }).catch(() => {
+      if (persistenceGeneration.current === generation) setPersistencePhase("error");
+    });
+  }, [backend, hydrated, terminalConversationIdentity]);
 
-  const generating = ["queued", "loading", "prefill", "streaming"].includes(phase);
+  useEffect(() => {
+    const compact = window.matchMedia("(max-width: 520px)");
+    const sync = () => setControlsOpen(!compact.matches);
+    sync();
+    compact.addEventListener("change", sync);
+    return () => compact.removeEventListener("change", sync);
+  }, []);
+
+  const retryPersistence = () => {
+    const latest = latestTerminalRecord.current;
+    if (!latest || !validConversationRecord(latest.record)) return;
+    const generation = ++persistenceGeneration.current;
+    setPersistencePhase("saving");
+    void persistConversation(latest.record, latest.selectedBackend).then(() => {
+      if (persistenceGeneration.current === generation) setPersistencePhase("saved");
+    }).catch(() => {
+      if (persistenceGeneration.current === generation) setPersistencePhase("error");
+    });
+  };
+
+  const generating = ["queued", "prefill", "streaming"].includes(phase);
+  const busy = preparing || generating;
+  const canStop = generating && Boolean(activeHandle.current);
   const latestUser = useMemo(
     () => [...state.messages].reverse().find((message) => message.backend === backend && message.role === "user"),
     [backend, state.messages],
@@ -410,11 +458,13 @@ export function BrowserChat() {
 
   const runGeneration = (userText: string, parentUserId: string, attempt: number) => {
     const requestId = "request-" + Date.now() + "-" + attempt;
+    const attemptId = "attempt-" + requestId;
     const assistantId = "assistant-" + requestId;
     const branch = createRegeneration({
       messageId: assistantId,
       parentUserId,
-      attemptId: requestId,
+      attemptId,
+      requestId,
     });
     dispatch({
       type: "append",
@@ -425,6 +475,7 @@ export function BrowserChat() {
         status: "streaming",
         parentUserId: branch.parentUserId,
         attemptId: branch.attemptId,
+        requestId: branch.requestId,
       }),
     });
     activeRequest.current = { id: requestId, status: "queued" };
@@ -432,27 +483,26 @@ export function BrowserChat() {
     setMetrics(EMPTY_METRICS);
     setError("");
 
-    const currentUser = { id: parentUserId, role: "user", content: userText, tokens: estimateTokens(userText) };
-    const historicalContext = [
-      { id: "system", role: "system", content: "Answer in concise technical prose.", tokens: 9 },
-      ...state.messages
+    const currentUser = { id: parentUserId, role: "user", status: "complete", content: userText, tokens: estimateTokens(userText) };
+    const systemContext = [{ id: "system", role: "system", content: "Answer in concise technical prose.", tokens: 9 }];
+    const historicalContext = state.messages
         .filter((message) => message.backend === backend && message.status === "complete" && message.id !== parentUserId)
         .map((message) => ({
           id: message.id,
           role: message.role,
+          status: message.status,
           content: message.content,
           tokens: estimateTokens(message.content),
-        })),
-    ];
-    const bounded = selectContext(historicalContext, 2048 - currentUser.tokens);
-    if (bounded.overflow || bounded.used + currentUser.tokens > 2048) {
+        }));
+    const bounded = selectContext({ system: systemContext, history: historicalContext, activeUser: currentUser, budget: 2048 });
+    if (bounded.overflow) {
       activeRequest.current.status = "error";
       dispatch({ type: "terminal", messageId: assistantId, status: "error" });
       setPhase("error");
       setError("Required instructions and the current prompt exceed the 2048-token request budget.");
       return;
     }
-    const requestContext = [...bounded.selected, currentUser];
+    const requestContext = bounded.selected;
     const requestFrame = encodeSse("request", {
       requestId,
       backend,
@@ -477,7 +527,7 @@ export function BrowserChat() {
     activeHandle.current = startGeneration({
       requestId,
       backend,
-      messages: bounded.selected.map((message: { role: string; content: string }) => ({
+      messages: requestContext.map((message: { role: string; content: string }) => ({
         role: message.role as "system" | "user" | "assistant",
         content: message.content,
       })),
@@ -501,7 +551,7 @@ export function BrowserChat() {
           if (event.event === "token" && typeof event.data?.delta === "string") {
             const flushed = flushTokenBuffer([event.data.delta]);
             emittedTokens += 1;
-            dispatch({ type: "delta", messageId: assistantId, delta: flushed.text });
+            dispatch({ type: "delta", messageId: assistantId, attemptId: branch.attemptId, requestId, delta: flushed.text });
           } else if (event.event === "done") {
             finish("complete", "complete");
           } else if (event.event === "error") {
@@ -516,6 +566,9 @@ export function BrowserChat() {
         setMetrics(nextMetrics);
       },
       onError(bridgeError) {
+        if (backend === "local") {
+          void initializePreview().then(setPreview).catch(() => undefined);
+        }
         if (shouldRetry({
           transient: bridgeError.transient,
           tokensEmitted: emittedTokens,
@@ -534,7 +587,7 @@ export function BrowserChat() {
 
   const send = (text = input) => {
     const userText = text.trim();
-    if (!userText || generating || !backendReady) return;
+    if (!userText || busy || !backendReady) return;
     const userId = "user-" + Date.now();
     dispatch({
       type: "append",
@@ -545,12 +598,15 @@ export function BrowserChat() {
   };
 
   const regenerate = () => {
-    if (!latestUser || generating) return;
+    if (!latestUser || busy) return;
     runGeneration(latestUser.content, latestUser.id, 0);
   };
 
   const stop = () => {
-    activeHandle.current?.cancel();
+    const handle = activeHandle.current;
+    if (!handle) return;
+    activeHandle.current = null;
+    handle.cancel();
     const request = activeRequest.current;
     if (request) request.status = "cancelled";
     const activeAssistant = [...state.messages].reverse().find((message) => message.backend === backend && message.status === "streaming");
@@ -560,7 +616,7 @@ export function BrowserChat() {
   };
 
   const clear = () => {
-    if (generating) return;
+    if (busy) return;
     dispatch({ type: "replace", messages: state.messages.filter((message) => message.backend !== backend) });
     setError("");
     setMetrics(EMPTY_METRICS);
@@ -609,8 +665,8 @@ export function BrowserChat() {
           <section>
             <span className="section-label">Model backend</span>
             <div className="segmented-control">
-              <button className={backend === "local" ? "active" : ""} disabled={generating} onClick={() => setBackend("local")} type="button">Local Transformer</button>
-              <button className={backend === "student" ? "active" : ""} disabled={generating} onClick={() => setBackend("student")} type="button">Student RNN</button>
+              <button className={backend === "local" ? "active" : ""} disabled={busy} onClick={() => setBackend("local")} type="button">Local Transformer</button>
+              <button className={backend === "student" ? "active" : ""} disabled={busy} onClick={() => setBackend("student")} type="button">Student RNN</button>
             </div>
             <p>{backend === "local" ? "A real local model served through the isolated host bridge." : "The checkpoint and recurrent functions completed in Model Foundations."}</p>
             <button className="prepare-model" type="button" disabled={preparing || backendReady} onClick={() => void prepareBackend()}>
@@ -618,42 +674,48 @@ export function BrowserChat() {
             </button>
           </section>
 
-          <section>
-            <span className="section-label">Inference controls</span>
-            <label>
-              <span>Temperature <strong>{temperature.toFixed(2)}</strong></span>
-              <input type="range" min="0.2" max="1.4" step="0.02" value={temperature} onChange={(event) => setTemperature(Number(event.currentTarget.value))} />
-            </label>
-            <label>
-              <span>Top-k <strong>{topK}</strong></span>
-              <input type="range" min="0" max="64" step="1" value={topK} onChange={(event) => setTopK(Number(event.currentTarget.value))} />
-            </label>
-            <label>
-              <span>Maximum tokens <strong>{maxTokens}</strong></span>
-              <input type="range" min="40" max="240" step="10" value={maxTokens} onChange={(event) => setMaxTokens(Number(event.currentTarget.value))} />
-            </label>
+          <section className="inference-panel">
+            <details open={controlsOpen} onToggle={(event) => setControlsOpen(event.currentTarget.open)}>
+              <summary><span className="section-label">Inference controls</span><strong>{temperature.toFixed(2)} · k {topK} · max {maxTokens}</strong></summary>
+              <div className="inference-fields">
+                <label>
+                  <span>Temperature <strong>{temperature.toFixed(2)}</strong></span>
+                  <input type="range" min="0.2" max="1.4" step="0.02" value={temperature} onChange={(event) => setTemperature(Number(event.currentTarget.value))} />
+                </label>
+                <label>
+                  <span>Top-k <strong>{topK}</strong></span>
+                  <input type="range" min="0" max="64" step="1" value={topK} onChange={(event) => setTopK(Number(event.currentTarget.value))} />
+                </label>
+                <label>
+                  <span>Maximum generated units <strong>{maxTokens}</strong></span>
+                  <input type="range" min="40" max="160" step="10" value={maxTokens} onChange={(event) => setMaxTokens(Number(event.currentTarget.value))} />
+                </label>
+                <p>Local Transformer: at most 160 tokenizer generation steps. Student RNN: at most 160 generated characters. The model.config.js seed applies to Student RNN sampling only; this local Transformer runtime does not expose deterministic seeding.</p>
+              </div>
+            </details>
           </section>
 
-          <section className="metrics-panel">
+          {preview?.runtime.interface.showMetrics !== false ? <section className="metrics-panel">
             <span className="section-label">Last request</span>
             <dl>
-              <div><dt>TTFT</dt><dd>{metrics.ttftMs} ms</dd></div>
-              <div><dt>Model</dt><dd>{metrics.modelMs} ms</dd></div>
-              <div><dt>Tokens</dt><dd>{metrics.tokens}</dd></div>
+              <div><dt>Host queue</dt><dd>{metrics.queueMs} ms</dd></div>
+              <div><dt>First visible</dt><dd>{metrics.ttftMs} ms</dd></div>
+              <div><dt>Model run</dt><dd>{metrics.modelMs} ms</dd></div>
+              <div><dt>{metrics.generatedUnitLabel}</dt><dd>{metrics.generatedUnits}</dd></div>
               <div><dt>Total</dt><dd>{metrics.durationMs} ms</dd></div>
             </dl>
-          </section>
+          </section> : null}
 
           <footer>
-            <button type="button" onClick={clear} disabled={generating || visibleMessages.length === 0}>Clear conversation</button>
-            <span>Stored on this device</span>
+            <button type="button" onClick={clear} disabled={busy || visibleMessages.length === 0}>Clear conversation</button>
+            {persistencePhase === "error" ? <span role="alert">Save failed · latest terminal snapshot retained <button type="button" onClick={retryPersistence}>Retry save</button></span> : <span role="status" aria-live="polite">{persistencePhase === "saving" ? "Saving on this device…" : persistencePhase === "saved" ? "Saved on this device" : "Not saved yet"}</span>}
           </footer>
         </aside>
 
         <section className="conversation-panel">
           <div className="conversation-heading">
             <div><span>Conversation</span><strong>{visibleMessages.length ? visibleMessages.length + " messages" : "New session"}</strong></div>
-            <button type="button" onClick={regenerate} disabled={generating || !latestUser}>Regenerate</button>
+            <button type="button" onClick={regenerate} disabled={busy || !latestUser}>Regenerate</button>
           </div>
 
           <div className="transcript" ref={transcriptRef} role="log" aria-live="polite" aria-label="Conversation transcript">
@@ -667,7 +729,7 @@ export function BrowserChat() {
             ) : null}
             {visibleMessages.map((message) => (
               <article className={"message " + message.role + " " + message.status} key={message.id}>
-                <span>{message.role === "user" ? "You" : backend === "student" ? "Student model" : "Local model"}</span>
+                <span>{message.role === "user" ? "You" : preview?.runtime.interface.assistantName || (backend === "student" ? "Student model" : "Local model")}</span>
                 <p>{message.content || (message.status === "streaming" ? "Processing context…" : "No output")}</p>
                 {message.status !== "complete" ? <em>{message.status}</em> : null}
               </article>
@@ -682,7 +744,7 @@ export function BrowserChat() {
               aria-label="Chat message"
               placeholder="Ask about the model, runtime, or serving path…"
               value={input}
-              disabled={generating || !backendReady}
+              disabled={busy || !backendReady}
               onChange={(event) => setInput(event.currentTarget.value)}
               onKeyDown={(event) => {
                 if (event.key === "Enter" && !event.shiftKey) {
@@ -693,7 +755,7 @@ export function BrowserChat() {
             />
             <div>
               <span>Enter to send · Shift+Enter for newline</span>
-              {generating ? <button className="stop" type="button" onClick={stop}>Stop</button> : <button type="submit" disabled={!input.trim() || !backendReady}>Send</button>}
+              {canStop ? <button className="stop" type="button" onClick={stop}>Stop</button> : <button type="submit" disabled={busy || !input.trim() || !backendReady}>Send</button>}
             </div>
           </form>
         </section>
@@ -730,8 +792,8 @@ const BROWSER_CHAT_CSS = `
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-synthesis: none;
   --ink: #29262d;
-  --muted: #716b76;
-  --faint: #9d96a3;
+  --muted: #625d67;
+  --faint: #69636d;
   --line: rgba(64, 53, 73, 0.13);
   --violet: #746487;
   --paper: rgba(250, 248, 245, 0.86);
@@ -745,7 +807,7 @@ button { color: inherit; }
 .browser-chat { min-height: 100vh; padding: 1.25rem; }
 .app-header { align-items: center; display: flex; justify-content: space-between; margin: 0 auto; max-width: 1320px; min-height: 4.75rem; padding: 0 0.25rem 1.25rem; }
 .app-header h1 { font-family: Georgia, "Times New Roman", serif; font-size: clamp(2rem, 4vw, 3.4rem); font-weight: 400; letter-spacing: -0.05em; line-height: 1; margin: 0.35rem 0 0; }
-.project-label, .section-label, .conversation-heading span { color: var(--faint); font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; }
+.project-label, .section-label, .conversation-heading span { color: var(--faint); font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; }
 .phase-status { align-items: center; display: flex; font-size: 0.75rem; gap: 0.55rem; }
 .phase-status i { background: #73927b; border-radius: 50%; box-shadow: 0 0 0 5px rgba(115, 146, 123, 0.1); height: 0.46rem; width: 0.46rem; }
 .phase-status[data-phase="streaming"] i, .phase-status[data-phase="prefill"] i { animation: pulse 1.4s infinite; background: #947bb1; }
@@ -753,7 +815,12 @@ button { color: inherit; }
 .app-layout { background: var(--paper); border: 1px solid rgba(65, 53, 72, 0.18); border-radius: 1.25rem; box-shadow: 0 30px 80px rgba(61, 48, 67, 0.1); display: grid; grid-template-columns: 18rem minmax(0, 1fr); margin: 0 auto; max-width: 1320px; min-height: calc(100vh - 7.5rem); overflow: hidden; backdrop-filter: blur(24px); }
 .control-panel { border-right: 1px solid var(--line); display: flex; flex-direction: column; min-width: 0; }
 .control-panel section { border-bottom: 1px solid var(--line); padding: 1.35rem; }
-.control-panel section > p { color: var(--muted); font-size: 0.74rem; line-height: 1.55; margin: 0.85rem 0 0; }
+.control-panel section p { color: var(--muted); font-size: 0.74rem; line-height: 1.55; margin: 0.85rem 0 0; }
+.inference-panel details summary { align-items: center; cursor: pointer; display: flex; justify-content: space-between; list-style: none; }
+.inference-panel details summary::-webkit-details-marker { display: none; }
+.inference-panel details summary::after { color: var(--faint); content: "＋"; font-size: 0.8rem; margin-left: 0.6rem; }
+.inference-panel details[open] summary::after { content: "−"; }
+.inference-panel summary > strong { color: var(--faint); font-size: 0.68rem; font-weight: 500; margin-left: auto; }
 .segmented-control { display: grid; gap: 0.35rem; margin-top: 0.85rem; }
 .segmented-control button, .control-panel footer button, .conversation-heading button, .composer button { background: transparent; border: 1px solid var(--line); border-radius: 999px; cursor: pointer; font-size: 0.7rem; padding: 0.65rem 0.85rem; text-align: left; }
 .segmented-control button.active { background: rgba(116, 100, 135, 0.1); border-color: rgba(116, 100, 135, 0.4); color: #5c496f; }
@@ -767,10 +834,10 @@ input[type="range"] { accent-color: var(--violet); width: 100%; }
 .metrics-panel dl div { border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; padding: 0.65rem 0; }
 .metrics-panel dl div:nth-child(odd) { padding-right: 0.65rem; }
 .metrics-panel dl div:nth-child(even) { border-left: 1px solid var(--line); padding-left: 0.65rem; }
-.metrics-panel dt { color: var(--faint); font-size: 0.62rem; }
-.metrics-panel dd { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.62rem; margin: 0; }
+.metrics-panel dt { color: var(--faint); font-size: 0.68rem; }
+.metrics-panel dd { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.68rem; margin: 0; }
 .control-panel footer { align-items: start; display: flex; flex-direction: column; gap: 0.7rem; margin-top: auto; padding: 1.35rem; }
-.control-panel footer span { color: var(--faint); font-size: 0.6rem; }
+.control-panel footer span { color: var(--faint); font-size: 0.68rem; }
 .conversation-panel { display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; min-width: 0; }
 .conversation-heading { align-items: center; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; min-height: 4.4rem; padding: 0.9rem 1.5rem; }
 .conversation-heading > div { display: grid; gap: 0.3rem; }
@@ -782,10 +849,10 @@ input[type="range"] { accent-color: var(--violet); width: 100%; }
 .empty-state p { color: var(--muted); font-family: Georgia, "Times New Roman", serif; font-size: 0.95rem; line-height: 1.65; }
 .message { border-top: 1px solid var(--line); display: grid; gap: 0.55rem; grid-template-columns: 7.5rem minmax(0, 1fr) auto; padding: 1.35rem 0; }
 .message:first-of-type { border-top: 0; }
-.message > span { color: var(--faint); font-size: 0.62rem; letter-spacing: 0.08em; padding-top: 0.2rem; text-transform: uppercase; }
+.message > span { color: var(--faint); font-size: 0.68rem; letter-spacing: 0.08em; padding-top: 0.2rem; text-transform: uppercase; }
 .message p { font-family: Georgia, "Times New Roman", serif; font-size: 1rem; line-height: 1.65; margin: 0; white-space: pre-wrap; }
 .message.user p { color: #49414d; }
-.message em { color: var(--violet); font-size: 0.6rem; font-style: normal; }
+.message em { color: var(--violet); font-size: 0.68rem; font-style: normal; }
 .message.cancelled p, .message.error p { color: var(--muted); }
 .request-error { background: rgba(169, 109, 109, 0.08); border-top: 1px solid rgba(169, 109, 109, 0.18); display: grid; gap: 0.25rem; padding: 0.85rem 1.5rem; }
 .request-error strong { color: #8a5555; font-size: 0.67rem; }
@@ -794,17 +861,19 @@ input[type="range"] { accent-color: var(--violet); width: 100%; }
 .composer textarea { background: rgba(255, 255, 255, 0.54); border: 1px solid var(--line); border-radius: 0.85rem; color: var(--ink); min-height: 6.3rem; outline: none; padding: 1rem; resize: vertical; width: 100%; }
 .composer textarea:focus { border-color: rgba(116, 100, 135, 0.48); box-shadow: 0 0 0 3px rgba(116, 100, 135, 0.08); }
 .composer > div { align-items: center; display: flex; justify-content: space-between; padding: 0.65rem 0.15rem 0; }
-.composer > div > span { color: var(--faint); font-size: 0.62rem; }
+.composer > div > span { color: var(--faint); font-size: 0.68rem; }
 .composer button { background: #3a343e; color: #fff; min-width: 5rem; text-align: center; }
 .composer button.stop { background: #865d61; }
 @keyframes pulse { 50% { opacity: 0.38; transform: scale(0.78); } }
 @media (max-width: 800px) {
   .browser-chat { padding: 0; }
   .app-header { padding: 1rem 1.1rem; }
+  button, .inference-panel details summary, input[type="range"] { min-height: 2.75rem; }
   .app-layout { border: 0; border-radius: 0; grid-template-columns: 1fr; min-height: calc(100vh - 5rem); }
   .control-panel { border-bottom: 1px solid var(--line); border-right: 0; display: grid; grid-template-columns: 1fr 1fr; }
   .control-panel section { padding: 1rem; }
-  .control-panel .metrics-panel, .control-panel footer { display: none; }
+  .control-panel .metrics-panel, .control-panel footer { grid-column: 1 / -1; }
+  .control-panel footer { margin-top: 0; padding: 1rem; }
   .conversation-panel { min-height: 62vh; }
   .transcript { padding: 1.25rem; }
   .message { grid-template-columns: 1fr; gap: 0.3rem; }
@@ -814,7 +883,8 @@ input[type="range"] { accent-color: var(--violet); width: 100%; }
   .app-header h1 { font-size: 2rem; }
   .project-label { display: none; }
   .control-panel { display: block; }
-  .control-panel section:nth-child(2) { display: none; }
+  .control-panel section, .control-panel footer { padding: 0.85rem 1rem; }
+  .inference-panel summary > strong { max-width: 10.5rem; text-align: right; }
   .conversation-heading { padding: 0.8rem 1rem; }
   .composer { padding: 0.8rem; }
   .composer > div > span { max-width: 12rem; }

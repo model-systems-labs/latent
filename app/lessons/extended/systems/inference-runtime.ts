@@ -8,7 +8,7 @@ export const inferenceRuntimeLesson = defineExtendedLesson({
     courseNumber: 2,
     lessonNumber: 1,
     mode: "core-mechanism",
-    modeLabel: "Runtime simulation",
+    modeLabel: "Worked runtime trace",
     eyebrow: "Inference · Prefill and decode",
     title: "Inference Runtime",
     thesis: "LLM inference separates parallel prompt prefill from one-position decode forwards while key-value memory grows with cached sequence positions.",
@@ -24,7 +24,7 @@ export const inferenceRuntimeLesson = defineExtendedLesson({
     ],
     claims: {
       paper: "Paged allocation reduces KV-cache waste and enables higher serving throughput under dynamic request lengths.",
-      lab: "The browser simulates prefill, iterative decode, worker isolation, and cache growth with explicit phase timing.",
+      lab: "A fixed browser trace makes prefill, iterative decode, worker isolation, cache growth, and authored phase timing inspectable.",
       limit: "No GPU kernel, multi-host network, or production memory allocator is reproduced.",
     },
     diagram: {
@@ -51,7 +51,7 @@ export const inferenceRuntimeLesson = defineExtendedLesson({
     },
     implementation: {
       filename: "inference-runtime.js",
-      intro: "Implement phase accounting and KV-cache sizing before running the request lifecycle simulator.",
+      intro: "Implement phase accounting and KV-cache sizing before replaying the authored request lifecycle trace.",
       tensorOps: ["numel"],
       codeBlocks: [
         {
@@ -98,5 +98,5 @@ return { passed: bytes === 204800, detail: (bytes / 1024).toFixed(0) + " KiB" };
         },
       ],
     },
-    experiment: { kind: "systems", variant: "runtime", title: "Run the inference lifecycle", intro: "Advance deterministic requests through queue, prefill, decode, and cache release while measuring phase latency." },
+    experiment: { kind: "systems", variant: "runtime", title: "Replay the inference lifecycle", intro: "Replay one authored request through queue, prefill, decode, and cache release. Its phase timings are fixed teaching data, not measurements of your device or learner file." },
   });

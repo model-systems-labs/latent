@@ -7,14 +7,18 @@ import type { CodeBlock, CourseLesson } from "@latent/course-kit";
 import { courseLessons } from "../lessons/course";
 import { LessonExperiment } from "./LessonExperiment";
 import {
+  discardLearnerRecoveryCandidate,
   lessonIsComplete,
   initializeLearnerPersistence,
+  loadLearnerRecoveryCandidate,
   loadLearnerState,
   recordVerifiedCells,
-  saveLessonPractice,
+  saveLessonPracticeAndVerification,
   useLearnerState,
+  useLearnerPersistenceError,
+  useLearnerRecoveryCandidates,
 } from "../lib/learner-state";
-import { ensureProjectWorkspace, initializeProjectPersistence, saveLessonProjectFile, type LessonProjectSeed } from "../lib/project-workspace";
+import { ensureProjectWorkspace, initializeProjectPersistence, saveLessonProjectFile, useProjectPersistenceError, type LessonProjectSeed } from "../lib/project-workspace";
 import { runPracticeContracts } from "../features/ide/browser-lab-service";
 import { ArtifactRuntimePanel } from "../features/artifacts/ArtifactRuntimePanel";
 import { recordValidatedLessonArtifact } from "../features/artifacts/lesson-artifacts";
@@ -24,7 +28,7 @@ import { canonicalProjectSeeds } from "../lib/canonical-project";
 import { bindBlockVerification, invalidateBlockVerification, practiceBlockSource, restoreSourceBoundVerification, waitForPracticeHydration } from "../features/ide/practice-state";
 import { llmSystemsContractSuite } from "../content/llm-systems/contracts";
 import { LessonOutcome } from "./LessonOutcome";
-import { moduleCheckpoint } from "../content/llm-systems/learning";
+import { lessonLearningOutcome, moduleCheckpoint } from "../content/llm-systems/learning";
 import { recordLearningEvent } from "../lib/learning-analytics";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
@@ -428,7 +432,7 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
           </div>
         </div>
       ) : isChatProductQuality ? (
-        <div className="quality-product-trace" role="img" aria-label="One end-to-end chat product trace. Enter sends a request, whose exact phases are queued, loading, prefill, streaming, and complete. Visual status and programmatic status expose the same phase. Streaming text is visually batched and announced in bounded semantic updates. Cancellation or retry rejects late events, releases transport and render resources, and returns focus to the composer. Reload validates an exact version 1 record containing only bounded terminal messages. Sixteen deterministic contract checks cover code-level behavior, while keyboard, screen-reader, and mobile behavior remain explicit manual verification tasks.">
+        <div className="quality-product-trace" role="img" aria-label="One end-to-end chat product trace. Enter sends a request, whose exact phases are queued, loading, prefill, streaming, and complete. Visual status and programmatic status expose the same phase. Streaming text is visually batched and announced in bounded semantic updates. Cancellation or retry rejects late events, releases transport and render resources, and returns focus to the composer. Reload validates an exact version 1 record containing only bounded terminal messages. Eleven executable pure checks cover deterministic code behavior. Five requirements remain unexecuted specifications, while keyboard, screen-reader, and mobile behavior remain explicit manual verification tasks.">
           <ol className="quality-lifecycle-trace">
             {lesson.diagram.nodes.map((node, index) => (
               <li key={node.label}>
@@ -446,7 +450,8 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
             <span><b>Safe reload</b><code>v1 · exact keys · ≤200 terminal messages · known role/backend/status · no secrets</code></span>
           </div>
           <div className="quality-verification-boundary">
-            <span><b>Automated · 16 contracts</b> mappings, guards, bounds, serialization, lifecycle, accessibility metadata, and responsive requirements.</span>
+            <span><b>Executed · 11 pure checks</b> mappings, guards, bounds, serialization, lifecycle labels, and context selection.</span>
+            <span><b>Declared · 5 specifications</b> focus recovery, cancellation resources, live-region metadata, and responsive requirements are not executed here.</span>
             <span><b>Manual · 3 groups</b> actual focus order, screen-reader speech, and 320/390 px keyboard and touch behavior.</span>
           </div>
         </div>
@@ -522,7 +527,7 @@ export function TextBoxSection({ lesson }: { lesson: CourseLesson }) {
         body: JSON.stringify({
           model: "openrouter/auto",
           messages: [
-            { role: "system", content: `${lesson.paperContext}\n\nCurated source set:\n${sourceContext}\nSynthesize across these sources when relevant, and identify which source supports each part of the answer.` },
+            { role: "system", content: `${lesson.paperContext}\n\nBibliographic source metadata (the linked full texts were not retrieved):\n${sourceContext}\nAnswer from the lesson-authored technical brief above. Treat this source list only as a reading map: do not attribute a detail to a listed source unless the brief explicitly supports that attribution. When the supplied context is insufficient, say so and point the learner to the relevant original link instead of inferring its contents.` },
             ...nextChat.map((message) => ({ role: message.role, content: message.content })),
           ],
         }),
@@ -557,11 +562,11 @@ export function TextBoxSection({ lesson }: { lesson: CourseLesson }) {
               <button type="button" onClick={() => setShowKey((value) => !value)}>{showKey ? "Hide" : "Show"}</button>
             </div>
           </label>
-          <div className="key-note"><i /><span>Your key stays in this tab and clears on refresh.</span></div>
+          <div className="key-note"><i /><span>Latent does not store this key. Your browser sends it directly to OpenRouter for each question; OpenRouter’s policies and any account charges apply. It clears here on refresh.</span></div>
           <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer">Get a key ↗</a>
         </div>
-        <div className="paper-chat">
-          <div className="chat-log" aria-live="polite">
+        <div className="paper-chat" aria-busy={asking}>
+          <div className="chat-log" role="log" aria-label="Questions and answers" aria-live="polite" aria-relevant="additions text">
             {chat.length === 0 ? (
               <div className="empty-chat">
                 <span>Suggested questions</span>
@@ -574,11 +579,19 @@ export function TextBoxSection({ lesson }: { lesson: CourseLesson }) {
             ))}
           </div>
           <form className="question-form" onSubmit={askPaper}>
-            <textarea aria-label="Question about the source set" value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Ask anything about these sources…" />
-            <button type="submit" disabled={!openRouterKey.trim() || !question.trim() || asking}>{asking ? "Thinking…" : "Ask"}</button>
+            <textarea aria-label="Question about the lesson brief" value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Ask about the lesson brief or what to verify in the linked sources…" />
+            <button type="submit" aria-describedby="paper-question-status" disabled={!openRouterKey.trim() || !question.trim() || asking}>{asking ? "Thinking…" : "Ask"}</button>
           </form>
           <div className="chat-status">
-            <span>{questionError || (answerModel ? `Answered by ${answerModel}` : "Grounded in the lesson sources")}</span>
+            <span id="paper-question-status" role="status" aria-live="polite" aria-atomic="true">
+              {questionError
+                ? `Question failed: ${questionError}`
+                : asking
+                  ? "Asking OpenRouter from the supplied lesson brief…"
+                  : answerModel
+                    ? `Answered by ${answerModel} from the supplied lesson brief`
+                    : "Context: lesson brief + source metadata · no full-text retrieval"}
+            </span>
             {openRouterKey ? <button type="button" onClick={() => setOpenRouterKey("")}>Clear key</button> : null}
           </div>
         </div>
@@ -709,8 +722,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     const nextVerifiedSources = invalidated.sources;
     setCellResults((current) => ({ ...current, [block.id]: undefined }));
     applyPracticeState(nextHidden, nextAnswers, nextVerified, nextVerifiedSources, invalidated.contractVersion);
-    saveLessonPractice(lesson.id, nextHidden, nextAnswers);
-    recordVerifiedCells(lesson.id, nextVerified, nextVerifiedSources, invalidated.contractVersion);
+    saveLessonPracticeAndVerification(lesson.id, nextHidden, nextAnswers, nextVerified, nextVerifiedSources, invalidated.contractVersion);
     saveLessonProjectFile(projectSeedForLesson(lesson, nextHidden, nextAnswers, nextVerified));
     setPracticeMessage("Implementation changed. Run the affected cell again.");
   };
@@ -718,8 +730,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     const nextHidden = blocks.map((block) => block.id);
     const nextAnswers = Object.fromEntries(blocks.map((block) => [block.id, starterCodeFor(block)]));
     applyPracticeState(nextHidden, nextAnswers, [], {}, null);
-    saveLessonPractice(lesson.id, nextHidden, nextAnswers);
-    recordVerifiedCells(lesson.id, [], {}, null);
+    saveLessonPracticeAndVerification(lesson.id, nextHidden, nextAnswers, [], {}, null);
     saveLessonProjectFile(projectSeedForLesson(lesson, nextHidden, nextAnswers, []));
     setCellResults({});
     setPracticeMessage("All conceptual blocks are hidden. Reconstruct them in any valid way.");
@@ -727,8 +738,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
   const showSolution = () => {
     const currentAnswers = answersRef.current;
     applyPracticeState([], currentAnswers, [], {}, null);
-    saveLessonPractice(lesson.id, [], currentAnswers);
-    recordVerifiedCells(lesson.id, [], {}, null);
+    saveLessonPracticeAndVerification(lesson.id, [], currentAnswers, [], {}, null);
     saveLessonProjectFile(projectSeedForLesson(lesson, [], currentAnswers, []));
     setCellResults({});
     setPracticeMessage("Reference solution restored. Previous attempts remain available if you hide a cell again.");
@@ -851,7 +861,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
           </div>
         </div>
       ) : null}
-      <div className="practice-editor" aria-busy={!practiceReady}>
+      <div className="practice-editor" aria-busy={!practiceReady || runningBlockIds.length > 0}>
         <div className="editor-toolbar">
           <div className="editor-file"><span>{projectPath}</span><strong>{!practiceReady ? "Restoring saved work…" : hiddenBlocks.length === 0 ? "Reference · saved" : `${hiddenBlocks.length} cells in practice`}</strong></div>
           <div className="editor-progress" aria-label={`${verifiedCells} of ${blocks.length} cells verified`}>
@@ -871,6 +881,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
               <div
                 className={`practice-block ${hidden ? "is-hidden" : ""}`}
                 data-reference-code={encodeURIComponent(block.code)}
+                aria-busy={runningBlockIds.includes(block.id)}
                 key={block.id}
               >
                 <div className="block-heading">
@@ -892,8 +903,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
                         const nextVerified = invalidated.ids;
                         const nextVerifiedSources = invalidated.sources;
                         applyPracticeState(currentHidden, nextAnswers, nextVerified, nextVerifiedSources, invalidated.contractVersion);
-                        saveLessonPractice(lesson.id, currentHidden, nextAnswers);
-                        recordVerifiedCells(lesson.id, nextVerified, nextVerifiedSources, invalidated.contractVersion);
+                        saveLessonPracticeAndVerification(lesson.id, currentHidden, nextAnswers, nextVerified, nextVerifiedSources, invalidated.contractVersion);
                         saveLessonProjectFile(projectSeedForLesson(lesson, currentHidden, nextAnswers, nextVerified));
                         setCellResults((current) => ({ ...current, [block.id]: undefined }));
                       }}>Reset starter</button>
@@ -905,8 +915,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
                       const nextVerified = invalidated.ids;
                       const nextVerifiedSources = invalidated.sources;
                       applyPracticeState(currentHidden, nextAnswers, nextVerified, nextVerifiedSources, invalidated.contractVersion);
-                      saveLessonPractice(lesson.id, currentHidden, nextAnswers);
-                      recordVerifiedCells(lesson.id, nextVerified, nextVerifiedSources, invalidated.contractVersion);
+                      saveLessonPracticeAndVerification(lesson.id, currentHidden, nextAnswers, nextVerified, nextVerifiedSources, invalidated.contractVersion);
                       saveLessonProjectFile(projectSeedForLesson(lesson, currentHidden, nextAnswers, nextVerified));
                       setCellResults((current) => ({ ...current, [block.id]: undefined }));
                       setPracticeMessage("Implementation changed. Run the affected cell again.");
@@ -915,14 +924,14 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
                 ) : (
                   <div className="code-lines">{block.code.split("\n").map((line, lineIndex) => <div key={`${block.id}-${lineIndex}`}><span>{startLine + lineIndex}</span><code>{line || " "}</code></div>)}</div>
                 )}
-                <div className="cell-footer">
+                <div className="cell-footer" role="status" aria-label={`${block.label} check status`} aria-live="polite" aria-atomic="true">
                   {result ? <span className={result.passed ? "cell-result passed" : "cell-result failed"}><i>{result.passed ? "✓" : "×"}</i>{result.detail}</span> : verifiedContractVersion === llmSystemsContractSuite.contractVersion && verifiedBlockIds.includes(block.id) && verifiedSources[block.id] === (hidden ? answers[block.id] ?? "" : block.code) ? <span className="cell-result passed"><i>✓</i>Verified previously on this device</span> : <span>{practiceReady ? "Not run" : "Waiting for saved progress"}</span>}
                 </div>
               </div>
             );
           })}
         </div>
-        <div className="editor-footer"><p>{practiceReady ? practiceMessage : "Restoring your saved practice before editing is enabled…"}</p><button type="button" onClick={() => void runAll()} disabled={!practiceReady || runningBlockIds.length > 0}>{runningBlockIds.length ? "Running in sandbox…" : "Run behavioral checks"}</button></div>
+        <div className="editor-footer"><p id={`practice-status-${lesson.id}`} role="status" aria-live="polite" aria-atomic="true">{practiceReady ? practiceMessage : "Restoring your saved practice before editing is enabled…"}</p><button type="button" aria-describedby={`practice-status-${lesson.id}`} onClick={() => void runAll()} disabled={!practiceReady || runningBlockIds.length > 0}>{runningBlockIds.length ? "Running in sandbox…" : "Run behavioral checks"}</button></div>
       </div>
       <LessonExperiment lesson={lesson} />
       <ArtifactRuntimePanel lesson={lesson} refreshKey={artifactRevision} />
@@ -930,16 +939,65 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
   );
 }
 
+function LessonRecoveryCandidates({ lessonId, onLoaded }: { lessonId: string; onLoaded: () => void }) {
+  const candidates = useLearnerRecoveryCandidates(lessonId);
+  const [workingSession, setWorkingSession] = useState<string | null>(null);
+  const [message, setMessage] = useState("");
+  if (!candidates.length) return null;
+  return (
+    <section className="lesson-recovery-candidates" aria-labelledby={`lesson-recovery-title-${lessonId}`}>
+      <div>
+        <p className="eyebrow">Recovery available</p>
+        <h2 id={`lesson-recovery-title-${lessonId}`}>Choose which practice copy to use</h2>
+        <p>A journal from another tab or an interrupted save differs from the saved lesson. It was not loaded automatically.</p>
+      </div>
+      <div className="lesson-recovery-list">
+        {candidates.map((candidate) => (
+          <article key={`${candidate.sessionId}:${candidate.lessonId}:${candidate.updatedAt}`}>
+            <span>
+              <strong>{candidate.legacy ? "Older browser recovery" : "Unsynced practice copy"}</strong>
+              <em>{new Date(candidate.updatedAt).toLocaleString()} · {Object.keys(candidate.value.answers).length} practice {Object.keys(candidate.value.answers).length === 1 ? "cell" : "cells"}</em>
+            </span>
+            <span>
+              <button type="button" disabled={Boolean(workingSession)} onClick={() => {
+                setWorkingSession(candidate.sessionId);
+                setMessage("Loading the selected recovery copy…");
+                void loadLearnerRecoveryCandidate(candidate.sessionId, lessonId).then((loaded) => {
+                  setWorkingSession(null);
+                  setMessage(loaded ? "Recovery loaded. Review the implementation while it syncs to saved progress." : "That recovery copy is no longer available.");
+                  if (loaded) onLoaded();
+                }).catch(() => {
+                  setWorkingSession(null);
+                  setMessage("The recovery copy could not be loaded. It remains available to try again.");
+                });
+              }}>{workingSession === candidate.sessionId ? "Loading…" : "Load copy"}</button>
+              <button type="button" disabled={Boolean(workingSession)} onClick={() => {
+                discardLearnerRecoveryCandidate(candidate.sessionId, lessonId);
+                setMessage("Recovery copy discarded. Saved lesson progress was not changed.");
+              }}>Discard copy</button>
+            </span>
+          </article>
+        ))}
+      </div>
+      <p className="lesson-recovery-status" role="status" aria-live="polite">{message}</p>
+    </section>
+  );
+}
+
 export function PaperLab({ lesson }: { lesson: CourseLesson }) {
   const learnerState = useLearnerState();
+  const learnerPersistenceError = useLearnerPersistenceError();
+  const projectPersistenceError = useProjectPersistenceError();
+  const persistenceError = learnerPersistenceError ?? projectPersistenceError;
   const trackLessons = courseLessons.filter((candidate) => candidate.courseId === lesson.courseId);
   const trackIndex = trackLessons.findIndex((candidate) => candidate.id === lesson.id);
   const previous = trackLessons[trackIndex - 1];
   const next = trackLessons[trackIndex + 1];
   const courseHref = `/courses/${lesson.courseId ?? "models"}`;
   const progress = learnerState.lessons[lesson.id];
-  const complete = lessonIsComplete(learnerState, lesson.id, lesson.implementation.codeBlocks.length);
+  const complete = lessonIsComplete(learnerState, lesson.id, lesson.implementation.codeBlocks.length, lessonLearningOutcome(lesson.id).check.id);
   const checkpoint = moduleCheckpoint(lesson.courseId ?? "models");
+  const [recoveryRevision, setRecoveryRevision] = useState(0);
   return (
     <main>
       <Atmosphere />
@@ -948,11 +1006,13 @@ export function PaperLab({ lesson }: { lesson: CourseLesson }) {
         <nav aria-label="Lesson navigation"><a href="#summary">Summary</a><a href="#questions">Questions</a><a href="#implementation">Implementation</a><a href="#artifacts">Artifacts</a></nav>
         <span>{lesson.courseTitle ?? "Model Foundations"} · {String(trackIndex + 1).padStart(2, "0")} / {String(trackLessons.length).padStart(2, "0")}</span>
       </header>
+      {persistenceError ? <p className="persistence-warning lesson-persistence-warning" role="alert">Storage warning: {persistenceError}</p> : null}
       <article className="paper-page" id="top">
         <HeaderSection lesson={lesson} />
         <ParagraphSection lesson={lesson} />
         <TextBoxSection lesson={lesson} />
-        <CodingSection lesson={lesson} />
+        <LessonRecoveryCandidates lessonId={lesson.id} onLoaded={() => setRecoveryRevision((revision) => revision + 1)} />
+        <CodingSection key={`${lesson.id}:${recoveryRevision}`} lesson={lesson} />
         <LessonOutcome lesson={lesson} />
         <footer className="paper-footer lesson-footer">
           {previous ? <Link href={`/lessons/${previous.id}`}>← {previous.title}</Link> : <Link href={courseHref}>← Module</Link>}

@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { courseLessons, courseTracks, getTrackLessons } from "../lessons/course";
+import { courseTracks, getTrackLessons } from "../lessons/course";
 import { CAPSTONE_ENTRY_PATH, CANONICAL_BROWSER_CHAT_FILES } from "../content/browser-chat/project-template";
 import { useLearnerState } from "../lib/learner-state";
 import { RUNTIME_PATHS, useProjectState } from "../lib/project-workspace";
-import { projectFileStatus, projectResultsForFile, type ProjectFileStatus } from "../lib/project-file-status";
-import { reconcileCanonicalProject } from "../lib/canonical-project";
+import { expectedProjectContractIdsForPath, projectFileStatus, projectLessonBuildStatus, projectResultsForFile, projectSourceProgress, projectUsesIntegratedEntryReceipt, trustedProjectResults, type ProjectFileStatus } from "../lib/project-file-status";
+import { canonicalLessonSeeds, reconcileCanonicalProject } from "../lib/canonical-project";
 
 type ProjectRow = {
   path: string;
@@ -44,33 +44,45 @@ function ProjectGroup({ label, rows }: { label: string; rows: ProjectRow[] }) {
 export function ProjectStructureMap() {
   const learner = useLearnerState();
   const project = useProjectState();
+  const [reconciliationError, setReconciliationError] = useState<string | null>(null);
   useEffect(() => {
-    void reconcileCanonicalProject();
+    let active = true;
+    void reconcileCanonicalProject().then(() => {
+      if (active) setReconciliationError(null);
+    }).catch((error) => {
+      if (active) setReconciliationError(error instanceof Error ? error.message : "The project could not finish syncing.");
+    });
+    return () => { active = false; };
   }, []);
-  const trustedResults = project.tests.runner === "browser-lab-v1" ? project.tests.results : {};
+  const trustedResults = trustedProjectResults(project.tests);
+  const expectedLessonEvidence = new Map(canonicalLessonSeeds(learner).map((seed) => [seed.path, seed]));
   const groups = courseTracks.map((track) => ({
     track,
     rows: getTrackLessons(track.id).map((lesson): ProjectRow => {
       const path = `${lesson.courseId ?? "models"}/${lesson.implementation.filename}`;
       const file = project.files[path];
-      const verifiedCells = file?.verifiedCells ?? learner.lessons[lesson.id]?.verifiedCells.length ?? 0;
+      const expected = expectedLessonEvidence.get(path);
       return {
         path,
         filename: lesson.implementation.filename,
-        status: projectFileStatus({
-          isLessonFile: true,
-          verifiedCells,
+        status: projectLessonBuildStatus({
+          projectSource: file?.content,
+          verifiedSource: expected?.content,
+          verifiedCells: expected?.verifiedCells ?? 0,
           totalCells: lesson.implementation.codeBlocks.length,
-          results: trustedResults[path] ?? [],
+          trustedResults: trustedResults[path] ?? [],
+          expectedContractIds: expectedProjectContractIdsForPath(path),
         }),
       };
     }),
   }));
   const sourceRows = groups.flatMap((group) => group.rows);
-  const completed = sourceRows.filter((row) => row.status.complete).length;
-  const inProgress = sourceRows.filter((row) => row.status.tone === "in-progress").length;
-  const pending = courseLessons.length - completed - inProgress;
-  const completion = courseLessons.length ? completed / courseLessons.length * 100 : 0;
+  const sourceProgress = projectSourceProgress(sourceRows.map((row) => row.status));
+  const progressDetails = [
+    sourceProgress.partial ? `${sourceProgress.partial} partially verified` : null,
+    sourceProgress.needsWork ? `${sourceProgress.needsWork} ${sourceProgress.needsWork === 1 ? "needs" : "need"} work` : null,
+    sourceProgress.notStarted ? `${sourceProgress.notStarted} not started` : null,
+  ].filter(Boolean).join(" · ") || "Every lesson source is build-ready";
   const providedRows = runtimeRows.map(({ path, readOnly = false }): ProjectRow => ({
     path,
     filename: path.split("/").at(-1) ?? path,
@@ -86,6 +98,11 @@ export function ProjectStructureMap() {
       definition.path,
       definition.editable ? CAPSTONE_ENTRY_PATH : undefined,
     );
+    const integratedEntryReceipt = projectUsesIntegratedEntryReceipt(
+      trustedResults,
+      definition.path,
+      definition.editable ? CAPSTONE_ENTRY_PATH : undefined,
+    );
     return {
       path: definition.path,
       filename: definition.path.split("/").at(-1) ?? definition.path,
@@ -93,6 +110,7 @@ export function ProjectStructureMap() {
         isLessonFile: false,
         readOnly: !definition.editable,
         requiresPassingTests: definition.editable,
+        integratedEntryReceipt,
         results,
       }),
     };
@@ -101,13 +119,25 @@ export function ProjectStructureMap() {
 
   return (
     <section className="project-structure-map" aria-label="browser-chat project file structure">
+      {reconciliationError ? (
+        <p className="persistence-warning" role="alert">
+          Project sync paused: {reconciliationError} <Link href="/workspace">Resolve the recovery copy in the IDE.</Link>
+        </p>
+      ) : null}
       <header className="project-structure-root">
         <div><span>Project root</span><strong>browser-chat/</strong></div>
-        <p><span>Lesson files</span><strong>{completed} / {courseLessons.length} complete</strong></p>
+        <p><span>Current workspace lesson source</span><strong>{sourceProgress.verified} / {sourceProgress.total} files ready</strong></p>
       </header>
-      <div className="project-structure-progress" aria-label={`${completed} of ${courseLessons.length} lesson files complete`}>
-        <i><b style={{ width: `${completion}%` }} /></i>
-        <p><strong>{completed} complete</strong><span>{inProgress ? ` · ${inProgress} in progress` : ""} · {pending} pending</span></p>
+      <div className="project-structure-progress">
+        <i
+          aria-label="Current workspace build-ready lesson source"
+          aria-valuemax={sourceProgress.total}
+          aria-valuemin={0}
+          aria-valuenow={sourceProgress.verified}
+          aria-valuetext={`${sourceProgress.verified} of ${sourceProgress.total} lesson source files are build-ready; ${sourceProgress.partial} partially verified; ${sourceProgress.needsWork} ${sourceProgress.needsWork === 1 ? "needs" : "need"} work; ${sourceProgress.notStarted} not started`}
+          role="progressbar"
+        ><b style={{ width: `${sourceProgress.percentage}%` }} /></i>
+        <p><strong>{sourceProgress.verified} build-ready</strong><span> · {progressDetails}</span></p>
       </div>
       <div className="project-structure-groups">
         <ProjectGroup label="runtime" rows={[...providedRows, ...rowsForFolder("runtime")]} />
@@ -116,7 +146,7 @@ export function ProjectStructureMap() {
         <ProjectGroup label="capstone" rows={rowsForFolder("capstone")} />
       </div>
       <footer className="project-structure-footer">
-        <p>Open any source file to edit it. A file changes state only when its behavioral checks pass.</p>
+        <p>A lesson source is build-ready after either its exact saved lesson proof matches the file, or a complete current IDE receipt passes every expected contract. Any trusted failure overrides both. Lesson completion also requires its lab.</p>
         <Link href="/workspace">Open project IDE →</Link>
       </footer>
     </section>

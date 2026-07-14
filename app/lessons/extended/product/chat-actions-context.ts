@@ -47,29 +47,26 @@ export const chatActionsContextLesson = defineExtendedLesson({
         {
           id: "context-budget",
           label: "Context selection",
-          purpose: "Retain required system instructions and the newest complete historical user-assistant pairs that fit the selector budget.",
+          purpose: "Assemble the exact request: required system instructions and active user prompt plus the newest complete historical pairs that fit.",
           concepts: [
-            { name: "turns", detail: "Only an ordered user followed by its assistant is an admissible historical unit; incomplete or orphan records are skipped." },
-            { name: "system", detail: "All system instructions are a required prefix. If they exceed budget, return them with overflow true so the caller can block or revise the request." },
-            { name: "used", detail: "Exact token sum for selected records. Examine complete units newest-first, but return admitted units in chronological order." },
+            { name: "history", detail: "Only adjacent complete user-assistant pairs are admissible; streaming, cancelled, error, and orphan records are skipped." },
+            { name: "activeUser", detail: "Required current prompt, selected after system and historical context and counted inside the same budget." },
+            { name: "overflow", detail: "True when required system plus active-user tokens already exceed budget; the caller must not send the request unchanged." },
           ],
-          code: `function selectContext(messages, budget) {
-  const system = messages.filter((message) => message.role === "system");
+          code: `function selectContext({ system, history, activeUser, budget }) {
+  const requiredSystem = system.filter((message) => message.role === "system");
   const turns = [];
-  let pendingUser = null;
-  for (const message of messages) {
-    if (message.role === "system") continue;
-    if (message.role === "user") {
-      pendingUser = message;
-      continue;
-    }
-    if (message.role === "assistant" && pendingUser) {
-      turns.push([pendingUser, message]);
-      pendingUser = null;
+  for (let index = 0; index < history.length - 1; index += 1) {
+    const user = history[index];
+    const assistant = history[index + 1];
+    if (user.role === "user" && user.status === "complete" &&
+        assistant.role === "assistant" && assistant.status === "complete") {
+      turns.push([user, assistant]);
+      index += 1;
     }
   }
   const selectedTurns = [];
-  let used = system.reduce((sum, message) => sum + message.tokens, 0);
+  let used = requiredSystem.reduce((sum, message) => sum + message.tokens, 0) + activeUser.tokens;
   const overflow = used > budget;
   if (!overflow) {
     for (let index = turns.length - 1; index >= 0; index -= 1) {
@@ -81,31 +78,35 @@ export const chatActionsContextLesson = defineExtendedLesson({
       }
     }
   }
-  return { selected: [...system, ...selectedTurns.flat()], used, overflow };
+  return { selected: [...requiredSystem, ...selectedTurns.flat(), activeUser], used, overflow };
 }`,
-          checkCode: `const result = selectContext([
-  { id: "s", role: "system", tokens: 4 },
-  { id: "u1", role: "user", tokens: 3 },
-  { id: "a1", role: "assistant", tokens: 3 },
-  { id: "u2", role: "user", tokens: 4 },
-  { id: "a2", role: "assistant", tokens: 4 }
-], 12);
-return { passed: result.selected.map(m => m.id).join(",") === "s,u2,a2" && result.used === 12 && result.overflow === false, detail: result.selected.map(m => m.id).join(" → ") + " · " + result.used + " tokens" };`,
+          checkCode: `const result = selectContext({
+  system: [{ id: "s", role: "system", tokens: 4 }],
+  history: [
+    { id: "u1", role: "user", status: "complete", tokens: 3 },
+    { id: "a1", role: "assistant", status: "complete", tokens: 3 },
+    { id: "u2", role: "user", status: "complete", tokens: 4 },
+    { id: "a2", role: "assistant", status: "complete", tokens: 4 }
+  ],
+  activeUser: { id: "u3", role: "user", status: "complete", tokens: 2 },
+  budget: 14
+});
+return { passed: result.selected.map(m => m.id).join(",") === "s,u2,a2,u3" && result.used === 14 && result.overflow === false, detail: result.selected.map(m => m.id).join(" → ") + " · " + result.used + " tokens" };`,
         },
         {
           id: "regenerate-branch",
           label: "Regeneration branch",
-          purpose: "Create the exact queued assistant record for a new attempt without copying caller-only fields.",
+          purpose: "Create the exact queued assistant record for a new generation attempt and transport request without copying caller-only fields.",
           concepts: [
             { name: "parentUserId", detail: "Branch point shared by all regenerated attempts." },
             { name: "attemptId", detail: "Unique identity for metrics and model parameters." },
-            { name: "status", detail: "Queued until transport starts producing output." },
+            { name: "requestId", detail: "Unique identity for this transport lifecycle and its incoming events." },
           ],
-          code: `function createRegeneration({ messageId, parentUserId, attemptId }) {
-  return { messageId, parentUserId, attemptId, role: "assistant", content: "", status: "queued" };
+          code: `function createRegeneration({ messageId, parentUserId, attemptId, requestId }) {
+  return { messageId, parentUserId, attemptId, requestId, role: "assistant", content: "", status: "queued" };
 }`,
-          checkCode: `const branch = createRegeneration({ messageId: "m9", parentUserId: "m4", attemptId: "a2" });
-return { passed: branch.parentUserId === "m4" && branch.attemptId === "a2" && branch.status === "queued", detail: branch.parentUserId + " → " + branch.attemptId };`,
+          checkCode: `const branch = createRegeneration({ messageId: "m9", parentUserId: "m4", attemptId: "a2", requestId: "r2" });
+return { passed: branch.parentUserId === "m4" && branch.attemptId === "a2" && branch.requestId === "r2" && branch.status === "queued", detail: branch.attemptId + " → " + branch.requestId };`,
         },
       ],
     },

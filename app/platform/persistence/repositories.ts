@@ -1,6 +1,14 @@
 import type { BrowserLabDatabase } from "./database";
 import { assertBundleIntegrity, createPersistenceId, hashBundleContents, hashText } from "./hash";
-import { assertStructuredValueWithinLimits, projectFileId, promotionKey } from "./pure";
+import {
+  assertStructuredValueWithinLimits,
+  certifyValidatedPersistedBuild,
+  isValidatedPersistedBuild,
+  projectFileId,
+  promotionKey,
+  structurallyEqual,
+  type ValidatedPersistedBuild,
+} from "./pure";
 import {
   PERSISTENCE_SCHEMA_VERSION,
   type BuildBindings,
@@ -59,6 +67,12 @@ export type SaveProjectFileInput = {
   verifiedCells?: number;
   totalCells?: number;
   reason?: FileRevisionReason;
+  /**
+   * Optional compare-and-save guard. `null` means the caller observed no
+   * durable file; an object binds the write to the exact observed revision
+   * and source hash. The comparison and write happen in one transaction.
+   */
+  expected?: { revision: number; sourceHash: string } | null;
 };
 
 export class ProjectRepository extends RepositoryBase {
@@ -118,6 +132,16 @@ export class ProjectRepository extends RepositoryBase {
       const project = await this.database.projects.get(input.projectId);
       if (!project) throw new PersistenceInvariantError(`Project ${input.projectId} does not exist.`);
       const existing = await this.database.files.get(id);
+      if (input.expected === null && existing) {
+        throw new PersistenceInvariantError(`${input.path} was created in another tab before this save completed.`);
+      }
+      if (input.expected && (
+        !existing
+        || existing.revision !== input.expected.revision
+        || existing.sourceHash !== input.expected.sourceHash
+      )) {
+        throw new PersistenceInvariantError(`${input.path} changed in another tab before this save completed.`);
+      }
       const contentChanged = !existing || existing.content !== input.content;
       const revision = contentChanged ? (existing?.revision ?? 0) + 1 : existing.revision;
       const record: ProjectFileRecord = {
@@ -269,6 +293,22 @@ export function assertPromotionEligibility(project: ProjectRecord, receipt: Test
 }
 
 export class BuildRepository extends RepositoryBase {
+  private certify(build: BuildRecord, receipt: TestReceiptRecord | undefined, run: TestRunRecord | undefined) {
+    try {
+      return certifyValidatedPersistedBuild(build, receipt, run);
+    } catch (error) {
+      throw new PersistenceInvariantError(error instanceof Error ? error.message : "The validated build receipt is invalid.");
+    }
+  }
+
+  private async certifyStoredBuild(build: BuildRecord) {
+    const receipt = typeof build.testReceiptId === "string"
+      ? await this.database.testReceipts.get(build.testReceiptId)
+      : undefined;
+    const run = receipt ? await this.database.testRuns.get(receipt.runId) : undefined;
+    return this.certify(build, receipt, run);
+  }
+
   async promotePassing(input: PromotePassingBuildInput) {
     assertStructuredValueWithinLimits(input);
     await assertBundleIntegrity(input.bundles, input.bundleHashes);
@@ -281,7 +321,7 @@ export class BuildRepository extends RepositoryBase {
     if (existingBeforeTransaction) {
       await assertBundleIntegrity(existingBeforeTransaction.bundles, existingBeforeTransaction.bundleHashes);
     }
-    return this.database.transaction("rw", this.database.projects, this.database.testReceipts, this.database.checkpoints, this.database.builds, async () => {
+    return this.database.transaction("rw", this.database.projects, this.database.testRuns, this.database.testReceipts, this.database.checkpoints, this.database.builds, async () => {
       const [project, receipt, existing] = await Promise.all([
         this.database.projects.get(input.projectId),
         this.database.testReceipts.get(input.testReceiptId),
@@ -289,11 +329,23 @@ export class BuildRepository extends RepositoryBase {
       ]);
       if (!project) throw new PersistenceInvariantError(`Project ${input.projectId} does not exist.`);
       if (!receipt) throw new PersistenceInvariantError(`Test receipt ${input.testReceiptId} does not exist.`);
+      const run = await this.database.testRuns.get(receipt.runId);
       assertPromotionEligibility(project, receipt, verifiedInput);
 
       if (existing) {
+        const existingReceipt = existing.testReceiptId === receipt.id
+          ? receipt
+          : typeof existing.testReceiptId === "string"
+            ? await this.database.testReceipts.get(existing.testReceiptId)
+            : undefined;
+        const existingRun = existingReceipt?.runId === run?.id
+          ? run
+          : existingReceipt
+            ? await this.database.testRuns.get(existingReceipt.runId)
+            : undefined;
+        const certified = this.certify(existing, existingReceipt, existingRun);
         await this.database.projects.update(project.id, { activeBuildId: existing.id, updatedAt: this.now() });
-        return existing;
+        return certified;
       }
       if (input.checkpointId) {
         const checkpoint = await this.database.checkpoints.get(input.checkpointId);
@@ -322,22 +374,45 @@ export class BuildRepository extends RepositoryBase {
         provenance: "validated",
         createdAt: this.now(),
       };
+      const certified = this.certify(build, receipt, run);
       await this.database.builds.add(build);
       await this.database.projects.update(project.id, { activeBuildId: build.id, updatedAt: build.createdAt });
-      return build;
+      return certified;
     });
   }
 
-  async active(projectId: string) {
+  private async activeRecord(projectId: string): Promise<BuildRecord | ValidatedPersistedBuild | undefined> {
     const project = await this.database.projects.get(projectId);
-    const build = project?.activeBuildId ? await this.database.builds.get(project.activeBuildId) : undefined;
-    if (build) await assertBundleIntegrity(build.bundles, build.bundleHashes);
+    if (!project?.activeBuildId) return undefined;
+    const build = await this.database.builds.get(project.activeBuildId);
+    if (!build) throw new PersistenceInvariantError(`Project ${project.id} references a missing active build.`);
+    if (build.projectId !== project.id) throw new PersistenceInvariantError(`Project ${project.id} references another project's active build.`);
+    await assertBundleIntegrity(build.bundles, build.bundleHashes);
+    if (build.provenance === "validated") return this.certifyStoredBuild(build);
+    if (build.provenance === "legacy") return build;
+    throw new PersistenceInvariantError("The active build has invalid provenance.");
+  }
+
+  async active(projectId: string): Promise<BuildRecord | undefined> {
+    return this.activeRecord(projectId);
+  }
+
+  async activeValidated(projectId: string): Promise<ValidatedPersistedBuild | undefined> {
+    const build = await this.activeRecord(projectId);
+    if (!build) return undefined;
+    if (!isValidatedPersistedBuild(build)) {
+      throw new PersistenceInvariantError("Only a host-validated active build can power the trusted runtime.");
+    }
     return build;
   }
 
   async list(projectId: string) {
     const builds = await this.database.builds.where("projectId").equals(projectId).sortBy("buildNumber");
+    if (builds.some((build) => build.provenance !== "validated" && build.provenance !== "legacy")) {
+      throw new PersistenceInvariantError("The build history contains invalid provenance.");
+    }
     await Promise.all(builds.map((build) => assertBundleIntegrity(build.bundles, build.bundleHashes)));
+    await Promise.all(builds.filter((build) => build.provenance === "validated").map((build) => this.certifyStoredBuild(build)));
     return builds;
   }
 }
@@ -356,24 +431,60 @@ export class CheckpointRepository extends RepositoryBase {
   }
 }
 
+function normalizedProgressRecord(record: LessonProgressRecord, updatedAt: number): LessonProgressRecord {
+  return {
+    ...record,
+    verifiedCellIds: [...new Set(record.verifiedCellIds)],
+    verifiedSources: record.verifiedSources ? { ...record.verifiedSources } : undefined,
+    verifiedContractVersion: typeof record.verifiedContractVersion === "string" ? record.verifiedContractVersion : undefined,
+    hiddenBlockIds: [...new Set(record.hiddenBlockIds)],
+    answers: { ...record.answers },
+    knowledgeAnswers: record.knowledgeAnswers ? { ...record.knowledgeAnswers } : undefined,
+    knowledgeVerifiedIds: record.knowledgeVerifiedIds
+      ? [...new Set(record.knowledgeVerifiedIds)]
+      : undefined,
+    updatedAt,
+  };
+}
+
+function progressComparisonValue(record: LessonProgressRecord) {
+  return {
+    ...record,
+    verifiedCellIds: [...new Set(record.verifiedCellIds)],
+    verifiedSources: record.verifiedSources ?? null,
+    verifiedContractVersion: record.verifiedContractVersion ?? null,
+    hiddenBlockIds: [...new Set(record.hiddenBlockIds)],
+    answers: record.answers,
+    knowledgeAnswers: record.knowledgeAnswers ?? null,
+    knowledgeVerifiedIds: record.knowledgeVerifiedIds ? [...new Set(record.knowledgeVerifiedIds)] : null,
+  };
+}
+
 export class ProgressRepository extends RepositoryBase {
   async put(record: LessonProgressRecord) {
-    const safe = {
-      ...record,
-      verifiedCellIds: [...new Set(record.verifiedCellIds)],
-      verifiedSources: record.verifiedSources ? { ...record.verifiedSources } : undefined,
-      verifiedContractVersion: typeof record.verifiedContractVersion === "string" ? record.verifiedContractVersion : undefined,
-      hiddenBlockIds: [...new Set(record.hiddenBlockIds)],
-      answers: { ...record.answers },
-      knowledgeAnswers: record.knowledgeAnswers ? { ...record.knowledgeAnswers } : undefined,
-      knowledgeVerifiedIds: record.knowledgeVerifiedIds
-        ? [...new Set(record.knowledgeVerifiedIds)]
-        : undefined,
-      updatedAt: this.now(),
-    };
+    const safe = normalizedProgressRecord(record, this.now());
     assertStructuredValueWithinLimits(safe);
     await this.database.lessonProgress.put(safe);
     return safe;
+  }
+
+  /** Atomically binds a lesson write to the exact durable row the tab observed. */
+  async compareAndPut(record: LessonProgressRecord, expected: LessonProgressRecord | null) {
+    const updatedAt = Number.isFinite(record.updatedAt) ? record.updatedAt : this.now();
+    const safe = normalizedProgressRecord(record, updatedAt);
+    assertStructuredValueWithinLimits(safe);
+    return this.database.transaction("rw", this.database.lessonProgress, async () => {
+      const current = await this.database.lessonProgress.get(record.id);
+      if (current && structurallyEqual(progressComparisonValue(current), progressComparisonValue(safe))) return current;
+      const expectationMatches = expected === null
+        ? !current
+        : Boolean(current) && structurallyEqual(progressComparisonValue(current!), progressComparisonValue(expected));
+      if (!expectationMatches) {
+        throw new PersistenceInvariantError(`${record.lessonId} changed in another tab before this save completed.`);
+      }
+      await this.database.lessonProgress.put(safe);
+      return safe;
+    });
   }
 
   get(id: string) {

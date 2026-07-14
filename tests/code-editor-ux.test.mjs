@@ -91,7 +91,7 @@ test("the mobile IDE source contract preserves readable type, bounded scrolling,
   assert.match(source, /Prec\.high\(keymap\.of\(\[\s*\{ key: "Escape", run: temporarilySetTabFocusMode \},\s*indentWithTab/);
   assert.match(source, /"aria-describedby":\s*instructionId/);
   assert.match(source, /Tab indents\. Press Escape, then Tab, to leave the editor\./);
-  assert.match(source, /<div className="code-editor" ref=\{hostRef\}\s*\/>\s*<span className="sr-only" id=\{instructionId\}>/);
+  assert.match(source, /className=\{variant === "lesson" \? "code-editor lesson-code-editor" : "code-editor"\}[\s\S]*?ref=\{hostRef\}[\s\S]*?\/>\s*<span className="sr-only" id=\{instructionId\}>/);
   assert.doesNotMatch(source, /<div className="code-editor" ref=\{hostRef\}>\s*<span/);
   assert.match(responsiveCss, /\.project-workbench-grid\[data-mobile-view="code"\][\s\S]*?\.cm-editor\s*\{[\s\S]*?font-size:\s*16px/);
   assert.match(responsiveCss, /\.project-workbench-grid\[data-mobile-view="code"\][\s\S]*?\.cm-scroller\s*\{[\s\S]*?overflow-x:\s*auto/);

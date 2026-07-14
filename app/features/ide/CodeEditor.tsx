@@ -5,7 +5,7 @@ import { basicSetup } from "codemirror";
 import { javascript } from "@codemirror/lang-javascript";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { EditorState, Prec, type Extension } from "@codemirror/state";
-import { EditorView, keymap } from "@codemirror/view";
+import { EditorView, keymap, lineNumbers } from "@codemirror/view";
 import { indentWithTab, temporarilySetTabFocusMode } from "@codemirror/commands";
 import { tags } from "@lezer/highlight";
 
@@ -15,6 +15,9 @@ type CodeEditorProps = {
   onChange: (value: string) => void;
   onSave?: () => void;
   readOnly?: boolean;
+  variant?: "lesson" | "project";
+  ariaLabel?: string;
+  lineNumberStart?: number;
 };
 
 const editorPalette = {
@@ -75,6 +78,23 @@ const latentTheme = EditorView.theme({
   },
 }, { dark: true });
 
+const lessonTheme = EditorView.theme({
+  "&": {
+    minHeight: "0",
+    fontSize: "14px",
+  },
+  ".cm-content": {
+    padding: "15px 0 20px",
+    lineHeight: "1.72",
+  },
+  ".cm-line": { padding: "0 20px 0 10px" },
+  ".cm-gutters": {
+    paddingLeft: "4px",
+  },
+  ".cm-foldGutter": { display: "none" },
+  ".cm-scroller": { minHeight: "0" },
+}, { dark: true });
+
 const syntaxTheme = HighlightStyle.define([
   { tag: tags.keyword, color: editorPalette.keyword, fontWeight: "600" },
   { tag: [tags.string, tags.regexp, tags.escape], color: editorPalette.string },
@@ -89,7 +109,7 @@ const syntaxTheme = HighlightStyle.define([
   { tag: tags.invalid, color: editorPalette.invalid, textDecoration: "underline wavy" },
 ]);
 
-export function CodeEditor({ value, path, onChange, onSave, readOnly = false }: CodeEditorProps) {
+export function CodeEditor({ value, path, onChange, onSave, readOnly = false, variant = "project", ariaLabel, lineNumberStart = 1 }: CodeEditorProps) {
   const instructionId = useId();
   const hostRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -123,9 +143,11 @@ export function CodeEditor({ value, path, onChange, onSave, readOnly = false }: 
         doc: valueRef.current,
         extensions: [
           basicSetup,
+          variant === "lesson" ? lineNumbers({ formatNumber: (line) => String(line + lineNumberStart - 1) }) : [],
           javascript({ jsx: /\.[jt]sx$/.test(path), typescript: /\.tsx?$/.test(path) }),
           saveKeymap,
           latentTheme,
+          variant === "lesson" ? lessonTheme : [],
           syntaxHighlighting(syntaxTheme),
           EditorState.tabSize.of(2),
           EditorState.readOnly.of(readOnly),
@@ -134,7 +156,7 @@ export function CodeEditor({ value, path, onChange, onSave, readOnly = false }: 
             if (update.docChanged) changeRef.current(update.state.doc.toString());
           }),
           EditorView.contentAttributes.of({
-            "aria-label": `Project file editor: ${path}`,
+            "aria-label": ariaLabel ?? `Project file editor: ${path}`,
             "aria-describedby": instructionId,
             spellcheck: "false",
             autocapitalize: "off",
@@ -149,7 +171,7 @@ export function CodeEditor({ value, path, onChange, onSave, readOnly = false }: 
       viewRef.current = null;
     };
     // Recreate the language mode when the selected path changes.
-  }, [instructionId, path, readOnly]);
+  }, [ariaLabel, instructionId, lineNumberStart, path, readOnly, variant]);
 
   useEffect(() => {
     const view = viewRef.current;
@@ -161,7 +183,11 @@ export function CodeEditor({ value, path, onChange, onSave, readOnly = false }: 
 
   return (
     <>
-      <div className="code-editor" ref={hostRef} />
+      <div
+        className={variant === "lesson" ? "code-editor lesson-code-editor" : "code-editor"}
+        ref={hostRef}
+        style={variant === "lesson" ? { height: `${Math.max(7.25, Math.min(23, value.split("\n").length * 1.5 + 2.5))}rem` } : undefined}
+      />
       <span className="sr-only" id={instructionId}>Code editor. Tab indents. Press Escape, then Tab, to leave the editor.</span>
     </>
   );

@@ -88,9 +88,8 @@ test("all fourteen lessons use the reusable learning flow", async () => {
     assert.equal(response.status, 200, slug);
     const html = await response.text();
     assert.match(html, new RegExp(title));
-    assert.match(html, /id="lesson-sources-title">Sources/);
+    assert.match(html, /id="lesson-sources-title">References/);
     assert.match(html, /aria-labelledby="lesson-sources-title"/);
-    assert.match(html, /3(?:<!-- -->)? references/);
     assert.equal((html.match(/class="source-entry"/g) ?? []).length, 3);
     assert.doesNotMatch(html, /primary and supporting references|supporting sources/);
     assert.match(html, /Source finding/);
@@ -107,6 +106,16 @@ test("all fourteen lessons use the reusable learning flow", async () => {
     assert.match(html, /A source-bound validation receipt/);
     assert.match(html, /course-authored references/);
   }
+});
+
+test("lesson code is syntax highlighted in the server-rendered first paint", async () => {
+  const response = await render("/lessons/streaming-transport");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /class="syntax-code"/);
+  assert.match(html, /tok-keyword/);
+  assert.match(html, /tok-string2/);
+  assert.doesNotMatch(html, /syntax-code-fallback/);
 });
 
 test("Character RNNs teaches the unrolled mechanism and gates practice until restoration", async () => {

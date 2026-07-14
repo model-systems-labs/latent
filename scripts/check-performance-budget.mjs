@@ -66,6 +66,7 @@ enforceAsset("Browser compiler WASM", /^esbuild-.*\.wasm$/, 14 * 1024 * 1024, mi
 enforceAsset("Transformer WASM", /^ort-wasm-simd-threaded\.jsep-.*\.wasm$/, 22 * 1024 * 1024, mib);
 requireDynamicEntry("app/components/ProjectWorkbench.tsx", "Project IDE loading boundary");
 requireDynamicEntry("app/lib/local-transformer-runtime.ts", "Local Transformer loading boundary");
+requireDynamicEntry("app/features/ide/CodeEditor.tsx", "Lesson editor loading boundary");
 
 console.log(measurements.join("\n"));
 

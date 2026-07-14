@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { CodeBlock, CourseLesson } from "@latent/course-kit";
 import { courseLessons } from "../lessons/course";
@@ -30,9 +30,14 @@ import { llmSystemsContractSuite } from "../content/llm-systems/contracts";
 import { LessonOutcome } from "./LessonOutcome";
 import { lessonLearningOutcome, moduleCheckpoint } from "../content/llm-systems/learning";
 import { recordLearningEvent } from "../lib/learning-analytics";
+import { SyntaxCode } from "../features/ide/SyntaxCode";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 type CheckResult = { label: string; passed: boolean; detail: string };
+
+const LessonCodeEditor = lazy(async () => ({
+  default: (await import("../features/ide/CodeEditor")).CodeEditor,
+}));
 
 function Atmosphere() {
   return (
@@ -59,19 +64,15 @@ export function HeaderSection({ lesson }: { lesson: CourseLesson }) {
         <span>{lesson.year}</span>
       </div>
       <section className="source-set" aria-labelledby="lesson-sources-title">
-        <div className="source-set-heading">
-          <h2 id="lesson-sources-title">Sources</h2>
-          <span>{lesson.sources.length} references</span>
-        </div>
+        <h2 className="source-set-title" id="lesson-sources-title">References</h2>
         <ul className="source-list">
           {lesson.sources.map((source) => (
             <li className="source-entry" key={source.url}>
-              <a href={source.url} target="_blank" rel="noreferrer">
+              <a href={source.url} target="_blank" rel="noreferrer" aria-label={`${source.title} — ${source.authors}, ${source.year}. ${source.relevance}`}>
                 <span className="source-citation">
                   <strong>{source.title}</strong>
-                  <span>{source.authors} · {source.year} ↗</span>
+                  <span aria-hidden="true">↗</span>
                 </span>
-                <p>{source.relevance}</p>
               </a>
             </li>
           ))}
@@ -472,23 +473,31 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
 }
 
 export function ParagraphSection({ lesson }: { lesson: CourseLesson }) {
+  const diagramAfter = Math.min(2, Math.max(1, Math.ceil(lesson.summary.length / 2)));
+  const opening = lesson.summary.slice(0, diagramAfter);
+  const closing = lesson.summary.slice(diagramAfter);
   return (
     <section className="paper-section summary-section" id="summary">
       <div className="section-title"><span>01</span><h2>Summary</h2></div>
-      <div className={`summary-layout${lesson.id === "character-rnns" ? " recurrence-summary" : ""}`}>
+      <div className="summary-reading">
         <div className="summary-copy">
-          {lesson.summary.map((paragraph) => (
+          {opening.map((paragraph) => (
             <p key={paragraph.label}><strong>{paragraph.label}</strong> {paragraph.body}</p>
           ))}
         </div>
-        <div className="summary-evidence">
+        <div className="summary-interlude">
           <DiagramSection lesson={lesson} />
-          <dl className="fidelity-record">
-            <div><dt>Source finding</dt><dd>{lesson.claims.paper}</dd></div>
-            <div><dt>Browser reproduction</dt><dd>{lesson.claims.lab}</dd></div>
-            <div><dt>Out of scope</dt><dd>{lesson.claims.limit}</dd></div>
-          </dl>
         </div>
+        {closing.length ? <div className="summary-copy">
+          {closing.map((paragraph) => (
+            <p key={paragraph.label}><strong>{paragraph.label}</strong> {paragraph.body}</p>
+          ))}
+        </div> : null}
+        <dl className="fidelity-record summary-boundary">
+          <div><dt>Source finding</dt><dd>{lesson.claims.paper}</dd></div>
+          <div><dt>Browser reproduction</dt><dd>{lesson.claims.lab}</dd></div>
+          <div><dt>Out of scope</dt><dd>{lesson.claims.limit}</dd></div>
+        </dl>
       </div>
     </section>
   );
@@ -847,6 +856,18 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
       setRunning([]);
     }
   };
+  const updateAnswer = (block: CodeBlock, value: string) => {
+    const currentHidden = [...hiddenBlocksRef.current];
+    const nextAnswers = { ...answersRef.current, [block.id]: value };
+    const invalidated = invalidateBlockVerification({ ids: verifiedBlockIdsRef.current, sources: verifiedSourcesRef.current, contractVersion: verifiedContractVersionRef.current }, block.id);
+    const nextVerified = invalidated.ids;
+    const nextVerifiedSources = invalidated.sources;
+    applyPracticeState(currentHidden, nextAnswers, nextVerified, nextVerifiedSources, invalidated.contractVersion);
+    saveLessonPracticeAndVerification(lesson.id, currentHidden, nextAnswers, nextVerified, nextVerifiedSources, invalidated.contractVersion);
+    saveLessonProjectFile(projectSeedForLesson(lesson, currentHidden, nextAnswers, nextVerified));
+    setCellResults((current) => ({ ...current, [block.id]: undefined }));
+    setPracticeMessage("Implementation changed. Run the affected cell again.");
+  };
   const verifiedCells = verifiedBlockIds.length;
 
   return (
@@ -908,21 +929,20 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
                         setCellResults((current) => ({ ...current, [block.id]: undefined }));
                       }}>Reset starter</button>
                     </div>
-                    <textarea aria-label={`Reimplement ${block.label}`} value={answers[block.id] ?? ""} disabled={!practiceReady || runningBlockIds.length > 0} onChange={(event) => {
-                      const currentHidden = [...hiddenBlocksRef.current];
-                      const nextAnswers = { ...answersRef.current, [block.id]: event.target.value };
-                      const invalidated = invalidateBlockVerification({ ids: verifiedBlockIdsRef.current, sources: verifiedSourcesRef.current, contractVersion: verifiedContractVersionRef.current }, block.id);
-                      const nextVerified = invalidated.ids;
-                      const nextVerifiedSources = invalidated.sources;
-                      applyPracticeState(currentHidden, nextAnswers, nextVerified, nextVerifiedSources, invalidated.contractVersion);
-                      saveLessonPracticeAndVerification(lesson.id, currentHidden, nextAnswers, nextVerified, nextVerifiedSources, invalidated.contractVersion);
-                      saveLessonProjectFile(projectSeedForLesson(lesson, currentHidden, nextAnswers, nextVerified));
-                      setCellResults((current) => ({ ...current, [block.id]: undefined }));
-                      setPracticeMessage("Implementation changed. Run the affected cell again.");
-                    }} spellCheck="false" />
+                    <Suspense fallback={<div className="lesson-editor-loading" role="status">Loading syntax-aware editor…</div>}>
+                      <LessonCodeEditor
+                        ariaLabel={`Reimplement ${block.label}`}
+                        lineNumberStart={startLine}
+                        onChange={(value) => updateAnswer(block, value)}
+                        path={lesson.implementation.filename}
+                        readOnly={!practiceReady || runningBlockIds.length > 0}
+                        value={answers[block.id] ?? ""}
+                        variant="lesson"
+                      />
+                    </Suspense>
                   </div>
                 ) : (
-                  <div className="code-lines">{block.code.split("\n").map((line, lineIndex) => <div key={`${block.id}-${lineIndex}`}><span>{startLine + lineIndex}</span><code>{line || " "}</code></div>)}</div>
+                  <SyntaxCode code={block.code} label={`${block.label} reference implementation`} startLine={startLine} />
                 )}
                 <div className="cell-footer" role="status" aria-label={`${block.label} check status`} aria-live="polite" aria-atomic="true">
                   {result ? <span className={result.passed ? "cell-result passed" : "cell-result failed"}><i>{result.passed ? "✓" : "×"}</i>{result.detail}</span> : verifiedContractVersion === llmSystemsContractSuite.contractVersion && verifiedBlockIds.includes(block.id) && verifiedSources[block.id] === (hidden ? answers[block.id] ?? "" : block.code) ? <span className="cell-result passed"><i>✓</i>Verified previously on this device</span> : <span>{practiceReady ? "Not run" : "Waiting for saved progress"}</span>}

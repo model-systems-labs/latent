@@ -60,15 +60,19 @@
 
 .practice-editor {
   background: #19181b;
-  border-radius: 0.9rem;
+  border: 0;
+  border-radius: 0.6rem;
+  box-shadow: 0 18px 48px rgba(34, 28, 39, 0.09);
+  max-width: 64rem;
   overflow: hidden;
-  padding-bottom: 0.9rem;
+  padding-bottom: 0.65rem;
 }
 
 .editor-toolbar {
   display: grid;
   grid-template-columns: 1fr auto auto;
-  padding: 1rem 1.1rem;
+  min-height: 3.5rem;
+  padding: 0.7rem 0.9rem;
 }
 
 .editor-file {
@@ -113,7 +117,9 @@
 .code-surface {
   display: grid;
   gap: 0;
-  padding: 0 0.9rem;
+  min-width: 0;
+  padding: 0 0.8rem;
+  width: 100%;
 }
 
 .tensor-import-line {
@@ -135,6 +141,7 @@
 .practice-block {
   background: transparent;
   border: 0;
+  min-width: 0;
 }
 
 .practice-block + .practice-block {
@@ -152,8 +159,8 @@
 
 .block-heading {
   background: transparent;
-  min-height: 4.35rem;
-  padding: 1rem 0.1rem;
+  min-height: 3.7rem;
+  padding: 0.62rem 0.1rem;
 }
 
 .block-heading > div:first-child {
@@ -185,7 +192,6 @@
 
 .block-actions button {
   min-height: 2.75rem;
-  min-width: 6.6rem;
 }
 
 .toolbar-actions button,
@@ -207,23 +213,51 @@
 }
 
 .block-actions .run-cell-button {
-  background: #eee8e0;
-  border-color: #eee8e0;
-  color: #262229;
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.17);
+  color: #d8d1ca;
 }
 
-.block-actions .run-cell-button:hover,
-.block-actions .run-cell-button:focus-visible {
+.practice-block.is-hidden .block-actions .run-cell-button {
   background: #d8c8e5;
   border-color: #d8c8e5;
   color: #211d25;
 }
 
+.block-actions .run-cell-button:hover,
+.block-actions .run-cell-button:focus-visible {
+  border-color: rgba(216, 200, 229, 0.55);
+  color: #f2eee8;
+}
+
+.practice-block.is-hidden .block-actions .run-cell-button:hover,
+.practice-block.is-hidden .block-actions .run-cell-button:focus-visible {
+  background: #eee8e0;
+  border-color: #eee8e0;
+  color: #211d25;
+}
+
 .concept-strip {
   background: transparent;
-  border-top-color: rgba(255, 255, 255, 0.085);
-  gap: 1.1rem;
-  padding: 0.9rem 0.1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.075);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.9rem;
+  max-width: 100%;
+  min-width: 0;
+  padding: 0.62rem 0.1rem;
+}
+
+.concept-strip span {
+  align-items: baseline;
+  display: inline-flex;
+  gap: 0.35rem;
+}
+
+.concept-strip span + span::before {
+  color: #716b67;
+  content: "·";
+  margin-right: 0.55rem;
 }
 
 .concept-strip code {
@@ -234,9 +268,13 @@
 .concept-strip em {
   color: #bbb3ac;
   font-size: max(0.68rem, 11px);
+  line-height: 1.45;
+  min-width: 0;
+  white-space: normal;
 }
 
-.code-lines {
+.code-lines,
+.syntax-code {
   background: transparent;
   padding: 1.15rem 0 1.3rem;
 }
@@ -252,17 +290,77 @@
 
 .code-lines code {
   color: #f1ede7;
+  font-size: max(0.8rem, 13px);
   line-height: 1.72rem;
 }
 
+.syntax-code {
+  color: #f1ede7;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-color: #827b84 transparent;
+  scrollbar-width: thin;
+}
+
+.syntax-code:focus-visible {
+  box-shadow: inset 2px 0 #a992bd;
+  outline: 0;
+}
+
+.syntax-code pre {
+  font-size: max(0.8rem, 13px);
+  line-height: 1.72rem;
+  margin: 0;
+  white-space: pre;
+}
+
+.syntax-code-line {
+  display: grid;
+  grid-template-columns: 3.2rem minmax(max-content, 1fr);
+  min-height: 1.72rem;
+  padding-right: 1rem;
+}
+
+.syntax-line-number {
+  color: #9a939d;
+  font-size: max(0.68rem, 11px);
+  padding-right: 0.9rem;
+  text-align: right;
+  user-select: none;
+}
+
+.syntax-line-source {
+  min-width: max-content;
+}
+
+.tok-keyword { color: #ddbdf2; font-weight: 600; }
+.tok-string,
+.tok-string2 { color: #e6c99e; }
+.tok-number,
+.tok-bool,
+.tok-atom { color: #a9d6ef; }
+.tok-comment { color: #aaa3ad; font-style: italic; }
+.tok-variableName,
+.tok-labelName { color: #ece7ef; }
+.tok-variableName.tok-definition,
+.tok-typeName,
+.tok-className { color: #d5c3ea; }
+.tok-propertyName,
+.tok-attributeName { color: #b9cfdf; }
+.tok-operator { color: #d8c7e3; }
+.tok-punctuation { color: #beb6c2; }
+.tok-invalid { color: #ffb4ad; text-decoration: underline wavy; }
+
 .practice-guidance {
   align-items: center;
-  background: rgba(166, 137, 190, 0.12);
-  border-bottom: 1px solid rgba(188, 160, 211, 0.18);
+  background: transparent;
+  border-bottom: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.075);
   display: flex;
   gap: 1rem;
   justify-content: space-between;
-  padding: 0.85rem 1rem;
+  padding: 0.62rem 0.1rem;
 }
 
 .practice-guidance > div {
@@ -307,6 +405,35 @@
   padding: 1.2rem 1.25rem;
 }
 
+.lesson-code-editor {
+  background: #1d1b20;
+  border-top: 1px solid rgba(255, 255, 255, 0.075);
+  max-width: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.lesson-code-editor .cm-editor,
+.lesson-code-editor .cm-scroller {
+  height: 100%;
+  min-height: 0;
+}
+
+.lesson-code-editor .cm-scroller {
+  overflow: auto;
+}
+
+.lesson-editor-loading {
+  align-items: center;
+  background: #1d1b20;
+  border-top: 1px solid rgba(255, 255, 255, 0.075);
+  color: #aaa3ad;
+  display: flex;
+  font-size: max(0.68rem, 11px);
+  min-height: 7.25rem;
+  padding: 1rem;
+}
+
 .cell-footer {
   background: transparent;
   border-top: 1px solid rgba(255, 255, 255, 0.075);
@@ -328,7 +455,7 @@
   border: 0;
   border-top: 1px solid rgba(255, 255, 255, 0.105);
   border-radius: 0;
-  margin: 0.85rem 0.9rem 0;
+  margin: 0.65rem 0.8rem 0;
   padding-left: 0;
   padding-right: 0;
 }

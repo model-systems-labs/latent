@@ -20,12 +20,25 @@ import {
 } from "../lib/learner-state";
 import { ensureProjectWorkspace, initializeProjectPersistence, saveLessonProjectFile, useProjectPersistenceError, type LessonProjectSeed } from "../lib/project-workspace";
 import { runPracticeContracts } from "../features/ide/browser-lab-service";
+import { runPythonLessonContracts } from "../features/ide/python-lesson-service";
 import { ArtifactRuntimePanel } from "../features/artifacts/ArtifactRuntimePanel";
 import { recordValidatedLessonArtifact } from "../features/artifacts/lesson-artifacts";
 import { latentTensorOperations } from "@latent/tensor";
-import { lessonImplementationPrelude, lessonImplementationSource } from "../lessons/implementation-source";
+import { lessonBlockComment, lessonImplementationPrelude, lessonImplementationSource } from "../lessons/implementation-source";
 import { canonicalProjectSeeds } from "../lib/canonical-project";
-import { creditablePracticeBlockIds, invalidateBlockVerification, practiceBlockSource, restoreSourceBoundVerification, verificationAfterBlockRun, waitForPracticeHydration } from "../features/ide/practice-state";
+import {
+  compatiblePracticeDrafts,
+  creditablePracticeBlockIds,
+  editPracticeBlock,
+  invalidateBlockVerification,
+  practiceDraftIsCompatible,
+  practiceBlockSource,
+  resetPracticeBlock,
+  restoreReferenceBlock,
+  restoreSourceBoundVerification,
+  verificationAfterBlockRun,
+  waitForPracticeHydration,
+} from "../features/ide/practice-state";
 import { llmSystemsContractSuite } from "../content/llm-systems/contracts";
 import { LessonOutcome } from "./LessonOutcome";
 import { lessonLearningOutcome, moduleCheckpoint } from "../content/llm-systems/learning";
@@ -611,7 +624,17 @@ export function TextBoxSection({ lesson }: { lesson: CourseLesson }) {
   );
 }
 
-function starterCodeFor(block: CodeBlock) {
+function starterCodeFor(block: CodeBlock, lesson: Pick<CourseLesson, "implementation">) {
+  if (lesson.implementation.filename.endsWith(".py")) {
+    const lines = block.code.split("\n");
+    const definition = lines.findIndex((line) => line.startsWith("def "));
+    if (definition < 0) return `# TODO: implement ${block.label.toLowerCase()}.\nraise NotImplementedError(${JSON.stringify(`Implement ${block.label}.`)})`;
+    const prefix = lines.slice(0, definition).join("\n").trimEnd();
+    const signature = lines[definition];
+    return [prefix, `${signature}\n    raise NotImplementedError(${JSON.stringify(`Implement ${block.label}.`)})`]
+      .filter(Boolean)
+      .join("\n\n");
+  }
   const signature = block.code.split("\n")[0];
   return `${signature}\n  // TODO: implement ${block.label.toLowerCase()}.\n}`;
 }
@@ -619,7 +642,7 @@ function starterCodeFor(block: CodeBlock) {
 function projectSeedForLesson(lesson: CourseLesson, hidden: string[], currentAnswers: Record<string, string>, verified: string[]): LessonProjectSeed {
   const blocks = lesson.implementation.codeBlocks;
   const contentFor = (practice: boolean) => lessonImplementationSource(lesson, blocks
-    .map((block, index) => `// ${String(index + 1).padStart(2, "0")} · ${block.label}\n${practice && hidden.includes(block.id) ? currentAnswers[block.id] ?? "" : block.code}`));
+    .map((block, index) => `${lessonBlockComment(lesson, index, block.label)}\n${practice && hidden.includes(block.id) ? currentAnswers[block.id] ?? "" : block.code}`));
   return {
     path: `${lesson.courseId ?? "models"}/${lesson.implementation.filename}`,
     courseId: lesson.courseId ?? "models",
@@ -638,6 +661,8 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
   const lesson = courseLessons.find((candidate) => candidate.id === lessonProp.id) ?? lessonProp;
   const blocks = lesson.implementation.codeBlocks;
   const projectPath = `${lesson.courseId ?? "models"}/${lesson.implementation.filename}`;
+  const pythonLesson = lesson.implementation.filename.endsWith(".py");
+  const implementationPrelude = lessonImplementationPrelude(lesson);
   const [hiddenBlocks, setHiddenBlocks] = useState<string[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [verifiedBlockIds, setVerifiedBlockIds] = useState<string[]>([]);
@@ -664,8 +689,14 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     ).then(() => {
       if (!active || practiceReadyRef.current) return;
       const saved = loadLearnerState().lessons[lesson.id];
-      const savedHidden = saved?.hiddenBlocks.filter((id) => blocks.some((block) => block.id === id)) ?? [];
-      const savedAnswers = saved?.answers ?? {};
+      const compatible = compatiblePracticeDrafts(
+        lesson.implementation.filename,
+        blocks,
+        saved?.hiddenBlocks ?? [],
+        saved?.answers ?? {},
+      );
+      const savedHidden = compatible.hiddenBlocks;
+      const savedAnswers = compatible.answers;
       const restoredVerification = restoreSourceBoundVerification(
         blocks,
         savedHidden,
@@ -693,9 +724,11 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
         recordVerifiedCells(lesson.id, savedVerified, verifiedSources, verifiedContractVersion);
       }
       ensureProjectWorkspace([projectSeedForLesson(lesson, savedHidden, savedAnswers, savedVerified), ...canonicalProjectSeeds()]);
-      setPracticeMessage(savedHidden.length
-        ? "Your device-local practice state and project file were restored."
-        : "The reference implementation is complete and runnable.");
+      setPracticeMessage(compatible.ignoredLegacyLanguage
+        ? "This lesson now runs in CPython. Your earlier JavaScript draft remains in device storage, while the editable Python reference is loaded so incompatible code is never run."
+        : savedHidden.length
+          ? "Your device-local practice state and project file were restored."
+          : "The reference implementation is complete and runnable.");
       setPracticeReady(true);
     });
     return () => { active = false; };
@@ -724,27 +757,72 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     runningBlockIdsRef.current = ids;
     setRunningBlockIds(ids);
   };
-  const toggleBlock = (block: CodeBlock) => {
-    const currentHidden = hiddenBlocksRef.current;
-    const nextHidden = currentHidden.includes(block.id) ? currentHidden.filter((id) => id !== block.id) : [...currentHidden, block.id];
-    const nextAnswers = { ...answersRef.current, [block.id]: answersRef.current[block.id] ?? starterCodeFor(block) };
-    const invalidated = invalidateBlockVerification({ ids: verifiedBlockIdsRef.current, sources: verifiedSourcesRef.current, contractVersion: verifiedContractVersionRef.current }, block.id);
-    const nextVerified = invalidated.ids;
-    const nextVerifiedSources = invalidated.sources;
+  const runContracts = async (source: string, contractIds: readonly string[]) => {
+    if (!pythonLesson) return runPracticeContracts({ path: projectPath, source, contractIds });
+    const wanted = new Set(contractIds);
+    const contracts = llmSystemsContractSuite.contracts.filter((contract) => wanted.has(contract.id));
+    if (!contracts.length || contracts.length !== wanted.size) {
+      throw new Error("The requested CPython lesson contract is unavailable.");
+    }
+    const run = await runPythonLessonContracts({
+      path: projectPath,
+      source,
+      contracts,
+      onEvent: (event) => {
+        if (event.type === "progress") setPracticeMessage(event.message);
+      },
+    });
+    return run.results;
+  };
+  const practiceDraftState = () => ({
+    hiddenBlocks: [...hiddenBlocksRef.current],
+    answers: { ...answersRef.current },
+    verification: {
+      ids: [...verifiedBlockIdsRef.current],
+      sources: { ...verifiedSourcesRef.current },
+      contractVersion: verifiedContractVersionRef.current,
+    },
+  });
+  const persistBlockState = (block: CodeBlock, next: ReturnType<typeof practiceDraftState>, message: string) => {
+    const nextVerified = next.verification.ids;
+    const nextVerifiedSources = next.verification.sources;
     setCellResults((current) => ({ ...current, [block.id]: undefined }));
-    applyPracticeState(nextHidden, nextAnswers, nextVerified, nextVerifiedSources, invalidated.contractVersion);
-    saveLessonPracticeAndVerification(lesson.id, nextHidden, nextAnswers, nextVerified, nextVerifiedSources, invalidated.contractVersion);
-    saveLessonProjectFile(projectSeedForLesson(lesson, nextHidden, nextAnswers, nextVerified));
-    setPracticeMessage("Implementation changed. Run the affected cell again.");
+    applyPracticeState(next.hiddenBlocks, next.answers, nextVerified, nextVerifiedSources, next.verification.contractVersion);
+    saveLessonPracticeAndVerification(lesson.id, next.hiddenBlocks, next.answers, nextVerified, nextVerifiedSources, next.verification.contractVersion);
+    saveLessonProjectFile(projectSeedForLesson(lesson, next.hiddenBlocks, next.answers, nextVerified));
+    setPracticeMessage(message);
+  };
+  const resetBlock = (block: CodeBlock) => {
+    persistBlockState(
+      block,
+      resetPracticeBlock(practiceDraftState(), block.id, starterCodeFor(block, lesson)),
+      `${block.label} reset to its starter. Complete it, then run the cell.`,
+    );
+  };
+  const restoreBlock = (block: CodeBlock) => {
+    persistBlockState(
+      block,
+      restoreReferenceBlock(practiceDraftState(), block.id),
+      `${block.label} restored to the reference. Choose Restore draft to return to your saved edit.`,
+    );
+  };
+  const recoverBlock = (block: CodeBlock) => {
+    const savedDraft = answersRef.current[block.id];
+    if (savedDraft === undefined || !practiceDraftIsCompatible(lesson.implementation.filename, savedDraft)) return;
+    persistBlockState(
+      block,
+      editPracticeBlock(practiceDraftState(), block.id, savedDraft),
+      `${block.label} draft restored. Run the cell when you are ready.`,
+    );
   };
   const hideAll = () => {
     const nextHidden = blocks.map((block) => block.id);
-    const nextAnswers = Object.fromEntries(blocks.map((block) => [block.id, starterCodeFor(block)]));
+    const nextAnswers = Object.fromEntries(blocks.map((block) => [block.id, starterCodeFor(block, lesson)]));
     applyPracticeState(nextHidden, nextAnswers, [], {}, null);
     saveLessonPracticeAndVerification(lesson.id, nextHidden, nextAnswers, [], {}, null);
     saveLessonProjectFile(projectSeedForLesson(lesson, nextHidden, nextAnswers, []));
     setCellResults({});
-    setPracticeMessage("All conceptual blocks are hidden. Reconstruct them in any valid way.");
+    setPracticeMessage("Every cell was reset to its starter. Reconstruct them in any valid way.");
   };
   const showSolution = () => {
     const currentAnswers = answersRef.current;
@@ -752,7 +830,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     saveLessonPracticeAndVerification(lesson.id, [], currentAnswers, [], {}, null);
     saveLessonProjectFile(projectSeedForLesson(lesson, [], currentAnswers, []));
     setCellResults({});
-    setPracticeMessage("Reference solution restored. Previous attempts remain available if you hide a cell again.");
+    setPracticeMessage("Reference solution restored. Use Restore draft on any cell to return to its saved edit.");
   };
   const runCell = async (block: CodeBlock) => {
     if (!practiceReadyRef.current || runningBlockIdsRef.current.length) return;
@@ -761,13 +839,14 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     const answersSnapshot = { ...answersRef.current };
     const isPracticeRun = hiddenSnapshot.includes(block.id);
     setRunning([block.id]);
-    setPracticeMessage(`${isPracticeRun ? "Checking your" : "Running the reference"} ${block.label.toLowerCase()} in the isolated browser lab…`);
+    setPracticeMessage(pythonLesson
+      ? `${isPracticeRun ? "Checking your" : "Running the reference"} ${block.label.toLowerCase()} in browser CPython…`
+      : `${isPracticeRun ? "Checking your" : "Running the reference"} ${block.label.toLowerCase()} in the isolated browser lab…`);
     try {
-      const [result] = await runPracticeContracts({
-        path: projectPath,
-        source: lessonImplementationSource(lesson, [sourceSnapshot]),
-        contractIds: [`${lesson.id}/${block.id}`],
-      });
+      const [result] = await runContracts(
+        lessonImplementationSource(lesson, [sourceSnapshot]),
+        [`${lesson.id}/${block.id}`],
+      );
       const check = result ?? { label: block.label, passed: false, detail: "The isolated test returned no result." };
       if (sourceFor(block) !== sourceSnapshot) {
         setCellResults((current) => ({ ...current, [block.id]: undefined }));
@@ -817,16 +896,19 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     const answersSnapshot = { ...answersRef.current };
     const sourceSnapshots = Object.fromEntries(blocks.map((block) => [block.id, sourceFor(block)]));
     setRunning(blocks.map((block) => block.id));
-    setPracticeMessage(hiddenSnapshot.length
-      ? "Checking practice cells and running the remaining reference examples in an isolated worker…"
-      : "Running every reference example. Enter practice to earn verification…");
+    setPracticeMessage(pythonLesson
+      ? hiddenSnapshot.length
+        ? "Checking practice cells and running the remaining reference examples in browser CPython…"
+        : "Running every reference example in browser CPython. Edit a cell to earn verification…"
+      : hiddenSnapshot.length
+        ? "Checking practice cells and running the remaining reference examples in an isolated worker…"
+        : "Running every reference example. Edit a cell to earn verification…");
     try {
       const combinedSource = lessonImplementationSource(lesson, blocks.map((block) => sourceSnapshots[block.id]));
-      const results = await runPracticeContracts({
-        path: projectPath,
-        source: combinedSource,
-        contractIds: blocks.map((block) => `${lesson.id}/${block.id}`),
-      });
+      const results = await runContracts(
+        combinedSource,
+        blocks.map((block) => `${lesson.id}/${block.id}`),
+      );
       const resultById = new Map(results.map((result) => [result.id, result]));
       const ordered = blocks.map((block) => resultById.get(`${lesson.id}/${block.id}`) ?? { id: `${lesson.id}/${block.id}`, path: projectPath, label: block.label, passed: false, detail: "The isolated test returned no result." });
       if (blocks.some((block) => sourceFor(block) !== sourceSnapshots[block.id])) {
@@ -882,16 +964,11 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     }
   };
   const updateAnswer = (block: CodeBlock, value: string) => {
-    const currentHidden = [...hiddenBlocksRef.current];
-    const nextAnswers = { ...answersRef.current, [block.id]: value };
-    const invalidated = invalidateBlockVerification({ ids: verifiedBlockIdsRef.current, sources: verifiedSourcesRef.current, contractVersion: verifiedContractVersionRef.current }, block.id);
-    const nextVerified = invalidated.ids;
-    const nextVerifiedSources = invalidated.sources;
-    applyPracticeState(currentHidden, nextAnswers, nextVerified, nextVerifiedSources, invalidated.contractVersion);
-    saveLessonPracticeAndVerification(lesson.id, currentHidden, nextAnswers, nextVerified, nextVerifiedSources, invalidated.contractVersion);
-    saveLessonProjectFile(projectSeedForLesson(lesson, currentHidden, nextAnswers, nextVerified));
-    setCellResults((current) => ({ ...current, [block.id]: undefined }));
-    setPracticeMessage("Implementation changed. Run the affected cell again.");
+    persistBlockState(
+      block,
+      editPracticeBlock(practiceDraftState(), block.id, value),
+      "Draft saved locally. Run the affected cell again.",
+    );
   };
   const verifiedCells = verifiedBlockIds.length;
 
@@ -899,29 +976,35 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     <section className="paper-section implementation-section" id="implementation">
       <div className="section-title"><span>03</span><h2>Implementation</h2></div>
       <p className="implementation-intro">{lesson.implementation.intro}</p>
-      {lesson.implementation.tensorOps?.length ? (
+      {pythonLesson || lesson.implementation.tensorOps?.length ? (
         <div className="tensor-runtime-strip">
-          <div><span>Tensor runtime</span><strong>runtime/latent-tensor.js</strong><p>Shape checks and automatic differentiation are provided; you implement the model operation.</p></div>
-          <div aria-label="Latent Tensor operations used in this lesson">
-            {latentTensorOperations(lesson.implementation.tensorOps).map((operation) => <span title={operation.purpose} key={operation.name}>{operation.name}</span>)}
+          <div><span>{pythonLesson ? "Python runtime" : "Tensor runtime"}</span><strong>{pythonLesson ? "CPython · NumPy" : "runtime/latent-tensor.js"}</strong><p>{pythonLesson ? lesson.implementation.tensorOps?.length ? "NumPy supplies array operations; you implement the model behavior." : "A browser worker runs this file in CPython; you implement the tested behavior." : "Shape checks and automatic differentiation are provided; you implement the model operation."}</p></div>
+          <div aria-label={pythonLesson ? "Python and NumPy operations used in this lesson" : "Latent Tensor operations used in this lesson"}>
+            {pythonLesson
+              ? lesson.implementation.tensorOps?.map((operation) => <span title="Python or NumPy operation used by this lesson" key={operation}>{operation}</span>)
+              : latentTensorOperations(lesson.implementation.tensorOps ?? []).map((operation) => <span title={operation.purpose} key={operation.name}>{operation.name}</span>)}
           </div>
         </div>
       ) : null}
       <div className="practice-editor" aria-busy={!practiceReady || runningBlockIds.length > 0}>
         <div className="editor-toolbar">
-          <div className="editor-file"><span>{projectPath}</span><strong>{!practiceReady ? "Restoring saved work…" : hiddenBlocks.length === 0 ? "Reference · saved" : `${hiddenBlocks.length} cells in practice`}</strong></div>
+          <div className="editor-file"><span>{projectPath}</span><strong>{!practiceReady ? "Restoring saved work…" : hiddenBlocks.length === 0 ? "Reference · editable" : `${hiddenBlocks.length} ${hiddenBlocks.length === 1 ? "draft" : "drafts"} · saved locally`}</strong></div>
           <div className="editor-progress" aria-label={`${verifiedCells} of ${blocks.length} cells verified`}>
             <span>{verifiedCells}/{blocks.length} verified</span><i><b style={{ width: `${verifiedCells / blocks.length * 100}%` }} /></i>
           </div>
-          <div className="toolbar-actions"><button type="button" onClick={hideAll} disabled={!practiceReady || runningBlockIds.length > 0}>Practice all</button><button type="button" onClick={showSolution} disabled={!practiceReady || hiddenBlocks.length === 0 || runningBlockIds.length > 0}>Restore all</button><Link href={`/workspace?file=${encodeURIComponent(`${lesson.courseId ?? "models"}/${lesson.implementation.filename}`)}`}>Open in IDE ↗</Link></div>
+          <div className="toolbar-actions"><button type="button" onClick={hideAll} disabled={!practiceReady || runningBlockIds.length > 0}>Reset all</button><button type="button" onClick={showSolution} disabled={!practiceReady || hiddenBlocks.length === 0 || runningBlockIds.length > 0}>Restore all</button><Link href={`/workspace?file=${encodeURIComponent(`${lesson.courseId ?? "models"}/${lesson.implementation.filename}`)}`}>Open in IDE ↗</Link></div>
         </div>
         <div className="code-surface">
-          {lesson.implementation.tensorOps?.length ? (
-            <div className="tensor-import-line"><span>dependency</span><code>{lessonImplementationPrelude(lesson)}</code><em>read only</em></div>
+          {implementationPrelude ? (
+            <div className="tensor-import-line"><span>dependency</span><code>{implementationPrelude}</code><em>read only</em></div>
           ) : null}
           {blocks.map((block, blockIndex) => {
             const hidden = hiddenBlocks.includes(block.id);
-            const startLine = blocks.slice(0, blockIndex).reduce((line, previous) => line + previous.code.split("\n").length + 1, lesson.implementation.tensorOps?.length ? 3 : 1);
+            const recoverableDraft = !hidden
+              && answers[block.id] !== undefined
+              && answers[block.id] !== block.code
+              && practiceDraftIsCompatible(lesson.implementation.filename, answers[block.id]);
+            const startLine = blocks.slice(0, blockIndex).reduce((line, previous) => line + previous.code.split("\n").length + 1, implementationPrelude ? 3 : 1);
             const result = cellResults[block.id];
             return (
               <div
@@ -933,42 +1016,30 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
                 <div className="block-heading">
                   <div><span>0{blockIndex + 1}</span><strong>{block.label}</strong><em>{block.purpose}</em></div>
                   <div className="block-actions">
-                    <button className="run-cell-button" type="button" onClick={() => void runCell(block)} disabled={!practiceReady || runningBlockIds.length > 0}>{runningBlockIds.includes(block.id) ? "Running…" : hidden ? "Run practice" : "Run example"}</button>
-                    <button type="button" onClick={() => toggleBlock(block)} disabled={!practiceReady || runningBlockIds.length > 0}>{hidden ? "Show reference" : "Practice cell"}</button>
+                    <button className="run-cell-button" type="button" onClick={() => void runCell(block)} disabled={!practiceReady || runningBlockIds.length > 0}>{runningBlockIds.includes(block.id) ? "Running…" : "Run cell"}</button>
+                    <button type="button" onClick={() => resetBlock(block)} disabled={!practiceReady || runningBlockIds.length > 0}>Reset starter</button>
+                    <button type="button" onClick={() => hidden ? restoreBlock(block) : recoverBlock(block)} disabled={!practiceReady || (!hidden && !recoverableDraft) || runningBlockIds.length > 0}>{hidden ? "Restore reference" : "Restore draft"}</button>
                   </div>
                 </div>
                 {block.concepts?.length ? <div className="concept-strip" aria-label={`${block.label} variables`}>{block.concepts.map((concept) => <span key={concept.name}><code>{concept.name}</code><em>{concept.detail}</em></span>)}</div> : null}
-                {hidden ? (
-                  <div className="answer-area">
-                    <div className="practice-guidance">
-                      <div><span>Practice mode</span><strong>Complete, then run.</strong></div>
-                      <button type="button" disabled={!practiceReady || runningBlockIds.length > 0} onClick={() => {
-                        const currentHidden = [...hiddenBlocksRef.current];
-                        const nextAnswers = { ...answersRef.current, [block.id]: starterCodeFor(block) };
-                        const invalidated = invalidateBlockVerification({ ids: verifiedBlockIdsRef.current, sources: verifiedSourcesRef.current, contractVersion: verifiedContractVersionRef.current }, block.id);
-                        const nextVerified = invalidated.ids;
-                        const nextVerifiedSources = invalidated.sources;
-                        applyPracticeState(currentHidden, nextAnswers, nextVerified, nextVerifiedSources, invalidated.contractVersion);
-                        saveLessonPracticeAndVerification(lesson.id, currentHidden, nextAnswers, nextVerified, nextVerifiedSources, invalidated.contractVersion);
-                        saveLessonProjectFile(projectSeedForLesson(lesson, currentHidden, nextAnswers, nextVerified));
-                        setCellResults((current) => ({ ...current, [block.id]: undefined }));
-                      }}>Reset starter</button>
-                    </div>
+                <div className="answer-area" data-direct-edit="true">
+                  <div className="practice-guidance">
+                    <div><span>{hidden ? "Your draft" : "Editable reference"}</span><strong>{hidden ? "Saved locally · run when ready." : "Click the code and start typing."}</strong></div>
+                  </div>
+                  {practiceReady ? (
                     <Suspense fallback={<div className="lesson-editor-loading" role="status">Loading syntax-aware editor…</div>}>
                       <LessonCodeEditor
-                        ariaLabel={`Reimplement ${block.label}`}
+                        ariaLabel={`Edit ${block.label}`}
                         lineNumberStart={startLine}
                         onChange={(value) => updateAnswer(block, value)}
                         path={lesson.implementation.filename}
-                        readOnly={!practiceReady || runningBlockIds.length > 0}
-                        value={answers[block.id] ?? ""}
+                        readOnly={runningBlockIds.length > 0}
+                        value={hidden ? answers[block.id] ?? "" : block.code}
                         variant="lesson"
                       />
                     </Suspense>
-                  </div>
-                ) : (
-                  <SyntaxCode code={block.code} label={`${block.label} reference implementation`} startLine={startLine} />
-                )}
+                  ) : <SyntaxCode code={block.code} label={`${block.label} editable reference loading`} startLine={startLine} />}
+                </div>
                 <div className="cell-footer" role="status" aria-label={`${block.label} check status`} aria-live="polite" aria-atomic="true">
                   {result ? <span className={result.passed ? "cell-result passed" : "cell-result failed"}><i>{result.passed ? "✓" : "×"}</i>{!hidden && result.passed ? "Example passed · practice this cell to earn verification" : result.detail}</span> : verifiedContractVersion === llmSystemsContractSuite.contractVersion && hidden && verifiedBlockIds.includes(block.id) && verifiedSources[block.id] === (answers[block.id] ?? "") ? <span className="cell-result passed"><i>✓</i>Verified previously on this device</span> : <span>{practiceReady ? hidden ? "Practice not run" : "Example not run · no progress credit" : "Waiting for saved progress"}</span>}
                 </div>

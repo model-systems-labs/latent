@@ -41,8 +41,8 @@ export const streamingReactLesson = defineExtendedLesson({
     questions: { intro: "Ask about render batching, scroll following, cancellation, live regions, or stream consumption.", suggestions: ["Why not render every token?", "When should auto-scroll stop?", "How should streaming be announced accessibly?"] },
     dataset: { name: "Render Trace", source: "Deterministic 60-token stream", license: "CC0", size: "60 deltas · 4 timing profiles", preview: "burst · steady · stalled · cancelled" },
     implementation: {
-      filename: "streaming-react.js",
-      intro: "Implement delta buffering and scroll-follow policy, then compare transport events with actual React-style commits.",
+      filename: "streaming-react.py",
+      intro: "Implement delta buffering and scroll-follow policy in Python, then compare transport events with actual React-style commits.",
       codeBlocks: [
         {
           id: "delta-buffer",
@@ -53,27 +53,34 @@ export const streamingReactLesson = defineExtendedLesson({
             { name: "join", detail: "Preserves exact order, whitespace, empty strings, and Unicode without separators." },
             { name: "flush", detail: "Returns one string and a fresh empty queue without mutating the read-only input." },
           ],
-          code: `function flushTokenBuffer(pending) {
-  return { text: pending.join(""), remaining: [] };
+          code: `def flush_token_buffer(pending):
+    return {"text": "".join(pending), "remaining": []}`,
+          checkCode: `result = flush_token_buffer(["Hel", "lo", " ", "world"])
+RESULT = {
+    "passed": result["text"] == "Hello world" and len(result["remaining"]) == 0,
+    "detail": result["text"],
 }`,
-          checkCode: `const result = flushTokenBuffer(["Hel", "lo", " ", "world"]);
-return { passed: result.text === "Hello world" && result.remaining.length === 0, detail: result.text };`,
         },
         {
           id: "scroll-policy",
           label: "Scroll-follow policy",
           purpose: "Follow new output only when the reader remains near the bottom.",
           concepts: [
-            { name: "distanceFromBottom", detail: "Remaining scroll distance in CSS pixels." },
+            { name: "distance_from_bottom", detail: "Remaining scroll distance in CSS pixels." },
             { name: "threshold", detail: "Small tolerance for layout and font changes." },
-            { name: "userScrolledUp", detail: "Explicit opt-out while reviewing older content." },
+            { name: "user_scrolled_up", detail: "Explicit opt-out while reviewing older content." },
           ],
-          code: `function shouldFollowStream({ distanceFromBottom, userScrolledUp, threshold = 80 }) {
-  return !userScrolledUp && distanceFromBottom <= threshold;
+          code: `def should_follow_stream(options):
+    distance_from_bottom = options["distanceFromBottom"]
+    user_scrolled_up = options["userScrolledUp"]
+    threshold = options.get("threshold", 80)
+    return not user_scrolled_up and distance_from_bottom <= threshold`,
+          checkCode: `near = should_follow_stream({"distanceFromBottom": 24, "userScrolledUp": False})
+reading = should_follow_stream({"distanceFromBottom": 24, "userScrolledUp": True})
+RESULT = {
+    "passed": near is True and reading is False,
+    "detail": "near bottom follows · reader control wins",
 }`,
-          checkCode: `const near = shouldFollowStream({ distanceFromBottom: 24, userScrolledUp: false });
-const reading = shouldFollowStream({ distanceFromBottom: 24, userScrolledUp: true });
-return { passed: near === true && reading === false, detail: "near bottom follows · reader control wins" };`,
         },
       ],
     },

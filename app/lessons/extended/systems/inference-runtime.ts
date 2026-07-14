@@ -50,34 +50,45 @@ export const inferenceRuntimeLesson = defineExtendedLesson({
       preview: "r-104 · prompt 96 + output 32 = final length 128 · 1 prefill + 31 decode forwards",
     },
     implementation: {
-      filename: "inference-runtime.js",
-      intro: "Implement phase accounting and KV-cache sizing before replaying the authored request lifecycle trace.",
-      tensorOps: ["numel"],
+      filename: "inference-runtime.py",
+      intro: "Implement phase accounting and KV-cache sizing in Python before replaying the authored request lifecycle trace.",
       codeBlocks: [
         {
           id: "inference-phases",
           label: "Phase accounting",
           purpose: "Distinguish generated tokens, model forwards, processed positions, and final sequence length.",
           concepts: [
-            { name: "promptTokens", detail: "Tokens processed together during prefill." },
-            { name: "generatedTokens", detail: "Requested output length; the first token is sampled from prefill logits." },
-            { name: "decodeForwards", detail: "Subsequent one-position forwards: max(0, generatedTokens - 1)." },
-            { name: "processedTokenPositions", detail: "Prompt positions plus positions processed by subsequent decode forwards." },
-            { name: "finalSequenceLength", detail: "Prompt tokens plus every generated token, including the final unprocessed sample." },
+            { name: "prompt_tokens", detail: "Tokens processed together during prefill." },
+            { name: "generated_tokens", detail: "Requested output length; the first token is sampled from prefill logits." },
+            { name: "decode_forwards", detail: "Subsequent one-position forwards: max(0, generated_tokens - 1)." },
+            { name: "processed_token_positions", detail: "Prompt positions plus positions processed by subsequent decode forwards." },
+            { name: "final_sequence_length", detail: "Prompt tokens plus every generated token, including the final unprocessed sample." },
           ],
-          code: `function inferencePhases(promptTokens, maxNewTokens) {
-  const generatedTokens = Math.max(0, maxNewTokens);
-  const decodeForwards = Math.max(0, generatedTokens - 1);
-  return {
-    prefillTokens: promptTokens,
-    generatedTokens,
-    decodeForwards,
-    processedTokenPositions: promptTokens + decodeForwards,
-    finalSequenceLength: promptTokens + generatedTokens,
-  };
+          code: `def inference_phases(prompt_tokens, max_new_tokens):
+    generated_tokens = max(0, max_new_tokens)
+    decode_forwards = max(0, generated_tokens - 1)
+    return {
+        "prefillTokens": prompt_tokens,
+        "generatedTokens": generated_tokens,
+        "decodeForwards": decode_forwards,
+        "processedTokenPositions": prompt_tokens + decode_forwards,
+        "finalSequenceLength": prompt_tokens + generated_tokens,
+    }`,
+          checkCode: `phases = inference_phases(96, 32)
+RESULT = {
+    "passed": (
+        phases["prefillTokens"] == 96
+        and phases["generatedTokens"] == 32
+        and phases["decodeForwards"] == 31
+        and phases["processedTokenPositions"] == 127
+        and phases["finalSequenceLength"] == 128
+    ),
+    "detail": (
+        f'{phases["prefillTokens"]} prefill · '
+        f'{phases["decodeForwards"]} subsequent decode forwards · '
+        f'{phases["generatedTokens"]} generated'
+    ),
 }`,
-          checkCode: `const phases = inferencePhases(96, 32);
-return { passed: phases.prefillTokens === 96 && phases.generatedTokens === 32 && phases.decodeForwards === 31 && phases.processedTokenPositions === 127 && phases.finalSequenceLength === 128, detail: phases.prefillTokens + " prefill · " + phases.decodeForwards + " subsequent decode forwards · " + phases.generatedTokens + " generated" };`,
         },
         {
           id: "kv-bytes",
@@ -86,15 +97,28 @@ return { passed: phases.prefillTokens === 96 && phases.generatedTokens === 32 &&
           concepts: [
             { name: "2", detail: "Separate key and value tensors." },
             { name: "layers", detail: "Every Transformer layer owns cached states." },
-            { name: "kvHeads", detail: "Key-value heads; this may be fewer than query heads under grouped-query attention." },
-            { name: "tokens × headDimension", detail: "One head vector per cached sequence position." },
-            { name: "bytesPerValue", detail: "Storage width of each cached scalar." },
+            { name: "kv_heads", detail: "Key-value heads; this may be fewer than query heads under grouped-query attention." },
+            { name: "tokens × head_dimension", detail: "One head vector per cached sequence position." },
+            { name: "bytes_per_value", detail: "Storage width of each cached scalar." },
           ],
-          code: `function kvCacheBytes({ layers, kvHeads, headDimension, tokens, bytesPerValue = 2 }) {
-  return numel([2, layers, kvHeads, tokens, headDimension]) * bytesPerValue;
+          code: `def kv_cache_bytes(config):
+    layers = config["layers"]
+    kv_heads = config["kvHeads"]
+    head_dimension = config["headDimension"]
+    tokens = config["tokens"]
+    bytes_per_value = config.get("bytesPerValue", 2)
+    return 2 * layers * kv_heads * tokens * head_dimension * bytes_per_value`,
+          checkCode: `byte_count = kv_cache_bytes({
+    "layers": 4,
+    "kvHeads": 8,
+    "headDimension": 16,
+    "tokens": 100,
+    "bytesPerValue": 2,
+})
+RESULT = {
+    "passed": byte_count == 204800,
+    "detail": f"{byte_count / 1024:.0f} KiB",
 }`,
-          checkCode: `const bytes = kvCacheBytes({ layers: 4, kvHeads: 8, headDimension: 16, tokens: 100, bytesPerValue: 2 });
-return { passed: bytes === 204800, detail: (bytes / 1024).toFixed(0) + " KiB" };`,
         },
       ],
     },

@@ -35,8 +35,18 @@ function modulePathFor(lessonId: string): string {
   return modulePath;
 }
 
+function pythonFunctionName(name: string): string {
+  return name
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .replace(/([A-Z])([A-Z][a-z])/g, "$1_$2")
+    .toLowerCase();
+}
+
 function defineExerciseContract(authored: AuthoredContract): ExerciseContract {
   const modulePath = modulePathFor(authored.lessonId);
+  const exportName = modulePath.endsWith(".py")
+    ? pythonFunctionName(authored.exportName)
+    : authored.exportName;
   return {
     id: `${authored.lessonId}/${authored.blockId}`,
     label: authored.label,
@@ -45,7 +55,7 @@ function defineExerciseContract(authored: AuthoredContract): ExerciseContract {
       label: exerciseCase.label,
       invoke: {
         modulePath,
-        exportName: authored.exportName,
+        exportName,
         args: exerciseCase.args,
       },
       assertions: exerciseCase.assertions,
@@ -336,7 +346,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
           "l", "o", "w",
         ], ["l", "o"]]],
         assertions: [
-          equal("lo-frequency", "Use JSON.stringify([left, right]) so the visible key [\"l\",\"o\"] is counted twice", 2, ['["l","o"]']),
+          equal("lo-frequency", "Use json.dumps([left, right], separators=(\",\", \":\")) so the visible key [\"l\",\"o\"] is counted twice", 2, ['["l","o"]']),
           equal("ow-frequency", "Count every adjacent position in every word, including [\"o\",\"w\"]", 1, ['["o","w"]']),
         ],
       },
@@ -357,7 +367,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
           "a", "bc",
         ], ["ab", "c"]]],
         assertions: [
-          equal("left-boundary", "Encode the two-symbol array with JSON.stringify; do not concatenate symbols into an ambiguous key", 1, ['["a","bc"]']),
+          equal("left-boundary", "Encode the two-symbol list with json.dumps; do not concatenate symbols into an ambiguous key", 1, ['["a","bc"]']),
           equal("right-boundary", "Keep [\"ab\",\"c\"] separate from [\"a\",\"bc\"]", 1, ['["ab","c"]']),
         ],
       },
@@ -630,7 +640,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
   defineExerciseContract({
     lessonId: "transformers",
     blockId: "layer-norm",
-    label: "Layer normalization",
+    label: "Non-affine layer normalization",
     exportName: "layerNorm",
     cases: [
       {
@@ -860,7 +870,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
         args: ["token", { delta: "hi" }],
         assertions: [
           matches("event-line", "Begin the frame with the requested event: field", "^event: token\\n"),
-          includes("json-data-line", "Serialize the payload with JSON.stringify on a data: line", "data: {\"delta\":\"hi\"}\n"),
+          includes("json-data-line", "Serialize the payload with json.dumps on a data: line", "data: {\"delta\":\"hi\"}\n"),
           matches("blank-line", "Terminate the frame with a final blank line (\\n\\n)", "\\n\\n$"),
         ],
       },
@@ -874,7 +884,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
         id: "escaped-error-payload",
         label: "Escapes payload newlines and quotes without corrupting framing",
         args: ["error", { message: "line 1\n\"quoted\"" }],
-        assertions: [equal("escaped-frame", "Let JSON.stringify escape payload text; do not concatenate object values by hand", "event: error\ndata: {\"message\":\"line 1\\n\\\"quoted\\\"\"}\n\n")],
+        assertions: [equal("escaped-frame", "Let json.dumps escape payload text; do not concatenate object values by hand", "event: error\ndata: {\"message\":\"line 1\\n\\\"quoted\\\"\"}\n\n")],
       },
       {
         id: "injected-event-name",
@@ -1330,7 +1340,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
         id: "whitespace-and-unicode",
         label: "Preserves empty, whitespace, newline, and Unicode deltas",
         args: [["", " leading", "\n", "€", " ", "尾"]],
-        assertions: [equal("exact-text", "Preserve each delta byte-for-byte as JavaScript text, including whitespace and Unicode", {
+        assertions: [equal("exact-text", "Preserve each delta exactly as Python text, including whitespace and Unicode", {
           text: " leading\n€ 尾",
           remaining: [],
         })],
@@ -1813,6 +1823,6 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
 ];
 
 export const llmSystemsContractSuite: ContractSuite = {
-  contractVersion: "llm-systems-contracts-v17",
+  contractVersion: "llm-systems-contracts-v17-cpython",
   contracts: llmSystemsExerciseContracts,
 };

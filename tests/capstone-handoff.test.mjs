@@ -9,6 +9,7 @@ let capstone;
 let bindings;
 let template;
 let fileStatus;
+let contracts;
 
 before(async () => {
   vite = await createServer({
@@ -18,11 +19,12 @@ before(async () => {
     appType: "custom",
     logLevel: "silent",
   });
-  [capstone, bindings, template, fileStatus] = await Promise.all([
+  [capstone, bindings, template, fileStatus, contracts] = await Promise.all([
     vite.ssrLoadModule("/app/components/BrowserChatCapstone.tsx"),
     vite.ssrLoadModule("/app/runtime/bindings/manifest.ts"),
     vite.ssrLoadModule("/app/content/browser-chat/project-template.ts"),
     vite.ssrLoadModule("/app/lib/project-file-status.ts"),
+    vite.ssrLoadModule("/app/content/llm-systems/contracts.ts"),
   ]);
 });
 
@@ -73,10 +75,16 @@ function projectFixture({ complete = false, failedPath = null, runner = "browser
       runner,
       sourceTreeHash: runner === "browser-lab-v1" ? "sha256:fixture-source-tree" : null,
       projectRevision: runner === "browser-lab-v1" ? 1 : null,
-      contractVersion: runner === "browser-lab-v1" ? "llm-systems-contracts-v17" : null,
+      contractVersion: runner === "browser-lab-v1" ? contracts.llmSystemsContractSuite.contractVersion : null,
       contractIdsByPath,
     },
   };
+}
+
+function lessonPath(lessonId) {
+  const source = bindings.LLM_LESSON_SOURCES.find((candidate) => candidate.lessonId === lessonId);
+  assert.ok(source, `Expected curriculum lesson ${lessonId}`);
+  return source.sourcePath;
 }
 
 function verifiedLessonEvidence(project) {
@@ -95,12 +103,13 @@ function summarize(project) {
 }
 
 test("an incomplete project follows curriculum order instead of leapfrogging to a later failure", () => {
-  const project = projectFixture({ failedPath: "product/chat-actions.js" });
+  const failedPath = lessonPath("chat-actions-context");
+  const project = projectFixture({ failedPath });
   const progress = summarize(project);
   assert.equal(progress.verifiedLessonFiles, 1);
   assert.equal(progress.totalLessonFiles, 14);
   assert.equal(progress.passingTests, 0);
-  assert.equal(progress.totalTests, fileStatus.expectedProjectTestIdsForPath("product/chat-actions.js").length);
+  assert.equal(progress.totalTests, fileStatus.expectedProjectTestIdsForPath(failedPath).length);
   assert.equal(progress.nextPath, bindings.LLM_LESSON_SOURCES[1].sourcePath);
 
   const recovery = capstone.capstoneMissingBuildRecovery(progress);
@@ -112,7 +121,7 @@ test("an incomplete project follows curriculum order instead of leapfrogging to 
 });
 
 test("a trusted failure disqualifies an otherwise verified file and becomes the repair target", () => {
-  const failedPath = "product/chat-actions.js";
+  const failedPath = lessonPath("chat-actions-context");
   const progress = summarize(projectFixture({ complete: true, failedPath }));
   assert.equal(progress.verifiedLessonFiles, 13);
   assert.equal(progress.nextPath, failedPath);
@@ -172,7 +181,7 @@ test("all four project surfaces derive their numerator from the same source-boun
 test("untrusted legacy results cannot change capstone progress or saved receipt counts", () => {
   const project = projectFixture({
     complete: true,
-    failedPath: "product/chat-actions.js",
+    failedPath: lessonPath("chat-actions-context"),
     runner: "legacy",
   });
   const progress = summarize(project);
@@ -272,7 +281,7 @@ test("a missing UI mount is translated into a safe entrypoint rebuild instead of
   assert.doesNotMatch(`${recovery.title} ${recovery.summary} ${recovery.actionLabel}`, /ui\.mount|missing required capability/i);
 });
 
-test("other required capabilities route to the learner-owned source that implements them", () => {
+test("other required capabilities route to their course-provided read-only adapter", () => {
   const progress = summarize(projectFixture({ complete: true }));
   for (const definition of bindings.LLM_RUNTIME_CAPABILITIES.filter((candidate) => candidate.required)) {
     const recovery = capstone.capstoneRecoveryForFailure({
@@ -284,6 +293,9 @@ test("other required capabilities route to the learner-owned source that impleme
       assert.equal(recovery.actionPath, "capstone/BrowserChat.tsx");
       assert.equal(recovery.href, "/workspace?file=capstone%2FBrowserChat.tsx");
     } else {
+      const adapter = template.CANONICAL_BROWSER_CHAT_FILES.find((file) => file.path === definition.modulePath);
+      assert.equal(adapter?.kind, "adapter", definition.capability);
+      assert.equal(adapter?.editable, false, definition.capability);
       assert.equal(recovery.actionPath, definition.modulePath, definition.capability);
       assert.equal(recovery.href, `/workspace?file=${encodeURIComponent(definition.modulePath)}`, definition.capability);
     }
@@ -293,7 +305,7 @@ test("other required capabilities route to the learner-owned source that impleme
 
 test("an incomplete-contribution error routes the exact known lesson path named by the verifier", () => {
   const progress = summarize(projectFixture());
-  const missingPath = "backend/generation-reliability.js";
+  const missingPath = lessonPath("reliability-observability");
   const recovery = capstone.capstoneRecoveryForFailure({
     code: "INCOMPLETE_BUILD_CONTRIBUTIONS",
     message: `The active build does not include tested lesson source ${missingPath}.`,

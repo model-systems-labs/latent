@@ -87,9 +87,9 @@ ${commonQuestionInstruction}`.trim(),
       preview: "the analyst reads the report · the model predicts the token",
     },
     implementation: {
-      filename: "neural-language-model.js",
-      intro: "Reconstruct the same numerical path shown above. First normalize logits stably, then combine every selected context row coordinate by coordinate, and finally score the observed target. Each cell runs independently before the supplied model trains.",
-      tensorOps: ["tensor", "softmax", "embedding", "mean", "nllLoss", "toArray"],
+      filename: "neural-language-model.py",
+      intro: "Reconstruct the same numerical path in Python and NumPy. First normalize logits stably, then combine every selected context row coordinate by coordinate, and finally score the observed target. Each cell runs independently before the supplied model trains.",
+      tensorOps: ["numpy", "np.asarray", "np.exp", "np.mean", "np.log", "tolist"],
       codeBlocks: [
         {
           id: "stable-softmax",
@@ -97,15 +97,24 @@ ${commonQuestionInstruction}`.trim(),
           purpose: "Normalize vocabulary logits without exponent overflow.",
           concepts: [
             { name: "logits", detail: "One raw score per vocabulary word; they are not probabilities yet." },
-            { name: "softmax", detail: "Internally subtracts max(logits), exponentiates, and normalizes." },
+            { name: "shifted", detail: "Subtracts max(logits) before exponentiation for numerical stability." },
             { name: "result", detail: "One finite probability per input logit, summing to 1." },
           ],
-          code: `function stableSoftmax(logits) {
-  return toArray(softmax(tensor(logits)));
+          code: `import numpy as np
+
+def stable_softmax(logits):
+    values = np.asarray(logits, dtype=float)
+    if values.size == 0:
+        return []
+    shifted = values - np.max(values)
+    weights = np.exp(shifted)
+    return (weights / weights.sum()).tolist()`,
+          checkCode: `probabilities = stable_softmax([1001, 1000, 999])
+total = sum(probabilities)
+RESULT = {
+    "passed": all(np.isfinite(probabilities)) and abs(total - 1) < 1e-9,
+    "detail": f"Σp = {total:.9f}",
 }`,
-          checkCode: `const probabilities = stableSoftmax([1001, 1000, 999]);
-const total = probabilities.reduce((sum, value) => sum + value, 0);
-return { passed: probabilities.every(Number.isFinite) && Math.abs(total - 1) < 1e-9, detail: "Σp = " + total.toFixed(9) };`,
         },
         {
           id: "context-embedding",
@@ -113,31 +122,56 @@ return { passed: probabilities.every(Number.isFinite) && Math.abs(total - 1) < 1
           purpose: "Average the learned vectors for the context words.",
           concepts: [
             { name: "indices", detail: "Vocabulary ids for every word in the current context window." },
-            { name: "embedding", detail: "Selects one trainable table row for each id, preserving order and repeats." },
-            { name: "mean(..., 0)", detail: "Averages down the row axis, leaving one value per embedding coordinate." },
+            { name: "table[indices]", detail: "Selects one trainable table row for each id, preserving order and repeats." },
+            { name: "mean(axis=0)", detail: "Averages down the row axis, leaving one value per embedding coordinate." },
           ],
-          code: `function contextEmbedding(indices, embeddings) {
-  const selected = embedding(tensor(embeddings), indices);
-  return toArray(mean(selected, 0));
+          code: `import numpy as np
+
+def context_embedding(indices, embeddings):
+    table = np.asarray(embeddings, dtype=float)
+    if table.ndim != 2 or not isinstance(indices, (list, tuple)):
+        raise ValueError("embedding needs a rank-2 table and index array")
+    if any(
+        type(index) is not int or index < 0 or index >= table.shape[0]
+        for index in indices
+    ):
+        raise ValueError("embedding index is out of range")
+    selected = table[np.asarray(indices, dtype=int)]
+    return selected.mean(axis=0).tolist()`,
+          checkCode: `vector = context_embedding([0, 1], [[2, 0], [0, 4]])
+RESULT = {
+    "passed": vector == [1, 2],
+    "detail": "context = [" + ", ".join(f"{value:g}" for value in vector) + "]",
 }`,
-          checkCode: `const vector = contextEmbedding([0, 1], [[2, 0], [0, 4]]);
-return { passed: vector[0] === 1 && vector[1] === 2, detail: "context = [" + vector.join(", ") + "]" };`,
         },
         {
           id: "negative-log-likelihood",
           label: "Negative log-likelihood",
           purpose: "Convert the target word probability into a training loss.",
           concepts: [
-            { name: "targetIndex", detail: "Index of the observed next word." },
-            { name: "probability", detail: "Read only the model mass at targetIndex, not the maximum value." },
-            { name: "nllLoss", detail: "Returns −log p(target) and clamps p to 10⁻¹² before taking the logarithm." },
+            { name: "target_index", detail: "Index of the observed next word." },
+            { name: "probability", detail: "Read only the model mass at target_index, not the maximum value." },
+            { name: "np.log", detail: "Returns −log p(target) after clamping p to 10⁻¹²." },
           ],
-          code: `function negativeLogLikelihood(probabilities, targetIndex) {
-  return nllLoss(tensor(probabilities), targetIndex).item();
+          code: `import numpy as np
+
+def negative_log_likelihood(probabilities, target_index):
+    values = np.asarray(probabilities, dtype=float)
+    if (
+        values.ndim != 1
+        or type(target_index) is not int
+        or target_index < 0
+        or target_index >= values.size
+    ):
+        raise ValueError("nllLoss needs a probability vector and valid target index")
+    probability = max(float(values[target_index]), 1e-12)
+    return float(-np.log(probability))`,
+          checkCode: `certain = negative_log_likelihood([0.05, 0.9, 0.05], 1)
+uncertain = negative_log_likelihood([0.45, 0.1, 0.45], 1)
+RESULT = {
+    "passed": certain < uncertain,
+    "detail": f"{certain:.3f} < {uncertain:.3f}",
 }`,
-          checkCode: `const certain = negativeLogLikelihood([0.05, 0.9, 0.05], 1);
-const uncertain = negativeLogLikelihood([0.45, 0.1, 0.45], 1);
-return { passed: certain < uncertain, detail: certain.toFixed(3) + " < " + uncertain.toFixed(3) };`,
         },
       ],
     },

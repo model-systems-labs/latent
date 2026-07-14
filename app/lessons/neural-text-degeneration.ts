@@ -73,9 +73,9 @@ Answer precisely and pedagogically. Distinguish claims made by the paper from la
     ],
   },
   implementation: {
-    filename: "nucleus-sampling.js",
+    filename: "nucleus-sampling.py",
     intro:
-      "Begin with the complete solution. Run it, then hide any conceptual block and reconstruct it without losing the surrounding program. Checks judge behavior rather than exact text.",
+      "Begin with the complete Python and NumPy solution. Run it, then hide any conceptual block and reconstruct it without losing the surrounding program. Checks judge behavior rather than exact text.",
     codeBlocks: [
       {
         id: "softmax",
@@ -83,11 +83,11 @@ Answer precisely and pedagogically. Distinguish claims made by the paper from la
         purpose: "Convert logits into a normalized next-token distribution.",
         concepts: [
           {
-            name: "safeTemperature",
+            name: "safe_temperature",
             detail: "Clamp the denominator before scaling so temperature cannot divide logits by zero.",
           },
           {
-            name: "maxLogit",
+            name: "max_logit",
             detail: "Subtract the largest scaled logit before exponentiation to keep exp() numerically stable.",
           },
           {
@@ -95,16 +95,23 @@ Answer precisely and pedagogically. Distinguish claims made by the paper from la
             detail: "Normalize every positive weight into a probability distribution whose mass sums to 1.",
           },
         ],
-        code: `function softmax(logits, temperature = 1) {
-  const safeTemperature =
-    Number.isFinite(temperature) && temperature > 0 ? temperature : 1;
-  const scaled = logits.map((logit) => logit / safeTemperature);
-  const maxLogit = Math.max(...scaled);
-  const weights = scaled.map((logit) => Math.exp(logit - maxLogit));
-  const total = weights.reduce((sum, weight) => sum + weight, 0);
+        code: `import numpy as np
 
-  return weights.map((weight) => weight / total);
-}`,
+
+def softmax(logits, temperature=1):
+    values = np.asarray(logits, dtype=float)
+    if values.size == 0:
+        return []
+
+    safe_temperature = (
+        temperature if np.isfinite(temperature) and temperature > 0 else 1
+    )
+    scaled = values / safe_temperature
+    max_logit = np.max(scaled)
+    shifted = scaled - max_logit
+    weights = np.exp(shifted)
+    total = np.sum(weights)
+    return (weights / total).tolist()`,
       },
       {
         id: "nucleus",
@@ -116,7 +123,7 @@ Answer precisely and pedagogically. Distinguish claims made by the paper from la
             detail: "Sort candidate tokens from most likely to least likely before applying the cumulative cutoff.",
           },
           {
-            name: "cumulativeMass",
+            name: "cumulative_mass",
             detail: "Track how much probability mass the dynamic nucleus has captured.",
           },
           {
@@ -124,25 +131,31 @@ Answer precisely and pedagogically. Distinguish claims made by the paper from la
             detail: "Return probabilities scaled back to sum to 1 after the low-probability tail is removed.",
           },
         ],
-        code: `function nucleus(tokens, probabilities, topP = 0.9) {
-  const ranked = tokens
-    .map((token, index) => ({ token, index, probability: probabilities[index] }))
-    .sort((a, b) => b.probability - a.probability);
+        code: `def nucleus(tokens, probabilities, top_p=0.9):
+    ranked = sorted(
+        [
+            {"token": token, "index": index, "probability": probabilities[index]}
+            for index, token in enumerate(tokens)
+        ],
+        key=lambda candidate: candidate["probability"],
+        reverse=True,
+    )
 
-  const kept = [];
-  let cumulativeMass = 0;
+    kept = []
+    cumulative_mass = 0.0
+    for candidate in ranked:
+        kept.append(candidate)
+        cumulative_mass += candidate["probability"]
+        if cumulative_mass >= top_p:
+            break
 
-  for (const candidate of ranked) {
-    kept.push(candidate);
-    cumulativeMass += candidate.probability;
-    if (cumulativeMass >= topP) break;
-  }
-
-  return kept.map((candidate) => ({
-    ...candidate,
-    probability: candidate.probability / cumulativeMass,
-  }));
-}`,
+    return [
+        {
+            **candidate,
+            "probability": candidate["probability"] / cumulative_mass,
+        }
+        for candidate in kept
+    ]`,
       },
       {
         id: "policy",
@@ -162,14 +175,14 @@ Answer precisely and pedagogically. Distinguish claims made by the paper from la
             detail: "Reduce the model's tendency to reuse tokens it has already emitted.",
           },
         ],
-        code: `const policy = {
-  temperature: 0.78,
-  top_k: 50,
-  top_p: 0.9,
-  repetition_penalty: 1.12,
-  no_repeat_ngram_size: 3,
-  max_new_tokens: 64,
-};`,
+        code: `policy = {
+    "temperature": 0.78,
+    "top_k": 50,
+    "top_p": 0.9,
+    "repetition_penalty": 1.12,
+    "no_repeat_ngram_size": 3,
+    "max_new_tokens": 64,
+}`,
       },
       {
         id: "contract",
@@ -185,26 +198,25 @@ Answer precisely and pedagogically. Distinguish claims made by the paper from la
             detail: "Count user-visible tokens at the text level, not the model-token level.",
           },
           {
-            name: "maxWords",
+            name: "max_words",
             detail: "Enforce a predictable product boundary after stochastic decoding has finished.",
           },
         ],
-        code: `function enforceOutputContract(text, { maxWords, banned }) {
-  let output = text.replace(/[*_\\x60#>]/g, " ");
+        code: `import re
 
-  for (const phrase of banned) {
-    let matchIndex = output.toLowerCase().indexOf(phrase.toLowerCase());
-    while (matchIndex !== -1) {
-      output = output.slice(0, matchIndex) + output.slice(matchIndex + phrase.length);
-      matchIndex = output.toLowerCase().indexOf(phrase.toLowerCase());
-    }
-  }
 
-  const words = output.replace(/\\s+/g, " ").trim().split(" ").filter(Boolean);
-  return words.length > maxWords
-    ? words.slice(0, maxWords).join(" ") + "…"
-    : words.join(" ");
-}`,
+def enforce_output_contract(text, config):
+    max_words = config["maxWords"]
+    banned = config["banned"]
+    output = re.sub(r"[*_\\x60#>]", " ", text)
+
+    for phrase in banned:
+        output = re.sub(re.escape(phrase), "", output, flags=re.IGNORECASE)
+
+    words = output.split()
+    if len(words) > max_words:
+        return " ".join(words[:max_words]) + "…"
+    return " ".join(words)`,
       },
     ],
   },

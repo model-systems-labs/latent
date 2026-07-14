@@ -363,6 +363,14 @@
   padding: 0.62rem 0.1rem;
 }
 
+.answer-area[data-direct-edit="true"] {
+  cursor: text;
+}
+
+.answer-area[data-direct-edit="true"] .practice-guidance {
+  cursor: default;
+}
+
 .practice-guidance > div {
   display: grid;
   gap: 0.28rem;
@@ -411,6 +419,14 @@
   max-width: 100%;
   min-height: 0;
   overflow: hidden;
+}
+
+.practice-block:not(.is-hidden) .lesson-code-editor {
+  background: #19181b;
+}
+
+.lesson-code-editor:focus-within {
+  box-shadow: inset 2px 0 #bca4d2;
 }
 
 .lesson-code-editor .cm-editor,

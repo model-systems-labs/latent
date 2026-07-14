@@ -1,19 +1,15 @@
 import { CANONICAL_BROWSER_CHAT_FILES } from "../content/browser-chat/project-template";
 import { initializeLearnerPersistence, loadLearnerState, type LearnerState } from "./learner-state";
 import { llmSystemsCurriculum } from "../lessons/course";
-import { lessonImplementationSource } from "../lessons/implementation-source";
+import { lessonBlockComment, lessonImplementationSource } from "../lessons/implementation-source";
 import { llmSystemsContractSuite } from "../content/llm-systems/contracts";
-import { restoreSourceBoundVerification } from "../features/ide/practice-state";
+import { compatiblePracticeDrafts, restoreSourceBoundVerification } from "../features/ide/practice-state";
 import {
   ensureProjectWorkspace,
   flushProjectPersistence,
   initializeProjectPersistence,
 } from "./project-workspace";
 import type { LessonProjectSeed } from "./project-workspace";
-import {
-  PYTHON_CHARACTER_RNN_PATH,
-  PYTHON_CHARACTER_RNN_SOURCE,
-} from "../features/python/character-rnn-source";
 
 export function canonicalProjectSeeds(): LessonProjectSeed[] {
   const application: LessonProjectSeed[] = CANONICAL_BROWSER_CHAT_FILES.map((file) => ({
@@ -26,19 +22,7 @@ export function canonicalProjectSeeds(): LessonProjectSeed[] {
     totalCells: 1,
     readOnly: !file.editable,
   }));
-  return [
-    {
-      path: PYTHON_CHARACTER_RNN_PATH,
-      courseId: "models",
-      title: "Character RNN · Python",
-      content: PYTHON_CHARACTER_RNN_SOURCE,
-      referenceContent: PYTHON_CHARACTER_RNN_SOURCE,
-      verifiedCells: 0,
-      totalCells: 1,
-      readOnly: false,
-    },
-    ...application,
-  ];
+  return application;
 }
 
 /**
@@ -51,8 +35,14 @@ export function canonicalLessonSeeds(
 ): LessonProjectSeed[] {
   return llmSystemsCurriculum.lessons.map(({ lesson, projectPath }) => {
     const local = learner.lessons[lesson.id];
-    const hidden = local?.hiddenBlocks ?? [];
-    const answers = local?.answers ?? {};
+    const compatible = compatiblePracticeDrafts(
+      lesson.implementation.filename,
+      lesson.implementation.codeBlocks,
+      local?.hiddenBlocks ?? [],
+      local?.answers ?? {},
+    );
+    const hidden = compatible.hiddenBlocks;
+    const answers = compatible.answers;
     const restoredVerification = restoreSourceBoundVerification(
       lesson.implementation.codeBlocks,
       hidden,
@@ -65,7 +55,7 @@ export function canonicalLessonSeeds(
     const source = (practice: boolean) => lessonImplementationSource(
       lesson,
       lesson.implementation.codeBlocks.map((block, index) => (
-        `// ${String(index + 1).padStart(2, "0")} · ${block.label}\n${
+        `${lessonBlockComment(lesson, index, block.label)}\n${
           practice && hidden.includes(block.id) ? answers[block.id] ?? "" : block.code
         }`
       )),

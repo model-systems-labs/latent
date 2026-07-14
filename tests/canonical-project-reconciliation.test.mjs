@@ -158,7 +158,13 @@ test("route-independent reconciliation persists the complete canonical tree and 
   assert.equal(freshFiles.length, expectedPaths.size);
   assert.deepEqual(new Set(freshFiles.map((file) => file.path)), expectedPaths);
   assert.equal(canonical.canonicalLessonSeeds().length, 14);
-  assert.equal(template.CANONICAL_BROWSER_CHAT_FILES.length, 6);
+  assert.equal(template.CANONICAL_BROWSER_CHAT_FILES.length, 13);
+  assert.equal(template.CANONICAL_BROWSER_CHAT_FILES.filter((file) => file.kind === "adapter" && !file.editable).length, 7);
+  for (const adapter of template.CANONICAL_BROWSER_CHAT_FILES.filter((file) => file.kind === "adapter")) {
+    const projectFile = workspace.loadProjectState().files[adapter.path];
+    assert.equal(projectFile?.readOnly, true, adapter.path);
+    assert.equal(projectFile?.content, adapter.source, adapter.path);
+  }
 
   const metadataSeed = canonical.canonicalLessonSeeds()[0];
   workspace.ensureProjectWorkspace([{ ...metadataSeed, verifiedCells: 2 }]);
@@ -228,6 +234,104 @@ test("route-independent reconciliation persists the complete canonical tree and 
   assert.equal(browserChat?.content, editedSource);
   assert.equal(browserChat?.referenceContent, template.BROWSER_CHAT_COMPONENT_SOURCE);
   assert.equal(reconciled.length, expectedPaths.size);
+});
+
+test("lesson path migration archives stale JavaScript without rehydrating it", async () => {
+  await canonical.reconcileCanonicalProject();
+  await workspace.flushProjectPersistence();
+  const { repositories } = await client.getPersistenceContext();
+  const suffix = crypto.randomUUID();
+  const lessonId = `path-migration-${suffix}`;
+  const oldPath = `models/path-migration-${suffix}.js`;
+  const newPath = `models/path-migration-${suffix}.py`;
+  const oldSeed = {
+    path: oldPath,
+    courseId: "models",
+    lessonId,
+    title: "Path migration",
+    content: "export const value = 1;",
+    referenceContent: "export const value = 1;",
+    verifiedCells: 1,
+    totalCells: 1,
+  };
+  workspace.ensureProjectWorkspace([oldSeed]);
+  workspace.selectProjectFile(oldPath);
+  await workspace.flushProjectPersistence();
+  const durableOld = await repositories.projects.getFile("browser-chat", oldPath);
+  assert.ok(durableOld);
+
+  workspace.updateProjectState((state) => ({
+    ...state,
+    tests: {
+      results: {
+        [oldPath]: [{
+          id: `${lessonId}/value`,
+          path: oldPath,
+          label: "Old JavaScript result",
+          passed: true,
+          detail: "Passed",
+        }],
+      },
+      ranAt: 1,
+      runner: "legacy",
+      sourceTreeHash: null,
+      projectRevision: null,
+      contractVersion: null,
+      contractIdsByPath: { [oldPath]: [`${lessonId}/value`] },
+    },
+  }));
+  workspace.stageProjectDraftRecovery(oldPath, "// recoverable pre-migration JavaScript", Date.now() + 1_000);
+  const beforeMigration = await repositories.projects.get("browser-chat");
+  const newSeed = {
+    ...oldSeed,
+    path: newPath,
+    content: "value = 1",
+    referenceContent: "value = 1",
+    verifiedCells: 0,
+  };
+
+  workspace.ensureProjectWorkspace([newSeed]);
+  const migrated = workspace.loadProjectState();
+  assert.equal(migrated.files[oldPath], undefined);
+  assert.equal(migrated.files[newPath].content, "value = 1");
+  assert.equal(migrated.selectedPath, newPath);
+  assert.deepEqual(migrated.tests.results, {}, "a path migration invalidates evidence bound to the old module");
+  await workspace.flushProjectPersistence();
+
+  const afterMigration = await repositories.projects.get("browser-chat");
+  assert.equal(afterMigration.selectedPath, newPath);
+  assert.equal(afterMigration.draftRevision, beforeMigration.draftRevision + 2, "creating Python and archiving JavaScript are both source-tree revisions");
+  assert.equal(await repositories.projects.getFile("browser-chat", oldPath), undefined);
+  assert.equal((await repositories.projects.getFile("browser-chat", newPath)).content, "value = 1");
+  assert.deepEqual(
+    (await repositories.projects.listFileRevisions("browser-chat", oldPath)).map((revision) => revision.content),
+    [durableOld.content],
+    "archival keeps the immutable JavaScript revision available for recovery",
+  );
+  assert.equal(
+    workspace.listProjectDraftRecoveryCandidates(oldPath).some((candidate) => candidate.content.includes("recoverable pre-migration")),
+    true,
+    "the explicit recovery copy remains available without becoming a live file",
+  );
+
+  const previousLegacy = storage.get(workspace.PROJECT_STORAGE_KEY);
+  const legacy = workspace.emptyProjectState();
+  legacy.files[oldPath] = { ...oldSeed, updatedAt: 1 };
+  legacy.selectedPath = oldPath;
+  storage.set(workspace.PROJECT_STORAGE_KEY, JSON.stringify(legacy));
+  try {
+    const restored = await workspace.projectStateFromPersistence();
+    assert.equal(restored.files[oldPath], undefined, "legacy localStorage cannot resurrect an archived durable path");
+    assert.equal(restored.files[newPath].content, "value = 1");
+    assert.equal(restored.selectedPath, newPath);
+    assert.deepEqual(restored.tests.results, {});
+  } finally {
+    if (previousLegacy === undefined) storage.delete(workspace.PROJECT_STORAGE_KEY);
+    else storage.set(workspace.PROJECT_STORAGE_KEY, previousLegacy);
+    for (const candidate of workspace.listProjectDraftRecoveryCandidates(oldPath)) {
+      workspace.discardProjectDraftRecoveryCandidate(candidate.sessionId, oldPath);
+    }
+  }
 });
 
 test("test evidence commits only for the exact current project snapshot and host scope", async () => {

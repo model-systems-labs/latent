@@ -49,27 +49,41 @@ export const schedulingMemoryLesson = defineExtendedLesson({
       preview: "short chat · long document · concurrent follow-up",
     },
     implementation: {
-      filename: "continuous-batching.js",
-      intro: "Implement cache-page accounting and one scheduler iteration, then inspect latency and utilization under competing policies.",
+      filename: "continuous-batching.py",
+      intro: "Implement cache-page accounting and one scheduler iteration in Python, then inspect latency and utilization under competing policies.",
       codeBlocks: [
         {
           id: "page-allocation",
           label: "Paged allocation",
           purpose: "Allocate enough KV pages for zero, exact-boundary, and partial-page token counts.",
           concepts: [
-            { name: "pageSize", detail: "Fixed number of token positions per physical page." },
+            { name: "page_size", detail: "Fixed number of token positions per physical page." },
             { name: "pages", detail: "Ceiling division of logical tokens by page size." },
-            { name: "capacity", detail: "Allocated token positions: pages × pageSize." },
-            { name: "wastedSlots", detail: "Unused positions: capacity − tokens, always less than one page." },
+            { name: "capacity", detail: "Allocated token positions: pages × page_size." },
+            { name: "wastedSlots", detail: "Returned JSON field for unused positions: capacity − tokens, always less than one page." },
           ],
-          code: `function allocateKvPages(tokens, pageSize = 16) {
-  const pages = Math.ceil(tokens / pageSize);
-  return { pages, capacity: pages * pageSize, wastedSlots: pages * pageSize - tokens };
+          code: `def allocate_kv_pages(tokens, page_size=16):
+    pages = (tokens + page_size - 1) // page_size
+    capacity = pages * page_size
+    return {
+        "pages": pages,
+        "capacity": capacity,
+        "wastedSlots": capacity - tokens,
+    }`,
+          checkCode: `partial = allocate_kv_pages(33, 16)
+exact = allocate_kv_pages(32, 16)
+empty = allocate_kv_pages(0, 16)
+RESULT = {
+    "passed": (
+        partial["pages"] == 3
+        and partial["capacity"] == 48
+        and partial["wastedSlots"] == 15
+        and exact["pages"] == 2
+        and exact["wastedSlots"] == 0
+        and empty["pages"] == 0
+    ),
+    "detail": f'{partial["pages"]} pages · {partial["wastedSlots"]} unused slots',
 }`,
-          checkCode: `const partial = allocateKvPages(33, 16);
-const exact = allocateKvPages(32, 16);
-const empty = allocateKvPages(0, 16);
-return { passed: partial.pages === 3 && partial.capacity === 48 && partial.wastedSlots === 15 && exact.pages === 2 && exact.wastedSlots === 0 && empty.pages === 0, detail: partial.pages + " pages · " + partial.wastedSlots + " unused slots" };`,
         },
         {
           id: "batch-step",
@@ -80,30 +94,40 @@ return { passed: partial.pages === 3 && partial.capacity === 48 && partial.waste
             { name: "active", detail: "Advanced requests that still need another decode iteration." },
             { name: "completed", detail: "Finished identities retained for page release and latency accounting." },
           ],
-          code: `function decodeIteration(activeRequests) {
-  const active = [];
-  const completed = [];
+          code: `def decode_iteration(active_requests):
+    active = []
+    completed = []
 
-  for (const request of activeRequests) {
-    if (request.remaining <= 0) {
-      completed.push({ ...request });
-      continue;
-    }
+    for request in active_requests:
+        if request["remaining"] <= 0:
+            completed.append(dict(request))
+            continue
 
-    const advanced = {
-      ...request,
-      remaining: request.remaining - 1,
-      generated: request.generated + 1,
-    };
+        advanced = {
+            **request,
+            "remaining": request["remaining"] - 1,
+            "generated": request["generated"] + 1,
+        }
 
-    if (advanced.remaining === 0) completed.push(advanced);
-    else active.push(advanced);
-  }
+        if advanced["remaining"] == 0:
+            completed.append(advanced)
+        else:
+            active.append(advanced)
 
-  return { active, completed };
+    return {"active": active, "completed": completed}`,
+          checkCode: `result = decode_iteration([
+    {"id": "a", "remaining": 1, "generated": 0},
+    {"id": "b", "remaining": 3, "generated": 2},
+])
+RESULT = {
+    "passed": (
+        len(result["active"]) == 1
+        and result["active"][0]["id"] == "b"
+        and len(result["completed"]) == 1
+        and result["completed"][0]["id"] == "a"
+    ),
+    "detail": f'{len(result["active"])} active · {len(result["completed"])} completed',
 }`,
-          checkCode: `const result = decodeIteration([{ id: "a", remaining: 1, generated: 0 }, { id: "b", remaining: 3, generated: 2 }]);
-return { passed: result.active.length === 1 && result.active[0].id === "b" && result.completed.length === 1 && result.completed[0].id === "a", detail: result.active.length + " active · " + result.completed.length + " completed" };`,
         },
       ],
     },

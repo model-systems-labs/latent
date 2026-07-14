@@ -43,12 +43,12 @@ export const llmSystemsManifest = defineCurriculumManifest({
       outcome:
         "A learner-trained character model plus a frozen local-model evaluation harness.",
       lessons: [
-        { lessonId: "character-rnns", projectPath: "models/character-rnn.js" },
-        { lessonId: "neural-language-models", projectPath: "models/neural-language-model.js" },
-        { lessonId: "subword-tokenization", projectPath: "models/bpe-tokenizer.js" },
-        { lessonId: "additive-attention", projectPath: "models/additive-attention.js" },
-        { lessonId: "transformers", projectPath: "models/causal-transformer.js" },
-        { lessonId: "in-context-learning", projectPath: "models/few-shot-evaluation.js" },
+        { lessonId: "character-rnns", projectPath: "models/character-rnn.py" },
+        { lessonId: "neural-language-models", projectPath: "models/neural-language-model.py" },
+        { lessonId: "subword-tokenization", projectPath: "models/bpe-tokenizer.py" },
+        { lessonId: "additive-attention", projectPath: "models/additive-attention.py" },
+        { lessonId: "transformers", projectPath: "models/causal-transformer.py" },
+        { lessonId: "in-context-learning", projectPath: "models/few-shot-evaluation.py" },
       ],
     },
     {
@@ -62,8 +62,8 @@ export const llmSystemsManifest = defineCurriculumManifest({
       outcome:
         "An executable runtime model with explicit phase timing, memory use, and scheduling behavior.",
       lessons: [
-        { lessonId: "inference-runtime", projectPath: "systems/inference-runtime.js" },
-        { lessonId: "scheduling-memory", projectPath: "systems/continuous-batching.js" },
+        { lessonId: "inference-runtime", projectPath: "systems/inference-runtime.py" },
+        { lessonId: "scheduling-memory", projectPath: "systems/continuous-batching.py" },
       ],
     },
     {
@@ -77,8 +77,8 @@ export const llmSystemsManifest = defineCurriculumManifest({
       outcome:
         "A deterministic serving boundary and failure-injection harness for the browser chatbot.",
       lessons: [
-        { lessonId: "streaming-transport", projectPath: "backend/streaming-transport.js" },
-        { lessonId: "reliability-observability", projectPath: "backend/generation-reliability.js" },
+        { lessonId: "streaming-transport", projectPath: "backend/streaming-transport.py" },
+        { lessonId: "reliability-observability", projectPath: "backend/generation-reliability.py" },
       ],
     },
     {
@@ -92,10 +92,10 @@ export const llmSystemsManifest = defineCurriculumManifest({
       outcome:
         "A polished streaming chat interface with recovery, context controls, and observable generation state.",
       lessons: [
-        { lessonId: "conversation-state", projectPath: "product/chat-reducer.js" },
-        { lessonId: "streaming-react", projectPath: "product/streaming-react.js" },
-        { lessonId: "chat-actions-context", projectPath: "product/chat-actions.js" },
-        { lessonId: "chat-product-quality", projectPath: "product/chat-quality.js" },
+        { lessonId: "conversation-state", projectPath: "product/chat-reducer.py" },
+        { lessonId: "streaming-react", projectPath: "product/streaming-react.py" },
+        { lessonId: "chat-actions-context", projectPath: "product/chat-actions.py" },
+        { lessonId: "chat-product-quality", projectPath: "product/chat-quality.py" },
       ],
     },
   ],

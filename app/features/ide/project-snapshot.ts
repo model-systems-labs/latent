@@ -32,16 +32,16 @@ function contractsForPath(path: string) {
   ));
 }
 
-const PYTHON_IDENTITY_PREFIX = "__python_source_identity__/";
-
 /**
  * Browser Lab intentionally cannot execute Python. A JSON identity carrier
  * keeps every Python byte inside the same source-tree hash and stale-result
- * boundary without ever treating `.py` as JavaScript or an entry point.
+ * boundary without ever treating `.py` as JavaScript. Keeping the learner's
+ * path on the compiled identity module also lets build provenance prove that
+ * every routed lesson entered the exact promoted snapshot.
  */
 function pythonIdentityFile(file: ProjectSnapshotSource): VirtualSourceFile {
   return {
-    path: `${PYTHON_IDENTITY_PREFIX}${file.path}.json`,
+    path: file.path,
     contents: JSON.stringify({ path: file.path, contents: file.content }),
     loader: "json",
   };
@@ -56,8 +56,11 @@ export function prepareProjectSnapshotFiles(files: Readonly<Record<string, Proje
   const failures: ProjectSnapshotPreparationFailure[] = [];
   const entryPoints: string[] = [];
   const prepared = Object.values(files).map((file): VirtualSourceFile => {
-    if (file.path.endsWith(".py")) return pythonIdentityFile(file);
     const contracts = contractsForPath(file.path);
+    if (file.path.endsWith(".py")) {
+      if (contracts.length) entryPoints.push(file.path);
+      return pythonIdentityFile(file);
+    }
     if (!contracts.length) return { path: file.path, contents: file.content, loader: loaderFor(file.path) };
     const exports = [...new Set(contracts.flatMap((contract) => (
       contract.cases.map((exerciseCase) => exerciseCase.invoke.exportName)

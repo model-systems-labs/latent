@@ -264,6 +264,114 @@ test("project repository exposes immutable file history for learner recovery", a
   await dispose(db);
 });
 
+test("project archival removes only the live file while preserving history and a valid selection", async () => {
+  const db = database();
+  await db.open();
+  let now = 100;
+  const repositories = new persistence.PersistenceRepositories(db, { now: () => now++ });
+  await repositories.projects.create({ id: "archive", title: "Archive", courseId: "llm-systems" });
+  const first = await repositories.projects.saveFile({
+    projectId: "archive",
+    path: "models/model.js",
+    track: "models",
+    title: "JavaScript model",
+    content: "export const value = 1;",
+  });
+  const current = await repositories.projects.saveFile({
+    projectId: "archive",
+    path: first.path,
+    track: "models",
+    title: "JavaScript model",
+    content: "export const value = 2;",
+    expected: { revision: first.revision, sourceHash: first.sourceHash },
+  });
+  await repositories.projects.saveFile({
+    projectId: "archive",
+    path: "models/model.py",
+    track: "models",
+    title: "Python model",
+    content: "value = 2",
+  });
+  await repositories.projects.selectFile("archive", current.path);
+  const beforeArchive = await repositories.projects.get("archive");
+
+  await assert.rejects(
+    repositories.projects.archiveFile({
+      projectId: "archive",
+      path: current.path,
+      expected: { revision: current.revision, sourceHash: current.sourceHash },
+      replacementPath: "models/missing.py",
+    }),
+    /cannot select missing file/i,
+  );
+  assert.ok(await repositories.projects.getFile("archive", current.path), "a rejected archive leaves the current file intact");
+  assert.equal((await repositories.projects.get("archive")).draftRevision, beforeArchive.draftRevision);
+
+  const archived = await repositories.projects.archiveFile({
+    projectId: "archive",
+    path: current.path,
+    expected: { revision: current.revision, sourceHash: current.sourceHash },
+    replacementPath: "models/model.py",
+  });
+  assert.equal(archived.selectedPath, "models/model.py");
+  assert.equal(archived.draftRevision, beforeArchive.draftRevision + 1);
+  assert.equal(await repositories.projects.getFile("archive", current.path), undefined);
+  assert.equal((await repositories.projects.get("archive")).selectedPath, "models/model.py");
+  assert.deepEqual(
+    (await repositories.projects.listFileRevisions("archive", current.path)).map((revision) => revision.content),
+    ["export const value = 1;", "export const value = 2;"],
+  );
+
+  const restored = await repositories.projects.saveFile({
+    projectId: "archive",
+    path: current.path,
+    track: "models",
+    title: "Recovered JavaScript model",
+    content: "export const value = 3;",
+    expected: null,
+    reason: "restore",
+  });
+  assert.equal(restored.revision, 3, "restoring an archived path continues its immutable revision sequence");
+  assert.deepEqual(
+    (await repositories.projects.listFileRevisions("archive", current.path)).map((revision) => revision.revision),
+    [1, 2, 3],
+  );
+  await dispose(db);
+});
+
+test("competing project archives use revision-and-hash CAS so only one tab can commit", async () => {
+  const db = database();
+  await db.open();
+  const firstTab = new persistence.PersistenceRepositories(db);
+  const secondTab = new persistence.PersistenceRepositories(db);
+  await firstTab.projects.create({ id: "archive-cas", title: "Archive CAS", courseId: "llm-systems" });
+  const file = await firstTab.projects.saveFile({
+    projectId: "archive-cas",
+    path: "models/shared.js",
+    track: "models",
+    title: "Shared",
+    content: "export const value = 1;",
+  });
+  const input = {
+    projectId: "archive-cas",
+    path: file.path,
+    expected: { revision: file.revision, sourceHash: file.sourceHash },
+    replacementPath: null,
+  };
+
+  const outcomes = await Promise.allSettled([
+    firstTab.projects.archiveFile(input),
+    secondTab.projects.archiveFile(input),
+  ]);
+  assert.equal(outcomes.filter((outcome) => outcome.status === "fulfilled").length, 1);
+  assert.equal(outcomes.filter((outcome) => outcome.status === "rejected").length, 1);
+  assert.match(String(outcomes.find((outcome) => outcome.status === "rejected").reason), /changed in another tab/i);
+  assert.equal(await firstTab.projects.getFile("archive-cas", file.path), undefined);
+  assert.equal((await firstTab.projects.get("archive-cas")).draftRevision, 2);
+  assert.equal((await firstTab.projects.listFileRevisions("archive-cas", file.path)).length, 1);
+  await dispose(db);
+});
+
 test("project compare-and-save serializes simultaneous same-file tab edits", async () => {
   const db = database();
   await db.open();

@@ -8,7 +8,7 @@ import { trustedProjectResults } from "./project-file-status";
 
 const PORTFOLIO_HOST_TEST_COUNT = 6;
 
-const PORTABLE_HOST_BRIDGE = `import { encodeSse, parseSseChunk } from "../backend/streaming-transport.js";
+const PORTABLE_HOST_BRIDGE = `import { encodeSse, parseSseChunk } from "./adapters/streaming-transport.js";
 
 export type ChatRole = "system" | "user" | "assistant";
 export type ChatBackend = "student" | "local";
@@ -166,6 +166,7 @@ function safePath(path: string) {
 }
 
 function portableSource(file: ProjectFile) {
+  if (file.path.endsWith(".py")) return file.content;
   if (file.path === "capstone/BrowserChat.tsx") {
     return file.content.replace('from "../vendor/react"', 'from "react"');
   }
@@ -251,7 +252,7 @@ export function portfolioProjectFiles(input: {
   };
   const files: Record<string, string> = {
     "README.md": `# Browser Chat\n\nA browser-first LLM systems project built through Latent. The repository contains the learner's model, runtime, serving, product, and React capstone files.\n\n## Current evidence\n\n- ${completedLessons.length}/${input.lessons.length} lessons complete\n- ${manifest.tests.passing}/${readiness.requiredTests} required host-owned tests passing\n- portable build ready: ${readiness.ready ? "yes" : "no"}\n- active build: ${input.project.activeBuild ? `#${input.project.activeBuild.buildNumber}` : "none yet"}\n\n${readiness.ready ? "" : "> This snapshot is unfinished. Return to Latent, complete every lesson-owned file, and create a passing full build before treating it as a runnable portfolio project.\n\n"}## Run locally\n\n\`\`\`bash\nnpm install\nnpm run build\nnpm run dev\n\`\`\`\n\nThe exported app uses a deterministic in-browser SSE mock so it runs without a secret or hosted backend. Read BACKEND_INTEGRATION.md before connecting a real model service.\n\n## Architecture\n\n1. \`src/models\` implements model foundations.\n2. \`src/systems\` implements inference accounting and scheduling.\n3. \`src/backend\` implements SSE framing and attempt-aware reliability.\n4. \`src/product\` implements conversation, rendering, actions, context, and quality contracts.\n5. \`src/capstone\` assembles the React application.\n`,
-    "BACKEND_INTEGRATION.md": `# Replace the portable mock backend\n\nThe exported \`src/runtime/host-bridge.ts\` intentionally produces deterministic SSE frames in the browser. It contains no API key and makes no network request.\n\nTo connect a real service:\n\n1. Keep the exported \`StartGenerationInput\`, \`GenerationBridgeHandlers\`, and \`GenerationHandle\` interface.\n2. POST the bounded message/context payload to your own same-origin endpoint. Never ship a provider key in this client.\n3. Decode response bytes with a streaming \`TextDecoder\`, then pass decoded text through \`parseSseChunk\`.\n4. Preserve requestId and attempt identity before accepting events.\n5. Propagate AbortSignal to fetch, the stream reader, parser state, and server generation.\n6. Retry only retryable failures that occurred before visible output.\n7. Keep strict terminal persistence and exclude secrets and transient streaming records.\n\nThe lesson-owned backend and product files are already imported by the capstone and remain independently testable.\n`,
+    "BACKEND_INTEGRATION.md": `# Replace the portable mock backend\n\nThe exported \`src/runtime/host-bridge.ts\` intentionally produces deterministic SSE frames in the browser. It contains no API key and makes no network request.\n\nTo connect a real service:\n\n1. Keep the exported \`StartGenerationInput\`, \`GenerationBridgeHandlers\`, and \`GenerationHandle\` interface.\n2. POST the bounded message/context payload to your own same-origin endpoint. Never ship a provider key in this client.\n3. Decode response bytes with a streaming \`TextDecoder\`, then pass decoded text through \`parseSseChunk\`.\n4. Preserve requestId and attempt identity before accepting events.\n5. Propagate AbortSignal to fetch, the stream reader, parser state, and server generation.\n6. Retry only retryable failures that occurred before visible output.\n7. Keep strict terminal persistence and exclude secrets and transient streaming records.\n\nThe learner-owned lesson files are Python and remain independently executable in CPython. The React app imports course-provided JavaScript interoperability adapters that implement the same tested boundaries without pretending the browser bundler can import Python directly.\n`,
     "TEST_REPORT.md": markdownTestReport(results),
     "THIRD_PARTY_NOTICES.md": `# Third-party notices\n\nThis source export uses React and React DOM (MIT) and Vite (MIT). The optional model runtime in the hosted Latent course uses Transformers.js (Apache-2.0) and SmolLM2-135M-Instruct (Apache-2.0); model weights are not included in this archive. Consult the upstream license texts before redistribution.\n`,
     "portfolio-manifest.json": JSON.stringify(manifest, null, 2),

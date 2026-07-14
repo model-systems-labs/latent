@@ -39,9 +39,10 @@ function expectedContracts() {
   for (const lesson of course.courseLessons) {
     const projectPath = projectPathByLesson.get(lesson.id);
     assert.ok(projectPath, `manifest projectPath for ${lesson.id}`);
+    assert.match(projectPath, /\.py$/, `Python projectPath for ${lesson.id}`);
     for (const block of lesson.implementation.codeBlocks) {
-      const functionMatch = block.code.match(/function\s+([A-Za-z_$][\w$]*)\s*\(/);
-      assert.ok(functionMatch, `top-level function for ${lesson.id}/${block.id}`);
+      const functionMatch = block.code.match(/^def\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(/m);
+      assert.ok(functionMatch, `top-level Python function for ${lesson.id}/${block.id}`);
       expected.set(`${lesson.id}/${block.id}`, {
         exportName: functionMatch[1],
         label: block.label,
@@ -83,7 +84,7 @@ test("one typed host-owned contract covers every lesson code block", () => {
 
 test("the suite contains only data and cannot execute learner-authored checks", () => {
   const suite = contractModule.llmSystemsContractSuite;
-  assert.equal(suite.contractVersion, "llm-systems-contracts-v17");
+  assert.equal(suite.contractVersion, "llm-systems-contracts-v17-cpython");
   assert.deepEqual(suite.contracts, contractModule.llmSystemsExerciseContracts);
 
   const visit = (value) => {

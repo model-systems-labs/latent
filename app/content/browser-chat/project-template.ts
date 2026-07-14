@@ -4,6 +4,7 @@ export const CAPSTONE_COMPONENT_PATH = "capstone/BrowserChat.tsx" as const;
 export type BrowserChatProjectFileKind =
   | "vendor"
   | "bridge"
+  | "adapter"
   | "component"
   | "entry"
   | "style";
@@ -15,6 +16,201 @@ export type BrowserChatProjectTemplateFile = {
   editable: boolean;
   source: string;
 };
+
+export const BROWSER_CHAT_ADAPTER_PATHS = Object.freeze({
+  modelSoftmax: "runtime/adapters/model-softmax.js",
+  streamingTransport: "runtime/adapters/streaming-transport.js",
+  generationReliability: "runtime/adapters/generation-reliability.js",
+  chatReducer: "runtime/adapters/chat-reducer.js",
+  chatActions: "runtime/adapters/chat-actions.js",
+  chatQuality: "runtime/adapters/chat-quality.js",
+  streamingReact: "runtime/adapters/streaming-react.js",
+} as const);
+
+export const MODEL_SOFTMAX_ADAPTER_SOURCE = `// Course-provided, read-only JavaScript interoperability adapter.
+// The CPython neural-language-model lesson is tested independently; this module
+// exposes the equivalent browser-runtime seam used by the React capstone.
+export function stableSoftmax(logits) {
+  if (!Array.isArray(logits) || logits.length === 0) return [];
+  const maximum = Math.max(...logits);
+  const weights = logits.map((logit) => Math.exp(logit - maximum));
+  const total = weights.reduce((sum, weight) => sum + weight, 0);
+  return weights.map((weight) => weight / total);
+}
+`;
+
+export const STREAMING_TRANSPORT_ADAPTER_SOURCE = `// Course-provided, read-only JavaScript interoperability adapter.
+// The CPython streaming-transport lesson is tested independently; this module
+// supplies the JavaScript framing boundary imported by the React capstone.
+export function encodeSse(event, data) {
+  if (typeof event !== "string" || !event || /[\\r\\n]/.test(event)) {
+    throw new Error("event name must be non-empty and contain no CR or LF");
+  }
+  return "event: " + event + "\\n" + "data: " + JSON.stringify(data) + "\\n\\n";
+}
+
+export function parseSseChunk(buffer, chunk) {
+  const combined = buffer + chunk;
+  const frames = combined.split(/\\r?\\n\\r?\\n/);
+  const remainder = frames.pop() ?? "";
+  const events = frames.map((frame) => {
+    let event = "message";
+    const dataLines = [];
+
+    for (const line of frame.split(/\\r?\\n/)) {
+      if (!line || line.startsWith(":")) continue;
+      const colon = line.indexOf(":");
+      const field = colon === -1 ? line : line.slice(0, colon);
+      let value = colon === -1 ? "" : line.slice(colon + 1);
+      if (value.startsWith(" ")) value = value.slice(1);
+      if (field === "event" && value) event = value;
+      if (field === "data") dataLines.push(value);
+    }
+
+    const serialized = dataLines.length ? dataLines.join("\\n") : "null";
+    return { event, data: JSON.parse(serialized) };
+  });
+  return { events, remainder };
+}
+`;
+
+export const GENERATION_RELIABILITY_ADAPTER_SOURCE = `// Course-provided, read-only JavaScript interoperability adapter.
+// The CPython reliability lesson is tested independently; this module supplies
+// the request-lifecycle guards consumed by the React capstone.
+export function shouldRetry({ transient, tokensEmitted, attempt, maxAttempts = 2 }) {
+  return transient && tokensEmitted === 0 && attempt + 1 < maxAttempts;
+}
+
+export function acceptEvent(request, event) {
+  const active = ["queued", "loading", "prefill", "streaming"];
+  return active.includes(request.status)
+    && request.attemptId === event.attemptId
+    && request.requestId === event.requestId;
+}
+`;
+
+export const CHAT_REDUCER_ADAPTER_SOURCE = `// Course-provided, read-only JavaScript interoperability adapter.
+// The CPython conversation-state lesson is tested independently; this module
+// supplies immutable JavaScript records and reducer transitions to React.
+export function createMessage({ id, role, content = "", status = "complete", attemptId = null, requestId = null }) {
+  return { id, role, content, status, attemptId, requestId, createdAt: 0 };
+}
+
+export function appendMessageDelta(messages, { messageId, attemptId, requestId, delta }) {
+  return messages.map((message) =>
+    message.id === messageId &&
+    message.attemptId === attemptId &&
+    message.requestId === requestId &&
+    message.status === "streaming"
+      ? { ...message, content: message.content + delta }
+      : message,
+  );
+}
+`;
+
+export const CHAT_ACTIONS_ADAPTER_SOURCE = `// Course-provided, read-only JavaScript interoperability adapter.
+// The CPython actions-and-context lesson is tested independently; this module
+// supplies the JavaScript context and regeneration seam imported by React.
+export function selectContext({ system, history, activeUser, budget }) {
+  const requiredSystem = system.filter((message) => message.role === "system");
+  const turns = [];
+  for (let index = 0; index < history.length - 1; index += 1) {
+    const user = history[index];
+    const assistant = history[index + 1];
+    if (user.role === "user" && user.status === "complete" &&
+        assistant.role === "assistant" && assistant.status === "complete") {
+      turns.push([user, assistant]);
+      index += 1;
+    }
+  }
+  const selectedTurns = [];
+  let used = requiredSystem.reduce((sum, message) => sum + message.tokens, 0) + activeUser.tokens;
+  const overflow = used > budget;
+  if (!overflow) {
+    for (let index = turns.length - 1; index >= 0; index -= 1) {
+      const turn = turns[index];
+      const turnTokens = turn.reduce((sum, message) => sum + message.tokens, 0);
+      if (used + turnTokens <= budget) {
+        selectedTurns.unshift(turn);
+        used += turnTokens;
+      }
+    }
+  }
+  return { selected: [...requiredSystem, ...selectedTurns.flat(), activeUser], used, overflow };
+}
+
+export function createRegeneration({ messageId, parentUserId, attemptId, requestId }) {
+  return { messageId, parentUserId, attemptId, requestId, role: "assistant", content: "", status: "queued" };
+}
+`;
+
+export const CHAT_QUALITY_ADAPTER_SOURCE = `// Course-provided, read-only JavaScript interoperability adapter.
+// The CPython product-quality lesson is tested independently; this module
+// supplies the JavaScript validation and presentation seam used by React.
+export function validConversationRecord(record) {
+  const isPlainObject = (value) =>
+    Boolean(value) && typeof value === "object" && !Array.isArray(value) &&
+    Object.getPrototypeOf(value) === Object.prototype;
+  const hasExactKeys = (value, required, optional = []) => {
+    const keys = Reflect.ownKeys(value);
+    const allowed = [...required, ...optional];
+    return required.every((key) => Object.prototype.hasOwnProperty.call(value, key)) &&
+      keys.every((key) => typeof key === "string" && allowed.includes(key));
+  };
+  const validId = (value) =>
+    typeof value === "string" && value.trim().length > 0 && value.length <= 128;
+  const validMessage = (message) => {
+    if (!isPlainObject(message) || !hasExactKeys(
+      message,
+      ["id", "role", "backend", "content", "status"],
+      ["attemptId", "parentUserId"],
+    )) return false;
+    if (!validId(message.id) || !["user", "assistant"].includes(message.role)) return false;
+    if (!["student", "local"].includes(message.backend)) return false;
+    if (typeof message.content !== "string" || message.content.length > 20000) return false;
+    if (!["complete", "cancelled", "error"].includes(message.status)) return false;
+    if ("attemptId" in message && !validId(message.attemptId)) return false;
+    if ("parentUserId" in message && !validId(message.parentUserId)) return false;
+    return true;
+  };
+
+  if (!isPlainObject(record) || !hasExactKeys(record, ["version", "id", "messages"])) return false;
+  if (record.version !== 1 || !validId(record.id)) return false;
+  if (!Array.isArray(record.messages) || record.messages.length > 200) return false;
+  if (!record.messages.every(validMessage)) return false;
+  if (record.messages.reduce((sum, message) => sum + message.content.length, 0) > 200000) return false;
+  try {
+    return typeof JSON.stringify(record) === "string";
+  } catch {
+    return false;
+  }
+}
+
+export function generationStatusLabel(phase) {
+  const labels = {
+    queued: "Waiting for capacity",
+    loading: "Loading model",
+    prefill: "Processing context",
+    streaming: "Generating",
+    complete: "Complete",
+    cancelled: "Stopped",
+    error: "Generation failed",
+  };
+  return labels[phase] ?? "Status unavailable";
+}
+`;
+
+export const STREAMING_REACT_ADAPTER_SOURCE = `// Course-provided, read-only JavaScript interoperability adapter.
+// The CPython streaming-interface lesson is tested independently; this module
+// supplies the render-buffer and scroll-policy seam consumed by React.
+export function flushTokenBuffer(pending) {
+  return { text: pending.join(""), remaining: [] };
+}
+
+export function shouldFollowStream({ distanceFromBottom, userScrolledUp, threshold = 80 }) {
+  return !userScrolledUp && distanceFromBottom <= threshold;
+}
+`;
 
 export const REACT_ADAPTER_SOURCE = `type ReactRuntime = {
   createElement: (...args: any[]) => any;
@@ -226,12 +422,12 @@ export function startGeneration(
 `;
 
 export const BROWSER_CHAT_COMPONENT_SOURCE = `import React, { useEffect, useMemo, useReducer, useRef, useState } from "../vendor/react";
-import { createMessage, appendMessageDelta } from "../product/chat-reducer.js";
-import { selectContext, createRegeneration } from "../product/chat-actions.js";
-import { encodeSse, parseSseChunk } from "../backend/streaming-transport.js";
-import { shouldRetry, acceptEvent } from "../backend/generation-reliability.js";
-import { validConversationRecord, generationStatusLabel } from "../product/chat-quality.js";
-import { flushTokenBuffer, shouldFollowStream } from "../product/streaming-react.js";
+import { createMessage, appendMessageDelta } from "../runtime/adapters/chat-reducer.js";
+import { selectContext, createRegeneration } from "../runtime/adapters/chat-actions.js";
+import { encodeSse, parseSseChunk } from "../runtime/adapters/streaming-transport.js";
+import { shouldRetry, acceptEvent } from "../runtime/adapters/generation-reliability.js";
+import { validConversationRecord, generationStatusLabel } from "../runtime/adapters/chat-quality.js";
+import { flushTokenBuffer, shouldFollowStream } from "../runtime/adapters/streaming-react.js";
 import {
   initializePreview,
   loadLocal,
@@ -917,8 +1113,9 @@ export { styles };
 
 /**
  * Course-owned files that make the virtual project a complete React program.
- * The fourteen lesson-owned source paths intentionally remain in the LLM
- * Systems curriculum manifest so project structure has one owner per file.
+ * CPython lesson files remain independently tested learner work. These
+ * read-only JavaScript adapters are the explicit interoperability boundary
+ * used when the browser runtime compiles and mounts React.
  */
 export const CANONICAL_BROWSER_CHAT_FILES = Object.freeze([
   {
@@ -941,6 +1138,55 @@ export const CANONICAL_BROWSER_CHAT_FILES = Object.freeze([
     kind: "bridge",
     editable: false,
     source: HOST_BRIDGE_SOURCE,
+  },
+  {
+    path: BROWSER_CHAT_ADAPTER_PATHS.modelSoftmax,
+    title: "Course-provided model softmax adapter",
+    kind: "adapter",
+    editable: false,
+    source: MODEL_SOFTMAX_ADAPTER_SOURCE,
+  },
+  {
+    path: BROWSER_CHAT_ADAPTER_PATHS.streamingTransport,
+    title: "Course-provided SSE transport adapter",
+    kind: "adapter",
+    editable: false,
+    source: STREAMING_TRANSPORT_ADAPTER_SOURCE,
+  },
+  {
+    path: BROWSER_CHAT_ADAPTER_PATHS.generationReliability,
+    title: "Course-provided generation reliability adapter",
+    kind: "adapter",
+    editable: false,
+    source: GENERATION_RELIABILITY_ADAPTER_SOURCE,
+  },
+  {
+    path: BROWSER_CHAT_ADAPTER_PATHS.chatReducer,
+    title: "Course-provided chat reducer adapter",
+    kind: "adapter",
+    editable: false,
+    source: CHAT_REDUCER_ADAPTER_SOURCE,
+  },
+  {
+    path: BROWSER_CHAT_ADAPTER_PATHS.chatActions,
+    title: "Course-provided chat actions adapter",
+    kind: "adapter",
+    editable: false,
+    source: CHAT_ACTIONS_ADAPTER_SOURCE,
+  },
+  {
+    path: BROWSER_CHAT_ADAPTER_PATHS.chatQuality,
+    title: "Course-provided chat quality adapter",
+    kind: "adapter",
+    editable: false,
+    source: CHAT_QUALITY_ADAPTER_SOURCE,
+  },
+  {
+    path: BROWSER_CHAT_ADAPTER_PATHS.streamingReact,
+    title: "Course-provided streaming React adapter",
+    kind: "adapter",
+    editable: false,
+    source: STREAMING_REACT_ADAPTER_SOURCE,
   },
   {
     path: CAPSTONE_COMPONENT_PATH,

@@ -76,9 +76,9 @@ ${commonQuestionInstruction}`.trim(),
       preview: "the · receiver · decoded · the · quiet · signal",
     },
     implementation: {
-      filename: "causal-transformer.js",
-      intro: "Implement the exact operations that determine which token positions can exchange information inside a causal attention block.",
-      tensorOps: ["tensor", "matmul", "div", "softmax", "weightedSum", "maskCausal", "normalizeLayer", "toArray"],
+      filename: "causal-transformer.py",
+      intro: "Implement in Python and NumPy the exact operations that determine which token positions can exchange information inside a causal attention block.",
+      tensorOps: ["numpy", "np.asarray", "np.matmul", "np.exp", "np.triu_indices", "np.mean", "np.sqrt", "tolist"],
       codeBlocks: [
         {
           id: "causal-mask",
@@ -87,48 +87,73 @@ ${commonQuestionInstruction}`.trim(),
           concepts: [
             { name: "row", detail: "Query position currently producing a representation." },
             { name: "column", detail: "Key position the query might attend to." },
-            { name: "-Infinity", detail: "Becomes exactly zero probability after softmax." },
+            { name: "-np.inf", detail: "Becomes exactly zero probability after softmax." },
           ],
-          code: `function causalMask(scores) {
-  return toArray(maskCausal(tensor(scores)));
+          code: `import numpy as np
+
+def causal_mask(scores):
+    masked = np.asarray(scores, dtype=float).copy()
+    if masked.ndim != 2 or masked.shape[0] != masked.shape[1]:
+        raise ValueError("maskCausal needs a square rank-2 tensor")
+    future_rows, future_columns = np.triu_indices(masked.shape[0], k=1)
+    masked[future_rows, future_columns] = -np.inf
+    return masked.tolist()`,
+          checkCode: `masked = causal_mask([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+RESULT = {
+    "passed": masked[0][0] == 1 and np.isneginf(masked[0][1]) and np.isneginf(masked[1][2]) and masked[2][2] == 9,
+    "detail": "future logits removed",
 }`,
-          checkCode: `const masked = causalMask([[1, 2, 3], [4, 5, 6], [7, 8, 9]]);
-return { passed: masked[0][0] === 1 && masked[0][1] === -Infinity && masked[1][2] === -Infinity && masked[2][2] === 9, detail: "future logits removed" };`,
         },
         {
           id: "scaled-attention",
           label: "Scaled dot-product attention",
           purpose: "Divide query-key scores by √dₖ, apply softmax, and return the probability-weighted mixture of value rows.",
           concepts: [
-            { name: "scale", detail: "Square root of the key dimension." },
+            { name: "scale", detail: "NumPy square root of the key dimension." },
             { name: "scores", detail: "Dot products between one query and each key." },
             { name: "probabilities", detail: "Normalized weights applied to value vectors." },
           ],
-          code: `function scaledDotProductAttention(query, keys, values) {
-  const scale = Math.sqrt(query.length);
-  const scores = div(matmul(tensor(keys), tensor(query)), scale);
-  const probabilities = softmax(scores);
-  return toArray(weightedSum(tensor(values), probabilities));
+          code: `import numpy as np
+
+def scaled_dot_product_attention(query, keys, values):
+    query_vector = np.asarray(query, dtype=float)
+    key_matrix = np.asarray(keys, dtype=float)
+    value_matrix = np.asarray(values, dtype=float)
+    scale = np.sqrt(query_vector.size)
+    scores = (key_matrix @ query_vector) / scale
+    shifted = scores - np.max(scores)
+    probabilities = np.exp(shifted)
+    probabilities /= probabilities.sum()
+    return (probabilities @ value_matrix).tolist()`,
+          checkCode: `output = scaled_dot_product_attention([1, 0], [[1, 0], [0, 1]], [[2, 0], [0, 2]])
+RESULT = {
+    "passed": len(output) == 2 and output[0] > output[1],
+    "detail": "output = [" + ", ".join(f"{value:.3f}" for value in output) + "]",
 }`,
-          checkCode: `const output = scaledDotProductAttention([1, 0], [[1, 0], [0, 1]], [[2, 0], [0, 2]]);
-return { passed: output.length === 2 && output[0] > output[1], detail: "output = [" + output.map(v => v.toFixed(3)).join(", ") + "]" };`,
         },
         {
           id: "layer-norm",
           label: "Non-affine layer normalization",
           purpose: "Standardize one token across features without the learned gain gamma and bias beta applied by a full affine layer normalization.",
           concepts: [
-            { name: "mean", detail: "Average activation across the feature dimension." },
-            { name: "variance", detail: "Average squared deviation from that mean." },
+            { name: "mean", detail: "NumPy average activation across the feature dimension." },
+            { name: "variance", detail: "NumPy average squared deviation from that mean." },
             { name: "epsilon", detail: "Stability constant inside the square root." },
             { name: "omitted affine terms", detail: "A full layer norm applies learned per-feature gain gamma and bias beta after this normalization." },
           ],
-          code: `function layerNorm(vector, epsilon = 1e-5) {
-  return toArray(normalizeLayer(tensor(vector), epsilon));
+          code: `import numpy as np
+
+def layer_norm(vector, epsilon=1e-5):
+    values = np.asarray(vector, dtype=float)
+    mean = values.mean()
+    variance = np.mean((values - mean) ** 2)
+    return ((values - mean) / np.sqrt(variance + epsilon)).tolist()`,
+          checkCode: `normalized = layer_norm([1, 2, 3, 4])
+mean = sum(normalized) / len(normalized)
+RESULT = {
+    "passed": abs(mean) < 1e-9 and all(np.isfinite(normalized)),
+    "detail": f"mean = {mean:.9f}",
 }`,
-          checkCode: `const normalized = layerNorm([1, 2, 3, 4]);
-const mean = normalized.reduce((sum, value) => sum + value, 0) / normalized.length;
-return { passed: Math.abs(mean) < 1e-9 && normalized.every(Number.isFinite), detail: "mean = " + mean.toFixed(9) };`,
         },
       ],
     },

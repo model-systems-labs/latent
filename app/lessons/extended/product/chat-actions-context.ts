@@ -41,8 +41,8 @@ export const chatActionsContextLesson = defineExtendedLesson({
     questions: { intro: "Ask about branching history, cancellation, retries, prompt records, or token-budget policy.", suggestions: ["What should regenerate preserve?", "Should stopping delete partial text?", "Which messages leave the context first?"] },
     dataset: { name: "Branching Conversation", source: "Original deterministic scenario", license: "CC0", size: "3 action flows · 29 budgets (14–42)", preview: "stop partial → retry same prefix → edit into a new branch" },
     implementation: {
-      filename: "chat-actions.js",
-      intro: "Implement bounded context selection and regeneration branching before manipulating a complete conversation graph.",
+      filename: "chat-actions.py",
+      intro: "Implement bounded context selection and regeneration branching in Python before manipulating a complete conversation graph.",
       codeBlocks: [
         {
           id: "context-budget",
@@ -50,63 +50,104 @@ export const chatActionsContextLesson = defineExtendedLesson({
           purpose: "Assemble the exact request: required system instructions and active user prompt plus the newest complete historical pairs that fit.",
           concepts: [
             { name: "history", detail: "Only adjacent complete user-assistant pairs are admissible; streaming, cancelled, error, and orphan records are skipped." },
-            { name: "activeUser", detail: "Required current prompt, selected after system and historical context and counted inside the same budget." },
+            { name: "active_user", detail: "Required current prompt, selected after system and historical context and counted inside the same budget." },
             { name: "overflow", detail: "True when required system plus active-user tokens already exceed budget; the caller must not send the request unchanged." },
           ],
-          code: `function selectContext({ system, history, activeUser, budget }) {
-  const requiredSystem = system.filter((message) => message.role === "system");
-  const turns = [];
-  for (let index = 0; index < history.length - 1; index += 1) {
-    const user = history[index];
-    const assistant = history[index + 1];
-    if (user.role === "user" && user.status === "complete" &&
-        assistant.role === "assistant" && assistant.status === "complete") {
-      turns.push([user, assistant]);
-      index += 1;
-    }
-  }
-  const selectedTurns = [];
-  let used = requiredSystem.reduce((sum, message) => sum + message.tokens, 0) + activeUser.tokens;
-  const overflow = used > budget;
-  if (!overflow) {
-    for (let index = turns.length - 1; index >= 0; index -= 1) {
-      const turn = turns[index];
-      const turnTokens = turn.reduce((sum, message) => sum + message.tokens, 0);
-      if (used + turnTokens <= budget) {
-        selectedTurns.unshift(turn);
-        used += turnTokens;
-      }
-    }
-  }
-  return { selected: [...requiredSystem, ...selectedTurns.flat(), activeUser], used, overflow };
+          code: `def select_context(options):
+    system = options["system"]
+    history = options["history"]
+    active_user = options["activeUser"]
+    budget = options["budget"]
+
+    required_system = [
+        message for message in system if message.get("role") == "system"
+    ]
+    turns = []
+    index = 0
+    while index < len(history) - 1:
+        user = history[index]
+        assistant = history[index + 1]
+        is_complete_turn = (
+            user.get("role") == "user"
+            and user.get("status") == "complete"
+            and assistant.get("role") == "assistant"
+            and assistant.get("status") == "complete"
+        )
+        if is_complete_turn:
+            turns.append([user, assistant])
+            index += 2
+        else:
+            index += 1
+
+    selected_turns = []
+    used = sum(message["tokens"] for message in required_system) + active_user["tokens"]
+    overflow = used > budget
+    if not overflow:
+        for turn in reversed(turns):
+            turn_tokens = sum(message["tokens"] for message in turn)
+            if used + turn_tokens <= budget:
+                selected_turns.insert(0, turn)
+                used += turn_tokens
+
+    selected_history = [
+        message for turn in selected_turns for message in turn
+    ]
+    return {
+        "selected": required_system + selected_history + [active_user],
+        "used": used,
+        "overflow": overflow,
+    }`,
+          checkCode: `result = select_context({
+    "system": [{"id": "s", "role": "system", "tokens": 4}],
+    "history": [
+        {"id": "u1", "role": "user", "status": "complete", "tokens": 3},
+        {"id": "a1", "role": "assistant", "status": "complete", "tokens": 3},
+        {"id": "u2", "role": "user", "status": "complete", "tokens": 4},
+        {"id": "a2", "role": "assistant", "status": "complete", "tokens": 4},
+    ],
+    "activeUser": {"id": "u3", "role": "user", "status": "complete", "tokens": 2},
+    "budget": 14,
+})
+selected_ids = ",".join(message["id"] for message in result["selected"])
+RESULT = {
+    "passed": selected_ids == "s,u2,a2,u3" and result["used"] == 14 and result["overflow"] is False,
+    "detail": " → ".join(message["id"] for message in result["selected"]) + f' · {result["used"]} tokens',
 }`,
-          checkCode: `const result = selectContext({
-  system: [{ id: "s", role: "system", tokens: 4 }],
-  history: [
-    { id: "u1", role: "user", status: "complete", tokens: 3 },
-    { id: "a1", role: "assistant", status: "complete", tokens: 3 },
-    { id: "u2", role: "user", status: "complete", tokens: 4 },
-    { id: "a2", role: "assistant", status: "complete", tokens: 4 }
-  ],
-  activeUser: { id: "u3", role: "user", status: "complete", tokens: 2 },
-  budget: 14
-});
-return { passed: result.selected.map(m => m.id).join(",") === "s,u2,a2,u3" && result.used === 14 && result.overflow === false, detail: result.selected.map(m => m.id).join(" → ") + " · " + result.used + " tokens" };`,
         },
         {
           id: "regenerate-branch",
           label: "Regeneration branch",
           purpose: "Create the exact queued assistant record for a new generation attempt and transport request without copying caller-only fields.",
           concepts: [
-            { name: "parentUserId", detail: "Branch point shared by all regenerated attempts." },
-            { name: "attemptId", detail: "Unique identity for metrics and model parameters." },
-            { name: "requestId", detail: "Unique identity for this transport lifecycle and its incoming events." },
+            { name: "parent_user_id", detail: "Branch point shared by all regenerated attempts." },
+            { name: "attempt_id", detail: "Unique identity for metrics and model parameters." },
+            { name: "request_id", detail: "Unique identity for this transport lifecycle and its incoming events." },
           ],
-          code: `function createRegeneration({ messageId, parentUserId, attemptId, requestId }) {
-  return { messageId, parentUserId, attemptId, requestId, role: "assistant", content: "", status: "queued" };
+          code: `def create_regeneration(options):
+    return {
+        "messageId": options["messageId"],
+        "parentUserId": options["parentUserId"],
+        "attemptId": options["attemptId"],
+        "requestId": options["requestId"],
+        "role": "assistant",
+        "content": "",
+        "status": "queued",
+    }`,
+          checkCode: `branch = create_regeneration({
+    "messageId": "m9",
+    "parentUserId": "m4",
+    "attemptId": "a2",
+    "requestId": "r2",
+})
+RESULT = {
+    "passed": (
+        branch["parentUserId"] == "m4"
+        and branch["attemptId"] == "a2"
+        and branch["requestId"] == "r2"
+        and branch["status"] == "queued"
+    ),
+    "detail": f'{branch["attemptId"]} → {branch["requestId"]}',
 }`,
-          checkCode: `const branch = createRegeneration({ messageId: "m9", parentUserId: "m4", attemptId: "a2", requestId: "r2" });
-return { passed: branch.parentUserId === "m4" && branch.attemptId === "a2" && branch.requestId === "r2" && branch.status === "queued", detail: branch.attemptId + " → " + branch.requestId };`,
         },
       ],
     },

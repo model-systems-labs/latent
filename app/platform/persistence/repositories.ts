@@ -75,6 +75,21 @@ export type SaveProjectFileInput = {
   expected?: { revision: number; sourceHash: string } | null;
 };
 
+export type ArchiveProjectFileInput = {
+  projectId: string;
+  path: string;
+  /**
+   * The exact durable file observed by the caller. Archival fails closed when
+   * another tab edits or removes that revision before this transaction runs.
+   */
+  expected: { revision: number; sourceHash: string };
+  /**
+   * Used only when the archived file is still selected. A non-null
+   * replacement must already exist in the same project.
+   */
+  replacementPath?: string | null;
+};
+
 export class ProjectRepository extends RepositoryBase {
   async create(input: CreateProjectInput) {
     const timestamp = this.now();
@@ -143,7 +158,11 @@ export class ProjectRepository extends RepositoryBase {
         throw new PersistenceInvariantError(`${input.path} changed in another tab before this save completed.`);
       }
       const contentChanged = !existing || existing.content !== input.content;
-      const revision = contentChanged ? (existing?.revision ?? 0) + 1 : existing.revision;
+      const archivedRevision = existing
+        ? 0
+        : (await this.database.fileRevisions.where("fileId").equals(id).toArray())
+            .reduce((latest, revision) => Math.max(latest, revision.revision), 0);
+      const revision = contentChanged ? (existing?.revision ?? archivedRevision) + 1 : existing.revision;
       const record: ProjectFileRecord = {
         id,
         projectId: input.projectId,
@@ -182,6 +201,49 @@ export class ProjectRepository extends RepositoryBase {
         await this.database.projects.update(input.projectId, { selectedPath: input.path, updatedAt: timestamp });
       }
       return record;
+    });
+  }
+
+  async archiveFile(input: ArchiveProjectFileInput) {
+    assertStructuredValueWithinLimits(input);
+    const timestamp = this.now();
+    const id = projectFileId(input.projectId, input.path);
+
+    return this.database.transaction("rw", this.database.projects, this.database.files, this.database.fileRevisions, async () => {
+      const project = await this.database.projects.get(input.projectId);
+      if (!project) throw new PersistenceInvariantError(`Project ${input.projectId} does not exist.`);
+      const existing = await this.database.files.get(id);
+      if (
+        !existing
+        || existing.revision !== input.expected.revision
+        || existing.sourceHash !== input.expected.sourceHash
+      ) {
+        throw new PersistenceInvariantError(`${input.path} changed in another tab before this archive completed.`);
+      }
+
+      let selectedPath = project.selectedPath;
+      if (selectedPath === input.path) {
+        const replacementPath = input.replacementPath ?? null;
+        if (replacementPath === input.path) {
+          throw new PersistenceInvariantError(`Cannot keep archived file ${input.path} selected.`);
+        }
+        if (replacementPath && !(await this.database.files.get(projectFileId(input.projectId, replacementPath)))) {
+          throw new PersistenceInvariantError(`Cannot select missing file ${replacementPath} after archiving ${input.path}.`);
+        }
+        selectedPath = replacementPath;
+      }
+
+      await this.database.files.delete(id);
+      await this.database.projects.update(input.projectId, {
+        draftRevision: project.draftRevision + 1,
+        selectedPath,
+        updatedAt: timestamp,
+      });
+      return {
+        file: existing,
+        draftRevision: project.draftRevision + 1,
+        selectedPath,
+      };
     });
   }
 }

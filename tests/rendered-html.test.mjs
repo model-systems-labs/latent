@@ -57,10 +57,10 @@ test("the dedicated project route renders the complete progressive source tree",
   assert.match(html, /browser-chat\//);
   assert.match(html, /14(?:<!-- -->)? not started/);
   assert.match(html, /model\.config\.js/);
-  assert.match(html, /character-rnn\.js/);
-  assert.match(html, /inference-runtime\.js/);
-  assert.match(html, /streaming-transport\.js/);
-  assert.match(html, /chat-reducer\.js/);
+  assert.match(html, /character-rnn\.py/);
+  assert.match(html, /inference-runtime\.py/);
+  assert.match(html, /streaming-transport\.py/);
+  assert.match(html, /chat-reducer\.py/);
   assert.match(html, /BrowserChat\.tsx/);
   assert.match(html, /href="\/workspace/);
   assert.match(html, /href="\/capstone"/);
@@ -99,8 +99,10 @@ test("all fourteen lessons use the reusable learning flow", async () => {
     assert.match(html, /browser sends it directly to OpenRouter/);
     assert.match(html, /lesson brief \+ source metadata · no full-text retrieval/);
     assert.doesNotMatch(html, /Grounded in the lesson sources|Your key stays in this tab/);
-    assert.match(html, /Practice all/);
-    assert.match(html, /Run example/);
+    assert.match(html, /Reset all/);
+    assert.match(html, /data-direct-edit="true"/);
+    assert.doesNotMatch(html, /Practice all|Practice cell|Run example/);
+    assert.match(html, /Run cell/);
     assert.match(html, /Run all examples/);
     assert.match(html, /Artifacts/);
     assert.match(html, /A source-bound validation receipt/);
@@ -118,7 +120,7 @@ test("lesson code is syntax highlighted in the server-rendered first paint", asy
   assert.doesNotMatch(html, /syntax-code-fallback/);
 });
 
-test("Character RNNs teaches the unrolled mechanism and gates practice until restoration", async () => {
+test("Character RNNs teaches the unrolled mechanism while saved work restores before direct editing", async () => {
   const response = await render("/lessons/character-rnns");
   assert.equal(response.status, 200);
   const html = await response.text();
@@ -155,7 +157,7 @@ test("Subword Tokenization teaches pair identity, recounting, and ordered replay
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /Pair identity/);
-  assert.match(html, /JSON\.stringify\(\[left, right\]\)/);
+  assert.match(html, /json\.dumps\(\[left, right\]\)/);
   assert.match(html, /Two BPE training rounds/);
   assert.match(html, /bpe-worked-example/);
   assert.match(html, /Round 1 counts/);
@@ -232,7 +234,7 @@ test("Inference Runtime renders one unambiguous request timeline and KV formula"
   assert.match(html, /decodeForwards/);
   assert.match(html, /processedTokenPositions/);
   assert.match(html, /finalSequenceLength/);
-  assert.match(html, /function kvCacheBytes\(\{ layers, kvHeads, headDimension, tokens, bytesPerValue = 2 \}\)/);
+  assert.match(html, /def kv_cache_bytes\(config\):/);
 });
 
 test("Scheduling and Memory renders a controlled policy comparison and completion-aware API", async () => {
@@ -253,8 +255,8 @@ test("Scheduling and Memory renders a controlled policy comparison and completio
   assert.match(html, /<dd>7<\/dd>/);
   assert.match(html, /Can infer/);
   assert.match(html, /Cannot infer/);
-  assert.match(html, /return \{ active, completed \}/);
-  assert.match(html, /pages × pageSize/);
+  assert.match(html, /def decode_iteration\(active_requests\):/);
+  assert.match(html, /pages × page_size/);
   assert.match(html, /capacity − tokens/);
 });
 
@@ -267,7 +269,8 @@ test("the consent-gated local model runtime has a statically prebundled client b
   assert.match(experiment, /await import\("\.\.\/lib\/local-transformer-runtime"\)/);
   assert.doesNotMatch(experiment, /await import\("@huggingface\/transformers"\)/);
   assert.match(runtimeBoundary, /export \{ pipeline \} from "@huggingface\/transformers"/);
-  assert.match(viteConfig, /optimizeDeps: \{ include: \["@huggingface\/transformers"\] \}/);
+  assert.match(viteConfig, /optimizeDeps:\s*\{/);
+  assert.match(viteConfig, /include: \["@huggingface\/transformers", "@codemirror\/lang-python"\]/);
 });
 
 test("the capstone contains the complete React chat system", async () => {
@@ -292,10 +295,10 @@ test("the project IDE is a dedicated tested authoring surface", async () => {
   assert.match(html, /href="\/project"/);
   assert.match(html, /lesson files verified/);
   assert.match(html, /runtime\/model.config.js/);
-  assert.match(html, /character-rnn\.js/);
-  assert.match(html, /inference-runtime\.js/);
-  assert.match(html, /streaming-transport\.js/);
-  assert.match(html, /chat-reducer\.js/);
+  assert.match(html, /character-rnn\.py/);
+  assert.match(html, /inference-runtime\.py/);
+  assert.match(html, /streaming-transport\.py/);
+  assert.match(html, /chat-reducer\.py/);
   assert.match(html, /BrowserChat\.tsx/);
   assert.match(html, /0 of \d+ checks verified/);
   assert.match(html, /class="code-editor"/);

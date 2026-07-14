@@ -50,8 +50,8 @@ export const streamingTransportLesson = defineExtendedLesson({
       preview: "complete: meta → token × 10 → metrics → done · cancel: meta → token × 4 → abort → release",
     },
     implementation: {
-      filename: "streaming-transport.js",
-      intro: "Implement framing and incremental parsing against decoded text chunks. A streaming TextDecoder has already converted Uint8Array chunks to strings and retained incomplete UTF-8 bytes.",
+      filename: "streaming-transport.py",
+      intro: "Implement framing and incremental parsing in Python against decoded text chunks. A streaming decoder has already converted byte chunks to strings and retained incomplete UTF-8 bytes.",
       codeBlocks: [
         {
           id: "encode-sse",
@@ -59,17 +59,21 @@ export const streamingTransportLesson = defineExtendedLesson({
           purpose: "Serialize one typed event using the event-stream wire format.",
           concepts: [
             { name: "event", detail: "A single safe field value such as token, metrics, done, or error; CR and LF are rejected." },
-            { name: "data", detail: "JSON.stringify escapes payload quotes and newlines without changing framing." },
+            { name: "data", detail: "json.dumps escapes payload quotes and newlines without changing framing." },
             { name: "blank line", detail: "A final empty line (\\n\\n) terminates the frame." },
           ],
-          code: `function encodeSse(event, data) {
-  if (typeof event !== "string" || !event || /[\\r\\n]/.test(event)) {
-    throw new Error("event name must be non-empty and contain no CR or LF");
-  }
-  return "event: " + event + "\\n" + "data: " + JSON.stringify(data) + "\\n\\n";
+          code: `import json
+
+def encode_sse(event, data):
+    if not isinstance(event, str) or not event or "\\r" in event or "\\n" in event:
+        raise ValueError("event name must be non-empty and contain no CR or LF")
+    serialized = json.dumps(data, separators=(",", ":"), ensure_ascii=False)
+    return f"event: {event}\\ndata: {serialized}\\n\\n"`,
+          checkCode: `frame = encode_sse("token", {"delta": "hi"})
+RESULT = {
+    "passed": frame == 'event: token\\ndata: {"delta":"hi"}\\n\\n',
+    "detail": frame.replace("\\n", " ↵ "),
 }`,
-          checkCode: `const frame = encodeSse("token", { delta: "hi" });
-return { passed: frame === "event: token\\ndata: {\\\"delta\\\":\\\"hi\\\"}\\n\\n", detail: frame.replace(/\\n/g, " ↵ ") };`,
         },
         {
           id: "parse-sse",
@@ -81,32 +85,47 @@ return { passed: frame === "event: token\\ndata: {\\\"delta\\\":\\\"hi\\\"}\\n\\
             { name: "separator", detail: "An LF or CRLF blank line marking the end of one frame." },
             { name: "remainder", detail: "Only the partial final frame is saved for the next chunk." },
           ],
-          code: `function parseSseChunk(buffer, chunk) {
-  const combined = buffer + chunk;
-  const frames = combined.split(/\\r?\\n\\r?\\n/);
-  const remainder = frames.pop() ?? "";
-  const events = frames.map((frame) => {
-    let event = "message";
-    const dataLines = [];
+          code: `import json
+import re
 
-    for (const line of frame.split(/\\r?\\n/)) {
-      if (!line || line.startsWith(":")) continue;
-      const colon = line.indexOf(":");
-      const field = colon === -1 ? line : line.slice(0, colon);
-      let value = colon === -1 ? "" : line.slice(colon + 1);
-      if (value.startsWith(" ")) value = value.slice(1);
-      if (field === "event" && value) event = value;
-      if (field === "data") dataLines.push(value);
-    }
+def parse_sse_chunk(buffer, chunk):
+    combined = buffer + chunk
+    parts = re.split(r"\\r?\\n\\r?\\n", combined)
+    frames = parts[:-1]
+    remainder = parts[-1]
+    events = []
 
-    const serialized = dataLines.length ? dataLines.join("\\n") : "null";
-    return { event, data: JSON.parse(serialized) };
-  });
-  return { events, remainder };
+    for frame in frames:
+        event = "message"
+        data_lines = []
+
+        for line in re.split(r"\\r?\\n", frame):
+            if not line or line.startswith(":"):
+                continue
+            colon = line.find(":")
+            field = line if colon == -1 else line[:colon]
+            value = "" if colon == -1 else line[colon + 1:]
+            if value.startswith(" "):
+                value = value[1:]
+            if field == "event" and value:
+                event = value
+            if field == "data":
+                data_lines.append(value)
+
+        serialized = "\\n".join(data_lines) if data_lines else "null"
+        events.append({"event": event, "data": json.loads(serialized)})
+
+    return {"events": events, "remainder": remainder}`,
+          checkCode: `first = parse_sse_chunk("", 'event: token\\ndata: {"delta":"h')
+second = parse_sse_chunk(first["remainder"], 'i"}\\n\\n')
+RESULT = {
+    "passed": (
+        len(first["events"]) == 0
+        and second["events"][0]["data"]["delta"] == "hi"
+        and second["remainder"] == ""
+    ),
+    "detail": f'{len(second["events"])} event parsed across chunks',
 }`,
-          checkCode: `const first = parseSseChunk("", "event: token\\ndata: {\\\"delta\\\":\\\"h");
-const second = parseSseChunk(first.remainder, "i\\\"}\\n\\n");
-return { passed: first.events.length === 0 && second.events[0].data.delta === "hi" && second.remainder === "", detail: second.events.length + " event parsed across chunks" };`,
         },
       ],
     },

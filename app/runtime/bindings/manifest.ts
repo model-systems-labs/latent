@@ -1,4 +1,5 @@
 import { llmSystemsManifest, type LlmSystemsModuleId } from "../../content/llm-systems";
+import { BROWSER_CHAT_ADAPTER_PATHS } from "../../content/browser-chat/project-template";
 import type {
   BindingManifest,
   RuntimeBinding,
@@ -44,17 +45,11 @@ const lessonSources = llmSystemsManifest.modules.flatMap((module) =>
 export const LLM_LESSON_SOURCES: readonly LlmLessonSourceDefinition[] =
   Object.freeze(lessonSources);
 
-function sourcePathFor(lessonId: string): string {
-  const lesson = LLM_LESSON_SOURCES.find((candidate) => candidate.lessonId === lessonId);
-  if (!lesson) throw new Error(`LLM runtime binding references unknown lesson ${lessonId}.`);
-  return lesson.sourcePath;
-}
-
 /**
- * These are real integration seams for the capstone. A binding only means the
- * export is eligible for isolated worker execution; it does not claim that
- * every lesson file is executable at runtime. Files without a binding remain
- * build provenance and are identified as such by the active-build adapter.
+ * These are real JavaScript integration seams for the capstone. CPython lesson
+ * code is tested independently and enters the build as source-bound learning
+ * evidence; course-provided adapters bridge the corresponding behavior into
+ * the React program and isolated browser runtime.
  */
 export const LLM_RUNTIME_CAPABILITIES: readonly LlmRuntimeCapabilityDefinition[] =
   Object.freeze([
@@ -68,79 +63,79 @@ export const LLM_RUNTIME_CAPABILITIES: readonly LlmRuntimeCapabilityDefinition[]
       requirement: "core",
       consumer: "compiled-chat-ui",
       summary:
-        "Mounts the validated React capstone inside an opaque-origin sandboxed preview frame.",
+        "Mounts the validated React capstone inside an opaque-origin sandboxed preview frame; its JavaScript imports resolve through course-provided adapters while CPython lessons remain independently tested.",
     },
     {
       bindingId: "model-softmax",
       capability: "model.softmax",
-      modulePath: sourcePathFor("neural-language-models"),
+      modulePath: BROWSER_CHAT_ADAPTER_PATHS.modelSoftmax,
       exportName: "stableSoftmax",
       kind: "function",
       required: false,
       requirement: "adapter",
       consumer: "local-model-sampling",
       summary:
-        "Normalizes logits when the learner-built sampling adapter is selected; Transformers.js backends may own sampling internally.",
+        "A course-provided JavaScript adapter normalizes logits for isolated browser sampling; the neural-language-model CPython implementation is tested independently.",
     },
     {
       bindingId: "transport-encode-sse",
       capability: "transport.encode-sse",
-      modulePath: sourcePathFor("streaming-transport"),
+      modulePath: BROWSER_CHAT_ADAPTER_PATHS.streamingTransport,
       exportName: "encodeSse",
       kind: "function",
       required: false,
       requirement: "adapter",
       consumer: "mock-stream-producer",
       summary:
-        "Frames typed generation events when the deterministic mock serving adapter is active.",
+        "A course-provided JavaScript adapter frames typed generation events for React; the streaming-transport CPython implementation is tested independently.",
     },
     {
       bindingId: "transport-parse-sse",
       capability: "transport.parse-sse",
-      modulePath: sourcePathFor("streaming-transport"),
+      modulePath: BROWSER_CHAT_ADAPTER_PATHS.streamingTransport,
       exportName: "parseSseChunk",
       kind: "function",
       required: true,
       requirement: "core",
       consumer: "stream-consumer",
       summary:
-        "Incrementally turns streamed SSE bytes into typed generation events for the chat runtime.",
+        "A course-provided JavaScript adapter incrementally turns SSE text into typed React events; the matching CPython parser is tested independently.",
     },
     {
       bindingId: "serving-retry-policy",
       capability: "serving.should-retry",
-      modulePath: sourcePathFor("reliability-observability"),
+      modulePath: BROWSER_CHAT_ADAPTER_PATHS.generationReliability,
       exportName: "shouldRetry",
       kind: "function",
       required: true,
       requirement: "core",
       consumer: "generation-recovery",
       summary:
-        "Decides whether a failed generation can be retried without duplicating visible output.",
+        "A course-provided JavaScript adapter applies retry guards inside the React runtime; the reliability CPython implementation is tested independently.",
     },
     {
       bindingId: "chat-context-selection",
       capability: "chat.select-context",
-      modulePath: sourcePathFor("chat-actions-context"),
+      modulePath: BROWSER_CHAT_ADAPTER_PATHS.chatActions,
       exportName: "selectContext",
       kind: "function",
       required: true,
       requirement: "core",
       consumer: "prompt-context",
       summary:
-        "Selects the bounded conversation prefix supplied to the model before each generation.",
+        "A course-provided JavaScript adapter selects React's bounded prompt context; the actions-and-context CPython implementation is tested independently.",
     },
     {
       bindingId: "chat-generation-status",
       capability: "chat.generation-status",
-      modulePath: sourcePathFor("chat-product-quality"),
+      modulePath: BROWSER_CHAT_ADAPTER_PATHS.chatQuality,
       exportName: "generationStatusLabel",
       kind: "function",
       required: false,
       requirement: "adapter",
       consumer: "generation-presentation",
       summary:
-        "Maps runtime phases to visible status text; the host retains an accessible fallback label.",
+        "A course-provided JavaScript adapter maps runtime phases to accessible React status text; the product-quality CPython implementation is tested independently.",
     },
   ] satisfies readonly LlmRuntimeCapabilityDefinition[]);
 

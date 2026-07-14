@@ -6,6 +6,55 @@ export type SourceBoundVerification = {
   contractVersion: string | null;
 };
 
+export type PracticeDraftState = {
+  hiddenBlocks: string[];
+  answers: Record<string, string>;
+  verification: SourceBoundVerification;
+};
+
+export type CompatiblePracticeDrafts = {
+  hiddenBlocks: string[];
+  answers: Record<string, string>;
+  ignoredLegacyLanguage: boolean;
+};
+
+const JAVASCRIPT_DRAFT_MARKERS = [
+  /\bfunction\s+[A-Za-z_$]/,
+  /\b(?:const|let|var)\s+[A-Za-z_$]/,
+  /=>/,
+  /\bMath\.[A-Za-z]+/,
+  /(?:===|!==)/,
+];
+
+export function practiceDraftIsCompatible(filename: string, source: string): boolean {
+  return !filename.endsWith(".py") || !JAVASCRIPT_DRAFT_MARKERS.some((marker) => marker.test(source));
+}
+
+/**
+ * A pre-CPython save may use the same lesson and block ids as the Python
+ * curriculum. Keep those bytes in `answers` for recovery, but never inject
+ * obvious JavaScript into a `.py` module during hydration.
+ */
+export function compatiblePracticeDrafts(
+  filename: string,
+  blocks: readonly Pick<CodeBlock, "id">[],
+  hiddenBlocks: readonly string[],
+  answers: Readonly<Record<string, string>>,
+): CompatiblePracticeDrafts {
+  const knownIds = new Set(blocks.map((block) => block.id));
+  const hidden = hiddenBlocks.filter((id) => knownIds.has(id));
+  const preservedAnswers = { ...answers };
+  if (!filename.endsWith(".py")) {
+    return { hiddenBlocks: hidden, answers: preservedAnswers, ignoredLegacyLanguage: false };
+  }
+  const ignoredLegacyLanguage = hidden.some((id) => !practiceDraftIsCompatible(filename, preservedAnswers[id] ?? ""));
+  return {
+    hiddenBlocks: ignoredLegacyLanguage ? [] : hidden,
+    answers: preservedAnswers,
+    ignoredLegacyLanguage,
+  };
+}
+
 export async function waitForPracticeHydration(
   projectHydration: Promise<unknown>,
   learnerHydration: Promise<unknown>,
@@ -56,6 +105,44 @@ export function invalidateBlockVerification(
     ids: verification.ids.filter((id) => id !== blockId),
     sources: Object.fromEntries(Object.entries(verification.sources).filter(([id]) => id !== blockId)),
     contractVersion: verification.ids.some((id) => id !== blockId) ? verification.contractVersion : null,
+  };
+}
+
+/**
+ * Turn a reference cell into a learner draft without throwing away the text
+ * that was visible when the learner started typing.
+ */
+export function editPracticeBlock(
+  state: PracticeDraftState,
+  blockId: string,
+  source: string,
+): PracticeDraftState {
+  return {
+    hiddenBlocks: state.hiddenBlocks.includes(blockId)
+      ? [...state.hiddenBlocks]
+      : [...state.hiddenBlocks, blockId],
+    answers: { ...state.answers, [blockId]: source },
+    verification: invalidateBlockVerification(state.verification, blockId),
+  };
+}
+
+export function resetPracticeBlock(
+  state: PracticeDraftState,
+  blockId: string,
+  starterSource: string,
+): PracticeDraftState {
+  return editPracticeBlock(state, blockId, starterSource);
+}
+
+/** Restore the authored source while retaining the learner draft for recovery. */
+export function restoreReferenceBlock(
+  state: PracticeDraftState,
+  blockId: string,
+): PracticeDraftState {
+  return {
+    hiddenBlocks: state.hiddenBlocks.filter((id) => id !== blockId),
+    answers: { ...state.answers },
+    verification: invalidateBlockVerification(state.verification, blockId),
   };
 }
 

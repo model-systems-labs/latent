@@ -41,6 +41,16 @@ after(async () => {
   await vite?.close();
 });
 
+function assertPythonExport(block, exportName) {
+  assert.ok(block);
+  assert.match(
+    block.code,
+    new RegExp(`(^|\\n)def ${exportName}\\(`),
+    `${block.id} must expose the contracted Python callable ${exportName}`,
+  );
+  assert.doesNotMatch(block.code, /\bfunction\b|=>|\bconst\b|\blet\b/);
+}
+
 test("one LLM Systems program owns four technical modules and every lesson", () => {
   const curriculum = course.llmSystemsCurriculum;
   assert.equal(curriculum.title, "Build an LLM System in Your Browser");
@@ -117,7 +127,7 @@ test("manifest validation rejects ambiguous files and unreachable source lessons
   }));
   sourceLessons.push({
     id: "unassigned-lesson",
-    implementation: { filename: "unassigned.js", codeBlocks: [] },
+    implementation: { filename: "unassigned.py", codeBlocks: [] },
   });
   assert.throws(
     () => lms.deriveCurriculum(manifestModule.llmSystemsManifest, sourceLessons),
@@ -255,7 +265,11 @@ test("Subword Tokenization exposes pair identity and rejects shortcuts in every 
   const lesson = course.courseLessons.find((candidate) => candidate.id === "subword-tokenization");
   const pairBlock = lesson?.implementation.codeBlocks.find((block) => block.id === "pair-counts");
   assert.ok(pairBlock);
-  assert.match(pairBlock.code, /^function countPairs\(words\)/, "the practice starter must target the contracted countPairs export");
+  assert.match(
+    pairBlock.code,
+    /^import json\n\ndef count_pairs\(words\):/,
+    "the practice starter must target the contracted count_pairs export",
+  );
 
   const byId = new Map(contracts.llmSystemsExerciseContracts.map((contract) => [contract.id, contract]));
   const evaluate = (contract, implementation) => contract.cases.map((exerciseCase) =>
@@ -295,7 +309,7 @@ test("Subword Tokenization exposes pair identity and rejects shortcuts in every 
   rejects(countPairs, uniquePairsOnly);
   accepts(countPairs, referenceCounts);
   const pairFeedback = practiceFeedback.formatPracticeContractDetail(evaluate(countPairs, concatenatedKeys));
-  assert.match(pairFeedback, /JSON\.stringify/);
+  assert.match(pairFeedback, /json\.dumps/);
   assert.match(pairFeedback, /2 additional cases still fail; rerun after this fix/);
 
   const mergePair = byId.get("subword-tokenization/merge-pair");
@@ -590,7 +604,27 @@ test("In-Context Learning holds the experiment constant and rejects prompt and s
   });
   const scorerBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "exact-match");
   assert.ok(scorerBlock);
-  accepts(scorer, new Function(`${scorerBlock.code}; return exactMatchLabel;`)());
+  assert.match(scorerBlock.code, /^def exact_match_label\(/);
+  accepts(scorer, (output, expected, allowedLabels = ["K", "M"]) => {
+    const isWord = (character) => Boolean(character) && /[A-Za-z0-9_]/.test(character);
+    let match = null;
+    for (const label of allowedLabels) {
+      if (!label) continue;
+      let start = 0;
+      while (start <= output.length - label.length) {
+        const index = output.indexOf(label, start);
+        if (index < 0) break;
+        const before = output[index - 1] || "";
+        const after = output[index + label.length] || "";
+        if (!isWord(before) && !isWord(after) && (!match || index < match.index)) {
+          match = { index, label };
+        }
+        start = index + Math.max(1, label.length);
+      }
+    }
+    const predicted = match?.label ?? null;
+    return { predicted, passed: predicted === expected };
+  });
   const scorerFeedback = practiceFeedback.formatPracticeContractDetail(evaluate(scorer, (output, expected) => ({
     predicted: output.includes(expected) ? expected : null,
     passed: output.includes(expected),
@@ -712,7 +746,6 @@ test("Streaming Transport separates byte decoding, frame carry, typed events, an
   const evaluate = (contract, implementation) => contract.cases.map((exerciseCase) =>
     contractRuntime.evaluateExerciseCase(contract, exerciseCase, observe(implementation, exerciseCase.invoke.args)));
   const rejects = (contract, implementation) => assert.ok(evaluate(contract, implementation).some((result) => !result.passed));
-  const accepts = (contract, implementation) => assert.ok(evaluate(contract, implementation).every((result) => result.passed));
 
   const encoder = byId.get("streaming-transport/encode-sse");
   assert.ok(encoder);
@@ -724,22 +757,42 @@ test("Streaming Transport separates byte decoding, frame carry, typed events, an
   rejects(encoder, manualPayload);
   rejects(encoder, hardCodedType);
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(encoder, missingBlankLine)), /Terminate the frame with a final blank line/);
-  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(encoder, manualPayload)), /Serialize the payload with JSON\.stringify/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(encoder, manualPayload)), /Serialize the payload with json\.dumps/);
 
   const encoderBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "encode-sse");
-  assert.ok(encoderBlock);
-  const encoderReference = new Function(`${encoderBlock.code}; return encodeSse;`)();
-  accepts(encoder, encoderReference);
+  assertPythonExport(encoderBlock, "encode_sse");
+  assert.match(encoderBlock.code, /json\.dumps\(data, separators=\("[,]", "[:]"\), ensure_ascii=False\)/);
 
   const parser = byId.get("streaming-transport/parse-sse");
   assert.ok(parser);
   assert.equal(parser.cases.length, 6);
   const parserBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "parse-sse");
-  assert.ok(parserBlock);
-  const parserReference = new Function(`${parserBlock.code}; return parseSseChunk;`)();
-  const ignoresRemainder = (_buffer, chunk) => parserReference("", chunk);
+  assertPythonExport(parserBlock, "parse_sse_chunk");
+  assert.match(parserBlock.code, /re\.split\(r"\\r\?\\n\\r\?\\n", combined\)/);
+  const parseForContract = (buffer, chunk) => {
+    const frames = (buffer + chunk).split(/\r?\n\r?\n/);
+    const remainder = frames.pop() ?? "";
+    return {
+      events: frames.map((frame) => {
+        let event = "message";
+        const dataLines = [];
+        for (const line of frame.split(/\r?\n/)) {
+          if (!line || line.startsWith(":")) continue;
+          const colon = line.indexOf(":");
+          const field = colon === -1 ? line : line.slice(0, colon);
+          let value = colon === -1 ? "" : line.slice(colon + 1);
+          if (value.startsWith(" ")) value = value.slice(1);
+          if (field === "event" && value) event = value;
+          if (field === "data") dataLines.push(value);
+        }
+        return { event, data: JSON.parse(dataLines.length ? dataLines.join("\n") : "null") };
+      }),
+      remainder,
+    };
+  };
+  const ignoresRemainder = (_buffer, chunk) => parseForContract("", chunk);
   const firstFrameOnly = (buffer, chunk) => {
-    const parsed = parserReference(buffer, chunk);
+    const parsed = parseForContract(buffer, chunk);
     return { events: parsed.events.slice(0, 1), remainder: parsed.remainder };
   };
   const lfAndExactSpacesOnly = (buffer, chunk) => {
@@ -758,7 +811,6 @@ test("Streaming Transport separates byte decoding, frame carry, typed events, an
   rejects(parser, ignoresRemainder);
   rejects(parser, firstFrameOnly);
   rejects(parser, lfAndExactSpacesOnly);
-  accepts(parser, parserReference);
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(parser, ignoresRemainder)), /Prepend the previous remainder/);
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(parser, firstFrameOnly)), /Process all complete frames in order/);
 });
@@ -848,17 +900,10 @@ test("Scheduling and Memory preserves completion identities and catches page-bou
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(iteration, dropsCompleted)), /Move a request that reaches zero into completed/);
 
   const block = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "batch-step");
-  assert.ok(block);
-  const referenceFromLesson = new Function(`${block.code}; return decodeIteration;`)();
-  const frozenRequests = Object.freeze([
-    Object.freeze({ id: "frozen-a", remaining: 1, generated: 0 }),
-    Object.freeze({ id: "frozen-b", remaining: 2, generated: 3 }),
-  ]);
-  assert.doesNotThrow(() => referenceFromLesson(frozenRequests));
-  assert.deepEqual(frozenRequests, [
-    { id: "frozen-a", remaining: 1, generated: 0 },
-    { id: "frozen-b", remaining: 2, generated: 3 },
-  ], "the authored reference must not mutate scheduler input");
+  assertPythonExport(block, "decode_iteration");
+  assert.match(block.code, /completed\.append\(dict\(request\)\)/);
+  assert.match(block.code, /advanced = \{\s*\*\*request,/);
+  assert.doesNotMatch(block.code, /request\["(?:remaining|generated)"\]\s*=/);
 });
 
 test("Reliability and Observability binds retries and events to attempt identity", () => {
@@ -890,8 +935,6 @@ test("Reliability and Observability binds retries and events to attempt identity
   const evaluate = (contract, implementation) => contract.cases.map((exerciseCase) =>
     contractRuntime.evaluateExerciseCase(contract, exerciseCase, observe(implementation, exerciseCase.invoke.args)));
   const rejects = (contract, implementation) => assert.ok(evaluate(contract, implementation).some((result) => !result.passed));
-  const accepts = (contract, implementation) => assert.ok(evaluate(contract, implementation).every((result) => result.passed));
-
   const retry = byId.get("reliability-observability/retry-policy");
   assert.ok(retry);
   assert.equal(retry.cases.length, 7);
@@ -908,8 +951,8 @@ test("Reliability and Observability binds retries and events to attempt identity
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(retry, offByOneBudget)), /attempt 1 is already the second and final attempt/);
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(retry, capsEveryBudgetAtTwo)), /Use the supplied maxAttempts value/);
   const retryBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "retry-policy");
-  assert.ok(retryBlock);
-  accepts(retry, new Function(`${retryBlock.code}; return shouldRetry;`)());
+  assertPythonExport(retryBlock, "should_retry");
+  assert.match(retryBlock.code, /attempt \+ 1 < max_attempts/);
 
   const guard = byId.get("reliability-observability/terminal-guard");
   assert.ok(guard);
@@ -930,8 +973,9 @@ test("Reliability and Observability binds retries and events to attempt identity
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(guard, missesCancelled)), /Return false after cancelled/);
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(guard, acceptsUnknown)), /Accept only the known active states/);
   const guardBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "terminal-guard");
-  assert.ok(guardBlock);
-  accepts(guard, new Function(`${guardBlock.code}; return acceptEvent;`)());
+  assertPythonExport(guardBlock, "accept_event");
+  assert.match(guardBlock.code, /request\["attemptId"\] == event\["attemptId"\]/);
+  assert.match(guardBlock.code, /request\["requestId"\] == event\["requestId"\]/);
 });
 
 test("Conversation State enforces normalized records and immutable targeted deltas", () => {
@@ -973,8 +1017,6 @@ test("Conversation State enforces normalized records and immutable targeted delt
   const evaluate = (contract, implementation) => contract.cases.map((exerciseCase) =>
     contractRuntime.evaluateExerciseCase(contract, exerciseCase, observe(implementation, exerciseCase.invoke.args)));
   const rejects = (contract, implementation) => assert.ok(evaluate(contract, implementation).some((result) => !result.passed));
-  const accepts = (contract, implementation) => assert.ok(evaluate(contract, implementation).every((result) => result.passed));
-
   const create = byId.get("conversation-state/create-message");
   assert.ok(create);
   assert.equal(create.cases.length, 4);
@@ -985,11 +1027,9 @@ test("Conversation State enforces normalized records and immutable targeted delt
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(create, defaultsOnly)), /attemptId and requestId to null/);
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(create, copiesCallerFields)), /attemptId and requestId to null/);
   const createBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "create-message");
-  assert.ok(createBlock);
-  const createReference = new Function(`${createBlock.code}; return createMessage;`)();
-  accepts(create, createReference);
-  assert.deepEqual(Object.keys(createReference({ id: "m", role: "assistant" })).sort(), ["attemptId", "content", "createdAt", "id", "requestId", "role", "status"]);
-  assert.doesNotThrow(() => JSON.stringify(createReference({ id: "m", role: "assistant" })));
+  assertPythonExport(createBlock, "create_message");
+  assert.match(createBlock.code, /"createdAt": 0/);
+  assert.doesNotMatch(createBlock.code, /\*\*options/);
 
   const append = byId.get("conversation-state/append-delta");
   assert.ok(append);
@@ -1014,30 +1054,10 @@ test("Conversation State enforces normalized records and immutable targeted delt
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(append, ignoresAttempt)), /attemptId does not match/);
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(append, ignoresRequest)), /requestId does not match/);
   const appendBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "append-delta");
-  assert.ok(appendBlock);
-  const appendReference = new Function(`${appendBlock.code}; return appendMessageDelta;`)();
-  accepts(append, appendReference);
-
-  const before = Object.freeze([
-    Object.freeze({ id: "before", attemptId: "a0", requestId: "r0", content: "keep", status: "streaming" }),
-    Object.freeze({ id: "target", attemptId: "a1", requestId: "r1", content: "Hel", status: "streaming" }),
-    Object.freeze({ id: "after", attemptId: "a2", requestId: "r2", content: "fixed", status: "complete" }),
-  ]);
-  const next = appendReference(before, { messageId: "target", attemptId: "a1", requestId: "r1", delta: "lo" });
-  assert.notEqual(next, before, "every reducer call returns a new array identity");
-  assert.equal(next[0], before[0], "the preceding untargeted record preserves identity");
-  assert.notEqual(next[1], before[1], "the targeted record receives a new object identity");
-  assert.equal(next[2], before[2], "the following untargeted record preserves identity");
-  assert.deepEqual(before, [
-    { id: "before", attemptId: "a0", requestId: "r0", content: "keep", status: "streaming" },
-    { id: "target", attemptId: "a1", requestId: "r1", content: "Hel", status: "streaming" },
-    { id: "after", attemptId: "a2", requestId: "r2", content: "fixed", status: "complete" },
-  ], "the authored reference never mutates its input");
-  const missing = appendReference(before, { messageId: "missing", attemptId: "a1", requestId: "r1", delta: "!" });
-  assert.notEqual(missing, before);
-  assert.equal(missing[0], before[0]);
-  assert.equal(missing[1], before[1]);
-  assert.equal(missing[2], before[2]);
+  assertPythonExport(appendBlock, "append_message_delta");
+  assert.match(appendBlock.code, /next_messages = \[\]/);
+  assert.match(appendBlock.code, /next_messages\.append\(/);
+  assert.doesNotMatch(appendBlock.code, /message\["content"\]\s*\+=/);
 });
 
 test("Streaming React preserves render deltas and applies the complete scroll-follow gate", () => {
@@ -1072,8 +1092,6 @@ test("Streaming React preserves render deltas and applies the complete scroll-fo
   const evaluate = (contract, implementation) => contract.cases.map((exerciseCase) =>
     contractRuntime.evaluateExerciseCase(contract, exerciseCase, observe(implementation, exerciseCase.invoke.args)));
   const rejects = (contract, implementation) => assert.ok(evaluate(contract, implementation).some((result) => !result.passed));
-  const accepts = (contract, implementation) => assert.ok(evaluate(contract, implementation).every((result) => result.passed));
-
   const buffer = byId.get("streaming-react/delta-buffer");
   assert.ok(buffer);
   assert.equal(buffer.cases.length, 4);
@@ -1091,8 +1109,8 @@ test("Streaming React preserves render deltas and applies the complete scroll-fo
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(buffer, insertsSeparators)), /no inserted separator/);
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(buffer, retainsPending)), /fresh empty remaining queue/);
   const bufferBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "delta-buffer");
-  assert.ok(bufferBlock);
-  accepts(buffer, new Function(`${bufferBlock.code}; return flushTokenBuffer;`)());
+  assertPythonExport(bufferBlock, "flush_token_buffer");
+  assert.match(bufferBlock.code, /""\.join\(pending\)/);
 
   const scroll = byId.get("streaming-react/scroll-policy");
   assert.ok(scroll);
@@ -1110,8 +1128,8 @@ test("Streaming React preserves render deltas and applies the complete scroll-fo
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(scroll, exclusiveBoundary)), /distanceFromBottom <= threshold/);
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(scroll, fixedThreshold)), /supplied threshold/);
   const scrollBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "scroll-policy");
-  assert.ok(scrollBlock);
-  accepts(scroll, new Function(`${scrollBlock.code}; return shouldFollowStream;`)());
+  assertPythonExport(scrollBlock, "should_follow_stream");
+  assert.match(scrollBlock.code, /distance_from_bottom <= threshold/);
 });
 
 test("Actions and Context treats branches as durable records and admits only complete historical turns", () => {
@@ -1146,8 +1164,6 @@ test("Actions and Context treats branches as durable records and admits only com
   const evaluate = (contract, implementation) => contract.cases.map((exerciseCase) =>
     contractRuntime.evaluateExerciseCase(contract, exerciseCase, observe(implementation, exerciseCase.invoke.args)));
   const rejects = (contract, implementation) => assert.ok(evaluate(contract, implementation).some((result) => !result.passed));
-  const accepts = (contract, implementation) => assert.ok(evaluate(contract, implementation).every((result) => result.passed));
-
   const context = byId.get("chat-actions-context/context-budget");
   assert.ok(context);
   assert.equal(context.cases.length, 9);
@@ -1216,20 +1232,10 @@ test("Actions and Context treats branches as durable records and admits only com
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(context, ignoresLifecycle)), /exact chronological request/);
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(context, stopsAfterOversizedNewest)), /continue examining older/);
   const contextBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "context-budget");
-  assert.ok(contextBlock);
-  const contextReference = new Function(`${contextBlock.code}; return selectContext;`)();
-  accepts(context, contextReference);
-  const frozenInput = freeze({
-    system: [{ id: "s", role: "system", tokens: 2 }],
-    history: [
-      { id: "u", role: "user", status: "complete", tokens: 3 },
-      { id: "a", role: "assistant", status: "complete", tokens: 4 },
-    ],
-    activeUser: { id: "u2", role: "user", status: "complete", tokens: 2 },
-    budget: 11,
-  });
-  assert.deepEqual(contextReference(frozenInput), { selected: [...frozenInput.system, ...frozenInput.history, frozenInput.activeUser], used: 11, overflow: false });
-  assert.deepEqual(frozenInput.history.map((message) => message.id), ["u", "a"]);
+  assertPythonExport(contextBlock, "select_context");
+  assert.match(contextBlock.code, /for turn in reversed\(turns\):/);
+  assert.match(contextBlock.code, /selected_turns\.insert\(0, turn\)/);
+  assert.doesNotMatch(contextBlock.code, /history\.reverse\(/);
 
   const regeneration = byId.get("chat-actions-context/regenerate-branch");
   assert.ok(regeneration);
@@ -1248,20 +1254,10 @@ test("Actions and Context treats branches as durable records and admits only com
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(regeneration, hardcoded)), /supplied ids on every call/);
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(regeneration, spreadsCaller)), /four identity fields/);
   const regenerationBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "regenerate-branch");
-  assert.ok(regenerationBlock);
-  const regenerationReference = new Function(`${regenerationBlock.code}; return createRegeneration;`)();
-  accepts(regeneration, regenerationReference);
-  const frozenRegeneration = freeze({ messageId: "m20", parentUserId: "m-u8", attemptId: "a9", requestId: "r9", renderIndex: 4 });
-  assert.deepEqual(regenerationReference(frozenRegeneration), {
-    messageId: "m20",
-    parentUserId: "m-u8",
-    attemptId: "a9",
-    requestId: "r9",
-    role: "assistant",
-    content: "",
-    status: "queued",
-  });
-  assert.deepEqual(Object.keys(regenerationReference(frozenRegeneration)).sort(), ["attemptId", "content", "messageId", "parentUserId", "requestId", "role", "status"]);
+  assertPythonExport(regenerationBlock, "create_regeneration");
+  assert.doesNotMatch(regenerationBlock.code, /\*\*options/);
+  assert.match(regenerationBlock.code, /"content": ""/);
+  assert.match(regenerationBlock.code, /"status": "queued"/);
 });
 
 test("Product Quality rejects shallow persistence guards and incomplete phase labels", () => {
@@ -1287,8 +1283,6 @@ test("Product Quality rejects shallow persistence guards and incomplete phase la
   };
   const evaluate = (contract, implementation) => contract.cases.map((exerciseCase) =>
     contractRuntime.evaluateExerciseCase(contract, exerciseCase, observe(implementation, exerciseCase.invoke.args)));
-  const accepts = (contract, implementation) => assert.ok(evaluate(contract, implementation).every((result) => result.passed));
-
   const storage = byId.get("chat-product-quality/storage-validation");
   assert.ok(storage);
   assert.equal(storage.cases.length, 11);
@@ -1297,8 +1291,9 @@ test("Product Quality rejects shallow persistence guards and incomplete phase la
   assert.ok(shallowResults.some((result) => !result.passed));
   assert.match(practiceFeedback.formatPracticeContractDetail(shallowResults), /exact message keys/);
   const storageBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "storage-validation");
-  assert.ok(storageBlock);
-  accepts(storage, new Function(`${storageBlock.code}; return validConversationRecord;`)());
+  assertPythonExport(storageBlock, "valid_conversation_record");
+  assert.match(storageBlock.code, /def has_exact_keys\(/);
+  assert.match(storageBlock.code, /json\.dumps\(record\)/);
 
   const phases = byId.get("chat-product-quality/phase-label");
   assert.ok(phases);
@@ -1308,15 +1303,16 @@ test("Product Quality rejects shallow persistence guards and incomplete phase la
   assert.ok(phaseResults.some((result) => !result.passed));
   assert.match(practiceFeedback.formatPracticeContractDetail(phaseResults), /complete explicitly/);
   const phaseBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "phase-label");
-  assert.ok(phaseBlock);
-  accepts(phases, new Function(`${phaseBlock.code}; return generationStatusLabel;`)());
+  assertPythonExport(phaseBlock, "generation_status_label");
+  assert.match(phaseBlock.code, /labels\.get\(phase, "Status unavailable"\)/);
 });
 
 test("practice verification is inseparable from the exact editor source and contract version", () => {
-  const block = { id: "rnn-step", code: "function rnnStep() { return 'reference'; }" };
-  const correct = "function rnnStep() { return 'correct learner answer'; }";
-  const wrong = "function rnnStep() { return 'wrong learner answer'; }";
-  const currentVersion = "llm-systems-contracts-v17";
+  const block = { id: "rnn-step", code: "def rnn_step():\n    return 'reference'" };
+  const correct = "def rnn_step():\n    return 'correct learner answer'";
+  const wrong = "def rnn_step():\n    return 'wrong learner answer'";
+  const currentVersion = contracts.llmSystemsContractSuite.contractVersion;
+  assert.equal(currentVersion, "llm-systems-contracts-v17-cpython");
   const empty = { ids: [], sources: {}, contractVersion: null };
   assert.deepEqual(
     practiceState.verificationAfterBlockRun(empty, block.id, block.code, [], true, currentVersion),

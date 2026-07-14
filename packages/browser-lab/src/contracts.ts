@@ -89,7 +89,12 @@ export function evaluateHostAssertion(assertion: HostAssertion, observation: Inv
       ? pass(assertion, assertion.messageIncludes ? `The error contained “${assertion.messageIncludes}”.` : "The invocation threw as expected.")
       : fail(assertion, `The error did not contain “${assertion.messageIncludes}”.`);
   }
-  if (observation.status !== "returned") return fail(assertion, `Could not inspect ${pathLabel(assertion.path)} because the invocation ${observation.status}.`);
+  if (observation.status !== "returned") {
+    const exception = observation.status === "threw" && observation.message
+      ? `: ${observation.message}`
+      : ".";
+    return fail(assertion, `Could not inspect ${pathLabel(assertion.path)} because the invocation ${observation.status}${exception}`);
+  }
   const selected = valueAtPath(observation.value, assertion.path);
   if (!selected.found) return fail(assertion, `Could not find ${pathLabel(assertion.path)}.`);
   const value = selected.value;

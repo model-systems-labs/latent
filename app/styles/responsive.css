@@ -940,10 +940,15 @@
   .block-actions {
     display: grid !important;
     grid-template-columns: 1fr 1fr;
+    width: 100%;
   }
 
   .block-actions button {
     min-width: 0;
+  }
+
+  .block-actions .run-cell-button {
+    grid-column: 1 / -1;
   }
 
   .practice-guidance {

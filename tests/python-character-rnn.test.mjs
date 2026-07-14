@@ -24,6 +24,7 @@ globalThis.window = {
 
 let canonical;
 let client;
+let course;
 let learner;
 let persistence;
 let service;
@@ -39,9 +40,10 @@ before(async () => {
     appType: "custom",
     logLevel: "silent",
   });
-  [canonical, client, learner, persistence, service, snapshot, source] = await Promise.all([
+  [canonical, client, course, learner, persistence, service, snapshot, source] = await Promise.all([
     vite.ssrLoadModule("/app/lib/canonical-project.ts"),
     vite.ssrLoadModule("/app/platform/persistence/client.ts"),
+    vite.ssrLoadModule("/app/lessons/course.ts"),
     vite.ssrLoadModule("/app/lib/learner-state.ts"),
     vite.ssrLoadModule("/app/platform/persistence/index.ts"),
     vite.ssrLoadModule("/app/features/python/character-rnn-service.ts"),
@@ -126,32 +128,42 @@ function passingPythonLab(payload = validPayload()) {
   return { calls, client };
 }
 
-test("the canonical project adds an editable Python model without replacing the JavaScript lesson", () => {
+test("the canonical project uses one editable manifest-owned Python source for the lesson and trainer", () => {
+  const manifestPath = course.llmSystemsCurriculum.lessonById["character-rnns"].projectPath;
   const seeds = canonical.completeCanonicalProjectSeeds({ version: 2, lessons: {}, artifacts: {} });
-  const python = seeds.find((seed) => seed.path === source.PYTHON_CHARACTER_RNN_PATH);
-  const javascript = seeds.find((seed) => seed.path === "models/character-rnn.js");
+  const lessonSeeds = seeds.filter((seed) => seed.lessonId === "character-rnns");
+  const python = lessonSeeds[0];
+  assert.equal(manifestPath, source.PYTHON_CHARACTER_RNN_PATH);
+  assert.match(manifestPath, /\.py$/);
+  assert.equal(lessonSeeds.length, 1, "the lesson and trainable artifact share one canonical project file");
   assert.ok(python);
-  assert.equal(python.readOnly, false);
+  assert.equal(python.path, manifestPath);
+  assert.notEqual(python.readOnly, true);
+  assert.equal(python.content, source.PYTHON_CHARACTER_RNN_SOURCE);
+  assert.equal(python.referenceContent, source.PYTHON_CHARACTER_RNN_SOURCE);
   assert.match(python.content, /def train_character_rnn/);
   assert.match(python.content, /np\.random\.default_rng\(19\)/);
-  assert.ok(javascript, "the original lesson-owned JavaScript file remains canonical");
+  assert.equal(seeds.some((seed) => seed.lessonId === "character-rnns" && seed.path.endsWith(".js")), false);
 });
 
-test("Python bytes affect project identity but never become JavaScript or a Browser Lab entry", async () => {
+test("Python bytes route to the CPython contract entry while remaining a JSON identity module", async () => {
+  const pythonPath = course.llmSystemsCurriculum.lessonById["character-rnns"].projectPath;
   const files = {
-    "models/character-rnn.py": { path: "models/character-rnn.py", content: "print('one')" },
-    "models/lesson.js": { path: "models/lesson.js", content: "export const value = 1;" },
+    [pythonPath]: { path: pythonPath, content: "print('one')" },
+    "runtime/helper.js": { path: "runtime/helper.js", content: "export const value = 1;" },
   };
   const prepared = snapshot.prepareProjectSnapshotFiles(files);
-  assert.equal(prepared.files.some((file) => file.path.endsWith(".py")), false);
-  assert.equal(prepared.entryPoints.includes("models/character-rnn.py"), false);
-  const carrier = prepared.files.find((file) => file.path.includes("__python_source_identity__"));
+  const carrier = prepared.files.find((file) => file.path === pythonPath);
+  assert.ok(carrier);
   assert.equal(carrier.loader, "json");
-  assert.match(carrier.contents, /print\('one'\)/);
+  assert.deepEqual(JSON.parse(carrier.contents), { path: pythonPath, contents: "print('one')" });
+  assert.equal(prepared.entryPoints.includes(pythonPath), true, "the routed entry is dispatched to CPython, not the JavaScript compiler");
+  assert.equal(prepared.failures.length, 0);
+  assert.equal(prepared.files.find((file) => file.path === "runtime/helper.js").loader, "js");
   const first = await snapshot.hashProjectSnapshotSources(files);
   const second = await snapshot.hashProjectSnapshotSources({
     ...files,
-    "models/character-rnn.py": { path: "models/character-rnn.py", content: "print('two')" },
+    [pythonPath]: { path: pythonPath, content: "print('two')" },
   });
   assert.notEqual(first, second);
 });

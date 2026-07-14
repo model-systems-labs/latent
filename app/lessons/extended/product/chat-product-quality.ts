@@ -41,8 +41,8 @@ export const chatProductQualityLesson = defineExtendedLesson({
     questions: { intro: "Ask about local persistence, schema migration, live regions, focus management, or honest latency states.", suggestions: ["What chat data should never be persisted?", "How often should streaming text be announced?", "What should receive focus after retry?"] },
     dataset: { name: "Product Contract Audit", source: "Original deterministic checklist", license: "CC0", size: "11 executable pure checks · 5 specifications · 3 manual verification groups", preview: "input + focus · persistence · lifecycle · accessibility + responsive contract" },
     implementation: {
-      filename: "chat-quality.js",
-      intro: "Implement storage validation and user-visible phase labels before running the capstone product audit.",
+      filename: "chat-quality.py",
+      intro: "Implement storage validation and user-visible phase labels in Python before running the capstone product audit.",
       codeBlocks: [
         {
           id: "storage-validation",
@@ -53,47 +53,83 @@ export const chatProductQualityLesson = defineExtendedLesson({
             { name: "exact keys", detail: "Rejects top-level and nested extras, including secret-shaped fields." },
             { name: "terminal messages", detail: "Streaming messages are never restored as if their request were still alive." },
           ],
-          code: `function validConversationRecord(record) {
-  const isPlainObject = (value) =>
-    Boolean(value) && typeof value === "object" && !Array.isArray(value) &&
-    Object.getPrototypeOf(value) === Object.prototype;
-  const hasExactKeys = (value, required, optional = []) => {
-    const keys = Reflect.ownKeys(value);
-    const allowed = [...required, ...optional];
-    return required.every((key) => Object.prototype.hasOwnProperty.call(value, key)) &&
-      keys.every((key) => typeof key === "string" && allowed.includes(key));
-  };
-  const validId = (value) =>
-    typeof value === "string" && value.trim().length > 0 && value.length <= 128;
-  const validMessage = (message) => {
-    if (!isPlainObject(message) || !hasExactKeys(
-      message,
-      ["id", "role", "backend", "content", "status"],
-      ["attemptId", "parentUserId"],
-    )) return false;
-    if (!validId(message.id) || !["user", "assistant"].includes(message.role)) return false;
-    if (!["student", "local"].includes(message.backend)) return false;
-    if (typeof message.content !== "string" || message.content.length > 20000) return false;
-    if (!["complete", "cancelled", "error"].includes(message.status)) return false;
-    if ("attemptId" in message && !validId(message.attemptId)) return false;
-    if ("parentUserId" in message && !validId(message.parentUserId)) return false;
-    return true;
-  };
+          code: `import json
 
-  if (!isPlainObject(record) || !hasExactKeys(record, ["version", "id", "messages"])) return false;
-  if (record.version !== 1 || !validId(record.id)) return false;
-  if (!Array.isArray(record.messages) || record.messages.length > 200) return false;
-  if (!record.messages.every(validMessage)) return false;
-  if (record.messages.reduce((sum, message) => sum + message.content.length, 0) > 200000) return false;
-  try {
-    return typeof JSON.stringify(record) === "string";
-  } catch {
-    return false;
-  }
+def valid_conversation_record(record):
+    def is_plain_record(value):
+        return type(value) is dict
+
+    def has_exact_keys(value, required, optional=()):
+        keys = set(value.keys())
+        required_keys = set(required)
+        allowed_keys = required_keys | set(optional)
+        return (
+            all(type(key) is str for key in value.keys())
+            and required_keys <= keys
+            and keys <= allowed_keys
+        )
+
+    def valid_id(value):
+        return type(value) is str and bool(value.strip()) and len(value) <= 128
+
+    def valid_message(message):
+        if not is_plain_record(message) or not has_exact_keys(
+            message,
+            ("id", "role", "backend", "content", "status"),
+            ("attemptId", "parentUserId"),
+        ):
+            return False
+        if not valid_id(message["id"]) or message["role"] not in {"user", "assistant"}:
+            return False
+        if message["backend"] not in {"student", "local"}:
+            return False
+        if type(message["content"]) is not str or len(message["content"]) > 20000:
+            return False
+        if message["status"] not in {"complete", "cancelled", "error"}:
+            return False
+        if "attemptId" in message and not valid_id(message["attemptId"]):
+            return False
+        if "parentUserId" in message and not valid_id(message["parentUserId"]):
+            return False
+        return True
+
+    if not is_plain_record(record) or not has_exact_keys(
+        record,
+        ("version", "id", "messages"),
+    ):
+        return False
+    if type(record["version"]) is not int or record["version"] != 1:
+        return False
+    if not valid_id(record["id"]):
+        return False
+    if type(record["messages"]) is not list or len(record["messages"]) > 200:
+        return False
+    if not all(valid_message(message) for message in record["messages"]):
+        return False
+    if sum(len(message["content"]) for message in record["messages"]) > 200000:
+        return False
+    try:
+        return type(json.dumps(record)) is str
+    except (TypeError, ValueError):
+        return False`,
+          checkCode: `safe = valid_conversation_record({
+    "version": 1,
+    "id": "c1",
+    "messages": [
+        {"id": "u1", "role": "user", "backend": "local", "content": "Hello", "status": "complete"},
+    ],
+})
+secret = valid_conversation_record({
+    "version": 1,
+    "id": "c1",
+    "messages": [
+        {"id": "u1", "role": "user", "backend": "local", "content": "Hello", "status": "complete", "apiKey": "no"},
+    ],
+})
+RESULT = {
+    "passed": safe is True and secret is False,
+    "detail": "safe terminal message accepted · nested secret rejected",
 }`,
-          checkCode: `const safe = validConversationRecord({ version: 1, id: "c1", messages: [{ id: "u1", role: "user", backend: "local", content: "Hello", status: "complete" }] });
-const secret = validConversationRecord({ version: 1, id: "c1", messages: [{ id: "u1", role: "user", backend: "local", content: "Hello", status: "complete", apiKey: "no" }] });
-return { passed: safe === true && secret === false, detail: "safe terminal message accepted · nested secret rejected" };`,
         },
         {
           id: "phase-label",
@@ -104,21 +140,23 @@ return { passed: safe === true && secret === false, detail: "safe terminal messa
             { name: "labels", detail: "Finite mapping rather than inferred loading copy." },
             { name: "fallback", detail: "Safe label for unknown future phases." },
           ],
-          code: `function generationStatusLabel(phase) {
-  const labels = {
-    queued: "Waiting for capacity",
-    loading: "Loading model",
-    prefill: "Processing context",
-    streaming: "Generating",
-    complete: "Complete",
-    cancelled: "Stopped",
-    error: "Generation failed",
-  };
-  return labels[phase] ?? "Status unavailable";
+          code: `def generation_status_label(phase):
+    labels = {
+        "queued": "Waiting for capacity",
+        "loading": "Loading model",
+        "prefill": "Processing context",
+        "streaming": "Generating",
+        "complete": "Complete",
+        "cancelled": "Stopped",
+        "error": "Generation failed",
+    }
+    return labels.get(phase, "Status unavailable")`,
+          checkCode: `known = generation_status_label("prefill")
+unknown = generation_status_label("future-state")
+RESULT = {
+    "passed": known == "Processing context" and unknown == "Status unavailable",
+    "detail": f"{known} · {unknown}",
 }`,
-          checkCode: `const known = generationStatusLabel("prefill");
-const unknown = generationStatusLabel("future-state");
-return { passed: known === "Processing context" && unknown === "Status unavailable", detail: known + " · " + unknown };`,
         },
       ],
     },

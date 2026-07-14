@@ -96,6 +96,7 @@ export function PythonCodeEditor({ value, path, onChange, onSave, readOnly = fal
   const changeRef = useRef(onChange);
   const saveRef = useRef(onSave);
   const valueRef = useRef(value);
+  const applyingExternalValueRef = useRef(false);
 
   useEffect(() => {
     changeRef.current = onChange;
@@ -131,7 +132,9 @@ export function PythonCodeEditor({ value, path, onChange, onSave, readOnly = fal
           EditorState.readOnly.of(readOnly),
           EditorView.editable.of(!readOnly),
           EditorView.updateListener.of((update) => {
-            if (update.docChanged) changeRef.current(update.state.doc.toString());
+            if (update.docChanged && !applyingExternalValueRef.current) {
+              changeRef.current(update.state.doc.toString());
+            }
           }),
           EditorView.contentAttributes.of({
             "aria-label": `Python project file editor: ${path}`,
@@ -155,7 +158,12 @@ export function PythonCodeEditor({ value, path, onChange, onSave, readOnly = fal
     if (!view) return;
     const current = view.state.doc.toString();
     if (current === value) return;
-    view.dispatch({ changes: { from: 0, to: current.length, insert: value } });
+    applyingExternalValueRef.current = true;
+    try {
+      view.dispatch({ changes: { from: 0, to: current.length, insert: value } });
+    } finally {
+      applyingExternalValueRef.current = false;
+    }
   }, [value]);
 
   return (

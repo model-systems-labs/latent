@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef } from "react";
 import { basicSetup } from "codemirror";
 import { javascript } from "@codemirror/lang-javascript";
+import { python } from "@codemirror/lang-python";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { EditorState, Prec, type Extension } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers } from "@codemirror/view";
@@ -110,12 +111,14 @@ const syntaxTheme = HighlightStyle.define([
 ]);
 
 export function CodeEditor({ value, path, onChange, onSave, readOnly = false, variant = "project", ariaLabel, lineNumberStart = 1 }: CodeEditorProps) {
+  const isPython = path.toLowerCase().endsWith(".py");
   const instructionId = useId();
   const hostRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<EditorView | null>(null);
   const changeRef = useRef(onChange);
   const saveRef = useRef(onSave);
   const valueRef = useRef(value);
+  const applyingExternalValueRef = useRef(false);
 
   useEffect(() => {
     changeRef.current = onChange;
@@ -144,16 +147,18 @@ export function CodeEditor({ value, path, onChange, onSave, readOnly = false, va
         extensions: [
           basicSetup,
           variant === "lesson" ? lineNumbers({ formatNumber: (line) => String(line + lineNumberStart - 1) }) : [],
-          javascript({ jsx: /\.[jt]sx$/.test(path), typescript: /\.tsx?$/.test(path) }),
+          isPython ? python() : javascript({ jsx: /\.[jt]sx$/.test(path), typescript: /\.tsx?$/.test(path) }),
           saveKeymap,
           latentTheme,
           variant === "lesson" ? lessonTheme : [],
           syntaxHighlighting(syntaxTheme),
-          EditorState.tabSize.of(2),
+          EditorState.tabSize.of(isPython ? 4 : 2),
           EditorState.readOnly.of(readOnly),
           EditorView.editable.of(!readOnly),
           EditorView.updateListener.of((update) => {
-            if (update.docChanged) changeRef.current(update.state.doc.toString());
+            if (update.docChanged && !applyingExternalValueRef.current) {
+              changeRef.current(update.state.doc.toString());
+            }
           }),
           EditorView.contentAttributes.of({
             "aria-label": ariaLabel ?? `Project file editor: ${path}`,
@@ -171,14 +176,19 @@ export function CodeEditor({ value, path, onChange, onSave, readOnly = false, va
       viewRef.current = null;
     };
     // Recreate the language mode when the selected path changes.
-  }, [ariaLabel, instructionId, lineNumberStart, path, readOnly, variant]);
+  }, [ariaLabel, instructionId, isPython, lineNumberStart, path, readOnly, variant]);
 
   useEffect(() => {
     const view = viewRef.current;
     if (!view) return;
     const current = view.state.doc.toString();
     if (current === value) return;
-    view.dispatch({ changes: { from: 0, to: current.length, insert: value } });
+    applyingExternalValueRef.current = true;
+    try {
+      view.dispatch({ changes: { from: 0, to: current.length, insert: value } });
+    } finally {
+      applyingExternalValueRef.current = false;
+    }
   }, [value]);
 
   return (

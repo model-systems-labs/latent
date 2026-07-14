@@ -81,30 +81,35 @@ ${commonQuestionInstruction}`.trim(),
       preview: "signal signals signaling signaled · model models modeling modeled",
     },
     implementation: {
-      filename: "bpe-tokenizer.js",
-      intro: "Build the tokenizer in three isolated cells. Pair counts use a visible delimiter-safe key: JSON.stringify([\"l\", \"o\"]) returns the string [\"l\",\"o\"]. The merge and encoder cells receive pairs as two-item arrays.",
+      filename: "bpe-tokenizer.py",
+      intro: "Build the tokenizer in three isolated Python cells. Pair counts use a visible delimiter-safe key: json.dumps([\"l\", \"o\"], separators=(\",\", \":\")) returns the string [\"l\",\"o\"]. The merge and encoder cells receive pairs as two-item lists.",
       codeBlocks: [
         {
           id: "pair-counts",
           label: "Adjacent pair counts",
           purpose: "Count candidate merges across the tokenized vocabulary.",
           concepts: [
-            { name: "words", detail: "Array of words, each represented as an array of symbols." },
-            { name: "JSON.stringify([left, right])", detail: "Encodes the two-symbol array as a visible key such as [\"l\",\"o\"]." },
+            { name: "words", detail: "List of words, each represented as a list of symbols." },
+            { name: "json.dumps([left, right])", detail: "Encodes the two-symbol list as a visible compact key such as [\"l\",\"o\"]." },
             { name: "counts", detail: "Frequency table used to choose the next merge." },
           ],
-          code: `function countPairs(words) {
-  const counts = {};
-  for (const symbols of words) {
-    for (let index = 0; index < symbols.length - 1; index += 1) {
-      const pair = JSON.stringify([symbols[index], symbols[index + 1]]);
-      counts[pair] = (counts[pair] ?? 0) + 1;
-    }
-  }
-  return counts;
+          code: `import json
+
+def count_pairs(words):
+    counts = {}
+    for symbols in words:
+        for index in range(len(symbols) - 1):
+            pair = json.dumps(
+                [symbols[index], symbols[index + 1]],
+                separators=(",", ":"),
+            )
+            counts[pair] = counts.get(pair, 0) + 1
+    return counts`,
+          checkCode: `counts = count_pairs([["l", "o", "w"], ["l", "o"]])
+RESULT = {
+    "passed": counts['["l","o"]'] == 2 and counts['["o","w"]'] == 1,
+    "detail": "[l,o] = " + str(counts['["l","o"]']),
 }`,
-          checkCode: `const counts = countPairs([["l", "o", "w"], ["l", "o"]]);
-return { passed: counts['["l","o"]'] === 2 && counts['["o","w"]'] === 1, detail: "[l,o] = " + counts['["l","o"]'] };`,
         },
         {
           id: "merge-pair",
@@ -113,22 +118,25 @@ return { passed: counts['["l","o"]'] === 2 && counts['["o","w"]'] === 1, detail:
           concepts: [
             { name: "left", detail: "First symbol in the selected pair." },
             { name: "right", detail: "Second symbol in the selected pair." },
-            { name: "output", detail: "New symbol sequence after non-overlapping replacement." },
+            { name: "output", detail: "New symbol list after non-overlapping replacement." },
           ],
-          code: `function mergePair(symbols, [left, right]) {
-  const output = [];
-  for (let index = 0; index < symbols.length; index += 1) {
-    if (symbols[index] === left && symbols[index + 1] === right) {
-      output.push(left + right);
-      index += 1;
-    } else {
-      output.push(symbols[index]);
-    }
-  }
-  return output;
+          code: `def merge_pair(symbols, pair):
+    left, right = pair
+    output = []
+    index = 0
+    while index < len(symbols):
+        if index + 1 < len(symbols) and symbols[index] == left and symbols[index + 1] == right:
+            output.append(left + right)
+            index += 2
+        else:
+            output.append(symbols[index])
+            index += 1
+    return output`,
+          checkCode: `merged = merge_pair(["l", "o", "w", "e", "r"], ["l", "o"])
+RESULT = {
+    "passed": "|".join(merged) == "lo|w|e|r",
+    "detail": " · ".join(merged),
 }`,
-          checkCode: `const merged = mergePair(["l", "o", "w", "e", "r"], ["l", "o"]);
-return { passed: merged.join("|") === "lo|w|e|r", detail: merged.join(" · ") };`,
         },
         {
           id: "encode-word",
@@ -137,22 +145,23 @@ return { passed: merged.join("|") === "lo|w|e|r", detail: merged.join(" · ") };
           concepts: [
             { name: "merges", detail: "Ordered list learned from the training corpus." },
             { name: "symbols", detail: "Current segmentation of the new word." },
-            { name: "splice", detail: "Replaces one adjacent pair without changing order." },
+            { name: "slice assignment", detail: "Replaces one adjacent pair without changing order." },
           ],
-          code: `function encodeWord(word, merges) {
-  const symbols = [...word];
-  for (const [left, right] of merges) {
-    for (let index = 0; index < symbols.length - 1; index += 1) {
-      if (symbols[index] === left && symbols[index + 1] === right) {
-        symbols.splice(index, 2, left + right);
-        index -= 1;
-      }
-    }
-  }
-  return symbols;
+          code: `def encode_word(word, merges):
+    symbols = list(word)
+    for left, right in merges:
+        index = 0
+        while index < len(symbols) - 1:
+            if symbols[index] == left and symbols[index + 1] == right:
+                symbols[index:index + 2] = [left + right]
+            else:
+                index += 1
+    return symbols`,
+          checkCode: `tokens = encode_word("lower", [["l", "o"], ["lo", "w"], ["e", "r"]])
+RESULT = {
+    "passed": "|".join(tokens) == "low|er",
+    "detail": " · ".join(tokens),
 }`,
-          checkCode: `const tokens = encodeWord("lower", [["l", "o"], ["lo", "w"], ["e", "r"]]);
-return { passed: tokens.join("|") === "low|er", detail: tokens.join(" · ") };`,
         },
       ],
     },

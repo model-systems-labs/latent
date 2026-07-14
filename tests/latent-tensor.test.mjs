@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { after, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { createServer } from "vite";
-import * as esbuild from "esbuild-wasm";
 
 const vite = await createServer({
   root: fileURLToPath(new URL("../", import.meta.url)),
@@ -16,7 +15,6 @@ const sourceModule = await vite.ssrLoadModule("/packages/tensor/src/browser-sour
 const catalogModule = await vite.ssrLoadModule("/packages/tensor/src/catalog.ts");
 const lessonSourceModule = await vite.ssrLoadModule("/app/lessons/implementation-source.ts");
 const courseModule = await vite.ssrLoadModule("/app/lessons/course.ts");
-const compilerModule = await vite.ssrLoadModule("/packages/browser-lab/src/index.ts");
 const runtimeUrl = `data:text/javascript;base64,${Buffer.from(sourceModule.LATENT_TENSOR_SOURCE).toString("base64")}`;
 const latent = await import(runtimeUrl);
 
@@ -77,25 +75,17 @@ test("the lesson operation catalog matches the runtime's public exports", () => 
   assert.equal(sourceModule.LATENT_TENSOR_PATH, "runtime/latent-tensor.js");
 });
 
-test("every tensor-backed lesson bundles with the shared virtual-project dependency", async () => {
+test("CPython tensor lessons use NumPy without injecting the JavaScript tensor runtime", () => {
   const lessons = courseModule.courseLessons.filter((lesson) => lesson.implementation.tensorOps?.length);
-  const entries = [];
-  const files = [{ path: sourceModule.LATENT_TENSOR_PATH, contents: sourceModule.LATENT_TENSOR_SOURCE, loader: "js" }];
+  assert.ok(lessons.length > 0);
   for (const lesson of lessons) {
-    const path = `${lesson.courseId ?? "models"}/${lesson.implementation.filename}`;
+    assert.match(lesson.implementation.filename, /\.py$/, lesson.id);
     const body = lessonSourceModule.lessonImplementationSource(lesson, lesson.implementation.codeBlocks.map((block) => block.code));
-    const exports = lesson.implementation.codeBlocks.map((block) => block.code.match(/function\s+([A-Za-z_$][\w$]*)\s*\(/)[1]);
-    files.push({ path, contents: compilerModule.exposeLessonFunctions(body, exports), loader: "js" });
-    entries.push(path);
+    assert.doesNotMatch(body, /runtime\/latent-tensor\.js|from\s+["']@latent\/tensor/);
+    assert.equal(lessonSourceModule.lessonImplementationPrelude(lesson), "");
+    assert.ok(
+      lesson.implementation.tensorOps.some((operation) => operation === "numpy" || operation.startsWith("np.")),
+      `${lesson.id} must identify its Python/NumPy tensor surface`,
+    );
   }
-  const snapshot = { projectId: "latent-tensor-lessons", revision: 1, files };
-  const job = await compilerModule.createCompileJob({
-    jobId: "compile-latent-tensor-lessons",
-    snapshot,
-    compilerVersion: compilerModule.compilerVersionForEsbuild(esbuild.version),
-    entryPoints: entries,
-  });
-  const program = await compilerModule.compileVirtualProject(job, { version: esbuild.version, build: esbuild.build });
-  assert.deepEqual(program.diagnostics, []);
-  assert.equal(program.modules.length, entries.length);
 });

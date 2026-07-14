@@ -15,6 +15,8 @@ let projectWorkspace;
 let learnerState;
 let canonicalProject;
 let fileStatus;
+let contracts;
+let template;
 
 before(async () => {
   vite = await createServer({
@@ -24,7 +26,7 @@ before(async () => {
     appType: "custom",
     logLevel: "silent",
   });
-  [course, learning, portfolio, projectWorkspace, learnerState, canonicalProject, fileStatus] = await Promise.all([
+  [course, learning, portfolio, projectWorkspace, learnerState, canonicalProject, fileStatus, contracts, template] = await Promise.all([
     vite.ssrLoadModule("/app/lessons/course.ts"),
     vite.ssrLoadModule("/app/content/llm-systems/learning.ts"),
     vite.ssrLoadModule("/app/lib/portfolio-export.ts"),
@@ -32,12 +34,22 @@ before(async () => {
     vite.ssrLoadModule("/app/lib/learner-state.ts"),
     vite.ssrLoadModule("/app/lib/canonical-project.ts"),
     vite.ssrLoadModule("/app/lib/project-file-status.ts"),
+    vite.ssrLoadModule("/app/content/llm-systems/contracts.ts"),
+    vite.ssrLoadModule("/app/content/browser-chat/project-template.ts"),
   ]);
 });
 
 after(async () => {
   await vite?.close();
 });
+
+function manifestLessonPaths() {
+  return course.llmSystemsCurriculum.lessons.map((entry) => entry.projectPath);
+}
+
+function courseProvidedAdapters() {
+  return template.CANONICAL_BROWSER_CHAT_FILES.filter((file) => file.kind === "adapter");
+}
 
 test("every lesson has one valid prediction check and one concrete behavior change", () => {
   assert.equal(Object.keys(learning.lessonLearningOutcomes).length, course.courseLessons.length);
@@ -107,6 +119,10 @@ test("portfolio export contains source, evidence, runnable scaffolding, and a po
   assert.equal(Object.keys(files).some((path) => path.startsWith("src/vendor/")), false);
   const manifest = JSON.parse(files["portfolio-manifest.json"]);
   assert.equal(manifest.sourceFiles.length, Object.values(project.files).filter((file) => !file.path.startsWith("vendor/")).length);
+  for (const adapter of courseProvidedAdapters()) {
+    assert.ok(files[`src/${adapter.path}`], adapter.path);
+    assert.ok(manifest.sourceFiles.includes(adapter.path), `${adapter.path} must be declared in the portable source manifest`);
+  }
   assert.equal(manifest.portableBuildReady, false);
   assert.equal(manifest.buildNumber, null, "an unfinished workspace must not invent active build #1");
   assert.match(files["README.md"], /snapshot is unfinished/i);
@@ -119,7 +135,7 @@ function completePortfolioInput() {
     learner.lessons[lesson.id] = {
       verifiedCells: lesson.implementation.codeBlocks.map((block) => block.id),
       verifiedSources: {},
-      verifiedContractVersion: "browser-lab-v1",
+      verifiedContractVersion: contracts.llmSystemsContractSuite.contractVersion,
       experimentComplete: true,
       hiddenBlocks: [],
       answers: {},
@@ -132,7 +148,7 @@ function completePortfolioInput() {
   for (const seed of canonicalProject.completeCanonicalProjectSeeds(learner)) {
     project.files[seed.path] = { ...seed, updatedAt: 1 };
   }
-  const requiredTests = course.llmSystemsCurriculum.testCount + 6;
+  const requiredTests = contracts.llmSystemsContractSuite.contracts.length + 6;
   const contractIdsByPath = Object.fromEntries(Object.keys(project.files).flatMap((path) => {
     const ids = fileStatus.expectedProjectTestIdsForPath(path);
     return ids.length ? [[path, ids]] : [];
@@ -151,7 +167,7 @@ function completePortfolioInput() {
     runner: "browser-lab-v1",
     sourceTreeHash: "sha256:portable",
     projectRevision: 1,
-    contractVersion: "llm-systems-contracts-v17",
+    contractVersion: contracts.llmSystemsContractSuite.contractVersion,
     contractIdsByPath,
   };
   project.runtime = { ...project.runtime, buildNumber: 2, builtAt: 1 };
@@ -191,7 +207,7 @@ test("portfolio readiness requires current receipts to match the active build sn
 
 test("portfolio readiness requires the exact mounted BrowserChat behavior receipt", () => {
   const input = completePortfolioInput();
-  const path = "capstone/BrowserChat.tsx";
+  const path = template.CAPSTONE_COMPONENT_PATH;
   assert.deepEqual(input.project.tests.contractIdsByPath[path], ["capstone/BrowserChat.tsx:host-behavior-v1"]);
   assert.equal(portfolio.portfolioReadiness(input).ready, true);
   delete input.project.tests.results[path];
@@ -206,18 +222,23 @@ test("a completed portfolio exposes lesson modules and bundles as a standalone b
   const readiness = portfolio.portfolioReadiness(input);
   assert.equal(readiness.ready, true);
   const files = portfolio.portfolioProjectFiles(input);
-  assert.equal(JSON.parse(files["portfolio-manifest.json"]).portableBuildReady, true);
-  assert.equal(JSON.parse(files["portfolio-manifest.json"]).buildNumber, 2);
+  const manifest = JSON.parse(files["portfolio-manifest.json"]);
+  assert.equal(manifest.portableBuildReady, true);
+  assert.equal(manifest.buildNumber, 2);
   assert.doesNotMatch(files["README.md"], /snapshot is unfinished/i);
-  for (const path of [
-    "src/backend/streaming-transport.js",
-    "src/backend/generation-reliability.js",
-    "src/product/chat-reducer.js",
-    "src/product/streaming-react.js",
-    "src/product/chat-actions.js",
-    "src/product/chat-quality.js",
-  ]) {
-    assert.match(files[path], /export \{[^}]+\};/, path);
+  const lessonPaths = manifestLessonPaths();
+  assert.equal(lessonPaths.length, course.llmSystemsCurriculum.lessonCount);
+  assert.equal(lessonPaths.every((path) => path.endsWith(".py")), true);
+  for (const path of lessonPaths) {
+    assert.ok(files[`src/${path}`], path);
+    assert.ok(manifest.sourceFiles.includes(path), `${path} must be declared in the portable source manifest`);
+    assert.equal(files[`src/${path.replace(/\.py$/, ".js")}`], undefined, `${path} must not regain a synthetic JavaScript lesson twin`);
+  }
+  for (const adapter of courseProvidedAdapters()) {
+    const exportedPath = `src/${adapter.path}`;
+    assert.match(files[exportedPath], /Course-provided, read-only JavaScript interoperability adapter/);
+    assert.match(files[exportedPath], /export (?:function|const|\{)/, exportedPath);
+    assert.ok(manifest.sourceFiles.includes(adapter.path));
   }
 
   const root = await mkdtemp(join(tmpdir(), "latent-portfolio-test-"));

@@ -81,9 +81,9 @@ ${commonQuestionInstruction}`.trim(),
       preview: "14 · March · 2026  →  2026 · 03 · 14",
     },
     implementation: {
-      filename: "additive-attention.js",
-      intro: "Implement one attention step in three isolated cells: score one query-key pair with the additive MLP, softmax all source-position scores together, then multiply each state by its matching alpha and sum by coordinate.",
-      tensorOps: ["tensor", "matmul", "add", "tanh", "dot", "softmax", "weightedSum", "toArray"],
+      filename: "additive-attention.py",
+      intro: "Implement one attention step in three isolated Python/NumPy cells: score one query-key pair with the additive MLP, softmax all source-position scores together, then multiply each state by its matching alpha and sum by coordinate.",
+      tensorOps: ["numpy", "np.asarray", "np.matmul", "np.tanh", "np.dot", "np.exp", "tolist"],
       codeBlocks: [
         {
           id: "additive-score",
@@ -92,19 +92,28 @@ ${commonQuestionInstruction}`.trim(),
           concepts: [
             { name: "Wq", detail: "Projects the decoder query into attention space." },
             { name: "Wk", detail: "Projects one encoder state into the same space." },
-            { name: "bias + tanh", detail: "Combines both projections nonlinearly before reduction." },
+            { name: "bias + np.tanh", detail: "Combines both projections nonlinearly before reduction." },
             { name: "v", detail: "Collapses the attention-width hidden vector to one scalar score." },
           ],
-          code: `function additiveScore(query, key, { Wq, Wk, v, bias }) {
-  const queryTerm = matmul(tensor(Wq), tensor(query));
-  const keyTerm = matmul(tensor(Wk), tensor(key));
-  const hidden = tanh(add(add(queryTerm, keyTerm), tensor(bias)));
-  return dot(tensor(v), hidden).item();
+          code: `import numpy as np
+
+def additive_score(query, key, parameters):
+    Wq = np.asarray(parameters["Wq"], dtype=float)
+    Wk = np.asarray(parameters["Wk"], dtype=float)
+    v = np.asarray(parameters["v"], dtype=float)
+    bias = np.asarray(parameters["bias"], dtype=float)
+    query_term = Wq @ np.asarray(query, dtype=float)
+    key_term = Wk @ np.asarray(key, dtype=float)
+    hidden = np.tanh(query_term + key_term + bias)
+    return float(v @ hidden)`,
+          checkCode: `score = additive_score([1, 0], [0, 1], {
+    "Wq": [[1, 0], [0, 1]], "Wk": [[1, 0], [0, 1]],
+    "v": [0.5, -0.5], "bias": [0, 0],
+})
+RESULT = {
+    "passed": np.isfinite(score),
+    "detail": f"e = {score:.4f}",
 }`,
-          checkCode: `const score = additiveScore([1, 0], [0, 1], {
-  Wq: [[1, 0], [0, 1]], Wk: [[1, 0], [0, 1]], v: [0.5, -0.5], bias: [0, 0]
-});
-return { passed: Number.isFinite(score), detail: "e = " + score.toFixed(4) };`,
         },
         {
           id: "attention-softmax",
@@ -112,15 +121,24 @@ return { passed: Number.isFinite(score), detail: "e = " + score.toFixed(4) };`,
           purpose: "Normalize compatibility scores across source positions.",
           concepts: [
             { name: "scores", detail: "One scalar compatibility value per encoder state." },
-            { name: "softmax", detail: "Normalizes once across every source position for this output step." },
-            { name: "toArray", detail: "Returns one alignment weight per source position." },
+            { name: "shifted", detail: "Subtracts the maximum score before normalizing across every source position." },
+            { name: "tolist", detail: "Returns one JSON-serializable alignment weight per source position." },
           ],
-          code: `function attentionWeights(scores) {
-  return toArray(softmax(tensor(scores)));
+          code: `import numpy as np
+
+def attention_weights(scores):
+    values = np.asarray(scores, dtype=float)
+    if values.size == 0:
+        return []
+    shifted = values - np.max(values)
+    weights = np.exp(shifted)
+    return (weights / weights.sum()).tolist()`,
+          checkCode: `weights = attention_weights([2, 1, 0])
+total = sum(weights)
+RESULT = {
+    "passed": weights[0] > weights[1] and abs(total - 1) < 1e-9,
+    "detail": ", ".join(f"{value:.3f}" for value in weights),
 }`,
-          checkCode: `const weights = attentionWeights([2, 1, 0]);
-const total = weights.reduce((sum, value) => sum + value, 0);
-return { passed: weights[0] > weights[1] && Math.abs(total - 1) < 1e-9, detail: weights.map(v => v.toFixed(3)).join(", ") };`,
         },
         {
           id: "context-vector",
@@ -128,14 +146,22 @@ return { passed: weights[0] > weights[1] && Math.abs(total - 1) < 1e-9, detail: 
           purpose: "Combine encoder states using the learned alignment distribution.",
           concepts: [
             { name: "states", detail: "Encoder representation at every source position." },
-            { name: "weights / alpha", detail: "One normalized weight corresponding to each state." },
+            { name: "weights / alpha", detail: "One normalized NumPy weight corresponding to each state." },
             { name: "dimension", detail: "Width of the resulting context vector." },
           ],
-          code: `function contextVector(states, weights) {
-  return toArray(weightedSum(tensor(states), tensor(weights)));
+          code: `import numpy as np
+
+def context_vector(states, weights):
+    matrix = np.asarray(states, dtype=float)
+    alpha = np.asarray(weights, dtype=float)
+    if matrix.ndim != 2 or alpha.ndim != 1 or matrix.shape[0] != alpha.size:
+        raise ValueError("weightedSum needs [items, width] states and [items] weights")
+    return (alpha @ matrix).tolist()`,
+          checkCode: `context = context_vector([[1, 0], [0, 1]], [0.75, 0.25])
+RESULT = {
+    "passed": context == [0.75, 0.25],
+    "detail": "c = [" + ", ".join(f"{value:g}" for value in context) + "]",
 }`,
-          checkCode: `const context = contextVector([[1, 0], [0, 1]], [0.75, 0.25]);
-return { passed: context[0] === 0.75 && context[1] === 0.25, detail: "c = [" + context.join(", ") + "]" };`,
         },
       ],
     },

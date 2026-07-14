@@ -76,25 +76,32 @@ ${commonQuestionInstruction}`.trim(),
       preview: "positive → K · negative → M · held-out reviews use the same concealed mapping",
     },
     implementation: {
-      filename: "few-shot-evaluation.js",
-      intro: "Implement deterministic prompt construction and scoring as independently verified learner functions. The experiment below uses a separate fixed evaluator so editing these practice cells cannot change its reported comparison.",
+      filename: "few-shot-evaluation.py",
+      intro: "Implement deterministic Python prompt construction and scoring as independently verified learner functions. The experiment below uses a separate fixed evaluator, so editing these practice cells cannot change its reported comparison.",
       codeBlocks: [
         {
           id: "format-demonstrations",
           label: "Demonstration formatter",
           purpose: "Serialize labeled examples without changing their order.",
           concepts: [
-            { name: "examples", detail: "Fixed input-label records; preserve their supplied order, including empty inputs." },
+            { name: "examples", detail: "Fixed input-label dictionaries; preserve their supplied order, including empty inputs." },
             { name: "schema", detail: "Trim field edges and serialize every record as Input then Label." },
             { name: "separator", detail: "Place exactly one blank line between complete records." },
           ],
-          code: `function formatDemonstrations(examples) {
-  return examples
-    .map(({ input, label }) => "Input: " + input.trim() + "\\nLabel: " + label.trim())
-    .join("\\n\\n");
+          code: `def format_demonstrations(examples):
+    records = [
+        f"Input: {example['input'].strip()}\\nLabel: {example['label'].strip()}"
+        for example in examples
+    ]
+    return "\\n\\n".join(records)`,
+          checkCode: `text = format_demonstrations([
+    {"input": "aa", "label": "K"},
+    {"input": "bbb", "label": "M"},
+])
+RESULT = {
+    "passed": "Input: aa\\nLabel: K" in text and text.index("aa") < text.index("bbb"),
+    "detail": "order preserved",
 }`,
-          checkCode: `const text = formatDemonstrations([{ input: "aa", label: "K" }, { input: "bbb", label: "M" }]);
-return { passed: text.includes("Input: aa\\nLabel: K") && text.indexOf("aa") < text.indexOf("bbb"), detail: "order preserved" };`,
         },
         {
           id: "build-prompt",
@@ -105,44 +112,68 @@ return { passed: text.includes("Input: aa\\nLabel: K") && text.indexOf("aa") < t
             { name: "demonstrations", detail: "Optional middle section; whitespace-only means zero-shot, not an empty example." },
             { name: "query", detail: "Trimmed held-out input, followed by a terminal Label: for the model to continue." },
           ],
-          code: `function buildPrompt({ instruction, demonstrations, query }) {
-  const sections = [instruction.trim()];
-  if (demonstrations.trim()) sections.push(demonstrations.trim());
-  sections.push("Input: " + query.trim() + "\\nLabel:");
-  return sections.join("\\n\\n");
+          code: `def build_prompt(config):
+    instruction = config["instruction"].strip()
+    demonstrations = config["demonstrations"].strip()
+    query = config["query"].strip()
+
+    sections = [instruction]
+    if demonstrations:
+        sections.append(demonstrations)
+    sections.append(f"Input: {query}\\nLabel:")
+    return "\\n\\n".join(sections)`,
+          checkCode: `prompt = build_prompt({
+    "instruction": "Return K or M.",
+    "demonstrations": "",
+    "query": "A sharp story.",
+})
+RESULT = {
+    "passed": prompt == "Return K or M.\\n\\nInput: A sharp story.\\nLabel:",
+    "detail": "zero-shot prompt is deterministic",
 }`,
-          checkCode: `const prompt = buildPrompt({ instruction: "Return K or M.", demonstrations: "", query: "A sharp story." });
-return { passed: prompt === "Return K or M.\\n\\nInput: A sharp story.\\nLabel:", detail: "zero-shot prompt is deterministic" };`,
         },
         {
           id: "exact-match",
           label: "Exact-match scoring",
           purpose: "Extract one allowed label and score it without subjective grading.",
           concepts: [
-            { name: "allowedLabels", detail: "Closed set defined before model execution." },
+            { name: "allowed_labels", detail: "Closed set defined before model execution." },
             { name: "match", detail: "First standalone permitted label, with exact casing; labels embedded in words do not count." },
             { name: "expected", detail: "Gold label used only after prediction extraction to compute passed." },
           ],
-          code: `function exactMatchLabel(output, expected, allowedLabels = ["K", "M"]) {
-  const isWord = (character) => Boolean(character) && /[A-Za-z0-9_]/.test(character);
-  let match = null;
-  for (const label of allowedLabels) {
-    if (!label) continue;
-    let start = 0;
-    while (start <= output.length - label.length) {
-      const index = output.indexOf(label, start);
-      if (index < 0) break;
-      const before = output[index - 1] || "";
-      const after = output[index + label.length] || "";
-      if (!isWord(before) && !isWord(after) && (!match || index < match.index)) match = { index, label };
-      start = index + Math.max(1, label.length);
-    }
-  }
-  const predicted = match ? match.label : null;
-  return { predicted, passed: predicted === expected };
+          code: `def exact_match_label(output, expected, allowed_labels=("K", "M")):
+    def is_word(character):
+        return bool(character) and character.isascii() and (
+            character.isalnum() or character == "_"
+        )
+
+    match = None
+    for label in allowed_labels:
+        if not label:
+            continue
+        start = 0
+        while start <= len(output) - len(label):
+            index = output.find(label, start)
+            if index < 0:
+                break
+            before = output[index - 1] if index > 0 else ""
+            after_index = index + len(label)
+            after = output[after_index] if after_index < len(output) else ""
+            if (
+                not is_word(before)
+                and not is_word(after)
+                and (match is None or index < match["index"])
+            ):
+                match = {"index": index, "label": label}
+            start = index + max(1, len(label))
+
+    predicted = match["label"] if match else None
+    return {"predicted": predicted, "passed": predicted == expected}`,
+          checkCode: `result = exact_match_label("The label is K.", "K")
+RESULT = {
+    "passed": result["passed"] and result["predicted"] == "K",
+    "detail": "predicted " + str(result["predicted"]),
 }`,
-          checkCode: `const result = exactMatchLabel("The label is K.", "K");
-return { passed: result.passed && result.predicted === "K", detail: "predicted " + result.predicted };`,
         },
       ],
     },

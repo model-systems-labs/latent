@@ -12,6 +12,7 @@ import {
   createCompileJob,
   hashSnapshot,
   type CompiledProgram,
+  type ExerciseCaseResult,
   type ExerciseContract,
   type ProjectSnapshot,
   type SourceHash,
@@ -29,9 +30,11 @@ import {
 import { formatPracticeContractDetail } from "./practice-feedback";
 import { prepareProjectSnapshotFiles } from "./project-snapshot";
 import { runCapstoneBehaviorContract } from "./capstone-behavior-runner";
+import { runPythonLessonContracts } from "./python-lesson-service";
+import { llmRuntimeBindingManifest } from "../../runtime/bindings/manifest";
 
 const PROJECT_ID = "browser-chat";
-const RUNNER_VERSION = "browser-lab-quickjs-v1";
+const RUNNER_VERSION = "browser-lab-cpython-v1";
 
 function loaderFor(path: string) {
   if (path.endsWith(".tsx")) return "tsx";
@@ -67,6 +70,19 @@ function aggregateReceipt(receipt: TestReceipt, contracts: readonly ExerciseCont
 
 function compileFailureResults(contracts: readonly ExerciseContract[], detail: string) {
   return contracts.map((contract) => preparationFailure(contract, detail));
+}
+
+export function exerciseCaseResultsAreComplete(
+  contracts: readonly ExerciseContract[],
+  results: readonly ExerciseCaseResult[],
+) {
+  const expected = new Set(contracts.flatMap((contract) => (
+    contract.cases.map((exerciseCase) => `${contract.id}\u0000${exerciseCase.id}`)
+  )));
+  const actual = results.map((result) => `${result.contractId}\u0000${result.caseId}`);
+  return actual.length === expected.size
+    && new Set(actual).size === actual.length
+    && actual.every((key) => expected.has(key));
 }
 
 export type BrowserLabProjectRun = {
@@ -172,22 +188,31 @@ export async function runLessonContracts(
   const preparationFailures = prepared.failures.filter((result) => selectedPaths.has(result.path));
   const lessonEntryPoints = prepared.entryPoints.filter((path) => selectedPaths.has(path));
   const capstoneAvailable = Boolean(files[CAPSTONE_ENTRY_PATH]);
-  const entryPoints = includeCapstone && capstoneAvailable
-    ? [...lessonEntryPoints, CAPSTONE_ENTRY_PATH]
-    : lessonEntryPoints;
+  const bindingEntryPoints = includeCapstone
+    ? [...new Set(llmRuntimeBindingManifest.bindings.map((binding) => binding.modulePath))]
+    : [];
+  const missingBindingPaths = bindingEntryPoints.filter((path) => !files[path]);
+  const entryPoints = [...new Set([
+    ...lessonEntryPoints,
+    ...(includeCapstone && capstoneAvailable ? [CAPSTONE_ENTRY_PATH] : []),
+    ...bindingEntryPoints.filter((path) => Boolean(files[path])),
+  ])];
   const snapshot: ProjectSnapshot = {
     projectId: PROJECT_ID,
     revision: project.draftRevision,
     files: prepared.files,
   };
   const sourceHash = await hashSnapshot(snapshot);
-  if (!selectedContracts.length || preparationFailures.length || lessonEntryPoints.length !== selectedPaths.size || (includeCapstone && !capstoneAvailable)) {
+  if (!selectedContracts.length || preparationFailures.length || lessonEntryPoints.length !== selectedPaths.size || (includeCapstone && (!capstoneAvailable || missingBindingPaths.length))) {
     const existing = new Set(preparationFailures.map((result) => result.id));
+    const missingProjectDetail = !capstoneAvailable
+      ? "The canonical capstone entry is missing from this project."
+      : missingBindingPaths.length
+        ? `The provided capstone adapter is missing: ${missingBindingPaths.join(", ")}.`
+        : "The lesson module is not ready to compile.";
     const results = [
       ...preparationFailures,
-      ...selectedContracts.filter((contract) => !existing.has(contract.id)).map((contract) => preparationFailure(contract, includeCapstone && !capstoneAvailable
-        ? "The canonical capstone entry is missing from this project."
-        : "The lesson module is not ready to compile.")),
+      ...selectedContracts.filter((contract) => !existing.has(contract.id)).map((contract) => preparationFailure(contract, missingProjectDetail)),
     ];
     if (includeCapstone) results.push(await runCapstoneBehaviorContract(null, { signal: options.signal }));
     return { results, expectedIdsByPath, sourceHash, projectRevision: project.draftRevision, contractVersion: llmSystemsContractSuite.contractVersion, program: null, receipt: null, persistenceReceipt: null };
@@ -220,39 +245,92 @@ export async function runLessonContracts(
     )
     : null;
 
-  const suite = { contractVersion: llmSystemsContractSuite.contractVersion, contracts: selectedContracts };
-  const runRequest = {
-    schemaVersion: 1 as const,
-    jobId: `test-${crypto.randomUUID()}`,
-    projectId: PROJECT_ID,
-    projectRevision: project.draftRevision,
-    sourceHash: job.sourceHash,
-    contractVersion: suite.contractVersion,
-    requestedAt: Date.now(),
-    deterministicSeed: 71,
-    deterministicNowMs: 1_700_000_000_000,
-    program,
-    suite,
-    limits: { ...DEFAULT_SANDBOX_LIMITS },
-  };
+  const pythonContracts = selectedContracts.filter((contract) => (
+    contract.cases[0]?.invoke.modulePath.endsWith(".py")
+  ));
+  const javascriptContracts = selectedContracts.filter((contract) => !pythonContracts.includes(contract));
   const assessment = await repositories.assessments.start({
     projectId: PROJECT_ID,
     projectRevision: project.draftRevision,
     sourceTreeHash: job.sourceHash,
-    contractVersion: suite.contractVersion,
+    contractVersion: llmSystemsContractSuite.contractVersion,
     runnerVersion: RUNNER_VERSION,
   });
-  let receipt: TestReceipt;
-  try {
-    receipt = await new BrowserLabWorkerClient().runSuite(runRequest, { signal: options.signal });
-  } catch (error) {
-    const detail = error instanceof Error ? error.message : "The isolated test worker failed.";
-    const results = compileFailureResults(selectedContracts, detail);
-    if (capstoneBehaviorResult) results.push(capstoneBehaviorResult);
-    return { results, expectedIdsByPath, sourceHash, projectRevision: project.draftRevision, contractVersion: llmSystemsContractSuite.contractVersion, program, receipt: null, persistenceReceipt: null };
+  const startedAt = Date.now();
+  const caseResults: ExerciseCaseResult[] = [];
+  const unitResults = new Map<string, ProjectUnitResult>();
+  let javascriptReceipt: TestReceipt | null = null;
+
+  for (const path of [...selectedPaths].filter((candidate) => candidate.endsWith(".py"))) {
+    options.signal?.throwIfAborted();
+    const contracts = pythonContracts.filter((contract) => contract.cases[0]?.invoke.modulePath === path);
+    const source = files[path]?.content;
+    if (!source) {
+      for (const result of compileFailureResults(contracts, `The CPython source file is missing: ${path}.`)) {
+        unitResults.set(result.id, result);
+      }
+      continue;
+    }
+    const run = await runPythonLessonContracts({
+      path,
+      source,
+      contracts,
+      signal: options.signal,
+    });
+    caseResults.push(...run.cases);
+    for (const result of run.results) unitResults.set(result.id, result);
   }
+
+  if (javascriptContracts.length) {
+    const suite = { contractVersion: llmSystemsContractSuite.contractVersion, contracts: javascriptContracts };
+    const runRequest = {
+      schemaVersion: 1 as const,
+      jobId: `test-${crypto.randomUUID()}`,
+      projectId: PROJECT_ID,
+      projectRevision: project.draftRevision,
+      sourceHash: job.sourceHash,
+      contractVersion: suite.contractVersion,
+      requestedAt: Date.now(),
+      deterministicSeed: 71,
+      deterministicNowMs: 1_700_000_000_000,
+      program,
+      suite,
+      limits: { ...DEFAULT_SANDBOX_LIMITS },
+    };
+    try {
+      javascriptReceipt = await new BrowserLabWorkerClient().runSuite(runRequest, { signal: options.signal });
+      caseResults.push(...javascriptReceipt.results);
+      for (const result of aggregateReceipt(javascriptReceipt, javascriptContracts)) unitResults.set(result.id, result);
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "The isolated JavaScript test worker failed.";
+      for (const result of compileFailureResults(javascriptContracts, detail)) unitResults.set(result.id, result);
+    }
+  }
+
+  const completedAt = Date.now();
+  const receipt: TestReceipt = {
+    schemaVersion: 1,
+    receiptId: `receipt-${crypto.randomUUID()}`,
+    jobId: `cpython-test-${crypto.randomUUID()}`,
+    projectId: PROJECT_ID,
+    projectRevision: project.draftRevision,
+    sourceHash: job.sourceHash,
+    contractVersion: llmSystemsContractSuite.contractVersion,
+    status: exerciseCaseResultsAreComplete(selectedContracts, caseResults) && caseResults.every((result) => result.passed)
+      ? "passed"
+      : "failed",
+    startedAt,
+    completedAt,
+    results: caseResults,
+    logs: javascriptReceipt?.logs ?? [],
+    logsTruncated: javascriptReceipt?.logsTruncated ?? false,
+    limits: { ...DEFAULT_SANDBOX_LIMITS },
+  };
   const results = [
-    ...aggregateReceipt(receipt, selectedContracts),
+    ...selectedContracts.map((contract) => unitResults.get(contract.id) ?? preparationFailure(
+      contract,
+      "The lesson runner did not return this contract.",
+    )),
     ...(capstoneBehaviorResult ? [capstoneBehaviorResult] : []),
   ];
   const persistenceReceipt = await repositories.assessments.finish(
@@ -263,9 +341,9 @@ export async function runLessonContracts(
       label: result.label,
       passed: result.passed,
       detail: result.detail,
-      durationMs: Math.max(0, receipt.completedAt - receipt.startedAt),
+      durationMs: Math.max(0, completedAt - startedAt),
     })),
     Object.fromEntries(program.modules.map((module) => [module.modulePath, module.codeHash])),
   );
-  return { results, expectedIdsByPath, sourceHash, projectRevision: project.draftRevision, contractVersion: suite.contractVersion, program, receipt, persistenceReceipt };
+  return { results, expectedIdsByPath, sourceHash, projectRevision: project.draftRevision, contractVersion: llmSystemsContractSuite.contractVersion, program, receipt, persistenceReceipt };
 }

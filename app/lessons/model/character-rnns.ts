@@ -1,5 +1,6 @@
 import type { CourseLesson } from "@latent/course-kit";
 import { commonQuestionInstruction } from "./shared";
+import { characterRnnTrainingPostlude } from "./character-rnn-training";
 
 export const characterRnnsLesson = {
     id: "character-rnns",
@@ -82,29 +83,37 @@ ${commonQuestionInstruction}`.trim(),
       preview: "the receiver counted one quiet pulse. the signal crossed the empty sky.",
     },
     implementation: {
-      filename: "character-rnn.js",
+      filename: "character-rnn.py",
       intro:
-        "Reconstruct the three operations used in the training loop. Start with the recurrent transition: it must use both x_t and h_(t-1). Then implement -log p(target) and symmetric clipping. Each cell runs independently, so a mistake in one operation will not erase passing work in another.",
-      tensorOps: ["tensor", "matmul", "add", "tanh", "nllLoss", "clip", "toArray"],
+        "Reconstruct in Python and NumPy the three operations used in the training loop. Start with the recurrent transition: it must use both x_t and h_(t-1). Then implement -log p(target) and symmetric clipping. Each cell runs independently, so a mistake in one operation will not erase passing work in another.",
+      tensorOps: ["numpy", "np.asarray", "np.matmul", "np.tanh", "np.log", "np.clip", "tolist"],
+      postlude: characterRnnTrainingPostlude,
       codeBlocks: [
         {
           id: "rnn-step",
           label: "Recurrent transition",
           purpose: "Combine the current input with the previous hidden state.",
           concepts: [
-            { name: "input / x_t", detail: "One-hot vector identifying the current character." },
+            { name: "input_vector / x_t", detail: "One-hot vector identifying the current character." },
             { name: "previous / h_(t-1)", detail: "Numeric memory carried from the preceding position." },
-            { name: "Math.tanh", detail: "Bounds each new hidden value between -1 and 1." },
+            { name: "np.tanh", detail: "Bounds each new hidden value between -1 and 1." },
           ],
-          code: `function rnnStep(input, previous, { Wxh, Whh, bias }) {
-  const inputProjection = matmul(tensor(Wxh), tensor(input));
-  const stateProjection = matmul(tensor(Whh), tensor(previous));
-  return toArray(tanh(add(add(inputProjection, stateProjection), tensor(bias))));
+          code: `import numpy as np
+
+def rnn_step(input_vector, previous, parameters):
+    Wxh = np.asarray(parameters["Wxh"], dtype=float)
+    Whh = np.asarray(parameters["Whh"], dtype=float)
+    bias = np.asarray(parameters["bias"], dtype=float)
+    input_projection = Wxh @ np.asarray(input_vector, dtype=float)
+    state_projection = Whh @ np.asarray(previous, dtype=float)
+    return np.tanh(input_projection + state_projection + bias).tolist()`,
+          checkCode: `state = rnn_step([1, 0], [0, 0], {
+    "Wxh": [[1, 0], [0, 1]], "Whh": [[0, 0], [0, 0]], "bias": [0, 0]
+})
+RESULT = {
+    "passed": len(state) == 2 and state[0] > 0.7 and state[1] == 0,
+    "detail": "h = [" + ", ".join(f"{value:.3f}" for value in state) + "]",
 }`,
-          checkCode: `const state = rnnStep([1, 0], [0, 0], {
-  Wxh: [[1, 0], [0, 1]], Whh: [[0, 0], [0, 0]], bias: [0, 0]
-});
-return { passed: state.length === 2 && state[0] > 0.7 && state[1] === 0, detail: "h = [" + state.map(v => v.toFixed(3)).join(", ") + "]" };`,
         },
         {
           id: "cross-entropy",
@@ -112,15 +121,28 @@ return { passed: state.length === 2 && state[0] > 0.7 && state[1] === 0, detail:
           purpose: "Penalize low probability on the observed next character.",
           concepts: [
             { name: "probabilities", detail: "Normalized next-character distribution." },
-            { name: "targetIndex", detail: "Vocabulary index of the observed next character." },
-            { name: "nllLoss", detail: "Computes -log(probabilities[targetIndex]) safely." },
+            { name: "target_index", detail: "Vocabulary index of the observed next character." },
+            { name: "np.log", detail: "Computes -log(probabilities[target_index]) after a numerical floor." },
           ],
-          code: `function crossEntropy(probabilities, targetIndex) {
-  return nllLoss(tensor(probabilities), targetIndex).item();
+          code: `import numpy as np
+
+def cross_entropy(probabilities, target_index):
+    values = np.asarray(probabilities, dtype=float)
+    if (
+        values.ndim != 1
+        or type(target_index) is not int
+        or target_index < 0
+        or target_index >= values.size
+    ):
+        raise ValueError("nllLoss needs a probability vector and valid target index")
+    probability = max(float(values[target_index]), 1e-12)
+    return float(-np.log(probability))`,
+          checkCode: `good = cross_entropy([0.1, 0.8, 0.1], 1)
+bad = cross_entropy([0.8, 0.1, 0.1], 1)
+RESULT = {
+    "passed": np.isfinite(good) and good < bad,
+    "detail": f"correct target loss {good:.3f}",
 }`,
-          checkCode: `const good = crossEntropy([0.1, 0.8, 0.1], 1);
-const bad = crossEntropy([0.8, 0.1, 0.1], 1);
-return { passed: Number.isFinite(good) && good < bad, detail: "correct target loss " + good.toFixed(3) };`,
         },
         {
           id: "gradient-clipping",
@@ -128,14 +150,20 @@ return { passed: Number.isFinite(good) && good < bad, detail: "correct target lo
           purpose: "Bound the update produced by unstable recurrent gradients.",
           concepts: [
             { name: "limit", detail: "Largest allowed absolute gradient value." },
-            { name: "clip", detail: "Clamps every value to the interval [-limit, limit]." },
-            { name: "toArray", detail: "Returns a plain vector at the lesson boundary." },
+            { name: "np.clip", detail: "Clamps every value to the interval [-limit, limit]." },
+            { name: "tolist", detail: "Returns a plain JSON-serializable vector at the lesson boundary." },
           ],
-          code: `function clipGradients(gradients, limit = 5) {
-  return toArray(clip(tensor(gradients), -limit, limit));
+          code: `import numpy as np
+
+def clip_gradients(gradients, limit=5):
+    if limit < 0:
+        raise ValueError("clip minimum cannot exceed maximum")
+    return np.clip(np.asarray(gradients, dtype=float), -limit, limit).tolist()`,
+          checkCode: `clipped = clip_gradients([-12, -2, 0, 3, 20], 5)
+RESULT = {
+    "passed": clipped == [-5, -2, 0, 3, 5],
+    "detail": ", ".join(f"{value:g}" for value in clipped),
 }`,
-          checkCode: `const clipped = clipGradients([-12, -2, 0, 3, 20], 5);
-return { passed: clipped.join(",") === "-5,-2,0,3,5", detail: clipped.join(", ") };`,
         },
       ],
     },

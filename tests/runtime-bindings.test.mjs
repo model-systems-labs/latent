@@ -7,6 +7,7 @@ import { createServer } from "vite";
 let vite;
 let runtime;
 let persistencePure;
+let template;
 
 before(async () => {
   vite = await createServer({
@@ -16,8 +17,11 @@ before(async () => {
     appType: "custom",
     logLevel: "silent",
   });
-  runtime = await vite.ssrLoadModule("/app/runtime/bindings/index.ts");
-  persistencePure = await vite.ssrLoadModule("/app/platform/persistence/pure.ts");
+  [runtime, persistencePure, template] = await Promise.all([
+    vite.ssrLoadModule("/app/runtime/bindings/index.ts"),
+    vite.ssrLoadModule("/app/platform/persistence/pure.ts"),
+    vite.ssrLoadModule("/app/content/browser-chat/project-template.ts"),
+  ]);
 });
 
 after(async () => {
@@ -187,6 +191,18 @@ test("the course binding manifest exposes real capstone capabilities with only c
     "chat.select-context",
   ]);
   assert.equal(runtime.LLM_LESSON_SOURCES.length, 14);
+  assert.ok(runtime.LLM_LESSON_SOURCES.every((lesson) => lesson.sourcePath.endsWith(".py")));
+  const adapterFiles = new Map(
+    template.CANONICAL_BROWSER_CHAT_FILES
+      .filter((file) => file.kind === "adapter")
+      .map((file) => [file.path, file]),
+  );
+  for (const binding of runtime.LLM_RUNTIME_CAPABILITIES.filter((candidate) => candidate.capability !== "ui.mount")) {
+    assert.equal(adapterFiles.get(binding.modulePath)?.editable, false, binding.capability);
+    assert.match(binding.summary, /course-provided JavaScript adapter/i, binding.capability);
+    assert.match(binding.summary, /CPython .*tested independently|tested independently/i, binding.capability);
+    assert.ok(!runtime.LLM_LESSON_SOURCES.some((lesson) => lesson.sourcePath === binding.modulePath));
+  }
 });
 
 test("an artifact becomes a source-free descriptor with complete and honest contribution coverage", async () => {
@@ -204,11 +220,11 @@ test("an artifact becomes a source-free descriptor with complete and honest cont
   assert.ok(descriptor.contributions.every((entry) => entry.enteredActiveBuild));
   assert.equal(
     descriptor.contributions.filter((entry) => entry.mode === "executable-binding").length,
-    5,
+    0,
   );
   assert.equal(
     descriptor.contributions.filter((entry) => entry.mode === "provenance-only").length,
-    9,
+    14,
   );
   assert.equal(descriptor.bindings.find((binding) => binding.capability === "ui.mount")?.executionTarget, "sandboxed-preview-frame");
   assert.ok(descriptor.bindings.filter((binding) => binding.capability !== "ui.mount").every((binding) => binding.executionTarget === "isolated-browser-lab-worker"));

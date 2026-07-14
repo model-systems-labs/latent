@@ -464,7 +464,7 @@ export function ProjectWorkbench() {
           totalTests: run.results.length,
         });
         setBuildArtifact(artifact);
-        setMessage(`Build ${promoted.buildNumber} is active. Artifact ${artifact.contentHash.slice(7, 19)} assembles ${descriptor.contributions.length} tested lesson modules.`);
+        setMessage(`Build ${promoted.buildNumber} is active. Artifact ${artifact.contentHash.slice(7, 19)} records ${descriptor.contributions.length} verified lesson files as provenance and runs the supplied browser adapters.`);
         setMobilePanel("output");
       } catch (artifactError) {
         setMessage(`Build ${promoted.buildNumber} is active, but its portable artifact could not be stored: ${artifactError instanceof Error ? artifactError.message : "local storage is unavailable"}`);

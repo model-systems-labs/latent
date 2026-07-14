@@ -50,24 +50,30 @@ export const reliabilityObservabilityLesson = defineExtendedLesson({
       preview: "queue timeout · malformed frame · worker crash · user abort",
     },
     implementation: {
-      filename: "generation-reliability.js",
-      intro: "Implement retry policy and terminal-state guards before injecting failures into a streaming request trace.",
+      filename: "generation-reliability.py",
+      intro: "Implement retry policy and terminal-state guards in Python before injecting failures into a streaming request trace.",
       codeBlocks: [
         {
           id: "retry-policy",
           label: "Retry policy",
           purpose: "Retry only transient failures before visible output and within a bounded attempt count.",
           concepts: [
-            { name: "tokensEmitted", detail: "Visible output makes transparent retry unsafe." },
+            { name: "tokens_emitted", detail: "Visible output makes transparent retry unsafe." },
             { name: "transient", detail: "Classification based on the actual error type." },
-            { name: "attempt", detail: "Zero-based index of the failed attempt; maxAttempts is the total attempt budget." },
+            { name: "attempt", detail: "Zero-based index of the failed attempt; maxAttempts is the total attempt budget in the input record." },
           ],
-          code: `function shouldRetry({ transient, tokensEmitted, attempt, maxAttempts = 2 }) {
-  return transient && tokensEmitted === 0 && attempt + 1 < maxAttempts;
+          code: `def should_retry(options):
+    transient = options["transient"]
+    tokens_emitted = options["tokensEmitted"]
+    attempt = options["attempt"]
+    max_attempts = options.get("maxAttempts", 2)
+    return transient and tokens_emitted == 0 and attempt + 1 < max_attempts`,
+          checkCode: `before = should_retry({"transient": True, "tokensEmitted": 0, "attempt": 0})
+after = should_retry({"transient": True, "tokensEmitted": 3, "attempt": 0})
+RESULT = {
+    "passed": before is True and after is False,
+    "detail": f"retry before output: {str(before).lower()} · after output: {str(after).lower()}",
 }`,
-          checkCode: `const before = shouldRetry({ transient: true, tokensEmitted: 0, attempt: 0 });
-const after = shouldRetry({ transient: true, tokensEmitted: 3, attempt: 0 });
-return { passed: before === true && after === false, detail: "retry before output: " + before + " · after output: " + after };`,
         },
         {
           id: "terminal-guard",
@@ -79,15 +85,25 @@ return { passed: before === true && after === false, detail: "retry before outpu
             { name: "requestId", detail: "Names the transport lifecycle within the active attempt." },
             { name: "event", detail: "Typed transport event applied only to the matching active attempt and transport." },
           ],
-          code: `function acceptEvent(request, event) {
-  const active = ["queued", "loading", "prefill", "streaming"];
-  return active.includes(request.status)
-    && request.attemptId === event.attemptId
-    && request.requestId === event.requestId;
+          code: `def accept_event(request, event):
+    active = {"queued", "loading", "prefill", "streaming"}
+    return (
+        request["status"] in active
+        and request["attemptId"] == event["attemptId"]
+        and request["requestId"] == event["requestId"]
+    )`,
+          checkCode: `late = accept_event(
+    {"attemptId": "a1", "requestId": "r1", "status": "complete"},
+    {"attemptId": "a1", "requestId": "r1"},
+)
+current = accept_event(
+    {"attemptId": "a2", "requestId": "r2", "status": "streaming"},
+    {"attemptId": "a2", "requestId": "r2"},
+)
+RESULT = {
+    "passed": late is False and current is True,
+    "detail": "late rejected · active accepted",
 }`,
-          checkCode: `const late = acceptEvent({ attemptId: "a1", requestId: "r1", status: "complete" }, { attemptId: "a1", requestId: "r1" });
-const current = acceptEvent({ attemptId: "a2", requestId: "r2", status: "streaming" }, { attemptId: "a2", requestId: "r2" });
-return { passed: late === false && current === true, detail: "late rejected · active accepted" };`,
         },
       ],
     },

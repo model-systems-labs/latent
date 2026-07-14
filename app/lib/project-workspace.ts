@@ -521,13 +521,15 @@ function persistedFileMatchesProjectFile(
     && (persisted.totalCells ?? 1) === file.totalCells;
 }
 
-function projectPersistencePaths(state: ProjectState, previous: ProjectState | null) {
-  if (!previous) return Object.keys(state.files);
-  return Object.keys(state.files).filter((path) => {
+function projectPersistenceDiff(state: ProjectState, previous: ProjectState | null) {
+  if (!previous) return { changedPaths: Object.keys(state.files), removedPaths: [] as string[] };
+  const changedPaths = Object.keys(state.files).filter((path) => {
     const before = previous.files[path];
     const after = state.files[path];
     return !before || !sameJson({ ...before, updatedAt: 0 }, { ...after, updatedAt: 0 });
   });
+  const removedPaths = Object.keys(previous.files).filter((path) => !state.files[path]);
+  return { changedPaths, removedPaths };
 }
 
 function setProjectPersistenceError(error: unknown) {
@@ -552,7 +554,7 @@ async function persistProjectState(state: ProjectState, previous: ProjectState |
       selectedPath: state.selectedPath,
     });
   }
-  const changedPaths = projectPersistencePaths(state, previous);
+  const { changedPaths, removedPaths } = projectPersistenceDiff(state, previous);
   const durablePaths = new Set<string>();
   for (const path of changedPaths) {
     const file = state.files[path];
@@ -583,7 +585,22 @@ async function persistProjectState(state: ProjectState, previous: ProjectState |
     });
     durablePaths.add(path);
   }
-  if (changedPaths.length || !previous || previous.selectedPath !== state.selectedPath) {
+  for (const path of removedPaths) {
+    const before = previous?.files[path];
+    if (!before) continue;
+    const persisted = await repositories.projects.getFile(PROJECT_ID, path);
+    if (!persisted) continue;
+    if (!persistedFileMatchesProjectFile(persisted, before)) {
+      throw new Error(`${path} changed in another tab. Your recovery copy is safe; reload before choosing which version to keep.`);
+    }
+    await repositories.projects.archiveFile({
+      projectId: PROJECT_ID,
+      path,
+      expected: { revision: persisted.revision, sourceHash: persisted.sourceHash },
+      replacementPath: state.selectedPath,
+    });
+  }
+  if (changedPaths.length || removedPaths.length || !previous || previous.selectedPath !== state.selectedPath) {
     await repositories.projects.selectFile(PROJECT_ID, state.selectedPath);
   }
   const settings: Array<Promise<unknown>> = [];
@@ -639,7 +656,10 @@ export async function projectStateFromPersistence(): Promise<ProjectState | null
     database.testRuns.where("projectId").equals(PROJECT_ID).sortBy("completedAt"),
   ]);
   const legacy = loadLegacyProjectState();
-  const files: Record<string, ProjectFile> = { ...legacy.files };
+  // Once a durable project exists, its current-file table is authoritative.
+  // Legacy localStorage remains import/recovery evidence, but must not
+  // resurrect a path that was deliberately archived from IndexedDB.
+  const files: Record<string, ProjectFile> = { ...emptyProjectState().files };
   for (const record of records) {
     if (files[record.path]?.readOnly) continue;
     const previous = files[record.path];
@@ -688,7 +708,10 @@ export async function projectStateFromPersistence(): Promise<ProjectState | null
     tests: storedTests ?? (testsFromRuns ? {
       results: testsFromRuns,
       ranAt: latestRun?.completedAt ?? 0,
-      runner: latestRun?.runnerVersion === "browser-lab-quickjs-v1" ? "browser-lab-v1" : "legacy",
+      runner: latestRun?.runnerVersion === "browser-lab-quickjs-v1"
+        || latestRun?.runnerVersion === "browser-lab-cpython-v1"
+        ? "browser-lab-v1"
+        : "legacy",
       sourceTreeHash: latestRun?.sourceTreeHash ?? null,
       projectRevision: latestRun?.projectRevision ?? null,
       contractVersion: latestRun?.contractVersion ?? null,

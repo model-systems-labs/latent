@@ -71,6 +71,8 @@ export type CourseLesson = {
     filename: string;
     intro: string;
     tensorOps?: string[];
+    /** Supplied Python infrastructure appended after learner-owned cells. */
+    postlude?: string;
     codeBlocks: CodeBlock[];
   };
   experiment: {

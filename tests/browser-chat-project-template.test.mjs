@@ -27,9 +27,10 @@ after(async () => {
 
 test("the canonical Browser Chat template owns a complete provided React surface", () => {
   const files = template.CANONICAL_BROWSER_CHAT_FILES;
+  const adapterPaths = Object.values(template.BROWSER_CHAT_ADAPTER_PATHS);
   assert.equal(template.CAPSTONE_ENTRY_PATH, "capstone/main.tsx");
   assert.equal(template.CAPSTONE_COMPONENT_PATH, "capstone/BrowserChat.tsx");
-  assert.equal(files.length, 6);
+  assert.equal(files.length, 13);
   assert.equal(new Set(files.map((file) => file.path)).size, files.length);
   assert.deepEqual(
     files.map((file) => file.path),
@@ -37,6 +38,7 @@ test("the canonical Browser Chat template owns a complete provided React surface
       "vendor/react.ts",
       "vendor/react-dom-client.ts",
       "runtime/host-bridge.ts",
+      ...adapterPaths,
       "capstone/BrowserChat.tsx",
       "capstone/main.tsx",
       "capstone/styles.ts",
@@ -45,21 +47,29 @@ test("the canonical Browser Chat template owns a complete provided React surface
   assert.ok(files.every((file) => file.source.trim().length > 0));
   assert.equal(files.find((file) => file.path === template.CAPSTONE_COMPONENT_PATH)?.editable, true);
   assert.equal(files.find((file) => file.path === template.CAPSTONE_ENTRY_PATH)?.kind, "entry");
+  const adapters = files.filter((file) => file.kind === "adapter");
+  assert.equal(adapters.length, adapterPaths.length);
+  assert.deepEqual(adapters.map((file) => file.path), adapterPaths);
+  assert.ok(adapters.every((file) => !file.editable));
+  assert.ok(adapters.every((file) => file.title.startsWith("Course-provided ")));
+  assert.ok(adapters.every((file) => file.source.startsWith("// Course-provided, read-only JavaScript interoperability adapter.")));
   assert.equal(template.browserChatProjectFileByPath.size, files.length);
 });
 
-test("lesson source remains external while the capstone imports its behavioral seams", () => {
-  const catalogPaths = template.CANONICAL_BROWSER_CHAT_FILES.map((file) => file.path);
-  assert.ok(catalogPaths.every((path) => !/^(models|systems|backend|product)\//.test(path)));
+test("CPython lesson source remains external while provided adapters bridge its behavioral seams", () => {
+  const adapterPaths = new Set(Object.values(template.BROWSER_CHAT_ADAPTER_PATHS));
+  const adapters = template.CANONICAL_BROWSER_CHAT_FILES.filter((file) => file.kind === "adapter");
+  assert.ok(template.CANONICAL_BROWSER_CHAT_FILES.every((file) => !file.path.endsWith(".py")));
+  assert.ok(adapters.every((file) => adapterPaths.has(file.path)));
 
   const source = template.BROWSER_CHAT_COMPONENT_SOURCE;
   for (const projectPath of [
-    "../product/chat-reducer.js",
-    "../product/chat-actions.js",
-    "../backend/streaming-transport.js",
-    "../backend/generation-reliability.js",
-    "../product/chat-quality.js",
-    "../product/streaming-react.js",
+    "../runtime/adapters/chat-reducer.js",
+    "../runtime/adapters/chat-actions.js",
+    "../runtime/adapters/streaming-transport.js",
+    "../runtime/adapters/generation-reliability.js",
+    "../runtime/adapters/chat-quality.js",
+    "../runtime/adapters/streaming-react.js",
   ]) {
     assert.match(source, new RegExp(projectPath.replaceAll(".", "\\.")));
   }
@@ -104,6 +114,73 @@ test("lesson source remains external while the capstone imports its behavioral s
   assert.match(source, /runGeneration\(userText, userId, "logical-" \+ userId, 0\)/);
   assert.match(source, /startGeneration\(\{[\s\S]*logicalRequestId,[\s\S]*attemptId,[\s\S]*requestId,/);
   assert.doesNotMatch(source, /localStorage/);
+});
+
+async function importAdapter(source, name) {
+  const url = `data:text/javascript;base64,${Buffer.from(`${source}\n//# sourceURL=${name}`).toString("base64")}`;
+  return import(url);
+}
+
+test("provided adapters preserve the capstone's JavaScript behavior", async () => {
+  const [model, transport, reliability, reducer, actions, quality, streaming] = await Promise.all([
+    importAdapter(template.MODEL_SOFTMAX_ADAPTER_SOURCE, "model-softmax.js"),
+    importAdapter(template.STREAMING_TRANSPORT_ADAPTER_SOURCE, "streaming-transport.js"),
+    importAdapter(template.GENERATION_RELIABILITY_ADAPTER_SOURCE, "generation-reliability.js"),
+    importAdapter(template.CHAT_REDUCER_ADAPTER_SOURCE, "chat-reducer.js"),
+    importAdapter(template.CHAT_ACTIONS_ADAPTER_SOURCE, "chat-actions.js"),
+    importAdapter(template.CHAT_QUALITY_ADAPTER_SOURCE, "chat-quality.js"),
+    importAdapter(template.STREAMING_REACT_ADAPTER_SOURCE, "streaming-react.js"),
+  ]);
+
+  const probabilities = model.stableSoftmax([1001, 1000, 999]);
+  assert.ok(probabilities.every(Number.isFinite));
+  assert.ok(Math.abs(probabilities.reduce((sum, value) => sum + value, 0) - 1) < 1e-12);
+
+  const frame = transport.encodeSse("token", { delta: "hi" });
+  const first = transport.parseSseChunk("", frame.slice(0, -2));
+  const second = transport.parseSseChunk(first.remainder, frame.slice(-2));
+  assert.deepEqual(second, { events: [{ event: "token", data: { delta: "hi" } }], remainder: "" });
+
+  assert.equal(reliability.shouldRetry({ transient: true, tokensEmitted: 0, attempt: 0 }), true);
+  assert.equal(reliability.shouldRetry({ transient: true, tokensEmitted: 1, attempt: 0 }), false);
+  assert.equal(reliability.acceptEvent(
+    { attemptId: "a1", requestId: "r1", status: "streaming" },
+    { attemptId: "a1", requestId: "r1" },
+  ), true);
+  assert.equal(reliability.acceptEvent(
+    { attemptId: "a1", requestId: "r1", status: "complete" },
+    { attemptId: "a1", requestId: "r1" },
+  ), false);
+  assert.equal(reliability.acceptEvent(
+    { attemptId: "a2", requestId: "r2", status: "streaming" },
+    { attemptId: "a1", requestId: "r2" },
+  ), false);
+
+  const message = reducer.createMessage({ id: "a1", role: "assistant", status: "streaming", attemptId: "try1", requestId: "r1" });
+  const messages = reducer.appendMessageDelta([message], { messageId: "a1", attemptId: "try1", requestId: "r1", delta: "Hello" });
+  assert.equal(messages[0].content, "Hello");
+  assert.notEqual(messages[0], message);
+
+  const context = actions.selectContext({
+    system: [{ id: "s", role: "system", tokens: 4 }],
+    history: [
+      { id: "u", role: "user", status: "complete", tokens: 3 },
+      { id: "a", role: "assistant", status: "complete", tokens: 3 },
+    ],
+    activeUser: { id: "next", role: "user", status: "complete", tokens: 2 },
+    budget: 12,
+  });
+  assert.deepEqual(context.selected.map((entry) => entry.id), ["s", "u", "a", "next"]);
+  assert.equal(actions.createRegeneration({ messageId: "m", parentUserId: "u", attemptId: "a", requestId: "r" }).status, "queued");
+
+  const record = { version: 1, id: "c", messages: [{ id: "u", role: "user", backend: "local", content: "Hi", status: "complete" }] };
+  assert.equal(quality.validConversationRecord(record), true);
+  assert.equal(quality.validConversationRecord({ ...record, apiKey: "secret" }), false);
+  assert.equal(quality.generationStatusLabel("prefill"), "Processing context");
+
+  assert.deepEqual(streaming.flushTokenBuffer(["Hel", "lo"]), { text: "Hello", remaining: [] });
+  assert.equal(streaming.shouldFollowStream({ distanceFromBottom: 24, userScrolledUp: false }), true);
+  assert.equal(streaming.shouldFollowStream({ distanceFromBottom: 24, userScrolledUp: true }), false);
 });
 
 test("editing any project source invalidates source-bound capstone verification", () => {

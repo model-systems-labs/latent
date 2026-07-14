@@ -121,6 +121,13 @@ function canonicalFiles(overrides = new Map()) {
     const path = `${lesson.courseId ?? "models"}/${lesson.implementation.filename}`;
     const source = implementation.lessonImplementationSource(lesson, lesson.implementation.codeBlocks.map((block) => block.code));
     const names = [...(exportsByPath.get(path) ?? [])];
+    if (path.endsWith(".py")) {
+      return {
+        path,
+        contents: JSON.stringify({ path, contents: source }),
+        loader: "json",
+      };
+    }
     return {
       path,
       contents: overrides.get(path) ?? (names.length ? compiler.exposeLessonFunctions(source, names) : source),
@@ -138,13 +145,13 @@ function canonicalFiles(overrides = new Map()) {
   ];
 }
 
-async function compileCanonical(files, jobId) {
+async function compileCanonical(files, jobId, entryPoints = [template.CAPSTONE_ENTRY_PATH]) {
   const snapshot = { projectId: "browser-chat", revision: 1, files };
   const job = await browserLab.createCompileJob({
     jobId,
     snapshot,
     compilerVersion: compiler.compilerVersionForEsbuild(esbuild.version),
-    entryPoints: [template.CAPSTONE_ENTRY_PATH],
+    entryPoints,
   });
   return compiler.compileVirtualProject(job, esbuild);
 }
@@ -164,6 +171,17 @@ test("the canonical IDE repository compiles its real React capstone entry", asyn
   assert.equal(program.modules[0].modulePath, template.CAPSTONE_ENTRY_PATH);
   assert.match(program.modules[0].code, /Browser Chat/);
   assert.match(program.modules[0].code, /__LATENT_PREVIEW_HOST__/);
+});
+
+test("every course-provided JavaScript adapter compiles as an independent runtime module", async () => {
+  const adapters = template.CANONICAL_BROWSER_CHAT_FILES.filter((file) => file.kind === "adapter");
+  const files = adapters.map((file) => ({ path: file.path, contents: file.source, loader: "js" }));
+  const entryPoints = adapters.map((file) => file.path);
+  const program = await compileCanonical(files, "canonical-capstone-adapters", entryPoints);
+
+  assert.deepEqual(program.diagnostics.filter((diagnostic) => diagnostic.severity === "error"), []);
+  assert.deepEqual(program.modules.map((module) => module.modulePath), entryPoints);
+  assert.ok(program.modules.every((module) => module.codeHash.startsWith("sha256:")));
 });
 
 test("the behavior frame authorizes only its fixed host bootstrap and transferred assets", () => {

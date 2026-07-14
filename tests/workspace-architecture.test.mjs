@@ -59,7 +59,9 @@ test("lesson content and style layers have independent ownership", async () => {
     readdir(new URL("../app/lessons/extended/product/", import.meta.url)),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
-  assert.equal(modelFiles.filter((file) => file.endsWith(".ts") && file !== "shared.ts").length, 6);
+  const modelLessonFiles = modelFiles.filter((file) => file.endsWith(".ts") && !["shared.ts", "character-rnn-training.ts"].includes(file));
+  assert.equal(modelLessonFiles.length, 6);
+  assert.ok(modelFiles.includes("character-rnn-training.ts"), "the CPython character-RNN training postlude has its own infrastructure module");
   assert.equal(systemFiles.filter((file) => file.endsWith(".ts")).length, 4);
   assert.equal(productFiles.filter((file) => file.endsWith(".ts")).length, 4);
   for (const stylesheet of ["tokens", "learning-flow", "course-catalog", "coding-workspace", "capstone", "responsive"]) {

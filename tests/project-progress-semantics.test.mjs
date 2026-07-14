@@ -7,6 +7,8 @@ import { createServer } from "vite";
 let fileStatus;
 let template;
 let workspace;
+let contracts;
+let course;
 let vite;
 
 before(async () => {
@@ -17,10 +19,12 @@ before(async () => {
     appType: "custom",
     logLevel: "silent",
   });
-  [fileStatus, template, workspace] = await Promise.all([
+  [fileStatus, template, workspace, contracts, course] = await Promise.all([
     vite.ssrLoadModule("/app/lib/project-file-status.ts"),
     vite.ssrLoadModule("/app/content/browser-chat/project-template.ts"),
     vite.ssrLoadModule("/app/lib/project-workspace.ts"),
+    vite.ssrLoadModule("/app/content/llm-systems/contracts.ts"),
+    vite.ssrLoadModule("/app/lessons/course.ts"),
   ]);
 });
 
@@ -38,7 +42,7 @@ test("a synchronous recovery journal restores unsaved editable bytes and invalid
       runner: "browser-lab-v1",
       sourceTreeHash: "sha256:old",
       projectRevision: 1,
-      contractVersion: "llm-systems-contracts-v17",
+      contractVersion: contracts.llmSystemsContractSuite.contractVersion,
       contractIdsByPath: { [editablePath]: ["old"] },
     },
   };
@@ -179,8 +183,11 @@ test("shared capstone entry receipts are labeled as integrated rather than file-
 });
 
 test("only source-bound browser-lab receipts can affect project readiness", () => {
-  const path = "models/character-rnn.js";
+  const contractVersion = contracts.llmSystemsContractSuite.contractVersion;
+  const path = course.llmSystemsCurriculum.lessonById["character-rnns"].projectPath;
   const ids = fileStatus.expectedProjectTestIdsForPath(path);
+  assert.match(path, /\.py$/);
+  assert.ok(ids.length > 0, "the manifest-owned Python path must retain its host contract scope");
   const results = { [path]: ids.map((id) => ({ id, path, label: id, passed: true, detail: "Passed" })) };
   const contractIdsByPath = { [path]: ids };
   assert.deepEqual(fileStatus.trustedProjectResults({
@@ -188,7 +195,7 @@ test("only source-bound browser-lab receipts can affect project readiness", () =
     results,
     sourceTreeHash: null,
     projectRevision: 4,
-    contractVersion: "llm-systems-contracts-v17",
+    contractVersion,
     contractIdsByPath,
   }), {});
   assert.deepEqual(fileStatus.trustedProjectResults({
@@ -196,7 +203,7 @@ test("only source-bound browser-lab receipts can affect project readiness", () =
     results,
     sourceTreeHash: "sha256:fixture",
     projectRevision: null,
-    contractVersion: "llm-systems-contracts-v17",
+    contractVersion,
     contractIdsByPath,
   }), {});
   assert.deepEqual(fileStatus.trustedProjectResults({
@@ -204,7 +211,7 @@ test("only source-bound browser-lab receipts can affect project readiness", () =
     results,
     sourceTreeHash: "sha256:fixture",
     projectRevision: 4,
-    contractVersion: "llm-systems-contracts-v13",
+    contractVersion: "outdated-contract-version",
     contractIdsByPath,
   }), {});
   assert.deepEqual(fileStatus.trustedProjectResults({
@@ -212,7 +219,7 @@ test("only source-bound browser-lab receipts can affect project readiness", () =
     results,
     sourceTreeHash: "sha256:fixture",
     projectRevision: 4,
-    contractVersion: "llm-systems-contracts-v17",
+    contractVersion,
     contractIdsByPath,
   }), results);
   assert.deepEqual(fileStatus.trustedProjectResults({
@@ -220,14 +227,14 @@ test("only source-bound browser-lab receipts can affect project readiness", () =
     results,
     sourceTreeHash: "sha256:fixture",
     projectRevision: 4,
-    contractVersion: "llm-systems-contracts-v17",
+    contractVersion,
     contractIdsByPath: {},
   }), {}, "old receipts without an authoritative scope manifest are untrusted");
 });
 
 test("a passing IDE receipt covers the exact unique contract IDs for its file", () => {
   const expectedContractIds = ["a", "b", "c"];
-  const result = (id, path = "models/example.js") => ({ id, path, label: id, passed: true, detail: "Passed" });
+  const result = (id, path = "models/example.py") => ({ id, path, label: id, passed: true, detail: "Passed" });
   const evidence = (trustedResults) => ({
     projectSource: "edited source",
     verifiedSource: "verified source",
@@ -283,9 +290,18 @@ test("source progress categories are mutually exclusive and sum to the visible l
 });
 
 test("timeline file counts include every provided runtime, application-shell, and lesson file", () => {
-  assert.equal(template.CANONICAL_BROWSER_CHAT_FILES.length, 6);
-  assert.equal(fileStatus.projectTimelineVisibleFileCount(0, 4, template.CANONICAL_BROWSER_CHAT_FILES.length), 10);
-  assert.equal(fileStatus.projectTimelineVisibleFileCount(14, 4, template.CANONICAL_BROWSER_CHAT_FILES.length), 24);
+  const providedRuntimeFileCount = Object.values(workspace.RUNTIME_PATHS).length;
+  const applicationShellFileCount = template.CANONICAL_BROWSER_CHAT_FILES.length;
+  const lessonFileCount = course.llmSystemsCurriculum.lessonCount;
+  assert.ok(template.CANONICAL_BROWSER_CHAT_FILES.some((file) => file.kind === "adapter"));
+  assert.equal(
+    fileStatus.projectTimelineVisibleFileCount(0, providedRuntimeFileCount, applicationShellFileCount),
+    providedRuntimeFileCount + applicationShellFileCount,
+  );
+  assert.equal(
+    fileStatus.projectTimelineVisibleFileCount(lessonFileCount, providedRuntimeFileCount, applicationShellFileCount),
+    lessonFileCount + providedRuntimeFileCount + applicationShellFileCount,
+  );
 });
 
 test("project views expose current completion, repository history, and accessible progress semantics", async () => {

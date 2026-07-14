@@ -49,8 +49,16 @@ export function legacyPromotionKeyV1(projectId: string, sourceTreeHash: string, 
   return `${encodeURIComponent(projectId)}:${encodeURIComponent(sourceTreeHash)}:${encodeURIComponent(contractVersion)}`;
 }
 
-export function promotionKey(projectId: string, sourceTreeHash: string, contractVersion: string) {
-  return `${legacyPromotionKeyV1(projectId, sourceTreeHash, contractVersion)}:${BUILD_CERTIFICATION_EPOCH}`;
+export function promotionKey(
+  projectId: string,
+  sourceTreeHash: string,
+  contractVersion: string,
+  checkpointId: string | null = null,
+) {
+  const certifiedSourceKey = `${legacyPromotionKeyV1(projectId, sourceTreeHash, contractVersion)}:${BUILD_CERTIFICATION_EPOCH}`;
+  return checkpointId
+    ? `${certifiedSourceKey}:checkpoint:${encodeURIComponent(checkpointId)}`
+    : certifiedSourceKey;
 }
 
 declare const validatedPersistedBuildBrand: unique symbol;
@@ -127,7 +135,10 @@ export function validatedBuildReceiptIssue(
   if (receipt.sourceTreeHash !== build.sourceTreeHash) return "A validated build and its receipt reference different source trees.";
   if (receipt.contractVersion !== build.contractVersion) return "A validated build and its receipt reference different contract versions.";
   const acceptedPromotionKeys = new Set([
-    promotionKey(build.projectId, build.sourceTreeHash, build.contractVersion),
+    promotionKey(build.projectId, build.sourceTreeHash, build.contractVersion, build.checkpointId),
+    // Builds promoted before checkpoint identity joined the certification key
+    // remain readable, but every new source-bound promotion uses the first key.
+    promotionKey(build.projectId, build.sourceTreeHash, build.contractVersion, null),
     legacyPromotionKeyV1(build.projectId, build.sourceTreeHash, build.contractVersion),
   ]);
   if (!acceptedPromotionKeys.has(build.promotionKey)) {
@@ -264,6 +275,7 @@ export function validatePortableSnapshot(value: unknown, partial: Partial<Persis
   const builds = value.tables.builds as PortablePersistenceSnapshot["tables"]["builds"];
   const receipts = value.tables.testReceipts as PortablePersistenceSnapshot["tables"]["testReceipts"];
   const runs = value.tables.testRuns as PortablePersistenceSnapshot["tables"]["testRuns"];
+  const checkpoints = value.tables.checkpoints as PortablePersistenceSnapshot["tables"]["checkpoints"];
   const projectIds = new Set(projects.map((record) => record.id));
   const buildById = new Map(builds.map((record) => [record.id, record]));
   const receiptById = new Map(receipts.map((record) => [record.id, record]));
@@ -282,6 +294,24 @@ export function validatePortableSnapshot(value: unknown, partial: Partial<Persis
       const run = receipt ? runById.get(receipt.runId) : undefined;
       const issue = validatedBuildReceiptIssue(build, receipt, run);
       if (issue) throw new PersistenceDataError(issue);
+    }
+  }
+  for (const checkpoint of checkpoints) {
+    if (typeof checkpoint.projectId !== "string" || !projectIds.has(checkpoint.projectId)) {
+      throw new PersistenceDataError("An imported checkpoint references a missing project.");
+    }
+    if (checkpoint.origin !== undefined && checkpoint.origin !== "javascript" && checkpoint.origin !== "python") {
+      throw new PersistenceDataError("An imported checkpoint has invalid trainer provenance.");
+    }
+    const hasSourcePath = typeof checkpoint.sourcePath === "string" && Boolean(checkpoint.sourcePath);
+    const hasSourceHash = typeof checkpoint.sourceHash === "string" && Boolean(checkpoint.sourceHash);
+    const sourcePathMissing = checkpoint.sourcePath === undefined || checkpoint.sourcePath === null;
+    const sourceHashMissing = checkpoint.sourceHash === undefined || checkpoint.sourceHash === null;
+    if ((!hasSourcePath && !sourcePathMissing) || (!hasSourceHash && !sourceHashMissing) || hasSourcePath !== hasSourceHash) {
+      throw new PersistenceDataError("An imported checkpoint has an invalid source binding.");
+    }
+    if (checkpoint.importedFrom !== undefined && (typeof checkpoint.importedFrom !== "string" || !checkpoint.importedFrom)) {
+      throw new PersistenceDataError("An imported checkpoint has invalid import provenance.");
     }
   }
   for (const project of projects) {

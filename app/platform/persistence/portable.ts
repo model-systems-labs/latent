@@ -86,7 +86,11 @@ export function persistenceSnapshotForImport(snapshot: PortablePersistenceSnapsh
       testRuns: [],
       testReceipts: [],
       builds: [],
-      checkpoints: snapshot.tables.checkpoints.map((checkpoint) => ({ ...checkpoint, buildId: null })),
+      checkpoints: snapshot.tables.checkpoints.map((checkpoint) => ({
+        ...checkpoint,
+        buildId: null,
+        importedFrom: checkpoint.importedFrom ?? "portable-snapshot",
+      })),
       settings,
     },
   };
@@ -198,7 +202,11 @@ async function mergeCheckpoints(database: BrowserLabDatabase, incoming: readonly
   const existing = await database.checkpoints.bulkGet(incoming.map((checkpoint) => checkpoint.id));
   for (let index = 0; index < incoming.length; index += 1) {
     const current = existing[index];
-    if (current && !structurallyEqual({ ...current, buildId: null }, incoming[index])) {
+    const currentPortable = { ...(current ?? {} as CheckpointRecord), buildId: null };
+    const incomingPortable = { ...incoming[index] };
+    delete currentPortable.importedFrom;
+    delete incomingPortable.importedFrom;
+    if (current && !structurallyEqual(currentPortable, incomingPortable)) {
       throw new PersistenceDataError(`Import conflicts with immutable record ${incoming[index].id}.`);
     }
   }

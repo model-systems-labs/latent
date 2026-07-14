@@ -122,7 +122,14 @@ export type CheckpointRecord = {
   readonly formatVersion: number;
   readonly payload: JsonValue;
   readonly metrics: Record<string, number>;
+  /** Host-recorded trainer provenance. Absent on checkpoints created before source binding. */
+  readonly origin?: "javascript" | "python";
+  /** Exact learner file that produced this checkpoint. Null/absent means the checkpoint is not source-bound. */
+  readonly sourcePath?: string | null;
+  /** Exact durable ProjectFileRecord.sourceHash used by the trainer. */
+  readonly sourceHash?: string | null;
   readonly createdAt: number;
+  /** Imported checkpoints restore learner work but can never authorize a host build. */
   readonly importedFrom?: string;
 };
 

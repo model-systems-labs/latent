@@ -387,6 +387,18 @@ test("the design kit, simulations, model engines, and artifact runtime remain re
   await assert.rejects(access(new URL("../app/_sites-preview", templateRoot)));
 });
 
+test("the capstone host flushes framed UTF-8 and owns reader teardown", async () => {
+  const capstone = await readFile(new URL("../app/components/BrowserChatCapstone.tsx", import.meta.url), "utf8");
+  assert.match(capstone, /new TextDecoder\("utf-8", \{ fatal: true \}\)/);
+  assert.match(capstone, /finalDecoded = decoder\.decode\(\)/);
+  assert.match(capstone, /frameRemainder\.trim\(\).*incomplete SSE frame/);
+  assert.match(capstone, /if \(controller\.signal\.aborted \|\| resource\.decoder !== decoder\) throw new DOMException\("Aborted", "AbortError"\);[\s\S]*finalDecoded = decoder\.decode\(\)/);
+  assert.match(capstone, /resource\.reader = null;[\s\S]*resource\.decoder = null;[\s\S]*resource\.frameRemainder = ""/);
+  assert.match(capstone, /await reader\.cancel\("Generation lifecycle ended\."\)/);
+  assert.match(capstone, /reader\.releaseLock\(\)/);
+  assert.match(capstone, /resource\.controller\.abort\(\);[\s\S]*await releaseGenerationResource\(resource, true\)/);
+});
+
 test("all browser-rendered reference cells route behavior to host-owned contracts", async () => {
   const slugs = [
     "character-rnns", "neural-language-models", "subword-tokenization", "additive-attention", "transformers", "in-context-learning",
@@ -545,7 +557,7 @@ test("every lesson renders the shared prediction and project-handoff contract", 
     assert.equal(response.status, 200, lessonId);
     const html = await response.text();
     assert.match(html, /Prediction check/, lessonId);
-    assert.match(html, /Project handoff/, lessonId);
+    assert.match(html, /Project source/, lessonId);
     assert.match(html, /Before/, lessonId);
     assert.match(html, /After/, lessonId);
     assert.match(html, /Open changed file/, lessonId);

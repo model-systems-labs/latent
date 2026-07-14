@@ -176,7 +176,6 @@ test("the course binding manifest exposes real capstone capabilities with only c
     runtime.LLM_RUNTIME_CAPABILITIES.map((binding) => binding.capability),
     [
       "ui.mount",
-      "model.softmax",
       "transport.encode-sse",
       "transport.parse-sse",
       "serving.should-retry",
@@ -200,7 +199,7 @@ test("the course binding manifest exposes real capstone capabilities with only c
   for (const binding of runtime.LLM_RUNTIME_CAPABILITIES.filter((candidate) => candidate.capability !== "ui.mount")) {
     assert.equal(adapterFiles.get(binding.modulePath)?.editable, false, binding.capability);
     assert.match(binding.summary, /course-provided JavaScript adapter/i, binding.capability);
-    assert.match(binding.summary, /CPython .*tested independently|tested independently/i, binding.capability);
+    assert.match(binding.summary, /matching behavioral case|same contracts/i, binding.capability);
     assert.ok(!runtime.LLM_LESSON_SOURCES.some((lesson) => lesson.sourcePath === binding.modulePath));
   }
 });

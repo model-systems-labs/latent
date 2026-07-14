@@ -7,7 +7,7 @@ import { PythonInspector, PythonRuntimeActions, usePythonExecution } from "../fe
 import { courseLessons } from "../lessons/course";
 import { llmSystemsCurriculum } from "../lessons/course";
 import { sampleCharacterRnn } from "@latent/model-lab/character-rnn";
-import { useLearnerState } from "../lib/learner-state";
+import { flushLearnerPersistence, sourceBoundPythonRnnArtifactFromCheckpoint, useLearnerState } from "../lib/learner-state";
 import { runProjectUnitTests } from "../lib/project-tests";
 import { gateBrowserLabBuild, type BrowserLabTestResult } from "../lib/browser-lab";
 import { createBuildArtifact } from "@latent/browser-lab";
@@ -409,8 +409,31 @@ export function ProjectWorkbench() {
         setMobilePanel("output");
         return;
       }
-      const { repositories } = await getPersistenceContext();
+      // A passing source run is not enough to promote the model: wait until
+      // the trainer's exact checkpoint has reached durable storage first.
+      await flushLearnerPersistence();
+      const { database, repositories } = await getPersistenceContext();
       const fileRecords = await repositories.projects.listFiles("browser-chat");
+      const characterRnnFile = fileRecords.find((file) => file.path === PYTHON_CHARACTER_RNN_PATH);
+      if (!characterRnnFile) {
+        throw new Error(`Build blocked: ${PYTHON_CHARACTER_RNN_PATH} is not saved. Save it, test and train it, then build again.`);
+      }
+      const characterRnnCheckpoints = await database.checkpoints
+        .where("projectId")
+        .equals("browser-chat")
+        .filter((record) => record.kind === "character-rnn")
+        .sortBy("createdAt");
+      const buildStudent = [...characterRnnCheckpoints]
+        .reverse()
+        .map((record) => sourceBoundPythonRnnArtifactFromCheckpoint(
+          record,
+          PYTHON_CHARACTER_RNN_PATH,
+          characterRnnFile.sourceHash,
+        ))
+        .find((artifact) => artifact !== null) ?? null;
+      if (!buildStudent?.checkpointId) {
+        throw new Error(`Build blocked: test and train the current ${PYTHON_CHARACTER_RNN_PATH} file after its latest edit, then run Test, build & run again.`);
+      }
       // This in-memory artifact is a pre-promotion integrity gate. Its number
       // is non-authoritative; the repository assigns the actual immutable
       // build number during promotion. Avoid certifying unrelated historical
@@ -434,24 +457,20 @@ export function ProjectWorkbench() {
         bundleHashes: Object.fromEntries(run.program.modules.map((compiledModule) => [compiledModule.modulePath, compiledModule.codeHash])),
         runtimeConfig: result.runtime as unknown as JsonValue,
         bindings: Object.fromEntries(llmRuntimeBindingManifest.bindings.map((binding) => [binding.capability, { modulePath: binding.modulePath, exportName: binding.exportName }])),
+        checkpointId: buildStudent.checkpointId,
       });
       const descriptor = await createCapstoneRuntimeDescriptor(promoted);
       const activeRuntime = { ...result.runtime, buildNumber: promoted.buildNumber, builtAt: promoted.createdAt };
       setErrors([]);
-      let nextPreview: string;
-      if (student) {
-        const generated = sampleCharacterRnn(
-          student.checkpoint,
-          "the signal crossed",
-          activeRuntime.model.maxTokens,
-          activeRuntime.model.temperature,
-          activeRuntime.model.seed,
-          activeRuntime.model.topK,
-        );
-        nextPreview = `${activeRuntime.interface.responsePrefix}…the signal crossed${generated}`;
-      } else {
-        nextPreview = `${activeRuntime.interface.responsePrefix}Build ready. Train the Module 01 model to generate a checkpoint-backed preview.`;
-      }
+      const generated = sampleCharacterRnn(
+        buildStudent.checkpoint,
+        "the signal crossed",
+        activeRuntime.model.maxTokens,
+        activeRuntime.model.temperature,
+        activeRuntime.model.seed,
+        activeRuntime.model.topK,
+      );
+      const nextPreview = `${activeRuntime.interface.responsePrefix}…the signal crossed${generated}`;
       saveProjectRuntime(activeRuntime, nextPreview, projectActiveBuildIdentity(promoted));
       void recordLearningEvent("project_build_completed", { outcome: "passed", count: run.results.length });
       try {
@@ -464,7 +483,7 @@ export function ProjectWorkbench() {
           totalTests: run.results.length,
         });
         setBuildArtifact(artifact);
-        setMessage(`Build ${promoted.buildNumber} is active. Artifact ${artifact.contentHash.slice(7, 19)} records ${descriptor.contributions.length} verified lesson files as provenance and runs the supplied browser adapters.`);
+        setMessage(`Build ${promoted.buildNumber} is active. Artifact ${artifact.contentHash.slice(7, 19)} binds ${descriptor.contributions.length} exact passing Python files to browser adapters checked against the same contracts.`);
         setMobilePanel("output");
       } catch (artifactError) {
         setMessage(`Build ${promoted.buildNumber} is active, but its portable artifact could not be stored: ${artifactError instanceof Error ? artifactError.message : "local storage is unavailable"}`);
@@ -626,7 +645,7 @@ export function ProjectWorkbench() {
           <Link className="project-run-capstone" href="/capstone" onClick={flushCurrentDraft}>Run active capstone →</Link>
         </nav>
         <div className={`project-editor-panel${isPythonFile ? " python-mode" : ""}`}>
-          <header><div><span>{selected?.path ?? "No file selected"}</span><strong>{selected?.title}</strong></div><div><i className={dirty ? "dirty" : "saved"} />{selected?.readOnly ? "Course library · read only" : dirty ? "Unsaved draft · autosaves after 650 ms idle" : "Saved in device file history"}</div></header>
+          <header><div><span>{selected?.path ?? "No file selected"}</span><strong>{selected?.title}</strong></div><div><i className={dirty ? "dirty" : "saved"} /><span>{selected?.readOnly ? "Course library · read only" : dirty ? "Unsaved draft · autosaves after 650 ms idle" : "Saved in device file history"}</span></div></header>
           {selected ? <Suspense fallback={<div className="python-editor-loading" role="status">Loading Python syntax support…</div>}><SelectedCodeEditor path={selected.path} value={draft} readOnly={Boolean(selected.readOnly || !projectReady || (isPythonFile && pythonExecution.busy))} onChange={(value) => {
             draftEpochRef.current += 1;
             const recoveryStored = stageProjectDraftRecovery(selected.path, value);

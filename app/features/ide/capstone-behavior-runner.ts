@@ -151,6 +151,9 @@ export const CAPSTONE_BEHAVIOR_BOOTSTRAP_SOURCE = String.raw`(() => {
   const generations = [];
   const cancellations = [];
   const requestMethods = [];
+  const renderFrames = { requested: 0, completed: 0, cancelled: 0 };
+  const frameTimers = new Map();
+  let nextFrameId = 1;
   let fixture = {
     selectedBackend: "student",
     assistantName: "Configured Tutor",
@@ -159,9 +162,31 @@ export const CAPSTONE_BEHAVIOR_BOOTSTRAP_SOURCE = String.raw`(() => {
     persistFailures: 0,
     requirePreparation: false,
     preparationDelayMs: 0,
+    transientRetry: false,
+    invalidConversation: false,
   };
   let persistAttempts = 0;
   let prepared = true;
+
+  // A deterministic frame clock makes render batching and cancellation
+  // observable without granting the compiled project any extra capability.
+  globalThis.requestAnimationFrame = (callback) => {
+    const frameId = nextFrameId++;
+    renderFrames.requested += 1;
+    frameTimers.set(frameId, nativeSetTimeout(() => {
+      frameTimers.delete(frameId);
+      renderFrames.completed += 1;
+      callback(performance.now());
+    }, 32));
+    return frameId;
+  };
+  globalThis.cancelAnimationFrame = (frameId) => {
+    const timer = frameTimers.get(frameId);
+    if (timer === undefined) return;
+    nativeClearTimeout(timer);
+    frameTimers.delete(frameId);
+    renderFrames.cancelled += 1;
+  };
 
   const query = (selector) => nativeQuery.call(document, selector);
   const queryAll = (selector) => Array.from(nativeQueryAll.call(document, selector));
@@ -226,7 +251,11 @@ export const CAPSTONE_BEHAVIOR_BOOTSTRAP_SOURCE = String.raw`(() => {
             transport: { wordsPerEvent: 1, delayMs: 0 },
             interface: { assistantName: fixture.assistantName, responsePrefix: fixture.responsePrefix, showMetrics: fixture.showMetrics },
           },
-          conversation: null,
+          conversation: fixture.invalidConversation ? {
+            version: 1,
+            id: "active",
+            messages: [{ id: "corrupt", role: "assistant", backend: fixture.selectedBackend, content: "partial", status: "streaming" }],
+          } : null,
         });
       }
       if (method === "persist") {
@@ -249,18 +278,41 @@ export const CAPSTONE_BEHAVIOR_BOOTSTRAP_SOURCE = String.raw`(() => {
       if (method !== "generate") return Promise.reject(new Error("Unsupported behavior fixture method: " + method));
       generationCount += 1;
       generations.push(payload);
-      if (generationCount === 1) {
+      if (fixture.transientRetry && generationCount === 1) {
+        generationEvent(onEvent, { type: "phase", phase: "queued" }, 5);
+        generationEvent(onEvent, { type: "error", message: "Controlled transient failure", transient: true }, 20);
+        return Promise.resolve(null);
+      }
+      const interaction = generationCount - (fixture.transientRetry ? 1 : 0);
+      if (interaction === 1) {
         generationEvent(onEvent, { type: "phase", phase: "queued" }, 5);
         generationEvent(onEvent, { type: "phase", phase: "prefill" }, 10);
         generationEvent(onEvent, { type: "phase", phase: "streaming" }, 15);
-        generationEvent(onEvent, { type: "chunk", chunk: sse("token", { delta: fixture.responsePrefix + "streamed " }) }, 25);
-        generationEvent(onEvent, { type: "chunk", chunk: sse("token", { delta: "answer" }) }, 35);
-        generationEvent(onEvent, { type: "metrics", metrics: { queueMs: 5, modelMs: 21, ttftMs: 25, generatedUnits: 2, generatedUnitLabel: "Fixture chunks", durationMs: 35 } }, 40);
-        generationEvent(onEvent, { type: "chunk", chunk: sse("done", { requestId: payload.requestId }) }, 45);
-        generationEvent(onEvent, { type: "phase", phase: "complete" }, 50);
-      } else if (generationCount === 2) {
+        generationEvent(onEvent, {
+          type: "chunk",
+          chunk: sse("token", { delta: fixture.responsePrefix + "original " })
+            + sse("token", { delta: "answer" })
+            + sse("token", { delta: " with" })
+            + sse("token", { delta: " batched" })
+            + sse("token", { delta: " tokens" }),
+        }, 25);
+        generationEvent(onEvent, { type: "chunk", chunk: sse("token", { delta: "." }) }, 120);
+        generationEvent(onEvent, { type: "metrics", metrics: { queueMs: 5, modelMs: 610, ttftMs: 25, generatedUnits: 6, generatedUnitLabel: "Fixture tokens", durationMs: 650 } }, 620);
+        generationEvent(onEvent, { type: "chunk", chunk: sse("done", { requestId: payload.requestId }) }, 650);
+        generationEvent(onEvent, { type: "phase", phase: "complete" }, 660);
+      } else if (interaction === 2) {
         generationEvent(onEvent, { type: "phase", phase: "streaming" }, 5);
-        generationEvent(onEvent, { type: "chunk", chunk: sse("token", { delta: "partial" }) }, 15);
+        generationEvent(onEvent, { type: "chunk", chunk: sse("token", { delta: fixture.responsePrefix + "regenerated answer" }) }, 15);
+        generationEvent(onEvent, { type: "chunk", chunk: sse("done", { requestId: payload.requestId }) }, 70);
+        generationEvent(onEvent, { type: "phase", phase: "complete" }, 80);
+      } else if (interaction === 3) {
+        generationEvent(onEvent, { type: "phase", phase: "streaming" }, 5);
+        generationEvent(onEvent, { type: "chunk", chunk: sse("token", { delta: "follow-up answer" }) }, 15);
+        generationEvent(onEvent, { type: "chunk", chunk: sse("done", { requestId: payload.requestId }) }, 70);
+        generationEvent(onEvent, { type: "phase", phase: "complete" }, 80);
+      } else if (interaction === 4) {
+        generationEvent(onEvent, { type: "phase", phase: "streaming" }, 1);
+        generationEvent(onEvent, { type: "chunk", chunk: sse("token", { delta: "partial before cancellation" }) }, 5);
         generationEvent(onEvent, { type: "chunk", chunk: sse("token", { delta: " LATE-IGNORED" }) }, 180);
       } else {
         generationEvent(onEvent, { type: "phase", phase: "queued" }, 5);
@@ -296,11 +348,41 @@ export const CAPSTONE_BEHAVIOR_BOOTSTRAP_SOURCE = String.raw`(() => {
     };
 
     const log = await waitFor(() => {
-      const candidate = query('[role="log"][aria-live="polite"]');
+      const candidate = query('[role="log"][aria-live="off"]');
       return candidate && visible(candidate) ? candidate : null;
-    }, "An accessible visible polite conversation log was not rendered.");
-    const controlsSummary = query(".inference-panel summary");
-    check(visible(controlsSummary), "mobile inference controls remain available as a compact disclosure");
+    }, "An accessible visible conversation log outside the polite live region was not rendered.");
+    const streamAnnouncement = await waitFor(
+      () => query('[data-stream-announcement][role="status"][aria-live="polite"][aria-atomic="true"]'),
+      "A separate bounded stream announcement channel was not rendered.",
+    );
+    const announcementUpdates = [];
+    let previousAnnouncement = text(streamAnnouncement);
+    const announcementObserver = new MutationObserver(() => {
+      const value = text(streamAnnouncement);
+      if (!value || value === previousAnnouncement) return;
+      previousAnnouncement = value;
+      announcementUpdates.push({ value, at: performance.now() });
+    });
+    announcementObserver.observe(streamAnnouncement, { attributes: true, childList: true, characterData: true, subtree: true });
+    const mobileControlsToggle = query(".mobile-control-toggle");
+    check(
+      visible(mobileControlsToggle)
+        && focusable(mobileControlsToggle)
+        && mobileControlsToggle?.getAttribute("aria-expanded") === "false",
+      "mobile model controls begin as a compact, focusable disclosure",
+    );
+    nativeClick.call(mobileControlsToggle);
+    const controlsSummary = await waitFor(
+      () => {
+        const candidate = query(".inference-panel summary");
+        return candidate && visible(candidate) ? candidate : null;
+      },
+      "Opening the mobile model controls did not expose inference controls.",
+    );
+    check(
+      mobileControlsToggle?.getAttribute("aria-expanded") === "true" && visible(controlsSummary),
+      "mobile inference controls remain available as a compact disclosure",
+    );
     if (fixture.requirePreparation) {
       const prepare = await waitFor(() => {
         const candidate = query("button.prepare-model");
@@ -321,21 +403,32 @@ export const CAPSTONE_BEHAVIOR_BOOTSTRAP_SOURCE = String.raw`(() => {
       check(document.activeElement === retry, "mobile persistence recovery is keyboard-focusable");
       nativeClick.call(retry);
     }
+    if (fixture.invalidConversation) {
+      const discard = await waitFor(() => {
+        const candidate = button("Discard saved conversation");
+        return candidate && focusable(candidate) ? candidate : null;
+      }, "An invalid restored conversation did not expose explicit recovery.");
+      await delay(60);
+      check(!requestMethods.includes("persist")
+        && text(query(".restore-error")).includes("has not been changed"), "invalid restored conversation suspends persistence until explicit discard");
+      nativeClick.call(discard);
+    }
     const savedStatus = await waitFor(() => {
       const candidate = query(".control-panel footer [role=status]");
       return candidate && visible(candidate) && text(candidate).includes("Saved on this device") ? candidate : null;
     }, "The visible persistence acknowledgement did not reach the saved state.");
     check(Boolean(savedStatus && button("Clear conversation")), "mobile persistence status and Clear action remain visible");
-    const status = query('[role="status"][aria-live="polite"][aria-atomic="true"]');
+    const status = query('.phase-status[role="status"][aria-live="polite"][aria-atomic="true"]');
     const composer = query('textarea[aria-label="Chat message"]');
     check(Boolean(query("main") && query("h1") && log && visible(status) && visible(composer) && button("Send")), "accessible chat surface");
     const selectedLabel = fixture.selectedBackend === "student" ? "Student RNN" : "Local Transformer";
     const metricsVisible = visible(query(".metrics-panel"));
     check(Boolean(button(selectedLabel)?.classList.contains("active") && metricsVisible === fixture.showMetrics), "restored backend and metrics visibility configuration");
 
-    await setComposer("Explain attention");
+    const initialGenerationCount = fixture.transientRetry ? 2 : 1;
+    await setComposer("u1");
     try {
-      await waitFor(() => generations.length === 1, "Submitting the composer did not invoke the generation bridge.");
+      await waitFor(() => generations.length === initialGenerationCount, "Submitting the composer did not invoke the generation bridge.");
     } catch {
       throw new Error("Submitting the composer did not invoke the generation bridge. Host methods: " + requestMethods.join(",") + ". Surface: " + text(query("main")));
     }
@@ -344,28 +437,71 @@ export const CAPSTONE_BEHAVIOR_BOOTSTRAP_SOURCE = String.raw`(() => {
       && first.backend === fixture.selectedBackend
       && Array.isArray(first.messages)
       && first.messages.at(-1)?.role === "user"
-      && first.messages.at(-1)?.content === "Explain attention"), "submit forwards the active user request");
-    await waitFor(() => text(log).includes(fixture.responsePrefix + "streamed answer"), "Streamed generation chunks did not render in the transcript.");
+      && first.messages.at(-1)?.content === "u1"), "submit forwards the active user request");
+    if (fixture.transientRetry) {
+      const retried = generations[1];
+      check(Boolean(retried
+        && first.logicalRequestId === retried.logicalRequestId
+        && first.attemptId !== retried.attemptId
+        && first.requestId !== retried.requestId), "transient retry preserves logical request identity while rotating attempt and transport ids");
+    }
+    await waitFor(() => text(log).includes(fixture.responsePrefix + "original answer with batched tokens."), "Streamed generation chunks did not render in the transcript.");
     await waitFor(() => text(status).includes("Complete"), "The completed stream did not reach a terminal status.");
-    check(text(log).includes("Explain attention") && text(log).includes(fixture.responsePrefix + "streamed answer") && text(log).includes(fixture.assistantName), "runtime name and response prefix affect visible streamed output");
+    check(text(log).includes("u1") && text(log).includes(fixture.responsePrefix + "original answer with batched tokens.") && text(log).includes(fixture.assistantName), "runtime name and response prefix affect visible streamed output");
+    check(Number(log.getAttribute("data-render-commits")) === 2
+      && renderFrames.completed >= 2
+      && renderFrames.requested < 6, "stream deltas batch behind animation-frame commits");
+    const streamingAnnouncements = announcementUpdates.filter((entry) => entry.value.startsWith("Assistant update:") && !entry.value.includes("Response complete."));
+    const announcementIntervalsAreBounded = streamingAnnouncements.every((entry, index) => index === 0 || entry.at - streamingAnnouncements[index - 1].at >= 450);
+    check(announcementUpdates.length >= 2
+      && announcementUpdates.every((entry) => entry.value.length <= 160)
+      && announcementIntervalsAreBounded
+      && announcementUpdates.some((entry) => entry.value.includes("Response complete.")), "live output announcements are bounded and rate-limited with immediate terminal state");
+
+    const regenerate = await waitFor(() => {
+      const candidate = button("Regenerate");
+      return candidate && !candidate.disabled ? candidate : null;
+    }, "A completed assistant response did not expose regeneration.");
+    nativeClick.call(regenerate);
+    await waitFor(() => generations.length === initialGenerationCount + 1, "Regeneration did not invoke the generation bridge.");
+    await waitFor(() => text(query('article.message.assistant[data-active-attempt="true"] p')).includes(fixture.responsePrefix + "regenerated answer"), "The regenerated response did not become the active attempt.");
+    await waitFor(() => text(status).includes("Complete"), "Regeneration did not reach a terminal status.");
+    check(Boolean(query('article.message.assistant[data-active-attempt="false"]')
+      && query('article.message.assistant[data-active-attempt="true"]')), "regeneration exposes active and superseded attempts");
+
+    await setComposer("u2");
+    await waitFor(() => generations.length === initialGenerationCount + 2, "The follow-up after regeneration did not invoke the generation bridge.");
+    const followUpContext = generations[initialGenerationCount + 1]?.messages || [];
+    const followUpContents = followUpContext.map((message) => message.content);
+    check(followUpContents.includes("u1")
+      && followUpContents.includes(fixture.responsePrefix + "regenerated answer")
+      && !followUpContents.includes(fixture.responsePrefix + "original answer with batched tokens.")
+      && followUpContents.at(-1) === "u2", "regeneration makes the newest sibling active for subsequent context");
+    await waitFor(() => text(log).includes("follow-up answer") && text(status).includes("Complete"), "The branch-aware follow-up did not complete.");
 
     await setComposer("Cancel this generation");
-    await waitFor(() => generations.length === 2 && button("Stop"), "An active generation did not expose the Stop action.");
-    const secondRequestId = generations[1]?.requestId;
+    await waitFor(() => generations.length === initialGenerationCount + 3 && button("Stop"), "An active generation did not expose the Stop action.");
+    const cancellationRequestId = generations[initialGenerationCount + 2]?.requestId;
+    const cancelledFramesBeforeStop = renderFrames.cancelled;
+    await waitFor(() => renderFrames.requested > renderFrames.completed + renderFrames.cancelled, "The cancellation fixture did not leave an animation-frame commit pending.");
     nativeClick.call(button("Stop"));
     await waitFor(() => query("article.message.assistant.cancelled"), "Stopping did not mark the active assistant message as cancelled.");
-    await waitFor(() => cancellations.some((entry) => entry?.requestId === secondRequestId), "Stopping did not cancel the matching bridge request.");
+    await waitFor(() => cancellations.some((entry) => entry?.requestId === cancellationRequestId), "Stopping did not cancel the matching bridge request.");
+    await waitFor(() => renderFrames.requested === renderFrames.completed + renderFrames.cancelled, "Stopping left animation-frame work pending.");
+    check(renderFrames.cancelled > cancelledFramesBeforeStop
+      && text(log).includes("partial before cancellation"), "cancellation flushes accepted deltas and clears pending render work");
     await delay(240);
     check(!text(log).includes("LATE-IGNORED"), "cancellation rejects late stream output");
 
     await setComposer("Trigger controlled failure");
-    await waitFor(() => generations.length === 3, "The post-cancellation composer could not submit another request.");
+    await waitFor(() => generations.length === initialGenerationCount + 4, "The post-cancellation composer could not submit another request.");
     const alert = await waitFor(() => {
       const candidate = query('[role="alert"]');
       return candidate && visible(candidate) && text(candidate).includes("Controlled generation failure") ? candidate : null;
     }, "A bridge failure did not render a meaningful alert.");
     await waitFor(() => text(status).includes("Generation failed"), "A bridge failure did not reach the error phase.");
     check(Boolean(alert && query("article.message.assistant.error")), "error is visible and terminal");
+    announcementObserver.disconnect();
     return checks;
   };
 
@@ -395,12 +531,16 @@ export const CAPSTONE_BEHAVIOR_BOOTSTRAP_SOURCE = String.raw`(() => {
         && typeof data.fixture.showMetrics === "boolean"
         && (data.fixture.persistFailures === undefined || (Number.isSafeInteger(data.fixture.persistFailures) && data.fixture.persistFailures >= 0 && data.fixture.persistFailures <= 2))
         && (data.fixture.requirePreparation === undefined || typeof data.fixture.requirePreparation === "boolean")
-        && (data.fixture.preparationDelayMs === undefined || (Number.isSafeInteger(data.fixture.preparationDelayMs) && data.fixture.preparationDelayMs >= 0 && data.fixture.preparationDelayMs <= 1000))) {
+        && (data.fixture.preparationDelayMs === undefined || (Number.isSafeInteger(data.fixture.preparationDelayMs) && data.fixture.preparationDelayMs >= 0 && data.fixture.preparationDelayMs <= 1000))
+        && (data.fixture.transientRetry === undefined || typeof data.fixture.transientRetry === "boolean")
+        && (data.fixture.invalidConversation === undefined || typeof data.fixture.invalidConversation === "boolean")) {
         fixture = {
           ...data.fixture,
           persistFailures: data.fixture.persistFailures ?? 0,
           requirePreparation: data.fixture.requirePreparation ?? false,
           preparationDelayMs: data.fixture.preparationDelayMs ?? 0,
+          transientRetry: data.fixture.transientRetry ?? false,
+          invalidConversation: data.fixture.invalidConversation ?? false,
         };
         prepared = !fixture.requirePreparation;
       }
@@ -421,7 +561,7 @@ export const CAPSTONE_BEHAVIOR_BOOTSTRAP_SOURCE = String.raw`(() => {
 })();`;
 
 /** Updated whenever the fixed host-owned bootstrap changes. */
-export const CAPSTONE_BEHAVIOR_BOOTSTRAP_SHA256 = "sha256-0K/fyuBFvfWAbxTmFdhlJgzaTA//kYFFHV3FPqgbvv8=" as const;
+export const CAPSTONE_BEHAVIOR_BOOTSTRAP_SHA256 = "sha256-1AFANo5bjziRcd9BDZIucC7Lp2afj49pUVPYs63cbXA=" as const;
 
 export function createCapstoneBehaviorFrameSrcdoc(): string {
   return `<!doctype html>
@@ -553,7 +693,7 @@ function isBehaviorFrameResult(value: unknown, channelId: string): value is Beha
     && typeof result.detail === "string"
     && result.detail.length <= 1200
     && (result.checks === undefined || (Array.isArray(result.checks)
-      && result.checks.length <= 12
+      && result.checks.length <= 20
       && result.checks.every((entry) => typeof entry === "string" && entry.length <= 200)));
 }
 
@@ -588,6 +728,8 @@ export async function runCapstoneBehaviorContract(
       persistFailures?: number;
       requirePreparation?: boolean;
       preparationDelayMs?: number;
+      transientRetry?: boolean;
+      invalidConversation?: boolean;
     };
   } = {},
 ): Promise<ProjectUnitResult> {

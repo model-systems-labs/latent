@@ -618,11 +618,11 @@ function SystemsExperiment({ variant, onComplete }: { variant: SystemsVariant } 
             { label: "meta", detail: "request id and model metadata decoded" },
             { label: "token × 4", detail: "four ordered deltas parsed; render buffer flushes the visible partial response" },
             { label: "abort", detail: "AbortSignal crosses the adapter boundary after token 4", tone: "warning" },
-            { label: "reader", detail: "reader.cancel() stops further chunk reads; parser discards its incomplete remainder" },
+            { label: "reader", detail: "reader.cancel() stops further chunk reads; decoder and host frame remainder ownership are cleared" },
             { label: "generator", detail: "generator return path runs; tokens 5–10 are never produced" },
             { label: "release", detail: "reader lock and generation resources released · late events ignored" },
           ],
-          artifact: "policy cancel-after-4\nproduced tokens 4 / 10 · parsed events 5 / 14\nreader stopped yes · parser stopped yes · generator stopped yes\nlate events 0 · resources released yes",
+          artifact: "policy cancel-after-4\nproduced tokens 4 / 10 · parsed events 5 / 14\nreader cancelled yes · decoder cleared yes · host frame remainder cleared yes\nlate events 0 · resources released yes",
         });
         return;
       }

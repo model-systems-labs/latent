@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { sampleCharacterRnn } from "@latent/model-lab/character-rnn";
-import { loadLearnerState, saveCharacterRnnArtifact, useLearnerState, type SavedRnnArtifact } from "../lib/learner-state";
+import { sourceBoundPythonRnnArtifactFromCheckpoint, useLearnerState, type SavedRnnArtifact } from "../lib/learner-state";
 import { useProjectState, type ProjectState } from "../lib/project-workspace";
 import { expectedProjectContractIdsForPath, projectLessonBuildStatus, projectResultsForFile, trustedProjectResults } from "../lib/project-file-status";
 import { canonicalLessonSeeds, reconcileCanonicalProject } from "../lib/canonical-project";
@@ -11,9 +11,8 @@ import { recordLearningEvent } from "../lib/learning-analytics";
 import { createLatestConversationWriter, loadCapstoneConversation } from "../features/capstone/conversation-store";
 import { LocalModelClient } from "../runtime/model/local-model-client";
 import { LOCAL_MODEL_MAX_NEW_TOKENS, type ModelMessage } from "../runtime/model/protocol";
-import { trainCharacterRnnInWorker } from "../runtime/model/train-character-client";
 import { getPersistenceContext } from "../platform/persistence/client";
-import { createMockServingStream } from "@latent/mock-services/sse";
+import { createMockServingStream, parseSseChunk as parseMockSseChunk } from "@latent/mock-services/sse";
 import {
   LLM_LESSON_SOURCES,
   LLM_RUNTIME_CAPABILITIES,
@@ -35,8 +34,9 @@ import {
 } from "../runtime/capstone/preview-frame";
 import type { CapstoneBackend, PersistedChatMessage } from "../lib/capstone-contract";
 import { CAPSTONE_COMPONENT_PATH as CANONICAL_CAPSTONE_COMPONENT_PATH } from "../content/browser-chat/project-template";
+import { PYTHON_CHARACTER_RNN_PATH } from "../features/python/character-rnn-source";
 
-const ALLOWED_METHODS = new Set(["initialize", "train-student", "load-local", "generate", "cancel", "persist"]);
+const ALLOWED_METHODS = new Set(["initialize", "load-local", "generate", "cancel", "persist"]);
 
 type GenerationPayload = {
   logicalRequestId: string;
@@ -47,6 +47,42 @@ type GenerationPayload = {
   requestFrame: string;
   options: { temperature: number; topK: number; maxTokens: number };
 };
+
+type ActiveGenerationResource = {
+  controller: AbortController;
+  reader: ReadableStreamDefaultReader<Uint8Array> | null;
+  decoder: TextDecoder | null;
+  frameRemainder: string;
+};
+
+async function releaseGenerationResource(resource: ActiveGenerationResource, cancelReader: boolean) {
+  const reader = resource.reader;
+  resource.reader = null;
+  resource.decoder = null;
+  resource.frameRemainder = "";
+  if (!reader) return;
+  try {
+    if (cancelReader) await reader.cancel("Generation lifecycle ended.");
+  } catch {
+    // The stream may already have closed while cancellation was propagating.
+  } finally {
+    try { reader.releaseLock(); } catch { /* The reader may already be released. */ }
+  }
+}
+
+export async function cancelActiveGenerationResources(
+  generationRequests: Map<string, ActiveGenerationResource>,
+  cancelLocalRequest: (requestId: string) => void,
+) {
+  const releases: Promise<void>[] = [];
+  for (const [requestId, resource] of generationRequests) {
+    resource.controller.abort();
+    try { cancelLocalRequest(requestId); } catch { /* Teardown must continue across every active request. */ }
+    releases.push(releaseGenerationResource(resource, true));
+  }
+  generationRequests.clear();
+  await Promise.all(releases);
+}
 
 type HostStatus = "loading" | "ready" | "missing" | "error";
 
@@ -166,7 +202,7 @@ export function capstoneMissingBuildRecovery(progress: CapstoneProgress): Capsto
     summary: `All ${progress.totalLessonFiles} lesson files are verified. Run the complete suite once to compile the React application and promote a source-bound build.`,
     path: CAPSTONE_COMPONENT_PATH,
     pathLabel: `Final integration · ${CAPSTONE_COMPONENT_PATH}`,
-    why: "A passing full build proves that the independently tested lesson files still work together before any project code reaches the preview.",
+    why: "A passing full build binds every source-verified Python lesson, every contract-equivalent browser adapter, and the React integration to one promoted snapshot before project code reaches the preview.",
     action: "workspace",
     actionLabel: "Open integration · Test, build & run",
     href: workspaceHref(CAPSTONE_COMPONENT_PATH),
@@ -208,6 +244,21 @@ function failureRecord(error: unknown): CapstoneFailure {
 /** Converts host verification failures into a concrete, non-jargon repair step without weakening the gate. */
 export function capstoneRecoveryForFailure(error: unknown, progress: CapstoneProgress): CapstoneRecovery {
   const failure = failureRecord(error);
+  if (failure.code === "MISSING_SOURCE_BOUND_CHECKPOINT") {
+    return {
+      eyebrow: "Python checkpoint required",
+      title: "Train the current model source.",
+      summary: `The active build does not carry a local Python checkpoint produced from its exact ${PYTHON_CHARACTER_RNN_PATH} bytes, so the host rejected it before execution.`,
+      path: PYTHON_CHARACTER_RNN_PATH,
+      pathLabel: `Model source · ${PYTHON_CHARACTER_RNN_PATH}`,
+      why: "Run Test & train on this exact file, then run the full build. Imported, JavaScript-trained, older-source, and latest-global checkpoints cannot power the capstone.",
+      action: "workspace",
+      actionLabel: "Open model · Test & train",
+      actionPath: PYTHON_CHARACTER_RNN_PATH,
+      href: workspaceHref(PYTHON_CHARACTER_RNN_PATH),
+      blockedStage: "build",
+    };
+  }
   const capability = Object.keys(CAPABILITY_SOURCE).find((candidate) => failure.message.includes(candidate));
   const source = capability ? CAPABILITY_SOURCE[capability as keyof typeof CAPABILITY_SOURCE] : null;
   if (source || failure.code === "MISSING_CAPSTONE_UI" || failure.code === "UNVERIFIED_CAPSTONE_UI") {
@@ -366,7 +417,23 @@ function boundedNumber(value: unknown, fallback: number, minimum: number, maximu
   return integer ? Math.round(bounded) : bounded;
 }
 
-function generationPayload(value: PreviewJson): GenerationPayload | null {
+export function canonicalGenerationRequestFrame(
+  logicalRequestId: string,
+  attemptId: string,
+  requestId: string,
+  backend: CapstoneBackend,
+  messages: readonly ModelMessage[],
+) {
+  return `event: request\ndata: ${JSON.stringify({
+    logicalRequestId,
+    attemptId,
+    requestId,
+    backend,
+    messages: messages.map(({ role, content }) => ({ role, content })),
+  })}\n\n`;
+}
+
+export function generationPayload(value: PreviewJson): GenerationPayload | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const candidate = value as Record<string, PreviewJson>;
   const backend = candidate.backend;
@@ -393,6 +460,7 @@ function generationPayload(value: PreviewJson): GenerationPayload | null {
     messages.push({ role: message.role, content: message.content });
   }
   const options = rawOptions as Record<string, PreviewJson>;
+  if (requestFrame !== canonicalGenerationRequestFrame(logicalRequestId, attemptId, requestId, backend, messages)) return null;
   return {
     logicalRequestId,
     attemptId,
@@ -536,6 +604,7 @@ export function BrowserChatCapstone() {
       setReactRuntime(null);
       setDescriptor(null);
       setBuildRuntime(null);
+      studentRef.current = null;
       setRunRequested(false);
       setFailure(null);
       setDetail("Loading the last passing project build…");
@@ -544,6 +613,19 @@ export function BrowserChatCapstone() {
       if (!build) {
         if (active) { setStatus("missing"); setDetail("No passing full-project build exists on this device yet."); }
         return;
+      }
+      const expectedSourceHash = build.fileHashes[PYTHON_CHARACTER_RNN_PATH];
+      const checkpoint = build.checkpointId
+        ? await repositories.checkpoints.get(build.checkpointId)
+        : undefined;
+      const buildStudent = expectedSourceHash
+        ? sourceBoundPythonRnnArtifactFromCheckpoint(checkpoint, PYTHON_CHARACTER_RNN_PATH, expectedSourceHash)
+        : null;
+      if (!buildStudent || buildStudent.checkpointId !== build.checkpointId) {
+        throw Object.assign(
+          new Error(`The active build has no local Python checkpoint trained from its exact ${PYTHON_CHARACTER_RNN_PATH} source.`),
+          { code: "MISSING_SOURCE_BOUND_CHECKPOINT" },
+        );
       }
       const loaded = await loadValidatedCapstoneBundle(build);
       const certifiedRuntime = certifiedCapstoneRuntimeConfig(build);
@@ -566,6 +648,7 @@ export function BrowserChatCapstone() {
         runtimeResponse.text().then((source) => verifyPreviewRuntime(source)),
       ]);
       if (!active) return;
+      studentRef.current = buildStudent;
       setDescriptor(loaded.descriptor);
       setBuildRuntime(certifiedRuntime);
       setBundle(verified);
@@ -574,6 +657,7 @@ export function BrowserChatCapstone() {
       setDetail(`Build ${loaded.descriptor.buildNumber} is verified. It runs with isolated host capabilities; a synchronous loop can still require reloading this tab.`);
     })().catch((error) => {
       if (!active) return;
+      studentRef.current = null;
       setFailure(failureRecord(error));
       setStatus("error");
       setDetail("The active capstone build could not be verified, so it was not executed.");
@@ -586,8 +670,7 @@ export function BrowserChatCapstone() {
     if (!iframe || !bundle || !reactRuntime || !descriptor || !buildRuntime || !runRequested) return;
     let disposed = false;
     const capabilityGate = new CapstoneCapabilityGate();
-    const generationRequests = new Map<string, AbortController>();
-    let trainingController: AbortController | null = null;
+    const generationRequests = new Map<string, ActiveGenerationResource>();
 
     const emit = (requestId: string, event: string, payload: PreviewJson) => {
       if (disposed) return;
@@ -604,7 +687,13 @@ export function BrowserChatCapstone() {
 
     const generate = async (bridgeRequestId: string, payload: GenerationPayload) => {
       const controller = new AbortController();
-      generationRequests.set(payload.requestId, controller);
+      const resource: ActiveGenerationResource = {
+        controller,
+        reader: null,
+        decoder: null,
+        frameRemainder: "",
+      };
+      generationRequests.set(payload.requestId, resource);
       const started = performance.now();
       emit(bridgeRequestId, "phase", { type: "phase", phase: "queued" });
       try {
@@ -617,8 +706,8 @@ export function BrowserChatCapstone() {
         let generatedUnits = 0;
         let generatedUnitLabel = "Generated units";
         if (payload.backend === "student") {
-          const student = studentRef.current ?? loadLearnerState().artifacts.characterRnn ?? null;
-          if (!student) throw new Error("Train the student model before generating.");
+          const student = studentRef.current;
+          if (!student) throw new Error("This build has no source-bound Python checkpoint. Test and train the model file, then rebuild.");
           const continuation = sampleCharacterRnn(student.checkpoint, latestUser, payload.options.maxTokens, payload.options.temperature, buildRuntime.model.seed, payload.options.topK);
           const checkpointLabel = student.origin === "python"
             ? "Python + NumPy checkpoint"
@@ -648,14 +737,34 @@ export function BrowserChatCapstone() {
           buildRuntime.transport,
         );
         const reader = stream.getReader();
-        const decoder = new TextDecoder();
+        const decoder = new TextDecoder("utf-8", { fatal: true });
+        resource.reader = reader;
+        resource.decoder = decoder;
+        const acceptDecodedText = (decoded: string) => {
+          if (!decoded) return;
+          const parsed = parseMockSseChunk(resource.frameRemainder, decoded);
+          resource.frameRemainder = parsed.remainder;
+          emit(bridgeRequestId, "chunk", { type: "chunk", chunk: decoded });
+        };
         let firstChunk = 0;
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
+          if (controller.signal.aborted || resource.decoder !== decoder) throw new DOMException("Aborted", "AbortError");
           if (!firstChunk) firstChunk = performance.now();
-          emit(bridgeRequestId, "chunk", { type: "chunk", chunk: decoder.decode(value, { stream: true }) });
+          acceptDecodedText(decoder.decode(value, { stream: true }));
         }
+        if (controller.signal.aborted || resource.decoder !== decoder) throw new DOMException("Aborted", "AbortError");
+        let finalDecoded = "";
+        try {
+          finalDecoded = decoder.decode();
+        } catch (error) {
+          throw new Error("The generation stream ended with incomplete or invalid UTF-8 bytes.", { cause: error });
+        }
+        acceptDecodedText(finalDecoded);
+        if (resource.frameRemainder.trim()) throw new Error("The generation stream ended with an incomplete SSE frame.");
+        if (controller.signal.aborted || resource.decoder !== decoder) throw new DOMException("Aborted", "AbortError");
+        await releaseGenerationResource(resource, false);
         const durationMs = performance.now() - started;
         emit(bridgeRequestId, "metrics", {
           type: "metrics",
@@ -672,6 +781,8 @@ export function BrowserChatCapstone() {
         respond(bridgeRequestId, { status: controller.signal.aborted ? "cancelled" : "complete" });
       } catch (error) {
         const cancelled = controller.signal.aborted || (error instanceof DOMException && error.name === "AbortError");
+        if (!cancelled) controller.abort();
+        await releaseGenerationResource(resource, true);
         if (cancelled) {
           emit(bridgeRequestId, "phase", { type: "phase", phase: "cancelled" });
           respond(bridgeRequestId, { status: "cancelled" });
@@ -681,7 +792,8 @@ export function BrowserChatCapstone() {
           fail(bridgeRequestId, "generation-failed", message);
         }
       } finally {
-        generationRequests.delete(payload.requestId);
+        await releaseGenerationResource(resource, false);
+        if (generationRequests.get(payload.requestId) === resource) generationRequests.delete(payload.requestId);
         capabilityGate.finishGeneration(payload.requestId);
       }
     };
@@ -689,7 +801,6 @@ export function BrowserChatCapstone() {
     const handleRequest = (request: PreviewRequestMessage) => {
       void (async () => {
         if (request.method === "initialize") {
-          studentRef.current = loadLearnerState().artifacts.characterRnn ?? null;
           const saved = await loadCapstoneConversation();
           respond(request.requestId, {
             buildId: descriptor.buildId,
@@ -700,24 +811,6 @@ export function BrowserChatCapstone() {
             conversation: { version: 1, id: "active", messages: portableMessages(saved.messages) },
             runtime: buildRuntime as unknown as PreviewJson,
           });
-          return;
-        }
-        if (request.method === "train-student") {
-          const admission = capabilityGate.beginPreparation("train");
-          if (admission !== "accepted") return fail(request.requestId, admission, "Another model preparation or generation job is already active.");
-          const controller = new AbortController();
-          trainingController = controller;
-          try {
-            emit(request.requestId, "progress", { type: "progress", progress: 5, detail: "Starting training worker" });
-            const trained = await trainCharacterRnnInWorker(600, controller.signal);
-            saveCharacterRnnArtifact(trained);
-            studentRef.current = { checkpoint: trained.checkpoint, finalLoss: trained.finalLoss, parameters: trained.parameters, vocabularySize: trained.vocabularySize, trainedAt: Date.now(), origin: "javascript" };
-            emit(request.requestId, "progress", { type: "progress", progress: 100, detail: "Checkpoint ready" });
-            respond(request.requestId, { ready: true });
-          } finally {
-            if (trainingController === controller) trainingController = null;
-            capabilityGate.finishPreparation("train");
-          }
           return;
         }
         if (request.method === "load-local") {
@@ -750,7 +843,11 @@ export function BrowserChatCapstone() {
         if (request.method === "cancel") {
           const payload = request.payload && typeof request.payload === "object" && !Array.isArray(request.payload) ? request.payload as Record<string, PreviewJson> : null;
           if (typeof payload?.requestId === "string") {
-            generationRequests.get(payload.requestId)?.abort();
+            const resource = generationRequests.get(payload.requestId);
+            if (resource) {
+              resource.controller.abort();
+              await releaseGenerationResource(resource, true);
+            }
             localModelRef.current?.cancel(payload.requestId);
           }
           respond(request.requestId, null);
@@ -790,10 +887,8 @@ export function BrowserChatCapstone() {
       disposed = true;
       previewSession.dispose();
       sessionRef.current = null;
-      trainingController?.abort();
-      trainingController = null;
-      for (const controller of generationRequests.values()) controller.abort();
-      generationRequests.clear();
+      const localModel = localModelRef.current;
+      void cancelActiveGenerationResources(generationRequests, (requestId) => localModel?.cancel(requestId));
       capabilityGate.reset();
     };
   }, [buildRuntime, bundle, conversationWriter, descriptor, reactRuntime, runRequested]);

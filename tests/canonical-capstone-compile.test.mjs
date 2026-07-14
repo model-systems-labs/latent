@@ -215,6 +215,10 @@ test("the host-owned mounted behavior contract passes canonical BrowserChat and 
   assert.equal(canonicalResult.passed, true, canonicalResult.detail);
   assert.equal(canonicalResult.path, template.CAPSTONE_COMPONENT_PATH);
   assert.match(canonicalResult.detail, /accessible chat surface/);
+  assert.match(canonicalResult.detail, /stream deltas batch behind animation-frame commits/);
+  assert.match(canonicalResult.detail, /live output announcements are bounded and rate-limited with immediate terminal state/);
+  assert.match(canonicalResult.detail, /regeneration makes the newest sibling active for subsequent context/);
+  assert.match(canonicalResult.detail, /cancellation flushes accepted deltas and clears pending render work/);
   assert.match(canonicalResult.detail, /cancellation rejects late stream output/);
   assert.match(canonicalResult.detail, /error is visible and terminal/);
 
@@ -231,9 +235,30 @@ test("the host-owned mounted behavior contract passes canonical BrowserChat and 
   assert.match(hiddenMetricsResult.detail, /restored backend and metrics visibility configuration/);
   assert.match(hiddenMetricsResult.detail, /runtime name and response prefix affect visible streamed output/);
   assert.match(hiddenMetricsResult.detail, /backend preparation never exposes a false Stop action/);
+  assert.match(hiddenMetricsResult.detail, /mobile model controls begin as a compact, focusable disclosure/);
   assert.match(hiddenMetricsResult.detail, /mobile inference controls remain available as a compact disclosure/);
   assert.match(hiddenMetricsResult.detail, /mobile persistence recovery is keyboard-focusable/);
   assert.match(hiddenMetricsResult.detail, /mobile persistence status and Clear action remain visible/);
+
+  const retryIdentityResult = await runBehavior(canonical, {
+    selectedBackend: "student",
+    assistantName: "Retry Tutor",
+    responsePrefix: "retry-prefix: ",
+    showMetrics: true,
+    transientRetry: true,
+  });
+  assert.equal(retryIdentityResult.passed, true, retryIdentityResult.detail);
+  assert.match(retryIdentityResult.detail, /transient retry preserves logical request identity while rotating attempt and transport ids/);
+
+  const invalidRestoreResult = await runBehavior(canonical, {
+    selectedBackend: "student",
+    assistantName: "Recovery Tutor",
+    responsePrefix: "recovery-prefix: ",
+    showMetrics: true,
+    invalidConversation: true,
+  });
+  assert.equal(invalidRestoreResult.passed, true, invalidRestoreResult.detail);
+  assert.match(invalidRestoreResult.detail, /invalid restored conversation suspends persistence until explicit discard/);
 
   const blankComponent = `export function BrowserChat() { return null; }`;
   const blank = await compileCanonical(
@@ -243,7 +268,7 @@ test("the host-owned mounted behavior contract passes canonical BrowserChat and 
   assert.equal(blank.diagnostics.filter((diagnostic) => diagnostic.severity === "error").length, 0, "the adversary must remain compile-valid");
   const blankResult = await runBehavior(blank);
   assert.equal(blankResult.passed, false, "a compile-valid null component must not mint the behavior receipt");
-  assert.match(blankResult.detail, /accessible (?:visible )?polite conversation log|accessible chat surface/i);
+  assert.match(blankResult.detail, /accessible (?:visible )?conversation log|accessible chat surface/i);
 });
 
 test("the isolated preflight rejects a synchronous render loop without freezing the host page", async () => {

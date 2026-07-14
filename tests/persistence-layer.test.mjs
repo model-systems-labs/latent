@@ -486,6 +486,93 @@ test("passing promotion is atomic, idempotent, and rejects a stale receipt", asy
   await dispose(db);
 });
 
+test("character-model promotion requires a local Python checkpoint for the exact source and keys builds by checkpoint", async () => {
+  const db = database();
+  await db.open();
+  let timestamp = 2_000;
+  const repositories = new persistence.PersistenceRepositories(db, { now: () => timestamp++ });
+  const project = await repositories.projects.create({ id: "source-bound-model", title: "Source-bound model", courseId: "llm-systems" });
+  const file = await repositories.projects.saveFile({
+    projectId: project.id,
+    path: "models/character-rnn.py",
+    track: "models",
+    title: "Character RNN",
+    content: "def train():\n    return 'checkpoint'\n",
+  });
+  const current = await repositories.projects.get(project.id);
+  const sourceTreeHash = await persistence.hashText("source-bound-model-tree");
+  const run = await repositories.assessments.start({
+    projectId: project.id,
+    projectRevision: current.draftRevision,
+    sourceTreeHash,
+    contractVersion: "contracts-v1",
+    runnerVersion: "runner-v1",
+  });
+  const bundle = "export const model = 'source-bound';";
+  const receipt = await repositories.assessments.finish(
+    run.id,
+    [{ contractId: "character-rnn", path: file.path, label: "Character RNN", passed: true, detail: "Passed", durationMs: 1 }],
+    { runtime: await persistence.hashText(bundle) },
+  );
+  const input = {
+    projectId: project.id,
+    projectRevision: current.draftRevision,
+    sourceTreeHash,
+    contractVersion: "contracts-v1",
+    testReceiptId: receipt.id,
+    fileHashes: { [file.path]: file.sourceHash },
+    bundles: { runtime: bundle },
+    runtimeConfig: { temperature: 0.8 },
+    bindings: { model: { modulePath: "runtime", exportName: "model" } },
+  };
+  const payload = {
+    version: 1,
+    vocabulary: ["a"],
+    hiddenSize: 1,
+    Wxh: [[1]],
+    Whh: [[1]],
+    Why: [[1]],
+    bh: [0],
+    by: [0],
+  };
+  const checkpoint = (overrides = {}) => repositories.checkpoints.add({
+    projectId: project.id,
+    buildId: null,
+    kind: "character-rnn",
+    formatVersion: 1,
+    payload,
+    metrics: { finalLoss: 1, parameters: 5, vocabularySize: 1 },
+    origin: "python",
+    sourcePath: file.path,
+    sourceHash: file.sourceHash,
+    ...overrides,
+  });
+
+  await assert.rejects(repositories.builds.promotePassing(input), /test and train/i);
+  const javascriptCheckpoint = await checkpoint({ origin: "javascript" });
+  await assert.rejects(repositories.builds.promotePassing({ ...input, checkpointId: javascriptCheckpoint.id }), /Python character-RNN checkpoint/i);
+  const staleCheckpoint = await checkpoint({ sourceHash: await persistence.hashText("older source") });
+  await assert.rejects(repositories.builds.promotePassing({ ...input, checkpointId: staleCheckpoint.id }), /different source/i);
+  const importedCheckpoint = await checkpoint({ importedFrom: "portable-snapshot" });
+  await assert.rejects(repositories.builds.promotePassing({ ...input, checkpointId: importedCheckpoint.id }), /Imported checkpoints/i);
+
+  const firstCheckpoint = await checkpoint();
+  const first = await repositories.builds.promotePassing({ ...input, checkpointId: firstCheckpoint.id });
+  const repeated = await repositories.builds.promotePassing({ ...input, checkpointId: firstCheckpoint.id });
+  assert.equal(repeated.id, first.id, "the same source and checkpoint remain idempotent");
+  assert.equal(first.checkpointId, firstCheckpoint.id);
+  assert.equal(first.promotionKey, persistence.promotionKey(project.id, sourceTreeHash, "contracts-v1", firstCheckpoint.id));
+
+  const secondCheckpoint = await checkpoint();
+  const second = await repositories.builds.promotePassing({ ...input, checkpointId: secondCheckpoint.id });
+  assert.notEqual(second.id, first.id, "a new checkpoint receives a new immutable build");
+  assert.notEqual(second.promotionKey, first.promotionKey);
+  assert.equal(second.buildNumber, first.buildNumber + 1);
+  assert.equal(second.checkpointId, secondCheckpoint.id);
+  assert.equal(await db.builds.count(), 2);
+  await dispose(db);
+});
+
 test("portable validation rejects crafted build lineage and cross-project active ids", async () => {
   const source = await validatedPersistenceFixture("portable-adversarial");
   const snapshot = await persistence.exportPersistenceSnapshot(source.db);
@@ -704,6 +791,8 @@ test("merge import cannot replace existing local build authority", async () => {
   assert.deepEqual(await local.repositories.settings.get("project.output"), localOutput);
   assert.equal(await local.db.builds.count(), 1);
   assert.equal(await local.db.testReceipts.count(), 1);
+  assert.equal((await local.db.checkpoints.get(external.checkpoint.id)).importedFrom, "portable-snapshot");
+  assert.equal((await local.db.checkpoints.get(localCheckpoint.id)).importedFrom, undefined, "self-import does not downgrade existing local authority");
   await dispose(local.db);
   await dispose(external.db);
 });

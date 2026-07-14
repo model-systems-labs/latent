@@ -156,6 +156,25 @@ test("model capabilities are single-flight and reject duplicate generation ids",
   assert.equal(gate.beginPreparation("train"), "accepted");
 });
 
+test("resetting the preview during local-model prefill cancels the worker request", async () => {
+  const controller = new AbortController();
+  const requests = new Map([
+    ["local-prefill:1", {
+      controller,
+      reader: null,
+      decoder: null,
+      frameRemainder: "",
+    }],
+  ]);
+  const cancelled = [];
+
+  await capstone.cancelActiveGenerationResources(requests, (requestId) => cancelled.push(requestId));
+
+  assert.equal(controller.signal.aborted, true);
+  assert.deepEqual(cancelled, ["local-prefill:1"]);
+  assert.equal(requests.size, 0);
+});
+
 test("session construction rejects an unverified bundle before touching an iframe", async () => {
   const input = await validBundle();
   assert.throws(

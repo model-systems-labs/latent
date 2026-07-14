@@ -6,7 +6,6 @@ import type {
 } from "@latent/browser-lab";
 
 export type CapstoneRuntimeConsumer =
-  | "local-model-sampling"
   | "mock-stream-producer"
   | "stream-consumer"
   | "generation-recovery"
@@ -46,10 +45,13 @@ export const LLM_LESSON_SOURCES: readonly LlmLessonSourceDefinition[] =
   Object.freeze(lessonSources);
 
 /**
- * These are real JavaScript integration seams for the capstone. CPython lesson
- * code is tested independently and enters the build as source-bound learning
- * evidence; course-provided adapters bridge the corresponding behavior into
- * the React program and isolated browser runtime.
+ * These are real JavaScript integration seams for the capstone. Learner
+ * CPython and each matching course-provided adapter are checked against the
+ * same host-owned behavioral cases. The exact passing Python bytes remain in
+ * the promoted source identity; the trained character-RNN also crosses the
+ * boundary as the checkpoint used by the student-model backend. Only adapters
+ * enumerated here are claimed as runtime capabilities; the remaining read-only
+ * adapters stay explicit, contract-tested instructional implementations.
  */
 export const LLM_RUNTIME_CAPABILITIES: readonly LlmRuntimeCapabilityDefinition[] =
   Object.freeze([
@@ -63,19 +65,7 @@ export const LLM_RUNTIME_CAPABILITIES: readonly LlmRuntimeCapabilityDefinition[]
       requirement: "core",
       consumer: "compiled-chat-ui",
       summary:
-        "Mounts the validated React capstone inside an opaque-origin sandboxed preview frame; its JavaScript imports resolve through course-provided adapters while CPython lessons remain independently tested.",
-    },
-    {
-      bindingId: "model-softmax",
-      capability: "model.softmax",
-      modulePath: BROWSER_CHAT_ADAPTER_PATHS.modelSoftmax,
-      exportName: "stableSoftmax",
-      kind: "function",
-      required: false,
-      requirement: "adapter",
-      consumer: "local-model-sampling",
-      summary:
-        "A course-provided JavaScript adapter normalizes logits for isolated browser sampling; the neural-language-model CPython implementation is tested independently.",
+        "Mounts the validated React capstone inside an opaque-origin sandboxed preview frame; its JavaScript imports resolve through course-provided adapters checked against the same contracts as the source-bound CPython lessons.",
     },
     {
       bindingId: "transport-encode-sse",
@@ -87,7 +77,7 @@ export const LLM_RUNTIME_CAPABILITIES: readonly LlmRuntimeCapabilityDefinition[]
       requirement: "adapter",
       consumer: "mock-stream-producer",
       summary:
-        "A course-provided JavaScript adapter frames typed generation events for React; the streaming-transport CPython implementation is tested independently.",
+        "A course-provided JavaScript adapter frames typed generation events for React and must pass every matching behavioral case used for the streaming-transport CPython implementation.",
     },
     {
       bindingId: "transport-parse-sse",
@@ -99,7 +89,7 @@ export const LLM_RUNTIME_CAPABILITIES: readonly LlmRuntimeCapabilityDefinition[]
       requirement: "core",
       consumer: "stream-consumer",
       summary:
-        "A course-provided JavaScript adapter incrementally turns SSE text into typed React events; the matching CPython parser is tested independently.",
+        "A course-provided JavaScript adapter incrementally turns SSE text into typed React events and must pass every matching behavioral case used for the CPython parser.",
     },
     {
       bindingId: "serving-retry-policy",
@@ -111,7 +101,7 @@ export const LLM_RUNTIME_CAPABILITIES: readonly LlmRuntimeCapabilityDefinition[]
       requirement: "core",
       consumer: "generation-recovery",
       summary:
-        "A course-provided JavaScript adapter applies retry guards inside the React runtime; the reliability CPython implementation is tested independently.",
+        "A course-provided JavaScript adapter applies retry guards inside the React runtime and must pass every matching behavioral case used for the reliability CPython implementation.",
     },
     {
       bindingId: "chat-context-selection",
@@ -123,7 +113,7 @@ export const LLM_RUNTIME_CAPABILITIES: readonly LlmRuntimeCapabilityDefinition[]
       requirement: "core",
       consumer: "prompt-context",
       summary:
-        "A course-provided JavaScript adapter selects React's bounded prompt context; the actions-and-context CPython implementation is tested independently.",
+        "A course-provided JavaScript adapter selects React's bounded prompt context and must pass every matching behavioral case used for the actions-and-context CPython implementation.",
     },
     {
       bindingId: "chat-generation-status",
@@ -135,7 +125,7 @@ export const LLM_RUNTIME_CAPABILITIES: readonly LlmRuntimeCapabilityDefinition[]
       requirement: "adapter",
       consumer: "generation-presentation",
       summary:
-        "A course-provided JavaScript adapter maps runtime phases to accessible React status text; the product-quality CPython implementation is tested independently.",
+        "A course-provided JavaScript adapter maps runtime phases to accessible React status text and must pass every matching behavioral case used for the product-quality CPython implementation.",
     },
   ] satisfies readonly LlmRuntimeCapabilityDefinition[]);
 

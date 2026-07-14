@@ -745,6 +745,15 @@
 .lesson-change-record dd.complete { color: #4b6a53; }
 .lesson-change-record dd.pending { color: var(--muted); }
 
+.project-source-note {
+  border-top: 1px solid var(--line);
+  color: var(--faint);
+  font-size: max(0.68rem, 11px);
+  line-height: 1.55;
+  margin: 0 0 1rem;
+  padding-top: 1rem;
+}
+
 .lesson-change-record footer {
   display: flex;
   gap: 0.65rem;

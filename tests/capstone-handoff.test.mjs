@@ -325,6 +325,44 @@ test("a host runtime outage preserves the passing build and offers a retry rathe
   assert.match(recovery.summary, /build is still protected/);
 });
 
+test("generation admission verifies the React-authored request frame byte for byte", () => {
+  const messages = [
+    { role: "system", content: "Answer technically." },
+    { role: "user", content: "Explain softmax." },
+  ];
+  const requestFrame = capstone.canonicalGenerationRequestFrame(
+    "logical-1",
+    "attempt-1",
+    "transport-1",
+    "student",
+    messages,
+  );
+  const payload = {
+    logicalRequestId: "logical-1",
+    attemptId: "attempt-1",
+    requestId: "transport-1",
+    backend: "student",
+    messages,
+    requestFrame,
+    options: { temperature: 0.8, topK: 12, maxTokens: 80 },
+  };
+  assert.ok(capstone.generationPayload(payload));
+  assert.equal(capstone.generationPayload({ ...payload, requestFrame: requestFrame.replace("Explain softmax.", "Explain attention.") }), null);
+  assert.equal(capstone.generationPayload({ ...payload, messages: [...messages, { role: "assistant", content: "extra" }] }), null);
+});
+
+test("a missing source-bound Python checkpoint routes directly to the model training action", () => {
+  const progress = summarize(projectFixture({ complete: true }));
+  const recovery = capstone.capstoneRecoveryForFailure({
+    code: "MISSING_SOURCE_BOUND_CHECKPOINT",
+    message: "The active build has no exact Python checkpoint.",
+  }, progress);
+  assert.equal(recovery.path, "models/character-rnn.py");
+  assert.equal(recovery.actionPath, "models/character-rnn.py");
+  assert.equal(recovery.href, "/workspace?file=models%2Fcharacter-rnn.py");
+  assert.match(recovery.why, /Imported, JavaScript-trained, older-source/);
+});
+
 test("the learner-facing component no longer emits the old dead-end or raw capability failure", async () => {
   const [source, styles] = await Promise.all([
     readFile(new URL("../app/components/BrowserChatCapstone.tsx", import.meta.url), "utf8"),

@@ -6,11 +6,17 @@ import {
   saveCharacterRnnArtifact,
   type SavedRnnArtifact,
 } from "../../lib/learner-state";
+import { hashText } from "../../platform/persistence/hash";
 import {
   PYTHON_CHARACTER_RNN_PATH,
 } from "./character-rnn-source";
+import {
+  characterRnnTrustedTrainingSource,
+  PYTHON_CHARACTER_RNN_TRAINER_PATH,
+} from "../../lessons/model/character-rnn-training";
 
 export { PYTHON_CHARACTER_RNN_PATH } from "./character-rnn-source";
+export { PYTHON_CHARACTER_RNN_TRAINER_PATH } from "../../lessons/model/character-rnn-training";
 
 export const PYTHON_CHARACTER_RNN_ARTIFACT_PATH = "artifacts/character-rnn.json" as const;
 
@@ -52,7 +58,8 @@ export const PYTHON_CHARACTER_RNN_TESTS = [
     id: "rnn-step",
     label: TEST_LABELS["rnn-step"],
     code: `import math, runpy
-module = runpy.run_path("models/character-rnn.py", run_name="latent_hidden_test")
+import numpy as np
+module = runpy.run_path(${JSON.stringify(PYTHON_CHARACTER_RNN_PATH)}, run_name="latent_hidden_test")
 step = module["rnn_step"]
 identity = {"Wxh": [[1, 0], [0, 1]], "Whh": [[0, 0], [0, 0]], "bias": [0, 0]}
 state = list(step([1, 0], [0, 0], identity))
@@ -61,13 +68,19 @@ assert 0.76 < float(state[0]) < 0.77 and abs(float(state[1])) < 1e-12, "Apply ta
 memory = list(step([0, 0], [1, -1], {"Wxh": [[0, 0], [0, 0]], "Whh": [[1, 0], [0, 1]], "bias": [0, 0]}))
 assert 0.76 < float(memory[0]) < 0.77 and -0.77 < float(memory[1]) < -0.76, "The preceding hidden state must affect both units."
 bias = list(step([0, 0], [0, 0], {"Wxh": [[0, 0], [0, 0]], "Whh": [[0, 0], [0, 0]], "bias": [0.5, -0.25]}))
-assert abs(float(bias[0]) - math.tanh(0.5)) < 1e-9 and abs(float(bias[1]) - math.tanh(-0.25)) < 1e-9, "Add the bias before tanh."`,
+assert abs(float(bias[0]) - math.tanh(0.5)) < 1e-9 and abs(float(bias[1]) - math.tanh(-0.25)) < 1e-9, "Add the bias before tanh."
+mixed = np.asarray(step([1, 0], [0.5, -1], {
+    "Wxh": [[0, 1], [2, 0]],
+    "Whh": [[1, -1], [0.5, 0.5]],
+    "bias": [0.25, -0.25],
+}), dtype=float)
+assert mixed.shape == (2,) and np.allclose(mixed, np.tanh([1.75, 1.5]), rtol=0, atol=1e-9), "Use every matrix column in both projections before tanh."`,
   },
   {
     id: "cross-entropy",
     label: TEST_LABELS["cross-entropy"],
     code: `import math, runpy
-module = runpy.run_path("models/character-rnn.py", run_name="latent_hidden_test")
+module = runpy.run_path(${JSON.stringify(PYTHON_CHARACTER_RNN_PATH)}, run_name="latent_hidden_test")
 loss = module["cross_entropy"]
 likely = float(loss([0.1, 0.8, 0.1], 1))
 unlikely = float(loss([0.8, 0.1, 0.1], 1))
@@ -80,19 +93,20 @@ assert math.isfinite(zero), "Clamp zero probability before taking log."`,
     id: "clip-gradients",
     label: TEST_LABELS["clip-gradients"],
     code: `import runpy
-module = runpy.run_path("models/character-rnn.py", run_name="latent_hidden_test")
+import numpy as np
+module = runpy.run_path(${JSON.stringify(PYTHON_CHARACTER_RNN_PATH)}, run_name="latent_hidden_test")
 clip = module["clip_gradients"]
 vector = [float(value) for value in clip([-12, -2, 0, 3, 20], 5)]
 assert vector == [-5.0, -2.0, 0.0, 3.0, 5.0], "Clip both tails and preserve values inside the limit."
-matrix = clip([[-9, 2], [4, 11]], 4)
-assert getattr(matrix, "shape", None) == (2, 2), "Preserve the gradient tensor shape."
+matrix = np.asarray(clip([[-9, 2], [4, 11]], 4), dtype=float)
+assert matrix.shape == (2, 2), "Preserve the gradient tensor shape."
 assert matrix.tolist() == [[-4.0, 2.0], [4.0, 4.0]], "Apply the bound elementwise."`,
   },
   {
     id: "artifact-schema",
     label: TEST_LABELS["artifact-schema"],
     code: `import math, runpy
-module = runpy.run_path("models/character-rnn.py", run_name="latent_hidden_test")
+module = runpy.run_path(${JSON.stringify(PYTHON_CHARACTER_RNN_TRAINER_PATH)}, run_name="latent_trusted_training_test")
 artifact = module["train_character_rnn"](4)
 repeat = module["train_character_rnn"](4)
 assert set(artifact) == {"checkpoint", "finalLoss", "parameters", "vocabularySize"}, "Return only the portable artifact fields."
@@ -239,10 +253,17 @@ export async function runPythonCharacterRnnArtifact(
       { signal: input.signal, timeoutMs: 120_000, onEvent },
     );
   }
-  await input.pythonLab.sync(
-    { files: [{ path: PYTHON_CHARACTER_RNN_PATH, contents: input.source }] },
+  const synchronized = await input.pythonLab.sync(
+    { files: [
+      { path: PYTHON_CHARACTER_RNN_PATH, contents: input.source },
+      { path: PYTHON_CHARACTER_RNN_TRAINER_PATH, contents: characterRnnTrustedTrainingSource },
+    ] },
     { signal: input.signal, timeoutMs: 15_000, onEvent },
   );
+  if (!synchronized.files.includes(PYTHON_CHARACTER_RNN_PATH)
+    || !synchronized.files.includes(PYTHON_CHARACTER_RNN_TRAINER_PATH)) {
+    throw new TypeError("Python training did not synchronize both the learner source and trusted harness.");
+  }
   const suite = await input.pythonLab.runTests(
     { tests: [...PYTHON_CHARACTER_RNN_TESTS] },
     { signal: input.signal, timeoutMs: 60_000, onEvent },
@@ -250,9 +271,25 @@ export async function runPythonCharacterRnnArtifact(
   let tests = normalizeTests(suite);
   if (tests.some((test) => !test.passed)) return { passed: false, tests, stdout: output.join("") };
 
+  // Learner code is intentionally allowed to use the worker filesystem. A
+  // hidden test therefore cannot leave the host-owned entrypoint authoritative:
+  // the learner may have overwritten that path while the test interpreter was
+  // executing. Restore the exact host bytes after every learner-controlled
+  // execution and remove any stale artifact before the authoritative run.
+  const restored = await input.pythonLab.sync(
+    {
+      files: [{ path: PYTHON_CHARACTER_RNN_TRAINER_PATH, contents: characterRnnTrustedTrainingSource }],
+      deletePaths: [PYTHON_CHARACTER_RNN_ARTIFACT_PATH],
+    },
+    { signal: input.signal, timeoutMs: 15_000, onEvent },
+  );
+  if (!restored.files.includes(PYTHON_CHARACTER_RNN_TRAINER_PATH)) {
+    throw new TypeError("Python training could not restore the trusted harness after learner tests.");
+  }
+
   const run = await input.pythonLab.run(
     {
-      entryPath: PYTHON_CHARACTER_RNN_PATH,
+      entryPath: PYTHON_CHARACTER_RNN_TRAINER_PATH,
       resultVariable: "RESULT",
       artifactPaths: [PYTHON_CHARACTER_RNN_ARTIFACT_PATH],
     },
@@ -297,6 +334,10 @@ export async function savePythonCharacterRnnArtifact(
 ): Promise<PythonCharacterRnnRun> {
   const result = await runPythonCharacterRnnArtifact(input);
   if (!result.passed || !result.artifact) return result;
-  saveCharacterRnnArtifact(result.artifact, "python", result.artifact.trainedAt);
+  const sourceHash = await hashText(input.source);
+  saveCharacterRnnArtifact(result.artifact, "python", result.artifact.trainedAt, {
+    sourcePath: PYTHON_CHARACTER_RNN_PATH,
+    sourceHash,
+  });
   return result;
 }

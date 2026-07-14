@@ -105,14 +105,32 @@ test("the mobile IDE source contract preserves readable type, bounded scrolling,
 
 test("the mobile code view is a bounded viewport instead of growing to the full source height", async () => {
   const responsiveCss = await readFile(responsiveCssUrl, "utf8");
+  const shell = cssRule(responsiveCss, ".ide-shell");
+  assert.match(shell, /grid-template-rows:\s*auto minmax\(0,\s*1fr\)/);
+  assert.match(shell, /height:\s*100dvh/);
+  assert.match(shell, /min-height:\s*0/);
+  assert.match(shell, /overflow:\s*hidden/);
+
+  const workbench = cssRule(responsiveCss, ".ide-shell .project-workbench");
+  assert.match(workbench, /grid-template-rows:\s*auto auto minmax\(0,\s*1fr\)/);
+  assert.match(workbench, /height:\s*100%/);
+  assert.match(workbench, /min-height:\s*0/);
+  assert.match(workbench, /overflow:\s*hidden/);
+
+  const grid = cssRule(responsiveCss, ".ide-shell .project-workbench-grid");
+  assert.match(grid, /height:\s*100%/);
+  assert.match(grid, /min-height:\s*0/);
+  assert.match(grid, /overflow:\s*hidden/);
+
   const panel = cssRule(
     responsiveCss,
     '.project-workbench-grid[data-mobile-view="code"] > .project-editor-panel',
   );
   assert.match(panel, /grid-template-rows:\s*auto minmax\(0,\s*1fr\) auto/);
-  assert.match(panel, /height:\s*calc\(100dvh - 11rem\)/);
-  assert.match(panel, /max-height:\s*calc\(100dvh - 11rem\)/);
+  assert.match(panel, /height:\s*100%/);
+  assert.match(panel, /max-height:\s*100%/);
   assert.match(panel, /min-height:\s*0/);
+  assert.doesNotMatch(panel, /calc\(100dvh/);
 
   const host = cssRule(
     responsiveCss,
@@ -140,6 +158,86 @@ test("the mobile code view is a bounded viewport instead of growing to the full 
   assert.match(scroller, /overflow-y:\s*auto/);
   assert.match(scroller, /overscroll-behavior-x:\s*contain/);
   assert.match(scroller, /overscroll-behavior-y:\s*auto/);
+});
+
+test("the desktop IDE keeps its three panes inside one workspace viewport", async () => {
+  const capstoneCss = await readFile(capstoneCssUrl, "utf8");
+  const desktopBlock = capstoneCss.match(/@media \(min-width: 941px\) \{([\s\S]*)\n\}\n\n\.project-workbench/)?.[1];
+  assert.ok(desktopBlock, "the desktop IDE must own an explicit wide-screen viewport contract");
+
+  const shell = cssRule(desktopBlock, ".ide-shell");
+  assert.match(shell, /grid-template-rows:\s*auto minmax\(0,\s*1fr\)/);
+  assert.match(shell, /height:\s*100dvh/);
+  assert.match(shell, /overflow:\s*hidden/);
+
+  const workbench = cssRule(desktopBlock, ".ide-shell .project-workbench");
+  assert.match(workbench, /grid-template-rows:\s*auto minmax\(0,\s*1fr\)/);
+  assert.match(workbench, /min-height:\s*0/);
+
+  const tree = cssRule(desktopBlock, ".ide-shell .project-tree");
+  assert.match(tree, /max-height:\s*none/);
+  assert.match(tree, /overflow-y:\s*auto/);
+
+  const editor = cssRule(desktopBlock, ".ide-shell .project-editor-panel");
+  assert.match(editor, /grid-template-rows:\s*auto minmax\(0,\s*1fr\) auto/);
+  assert.match(editor, /overflow:\s*hidden/);
+
+  const scroller = cssRule(desktopBlock, ".ide-shell .project-editor-panel .code-editor .cm-scroller");
+  assert.match(scroller, /height:\s*100%/);
+  assert.match(scroller, /overflow:\s*auto/);
+
+  const inspector = cssRule(desktopBlock, ".ide-shell .project-inspector");
+  assert.match(inspector, /overflow-y:\s*auto/);
+});
+
+test("the mobile project header fits its actions without shrinking touch targets", async () => {
+  const responsiveCss = await readFile(responsiveCssUrl, "utf8");
+  const actions = cssRule(responsiveCss, ".project-header-actions");
+  assert.match(actions, /display:\s*grid/);
+  assert.match(actions, /grid-template-columns:\s*minmax\(0,\s*1fr\)/);
+
+  const actionGroup = cssRule(responsiveCss, ".project-header-actions > div:last-child");
+  assert.match(actionGroup, /grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+
+  const button = cssRule(responsiveCss, ".project-header-actions button");
+  assert.match(button, /min-height:\s*2\.75rem/);
+  assert.match(button, /min-width:\s*0/);
+  assert.match(button, /width:\s*100%/);
+});
+
+test("the mobile editor status yields space to the selected file name", async () => {
+  const [source, responsiveCss] = await Promise.all([
+    readFile(projectWorkbenchUrl, "utf8"),
+    readFile(responsiveCssUrl, "utf8"),
+  ]);
+  assert.match(source, /<i className=\{dirty \? "dirty" : "saved"\} \/><span>\{selected\?\.readOnly/);
+
+  const status = cssRule(
+    responsiveCss,
+    '.project-workbench-grid[data-mobile-view="code"] .project-editor-panel > header > div:last-child',
+  );
+  assert.match(status, /grid-template-columns:\s*auto minmax\(0,\s*1fr\)/);
+  assert.match(status, /min-width:\s*0/);
+
+  const statusText = cssRule(
+    responsiveCss,
+    '.project-workbench-grid[data-mobile-view="code"] .project-editor-panel > header > div:last-child > span',
+  );
+  assert.match(statusText, /overflow:\s*hidden/);
+  assert.match(statusText, /text-overflow:\s*ellipsis/);
+  assert.match(statusText, /white-space:\s*nowrap/);
+});
+
+test("lesson practice uses the available mobile viewport width", async () => {
+  const responsiveCss = await readFile(responsiveCssUrl, "utf8");
+  const practice = cssRule(responsiveCss, ".implementation-section .practice-editor");
+  assert.match(practice, /margin-left:\s*-0\.75rem/);
+  assert.match(practice, /max-width:\s*calc\(100% \+ 1\.5rem\)/);
+  assert.match(practice, /width:\s*calc\(100% \+ 1\.5rem\)/);
+
+  const surface = cssRule(responsiveCss, ".implementation-section .code-surface");
+  assert.match(surface, /padding-left:\s*0/);
+  assert.match(surface, /padding-right:\s*0/);
 });
 
 test("mobile IDE microcopy stays legible across files, code, tests, and output", async () => {

@@ -330,6 +330,27 @@ export type PromotePassingBuildInput = {
   checkpointId?: string | null;
 };
 
+const SOURCE_BOUND_CHARACTER_RNN_PATH = "models/character-rnn.py";
+
+function assertSourceBoundCharacterRnnCheckpoint(
+  checkpoint: CheckpointRecord | undefined,
+  projectId: string,
+  expectedSourceHash: string,
+) {
+  if (!checkpoint || checkpoint.projectId !== projectId) {
+    throw new PersistenceInvariantError("The Python checkpoint does not belong to this project.");
+  }
+  if (checkpoint.kind !== "character-rnn" || checkpoint.origin !== "python") {
+    throw new PersistenceInvariantError("Build the model from a host-verified Python character-RNN checkpoint.");
+  }
+  if (checkpoint.importedFrom !== undefined) {
+    throw new PersistenceInvariantError("Imported checkpoints restore progress but cannot authorize a build. Test and train this Python file on this device.");
+  }
+  if (checkpoint.sourcePath !== SOURCE_BOUND_CHARACTER_RNN_PATH || checkpoint.sourceHash !== expectedSourceHash) {
+    throw new PersistenceInvariantError("The Python checkpoint was trained from different source. Test and train the current models/character-rnn.py file, then build again.");
+  }
+}
+
 export function assertPromotionEligibility(project: ProjectRecord, receipt: TestReceiptRecord, input: PromotePassingBuildInput) {
   if (!receipt.passed) throw new PersistenceInvariantError("Only a passing test receipt can be promoted.");
   if (receipt.origin !== "host") throw new PersistenceInvariantError("Legacy receipts cannot authorize a new validated build.");
@@ -376,7 +397,11 @@ export class BuildRepository extends RepositoryBase {
     await assertBundleIntegrity(input.bundles, input.bundleHashes);
     const bundleHashes = await hashBundleContents(input.bundles);
     const verifiedInput = { ...input, bundleHashes };
-    const key = promotionKey(input.projectId, input.sourceTreeHash, input.contractVersion);
+    const characterRnnSourceHash = input.fileHashes[SOURCE_BOUND_CHARACTER_RNN_PATH];
+    if (characterRnnSourceHash && !input.checkpointId) {
+      throw new PersistenceInvariantError("Build blocked: test and train models/character-rnn.py after the latest edit, then build again.");
+    }
+    const key = promotionKey(input.projectId, input.sourceTreeHash, input.contractVersion, input.checkpointId ?? null);
     // Web Crypto promises must settle before entering the Dexie transaction;
     // otherwise IndexedDB may auto-commit while integrity verification waits.
     const existingBeforeTransaction = await this.database.builds.where("promotionKey").equals(key).first();
@@ -384,15 +409,21 @@ export class BuildRepository extends RepositoryBase {
       await assertBundleIntegrity(existingBeforeTransaction.bundles, existingBeforeTransaction.bundleHashes);
     }
     return this.database.transaction("rw", this.database.projects, this.database.testRuns, this.database.testReceipts, this.database.checkpoints, this.database.builds, async () => {
-      const [project, receipt, existing] = await Promise.all([
+      const [project, receipt, existing, checkpoint] = await Promise.all([
         this.database.projects.get(input.projectId),
         this.database.testReceipts.get(input.testReceiptId),
         this.database.builds.where("promotionKey").equals(key).first(),
+        input.checkpointId ? this.database.checkpoints.get(input.checkpointId) : Promise.resolve(undefined),
       ]);
       if (!project) throw new PersistenceInvariantError(`Project ${input.projectId} does not exist.`);
       if (!receipt) throw new PersistenceInvariantError(`Test receipt ${input.testReceiptId} does not exist.`);
       const run = await this.database.testRuns.get(receipt.runId);
       assertPromotionEligibility(project, receipt, verifiedInput);
+      if (characterRnnSourceHash) {
+        assertSourceBoundCharacterRnnCheckpoint(checkpoint, project.id, characterRnnSourceHash);
+      } else if (input.checkpointId && (!checkpoint || checkpoint.projectId !== project.id)) {
+        throw new PersistenceInvariantError("The build checkpoint does not belong to this project.");
+      }
 
       if (existing) {
         const existingReceipt = existing.testReceiptId === receipt.id
@@ -408,10 +439,6 @@ export class BuildRepository extends RepositoryBase {
         const certified = this.certify(existing, existingReceipt, existingRun);
         await this.database.projects.update(project.id, { activeBuildId: existing.id, updatedAt: this.now() });
         return certified;
-      }
-      if (input.checkpointId) {
-        const checkpoint = await this.database.checkpoints.get(input.checkpointId);
-        if (!checkpoint || checkpoint.projectId !== project.id) throw new PersistenceInvariantError("The build checkpoint does not belong to this project.");
       }
       const latest = await this.database.builds
         .where("[projectId+buildNumber]")

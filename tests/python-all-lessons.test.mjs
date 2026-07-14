@@ -189,6 +189,89 @@ test("wrong answers, syntax errors, missing callables, thrown exceptions, and wo
   assert.match(timeoutRun.results[0].detail, /exceeded.*limit.*restarted/i);
 });
 
+test("lessons 7-10 reject two plausible wrong Python implementations per block with targeted feedback", async () => {
+  const systemLessonIds = new Set([
+    "inference-runtime",
+    "streaming-transport",
+    "scheduling-memory",
+    "reliability-observability",
+  ]);
+  const entries = new Map(curriculum.lessons
+    .filter(({ lesson }) => systemLessonIds.has(lesson.id))
+    .map((entry) => [entry.lesson.id, entry]));
+  const exercise = (lessonId, blockId) => {
+    const entry = entries.get(lessonId);
+    assert.ok(entry, lessonId);
+    const block = entry.lesson.implementation.codeBlocks.find((candidate) => candidate.id === blockId);
+    const contract = contracts.contracts.find((candidate) => candidate.id === `${lessonId}/${blockId}`);
+    assert.ok(block, `${lessonId}/${blockId} block`);
+    assert.ok(contract, `${lessonId}/${blockId} contract`);
+    return { entry, block, contract };
+  };
+  const replace = (source, search, replacement) => {
+    assert.match(source, new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+    return source.replace(search, replacement);
+  };
+
+  const phases = exercise("inference-runtime", "inference-phases");
+  const cache = exercise("inference-runtime", "kv-bytes");
+  const encoder = exercise("streaming-transport", "encode-sse");
+  const parser = exercise("streaming-transport", "parse-sse");
+  const allocation = exercise("scheduling-memory", "page-allocation");
+  const iteration = exercise("scheduling-memory", "batch-step");
+  const retry = exercise("reliability-observability", "retry-policy");
+  const guard = exercise("reliability-observability", "terminal-guard");
+
+  const attempts = [
+    [phases, "counts every generated token as a decode forward", replace(phases.block.code, "decode_forwards = max(0, generated_tokens - 1)", "decode_forwards = generated_tokens"), /31 subsequent decode forwards because prefill logits sample token 1/],
+    [phases, "does not clamp the zero-token decode count", replace(phases.block.code, "decode_forwards = max(0, generated_tokens - 1)", "decode_forwards = generated_tokens - 1"), /Clamp maxNewTokens - 1/],
+    [cache, "stores only keys", replace(cache.block.code, "return 2 * layers * kv_heads * tokens * head_dimension * bytes_per_value", "return layers * kv_heads * tokens * head_dimension * bytes_per_value"), /Multiply by 2 because every cached position stores both key and value/],
+    [cache, "omits the layer factor", replace(cache.block.code, "return 2 * layers * kv_heads * tokens * head_dimension * bytes_per_value", "return 2 * kv_heads * tokens * head_dimension * bytes_per_value"), /all 3 layers/],
+    [encoder, "omits the terminating blank line", `import json
+
+def encode_sse(event, data):
+    if not isinstance(event, str) or not event or "\\r" in event or "\\n" in event:
+        raise ValueError("event name must be non-empty and contain no CR or LF")
+    return f"event: {event}\\ndata: {json.dumps(data, separators=(',', ':'), ensure_ascii=False)}\\n"`, /Terminate the frame with a final blank line/],
+    [encoder, "hard-codes the token event type", `import json
+
+def encode_sse(event, data):
+    if not isinstance(event, str) or not event or "\\r" in event or "\\n" in event:
+        raise ValueError("event name must be non-empty and contain no CR or LF")
+    return f"event: token\\ndata: {json.dumps(data, separators=(',', ':'), ensure_ascii=False)}\\n\\n"`, /Use the event argument for every event type/],
+    [parser, "ignores the previous text remainder", replace(parser.block.code, "combined = buffer + chunk", "combined = chunk"), /Prepend the previous remainder/],
+    [parser, "emits only the first complete frame", replace(parser.block.code, 'return {"events": events, "remainder": remainder}', 'return {"events": events[:1], "remainder": remainder}'), /Process all complete frames in order/],
+    [allocation, "uses floor division", replace(allocation.block.code, "pages = (tokens + page_size - 1) // page_size", "pages = tokens // page_size"), /Use ceiling division/],
+    [allocation, "always allocates one extra page", replace(allocation.block.code, "pages = (tokens + page_size - 1) // page_size", "pages = tokens // page_size + 1"), /do not add a page unconditionally/],
+    [iteration, "returns only surviving active work", `def decode_iteration(active_requests):
+    return [
+        {**request, "remaining": request["remaining"] - 1, "generated": request["generated"] + 1}
+        for request in active_requests
+        if request["remaining"] > 1
+    ]`, /separate active and completed arrays/],
+    [iteration, "advances only the first request", replace(iteration.block.code, "for request in active_requests:", "for request in active_requests[:1]:"), /Advance every request/],
+    [retry, "ignores visible output", replace(retry.block.code, "return transient and tokens_emitted == 0 and attempt + 1 < max_attempts", "return transient and attempt + 1 < max_attempts"), /Return false once tokensEmitted is greater than zero/],
+    [retry, "uses an off-by-one attempt budget", replace(retry.block.code, "attempt + 1 < max_attempts", "attempt < max_attempts"), /attempt 1 is already the second and final attempt/],
+    [guard, "checks status without attempt identity", `def accept_event(request, event):
+    return request["status"] in {"queued", "loading", "prefill", "streaming"}`, /Compare request\.attemptId with event\.attemptId/],
+    [guard, "checks identity without terminal status", `def accept_event(request, event):
+    return request["attemptId"] == event["attemptId"] and request["requestId"] == event["requestId"]`, /Return false after complete/],
+  ];
+
+  assert.equal(attempts.length, 16);
+  for (const [target, label, source, expectedFeedback] of attempts) {
+    assert.notEqual(source, target.block.code, label);
+    const run = await runPythonLessonContracts({
+      path: target.entry.projectPath,
+      source,
+      contracts: [target.contract],
+      pythonLab,
+    });
+    assert.equal(run.results[0].passed, false, label);
+    assert.match(run.results[0].detail, expectedFeedback, `${label}: ${run.results[0].detail}`);
+  }
+});
+
 test("a cell can run independently without definitions from adjacent cells", async () => {
   const entry = curriculum.lessons.find(({ lesson }) => lesson.id === "neural-language-models");
   const block = entry.lesson.implementation.codeBlocks.find((candidate) => candidate.id === "stable-softmax");

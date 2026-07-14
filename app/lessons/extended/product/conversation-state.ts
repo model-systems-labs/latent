@@ -106,17 +106,24 @@ RESULT = {
                 "content": message["content"] + event["delta"],
             })
         else:
-            next_messages.append(dict(message))
+            next_messages.append(message)
     return next_messages`,
-          checkCode: `next_messages = append_message_delta(
-    [
-        {"id": "a", "attemptId": "a1", "requestId": "r1", "content": "Hel", "status": "streaming"},
-        {"id": "b", "content": "fixed", "status": "complete"},
-    ],
+          checkCode: `messages = [
+    {"id": "a", "attemptId": "a1", "requestId": "r1", "content": "Hel", "status": "streaming"},
+    {"id": "b", "content": "fixed", "status": "complete"},
+]
+next_messages = append_message_delta(
+    messages,
     {"messageId": "a", "attemptId": "a1", "requestId": "r1", "delta": "lo"},
 )
 RESULT = {
-    "passed": next_messages[0]["content"] == "Hello" and next_messages[1]["content"] == "fixed",
+    "passed": (
+        next_messages is not messages
+        and next_messages[0] is not messages[0]
+        and next_messages[1] is messages[1]
+        and next_messages[0]["content"] == "Hello"
+        and next_messages[1]["content"] == "fixed"
+    ),
     "detail": next_messages[0]["content"],
 }`,
         },

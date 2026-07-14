@@ -3,6 +3,7 @@ import { after, before, test } from "node:test";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import "fake-indexeddb/auto";
+import { loadPyodide } from "pyodide";
 import { createServer } from "vite";
 
 const storage = new Map();
@@ -27,6 +28,8 @@ let client;
 let course;
 let learner;
 let persistence;
+let pyodide;
+let pyodidePythonLab;
 let service;
 let snapshot;
 let source;
@@ -60,8 +63,145 @@ after(async () => {
     const database = new persistence.BrowserLabDatabase();
     await database.delete();
   }
+  pyodide?.globals.delete("RESULT");
   await vite?.close();
 });
+
+async function realPythonLab() {
+  if (pyodidePythonLab) return pyodidePythonLab;
+  pyodide = await loadPyodide({
+    indexURL: fileURLToPath(new URL(".", import.meta.resolve("pyodide/package.json"))),
+    packages: ["numpy"],
+  });
+  pyodide.FS.mkdirTree("/workspace");
+  pyodide.runPython("import os; os.chdir('/workspace')");
+  const files = new Set();
+  let revision = 0;
+
+  pyodidePythonLab = {
+    async initialize() {
+      return {
+        schemaVersion: 1,
+        runtime: "pyodide",
+        runtimeVersion: "0.29.3",
+        pythonVersion: String(pyodide.runPython("import platform; platform.python_version()")),
+        packages: ["numpy"],
+        guardrailsApplied: true,
+        capabilityReduced: true,
+      };
+    },
+    async sync({ files: nextFiles, deletePaths = [] }) {
+      for (const path of deletePaths) {
+        try { pyodide.FS.unlink(`/workspace/${path}`); } catch {}
+        files.delete(path);
+      }
+      for (const file of nextFiles) {
+        const segments = file.path.split("/");
+        segments.pop();
+        if (segments.length) pyodide.FS.mkdirTree(`/workspace/${segments.join("/")}`);
+        pyodide.FS.writeFile(`/workspace/${file.path}`, file.contents, { encoding: "utf8" });
+        files.add(file.path);
+      }
+      revision += 1;
+      return { schemaVersion: 1, revision, files: [...files].sort() };
+    },
+    async runTests({ tests }) {
+      const results = [];
+      for (const pythonTest of tests) {
+        pyodide.globals.set("__latent_test_source", pythonTest.code);
+        try {
+          pyodide.runPython(`
+_latent_test_namespace = {
+    "__name__": "__latent_test__",
+    "__file__": ${JSON.stringify("<real-pyodide-character-rnn-test>")},
+}
+exec(compile(__latent_test_source, _latent_test_namespace["__file__"], "exec"), _latent_test_namespace)
+`);
+          results.push({ id: pythonTest.id, label: pythonTest.label, passed: true, durationMs: 0 });
+        } catch (error) {
+          const traceback = String(error);
+          const message = traceback.trim().split("\n").at(-1) ?? traceback;
+          results.push({
+            id: pythonTest.id,
+            label: pythonTest.label,
+            passed: false,
+            durationMs: 0,
+            exception: { type: error?.name ?? "PythonError", message, traceback },
+          });
+        } finally {
+          pyodide.globals.delete("__latent_test_source");
+          pyodide.globals.delete("_latent_test_namespace");
+        }
+      }
+      return {
+        schemaVersion: 1,
+        requestId: "real-tests",
+        kind: "tests",
+        status: "completed",
+        passed: results.every((result) => result.passed),
+        durationMs: 0,
+        tests: results,
+        artifacts: [],
+      };
+    },
+    async run({ entryPath, resultVariable = "RESULT", artifactPaths = [] }) {
+      for (const path of artifactPaths) {
+        try { pyodide.FS.unlink(`/workspace/${path}`); } catch {}
+      }
+      pyodide.globals.set("__latent_entry_path", `/workspace/${entryPath}`);
+      pyodide.globals.set("__latent_result_variable", resultVariable);
+      try {
+        pyodide.runPython(`
+import runpy as _latent_runpy
+_latent_entry_namespace = _latent_runpy.run_path(__latent_entry_path, run_name="__main__")
+RESULT = _latent_entry_namespace.get(__latent_result_variable)
+`);
+        const result = JSON.parse(String(pyodide.runPython("import json; json.dumps(RESULT, allow_nan=False)")));
+        const artifacts = artifactPaths.map((path) => {
+          const data = pyodide.FS.readFile(`/workspace/${path}`, { encoding: "utf8" });
+          return {
+            path,
+            mediaType: "application/json",
+            encoding: "utf8",
+            data,
+            size: new TextEncoder().encode(data).byteLength,
+          };
+        });
+        return {
+          schemaVersion: 1,
+          requestId: "real-run",
+          kind: "run",
+          status: "completed",
+          durationMs: 0,
+          result,
+          artifacts,
+        };
+      } catch (error) {
+        return {
+          schemaVersion: 1,
+          requestId: "real-run",
+          kind: "run",
+          status: "failed",
+          durationMs: 0,
+          result: null,
+          artifacts: [],
+          exception: { type: error?.name ?? "PythonError", message: String(error), traceback: String(error) },
+        };
+      } finally {
+        pyodide.globals.delete("__latent_entry_path");
+        pyodide.globals.delete("__latent_result_variable");
+        pyodide.globals.delete("_latent_entry_namespace");
+      }
+    },
+  };
+  return pyodidePythonLab;
+}
+
+function replacePythonRegion(sourceText, pattern, replacement) {
+  const next = sourceText.replace(pattern, replacement.trim());
+  assert.notEqual(next, sourceText, `Expected Python source region ${pattern} to exist.`);
+  return next;
+}
 
 function validPayload() {
   return {
@@ -128,7 +268,7 @@ function passingPythonLab(payload = validPayload()) {
   return { calls, client };
 }
 
-test("the canonical project uses one editable manifest-owned Python source for the lesson and trainer", () => {
+test("the canonical project keeps one editable learner source while the trusted trainer remains host-owned", () => {
   const manifestPath = course.llmSystemsCurriculum.lessonById["character-rnns"].projectPath;
   const seeds = canonical.completeCanonicalProjectSeeds({ version: 2, lessons: {}, artifacts: {} });
   const lessonSeeds = seeds.filter((seed) => seed.lessonId === "character-rnns");
@@ -144,6 +284,7 @@ test("the canonical project uses one editable manifest-owned Python source for t
   assert.match(python.content, /def train_character_rnn/);
   assert.match(python.content, /np\.random\.default_rng\(19\)/);
   assert.equal(seeds.some((seed) => seed.lessonId === "character-rnns" && seed.path.endsWith(".js")), false);
+  assert.equal(seeds.some((seed) => seed.path === service.PYTHON_CHARACTER_RNN_TRAINER_PATH), false);
 });
 
 test("Python bytes route to the CPython contract entry while remaining a JSON identity module", async () => {
@@ -204,10 +345,160 @@ test("the service syncs saved source, runs four hidden tests, and validates emit
   assert.equal(result.tests.every((entry) => entry.passed), true);
   assert.equal(result.artifact.origin, "python");
   assert.equal(result.stdout, "Python ready\n");
-  assert.deepEqual(fake.calls.map(([kind]) => kind), ["initialize", "sync", "tests", "run"]);
-  assert.equal(fake.calls[1][1].files[0].path, source.PYTHON_CHARACTER_RNN_PATH);
+  assert.deepEqual(fake.calls.map(([kind]) => kind), ["initialize", "sync", "tests", "sync", "run"]);
+  assert.deepEqual(
+    fake.calls[1][1].files.map((file) => file.path),
+    [source.PYTHON_CHARACTER_RNN_PATH, service.PYTHON_CHARACTER_RNN_TRAINER_PATH],
+  );
+  assert.match(fake.calls[1][1].files[1].contents, /_latent_learner_function\("rnn_step"\)/);
+  assert.notEqual(fake.calls[1][1].files[1].contents, source.PYTHON_CHARACTER_RNN_SOURCE);
   assert.equal(fake.calls[2][1].tests.length, 4);
-  assert.equal(fake.calls[3][1].artifactPaths[0], service.PYTHON_CHARACTER_RNN_ARTIFACT_PATH);
+  assert.deepEqual(fake.calls[3][1].files.map((file) => file.path), [service.PYTHON_CHARACTER_RNN_TRAINER_PATH]);
+  assert.deepEqual(fake.calls[3][1].deletePaths, [service.PYTHON_CHARACTER_RNN_ARTIFACT_PATH]);
+  assert.equal(fake.calls[4][1].entryPath, service.PYTHON_CHARACTER_RNN_TRAINER_PATH);
+  assert.equal(fake.calls[4][1].artifactPaths[0], service.PYTHON_CHARACTER_RNN_ARTIFACT_PATH);
+});
+
+test("the trusted trainer admits the shipped source and rejects or ignores learner shortcuts in real Pyodide", { timeout: 60_000 }, async () => {
+  const pythonLab = await realPythonLab();
+  const reference = source.PYTHON_CHARACTER_RNN_SOURCE;
+  const shipped = await service.runPythonCharacterRnnArtifact({ source: reference, pythonLab });
+  assert.equal(
+    shipped.passed,
+    true,
+    shipped.tests.map((entry) => `${entry.id}: ${entry.detail}`).join("\n"),
+  );
+  assert.ok(shipped.artifact);
+  assert.equal(shipped.artifact.checkpoint.hiddenSize, 12);
+  assert.equal(shipped.artifact.checkpoint.vocabulary.length, shipped.artifact.vocabularySize);
+
+  const diagonalOnly = replacePythonRegion(
+    reference,
+    /def rnn_step[\s\S]*?(?=\n\n# 02 · Cross-entropy loss)/,
+    `def rnn_step(input_vector, previous, parameters):
+    Wxh = np.asarray(parameters["Wxh"], dtype=float)
+    Whh = np.asarray(parameters["Whh"], dtype=float)
+    bias = np.asarray(parameters["bias"], dtype=float)
+    inputs = np.asarray(input_vector, dtype=float)
+    state = np.asarray(previous, dtype=float)
+    return np.tanh(np.diag(Wxh) * inputs + np.diag(Whh) * state + bias).tolist()`,
+  );
+  const diagonalRun = await service.runPythonCharacterRnnArtifact({ source: diagonalOnly, pythonLab });
+  assert.equal(diagonalRun.passed, false);
+  assert.equal(diagonalRun.artifact, undefined);
+  assert.equal(diagonalRun.tests.find((entry) => entry.id === "rnn-step")?.passed, false);
+  assert.match(diagonalRun.tests.find((entry) => entry.id === "rnn-step")?.detail ?? "", /matrix column|projection/i);
+
+  const forgedTrainer = replacePythonRegion(
+    reference,
+    /def train_character_rnn[\s\S]*?(?=\n\n\nRESULT = None)/,
+    `def train_character_rnn(steps=180):
+    checkpoint = {
+        "version": 1,
+        "vocabulary": ["a", "b"],
+        "hiddenSize": 2,
+        "Wxh": [[0.1, 0.2], [0.3, 0.4]],
+        "Whh": [[0.1, 0.0], [0.0, 0.1]],
+        "Why": [[0.5, 0.6], [0.7, 0.8]],
+        "bh": [0.0, 0.0],
+        "by": [0.0, 0.0],
+    }
+    return {"checkpoint": checkpoint, "finalLoss": 0.1, "parameters": 16, "vocabularySize": 2}`,
+  );
+  const forgedRun = await service.runPythonCharacterRnnArtifact({ source: forgedTrainer, pythonLab });
+  assert.equal(
+    forgedRun.passed,
+    true,
+    forgedRun.tests.map((entry) => `${entry.id}: ${entry.detail}`).join("\n"),
+  );
+  assert.ok(forgedRun.artifact);
+  assert.equal(forgedRun.artifact.checkpoint.hiddenSize, 12, "the trusted trainer, not the forged learner trainer, owns the checkpoint");
+  assert.notDeepEqual(forgedRun.artifact.checkpoint.vocabulary, ["a", "b"]);
+  assert.notEqual(forgedRun.artifact.finalLoss, 0.1);
+
+  const overwriteCounterPath = "/workspace/.latent-trainer-overwrite-count";
+  try { pyodide.FS.unlink(overwriteCounterPath); } catch {}
+  const forgedEntrypoint = `import json
+from pathlib import Path
+RESULT = {
+    "checkpoint": {
+        "version": 1,
+        "vocabulary": ["a", "b"],
+        "hiddenSize": 2,
+        "Wxh": [[0.1, 0.2], [0.3, 0.4]],
+        "Whh": [[0.1, 0.0], [0.0, 0.1]],
+        "Why": [[0.5, 0.6], [0.7, 0.8]],
+        "bh": [0.0, 0.0],
+        "by": [0.0, 0.0],
+    },
+    "finalLoss": 0.1,
+    "parameters": 16,
+    "vocabularySize": 2,
+}
+artifact_path = Path("artifacts/character-rnn.json")
+artifact_path.parent.mkdir(parents=True, exist_ok=True)
+artifact_path.write_text(json.dumps(RESULT), encoding="utf-8")`;
+  const overwriteTrustedTrainer = reference.replace(
+    "import numpy as np\n",
+    `import numpy as np
+from pathlib import Path as _latent_Path
+_latent_counter_path = _latent_Path(${JSON.stringify(overwriteCounterPath)})
+_latent_counter = int(_latent_counter_path.read_text()) + 1 if _latent_counter_path.exists() else 1
+_latent_counter_path.write_text(str(_latent_counter))
+if _latent_counter >= 4:
+    _latent_Path(${JSON.stringify(service.PYTHON_CHARACTER_RNN_TRAINER_PATH)}).write_text(${JSON.stringify(forgedEntrypoint)}, encoding="utf-8")
+`,
+  );
+  assert.notEqual(overwriteTrustedTrainer, reference);
+  const overwriteRun = await service.runPythonCharacterRnnArtifact({ source: overwriteTrustedTrainer, pythonLab });
+  assert.equal(
+    overwriteRun.passed,
+    true,
+    overwriteRun.tests.map((entry) => `${entry.id}: ${entry.detail}`).join("\n"),
+  );
+  assert.equal(overwriteRun.artifact?.checkpoint.hiddenSize, 12, "the host must restore its trainer after learner-controlled hidden tests");
+  assert.notDeepEqual(overwriteRun.artifact?.checkpoint.vocabulary, ["a", "b"]);
+
+  const wrongAttempts = [
+    {
+      label: "recurrent state ignored",
+      testId: "rnn-step",
+      source: replacePythonRegion(
+        reference,
+        /def rnn_step[\s\S]*?(?=\n\n# 02 · Cross-entropy loss)/,
+        `def rnn_step(input_vector, previous, parameters):
+    Wxh = np.asarray(parameters["Wxh"], dtype=float)
+    bias = np.asarray(parameters["bias"], dtype=float)
+    return np.tanh(Wxh @ np.asarray(input_vector, dtype=float) + bias).tolist()`,
+      ),
+    },
+    {
+      label: "probability returned instead of cross-entropy",
+      testId: "cross-entropy",
+      source: replacePythonRegion(
+        reference,
+        /def cross_entropy[\s\S]*?(?=\n\n# 03 · Gradient clipping)/,
+        `def cross_entropy(probabilities, target_index):
+    return float(probabilities[target_index])`,
+      ),
+    },
+    {
+      label: "gradients returned without clipping",
+      testId: "clip-gradients",
+      source: replacePythonRegion(
+        reference,
+        /def clip_gradients[\s\S]*?(?=\n\nimport json)/,
+        `def clip_gradients(gradients, limit=5):
+    return np.asarray(gradients, dtype=float)`,
+      ),
+    },
+  ];
+  for (const attempt of wrongAttempts) {
+    const result = await service.runPythonCharacterRnnArtifact({ source: attempt.source, pythonLab });
+    assert.equal(result.passed, false, attempt.label);
+    assert.equal(result.artifact, undefined, attempt.label);
+    assert.equal(result.tests.find((entry) => entry.id === attempt.testId)?.passed, false, attempt.label);
+  }
 });
 
 test("save admits a full-pass checkpoint and preserves Python provenance durably", async () => {
@@ -219,13 +510,18 @@ test("save admits a full-pass checkpoint and preserves Python provenance durably
   });
   assert.equal(result.passed, true);
   assert.equal(learner.loadLearnerState().artifacts.characterRnn.origin, "python");
-  assert.deepEqual(fake.calls.map(([kind]) => kind), ["sync", "tests", "run"]);
+  assert.deepEqual(fake.calls.map(([kind]) => kind), ["sync", "tests", "sync", "run"]);
   await learner.flushLearnerPersistence();
   const { database } = await client.getPersistenceContext();
   const checkpoints = await database.checkpoints.where("projectId").equals("browser-chat").toArray();
   const checkpoint = checkpoints.find((record) => record.createdAt === result.artifact.trainedAt);
   assert.ok(checkpoint);
   assert.equal(checkpoint.metrics.pythonOrigin, 1);
+  assert.equal(checkpoint.origin, "python");
+  assert.equal(checkpoint.sourcePath, source.PYTHON_CHARACTER_RNN_PATH);
+  assert.equal(checkpoint.sourceHash, await persistence.hashText(source.PYTHON_CHARACTER_RNN_SOURCE));
+  assert.equal(checkpoint.importedFrom, undefined);
+  assert.equal(learner.loadLearnerState().artifacts.characterRnn.checkpointId, checkpoint.id);
 });
 
 test("the existing student backend visibly identifies and samples the Python checkpoint", async () => {

@@ -24,11 +24,11 @@ export const llmSystemsManifest = defineCurriculumManifest({
   thesis:
     "Implement the model, inference runtime, serving boundary, and React integration that form a complete browser-based LLM system.",
   outcome:
-    "A tested, locally persisted chatbot that runs a real model and exposes the behavior implemented throughout the program.",
+    "A tested, locally persisted chatbot that runs a real model, consumes the learner-trained RNN checkpoint, and uses browser adapters verified against the same behavioral contracts as the learner's Python.",
   capstone: {
     title: "Browser Chat",
     description:
-      "Assemble the passing model, runtime, serving, and interface artifacts into a functional streaming chatbot.",
+      "Promote the exact passing Python source tree, its trained checkpoint, the contract-equivalent browser adapters, and the React interface into a functional streaming chatbot.",
     projectPath: "capstone/BrowserChat.tsx",
   },
   modules: [

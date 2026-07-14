@@ -665,6 +665,21 @@
     width: calc(100% - 1.5rem);
   }
 
+  .implementation-section .practice-editor {
+    border-left: 0;
+    border-radius: 0;
+    border-right: 0;
+    box-shadow: none;
+    margin-left: -0.75rem;
+    max-width: calc(100% + 1.5rem);
+    width: calc(100% + 1.5rem);
+  }
+
+  .implementation-section .code-surface {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
   .site-header {
     height: 4.7rem;
   }
@@ -1073,10 +1088,6 @@
     min-height: 2.75rem;
   }
 
-  .ide-shell .project-workbench {
-    min-height: calc(100dvh - 5.75rem);
-  }
-
   .compiled-capstone-runtime {
     height: calc(100vh - 5.75rem);
     height: calc(100dvh - 5.75rem);
@@ -1088,8 +1099,9 @@
   }
 
   .project-workbench > header {
-    align-items: center;
+    align-items: stretch;
     display: flex;
+    padding: 0.65rem 0.8rem;
   }
 
   .project-workbench-grid {
@@ -1520,8 +1532,7 @@
     border-bottom: 1px solid rgba(255,255,255,0.1);
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    position: sticky;
-    top: 0;
+    position: relative;
     z-index: 12;
   }
 
@@ -1553,10 +1564,57 @@
     font-size: max(0.68rem, 11px) !important;
   }
 
+  .ide-shell {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .ide-shell .project-workbench {
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr);
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .ide-shell .project-workbench-grid {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .project-header-actions {
+    align-items: stretch;
+    display: grid;
+    gap: 0.55rem;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .project-progress {
+    align-items: baseline;
+    display: flex;
+    gap: 0.45rem;
+    min-width: 0;
+  }
+
+  .project-header-actions > div:last-child {
+    display: grid;
+    gap: 0.35rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    min-width: 0;
+  }
+
   .project-header-actions button {
     font-size: max(0.68rem, 11px);
     min-height: 2.75rem;
+    min-width: 0;
+    padding-inline: 0.35rem;
     padding-block: 0.65rem;
+    width: 100%;
   }
 
   .project-file-history button {
@@ -1582,9 +1640,12 @@
 
   .project-workbench-grid[data-mobile-view="files"] > .project-tree {
     display: block;
+    height: 100%;
     max-height: none;
-    min-height: calc(100dvh - 11rem);
-    overflow: visible;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
     padding: 0.8rem;
   }
 
@@ -1613,10 +1674,8 @@
   .project-workbench-grid[data-mobile-view="code"] > .project-editor-panel {
     display: grid;
     grid-template-rows: auto minmax(0, 1fr) auto;
-    height: calc(100vh - 11rem);
-    height: calc(100dvh - 11rem);
-    max-height: calc(100vh - 11rem);
-    max-height: calc(100dvh - 11rem);
+    height: 100%;
+    max-height: 100%;
     max-width: 100%;
     min-height: 0;
     min-width: 0;
@@ -1625,7 +1684,9 @@
 
   .project-workbench-grid[data-mobile-view="code"] .project-editor-panel > header {
     align-items: start;
+    display: grid;
     gap: 0.7rem;
+    grid-template-columns: minmax(0, 1fr) minmax(5.5rem, 0.55fr);
   }
 
   .project-workbench-grid[data-mobile-view="code"] .project-editor-panel > header > div:first-child {
@@ -1635,7 +1696,7 @@
   .project-workbench-grid[data-mobile-view="code"] .project-editor-panel > header > div:first-child span,
   .project-workbench-grid[data-mobile-view="code"] .project-editor-panel > header > div:first-child strong {
     display: block;
-    max-width: 58vw;
+    max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1651,9 +1712,20 @@
   }
 
   .project-workbench-grid[data-mobile-view="code"] .project-editor-panel > header > div:last-child {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
     color: #aaa3ad;
     font-size: max(0.68rem, 11px);
-    flex-shrink: 0;
+    min-width: 0;
+  }
+
+  .project-workbench-grid[data-mobile-view="code"] .project-editor-panel > header > div:last-child > span {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-align: right;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .project-workbench-grid[data-mobile-view="code"] .code-editor {
@@ -1785,7 +1857,14 @@
   .project-workbench-grid[data-mobile-view="output"] > .project-inspector {
     border-top: 0;
     display: flex;
-    min-height: calc(100dvh - 11rem);
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .project-workbench-grid[data-mobile-view="tests"] .unit-test-panel {
+    height: 100%;
+    min-height: 0;
   }
 
   .project-workbench-grid[data-mobile-view="tests"] .project-output,
@@ -1796,7 +1875,10 @@
   .project-workbench-grid[data-mobile-view="output"] .project-output {
     border-top: 0;
     display: block;
-    min-height: calc(100dvh - 11rem);
+    height: 100%;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
   }
 
   .lesson-recovery-candidates {

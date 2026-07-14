@@ -103,7 +103,7 @@ export function LessonOutcome({ lesson }: { lesson: CourseLesson }) {
         </section>
 
         <section className="lesson-change-record" aria-label="Lesson project change">
-          <header><span>Project handoff</span><code>{projectPath}</code></header>
+          <header><span>Project source</span><code>{projectPath}</code></header>
           <div><span>Implemented</span><p>{outcome.concept}</p></div>
           <div className="behavior-change">
             <article><span>Before</span><p>{outcome.before}</p></article>
@@ -114,6 +114,7 @@ export function LessonOutcome({ lesson }: { lesson: CourseLesson }) {
             <div><dt>Implementation</dt><dd className={implementationComplete ? "complete" : "pending"}>{implementationComplete ? "Verified" : "Complete code + experiment"}</dd></div>
             <div><dt>Concept</dt><dd className={knowledgeComplete ? "complete" : "pending"}>{knowledgeComplete ? "Verified" : "Prediction pending"}</dd></div>
           </dl>
+          <p className="project-source-note">This exact Python source gates the promoted build. Browser adapters are read-only and checked against the same matching cases; the trained Character RNN additionally enters the chatbot as a checkpoint.</p>
           <footer>
             <Link href={`/workspace?file=${encodeURIComponent(projectPath)}`}>Open changed file</Link>
             {nextInModule ? (

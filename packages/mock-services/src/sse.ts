@@ -62,16 +62,50 @@ export function createMockServingStream(text: string, signal: AbortSignal, confi
     { length: Math.ceil(words.length / wordsPerEvent) },
     (_, index) => words.slice(index * wordsPerEvent, (index + 1) * wordsPerEvent).join(""),
   );
+  let cancelSource = () => undefined;
   return new ReadableStream<Uint8Array>({
     start(controller) {
       let index = 0;
+      let closed = false;
+      let timer: ReturnType<typeof globalThis.setTimeout> | null = null;
+      const cleanup = () => {
+        if (timer !== null) globalThis.clearTimeout(timer);
+        timer = null;
+        signal.removeEventListener("abort", onAbort);
+      };
       const closeWith = (event: ServingEvent) => {
+        if (closed) return;
+        closed = true;
+        cleanup();
         controller.enqueue(encoder.encode(encodeSse(event)));
         controller.close();
       };
+      const onAbort = () => closeWith({ type: "cancelled", data: {} });
+      cancelSource = () => {
+        if (closed) return;
+        closed = true;
+        cleanup();
+      };
+      const splitEncodedFrame = (frame: string) => {
+        const bytes = encoder.encode(frame);
+        let split = -1;
+        for (let byte = 1; byte < bytes.length; byte += 1) {
+          if ((bytes[byte] & 0xc0) === 0x80) split = byte;
+          else if (split >= 0) break;
+        }
+        if (split < 1 || split >= bytes.length) {
+          split = Math.max(1, Math.min(bytes.length - 1, Math.floor(bytes.length * 0.62)));
+        }
+        return [bytes.slice(0, split), bytes.slice(split)] as const;
+      };
+      const schedule = (callback: () => void, milliseconds: number) => {
+        timer = globalThis.setTimeout(callback, milliseconds);
+      };
       const push = () => {
+        timer = null;
+        if (closed) return;
         if (signal.aborted) {
-          closeWith({ type: "cancelled", data: {} });
+          onAbort();
           return;
         }
         if (config.scenario === "timeout-before-first-token" && index === 0) {
@@ -83,19 +117,28 @@ export function createMockServingStream(text: string, signal: AbortSignal, confi
           return;
         }
         if (config.scenario === "malformed-frame" && index === 1) {
+          closed = true;
+          cleanup();
           controller.enqueue(encoder.encode("event: token\ndata: {not-json}\n\n"));
           controller.close();
           return;
         }
         const frame = encodeSse({ type: "token", data: { delta: pieces[index] } });
-        const midpoint = Math.max(1, Math.floor(frame.length * 0.62));
-        controller.enqueue(encoder.encode(frame.slice(0, midpoint)));
-        controller.enqueue(encoder.encode(frame.slice(midpoint)));
+        const [first, second] = splitEncodedFrame(frame);
+        controller.enqueue(first);
+        controller.enqueue(second);
         index += 1;
-        globalThis.setTimeout(push, delayMs);
+        schedule(push, delayMs);
       };
       const firstDelay = config.scenario === "slow-first-token" ? Math.max(420, delayMs * 8) : Math.min(120, delayMs * 3);
-      globalThis.setTimeout(push, firstDelay);
+      if (signal.aborted) onAbort();
+      else {
+        signal.addEventListener("abort", onAbort, { once: true });
+        schedule(push, firstDelay);
+      }
+    },
+    cancel() {
+      cancelSource();
     },
   });
 }
@@ -105,14 +148,34 @@ export async function consumeSse(
   onEvent: (event: ServingEvent) => void,
 ) {
   const reader = stream.getReader();
-  const decoder = new TextDecoder();
+  const decoder = new TextDecoder("utf-8", { fatal: true });
   let buffer = "";
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    const parsed = parseSseChunk(buffer, decoder.decode(value, { stream: true }));
+  const acceptDecodedText = (text: string) => {
+    if (!text) return;
+    const parsed = parseSseChunk(buffer, text);
     buffer = parsed.remainder;
     for (const event of parsed.events) onEvent(event);
+  };
+  let completed = false;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      acceptDecodedText(decoder.decode(value, { stream: true }));
+    }
+    let finalDecoded = "";
+    try {
+      finalDecoded = decoder.decode();
+    } catch (error) {
+      throw new Error("The stream ended with incomplete or invalid UTF-8 bytes.", { cause: error });
+    }
+    acceptDecodedText(finalDecoded);
+    if (buffer.trim()) throw new Error("The stream ended with an incomplete SSE frame.");
+    completed = true;
+  } finally {
+    if (!completed) {
+      try { await reader.cancel("SSE consumption failed."); } catch { /* The source may already be closed. */ }
+    }
+    reader.releaseLock();
   }
-  if (buffer.trim()) throw new Error("The stream ended with an incomplete SSE frame.");
 }

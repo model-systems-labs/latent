@@ -28,8 +28,8 @@ export const BROWSER_CHAT_ADAPTER_PATHS = Object.freeze({
 } as const);
 
 export const MODEL_SOFTMAX_ADAPTER_SOURCE = `// Course-provided, read-only JavaScript interoperability adapter.
-// The CPython neural-language-model lesson is tested independently; this module
-// exposes the equivalent browser-runtime seam used by the React capstone.
+// The CPython lesson and this adapter are checked against the same host-owned
+// behavioral contract; this module exposes the browser seam used by React.
 export function stableSoftmax(logits) {
   if (!Array.isArray(logits) || logits.length === 0) return [];
   const maximum = Math.max(...logits);
@@ -40,8 +40,8 @@ export function stableSoftmax(logits) {
 `;
 
 export const STREAMING_TRANSPORT_ADAPTER_SOURCE = `// Course-provided, read-only JavaScript interoperability adapter.
-// The CPython streaming-transport lesson is tested independently; this module
-// supplies the JavaScript framing boundary imported by the React capstone.
+// The CPython lesson and this adapter are checked against the same host-owned
+// behavioral contract; this module supplies React's JavaScript framing boundary.
 export function encodeSse(event, data) {
   if (typeof event !== "string" || !event || /[\\r\\n]/.test(event)) {
     throw new Error("event name must be non-empty and contain no CR or LF");
@@ -75,8 +75,8 @@ export function parseSseChunk(buffer, chunk) {
 `;
 
 export const GENERATION_RELIABILITY_ADAPTER_SOURCE = `// Course-provided, read-only JavaScript interoperability adapter.
-// The CPython reliability lesson is tested independently; this module supplies
-// the request-lifecycle guards consumed by the React capstone.
+// The CPython lesson and this adapter are checked against the same host-owned
+// behavioral contract; this module supplies React's request-lifecycle guards.
 export function shouldRetry({ transient, tokensEmitted, attempt, maxAttempts = 2 }) {
   return transient && tokensEmitted === 0 && attempt + 1 < maxAttempts;
 }
@@ -90,8 +90,8 @@ export function acceptEvent(request, event) {
 `;
 
 export const CHAT_REDUCER_ADAPTER_SOURCE = `// Course-provided, read-only JavaScript interoperability adapter.
-// The CPython conversation-state lesson is tested independently; this module
-// supplies immutable JavaScript records and reducer transitions to React.
+// The CPython lesson and this adapter are checked against the same host-owned
+// behavioral contract; this module supplies immutable reducer transitions.
 export function createMessage({ id, role, content = "", status = "complete", attemptId = null, requestId = null }) {
   return { id, role, content, status, attemptId, requestId, createdAt: 0 };
 }
@@ -109,8 +109,8 @@ export function appendMessageDelta(messages, { messageId, attemptId, requestId, 
 `;
 
 export const CHAT_ACTIONS_ADAPTER_SOURCE = `// Course-provided, read-only JavaScript interoperability adapter.
-// The CPython actions-and-context lesson is tested independently; this module
-// supplies the JavaScript context and regeneration seam imported by React.
+// The CPython lesson and this adapter are checked against the same host-owned
+// behavioral contract; this module supplies React's context and regeneration seam.
 export function selectContext({ system, history, activeUser, budget }) {
   const requiredSystem = system.filter((message) => message.role === "system");
   const turns = [];
@@ -145,8 +145,8 @@ export function createRegeneration({ messageId, parentUserId, attemptId, request
 `;
 
 export const CHAT_QUALITY_ADAPTER_SOURCE = `// Course-provided, read-only JavaScript interoperability adapter.
-// The CPython product-quality lesson is tested independently; this module
-// supplies the JavaScript validation and presentation seam used by React.
+// The CPython lesson and this adapter are checked against the same host-owned
+// behavioral contract; this module supplies React's validation and status seam.
 export function validConversationRecord(record) {
   const isPlainObject = (value) =>
     Boolean(value) && typeof value === "object" && !Array.isArray(value) &&
@@ -201,8 +201,8 @@ export function generationStatusLabel(phase) {
 `;
 
 export const STREAMING_REACT_ADAPTER_SOURCE = `// Course-provided, read-only JavaScript interoperability adapter.
-// The CPython streaming-interface lesson is tested independently; this module
-// supplies the render-buffer and scroll-policy seam consumed by React.
+// The CPython lesson and this adapter are checked against the same host-owned
+// behavioral contract; this module supplies React's render and scroll seam.
 export function flushTokenBuffer(pending) {
   return { text: pending.join(""), remaining: [] };
 }
@@ -332,7 +332,7 @@ type GenerationEvent =
 
 type PreviewHost = {
   request<TResult = unknown>(
-    method: "initialize" | "train-student" | "load-local" | "generate" | "cancel" | "persist",
+    method: "initialize" | "load-local" | "generate" | "cancel" | "persist",
     payload: unknown,
     onEvent?: (event: unknown) => void,
   ): Promise<TResult>;
@@ -354,16 +354,6 @@ function isGenerationEvent(value: unknown): value is GenerationEvent {
 
 export function initializePreview() {
   return previewHost.request<PreviewInitialization>("initialize", {});
-}
-
-export function trainStudent(onEvent?: (event: PreparationEvent) => void) {
-  return previewHost.request<{ ready: true }>("train-student", {}, (event) => {
-    if (!event || typeof event !== "object") return;
-    const progress = event as Partial<PreparationEvent>;
-    if (progress.type === "progress" && typeof progress.progress === "number" && typeof progress.detail === "string") {
-      onEvent?.(progress as PreparationEvent);
-    }
-  });
 }
 
 export function loadLocal(onEvent?: (event: PreparationEvent) => void) {
@@ -433,7 +423,6 @@ import {
   loadLocal,
   persistConversation,
   startGeneration,
-  trainStudent,
   type ChatBackend,
   type GenerationHandle,
   type GenerationMetrics,
@@ -454,7 +443,10 @@ type Message = {
   requestId?: string | null;
 };
 
-type ChatState = { messages: Message[] };
+type ChatState = {
+  messages: Message[];
+  activeAttemptByParentUserId: Record<string, string>;
+};
 type ChatAction =
   | { type: "append"; message: Message }
   | { type: "delta"; messageId: string; attemptId: string; requestId: string; delta: string }
@@ -470,24 +462,52 @@ const EMPTY_METRICS: GenerationMetrics = {
   durationMs: 0,
 };
 
-function chatReducer(state: ChatState, action: ChatAction): ChatState {
-  if (action.type === "append") return { messages: [...state.messages, action.message] };
-  if (action.type === "delta") {
-    return { messages: appendMessageDelta(state.messages, {
-      messageId: action.messageId,
-      attemptId: action.attemptId,
-      requestId: action.requestId,
-      delta: action.delta,
-    }) };
+const ANNOUNCEMENT_INTERVAL_MS = 500;
+const ANNOUNCEMENT_MAX_CHARACTERS = 160;
+
+function activeAttemptMap(messages: Message[]) {
+  const latestAttemptByParentUserId: Record<string, string> = {};
+  const latestCompleteByParentUserId: Record<string, string> = {};
+  for (const message of messages) {
+    if (message.role === "assistant" && message.parentUserId) {
+      latestAttemptByParentUserId[message.parentUserId] = message.id;
+      if (message.status === "complete") latestCompleteByParentUserId[message.parentUserId] = message.id;
+    }
   }
-  if (action.type === "terminal") {
+  return { ...latestAttemptByParentUserId, ...latestCompleteByParentUserId };
+}
+
+function chatReducer(state: ChatState, action: ChatAction): ChatState {
+  if (action.type === "append") {
+    const activeAttemptByParentUserId = action.message.role === "assistant" && action.message.parentUserId
+      ? { ...state.activeAttemptByParentUserId, [action.message.parentUserId]: action.message.id }
+      : state.activeAttemptByParentUserId;
+    return { messages: [...state.messages, action.message], activeAttemptByParentUserId };
+  }
+  if (action.type === "delta") {
     return {
-      messages: state.messages.map((message) =>
-        message.id === action.messageId ? { ...message, status: action.status } : message,
-      ),
+      messages: appendMessageDelta(state.messages, {
+        messageId: action.messageId,
+        attemptId: action.attemptId,
+        requestId: action.requestId,
+        delta: action.delta,
+      }),
+      activeAttemptByParentUserId: state.activeAttemptByParentUserId,
     };
   }
-  return { messages: action.messages };
+  if (action.type === "terminal") {
+    const messages = state.messages.map((message) =>
+      message.id === action.messageId ? { ...message, status: action.status } : message,
+    );
+    return {
+      messages,
+      activeAttemptByParentUserId: activeAttemptMap(messages),
+    };
+  }
+  return {
+    messages: action.messages,
+    activeAttemptByParentUserId: activeAttemptMap(action.messages),
+  };
 }
 
 function estimateTokens(content: string) {
@@ -550,7 +570,10 @@ function conversationRecord(messages: Message[]) {
 }
 
 export function BrowserChat() {
-  const [state, dispatch] = useReducer(chatReducer, { messages: [] } as ChatState);
+  const [state, dispatch] = useReducer(chatReducer, {
+    messages: [],
+    activeAttemptByParentUserId: {},
+  } as ChatState);
   const [hydrated, setHydrated] = useState(false);
   const [input, setInput] = useState("");
   const [backend, setBackend] = useState<ChatBackend>("local");
@@ -562,16 +585,36 @@ export function BrowserChat() {
   const [maxTokens, setMaxTokens] = useState(160);
   const [preview, setPreview] = useState<PreviewInitialization | null>(null);
   const [preparing, setPreparing] = useState(false);
-  const [controlsOpen, setControlsOpen] = useState(true);
+  const [controlsOpen, setControlsOpen] = useState(
+    () => typeof window === "undefined"
+      || typeof window.matchMedia !== "function"
+      || !window.matchMedia("(max-width: 520px)").matches,
+  );
+  const [mobileControlsOpen, setMobileControlsOpen] = useState(false);
   const [preparationDetail, setPreparationDetail] = useState("Checking model state");
   const [persistencePhase, setPersistencePhase] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [restoreBlocked, setRestoreBlocked] = useState(false);
+  const [streamAnnouncement, setStreamAnnouncement] = useState({ sequence: 0, text: "" });
+  const [renderCommitCount, setRenderCommitCount] = useState(0);
   const activeHandle = useRef<GenerationHandle | null>(null);
   const activeRequest = useRef<{
     logicalRequestId: string;
     attemptId: string;
     requestId: string;
+    assistantId: string;
     status: string;
   } | null>(null);
+  const renderFrame = useRef<number | null>(null);
+  const pendingRender = useRef<{
+    messageId: string;
+    attemptId: string;
+    requestId: string;
+    deltas: string[];
+  } | null>(null);
+  const announcementTimer = useRef<number | null>(null);
+  const retryTimer = useRef<number | null>(null);
+  const announcementBuffer = useRef("");
+  const lastAnnouncementAt = useRef(Number.NEGATIVE_INFINITY);
   const transcriptRef = useRef<HTMLDivElement | null>(null);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
   const latestTerminalRecord = useRef<{ record: unknown; selectedBackend: ChatBackend } | null>(null);
@@ -583,7 +626,14 @@ export function BrowserChat() {
     let active = true;
     void initializePreview().then((initialization) => {
       if (!active) return;
-      dispatch({ type: "replace", messages: restoreMessages(initialization.conversation) });
+      const hasSavedConversation = initialization.conversation !== null && initialization.conversation !== undefined;
+      const savedConversationIsValid = !hasSavedConversation || validConversationRecord(initialization.conversation);
+      if (savedConversationIsValid) {
+        dispatch({ type: "replace", messages: restoreMessages(initialization.conversation) });
+      } else {
+        dispatch({ type: "replace", messages: [] });
+        setRestoreBlocked(true);
+      }
       setPreview(initialization);
       setBackend(initialization.selectedBackend);
       setTemperature(initialization.runtime.model.temperature);
@@ -600,11 +650,19 @@ export function BrowserChat() {
     return () => {
       active = false;
       activeHandle.current?.cancel();
+      if (renderFrame.current !== null) window.cancelAnimationFrame(renderFrame.current);
+      if (announcementTimer.current !== null) window.clearTimeout(announcementTimer.current);
+      if (retryTimer.current !== null) window.clearTimeout(retryTimer.current);
+      renderFrame.current = null;
+      pendingRender.current = null;
+      announcementTimer.current = null;
+      retryTimer.current = null;
+      announcementBuffer.current = "";
     };
   }, []);
 
   useEffect(() => {
-    if (!hydrated) return;
+    if (!hydrated || restoreBlocked) return;
     const record: unknown = JSON.parse(terminalConversationIdentity);
     if (!validConversationRecord(record)) return;
     latestTerminalRecord.current = { record, selectedBackend: backend };
@@ -615,11 +673,15 @@ export function BrowserChat() {
     }).catch(() => {
       if (persistenceGeneration.current === generation) setPersistencePhase("error");
     });
-  }, [backend, hydrated, terminalConversationIdentity]);
+  }, [backend, hydrated, restoreBlocked, terminalConversationIdentity]);
 
   useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
     const compact = window.matchMedia("(max-width: 520px)");
-    const sync = () => setControlsOpen(!compact.matches);
+    const sync = () => {
+      setControlsOpen(!compact.matches);
+      if (!compact.matches) setMobileControlsOpen(false);
+    };
     sync();
     compact.addEventListener("change", sync);
     return () => compact.removeEventListener("change", sync);
@@ -637,8 +699,14 @@ export function BrowserChat() {
     });
   };
 
+  const discardUnreadableConversation = () => {
+    dispatch({ type: "replace", messages: [] });
+    setRestoreBlocked(false);
+    setPersistencePhase("idle");
+  };
+
   const generating = ["queued", "prefill", "streaming"].includes(phase);
-  const busy = preparing || generating;
+  const busy = preparing || generating || restoreBlocked;
   const canStop = generating && Boolean(activeHandle.current);
   const latestUser = useMemo(
     () => [...state.messages].reverse().find((message) => message.backend === backend && message.role === "user"),
@@ -648,6 +716,15 @@ export function BrowserChat() {
     () => state.messages.filter((message) => message.backend === backend),
     [backend, state.messages],
   );
+  const attemptCountByParentUserId = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const message of visibleMessages) {
+      if (message.role === "assistant" && message.parentUserId) {
+        counts[message.parentUserId] = (counts[message.parentUserId] || 0) + 1;
+      }
+    }
+    return counts;
+  }, [visibleMessages]);
   const backendReady = backend === "student" ? Boolean(preview?.studentReady) : Boolean(preview?.localReady);
 
   const followTranscript = () => {
@@ -656,6 +733,73 @@ export function BrowserChat() {
     const distanceFromBottom = element.scrollHeight - element.scrollTop - element.clientHeight;
     if (shouldFollowStream({ distanceFromBottom, userScrolledUp: distanceFromBottom > 120 })) {
       element.scrollTop = element.scrollHeight;
+    }
+  };
+
+  const publishAnnouncement = (text: string) => {
+    const bounded = text.replace(/\\s+/g, " ").trim().slice(0, ANNOUNCEMENT_MAX_CHARACTERS);
+    if (!bounded) return;
+    lastAnnouncementAt.current = performance.now();
+    setStreamAnnouncement((current) => ({ sequence: current.sequence + 1, text: bounded }));
+  };
+
+  const scheduleStreamAnnouncement = (delta: string) => {
+    announcementBuffer.current += delta;
+    if (announcementTimer.current !== null) return;
+    const elapsed = performance.now() - lastAnnouncementAt.current;
+    const delay = Math.max(0, ANNOUNCEMENT_INTERVAL_MS - elapsed);
+    const announce = () => {
+      announcementTimer.current = null;
+      const buffered = announcementBuffer.current;
+      announcementBuffer.current = "";
+      publishAnnouncement("Assistant update: " + buffered);
+    };
+    if (delay === 0) announce();
+    else announcementTimer.current = window.setTimeout(announce, delay);
+  };
+
+  const publishTerminalAnnouncement = (status: string) => {
+    if (announcementTimer.current !== null) window.clearTimeout(announcementTimer.current);
+    announcementTimer.current = null;
+    const buffered = announcementBuffer.current;
+    announcementBuffer.current = "";
+    publishAnnouncement(buffered ? status + " Latest assistant update: " + buffered : status);
+  };
+
+  const flushPendingRender = () => {
+    if (renderFrame.current !== null) window.cancelAnimationFrame(renderFrame.current);
+    renderFrame.current = null;
+    const batch = pendingRender.current;
+    pendingRender.current = null;
+    if (!batch || batch.deltas.length === 0) return;
+    const flushed = flushTokenBuffer(batch.deltas);
+    if (!flushed.text) return;
+    dispatch({
+      type: "delta",
+      messageId: batch.messageId,
+      attemptId: batch.attemptId,
+      requestId: batch.requestId,
+      delta: flushed.text,
+    });
+    setRenderCommitCount((count) => count + 1);
+    scheduleStreamAnnouncement(flushed.text);
+    window.setTimeout(followTranscript, 0);
+  };
+
+  const enqueueRenderDelta = (messageId: string, attemptId: string, requestId: string, delta: string) => {
+    const current = pendingRender.current;
+    if (current && (current.messageId !== messageId || current.attemptId !== attemptId || current.requestId !== requestId)) {
+      flushPendingRender();
+    }
+    if (!pendingRender.current) {
+      pendingRender.current = { messageId, attemptId, requestId, deltas: [] };
+    }
+    pendingRender.current.deltas.push(delta);
+    if (renderFrame.current === null) {
+      renderFrame.current = window.requestAnimationFrame(() => {
+        renderFrame.current = null;
+        flushPendingRender();
+      });
     }
   };
 
@@ -681,15 +825,21 @@ export function BrowserChat() {
         requestId: branch.requestId,
       }),
     });
-    activeRequest.current = { logicalRequestId, attemptId, requestId, status: "queued" };
+    activeRequest.current = { logicalRequestId, attemptId, requestId, assistantId, status: "queued" };
     setPhase("queued");
     setMetrics(EMPTY_METRICS);
+    setRenderCommitCount(0);
     setError("");
 
     const currentUser = { id: parentUserId, role: "user", status: "complete", content: userText, tokens: estimateTokens(userText) };
     const systemContext = [{ id: "system", role: "system", content: "Answer in concise technical prose.", tokens: 9 }];
     const historicalContext = state.messages
-        .filter((message) => message.backend === backend && message.status === "complete" && message.id !== parentUserId)
+        .filter((message) => message.backend === backend
+          && message.status === "complete"
+          && message.id !== parentUserId
+          && (message.role === "user"
+            || !message.parentUserId
+            || state.activeAttemptByParentUserId[message.parentUserId] === message.id))
         .map((message) => ({
           id: message.id,
           role: message.role,
@@ -718,13 +868,21 @@ export function BrowserChat() {
     });
     let remainder = "";
     let emittedTokens = 0;
+    let terminalFinished = false;
 
     const finish = (status: MessageStatus, nextPhase: GenerationPhase) => {
-      if (!activeRequest.current || activeRequest.current.attemptId !== attemptId || activeRequest.current.requestId !== requestId) return;
+      if (terminalFinished || !activeRequest.current || activeRequest.current.attemptId !== attemptId || activeRequest.current.requestId !== requestId) return;
+      terminalFinished = true;
+      flushPendingRender();
       activeRequest.current.status = nextPhase;
       dispatch({ type: "terminal", messageId: assistantId, status });
       setPhase(nextPhase);
       activeHandle.current = null;
+      publishTerminalAnnouncement(nextPhase === "complete"
+        ? "Response complete."
+        : nextPhase === "cancelled"
+          ? "Response stopped."
+          : "Response failed.");
       window.setTimeout(followTranscript, 0);
       window.setTimeout(() => composerRef.current?.focus(), 0);
     };
@@ -756,9 +914,8 @@ export function BrowserChat() {
         remainder = parsed.remainder;
         for (const event of parsed.events) {
           if (event.event === "token" && typeof event.data?.delta === "string") {
-            const flushed = flushTokenBuffer([event.data.delta]);
             emittedTokens += 1;
-            dispatch({ type: "delta", messageId: assistantId, attemptId: branch.attemptId, requestId, delta: flushed.text });
+            enqueueRenderDelta(assistantId, branch.attemptId, requestId, event.data.delta);
           } else if (event.event === "done") {
             finish("complete", "complete");
           } else if (event.event === "error") {
@@ -782,8 +939,19 @@ export function BrowserChat() {
           attempt,
           maxAttempts: 2,
         })) {
-          finish("error", "error");
-          window.setTimeout(() => runGeneration(userText, parentUserId, logicalRequestId, attempt + 1), 80);
+          if (terminalFinished) return;
+          terminalFinished = true;
+          flushPendingRender();
+          const current = activeRequest.current;
+          if (current && current.attemptId === attemptId && current.requestId === requestId) current.status = "error";
+          dispatch({ type: "terminal", messageId: assistantId, status: "error" });
+          activeHandle.current = null;
+          setPhase("queued");
+          publishTerminalAnnouncement("Transient failure. Retrying request.");
+          retryTimer.current = window.setTimeout(() => {
+            retryTimer.current = null;
+            runGeneration(userText, parentUserId, logicalRequestId, attempt + 1);
+          }, 80);
           return;
         }
         setError(bridgeError.message);
@@ -812,13 +980,16 @@ export function BrowserChat() {
   const stop = () => {
     const handle = activeHandle.current;
     if (!handle) return;
+    flushPendingRender();
     activeHandle.current = null;
     handle.cancel();
     const request = activeRequest.current;
-    if (request) request.status = "cancelled";
-    const activeAssistant = [...state.messages].reverse().find((message) => message.backend === backend && message.status === "streaming");
-    if (activeAssistant) dispatch({ type: "terminal", messageId: activeAssistant.id, status: "cancelled" });
+    if (request) {
+      request.status = "cancelled";
+      dispatch({ type: "terminal", messageId: request.assistantId, status: "cancelled" });
+    }
     setPhase("cancelled");
+    publishTerminalAnnouncement("Response stopped.");
     window.setTimeout(() => composerRef.current?.focus(), 0);
   };
 
@@ -832,16 +1003,20 @@ export function BrowserChat() {
 
   const prepareBackend = async () => {
     if (preparing || backendReady) return;
+    if (backend === "student") {
+      setError("This build has no source-bound Python checkpoint. Test and train models/character-rnn.py, then rebuild the project.");
+      setPhase("error");
+      return;
+    }
     setPreparing(true);
     setError("");
     setPhase("loading");
-    setPreparationDetail(backend === "student" ? "Preparing training worker" : "Preparing local model");
+    setPreparationDetail("Preparing local model");
     try {
       const update = (event: { progress: number; detail: string }) => {
         setPreparationDetail(event.detail + " · " + Math.round(event.progress) + "%");
       };
-      if (backend === "student") await trainStudent(update);
-      else await loadLocal(update);
+      await loadLocal(update);
       const initialization = await initializePreview();
       setPreview(initialization);
       setPreparationDetail("Active build #" + initialization.buildNumber);
@@ -868,16 +1043,25 @@ export function BrowserChat() {
       </header>
 
       <div className="app-layout">
-        <aside className="control-panel">
+        <aside className={"control-panel" + (mobileControlsOpen ? " mobile-open" : "")}>
+          <button
+            className="mobile-control-toggle"
+            type="button"
+            aria-expanded={mobileControlsOpen}
+            onClick={() => setMobileControlsOpen((open) => !open)}
+          >
+            <span>{backend === "local" ? "Local Transformer" : "Student RNN"}</span>
+            <strong>{backendReady ? "Ready" : "Setup"} · {temperature.toFixed(2)} · k {topK}</strong>
+          </button>
           <section>
             <span className="section-label">Model backend</span>
             <div className="segmented-control">
               <button className={backend === "local" ? "active" : ""} disabled={busy} onClick={() => setBackend("local")} type="button">Local Transformer</button>
               <button className={backend === "student" ? "active" : ""} disabled={busy} onClick={() => setBackend("student")} type="button">Student RNN</button>
             </div>
-            <p>{backend === "local" ? "A real local model served through the isolated host bridge." : "The checkpoint and recurrent functions completed in Model Foundations."}</p>
-            <button className="prepare-model" type="button" disabled={preparing || backendReady} onClick={() => void prepareBackend()}>
-              {backendReady ? "Model ready" : preparing ? preparationDetail : backend === "student" ? "Train student model" : "Load local model"}
+            <p>{backend === "local" ? "A real local model served through the isolated host bridge." : "The exact Python checkpoint bound to this active build in Model Foundations."}</p>
+            <button className="prepare-model" type="button" disabled={preparing || backendReady || backend === "student"} onClick={() => void prepareBackend()}>
+              {backendReady ? "Model ready" : preparing ? preparationDetail : backend === "student" ? "Rebuild with Python checkpoint" : "Load local model"}
             </button>
           </section>
 
@@ -925,7 +1109,14 @@ export function BrowserChat() {
             <button type="button" onClick={regenerate} disabled={busy || !latestUser}>Regenerate</button>
           </div>
 
-          <div className="transcript" ref={transcriptRef} role="log" aria-live="polite" aria-label="Conversation transcript">
+          <div
+            className="transcript"
+            ref={transcriptRef}
+            role="log"
+            aria-live="off"
+            aria-label="Conversation transcript"
+            data-render-commits={renderCommitCount}
+          >
             {!hydrated ? <p className="empty-state">Restoring device-local conversation…</p> : null}
             {hydrated && visibleMessages.length === 0 ? (
               <div className="empty-state">
@@ -934,14 +1125,44 @@ export function BrowserChat() {
                 <p>Messages move through your context policy, serving protocol, reliability guards, reducer, and render buffer.</p>
               </div>
             ) : null}
-            {visibleMessages.map((message) => (
-              <article className={"message " + message.role + " " + message.status} key={message.id}>
-                <span>{message.role === "user" ? "You" : preview?.runtime.interface.assistantName || (backend === "student" ? "Student model" : "Local model")}</span>
-                <p>{message.content || (message.status === "streaming" ? "Processing context…" : "No output")}</p>
-                {message.status !== "complete" ? <em>{message.status}</em> : null}
-              </article>
-            ))}
+            {visibleMessages.map((message) => {
+              const isActiveAttempt = message.role !== "assistant"
+                || !message.parentUserId
+                || state.activeAttemptByParentUserId[message.parentUserId] === message.id;
+              const hasSiblingAttempt = Boolean(message.parentUserId && attemptCountByParentUserId[message.parentUserId] > 1);
+              return (
+                <article
+                  className={"message " + message.role + " " + message.status + (isActiveAttempt ? " active-attempt" : " superseded-attempt")}
+                  data-active-attempt={message.role === "assistant" && message.parentUserId ? String(isActiveAttempt) : undefined}
+                  key={message.id}
+                >
+                  <span>{message.role === "user" ? "You" : preview?.runtime.interface.assistantName || (backend === "student" ? "Student model" : "Local model")}</span>
+                  <p>{message.content || (message.status === "streaming" ? "Processing context…" : "No output")}</p>
+                  {message.status !== "complete"
+                    ? <em>{message.status}</em>
+                    : hasSiblingAttempt
+                      ? <em>{isActiveAttempt ? "Active attempt" : "Superseded"}</em>
+                      : null}
+                </article>
+              );
+            })}
           </div>
+
+          <div
+            className="sr-only"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+            data-stream-announcement={streamAnnouncement.sequence}
+          >{streamAnnouncement.text}</div>
+
+          {restoreBlocked ? (
+            <div className="restore-error" role="alert">
+              <strong>Saved conversation could not be restored</strong>
+              <span>The unreadable device-local record has not been changed. Discard it explicitly to start a new saved conversation.</span>
+              <button type="button" onClick={discardUnreadableConversation}>Discard saved conversation</button>
+            </div>
+          ) : null}
 
           {error ? <div className="request-error" role="alert"><strong>Request failed</strong><span>{error}</span></div> : null}
 
@@ -1008,7 +1229,7 @@ const BROWSER_CHAT_CSS = `
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; min-height: 100vh; background: radial-gradient(circle at 78% 9%, rgba(173, 151, 193, 0.22), transparent 32rem), radial-gradient(circle at 11% 86%, rgba(225, 186, 145, 0.18), transparent 30rem), #f3f0ec; }
+body { margin: 0; min-height: 100vh; background: radial-gradient(circle at 78% 9%, rgba(173, 151, 193, 0.22), transparent 32rem), radial-gradient(circle at 11% 86%, rgba(225, 186, 145, 0.18), transparent 30rem), #f3f0ec; }
 button, textarea, input { font: inherit; }
 button { color: inherit; }
 .browser-chat { min-height: 100vh; padding: 1.25rem; }
@@ -1021,6 +1242,7 @@ button { color: inherit; }
 .phase-status[data-phase="error"] i { background: #a96d6d; }
 .app-layout { background: var(--paper); border: 1px solid rgba(65, 53, 72, 0.18); border-radius: 1.25rem; box-shadow: 0 30px 80px rgba(61, 48, 67, 0.1); display: grid; grid-template-columns: 18rem minmax(0, 1fr); margin: 0 auto; max-width: 1320px; min-height: calc(100vh - 7.5rem); overflow: hidden; backdrop-filter: blur(24px); }
 .control-panel { border-right: 1px solid var(--line); display: flex; flex-direction: column; min-width: 0; }
+.mobile-control-toggle { display: none; }
 .control-panel section { border-bottom: 1px solid var(--line); padding: 1.35rem; }
 .control-panel section p { color: var(--muted); font-size: 0.74rem; line-height: 1.55; margin: 0.85rem 0 0; }
 .inference-panel details summary { align-items: center; cursor: pointer; display: flex; justify-content: space-between; list-style: none; }
@@ -1060,10 +1282,13 @@ input[type="range"] { accent-color: var(--violet); width: 100%; }
 .message p { font-family: Georgia, "Times New Roman", serif; font-size: 1rem; line-height: 1.65; margin: 0; white-space: pre-wrap; }
 .message.user p { color: #49414d; }
 .message em { color: var(--violet); font-size: 0.68rem; font-style: normal; }
+.message.superseded-attempt { opacity: 0.58; }
 .message.cancelled p, .message.error p { color: var(--muted); }
-.request-error { background: rgba(169, 109, 109, 0.08); border-top: 1px solid rgba(169, 109, 109, 0.18); display: grid; gap: 0.25rem; padding: 0.85rem 1.5rem; }
-.request-error strong { color: #8a5555; font-size: 0.67rem; }
-.request-error span { color: var(--muted); font-size: 0.7rem; }
+.sr-only { border: 0; clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0; position: absolute; white-space: nowrap; width: 1px; }
+.request-error, .restore-error { background: rgba(169, 109, 109, 0.08); border-top: 1px solid rgba(169, 109, 109, 0.18); display: grid; gap: 0.25rem; padding: 0.85rem 1.5rem; }
+.request-error strong, .restore-error strong { color: #8a5555; font-size: 0.67rem; }
+.request-error span, .restore-error span { color: var(--muted); font-size: 0.7rem; }
+.restore-error button { background: transparent; border: 1px solid rgba(169, 109, 109, 0.3); border-radius: 999px; color: #8a5555; cursor: pointer; font-size: 0.68rem; justify-self: start; margin-top: 0.45rem; padding: 0.55rem 0.8rem; }
 .composer { border-top: 1px solid var(--line); padding: 1rem 1.25rem 1.15rem; }
 .composer textarea { background: rgba(255, 255, 255, 0.54); border: 1px solid var(--line); border-radius: 0.85rem; color: var(--ink); min-height: 6.3rem; outline: none; padding: 1rem; resize: vertical; width: 100%; }
 .composer textarea:focus { border-color: rgba(116, 100, 135, 0.48); box-shadow: 0 0 0 3px rgba(116, 100, 135, 0.08); }
@@ -1087,9 +1312,17 @@ input[type="range"] { accent-color: var(--violet); width: 100%; }
   .message > span { padding: 0; }
 }
 @media (max-width: 520px) {
-  .app-header h1 { font-size: 2rem; }
+  .app-header { align-items: start; display: grid; gap: 0.6rem; grid-template-columns: minmax(0, 1fr); min-height: auto; }
+  .app-header h1 { font-size: 1.85rem; }
+  .phase-status { justify-self: start; }
   .project-label { display: none; }
   .control-panel { display: block; }
+  .mobile-control-toggle { align-items: center; background: transparent; border: 0; border-bottom: 1px solid var(--line); cursor: pointer; display: flex; justify-content: space-between; padding: 0.8rem 1rem; text-align: left; width: 100%; }
+  .mobile-control-toggle span { font-size: 0.72rem; font-weight: 600; }
+  .mobile-control-toggle strong { color: var(--violet); font-size: 0.67rem; font-weight: 500; }
+  .mobile-control-toggle::after { color: var(--faint); content: "＋"; font-size: 0.8rem; margin-left: 0.55rem; }
+  .control-panel.mobile-open .mobile-control-toggle::after { content: "−"; }
+  .control-panel:not(.mobile-open) > section, .control-panel:not(.mobile-open) > footer { display: none; }
   .control-panel section, .control-panel footer { padding: 0.85rem 1rem; }
   .inference-panel summary > strong { max-width: 10.5rem; text-align: right; }
   .conversation-heading { padding: 0.8rem 1rem; }
@@ -1113,9 +1346,9 @@ export { styles };
 
 /**
  * Course-owned files that make the virtual project a complete React program.
- * CPython lesson files remain independently tested learner work. These
- * read-only JavaScript adapters are the explicit interoperability boundary
- * used when the browser runtime compiles and mounts React.
+ * CPython learner functions and these read-only JavaScript adapters are both
+ * checked against the same host-owned behavioral contracts. The adapters are
+ * the explicit interoperability boundary compiled into the React runtime.
  */
 export const CANONICAL_BROWSER_CHAT_FILES = Object.freeze([
   {

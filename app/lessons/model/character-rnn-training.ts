@@ -1,3 +1,6 @@
+export const PYTHON_CHARACTER_RNN_LEARNER_PATH = "models/character-rnn.py" as const;
+export const PYTHON_CHARACTER_RNN_TRAINER_PATH = "runtime/host/character-rnn-training.py" as const;
+
 /** Supplied trainer appended after the learner-owned numerical operations. */
 export const characterRnnTrainingPostlude = `import json
 from pathlib import Path
@@ -63,11 +66,22 @@ def train_character_rnn(steps=180):
         loss = 0.0
 
         for input_index, target_index in zip(inputs, targets):
-            next_state = np.tanh(Wxh[:, input_index] + Whh @ states[-1] + bh)
+            input_vector = np.zeros(vocabulary_size, dtype=np.float64)
+            input_vector[input_index] = 1.0
+            next_state = np.asarray(rnn_step(input_vector, states[-1], {
+                "Wxh": Wxh,
+                "Whh": Whh,
+                "bias": bh,
+            }), dtype=np.float64)
+            if next_state.shape != (hidden_size,) or not np.all(np.isfinite(next_state)):
+                raise ValueError("rnn_step must return one finite value per hidden unit")
             states.append(next_state)
             distribution = _softmax(Why @ next_state + by)
             probabilities.append(distribution)
-            loss += cross_entropy(distribution, target_index)
+            step_loss = float(cross_entropy(distribution, target_index))
+            if not np.isfinite(step_loss) or step_loss < 0:
+                raise ValueError("cross_entropy must return a finite non-negative loss")
+            loss += step_loss
 
         dWxh = np.zeros_like(Wxh)
         dWhh = np.zeros_like(Whh)
@@ -88,13 +102,13 @@ def train_character_rnn(steps=180):
             dWhh += np.outer(raw_gradient, states[time])
             next_state_gradient = Whh.T @ raw_gradient
 
-        gradients = {
-            "Wxh": np.asarray(clip_gradients(dWxh, gradient_limit)),
-            "Whh": np.asarray(clip_gradients(dWhh, gradient_limit)),
-            "Why": np.asarray(clip_gradients(dWhy, gradient_limit)),
-            "bh": np.asarray(clip_gradients(dbh, gradient_limit)),
-            "by": np.asarray(clip_gradients(dby, gradient_limit)),
-        }
+        raw_gradients = {"Wxh": dWxh, "Whh": dWhh, "Why": dWhy, "bh": dbh, "by": dby}
+        gradients = {}
+        for name, raw_gradient in raw_gradients.items():
+            clipped = np.asarray(clip_gradients(raw_gradient, gradient_limit), dtype=np.float64)
+            if clipped.shape != raw_gradient.shape or not np.all(np.isfinite(clipped)):
+                raise ValueError("clip_gradients must preserve each finite gradient tensor shape")
+            gradients[name] = clipped
         parameters = {"Wxh": Wxh, "Whh": Whh, "Why": Why, "bh": bh, "by": by}
         for name, values in parameters.items():
             gradient = gradients[name]
@@ -138,3 +152,30 @@ if __name__ == "__main__":
     artifact_path = Path("artifacts/character-rnn.json")
     artifact_path.parent.mkdir(parents=True, exist_ok=True)
     artifact_path.write_text(json.dumps(RESULT, separators=(",", ":")), encoding="utf-8")`;
+
+/**
+ * Host-authored entrypoint synchronized only into the isolated Python worker.
+ * It selects the three learner-owned numerical operations and then defines its
+ * own trainer, so an edited `train_character_rnn` in the learner file never has
+ * artifact authority.
+ */
+export const characterRnnTrustedTrainingSource = `import runpy as _latent_runpy
+import numpy as np
+
+_latent_learner = _latent_runpy.run_path(
+    ${JSON.stringify(PYTHON_CHARACTER_RNN_LEARNER_PATH)},
+    run_name="latent_character_rnn_learner",
+)
+
+def _latent_learner_function(name):
+    value = _latent_learner.get(name)
+    if not callable(value):
+        raise TypeError(f"models/character-rnn.py must define callable {name}")
+    return value
+
+rnn_step = _latent_learner_function("rnn_step")
+cross_entropy = _latent_learner_function("cross_entropy")
+clip_gradients = _latent_learner_function("clip_gradients")
+del _latent_learner
+
+${characterRnnTrainingPostlude}`;

@@ -92,9 +92,11 @@ test("CPython lesson source remains external while provided adapters bridge its 
   assert.match(template.REACT_ADAPTER_SOURCE, /globalThis[\s\S]*__LATENT_REACT__/);
   assert.match(template.REACT_DOM_ADAPTER_SOURCE, /globalThis[\s\S]*__LATENT_REACT__/);
   assert.match(template.HOST_BRIDGE_SOURCE, /globalThis[\s\S]*__LATENT_PREVIEW_HOST__/);
-  for (const method of ["initialize", "train-student", "load-local", "generate", "cancel", "persist"]) {
+  for (const method of ["initialize", "load-local", "generate", "cancel", "persist"]) {
     assert.match(template.HOST_BRIDGE_SOURCE, new RegExp(`"${method}"`));
   }
+  assert.doesNotMatch(template.HOST_BRIDGE_SOURCE, /train-student|trainStudent/);
+  assert.doesNotMatch(source, /trainStudent/);
   assert.match(template.CAPSTONE_MAIN_SOURCE, /export function mount\(\)/);
   assert.match(template.CAPSTONE_MAIN_SOURCE, /const root = createRoot\(target\)/);
   assert.match(template.CAPSTONE_MAIN_SOURCE, /mount\(\);/);
@@ -108,12 +110,50 @@ test("CPython lesson source remains external while provided adapters bridge its 
   assert.match(source, /runGeneration = \(userText: string, parentUserId: string, logicalRequestId: string, attempt: number\)/);
   assert.match(source, /const attemptId = logicalRequestId \+ "\.attempt-" \+ attempt/);
   assert.match(source, /const requestId = logicalRequestId \+ "\.transport-" \+ attempt/);
-  assert.match(source, /activeRequest\.current = \{ logicalRequestId, attemptId, requestId, status: "queued" \}/);
+  assert.match(source, /activeRequest\.current = \{ logicalRequestId, attemptId, requestId, assistantId, status: "queued" \}/);
   assert.match(source, /acceptEvent\(current, \{ attemptId, requestId \}\)/);
   assert.match(source, /runGeneration\(userText, parentUserId, logicalRequestId, attempt \+ 1\)/);
   assert.match(source, /runGeneration\(userText, userId, "logical-" \+ userId, 0\)/);
   assert.match(source, /startGeneration\(\{[\s\S]*logicalRequestId,[\s\S]*attemptId,[\s\S]*requestId,/);
   assert.doesNotMatch(source, /localStorage/);
+});
+
+test("the editable capstone exposes branch-aware, frame-batched, bounded streaming behavior", () => {
+  const source = template.BROWSER_CHAT_COMPONENT_SOURCE;
+  assert.match(source, /activeAttemptByParentUserId: Record<string, string>/);
+  assert.match(source, /\[action\.message\.parentUserId\]: action\.message\.id/);
+  assert.match(source, /state\.activeAttemptByParentUserId\[message\.parentUserId\] === message\.id/);
+  assert.match(source, /data-active-attempt=/);
+  assert.match(source, /window\.requestAnimationFrame/);
+  assert.match(source, /window\.cancelAnimationFrame/);
+  assert.match(source, /flushPendingRender\(\);[\s\S]*handle\.cancel\(\)/);
+  assert.match(source, /ANNOUNCEMENT_INTERVAL_MS = 500/);
+  assert.match(source, /ANNOUNCEMENT_MAX_CHARACTERS = 160/);
+  assert.match(source, /role="log"[\s\S]*aria-live="off"/);
+  assert.match(source, /data-stream-announcement=/);
+  assert.match(source, /className="sr-only"[\s\S]*role="status"[\s\S]*aria-live="polite"/);
+});
+
+test("the capstone keeps the conversation primary on narrow screens", () => {
+  const source = template.BROWSER_CHAT_COMPONENT_SOURCE;
+  const styles = template.CAPSTONE_STYLES_SOURCE;
+  assert.match(source, /useState\([\s\S]*window\.matchMedia\("\(max-width: 520px\)"\)\.matches/);
+  assert.match(source, /const \[mobileControlsOpen, setMobileControlsOpen\] = useState\(false\)/);
+  assert.match(source, /className=\{"control-panel" \+ \(mobileControlsOpen \? " mobile-open" : ""\)\}/);
+  assert.match(source, /className="mobile-control-toggle"[\s\S]*aria-expanded=\{mobileControlsOpen\}/);
+  assert.match(styles, /\.control-panel:not\(\.mobile-open\) > section, \.control-panel:not\(\.mobile-open\) > footer \{ display: none; \}/);
+  assert.match(styles, /\.app-header \{ align-items: start; display: grid;/);
+  assert.doesNotMatch(styles, /body \{[^}]*min-width: 320px/);
+});
+
+test("an invalid restored conversation suspends writes until explicit discard", () => {
+  const source = template.BROWSER_CHAT_COMPONENT_SOURCE;
+  assert.match(source, /savedConversationIsValid = !hasSavedConversation \|\| validConversationRecord/);
+  assert.match(source, /setRestoreBlocked\(true\)/);
+  assert.match(source, /if \(!hydrated \|\| restoreBlocked\) return/);
+  assert.match(source, /const discardUnreadableConversation = \(\) => \{[\s\S]*setRestoreBlocked\(false\)/);
+  assert.match(source, /The unreadable device-local record has not been changed/);
+  assert.match(source, />Discard saved conversation<\/button>/);
 });
 
 async function importAdapter(source, name) {

@@ -1,8 +1,9 @@
 import { characterRnnsLesson } from "../../lessons/model/character-rnns";
+import { PYTHON_CHARACTER_RNN_LEARNER_PATH } from "../../lessons/model/character-rnn-training";
 import { lessonBlockComment, lessonImplementationSource } from "../../lessons/implementation-source";
 
-/** The character-RNN lesson and trainable project artifact share one source. */
-export const PYTHON_CHARACTER_RNN_PATH = "models/character-rnn.py" as const;
+/** The trusted trainer reads its three learner-owned operations from this editable file. */
+export const PYTHON_CHARACTER_RNN_PATH = PYTHON_CHARACTER_RNN_LEARNER_PATH;
 
 export const PYTHON_CHARACTER_RNN_SOURCE = lessonImplementationSource(
   characterRnnsLesson,

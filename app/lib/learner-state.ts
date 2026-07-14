@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { assertRnnCheckpoint, type RnnCheckpoint, type RnnResult } from "@latent/model-lab/character-rnn";
 import { getPersistenceContext } from "../platform/persistence/client";
 import { lessonProgressId } from "../platform/persistence/pure";
-import type { JsonValue } from "../platform/persistence/types";
+import type { CheckpointRecord, JsonValue } from "../platform/persistence/types";
 
 export const LEARNER_STATE_KEY = "latent-learner-v2";
 export const LEARNER_RECOVERY_KEY = "latent-learner-recovery-v3:";
@@ -32,6 +32,17 @@ export type SavedRnnArtifact = {
   vocabularySize: number;
   trainedAt: number;
   origin: "javascript" | "python";
+  /** Durable IndexedDB identity. Absent only on checkpoints saved before source binding. */
+  checkpointId?: string;
+  /** Exact Python project source that earned this checkpoint. */
+  sourcePath?: string;
+  /** Exact ProjectFileRecord.sourceHash observed by the host trainer. */
+  sourceHash?: string;
+};
+
+export type CharacterRnnSourceBinding = {
+  sourcePath: string;
+  sourceHash: string;
 };
 
 export type LearnerState = {
@@ -109,11 +120,21 @@ function sanitizeSavedRnnArtifact(value: unknown): SavedRnnArtifact | null {
   const parameters = Number(artifact.parameters);
   const vocabularySize = Number(artifact.vocabularySize);
   const trainedAt = Number(artifact.trainedAt);
+  const checkpointId = typeof artifact.checkpointId === "string" && artifact.checkpointId.trim() && artifact.checkpointId.length <= 512
+    ? artifact.checkpointId
+    : undefined;
+  const sourcePath = typeof artifact.sourcePath === "string" && artifact.sourcePath.trim() && artifact.sourcePath.length <= 512
+    ? artifact.sourcePath
+    : undefined;
+  const sourceHash = typeof artifact.sourceHash === "string" && artifact.sourceHash.trim() && artifact.sourceHash.length <= 512
+    ? artifact.sourceHash
+    : undefined;
   if (
     !Number.isFinite(finalLoss) || finalLoss < 0
     || !Number.isSafeInteger(parameters) || parameters < 1
     || !Number.isSafeInteger(vocabularySize) || vocabularySize !== checkpoint.vocabulary.length
     || !Number.isFinite(trainedAt) || trainedAt < 0
+    || Boolean(sourcePath) !== Boolean(sourceHash)
   ) return null;
   return {
     checkpoint,
@@ -122,7 +143,41 @@ function sanitizeSavedRnnArtifact(value: unknown): SavedRnnArtifact | null {
     vocabularySize,
     trainedAt,
     origin: artifact.origin === "python" ? "python" : "javascript",
+    ...(checkpointId ? { checkpointId } : {}),
+    ...(sourcePath && sourceHash ? { sourcePath, sourceHash } : {}),
   };
+}
+
+/**
+ * Converts only a local, host-recorded Python checkpoint trained from the
+ * exact durable learner file into a runtime artifact. Portable and legacy
+ * checkpoints deliberately restore progress without gaining build authority.
+ */
+export function sourceBoundPythonRnnArtifactFromCheckpoint(
+  record: CheckpointRecord | undefined,
+  expectedSourcePath: string,
+  expectedSourceHash: string,
+): SavedRnnArtifact | null {
+  if (
+    !record
+    || !record.id
+    || record.kind !== "character-rnn"
+    || record.origin !== "python"
+    || record.importedFrom !== undefined
+    || record.sourcePath !== expectedSourcePath
+    || record.sourceHash !== expectedSourceHash
+  ) return null;
+  return sanitizeSavedRnnArtifact({
+    checkpoint: record.payload,
+    finalLoss: record.metrics.finalLoss,
+    parameters: record.metrics.parameters,
+    vocabularySize: record.metrics.vocabularySize,
+    trainedAt: record.createdAt,
+    origin: record.origin,
+    checkpointId: record.id,
+    sourcePath: record.sourcePath,
+    sourceHash: record.sourceHash,
+  });
 }
 
 function sanitizeLearnerState(value: unknown): LearnerState {
@@ -576,8 +631,13 @@ async function persistLearnerState(state: LearnerState, previous: LearnerState |
     );
   }
   const artifact = state.artifacts.characterRnn;
-  if (artifact && artifact.trainedAt !== previous?.artifacts.characterRnn?.trainedAt) {
-    const id = `character-rnn:${artifact.trainedAt}`;
+  const previousArtifact = previous?.artifacts.characterRnn;
+  if (artifact && (
+    artifact.trainedAt !== previousArtifact?.trainedAt
+    || artifact.checkpointId !== previousArtifact?.checkpointId
+    || artifact.sourceHash !== previousArtifact?.sourceHash
+  )) {
+    const id = artifact.checkpointId ?? `character-rnn:${artifact.trainedAt}`;
     if (!(await database.checkpoints.get(id))) {
       await repositories.checkpoints.add({
         id,
@@ -586,6 +646,9 @@ async function persistLearnerState(state: LearnerState, previous: LearnerState |
         kind: "character-rnn",
         formatVersion: 1,
         payload: artifact.checkpoint as unknown as JsonValue,
+        origin: artifact.origin,
+        sourcePath: artifact.sourcePath ?? null,
+        sourceHash: artifact.sourceHash ?? null,
         metrics: {
           finalLoss: artifact.finalLoss,
           parameters: artifact.parameters,
@@ -659,7 +722,11 @@ export function initializeLearnerPersistence() {
             parameters: checkpoint.metrics.parameters ?? 0,
             vocabularySize: checkpoint.metrics.vocabularySize ?? 0,
             trainedAt: checkpoint.createdAt,
-            origin: checkpoint.metrics.pythonOrigin === 1 ? "python" as const : "javascript" as const,
+            origin: checkpoint.origin === "python" || checkpoint.metrics.pythonOrigin === 1 ? "python" as const : "javascript" as const,
+            checkpointId: checkpoint.id,
+            ...(typeof checkpoint.sourcePath === "string" && typeof checkpoint.sourceHash === "string"
+              ? { sourcePath: checkpoint.sourcePath, sourceHash: checkpoint.sourceHash }
+              : {}),
           }
       : undefined;
     const persistedState: LearnerState = { version: 2, lessons: persistedLessons, artifacts: restored ? { characterRnn: restored } : {} };
@@ -815,7 +882,18 @@ export function saveCharacterRnnArtifact(
   result: Pick<RnnResult, "checkpoint" | "finalLoss" | "parameters" | "vocabularySize">,
   origin: SavedRnnArtifact["origin"] = "javascript",
   trainedAt = Date.now(),
+  binding?: CharacterRnnSourceBinding,
 ) {
+  if (!Number.isFinite(trainedAt) || trainedAt < 0) throw new TypeError("A character-RNN checkpoint requires a valid training timestamp.");
+  const sourcePath = typeof binding?.sourcePath === "string" ? binding.sourcePath.trim() : undefined;
+  const sourceHash = typeof binding?.sourceHash === "string" ? binding.sourceHash.trim() : undefined;
+  if (origin === "python" && (!sourcePath || !sourceHash)) {
+    throw new TypeError("A Python character-RNN checkpoint requires the exact trained source path and hash.");
+  }
+  if (Boolean(sourcePath) !== Boolean(sourceHash)) {
+    throw new TypeError("Character-RNN source path and hash must be saved together.");
+  }
+  const checkpointId = `character-rnn:${origin}:${trainedAt}:${encodeURIComponent(sourceHash ?? "unbound")}`;
   updateLearnerState((state) => ({
     ...state,
     artifacts: {
@@ -827,6 +905,8 @@ export function saveCharacterRnnArtifact(
         vocabularySize: result.vocabularySize,
         trainedAt,
         origin,
+        checkpointId,
+        ...(sourcePath && sourceHash ? { sourcePath, sourceHash } : {}),
       },
     },
   }));

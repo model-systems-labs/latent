@@ -6,7 +6,7 @@ export const subwordTokenizationLesson = {
     number: 3,
     mode: "core-mechanism",
     modeLabel: "Core algorithm",
-    eyebrow: "Tokenization · Sennrich et al. · 2016",
+    eyebrow: "Tokenization · Byte-pair encoding",
     title: "Subword Tokenization",
     thesis:
       "A learned subword vocabulary balances sequence length against vocabulary size while still giving the model a way to represent words it hasn't seen.",

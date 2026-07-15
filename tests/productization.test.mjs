@@ -98,6 +98,14 @@ test("lesson source and dataset attribution is complete and reviewable", () => {
   }
 });
 
+test("model lesson headers describe mechanisms without implying author endorsement", () => {
+  const authorNames = /Karpathy|Bengio|Sennrich|Haddow|Birch|Bahdanau|Cho|Vaswani|Brown|et al\.|\b(?:19|20)\d{2}\b/i;
+  for (const lesson of course.getTrackLessons("models")) {
+    assert.doesNotMatch(lesson.eyebrow, authorNames, lesson.id);
+    assert.ok(lesson.authors.trim(), `${lesson.id} still needs explicit attribution in its source metadata`);
+  }
+});
+
 test("portfolio export contains source, evidence, runnable scaffolding, and a portable host boundary", () => {
   const project = projectWorkspace.emptyProjectState();
   const learner = learnerState.emptyLearnerState();

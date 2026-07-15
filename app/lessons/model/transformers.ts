@@ -6,7 +6,7 @@ export const transformersLesson = {
     number: 5,
     mode: "core-mechanism",
     modeLabel: "Core algorithm",
-    eyebrow: "Architecture · Vaswani et al. · 2017",
+    eyebrow: "Architecture · Causal self-attention",
     title: "Transformers",
     thesis:
       "Self-attention builds token representations by letting tokens interact directly based on their content, while a causal language model masks future token positions.",

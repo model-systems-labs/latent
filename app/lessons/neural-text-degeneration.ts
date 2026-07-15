@@ -4,7 +4,7 @@ export const neuralTextDegenerationLesson: PaperLesson = {
   id: "neural-text-degeneration",
   labLabel: "Paper lab 01",
   navLabel: "Paper lab 01",
-  eyebrow: "Decoding · Holtzman et al. · 2020",
+  eyebrow: "Decoding · Probability truncation",
   title: "Neural Text Degeneration",
   thesis:
     "The model is only half of the generator. The way you pick each next token can be the difference between clear writing, endless repetition, and plain noise.",

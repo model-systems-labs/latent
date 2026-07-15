@@ -6,7 +6,7 @@ export const additiveAttentionLesson = {
     number: 4,
     mode: "live-training",
     modeLabel: "Live micro-training",
-    eyebrow: "Alignment · Bahdanau et al. · 2014 / 2015",
+    eyebrow: "Alignment · Additive attention",
     title: "Additive Attention",
     thesis:
       "At each output step, the decoder can build a new context vector by learning a soft alignment—how much to focus—over every encoder state.",

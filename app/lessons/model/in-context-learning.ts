@@ -6,7 +6,7 @@ export const inContextLearningLesson = {
     number: 6,
     mode: "local-inference",
     modeLabel: "Real local inference",
-    eyebrow: "Prompting · Brown et al. · 2020",
+    eyebrow: "Prompting · Few-shot inference",
     title: "In-Context Learning",
     thesis:
       "A frozen autoregressive model can use task demonstrations—examples in the prompt—to figure out what to do without changing any of its parameters.",

@@ -7,7 +7,7 @@ export const characterRnnsLesson = {
     number: 1,
     mode: "live-training",
     modeLabel: "Live micro-training",
-    eyebrow: "Sequence models · Karpathy · 2015",
+    eyebrow: "Sequence models · Character prediction",
     title: "Character RNNs",
     thesis:
       "A recurrent network can learn a probability distribution for the next character by updating a hidden state over and over and minimizing cross-entropy through time.",

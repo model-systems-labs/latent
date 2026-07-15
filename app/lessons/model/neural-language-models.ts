@@ -6,7 +6,7 @@ export const neuralLanguageModelsLesson = {
     number: 2,
     mode: "live-training",
     modeLabel: "Live micro-training",
-    eyebrow: "Embeddings · Bengio et al. · 2003",
+    eyebrow: "Embeddings · Next-token prediction",
     title: "Neural Language Models",
     thesis:
       "What the model learns about one word can help it predict related words, instead of treating every context as unrelated.",

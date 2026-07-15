@@ -543,11 +543,6 @@ export function ParagraphSection({ lesson }: { lesson: CourseLesson }) {
             <p key={paragraph.label}><strong>{paragraph.label}</strong> {paragraph.body}</p>
           ))}
         </div> : null}
-        <dl className="fidelity-record summary-boundary">
-          <div><dt>What the source says</dt><dd>{lesson.claims.paper}</dd></div>
-          <div><dt>What this browser lab shows</dt><dd>{lesson.claims.lab}</dd></div>
-          <div><dt>What it doesn’t cover</dt><dd>{lesson.claims.limit}</dd></div>
-        </dl>
       </div>
     </section>
   );

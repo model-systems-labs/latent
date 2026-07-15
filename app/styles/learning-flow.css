@@ -876,14 +876,7 @@ button:disabled {
   padding-left: 2.2rem;
 }
 
-.summary-boundary {
-  border-bottom: 1px solid var(--line);
-  margin-top: 2.5rem;
-  max-width: none;
-}
-
-.concept-diagram,
-.fidelity-record {
+.concept-diagram {
   background: transparent;
   border: 0;
   border-radius: 0;
@@ -2538,21 +2531,6 @@ button:disabled {
   padding: 1rem 0 0;
 }
 
-.fidelity-record > div {
-  display: grid;
-  gap: 0.45rem;
-  padding: 1rem 0;
-}
-
-.fidelity-record > div:first-child {
-  border-top: 1px solid var(--line);
-}
-
-.fidelity-record > div + div {
-  border-top: 1px solid var(--line);
-}
-
-.fidelity-record dt,
 .dataset-record dt {
   color: var(--diagram-accent);
   font-size: max(0.68rem, 11px);
@@ -2560,7 +2538,6 @@ button:disabled {
   text-transform: uppercase;
 }
 
-.fidelity-record dd,
 .dataset-record dd {
   color: var(--muted);
   font-family: var(--serif);

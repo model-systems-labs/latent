@@ -67,8 +67,8 @@ test("summary prose owns the reading flow and the mechanism follows the concepts
   const opening = paperLab.indexOf("{opening.map");
   const diagram = paperLab.indexOf('<div className="summary-interlude">');
   const closing = paperLab.indexOf("{closing.length ?");
-  const boundary = paperLab.indexOf('<dl className="fidelity-record summary-boundary">');
-  assert.ok(opening >= 0 && opening < diagram && diagram < closing && closing < boundary);
+  assert.ok(opening >= 0 && opening < diagram && diagram < closing);
+  assert.doesNotMatch(paperLab, /fidelity-record|summary-boundary|What the source says|What this browser lab shows|What it doesn.t cover/);
   assert.match(paperLab, /const diagramAfter = Math\.max\(1, lesson\.summary\.length - 1\)/);
 });
 
@@ -80,7 +80,7 @@ test("lesson prose, diagrams, contextual help, code, and outcomes share one edit
     readFile(productizationUrl, "utf8"),
   ]);
   assert.match(learningFlow, /\.paper-page\s*\{\s*max-width:\s*60rem/);
-  for (const selector of [".paper-hero", ".paper-thesis", ".source-set", ".section-title", ".summary-reading", ".summary-copy", ".implementation-intro", ".summary-boundary"]) {
+  for (const selector of [".paper-hero", ".paper-thesis", ".source-set", ".section-title", ".summary-reading", ".summary-copy", ".implementation-intro"]) {
     assert.match(rule(learningFlow, selector), /max-width:\s*none/, selector);
   }
   assert.match(rule(codingWorkspace, ".practice-editor"), /max-width:\s*none/);

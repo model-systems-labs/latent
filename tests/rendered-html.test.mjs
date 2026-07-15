@@ -285,7 +285,7 @@ test("the consent-gated local model runtime has a statically prebundled client b
   assert.doesNotMatch(experiment, /await import\("@huggingface\/transformers"\)/);
   assert.match(runtimeBoundary, /export \{ pipeline \} from "@huggingface\/transformers"/);
   assert.match(viteConfig, /optimizeDeps:\s*\{/);
-  assert.match(viteConfig, /include: \["@huggingface\/transformers", "@codemirror\/lang-python"\]/);
+  assert.match(viteConfig, /include: \["@huggingface\/transformers", "@codemirror\/autocomplete", "@codemirror\/lang-python"\]/);
 });
 
 test("the capstone contains the complete React chat system", async () => {

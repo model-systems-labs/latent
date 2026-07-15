@@ -4,6 +4,7 @@ import { test } from "node:test";
 
 const executionUrl = new URL("../app/features/ide/PythonExecution.tsx", import.meta.url);
 const editorUrl = new URL("../app/features/ide/PythonCodeEditor.tsx", import.meta.url);
+const autocompleteUrl = new URL("../app/features/ide/autocomplete.ts", import.meta.url);
 const workbenchUrl = new URL("../app/components/ProjectWorkbench.tsx", import.meta.url);
 const pythonCssUrl = new URL("../app/styles/python-runtime.css", import.meta.url);
 const responsiveCssUrl = new URL("../app/styles/responsive.css", import.meta.url);
@@ -66,8 +67,9 @@ test("the project tree surfaces Python once without changing lesson completion s
 });
 
 test("the Python editor has native syntax highlighting and the same keyboard escape hatch", async () => {
-  const [source, viteConfig] = await Promise.all([
+  const [source, autocomplete, viteConfig] = await Promise.all([
     readFile(editorUrl, "utf8"),
+    readFile(autocompleteUrl, "utf8"),
     readFile(viteConfigUrl, "utf8"),
   ]);
   assert.match(source, /import \{ python \} from "@codemirror\/lang-python"/);
@@ -75,10 +77,19 @@ test("the Python editor has native syntax highlighting and the same keyboard esc
   assert.match(source, /syntaxHighlighting\(pythonSyntaxTheme\)/);
   assert.match(source, /EditorState\.tabSize\.of\(4\)/);
   assert.match(source, /\{ key: "Escape", run: temporarilySetTabFocusMode \}/);
-  assert.match(source, /Python code editor\. Tab indents four spaces\. Press Escape, then Tab, to leave the editor\./);
+  assert.match(source, /pythonCourseCompletions/);
+  assert.match(source, /Suggestions appear as you type\. Press Control-Space to open them/);
+  assert.match(source, /Enter to accept, and Escape to close/);
+  assert.match(source, /Tab indents four spaces/);
+  assert.match(source, /With suggestions closed, press Escape, then Tab, to leave the editor/);
+  assert.match(autocomplete, /pythonLanguage\.data\.of\(\{\s*autocomplete: pythonCourseCompletionSource/);
+  assert.match(autocomplete, /autocompletion\(\{ aboveCursor: true \}\)/);
+  assert.match(autocomplete, /minHeight: "2\.75rem"/);
+  assert.match(autocomplete, /maxHeight: "min\(18rem, 35vh\)"/);
+  assert.match(autocomplete, /"@media \(max-width: 650px\)"[\s\S]*?maxHeight: "min\(11rem, 35vh\)"/);
   assert.match(
     viteConfig,
-    /optimizeDeps:[\s\S]*?include: \[[\s\S]*?"@codemirror\/lang-python"/,
+    /optimizeDeps:[\s\S]*?include: \[[\s\S]*?"@codemirror\/autocomplete"[\s\S]*?"@codemirror\/lang-python"/,
     "the first lazy Python-editor click must not request an unprepared Vite dependency chunk",
   );
 });

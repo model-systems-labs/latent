@@ -60,6 +60,8 @@ function requireDynamicEntry(source, label) {
 enforceLargestCss(180 * 1024);
 enforceAsset("Lesson runtime", /^PaperLab-.*\.js$/, 150 * 1024);
 enforceAsset("Project IDE", /^ProjectWorkbench-.*\.js$/, 560 * 1024);
+enforceAsset("Shared code editor", /^CodeEditor-.*\.js$/, 430 * 1024);
+enforceAsset("Python editor boundary", /^PythonCodeEditor-.*\.js$/, 16 * 1024);
 enforceAsset("Local Transformer runtime", /^local-transformer-runtime-.*\.js$/, 900 * 1024);
 enforceAsset("Training worker", /^model\.worker-.*\.js$/, 950 * 1024);
 enforceAsset("Browser compiler WASM", /^esbuild-.*\.wasm$/, 14 * 1024 * 1024, mib);
@@ -67,6 +69,7 @@ enforceAsset("Transformer WASM", /^ort-wasm-simd-threaded\.jsep-.*\.wasm$/, 22 *
 requireDynamicEntry("app/components/ProjectWorkbench.tsx", "Project IDE loading boundary");
 requireDynamicEntry("app/lib/local-transformer-runtime.ts", "Local Transformer loading boundary");
 requireDynamicEntry("app/features/ide/CodeEditor.tsx", "Lesson editor loading boundary");
+requireDynamicEntry("app/features/ide/PythonCodeEditor.tsx", "Python editor loading boundary");
 
 console.log(measurements.join("\n"));
 

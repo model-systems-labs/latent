@@ -48,7 +48,7 @@ export default defineConfig(async () => {
     // prebundle their static client boundaries so the first click cannot request
     // a dependency chunk Vite never prepared in the RSC development graph.
     optimizeDeps: {
-      include: ["@huggingface/transformers", "@codemirror/lang-python"],
+      include: ["@huggingface/transformers", "@codemirror/autocomplete", "@codemirror/lang-python"],
     },
     server: isCodexSeatbeltSandbox
       ? { watch: { useFsEvents: false, usePolling: true } }

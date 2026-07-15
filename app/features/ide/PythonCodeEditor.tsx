@@ -8,6 +8,7 @@ import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { EditorState, Prec, type Extension } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
+import { editorAutocompleteBehavior, editorAutocompleteTheme, pythonCourseCompletions } from "./autocomplete";
 
 type PythonCodeEditorProps = {
   value: string;
@@ -125,8 +126,11 @@ export function PythonCodeEditor({ value, path, onChange, onSave, readOnly = fal
         extensions: [
           basicSetup,
           python(),
+          readOnly ? [] : pythonCourseCompletions,
           saveKeymap,
           pythonEditorTheme,
+          editorAutocompleteBehavior,
+          editorAutocompleteTheme,
           syntaxHighlighting(pythonSyntaxTheme),
           EditorState.tabSize.of(4),
           EditorState.readOnly.of(readOnly),
@@ -169,7 +173,7 @@ export function PythonCodeEditor({ value, path, onChange, onSave, readOnly = fal
   return (
     <>
       <div className="code-editor python-code-editor" ref={hostRef} />
-      <span className="sr-only" id={instructionId}>Python code editor. Tab indents four spaces. Press Escape, then Tab, to leave the editor.</span>
+      <span className="sr-only" id={instructionId}>Python code editor. Suggestions appear as you type. Press Control-Space to open them, use the arrow keys to navigate, Enter to accept, and Escape to close. Tab indents four spaces. With suggestions closed, press Escape, then Tab, to leave the editor.</span>
     </>
   );
 }

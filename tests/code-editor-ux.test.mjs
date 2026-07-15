@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
 const codeEditorUrl = new URL("../app/features/ide/CodeEditor.tsx", import.meta.url);
+const autocompleteUrl = new URL("../app/features/ide/autocomplete.ts", import.meta.url);
 const projectWorkbenchUrl = new URL("../app/components/ProjectWorkbench.tsx", import.meta.url);
 const capstoneCssUrl = new URL("../app/styles/capstone.css", import.meta.url);
 const productizationCssUrl = new URL("../app/styles/productization.css", import.meta.url);
@@ -81,6 +82,21 @@ test("every declared editor token color clears WCAG AA contrast on the editor ba
   }
 });
 
+test("completion labels and details clear AA in default and selected rows", async () => {
+  const source = await readFile(autocompleteUrl, "utf8");
+  for (const color of ["#2a282d", "#f0ebf2", "#bdb4c0", "#51435f", "#ffffff"]) {
+    assert.match(source, new RegExp(color));
+  }
+  for (const [foreground, background] of [
+    ["#f0ebf2", "#2a282d"],
+    ["#bdb4c0", "#2a282d"],
+    ["#ffffff", "#51435f"],
+    ["#bdb4c0", "#51435f"],
+  ]) {
+    assert.ok(contrastRatio(foreground, background) >= 4.5, `${foreground} must remain readable on ${background}`);
+  }
+});
+
 test("the mobile IDE source contract preserves readable type, bounded scrolling, focus, and touch targets", async () => {
   const [source, responsiveCss] = await Promise.all([
     readFile(codeEditorUrl, "utf8"),
@@ -91,7 +107,7 @@ test("the mobile IDE source contract preserves readable type, bounded scrolling,
   assert.match(source, /import \{ indentWithTab, temporarilySetTabFocusMode \} from "@codemirror\/commands"/);
   assert.match(source, /Prec\.high\(keymap\.of\(\[\s*\{ key: "Escape", run: temporarilySetTabFocusMode \},\s*indentWithTab/);
   assert.match(source, /"aria-describedby":\s*instructionId/);
-  assert.match(source, /const editableEditorInstruction = "Code editor\. Tab indents\. Press Escape, then Tab, to leave the editor\."/);
+  assert.match(source, /const editableEditorInstruction = "Code editor\. Suggestions appear as you type\.[^"]*Press Control-Space[^"]*Enter to accept[^"]*Escape to close[^"]*Tab indents\.[^"]*Escape, then Tab, to leave the editor\."/);
   const readOnlyInstruction = source.match(/const readOnlyEditorInstruction = "([^"]+)"/)?.[1];
   assert.equal(
     readOnlyInstruction,

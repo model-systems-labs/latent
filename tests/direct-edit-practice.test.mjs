@@ -170,7 +170,7 @@ test("external reset and restore updates do not masquerade as learner typing", a
     assert.match(editorSource, /update\.docChanged && !applyingExternalValueRef\.current/);
     assert.match(editorSource, /applyingExternalValueRef\.current = true;[\s\S]*view\.dispatch\([\s\S]*finally \{[\s\S]*applyingExternalValueRef\.current = false;/);
   }
-  assert.match(source, /Press Escape, then Tab, to leave the editor\./, "keyboard users need an explicit escape route");
+  assert.match(source, /With suggestions closed, press Escape, then Tab, to leave the editor\./, "keyboard users need an explicit escape route");
 });
 
 test("the shared lesson editor selects CPython syntax and four-space indentation for Python files", async () => {
@@ -179,5 +179,6 @@ test("the shared lesson editor selects CPython syntax and four-space indentation
   assert.match(source, /import \{ python \} from "@codemirror\/lang-python"/);
   assert.match(source, /const isPython = path\.toLowerCase\(\)\.endsWith\("\.py"\)/);
   assert.match(source, /isPython \? python\(\) : javascript/);
+  assert.match(source, /isPython && !readOnly \? pythonCourseCompletions : \[\]/);
   assert.match(source, /EditorState\.tabSize\.of\(isPython \? 4 : 2\)/);
 });

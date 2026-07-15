@@ -9,6 +9,7 @@ import { EditorState, Prec, type Extension } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers } from "@codemirror/view";
 import { indentWithTab, temporarilySetTabFocusMode } from "@codemirror/commands";
 import { tags } from "@lezer/highlight";
+import { editorAutocompleteBehavior, editorAutocompleteTheme, pythonCourseCompletions } from "./autocomplete";
 
 type CodeEditorProps = {
   value: string;
@@ -110,7 +111,7 @@ const syntaxTheme = HighlightStyle.define([
   { tag: tags.invalid, color: editorPalette.invalid, textDecoration: "underline wavy" },
 ]);
 
-const editableEditorInstruction = "Code editor. Tab indents. Press Escape, then Tab, to leave the editor.";
+const editableEditorInstruction = "Code editor. Suggestions appear as you type. Press Control-Space to open them, use the arrow keys to navigate, Enter to accept, and Escape to close. Tab indents. With suggestions closed, press Escape, then Tab, to leave the editor.";
 const readOnlyEditorInstruction = "Read-only code example. Use the arrow keys to navigate the code. Press Escape, then Tab, to leave the code example.";
 
 export function CodeEditor({ value, path, onChange, onSave, readOnly = false, variant = "project", ariaLabel, lineNumberStart = 1 }: CodeEditorProps) {
@@ -151,8 +152,11 @@ export function CodeEditor({ value, path, onChange, onSave, readOnly = false, va
           basicSetup,
           variant === "lesson" ? lineNumbers({ formatNumber: (line) => String(line + lineNumberStart - 1) }) : [],
           isPython ? python() : javascript({ jsx: /\.[jt]sx$/.test(path), typescript: /\.tsx?$/.test(path) }),
+          isPython && !readOnly ? pythonCourseCompletions : [],
           saveKeymap,
           latentTheme,
+          editorAutocompleteBehavior,
+          editorAutocompleteTheme,
           variant === "lesson" ? lessonTheme : [],
           syntaxHighlighting(syntaxTheme),
           EditorState.tabSize.of(isPython ? 4 : 2),

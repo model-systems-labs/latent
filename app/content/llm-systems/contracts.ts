@@ -118,7 +118,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     cases: [
       {
         id: "one-hot-input",
-        label: "Combines a one-hot input with an empty recurrent state",
+        label: "Combines a one-hot input with an empty hidden state",
         args: [
           [1, 0],
           [0, 0],
@@ -129,14 +129,14 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
           },
         ],
         assertions: [
-          length("state-width", "Returns one value per hidden unit", 2),
-          range("activated-input", "Applies tanh to the active input", 0.7, 0.8, [0]),
+          length("state-width", "Return one value for each hidden unit", 2),
+          range("activated-input", "Apply tanh to the active input", 0.7, 0.8, [0]),
           equal("inactive-unit", "Leaves the inactive unit at zero", 0, [1]),
         ],
       },
       {
         id: "non-empty-recurrent-state",
-        label: "Carries information from the preceding hidden state",
+        label: "Carries information from the previous hidden state",
         args: [
           [0, 0],
           [1, -1],
@@ -170,7 +170,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "off-diagonal-projections",
-        label: "Uses every matrix column in the input and recurrent projections",
+        label: "Uses every matrix column in both projections",
         args: [
           [1, 0],
           [0.5, -1],
@@ -181,8 +181,8 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
           },
         ],
         assertions: [
-          range("mixed-first-unit", "Use the complete Wxh and Whh rows, including off-diagonal weights, before tanh", 0.9413, 0.9414, [0]),
-          range("mixed-second-unit", "Use the complete Wxh and Whh rows, including off-diagonal weights, before tanh", 0.9051, 0.9052, [1]),
+          range("mixed-first-unit", "Use the full Wxh and Whh rows, including off-diagonal weights, before tanh", 0.9413, 0.9414, [0]),
+          range("mixed-second-unit", "Use the full Wxh and Whh rows, including off-diagonal weights, before tanh", 0.9051, 0.9052, [1]),
         ],
       },
     ],
@@ -198,8 +198,8 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
         label: "Assigns low loss to the likely target",
         args: [[0.1, 0.8, 0.1], 1],
         assertions: [
-          finite("finite-loss", "Produces a finite loss"),
-          range("low-loss", "Apply -log to the target probability to produce the expected low loss", 0.22, 0.23),
+          finite("finite-loss", "Return a finite loss"),
+          range("low-loss", "Apply -log to the target probability to get the expected low loss", 0.22, 0.23),
         ],
       },
       {
@@ -230,15 +230,15 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     cases: [
       {
         id: "symmetric-bound",
-        label: "Clips both tails while preserving in-range gradients",
+        label: "Clips both ends and leaves in-range gradients alone",
         args: [[-12, -2, 0, 3, 20], 5],
         assertions: [equal("clipped-values", "Clamp both negative and positive gradients to the symmetric limit", [-5, -2, 0, 3, 5])],
       },
       {
         id: "caller-supplied-limit",
-        label: "Uses the clipping limit supplied by the caller",
+        label: "Uses the clipping limit passed in by the caller",
         args: [[-7, -1, 4, 9], 3],
-        assertions: [equal("alternate-limit", "Clamp with the supplied limit instead of hard-coding the default value 5", [-3, -1, 3, 3])],
+        assertions: [equal("alternate-limit", "Clamp with the limit you were given instead of hard-coding the default value 5", [-3, -1, 3, 3])],
       },
     ],
   }),
@@ -250,7 +250,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     cases: [
       {
         id: "large-logits",
-        label: "Large equal-offset logits must remain finite",
+        label: "Keeps large, equally shifted logits finite",
         args: [[1001, 1000, 999]],
         assertions: [
           length("vocabulary-width", "Return one normalized probability per input logit", 3),
@@ -264,10 +264,10 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "equal-logits",
-        label: "Equal logits must produce a uniform distribution",
+        label: "Turns equal logits into a uniform distribution",
         args: [[5, 5, 5, 5]],
         assertions: [
-          equal("uniform-probabilities", "Exponentiate relative scores before normalizing; equal scores must receive equal probability", [0.25, 0.25, 0.25, 0.25]),
+          equal("uniform-probabilities", "Exponentiate relative scores before normalizing so equal scores get equal probability", [0.25, 0.25, 0.25, 0.25]),
         ],
       },
     ],
@@ -282,7 +282,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
         id: "two-word-average",
         label: "Averages each embedding dimension",
         args: [[0, 1], [[2, 0], [0, 4]]],
-        assertions: [equal("averaged-vector", "Average every selected row coordinate-wise; do not return only the first row or the sum", [1, 2])],
+        assertions: [equal("averaged-vector", "Average every selected row one coordinate at a time; don't return just the first row or the sum", [1, 2])],
       },
       {
         id: "repeated-nonconsecutive-indices",
@@ -362,7 +362,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "unambiguous-pair-identity",
-        label: "Keeps different symbol boundaries distinct",
+        label: "Keeps different symbol boundaries separate",
         args: [[[
           "a", "bc",
         ], ["ab", "c"]]],
@@ -383,7 +383,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
         id: "selected-adjacent-pair",
         label: "Merges only the selected adjacent pair",
         args: [["l", "o", "w", "e", "r"], ["l", "o"]],
-        assertions: [equal("merged-symbols", "Merge the selected neighbors and preserve every surrounding symbol in order", ["lo", "w", "e", "r"])],
+        assertions: [equal("merged-symbols", "Merge the selected neighbors and keep every surrounding symbol in order", ["lo", "w", "e", "r"])],
       },
       {
         id: "repeated-selected-pair",
@@ -450,7 +450,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "key-projection",
-        label: "Uses the learned key projection and signed output vector",
+        label: "Uses the learned key projection and keeps the output vector's signs",
         args: [
           [0, 0],
           [1, 2],
@@ -462,7 +462,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
           },
         ],
         assertions: [
-          range("key-score", "Project key with Wk and preserve every signed component of v", -0.57121, -0.57118),
+          range("key-score", "Project the key with Wk and keep the sign of every component in v", -0.57121, -0.57118),
         ],
       },
       {
@@ -509,12 +509,12 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     cases: [
       {
         id: "ordered-alignment",
-        label: "Normalizes all source-position scores into one distribution",
+        label: "Turns all source-position scores into one distribution",
         args: [[2, 1, 0]],
         assertions: [
-          range("largest-weight", "Apply one softmax across the complete scores array so the three source-position weights sum to 1", 0.66524, 0.66525, [0]),
-          range("middle-weight", "Apply one softmax across the complete scores array so the three source-position weights sum to 1", 0.24472, 0.24474, [1]),
-          range("smallest-weight", "Apply one softmax across the complete scores array so the three source-position weights sum to 1", 0.09002, 0.09004, [2]),
+          range("largest-weight", "Apply one softmax across the whole scores array so the three source-position weights add up to 1", 0.66524, 0.66525, [0]),
+          range("middle-weight", "Apply one softmax across the whole scores array so the three source-position weights add up to 1", 0.24472, 0.24474, [1]),
+          range("smallest-weight", "Apply one softmax across the whole scores array so the three source-position weights add up to 1", 0.09002, 0.09004, [2]),
         ],
       },
       {
@@ -542,8 +542,8 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
         label: "Normalizes a two-position source sequence",
         args: [[0, 0]],
         assertions: [
-          length("two-position-width", "Return one alignment weight per supplied source position", 2),
-          equal("two-position-uniform", "Normalize the complete two-position score array", [0.5, 0.5]),
+          length("two-position-width", "Return one alignment weight for each source position", 2),
+          equal("two-position-uniform", "Normalize the whole two-position score array", [0.5, 0.5]),
         ],
       },
       {
@@ -551,9 +551,9 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
         label: "Normalizes a four-position source sequence",
         args: [[3, 2, 1, 0]],
         assertions: [
-          length("four-position-width", "Return one alignment weight per supplied source position", 4),
-          range("four-position-largest", "Apply softmax across all four supplied source positions", 0.6439, 0.644, [0]),
-          range("four-position-smallest", "Apply softmax across all four supplied source positions", 0.032, 0.0321, [3]),
+          length("four-position-width", "Return one alignment weight for each source position", 4),
+          range("four-position-largest", "Apply softmax across all four source positions", 0.6439, 0.644, [0]),
+          range("four-position-smallest", "Apply softmax across all four source positions", 0.032, 0.0321, [3]),
         ],
       },
     ],
@@ -572,7 +572,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "three-state-context",
-        label: "Preserves state-to-weight correspondence across every coordinate",
+        label: "Keeps each state matched with its weight across every coordinate",
         args: [[[1, 2, 3], [-1, 4, 0], [2, 0, -2]], [0.5, 0.25, 0.25]],
         assertions: [equal("three-state-context", "Multiply each state by its corresponding alpha, then sum coordinate-wise", [0.75, 2, 1])],
       },
@@ -586,7 +586,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     cases: [
       {
         id: "future-token-mask",
-        label: "Preserves visible logits and removes future logits",
+        label: "Keeps visible logits and blocks future logits",
         args: [[[1, 2, 3], [4, 5, 6], [7, 8, 9]]],
         assertions: [
           equal("first-visible-logit", "Keep diagonal and past logits unchanged; write -Infinity only where column > row", 1, [0, 0]),
@@ -616,17 +616,17 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     cases: [
       {
         id: "query-aligned-value",
-        label: "Weights values according to scaled query-key compatibility",
+        label: "Weights values by their scaled query-key match",
         args: [[1, 0], [[1, 0], [0, 1]], [[2, 0], [0, 2]]],
         assertions: [
-          length("output-width", "Preserves the value width", 2),
+          length("output-width", "Keep the value width", 2),
           range("aligned-value", "Divide query-key scores by sqrt(query width) before softmax, then mix the value rows", 1.33, 1.35, [0]),
           range("other-value", "Divide query-key scores by sqrt(query width) before softmax, then mix the value rows", 0.65, 0.67, [1]),
         ],
       },
       {
         id: "key-width-controls-scaling",
-        label: "Uses d_k rather than key count and returns the value-shaped mixture",
+        label: "Uses d_k, not the key count, and returns a value-shaped mix",
         args: [[1, 1, 1, 1], [[1, 0, 0, 0], [0, 0, 0, 0]], [[2, 0, 4], [0, 2, -2]]],
         assertions: [
           length("value-width", "Return the weighted value vector, not the attention probabilities", 3),
@@ -645,10 +645,10 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     cases: [
       {
         id: "four-feature-vector",
-        label: "Centers and scales one token representation",
+        label: "Centers and scales one token vector",
         args: [[1, 2, 3, 4]],
         assertions: [
-          length("normalized-width", "Preserves feature width", 4),
+          length("normalized-width", "Keep the feature width", 4),
           range("first-feature", "Subtract the feature mean, then divide by sqrt(variance + epsilon)", -1.342, -1.341, [0]),
           range("second-feature", "Subtract the feature mean, then divide by sqrt(variance + epsilon)", -0.448, -0.447, [1]),
           range("third-feature", "Subtract the feature mean, then divide by sqrt(variance + epsilon)", 0.447, 0.448, [2]),
@@ -657,21 +657,21 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "constant-vector",
-        label: "Keeps a zero-variance representation finite",
+        label: "Keeps a zero-variance vector finite",
         args: [[5, 5, 5], 0.00001],
         assertions: [
-          length("constant-width", "Preserve feature width", 3),
+          length("constant-width", "Keep the feature width", 3),
           finite("constant-first-finite", "Subtracting the mean gives zeros; epsilon inside sqrt(variance + epsilon) keeps division finite", [0]),
           equal("constant-values", "Subtracting the mean gives zeros; epsilon inside sqrt(variance + epsilon) keeps division finite", [0, 0, 0]),
         ],
       },
       {
         id: "caller-supplied-epsilon",
-        label: "Uses a large caller-supplied epsilon on a nonconstant vector",
+        label: "Uses a large epsilon passed in for a nonconstant vector",
         args: [[1, 3], 1],
         assertions: [
-          range("large-epsilon-first", "Use the supplied epsilon inside sqrt(variance + epsilon) instead of hard-coding the default", -0.708, -0.707, [0]),
-          range("large-epsilon-second", "Use the supplied epsilon inside sqrt(variance + epsilon) instead of hard-coding the default", 0.707, 0.708, [1]),
+          range("large-epsilon-first", "Use the epsilon you were given inside sqrt(variance + epsilon) instead of hard-coding the default", -0.708, -0.707, [0]),
+          range("large-epsilon-second", "Use the epsilon you were given inside sqrt(variance + epsilon) instead of hard-coding the default", 0.707, 0.708, [1]),
         ],
       },
     ],
@@ -686,13 +686,13 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
         id: "ordered-examples",
         label: "Formats examples without changing their order",
         args: [[{ input: "first review", label: "M" }, { input: "second review", label: "K" }]],
-        assertions: [equal("formatted-text", "Preserve example order and use Input then Label with one blank line between records", "Input: first review\nLabel: M\n\nInput: second review\nLabel: K")],
+        assertions: [equal("formatted-text", "Keep the examples in order and use Input then Label with one blank line between records", "Input: first review\nLabel: M\n\nInput: second review\nLabel: K")],
       },
       {
         id: "trimmed-and-empty-inputs",
         label: "Trims field edges without dropping an empty input record",
         args: [[{ input: "  spaced review  ", label: " K " }, { input: "   ", label: "M" }]],
-        assertions: [equal("empty-input-record", "Trim input and label edges, retain every record, and keep exactly one blank line between them", "Input: spaced review\nLabel: K\n\nInput: \nLabel: M")],
+        assertions: [equal("empty-input-record", "Trim the input and label edges, keep every record, and put exactly one blank line between them", "Input: spaced review\nLabel: K\n\nInput: \nLabel: M")],
       },
     ],
   }),
@@ -704,7 +704,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     cases: [
       {
         id: "zero-shot-prompt",
-        label: "Builds a zero-shot prompt without a phantom demonstration",
+        label: "Builds a zero-shot prompt without adding a fake example",
         args: [{ instruction: "  Return K or M.  ", demonstrations: "   \n ", query: "  The same held-out review.  " }],
         assertions: [equal("prompt", "Keep the trimmed instruction, omit a whitespace-only demonstration section, and finish the held-out query with Label:", "Return K or M.\n\nInput: The same held-out review.\nLabel:")],
       },
@@ -716,9 +716,9 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "few-shot-prompt",
-        label: "Keeps a multi-example demonstration block intact",
+        label: "Keeps a multi-example demo block together",
         args: [{ instruction: "Return K or M.", demonstrations: "Input: Example one.\nLabel: K\n\nInput: Example two.\nLabel: M", query: "The same held-out review." }],
-        assertions: [equal("few-shot-sections", "Change only the demonstration block; preserve the identical instruction and terminal held-out query", "Return K or M.\n\nInput: Example one.\nLabel: K\n\nInput: Example two.\nLabel: M\n\nInput: The same held-out review.\nLabel:")],
+        assertions: [equal("few-shot-sections", "Change only the demo block; keep the instruction and final held-out query exactly the same", "Return K or M.\n\nInput: Example one.\nLabel: K\n\nInput: Example two.\nLabel: M\n\nInput: The same held-out review.\nLabel:")],
       },
     ],
   }),
@@ -754,7 +754,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "lowercase-label",
-        label: "Keeps the predeclared label casing exact",
+        label: "Keeps the allowed label's capitalization exact",
         args: ["the label is k", "K"],
         assertions: [equal("label-case", "Do not normalize model output casing during exact-match extraction", { predicted: null, passed: false })],
       },
@@ -780,30 +780,30 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     cases: [
       {
         id: "multi-token-output",
-        label: "Counts the first generated token as a prefill sample",
+        label: "Samples the first generated token from the prefill logits",
         args: [96, 32],
         assertions: [
           equal("prefill-count", "Keep all prompt tokens in the parallel prefill phase", 96, ["prefillTokens"]),
           equal("generated-count", "Report all 32 requested output tokens as generated", 32, ["generatedTokens"]),
-          equal("decode-forwards", "Use 31 subsequent decode forwards because prefill logits sample token 1", 31, ["decodeForwards"]),
-          equal("processed-positions", "Count prompt positions plus only the 31 subsequent decode inputs", 127, ["processedTokenPositions"]),
+          equal("decode-forwards", "Use 31 later decode passes because the prefill logits sample token 1", 31, ["decodeForwards"]),
+          equal("processed-positions", "Count the prompt positions plus only the 31 later decode inputs", 127, ["processedTokenPositions"]),
           equal("final-length", "Count prompt plus all generated tokens in the final sequence", 128, ["finalSequenceLength"]),
         ],
       },
       {
         id: "one-token-output",
-        label: "Produces one token directly from prefill logits",
+        label: "Gets one token straight from the prefill logits",
         args: [12, 1],
         assertions: [
-          equal("single-generated", "Report the one token sampled from prefill logits", 1, ["generatedTokens"]),
-          equal("no-followup-decode", "Use zero subsequent decode forwards for a one-token output", 0, ["decodeForwards"]),
+          equal("single-generated", "Report the one token sampled from the prefill logits", 1, ["generatedTokens"]),
+          equal("no-followup-decode", "Use zero later decode passes for a one-token output", 0, ["decodeForwards"]),
           equal("single-processed-positions", "Do not count the final sampled token as another processed input", 12, ["processedTokenPositions"]),
           equal("single-final-length", "Include the sampled token in final sequence length", 13, ["finalSequenceLength"]),
         ],
       },
       {
         id: "zero-token-output",
-        label: "Clamps the subsequent decode count at zero",
+        label: "Stops the later decode count at zero",
         args: [7, 0],
         assertions: [
           equal("zero-generated", "Report zero generated tokens for a zero-token budget", 0, ["generatedTokens"]),
@@ -828,13 +828,13 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "all-layers",
-        label: "Allocates cache at every Transformer layer",
+        label: "Sets aside cache at every Transformer layer",
         args: [{ layers: 3, kvHeads: 1, headDimension: 1, tokens: 1, bytesPerValue: 1 }],
         assertions: [equal("layer-factor", "Scale the key and value cache by all 3 layers", 6)],
       },
       {
         id: "kv-heads-not-query-heads",
-        label: "Uses the grouped-query model's KV-head count",
+        label: "Uses the grouped-query model's number of KV heads",
         args: [{ layers: 1, kvHeads: 5, headDimension: 1, tokens: 1, bytesPerValue: 1 }],
         assertions: [equal("kv-head-factor", "Scale by kvHeads; do not assume this equals the query-head count", 10)],
       },
@@ -852,7 +852,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "fp16-cache",
-        label: "Combines every factor for an FP16 cache",
+        label: "Puts every factor together for an FP16 cache",
         args: [{ layers: 4, kvHeads: 8, headDimension: 16, tokens: 100, bytesPerValue: 2 }],
         assertions: [equal("complete-byte-count", "Use 2 × layers × KV heads × tokens × head dimension × bytes per value", 204800)],
       },
@@ -866,7 +866,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     cases: [
       {
         id: "token-frame",
-        label: "Serializes a token event and JSON payload",
+        label: "Turns a token event and JSON payload into an SSE frame",
         args: ["token", { delta: "hi" }],
         assertions: [
           matches("event-line", "Begin the frame with the requested event: field", "^event: token\\n"),
@@ -876,13 +876,13 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "typed-done-frame",
-        label: "Preserves event type instead of hard-coding token",
+        label: "Keeps the event type instead of hard-coding token",
         args: ["done", { reason: "stop" }],
         assertions: [equal("done-frame", "Use the event argument for every event type", "event: done\ndata: {\"reason\":\"stop\"}\n\n")],
       },
       {
         id: "escaped-error-payload",
-        label: "Escapes payload newlines and quotes without corrupting framing",
+        label: "Escapes payload newlines and quotes without breaking the frame",
         args: ["error", { message: "line 1\n\"quoted\"" }],
         assertions: [equal("escaped-frame", "Let json.dumps escape payload text; do not concatenate object values by hand", "event: error\ndata: {\"message\":\"line 1\\n\\\"quoted\\\"\"}\n\n")],
       },
@@ -902,16 +902,16 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     cases: [
       {
         id: "incomplete-frame",
-        label: "Retains an incomplete frame without emitting an event",
+        label: "Holds onto an incomplete frame without sending an event",
         args: ["", "event: token\ndata: {\"delta\":\"h"],
-        assertions: [equal("partial-result", "Wait for a blank-line delimiter; return no event and preserve the partial decoded text", {
+        assertions: [equal("partial-result", "Wait for a blank-line delimiter; return no event and keep the partial decoded text", {
           events: [],
           remainder: "event: token\ndata: {\"delta\":\"h",
         })],
       },
       {
         id: "continued-frame",
-        label: "Completes a frame carried across a chunk boundary",
+        label: "Finishes a frame split across two chunks",
         args: ["event: token\ndata: {\"delta\":\"h", "i\"}\n\n"],
         assertions: [equal("complete-result", "Prepend the previous remainder before looking for complete frames", {
           events: [{ event: "token", data: { delta: "hi" } }],
@@ -920,7 +920,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "split-frame-delimiter",
-        label: "Recognizes a blank-line delimiter split between chunks",
+        label: "Finds a blank-line separator split between chunks",
         args: ["event: token\ndata: {\"delta\":\"!\"}\n", "\n"],
         assertions: [equal("split-delimiter-result", "Detect the blank line after combining remainder and chunk, even when each newline arrived separately", {
           events: [{ event: "token", data: { delta: "!" } }],
@@ -929,7 +929,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "multiple-frames-and-remainder",
-        label: "Emits every complete frame and carries only the unfinished suffix",
+        label: "Returns every complete frame and keeps only the unfinished ending",
         args: ["", "event: token\ndata: {\"delta\":\"a\"}\n\nevent: done\ndata: {}\n\nevent: metrics\ndata: {\"tok"],
         assertions: [equal("multiple-result", "Process all complete frames in order; do not stop after the first frame", {
           events: [
@@ -941,7 +941,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "default-event-and-tight-fields",
-        label: "Supports default message events and fields without a space",
+        label: "Handles default message events and fields with no space",
         args: ["", "data:{\"ok\":true}\n\n"],
         assertions: [equal("default-event-result", "Remove at most one optional field-value space and use message when event: is absent", {
           events: [{ event: "message", data: { ok: true } }],
@@ -950,7 +950,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "crlf-frame",
-        label: "Parses a CRLF-delimited JSON event",
+        label: "Reads a JSON event separated with CRLF",
         args: ["", "event: done\r\ndata: {}\r\n\r\n"],
         assertions: [equal("crlf-result", "Treat CRLF blank lines as frame delimiters rather than leaving carriage returns in field values", {
           events: [{ event: "done", data: {} }],
@@ -967,7 +967,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     cases: [
       {
         id: "zero-tokens",
-        label: "Allocates no storage for an empty sequence",
+        label: "Uses no storage for an empty sequence",
         args: [0, 16],
         assertions: [equal("empty-allocation", "Return zero pages, zero capacity, and zero waste when tokens is zero; do not add a page unconditionally", {
           pages: 0,
@@ -977,7 +977,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "exact-page-boundary",
-        label: "Does not allocate an extra page at an exact boundary",
+        label: "Doesn't add an extra page at an exact boundary",
         args: [32, 16],
         assertions: [
           equal("exact-pages", "Exact multiples need tokens / pageSize pages; do not add an extra page", 2, ["pages"]),
@@ -987,7 +987,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "one-over-boundary",
-        label: "Allocates a final page for the first token past a boundary",
+        label: "Adds a final page for the first token past a boundary",
         args: [33, 16],
         assertions: [
           equal("partial-pages", "Use ceiling division so any remainder allocates one final page", 3, ["pages"]),
@@ -997,7 +997,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "bounded-final-page-waste",
-        label: "Bounds fragmentation to the unused part of the final page",
+        label: "Keeps wasted space inside the unused part of the last page",
         args: [47, 16],
         assertions: [
           equal("bounded-capacity", "Compute capacity as pages × pageSize before measuring waste", 48, ["capacity"]),
@@ -1015,28 +1015,28 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     cases: [
       {
         id: "empty-iteration",
-        label: "Returns both scheduler lanes for an empty iteration",
+        label: "Returns both scheduler lanes for an empty step",
         args: [[]],
-        assertions: [equal("empty-lanes", "Return an object with separate active and completed arrays so the scheduler can retain completion identities", {
+        assertions: [equal("empty-lanes", "Return separate active and completed arrays so the scheduler can keep the IDs of finished requests", {
           active: [],
           completed: [],
         })],
       },
       {
         id: "advance-every-request",
-        label: "Advances every eligible request exactly once",
+        label: "Moves every eligible request forward exactly once",
         args: [[
           { id: "a", remaining: 2, generated: 0, tenant: "red" },
           { id: "b", remaining: 3, generated: 4, tenant: "blue" },
         ]],
-        assertions: [equal("all-active", "Advance every request whose remaining count is positive by exactly one token; preserve order and metadata", [
+        assertions: [equal("all-active", "Move every request with work left forward by exactly one token, and keep its order and metadata", [
           { id: "a", remaining: 1, generated: 1, tenant: "red" },
           { id: "b", remaining: 2, generated: 5, tenant: "blue" },
         ], ["active"])],
       },
       {
         id: "route-completed-request",
-        label: "Separates newly completed work without losing its identity",
+        label: "Separates newly finished work without losing its ID",
         args: [[
           { id: "a", remaining: 1, generated: 0, pages: [2, 7] },
           { id: "b", remaining: 3, generated: 2, pages: [4] },
@@ -1045,21 +1045,21 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
           equal("surviving-active", "Keep advanced requests with remaining work in active", [
             { id: "b", remaining: 2, generated: 3, pages: [4] },
           ], ["active"]),
-          equal("completed-identity", "Move a request that reaches zero into completed with its identity and metadata intact so pages and latency can be accounted", [
+          equal("completed-identity", "Move a request that reaches zero into completed with its ID and metadata intact so pages and latency can still be counted", [
             { id: "a", remaining: 0, generated: 1, pages: [2, 7] },
           ], ["completed"]),
         ],
       },
       {
         id: "already-zero-and-one-token",
-        label: "Does not decode work that was already complete",
+        label: "Doesn't decode work that was already finished",
         args: [[
           { id: "already-done", remaining: 0, generated: 8, finishedAt: 12 },
           { id: "last-token", remaining: 1, generated: 5, finishedAt: null },
         ]],
         assertions: [
           equal("no-active-work", "A zero-token and one-token mix leaves no request active after this iteration", [], ["active"]),
-          equal("zero-token-unchanged", "Do not increment a request whose remaining count was already zero; preserve its metadata and then append the request completed in this iteration", [
+          equal("zero-token-unchanged", "Don't increment a request that already had no work left; keep its metadata, then add the request finished in this step", [
             { id: "already-done", remaining: 0, generated: 8, finishedAt: 12 },
             { id: "last-token", remaining: 0, generated: 6, finishedAt: null },
           ], ["completed"]),
@@ -1075,19 +1075,19 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     cases: [
       {
         id: "transient-before-output",
-        label: "Retries the first transient attempt before visible output",
+        label: "Retries the first temporary failure before any output appears",
         args: [{ transient: true, tokensEmitted: 0, attempt: 0 }],
         assertions: [equal("retry", "Return true when the first attempt failed transiently, emitted nothing, and the default two-attempt budget has room", true)],
       },
       {
         id: "permanent-before-output",
-        label: "Rejects a permanent failure before visible output",
+        label: "Doesn't retry a permanent failure before visible output",
         args: [{ transient: false, tokensEmitted: 0, attempt: 0, maxAttempts: 3 }],
         assertions: [equal("permanent-no-retry", "Return false for a non-transient failure even when no token is visible and attempts remain", false)],
       },
       {
         id: "transient-after-output",
-        label: "Closes the transparent-retry boundary after visible output",
+        label: "Stops automatic retries once output is visible",
         args: [{ transient: true, tokensEmitted: 1, attempt: 0, maxAttempts: 3 }],
         assertions: [equal("no-retry", "Return false once tokensEmitted is greater than zero; retrying could duplicate text the user already saw", false)],
       },
@@ -1099,19 +1099,19 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "single-attempt-budget",
-        label: "Honors a one-attempt budget",
+        label: "Respects a one-attempt limit",
         args: [{ transient: true, tokensEmitted: 0, attempt: 0, maxAttempts: 1 }],
         assertions: [equal("single-attempt", "Return false when maxAttempts is 1 because the initial attempt consumed the entire budget", false)],
       },
       {
         id: "custom-three-attempt-budget",
-        label: "Honors a larger custom attempt budget",
+        label: "Respects a larger custom attempt limit",
         args: [{ transient: true, tokensEmitted: 0, attempt: 1, maxAttempts: 3 }],
-        assertions: [equal("custom-budget", "Use the supplied maxAttempts value: attempt 1 may retry once when the total budget is 3", true)],
+        assertions: [equal("custom-budget", "Use the maxAttempts value you were given: attempt 1 may retry once when the total limit is 3", true)],
       },
       {
         id: "default-two-attempt-boundary",
-        label: "Applies the default two-attempt budget at its boundary",
+        label: "Applies the default two-attempt limit at the boundary",
         args: [{ transient: true, tokensEmitted: 0, attempt: 1 }],
         assertions: [equal("default-budget", "Apply the default maxAttempts of 2, making zero-based attempt 1 the final attempt", false)],
       },
@@ -1120,26 +1120,26 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
   defineExerciseContract({
     lessonId: "reliability-observability",
     blockId: "terminal-guard",
-    label: "Terminal-state guard",
+    label: "Finished-request guard",
     exportName: "acceptEvent",
     cases: [
       {
         id: "late-completion-event",
-        label: "Rejects an event after completion",
+        label: "Ignores an event after the request finishes",
         args: [{ attemptId: "a1", requestId: "r1", status: "complete" }, { attemptId: "a1", requestId: "r1" }],
-        assertions: [equal("late-rejected", "Return false after complete; terminal requests cannot accept another event", false)],
+        assertions: [equal("late-rejected", "Return false after complete; a finished request can't accept another event", false)],
       },
       {
         id: "late-error-event",
-        label: "Rejects an event after error",
+        label: "Ignores an event after an error",
         args: [{ attemptId: "a1", requestId: "r1", status: "error" }, { attemptId: "a1", requestId: "r1" }],
-        assertions: [equal("error-rejected", "Return false after error; terminal requests cannot accept another event", false)],
+        assertions: [equal("error-rejected", "Return false after error; a finished request can't accept another event", false)],
       },
       {
         id: "late-cancel-event",
-        label: "Rejects an event after cancellation",
+        label: "Ignores an event after cancellation",
         args: [{ attemptId: "a1", requestId: "r1", status: "cancelled" }, { attemptId: "a1", requestId: "r1" }],
-        assertions: [equal("cancel-rejected", "Return false after cancelled; terminal requests cannot accept another event", false)],
+        assertions: [equal("cancel-rejected", "Return false after cancelled; a finished request can't accept another event", false)],
       },
       {
         id: "matching-active-event",
@@ -1149,31 +1149,31 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "matching-prefill-event",
-        label: "Accepts an event during a pre-token active phase",
+        label: "Accepts an event during an active phase before the first token",
         args: [{ attemptId: "a2", requestId: "r2", status: "prefill" }, { attemptId: "a2", requestId: "r2" }],
         assertions: [equal("prefill-accepted", "Treat prefill as active when the event carries matching attempt and transport identities", true)],
       },
       {
         id: "stale-attempt-event",
-        label: "Rejects a retired attempt even when the logical request and transport match",
+        label: "Ignores an old attempt even when the request and transport match",
         args: [
           { logicalRequestId: "logical-201", attemptId: "a-201.2", requestId: "transport-201", status: "streaming" },
           { logicalRequestId: "logical-201", attemptId: "a-201.1", requestId: "transport-201" },
         ],
-        assertions: [equal("stale-rejected", "Compare request.attemptId with event.attemptId; a stable logical request id must not let a retired attempt mutate the active one", false)],
+        assertions: [equal("stale-rejected", "Compare request.attemptId with event.attemptId; sharing one logical request ID must not let an old attempt change the active one", false)],
       },
       {
         id: "stale-transport-event",
-        label: "Rejects an event from a retired transport within the active attempt",
+        label: "Ignores an event from an old transport in the active attempt",
         args: [
           { attemptId: "a2", requestId: "transport-2", status: "streaming" },
           { attemptId: "a2", requestId: "transport-1" },
         ],
-        assertions: [equal("transport-rejected", "Compare request.requestId with event.requestId so the transport lifecycle remains explicit within an attempt", false)],
+        assertions: [equal("transport-rejected", "Compare request.requestId with event.requestId so each attempt stays tied to the right transport", false)],
       },
       {
         id: "unknown-state-event",
-        label: "Rejects an event for an unknown non-active state",
+        label: "Ignores an event in an unknown inactive state",
         args: [{ attemptId: "a2", requestId: "r2", status: "reconnecting" }, { attemptId: "a2", requestId: "r2" }],
         assertions: [equal("unknown-rejected", "Accept only the known active states queued, loading, prefill, and streaming; return false for unknown states", false)],
       },
@@ -1187,9 +1187,9 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     cases: [
       {
         id: "message-defaults",
-        label: "Creates a message with explicit defaults",
+        label: "Creates a message with clear defaults",
         args: [{ id: "m-user-9", role: "user" }],
-        assertions: [equal("message-defaults", "Return exactly the normalized fields; default content to empty, status to complete, attemptId and requestId to null, and createdAt to zero", {
+        assertions: [equal("message-defaults", "Return only the standard fields. Start with empty content, complete status, null attemptId and requestId, and createdAt set to zero", {
           id: "m-user-9",
           role: "user",
           content: "",
@@ -1201,9 +1201,9 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "supplied-streaming-message",
-        label: "Preserves supplied content and lifecycle status",
+        label: "Keeps the content and status it was given",
         args: [{ id: "m-assistant-27", role: "assistant", content: "A causal", status: "streaming", attemptId: "a-27.2", requestId: "r-27.2" }],
-        assertions: [equal("supplied-fields", "Preserve the supplied message, attempt, and request identities with content and status", {
+        assertions: [equal("supplied-fields", "Keep the message, attempt, and request IDs along with their content and status", {
           id: "m-assistant-27",
           role: "assistant",
           content: "A causal",
@@ -1215,9 +1215,9 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "stable-field-set",
-        label: "Keeps the normalized record independent of render position",
+        label: "Keeps saved message data separate from its render position",
         args: [{ id: "stable-id-not-index-2", role: "system", content: "Be concise.", status: "complete", renderIndex: 2 }],
-        assertions: [equal("stable-record", "Copy the stable id and the four domain fields only; do not persist renderIndex or other caller-only properties", {
+        assertions: [equal("stable-record", "Copy only the stable ID and four message fields. Don't save renderIndex or other caller-only data", {
           id: "stable-id-not-index-2",
           role: "system",
           content: "Be concise.",
@@ -1229,9 +1229,9 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "serializable-record",
-        label: "Returns deterministic JSON data",
+        label: "Returns stable JSON data",
         args: [{ id: "m1", role: "assistant", status: "streaming", attemptId: "a1", requestId: "r1" }],
-        assertions: [equal("message", "Use the deterministic numeric createdAt field from the reference record", {
+        assertions: [equal("message", "Use the stable numeric createdAt value from the reference record", {
           id: "m1",
           role: "assistant",
           content: "",
@@ -1251,13 +1251,13 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     cases: [
       {
         id: "targeted-middle-message",
-        label: "Updates only the matching active attempt and request",
+        label: "Updates only the active attempt and request that match",
         args: [[
           { id: "before", attemptId: "a0", requestId: "r0", content: "keep", status: "streaming" },
           { id: "a", attemptId: "a1", requestId: "r1", content: "Hel", status: "streaming" },
           { id: "b", attemptId: "a2", requestId: "r2", content: "fixed", status: "complete" },
         ], { messageId: "a", attemptId: "a1", requestId: "r1", delta: "lo" }],
-        assertions: [equal("messages", "Match messageId, attemptId, and requestId, append the delta, and preserve every untargeted record", [
+        assertions: [equal("messages", "Match messageId, attemptId, and requestId, append the delta, and leave every other record alone", [
           { id: "before", attemptId: "a0", requestId: "r0", content: "keep", status: "streaming" },
           { id: "a", attemptId: "a1", requestId: "r1", content: "Hello", status: "streaming" },
           { id: "b", attemptId: "a2", requestId: "r2", content: "fixed", status: "complete" },
@@ -1277,7 +1277,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "stale-attempt",
-        label: "Rejects a late delta from a retired generation attempt",
+        label: "Ignores a late delta from an old generation attempt",
         args: [[
           { id: "a", attemptId: "a2", requestId: "r2", content: "new", status: "streaming" },
         ], { messageId: "a", attemptId: "a1", requestId: "r2", delta: " stale" }],
@@ -1287,7 +1287,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "stale-request",
-        label: "Rejects a late delta from a retired transport request",
+        label: "Ignores a late delta from an old transport request",
         args: [[
           { id: "a", attemptId: "a2", requestId: "r2", content: "new", status: "streaming" },
         ], { messageId: "a", attemptId: "a2", requestId: "r1", delta: " stale" }],
@@ -1329,7 +1329,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     cases: [
       {
         id: "ordered-token-burst",
-        label: "Flushes every read-only queued delta in exact order",
+        label: "Flushes every queued delta in the exact order it arrived",
         args: [["Hel", "lo", " ", "world"]],
         assertions: [equal("flushed-buffer", "Join every queued delta with no inserted separator, then return a fresh empty remaining queue", {
           text: "Hello world",
@@ -1338,16 +1338,16 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "whitespace-and-unicode",
-        label: "Preserves empty, whitespace, newline, and Unicode deltas",
+        label: "Keeps empty, whitespace, newline, and Unicode deltas unchanged",
         args: [["", " leading", "\n", "€", " ", "尾"]],
-        assertions: [equal("exact-text", "Preserve each delta exactly as Python text, including whitespace and Unicode", {
+        assertions: [equal("exact-text", "Keep each delta exactly as Python text, including whitespace and Unicode", {
           text: " leading\n€ 尾",
           remaining: [],
         })],
       },
       {
         id: "empty-queue",
-        label: "Flushes an empty queue without inventing text",
+        label: "Flushes an empty queue without making up text",
         args: [[]],
         assertions: [equal("empty-flush", "Return empty text and an empty remaining queue when no deltas are pending", {
           text: "",
@@ -1391,25 +1391,25 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "reader-scrolled-up",
-        label: "Preserves reader control after a manual scroll",
+        label: "Lets the reader stay in control after scrolling up",
         args: [{ distanceFromBottom: 24, userScrolledUp: true }],
-        assertions: [equal("does-not-follow", "Let userScrolledUp override a near-bottom distance so manual reading is never pulled away", false)],
+        assertions: [equal("does-not-follow", "Let userScrolledUp override a near-bottom distance so the page never yanks someone away from what they're reading", false)],
       },
       {
         id: "custom-threshold-inside",
-        label: "Uses a supplied custom threshold at its boundary",
+        label: "Uses a custom threshold at its boundary",
         args: [{ distanceFromBottom: 12, userScrolledUp: false, threshold: 12 }],
-        assertions: [equal("custom-inside", "Use the supplied threshold instead of a fixed 80-pixel value", true)],
+        assertions: [equal("custom-inside", "Use the threshold you were given instead of a fixed 80-pixel value", true)],
       },
       {
         id: "custom-threshold-outside",
-        label: "Stops beyond a supplied custom threshold",
+        label: "Stops past a custom threshold",
         args: [{ distanceFromBottom: 13, userScrolledUp: false, threshold: 12 }],
-        assertions: [equal("custom-outside", "Compare distanceFromBottom with the supplied threshold on every call", false)],
+        assertions: [equal("custom-outside", "Compare distanceFromBottom with the provided threshold on every call", false)],
       },
       {
         id: "zero-threshold",
-        label: "Honors an explicit zero threshold",
+        label: "Respects a threshold of exactly zero",
         args: [{ distanceFromBottom: 0, userScrolledUp: false, threshold: 0 }],
         assertions: [equal("zero-boundary", "Do not replace an explicit threshold of zero with the default", true)],
       },
@@ -1423,7 +1423,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     cases: [
       {
         id: "newest-complete-turns",
-        label: "Retains required inputs and the newest complete turn that fits",
+        label: "Keeps the required inputs and newest complete turn that fits",
         args: [{
           system: [{ id: "s", role: "system", tokens: 4 }],
           history: [
@@ -1435,7 +1435,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
           activeUser: { id: "u3", role: "user", status: "complete", tokens: 2 },
           budget: 14,
         }],
-        assertions: [equal("selection", "Keep required system and active-user records, admit complete pairs newest-first, and return the exact chronological request", {
+        assertions: [equal("selection", "Keep the required system and active-user records, add complete pairs from newest to oldest, then return the request in time order", {
           selected: [
             { id: "s", role: "system", tokens: 4 },
             { id: "u2", role: "user", status: "complete", tokens: 4 },
@@ -1448,7 +1448,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "skip-oversized-newer-turn",
-        label: "Skips an oversized newer pair and still admits an older pair that fits",
+        label: "Skips a newer pair that's too large but still adds an older pair that fits",
         args: [{
           system: [{ id: "s", role: "system", tokens: 2 }],
           history: [
@@ -1460,7 +1460,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
           activeUser: { id: "u-active", role: "user", status: "complete", tokens: 2 },
           budget: 10,
         }],
-        assertions: [equal("continue-after-skip", "When a newer complete pair is too large, continue examining older complete pairs instead of stopping selection", {
+        assertions: [equal("continue-after-skip", "When a newer complete pair is too large, keep checking older complete pairs instead of stopping", {
           selected: [
             { id: "s", role: "system", tokens: 2 },
             { id: "u-old", role: "user", status: "complete", tokens: 3 },
@@ -1473,7 +1473,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "never-admit-half-of-pair",
-        label: "Drops a complete pair when only one individual message would fit",
+        label: "Drops a complete pair when only one of its messages would fit",
         args: [{
           system: [{ id: "s", role: "system", tokens: 2 }],
           history: [
@@ -1483,7 +1483,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
           activeUser: { id: "u-active", role: "user", status: "complete", tokens: 2 },
           budget: 9,
         }],
-        assertions: [equal("atomic-turn", "Measure and admit the user-assistant pair as one atomic unit; never retain just the user or just the assistant because one message fits", {
+        assertions: [equal("atomic-turn", "Measure and add the user-assistant pair as one unit. Never keep only one message just because it fits", {
           selected: [
             { id: "s", role: "system", tokens: 2 },
             { id: "u-active", role: "user", status: "complete", tokens: 2 },
@@ -1494,7 +1494,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "exact-budget-multiple-systems",
-        label: "Includes multiple system records, one pair, and the active user at the exact boundary",
+        label: "Fits multiple system records, one pair, and the active user right at the limit",
         args: [{
           system: [
             { id: "s1", role: "system", tokens: 2 },
@@ -1507,7 +1507,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
           activeUser: { id: "u2", role: "user", status: "complete", tokens: 2 },
           budget: 12,
         }],
-        assertions: [equal("inclusive-boundary", "Use <= at the budget boundary and preserve required system and conversational input order", {
+        assertions: [equal("inclusive-boundary", "Use <= at the token limit and keep the required system and conversation inputs in order", {
           selected: [
             { id: "s1", role: "system", tokens: 2 },
             { id: "s2", role: "system", tokens: 1 },
@@ -1521,7 +1521,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "drops-orphan-half-turns",
-        label: "Never admits orphan, streaming, cancelled, or error history",
+        label: "Never adds orphaned, streaming, cancelled, or failed history",
         args: [{
           system: [{ id: "s", role: "system", tokens: 2 }],
           history: [
@@ -1537,7 +1537,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
           activeUser: { id: "u-active", role: "user", status: "complete", tokens: 2 },
           budget: 20,
         }],
-        assertions: [equal("complete-pairs-only", "Admit only adjacent lifecycle-complete user-assistant pairs and always retain the active user", {
+        assertions: [equal("complete-pairs-only", "Add only adjacent, fully finished user-assistant pairs, and always keep the active user", {
           selected: [
             { id: "s", role: "system", tokens: 2 },
             { id: "u1", role: "user", status: "complete", tokens: 3 },
@@ -1557,7 +1557,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
           activeUser: { id: "u-active", role: "user", status: "complete", tokens: 2 },
           budget: 24,
         }],
-        assertions: [equal("empty-history", "The active user is a required request input even when system and history are empty", {
+        assertions: [equal("empty-history", "The active user is required even when the system prompt and history are empty", {
           selected: [{ id: "u-active", role: "user", status: "complete", tokens: 2 }],
           used: 2,
           overflow: false,
@@ -1565,14 +1565,14 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "system-only",
-        label: "Returns required system and active-user inputs exactly",
+        label: "Returns the required system and active-user inputs unchanged",
         args: [{
           system: [{ id: "s", role: "system", tokens: 5 }],
           history: [],
           activeUser: { id: "u", role: "user", status: "complete", tokens: 2 },
           budget: 7,
         }],
-        assertions: [equal("required-inputs", "Keep system instructions before the active user and count both required records", {
+        assertions: [equal("required-inputs", "Put system instructions before the active user and count both required records", {
           selected: [
             { id: "s", role: "system", tokens: 5 },
             { id: "u", role: "user", status: "complete", tokens: 2 },
@@ -1583,7 +1583,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "required-input-overflow",
-        label: "Reports when system plus active-user inputs exceed the budget",
+        label: "Reports when the system and active-user inputs go over budget",
         args: [{
           system: [{ id: "s", role: "system", tokens: 7 }],
           history: [
@@ -1593,7 +1593,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
           activeUser: { id: "u-active", role: "user", status: "complete", tokens: 2 },
           budget: 8,
         }],
-        assertions: [equal("overflow-signal", "Keep both required inputs, admit no history, report exact use, and set overflow so the caller can block or revise", {
+        assertions: [equal("overflow-signal", "Keep both required inputs, add no history, report the exact usage, and set overflow so the caller can block or revise", {
           selected: [
             { id: "s", role: "system", tokens: 7 },
             { id: "u-active", role: "user", status: "complete", tokens: 2 },
@@ -1604,14 +1604,14 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "zero-budget-active-user",
-        label: "Reports an active-user overflow against a zero budget",
+        label: "Reports active-user overflow when the budget is zero",
         args: [{
           system: [],
           history: [],
           activeUser: { id: "u", role: "user", status: "complete", tokens: 1 },
           budget: 0,
         }],
-        assertions: [equal("zero-budget", "Never drop the required active user merely to make an impossible budget appear valid", {
+        assertions: [equal("zero-budget", "Never drop the required active user just to make an impossible budget look valid", {
           selected: [{ id: "u", role: "user", status: "complete", tokens: 1 }],
           used: 1,
           overflow: true,
@@ -1627,9 +1627,9 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     cases: [
       {
         id: "new-assistant-attempt",
-        label: "Creates a queued assistant attempt from the same user prefix",
+        label: "Queues a new assistant attempt from the same user message",
         args: [{ messageId: "m9", parentUserId: "m4", attemptId: "a2", requestId: "r2" }],
-        assertions: [equal("branch", "Return the exact queued assistant record with separate message, parent-user, attempt, and request ids", {
+        assertions: [equal("branch", "Return the queued assistant record with separate message, parent-user, attempt, and request IDs", {
           messageId: "m9",
           parentUserId: "m4",
           attemptId: "a2",
@@ -1641,9 +1641,9 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "second-identity-set",
-        label: "Uses a second supplied identity set without hidden constants",
+        label: "Uses a second set of IDs without hidden hard-coded values",
         args: [{ messageId: "assistant-42", parentUserId: "user-17", attemptId: "attempt-8", requestId: "request-8" }],
-        assertions: [equal("second-branch", "Use the supplied ids on every call and keep queued assistant defaults stable", {
+        assertions: [equal("second-branch", "Use the IDs passed in on every call and keep the queued assistant defaults stable", {
           messageId: "assistant-42",
           parentUserId: "user-17",
           attemptId: "attempt-8",
@@ -1655,9 +1655,9 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "ignore-caller-only-fields",
-        label: "Does not copy caller-only fields or caller overrides into normalized state",
+        label: "Doesn't copy caller-only fields or overrides into saved state",
         args: [{ messageId: "m10", parentUserId: "m5", attemptId: "a3", requestId: "r3", content: "caller text", status: "complete", renderIndex: 9, modelId: "caller-model" }],
-        assertions: [equal("stable-field-set", "Return the four identity fields plus normalized assistant defaults; ignore renderIndex, modelId, and caller overrides", {
+        assertions: [equal("stable-field-set", "Return the four ID fields plus the standard assistant defaults. Ignore renderIndex, modelId, and caller overrides", {
           messageId: "m10",
           parentUserId: "m5",
           attemptId: "a3",
@@ -1669,9 +1669,9 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       },
       {
         id: "punctuated-identities",
-        label: "Preserves opaque supplied ids exactly",
+        label: "Keeps the exact IDs it was given",
         args: [{ messageId: "m/11", parentUserId: "user:6", attemptId: "attempt.4", requestId: "request/4" }],
-        assertions: [equal("opaque-ids", "Treat ids as opaque values and do not derive one identity from another", {
+        assertions: [equal("opaque-ids", "Treat IDs as opaque values. Don't derive one ID from another", {
           messageId: "m/11",
           parentUserId: "user:6",
           attemptId: "attempt.4",
@@ -1686,12 +1686,12 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
   defineExerciseContract({
     lessonId: "chat-product-quality",
     blockId: "storage-validation",
-    label: "Storage validation",
+    label: "Saved-data check",
     exportName: "validConversationRecord",
     cases: [
       {
         id: "current-safe-record",
-        label: "Accepts the exact current schema with terminal messages",
+        label: "Accepts the current schema with finished messages",
         args: [{
           version: 1,
           id: "c1",
@@ -1700,67 +1700,67 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
             { id: "a1", role: "assistant", backend: "local", content: "Future logits are masked.", status: "cancelled", attemptId: "attempt-1", parentUserId: "u1" },
           ],
         }],
-        assertions: [equal("safe-record", "Accept the exact v1 record, including supported optional attempt and parent ids", true)],
+        assertions: [equal("safe-record", "Accept the v1 record exactly, including supported optional attempt and parent IDs", true)],
       },
       {
         id: "nested-secret-field",
-        label: "Rejects secret-shaped extras inside a message",
+        label: "Rejects fields that look like secrets inside a message",
         args: [{ version: 1, id: "c1", messages: [{ id: "u1", role: "user", backend: "local", content: "Hello", status: "complete", providerKey: "no" }] }],
-        assertions: [equal("nested-secret-rejected", "Require exact message keys so providerKey, apiKey, and every unknown nested field are rejected", false)],
+        assertions: [equal("nested-secret-rejected", "Allow only the expected message keys so providerKey, apiKey, and any unknown nested field are rejected", false)],
       },
       {
         id: "record-containing-secret",
         label: "Rejects extra top-level fields",
         args: [{ version: 1, id: "c1", messages: [], apiKey: "no" }],
-        assertions: [equal("secret-rejected", "Require exactly version, id, and messages at the top level; never persist apiKey", false)],
+        assertions: [equal("secret-rejected", "Allow only version, id, and messages at the top level. Never save apiKey", false)],
       },
       {
         id: "streaming-message",
-        label: "Rejects a streaming message",
+        label: "Won't save a message that's still streaming",
         args: [{ version: 1, id: "c1", messages: [{ id: "a1", role: "assistant", backend: "local", content: "partial", status: "streaming" }] }],
-        assertions: [equal("streaming-rejected", "Persist only terminal complete, cancelled, or error messages so reload cannot resurrect an in-flight request", false)],
+        assertions: [equal("streaming-rejected", "Save only complete, cancelled, or failed messages so reloading can't bring back a request that was still running", false)],
       },
       {
         id: "unsupported-message-domain",
-        label: "Rejects unknown roles, backends, and statuses",
+        label: "Rejects roles, backends, and statuses it doesn't know",
         args: [{ version: 1, id: "c1", messages: [{ id: "s1", role: "system", backend: "remote", content: "secret", status: "ready" }] }],
-        assertions: [equal("domain-rejected", "Accept only user or assistant, student or local, and a supported terminal status", false)],
+        assertions: [equal("domain-rejected", "Accept only user or assistant, student or local, and a supported finished status", false)],
       },
       {
         id: "blank-identities",
-        label: "Rejects blank record and message identities",
+        label: "Rejects blank record and message IDs",
         args: [{ version: 1, id: "   ", messages: [{ id: "", role: "user", backend: "local", content: "Hello", status: "complete" }] }],
-        assertions: [equal("blank-ids-rejected", "Require non-empty record and message ids rather than checking only typeof string", false)],
+        assertions: [equal("blank-ids-rejected", "Require non-empty record and message IDs instead of checking only typeof string", false)],
       },
       {
         id: "invalid-optional-identity",
-        label: "Validates optional ancestry identities when present",
+        label: "Checks optional parent IDs when they're present",
         args: [{ version: 1, id: "c1", messages: [{ id: "a1", role: "assistant", backend: "local", content: "Hello", status: "complete", attemptId: "" }] }],
-        assertions: [equal("optional-id-rejected", "If attemptId or parentUserId is present, require the same non-empty bounded identity contract", false)],
+        assertions: [equal("optional-id-rejected", "If attemptId or parentUserId is present, apply the same non-empty, length-limited ID rules", false)],
       },
       {
         id: "oversized-content",
-        label: "Rejects an oversized message",
+        label: "Rejects a message that's too large",
         args: [{ version: 1, id: "c1", messages: [{ id: "u1", role: "user", backend: "local", content: "x".repeat(20_001), status: "complete" }] }],
         assertions: [equal("content-bound", "Bound each message to at most 20,000 characters before persistence", false)],
       },
       {
         id: "too-many-messages",
-        label: "Rejects an oversized message collection",
+        label: "Rejects a conversation with too many messages",
         args: [{ version: 1, id: "c1", messages: Array.from({ length: 201 }, (_, index) => ({ id: `m${index}`, role: "user", backend: "student", content: "x", status: "complete" })) }],
         assertions: [equal("message-count-bound", "Bound one persisted conversation to at most 200 messages", false)],
       },
       {
         id: "oversized-conversation",
-        label: "Rejects an oversized conversation payload",
+        label: "Rejects a conversation that's too large",
         args: [{ version: 1, id: "c1", messages: Array.from({ length: 11 }, (_, index) => ({ id: `m${index}`, role: "user", backend: "student", content: "x".repeat(20_000), status: "complete" })) }],
         assertions: [equal("conversation-character-bound", "Keep every message within 20,000 characters and the full conversation within 200,000 characters", false)],
       },
       {
         id: "non-record-input",
-        label: "Rejects arrays and malformed top-level values",
+        label: "Rejects arrays and broken top-level values",
         args: [[{ version: 1, id: "c1", messages: [] }]],
-        assertions: [equal("plain-record-required", "Require a plain object, not an array or another object kind", false)],
+        assertions: [equal("plain-record-required", "Require a plain object, not an array or another kind of object", false)],
       },
     ],
   }),
@@ -1772,49 +1772,49 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
     cases: [
       {
         id: "queued-phase",
-        label: "Labels queue admission honestly",
+        label: "Shows when a request is waiting for room",
         args: ["queued"],
-        assertions: [equal("queued-label", "Use the exact queue-capacity label", "Waiting for capacity")],
+        assertions: [equal("queued-label", "Use the exact waiting-for-capacity label", "Waiting for capacity")],
       },
       {
         id: "loading-phase",
-        label: "Labels model loading honestly",
+        label: "Shows when the model is loading",
         args: ["loading"],
         assertions: [equal("loading-label", "Use the exact model-loading label", "Loading model")],
       },
       {
         id: "prefill-phase",
-        label: "Labels prompt prefill honestly",
+        label: "Shows when the prompt is being processed",
         args: ["prefill"],
         assertions: [equal("prefill-label", "Use the exact context-processing label", "Processing context")],
       },
       {
         id: "streaming-phase",
-        label: "Labels active generation honestly",
+        label: "Shows when generation is running",
         args: ["streaming"],
         assertions: [equal("streaming-label", "Use the exact active-generation label", "Generating")],
       },
       {
         id: "complete-phase",
-        label: "Labels completion as a terminal phase",
+        label: "Shows completion as a finished state",
         args: ["complete"],
-        assertions: [equal("complete-label", "Map complete explicitly instead of falling through to a generic ready label", "Complete")],
+        assertions: [equal("complete-label", "Map complete directly instead of falling through to a generic ready label", "Complete")],
       },
       {
         id: "cancelled-phase",
-        label: "Labels cancellation honestly",
+        label: "Shows when generation was stopped",
         args: ["cancelled"],
         assertions: [equal("cancelled-label", "Use the exact stopped label", "Stopped")],
       },
       {
         id: "error-phase",
-        label: "Labels failure honestly",
+        label: "Shows when generation failed",
         args: ["error"],
         assertions: [equal("error-label", "Use the exact generation-failed label", "Generation failed")],
       },
       {
         id: "unknown-future-phase",
-        label: "Falls back safely for an unknown future phase",
+        label: "Uses a safe fallback for a future state it doesn't know",
         args: ["future-state"],
         assertions: [equal("fallback-label", "Do not describe an unknown state as Ready; use the explicit unavailable fallback", "Status unavailable")],
       },

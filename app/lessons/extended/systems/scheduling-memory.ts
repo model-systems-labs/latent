@@ -8,28 +8,28 @@ export const schedulingMemoryLesson = defineExtendedLesson({
     courseNumber: 2,
     lessonNumber: 2,
     mode: "core-mechanism",
-    modeLabel: "Worked scheduler trace",
+    modeLabel: "Scheduler walkthrough",
     eyebrow: "Serving · Queues, batches, KV pages",
     title: "Scheduling and Memory",
-    thesis: "Continuous batching replaces completed sequences at decode-iteration boundaries, while paged KV-cache allocation makes that turnover possible without reserving one contiguous region per request.",
+    thesis: "Continuous batching swaps finished sequences for waiting ones between decode iterations. A paged KV cache makes that possible without reserving one big, unbroken block of memory for every request.",
     paperUrl: "https://www.usenix.org/conference/osdi22/presentation/yu",
     paperTitle: "Orca: A Distributed Serving System for Transformer-Based Generative Models",
     authors: "Gyeong-In Yu et al.",
     year: "2022",
     summary: [
-      { label: "Static membership.", body: "A conventional batch keeps the same requests together until its longest sequence finishes. Short sequences stop producing useful tokens first, so their decode slots sit idle even while other requests wait in the queue." },
-      { label: "Iteration scheduling.", body: "Continuous batching revisits membership after each decode iteration. Every active sequence advances by at most one token; completed requests are recorded, their KV pages are released, and eligible waiting work can enter the next iteration." },
-      { label: "Paged KV cache.", body: "A request receives fixed-size pages as its stored keys and values grow. Ceiling division allocates enough capacity, and internal fragmentation is bounded by fewer than one page of unused slots per request." },
-      { label: "Policy boundary.", body: "The browser comparison holds arrivals and resource limits fixed, so it isolates scheduler policy for one deterministic workload. Its 88-versus-116 iteration result does not prove that continuous batching always wins: admission overhead, fairness, prefill interference, and workload shape still matter in production." },
+      { label: "Static batches keep the same members.", body: "A regular batch keeps the same requests together until the longest sequence finishes. Short sequences stop producing useful tokens sooner, so their decode slots sit idle while other requests are still waiting." },
+      { label: "Continuous batches change each round.", body: "Continuous batching checks membership after every decode iteration. Each active sequence moves ahead by at most one token. After that, completed requests are recorded, their KV pages are freed, and eligible work from the queue can join the next iteration." },
+      { label: "Use pages for the KV cache.", body: "A request gets fixed-size pages as its saved keys and values grow. Ceiling division gives it enough room, and each request wastes fewer than one page of unused slots." },
+      { label: "Keep the result in perspective.", body: "The browser comparison uses the same arrivals and resource limits for both schedulers, so you're only comparing policy on one fixed workload. The 88-versus-116 iteration result does not prove that continuous batching always wins. Admission overhead, fairness, prefill interference, and the shape of the workload still matter in production." },
     ],
     claims: {
-      paper: "Iteration-level scheduling and selective batching improve utilization for generative model serving workloads.",
-      lab: "With identical authored arrivals and resource limits, a deterministic worked trace compares static membership with completion, page release, and readmission at iteration boundaries.",
-      limit: "The fixed metrics explain this workload only; the trace does not model scheduler overhead, fairness mechanisms, kernels, or a distributed GPU cluster.",
+      paper: "Scheduling at each iteration and choosing which requests to batch can use serving capacity more efficiently for generative models.",
+      lab: "With the same planned arrivals and resource limits, a fixed trace compares static membership with finishing, freeing pages, and admitting new work between iterations.",
+      limit: "These fixed numbers only explain this workload. The trace doesn't model scheduler overhead, fairness rules, kernels, or a distributed GPU cluster.",
     },
     diagram: {
       title: "Static versus continuous membership",
-      caption: "Both policies receive the same arrivals. Only continuous batching can turn a completed slot and released pages into a new admission at the next decode boundary.",
+      caption: "Both policies get the same requests. Only continuous batching can use a finished slot and its freed pages to admit a waiting request at the next decode boundary.",
       nodes: [
         { label: "Same arrivals", value: "a, b, c admitted · d waiting · 11 pages active" },
         { label: "Static membership", value: "a finishes → its slot idles → d waits for the longest sequence" },
@@ -38,29 +38,29 @@ export const schedulingMemoryLesson = defineExtendedLesson({
       ],
     },
     questions: {
-      intro: "Ask about continuous batching, fairness, token budgets, page allocation, or latency-throughput tradeoffs.",
+      intro: "Ask about continuous batching, fairness, token budgets, page allocation, or the tradeoff between latency and throughput.",
       suggestions: ["Why do static batches waste capacity?", "How much can the final KV page waste?", "When should a long prompt wait?"],
     },
     dataset: {
       name: "Serving Workload",
-      source: "Deterministic synthetic arrivals",
+      source: "Fixed synthetic arrivals",
       license: "CC0",
       size: "9 requests · mixed prompt and output lengths",
       preview: "short chat · long document · concurrent follow-up",
     },
     implementation: {
       filename: "continuous-batching.py",
-      intro: "Implement cache-page accounting and one scheduler iteration in Python, then inspect latency and utilization under competing policies.",
+      intro: "Build cache-page accounting and one scheduler iteration in Python, then compare latency and capacity use under the two policies.",
       codeBlocks: [
         {
           id: "page-allocation",
           label: "Paged allocation",
-          purpose: "Allocate enough KV pages for zero, exact-boundary, and partial-page token counts.",
+          purpose: "Allocate enough KV pages when the token count is zero, exactly fills a page, or ends partway through one.",
           concepts: [
-            { name: "page_size", detail: "Fixed number of token positions per physical page." },
-            { name: "pages", detail: "Ceiling division of logical tokens by page size." },
-            { name: "capacity", detail: "Allocated token positions: pages × page_size." },
-            { name: "wastedSlots", detail: "Returned JSON field for unused positions: capacity − tokens, always less than one page." },
+            { name: "page_size", detail: "The fixed number of token positions in one physical page." },
+            { name: "pages", detail: "The token count divided by page size and rounded up." },
+            { name: "capacity", detail: "The number of token positions allocated: pages × page_size." },
+            { name: "wastedSlots", detail: "The returned JSON field for unused positions: capacity − tokens. It's always less than one page." },
           ],
           code: `def allocate_kv_pages(tokens, page_size=16):
     pages = (tokens + page_size - 1) // page_size
@@ -88,11 +88,11 @@ RESULT = {
         {
           id: "batch-step",
           label: "Decode iteration",
-          purpose: "Advance every admitted request once, retaining both active and newly completed identities.",
+          purpose: "Advance every admitted request once and keep track of both the still-active and newly finished request ids.",
           concepts: [
-            { name: "remaining", detail: "Tokens still required by an active request." },
-            { name: "active", detail: "Advanced requests that still need another decode iteration." },
-            { name: "completed", detail: "Finished identities retained for page release and latency accounting." },
+            { name: "remaining", detail: "How many tokens an active request still needs." },
+            { name: "active", detail: "Requests that moved ahead but still need another decode iteration." },
+            { name: "completed", detail: "Finished request ids kept so their pages can be freed and their latency recorded." },
           ],
           code: `def decode_iteration(active_requests):
     active = []
@@ -131,5 +131,5 @@ RESULT = {
         },
       ],
     },
-    experiment: { kind: "systems", variant: "scheduling", title: "Replay the scheduling workload", intro: "Replay fixed static and continuous schedules while inspecting authored queue depth, active pages, utilization, and completion latency." },
+    experiment: { kind: "systems", variant: "scheduling", title: "Replay the scheduling workload", intro: "Replay the fixed static and continuous schedules, then compare the planned queue depth, active pages, capacity use, and time to completion." },
   });

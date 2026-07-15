@@ -82,20 +82,20 @@ export async function initializePreview(): Promise<PreviewInitialization> {
 }
 
 async function prepare(label: string, onEvent?: (event: PreparationEvent) => void) {
-  onEvent?.({ type: "progress", progress: 25, detail: \`Preparing \${label}\` });
+  onEvent?.({ type: "progress", progress: 25, detail: \`Setting up \${label}\` });
   await new Promise((resolve) => window.setTimeout(resolve, 120));
   onEvent?.({ type: "progress", progress: 100, detail: \`\${label} ready\` });
   return { ready: true as const };
 }
 
 export async function trainStudent(onEvent?: (event: PreparationEvent) => void) {
-  const result = await prepare("portable student mock", onEvent);
+  const result = await prepare("Student RNN demo", onEvent);
   studentReady = true;
   return result;
 }
 
 export async function loadLocal(onEvent?: (event: PreparationEvent) => void) {
-  const result = await prepare("portable local mock", onEvent);
+  const result = await prepare("local model demo", onEvent);
   localReady = true;
   return result;
 }
@@ -116,7 +116,7 @@ export function startGeneration(input: StartGenerationInput, handlers: Generatio
     timers.add(timer);
   };
   const latestUser = [...input.messages].reverse().find((message) => message.role === "user")?.content ?? "your prompt";
-  const response = \`Portable mock response: the streaming boundary received “\${latestUser.slice(0, 80)}”. Replace this adapter with your model service when you deploy.\`;
+  const response = \`This portable demo received “\${latestUser.slice(0, 80)}” through the streaming boundary. Swap in your model service before you deploy.\`;
   const pieces = response.match(/\\S+\\s*/g) ?? [response];
   handlers.onPhase("queued");
   schedule(() => { queueEnded = performance.now(); handlers.onPhase("prefill"); }, 40);
@@ -140,14 +140,14 @@ export function startGeneration(input: StartGenerationInput, handlers: Generatio
             modelMs: 0,
             ttftMs: Math.round((firstVisible || performance.now()) - started),
             generatedUnits: pieces.length,
-            generatedUnitLabel: "Mock word chunks",
+            generatedUnitLabel: "Demo word chunks",
             durationMs,
           });
           handlers.onPhase("complete");
           closed = true;
         }
       } catch (error) {
-        handlers.onError({ message: error instanceof Error ? error.message : "The portable SSE mock failed.", transient: false });
+        handlers.onError({ message: error instanceof Error ? error.message : "The portable SSE demo failed.", transient: false });
         closed = true;
       }
     }, index * 42));
@@ -166,7 +166,7 @@ export function startGeneration(input: StartGenerationInput, handlers: Generatio
 
 function safePath(path: string) {
   const normalized = path.replaceAll("\\", "/").replace(/^\/+/, "");
-  if (!normalized || normalized.split("/").includes("..")) throw new Error(`Unsafe portfolio path: ${path}`);
+  if (!normalized || normalized.split("/").includes("..")) throw new Error(`This portfolio path isn't safe: ${path}`);
   return normalized;
 }
 
@@ -257,10 +257,10 @@ export function portfolioProjectFiles(input: {
     tests: { passing: readiness.passingTests, total: results.length, required: readiness.requiredTests },
   };
   const files: Record<string, string> = {
-    "README.md": `# Browser Chat\n\nA browser-first LLM systems project built through Latent. The repository contains the learner's model, runtime, serving, product, and React capstone files.\n\n## Current evidence\n\n- ${completedLessons.length}/${input.lessons.length} lessons complete\n- ${manifest.tests.passing}/${readiness.requiredTests} required host-owned tests passing\n- portable build ready: ${readiness.ready ? "yes" : "no"}\n- active build: ${input.project.activeBuild ? `#${input.project.activeBuild.buildNumber}` : "none yet"}\n\n${readiness.ready ? "" : "> This snapshot is unfinished. Return to Latent, complete every lesson-owned file, and create a passing full build before treating it as a runnable portfolio project.\n\n"}## Run locally\n\n\`\`\`bash\nnpm install\nnpm run build\nnpm run dev\n\`\`\`\n\nThe exported app uses a deterministic in-browser SSE mock so it runs without a secret or hosted backend. Read BACKEND_INTEGRATION.md before connecting a real model service.\n\nThe \`pytorch/\` directory is a separate native Python track containing real \`import torch\` implementations. It is not bundled into the browser app; see \`pytorch/README.md\`.\n\n## Architecture\n\n1. \`src/models\` implements transparent browser model foundations.\n2. \`pytorch\` translates selected mechanisms into native PyTorch modules and export code.\n3. \`src/systems\` implements inference accounting and scheduling.\n4. \`src/backend\` implements SSE framing and attempt-aware reliability.\n5. \`src/product\` implements conversation, rendering, actions, context, and quality contracts.\n6. \`src/capstone\` assembles the React application.\n`,
-    "BACKEND_INTEGRATION.md": `# Replace the portable mock backend\n\nThe exported \`src/runtime/host-bridge.ts\` intentionally produces deterministic SSE frames in the browser. It contains no API key and makes no network request.\n\nTo connect a real service:\n\n1. Keep the exported \`StartGenerationInput\`, \`GenerationBridgeHandlers\`, and \`GenerationHandle\` interface.\n2. POST the bounded message/context payload to your own same-origin endpoint. Never ship a provider key in this client.\n3. Decode response bytes with a streaming \`TextDecoder\`, then pass decoded text through \`parseSseChunk\`.\n4. Preserve requestId and attempt identity before accepting events.\n5. Propagate AbortSignal to fetch, the stream reader, parser state, and server generation.\n6. Retry only retryable failures that occurred before visible output.\n7. Keep strict terminal persistence and exclude secrets and transient streaming records.\n\nThe learner-owned lesson files are Python and remain independently executable in CPython. The React app imports course-provided JavaScript interoperability adapters that implement the same tested boundaries without pretending the browser bundler can import Python directly.\n`,
+    "README.md": `# Browser Chat\n\nThis is the browser-first LLM project you built in Latent. It includes your model, runtime, serving, product, and React capstone files.\n\n## Where things stand\n\n- ${completedLessons.length}/${input.lessons.length} lessons complete\n- ${manifest.tests.passing}/${readiness.requiredTests} required host-owned tests passing\n- portable build ready: ${readiness.ready ? "yes" : "no"}\n- current build: ${input.project.activeBuild ? `#${input.project.activeBuild.buildNumber}` : "none yet"}\n\n${readiness.ready ? "" : "> This copy isn't finished yet. Go back to Latent, finish every lesson file, and make a full passing build before you treat it as a runnable portfolio project.\n\n"}## Run it locally\n\n\`\`\`bash\nnpm install\nnpm run build\nnpm run dev\n\`\`\`\n\nThe exported app uses a repeatable in-browser SSE demo, so it runs without a secret or hosted backend. Read BACKEND_INTEGRATION.md before you connect a real model service.\n\nThe \`pytorch/\` folder is a separate native Python track with real \`import torch\` code. It isn't bundled into the browser app; see \`pytorch/README.md\`.\n\n## How the pieces fit together\n\n1. \`src/models\` contains the browser model foundations.\n2. \`pytorch\` turns selected ideas into native PyTorch modules and export code.\n3. \`src/systems\` handles inference accounting and scheduling.\n4. \`src/backend\` handles SSE framing and attempt-aware reliability.\n5. \`src/product\` handles the conversation, rendering, actions, context, and quality rules.\n6. \`src/capstone\` puts the React app together.\n`,
+    "BACKEND_INTEGRATION.md": `# Replace the portable demo backend\n\nThe exported \`src/runtime/host-bridge.ts\` creates repeatable SSE frames right in the browser. It has no API key and doesn't make network requests.\n\nTo connect a real service:\n\n1. Keep the exported \`StartGenerationInput\`, \`GenerationBridgeHandlers\`, and \`GenerationHandle\` interface.\n2. POST the size-limited message and context payload to your own same-origin endpoint. Never put a provider key in this client.\n3. Decode response bytes with a streaming \`TextDecoder\`, then send the decoded text through \`parseSseChunk\`.\n4. Check requestId and attempt identity before you accept events.\n5. Pass AbortSignal through fetch, the stream reader, parser state, and server generation.\n6. Retry only temporary failures that happen before the user sees any output.\n7. Save only finished states, and leave out secrets and messages that are still streaming.\n\nYour lesson files are Python and still run on their own in CPython. The React app uses course-provided JavaScript adapters that pass the same tests. The browser bundler can't import Python directly, and these adapters don't pretend otherwise.\n`,
     "TEST_REPORT.md": markdownTestReport(results),
-    "THIRD_PARTY_NOTICES.md": `# Third-party notices\n\nThis source export uses React and React DOM (MIT) and Vite (MIT). The optional model runtime in the hosted Latent course uses Transformers.js (Apache-2.0) and SmolLM2-135M-Instruct (Apache-2.0); model weights are not included in this archive. The optional native Python track depends on PyTorch (BSD-3-Clause), which is not bundled in the archive. Consult the upstream license texts before redistribution.\n`,
+    "THIRD_PARTY_NOTICES.md": `# Third-party notices\n\nThis export uses React and React DOM (MIT) and Vite (MIT). The optional model runtime in the hosted Latent course uses Transformers.js (Apache-2.0) and SmolLM2-135M-Instruct (Apache-2.0); this archive doesn't include the model weights. The optional native Python track uses PyTorch (BSD-3-Clause), which also isn't bundled here. Check the original license texts before you redistribute anything.\n`,
     "pytorch/README.md": PYTORCH_PORTFOLIO_README,
     "pytorch/requirements.txt": PYTORCH_REQUIREMENTS,
     "portfolio-manifest.json": JSON.stringify(manifest, null, 2),

@@ -50,7 +50,7 @@ const PythonCodeEditor = lazy(() => import("../features/ide/PythonCodeEditor").t
 })));
 
 const groups: Array<{ id: ProjectCourse; label: string }> = [
-  { id: "runtime", label: "Runtime configuration" },
+  { id: "runtime", label: "Runtime settings" },
   { id: "models", label: "01 · Model foundations" },
   { id: "systems", label: "02 · Inference runtime" },
   { id: "backend", label: "03 · LLM serving" },
@@ -108,7 +108,7 @@ export function ProjectWorkbench() {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<string[]>([]);
   const [buildFailures, setBuildFailures] = useState<BrowserLabTestResult[]>([]);
-  const [message, setMessage] = useState("Restoring the device-local project before editing…");
+  const [message, setMessage] = useState("Loading the project saved on this device…");
   const [projectReady, setProjectReady] = useState(false);
   const [working, setWorking] = useState(false);
   const [buildArtifact, setBuildArtifact] = useState<ArtifactEnvelope | null>(null);
@@ -138,11 +138,11 @@ export function ProjectWorkbench() {
           selectProjectFile(path);
         }
         setProjectReady(true);
-        setMessage("Edit a file, save it locally, then build the project.");
+        setMessage("Edit a file, save it, then build the project.");
         void latestProjectBuildArtifact().then((artifact) => setBuildArtifact(artifact ?? null)).catch(() => setBuildArtifact(null));
       } catch (error) {
         if (!active) return;
-        setMessage(`The project could not finish restoring: ${error instanceof Error ? error.message : "browser storage is unavailable"}`);
+        setMessage(`The project couldn’t finish loading: ${error instanceof Error ? error.message : "browser storage is unavailable"}`);
       }
     })();
     return () => { active = false; };
@@ -286,8 +286,8 @@ export function ProjectWorkbench() {
       }).catch((error) => {
         if (draftSnapshotIsCurrent(pendingDraftRef.current, draftEpochRef.current, scheduled)) {
           setMessage(recoveryStored
-            ? `File-history sync failed, but ${selected.path} remains in the browser recovery copy. ${error instanceof Error ? error.message : "Reload before editing in another tab."}`
-            : `This browser could not save ${selected.path}. Copy your code before leaving this page.`);
+            ? `File history didn’t sync, but ${selected.path} is still in the browser recovery copy. ${error instanceof Error ? error.message : "Reload before editing in another tab."}`
+            : `This browser couldn’t save ${selected.path}. Copy your code before leaving this page.`);
         }
       });
     }, 650);
@@ -342,8 +342,8 @@ export function ProjectWorkbench() {
       }).catch((error) => {
         if (draftSnapshotIsCurrent(pendingDraftRef.current, draftEpochRef.current, scheduled)) {
           setMessage(recoveryStored
-            ? `File-history sync failed, but ${selected.path} remains in the browser recovery copy. ${error instanceof Error ? error.message : "Reload before editing in another tab."}`
-            : `This browser could not save ${selected.path}. Copy your code before leaving this page.`);
+            ? `File history didn’t sync, but ${selected.path} is still in the browser recovery copy. ${error instanceof Error ? error.message : "Reload before editing in another tab."}`
+            : `This browser couldn’t save ${selected.path}. Copy your code before leaving this page.`);
         }
       });
     }
@@ -374,7 +374,7 @@ export function ProjectWorkbench() {
     setBuildFailures([]);
     const saved = save(false);
     const runDraftEpoch = draftEpochRef.current;
-    setMessage("Compiling the virtual project in an isolated worker…");
+    setMessage("Building the virtual project in an isolated worker…");
     try {
       const run = await runProjectUnitTests(saved.files, saved.runtime);
       const committed = await saveProjectTestResults({
@@ -389,8 +389,8 @@ export function ProjectWorkbench() {
       if (!committed.accepted) {
         setErrors([]);
         setMessage(committed.reason === "client-draft" || committed.reason === "stale-source"
-          ? "This run’s evidence was discarded because the project changed while tests were running. Run again against the current saved files."
-          : "This run’s evidence was discarded because its contract scope is no longer current. Reload the IDE and run again.");
+          ? "We ignored this run because the project changed while the tests were running. Run it again with the current saved files."
+          : "We ignored this run because its checklist is out of date. Reload the IDE and run it again.");
         setMobilePanel("output");
         return;
       }
@@ -405,8 +405,8 @@ export function ProjectWorkbench() {
       }
       const result = compileProject(saved.files, saved.runtime);
       if (!result.ok || !run.program || !run.receipt || !run.persistenceReceipt) {
-        setErrors(result.ok ? ["The isolated build did not produce a promotable receipt."] : result.errors);
-        setMessage("Build stopped. Fix the failing compiler or runtime contract and run again.");
+        setErrors(result.ok ? ["The isolated build didn’t produce a result that can become the active build."] : result.errors);
+        setMessage("Build stopped. Fix the failing compiler or runtime check and run it again.");
         setMobilePanel("output");
         return;
       }
@@ -484,10 +484,10 @@ export function ProjectWorkbench() {
           totalTests: run.results.length,
         });
         setBuildArtifact(artifact);
-        setMessage(`Build ${promoted.buildNumber} is active. Artifact ${artifact.contentHash.slice(7, 19)} binds ${descriptor.contributions.length} exact passing Python files to browser adapters checked against the same contracts.`);
+        setMessage(`Build ${promoted.buildNumber} is active. Artifact ${artifact.contentHash.slice(7, 19)} ties ${descriptor.contributions.length} exact passing Python files to browser adapters that passed the same checks.`);
         setMobilePanel("output");
       } catch (artifactError) {
-        setMessage(`Build ${promoted.buildNumber} is active, but its portable artifact could not be stored: ${artifactError instanceof Error ? artifactError.message : "local storage is unavailable"}`);
+        setMessage(`Build ${promoted.buildNumber} is active, but its portable artifact couldn’t be saved: ${artifactError instanceof Error ? artifactError.message : "local storage is unavailable"}`);
         setMobilePanel("output");
       }
     } catch (error) {
@@ -504,7 +504,7 @@ export function ProjectWorkbench() {
     setWorking(true);
     const saved = save(false);
     const runDraftEpoch = draftEpochRef.current;
-    setMessage(onlyPath ? "Running this file in the isolated test worker…" : "Compiling and running the complete isolated test suite…");
+    setMessage(onlyPath ? "Running this file in the isolated test worker…" : "Building the project and running every test in isolation…");
     try {
       const run = await runProjectUnitTests(saved.files, saved.runtime, onlyPath);
       const committed = await saveProjectTestResults({
@@ -519,8 +519,8 @@ export function ProjectWorkbench() {
       if (!committed.accepted) {
         setErrors([]);
         setMessage(committed.reason === "client-draft" || committed.reason === "stale-source"
-          ? "This run’s evidence was discarded because the project changed while tests were running. Run again against the current saved files."
-          : "This run’s evidence was discarded because its contract scope is no longer current. Reload the IDE and run again.");
+          ? "We ignored this run because the project changed while the tests were running. Run it again with the current saved files."
+          : "We ignored this run because its checklist is out of date. Reload the IDE and run it again.");
         setMobilePanel("tests");
         return;
       }
@@ -544,9 +544,9 @@ export function ProjectWorkbench() {
       const { database } = await getPersistenceContext();
       const snapshot = await exportPersistenceSnapshot(database);
       downloadBrowserBlob(persistenceSnapshotBlob(snapshot), `latent-browser-chat-${new Date().toISOString().slice(0, 10)}.json`);
-      setMessage("Project, progress, builds, checkpoints, and conversations exported.");
+      setMessage("Your project, progress, builds, checkpoints, and conversations are backed up.");
     } catch (error) {
-      setMessage(`Backup stopped because the latest draft could not be synchronized: ${error instanceof Error ? error.message : "browser storage is unavailable"}`);
+      setMessage(`Backup stopped because the latest draft couldn’t sync: ${error instanceof Error ? error.message : "browser storage is unavailable"}`);
     }
   };
 
@@ -554,12 +554,12 @@ export function ProjectWorkbench() {
     if (working) return;
     setWorking(true);
     setErrors([]);
-    setMessage("Validating the backup before changing device-local progress…");
+    setMessage("Checking the backup before changing the progress on this device…");
     try {
       const serialized = await file.text();
       const { database } = await getPersistenceContext();
       await importPersistenceSnapshot(database, serialized, { mode: "merge" });
-      setMessage("Progress imported. Reloading the project database…");
+      setMessage("Progress imported. Reloading the project…");
       window.location.reload();
     } catch (error) {
       const detail = error instanceof Error ? error.message : "The selected file is not a valid Latent backup.";
@@ -577,20 +577,20 @@ export function ProjectWorkbench() {
         && portfolioStatus.fullSuitePasses
         && !portfolioStatus.activeBuildMatchesTests;
       setMessage(awaitingMatchingBuild
-        ? "The current workspace’s full suite passes, but those receipts have not been promoted into the matching active build snapshot. Use Test, build & run, then export the portfolio."
-        : `Portfolio ZIP unlocks after ${courseLessons.length}/${courseLessons.length} lessons are complete and the current workspace’s ${portfolioStatus.requiredTests}/${portfolioStatus.requiredTests} full-suite receipt matches the active build snapshot. Use Test, build & run; use Backup for unfinished work.`);
+        ? "Every test passes in the current workspace, but those results aren’t part of the matching active build yet. Choose Test, build & run, then export the portfolio."
+        : `The portfolio ZIP unlocks after all ${courseLessons.length} lessons are done and all ${portfolioStatus.requiredTests} test results match the active build. Choose Test, build & run, or use Backup if you’re not finished yet.`);
       setMobilePanel("output");
       return;
     }
     downloadBrowserBlob(portfolioProjectBlob({ project, learner, lessons: courseLessons }), `browser-chat-portfolio-${new Date().toISOString().slice(0, 10)}.zip`);
-    setMessage("Portfolio source archive exported with a README, test report, architecture, and backend replacement guide.");
+    setMessage("Portfolio ZIP exported with the source, README, test report, architecture notes, and backend replacement guide.");
   };
 
   const restoreRevision = (revision: FileRevisionRecord) => {
     if (!selected || selected.readOnly) return;
     if (!revisionCanRestore(selected.path, revision.path)) {
       setPendingRevision(null);
-      setMessage(`Revision r${revision.revision} belongs to ${revision.path}, not the currently open file. Its contents were not restored.`);
+      setMessage(`Revision r${revision.revision} belongs to ${revision.path}, not the file you have open. Nothing was restored.`);
       return;
     }
     if (pendingRevision !== revision.id) {
@@ -602,14 +602,14 @@ export function ProjectWorkbench() {
     setDrafts((current) => ({ ...current, [selected.path]: revision.content }));
     saveProjectFile(selected.path, revision.content);
     setPendingRevision(null);
-    setMessage(`Revision ${revision.revision} restored. Tests were invalidated because the source changed.`);
+    setMessage(`Revision ${revision.revision} restored. Run the tests again because the code changed.`);
     setMobilePanel("code");
     window.setTimeout(() => void refreshRevisions(selected.path), 800);
   };
   const editorStatus = selected?.readOnly
     ? "Course library · read only"
     : dirty
-      ? "Unsaved draft · autosaves after 650 ms idle"
+      ? "Unsaved draft · saves after you stop typing for 650 ms"
       : "Saved in device file history";
   const compactEditorStatus = selected?.readOnly ? "Read only" : dirty ? "Unsaved" : "Saved";
 
@@ -661,18 +661,18 @@ export function ProjectWorkbench() {
               ? `${selected.path} has an immediate recovery copy. File history autosaves after 650 ms without typing.`
               : `${selected.path} changed. File history autosaves after 650 ms without typing; keep this tab open.`);
           }} onSave={save} /></Suspense> : null}
-          <footer><p>{selected?.readOnly ? "This is the numerical runtime imported by model lessons. Its source is visible, versioned, and protected from accidental edits." : isPythonFile ? pythonExecution.status : message}</p><div><button type="button" onClick={() => {
+          <footer><p>{selected?.readOnly ? "This is the numerical runtime used by the model lessons. You can read its versioned source, but you can’t accidentally edit it." : isPythonFile ? pythonExecution.status : message}</p><div><button type="button" onClick={() => {
             if (!selected) return;
             if (!confirmReferenceRestore) {
               setConfirmReferenceRestore(true);
-              setMessage("Restoring the reference will replace your current draft. Press again to confirm; saved revisions remain available.");
+              setMessage("Restoring the reference will replace your current draft. Press again to confirm. Your saved revisions will still be there.");
               return;
             }
             stageProjectDraftRecovery(selected.path, selected.referenceContent);
             draftEpochRef.current += 1;
             setDrafts((current) => ({ ...current, [selected.path]: selected.referenceContent }));
             setConfirmReferenceRestore(false);
-            setMessage("Reference loaded as the current draft. File history autosaves after 650 ms without typing; choose Save now to sync immediately.");
+            setMessage("The reference is now your current draft. File history saves after you stop typing for 650 ms, or choose Save now to sync right away.");
             window.setTimeout(() => saveNowRef.current?.focus(), 0);
           }} disabled={!projectReady || interfaceWorking || !selected || selected.readOnly || draft === selected?.referenceContent}>{confirmReferenceRestore ? "Confirm restore" : "Restore reference"}</button><button ref={saveNowRef} type="button" onClick={() => save()} disabled={!projectReady || interfaceWorking || selected?.readOnly || !dirty}>Save now</button>{isPythonFile ? <PythonRuntimeActions session={pythonExecution} disabled={!projectReady || working} /> : <button className="build" type="button" onClick={() => void build()} disabled={!projectReady || working}>{working ? "Running…" : "Test, build & run"}</button>}</div></footer>
         </div>
@@ -682,7 +682,7 @@ export function ProjectWorkbench() {
             <header><div><span>Unit tests</span><strong>{allTests.length ? `${passingTests}/${allTests.length} passing` : "Not run"}</strong></div><button type="button" onClick={() => void runTests()} disabled={!projectReady || working}>Run all {llmSystemsCurriculum.testCount + 6}</button></header>
             <div className="selected-test-heading"><span>{selected?.path}</span><button type="button" onClick={() => selected && void runTests(selected.path)} disabled={!projectReady || working || !selected || selected.readOnly}>Run file tests</button></div>
             <div className="unit-test-list">
-              {selectedTests.length ? selectedTests.map((test) => <article className={test.passed ? "passed" : "failed"} key={test.id}><i>{test.passed ? "✓" : "×"}</i><div><strong>{test.label}</strong><p>{test.detail}</p></div></article>) : <p>Select “Run file tests” to verify this module independently of the build.</p>}
+              {selectedTests.length ? selectedTests.map((test) => <article className={test.passed ? "passed" : "failed"} key={test.id}><i>{test.passed ? "✓" : "×"}</i><div><strong>{test.label}</strong><p>{test.detail}</p></div></article>) : <p>Choose “Run file tests” to check this module without building the whole project.</p>}
             </div>
           </section>
           <section className="project-output">
@@ -715,7 +715,7 @@ export function ProjectWorkbench() {
                   <div><dt>event batch</dt><dd>{project.runtime.transport.wordsPerEvent} words</dd></div>
                   <div><dt>assistant</dt><dd>{project.runtime.interface.assistantName}</dd></div>
                 </dl>
-                {buildArtifact ? <article className="project-build-artifact"><span>Portable build artifact</span><p>{buildArtifact.links.length} lesson artifacts · {buildArtifact.contentHash.slice(7, 19)}</p><button type="button" onClick={() => void downloadArtifact(buildArtifact)}>Download build + lineage</button></article> : null}
+                {buildArtifact ? <article className="project-build-artifact"><span>Portable build file</span><p>{buildArtifact.links.length} lesson artifacts · {buildArtifact.contentHash.slice(7, 19)}</p><button type="button" onClick={() => void downloadArtifact(buildArtifact)}>Download build + history</button></article> : null}
                 <section className="project-file-history" aria-label="Saved file revisions">
                   <header><span>File history</span><strong>{revisions.length} revisions</strong></header>
                   {recoveryCandidates.map((candidate) => (
@@ -726,13 +726,13 @@ export function ProjectWorkbench() {
                           if (!selected || selected.readOnly) return;
                           const recoveryRestaged = loadProjectDraftRecoveryCandidate(candidate, selected.updatedAt + 1);
                           if (!recoveryRestaged) {
-                            setMessage("The recovery copy could not be moved into this tab. It remains available; copy its preview before discarding it.");
+                            setMessage("The recovery copy couldn’t be moved into this tab. It’s still available, so copy its preview before you discard it.");
                             return;
                           }
                           draftEpochRef.current += 1;
                           setDrafts((current) => ({ ...current, [selected.path]: candidate.content }));
                           setRecoveryRevision((revision) => revision + 1);
-                          setMessage("Recovery copy loaded as the current draft. File history autosaves after 650 ms without typing; choose Save now to sync immediately.");
+                          setMessage("The recovery copy is now your current draft. File history saves after you stop typing for 650 ms, or choose Save now to sync right away.");
                           setMobilePanel("code");
                         }} disabled={selected?.readOnly}>Load</button>
                         <button type="button" onClick={() => {
@@ -751,8 +751,8 @@ export function ProjectWorkbench() {
                 </section>
                 {project.output.previous ? <article><span>Previous build</span><p>{project.output.previous}</p></article> : null}
                 <article className="active"><span>Active build</span><p>{project.activeBuild
-                  ? project.output.current || `Verified build #${project.activeBuild.buildNumber} is the current runnable snapshot.`
-                  : "No passing build yet. Pass the full suite and build to create a checkpoint-backed preview."}</p></article>
+                  ? project.output.current || `Verified build #${project.activeBuild.buildNumber} is the version you can run now.`
+                  : "No passing build yet. Pass every test and build the project to create a preview backed by your checkpoint."}</p></article>
               </>
             )}
           </section>

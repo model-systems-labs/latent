@@ -1,7 +1,7 @@
 export const PYTHON_CHARACTER_RNN_LEARNER_PATH = "models/character-rnn.py" as const;
 export const PYTHON_CHARACTER_RNN_TRAINER_PATH = "runtime/host/character-rnn-training.py" as const;
 
-/** Supplied trainer appended after the learner-owned numerical operations. */
+/** Provided trainer added after the numerical operations the learner owns. */
 export const characterRnnTrainingPostlude = `import json
 from pathlib import Path
 
@@ -23,7 +23,7 @@ def _softmax(logits):
 
 
 def train_character_rnn(steps=180):
-    """Train a deterministic compact RNN and return a portable checkpoint."""
+    """Train a small deterministic RNN and return a checkpoint other runtimes can use."""
     steps = int(steps)
     if steps < 1 or steps > 2000:
         raise ValueError("steps must be between 1 and 2000")
@@ -107,7 +107,7 @@ def train_character_rnn(steps=180):
         for name, raw_gradient in raw_gradients.items():
             clipped = np.asarray(clip_gradients(raw_gradient, gradient_limit), dtype=np.float64)
             if clipped.shape != raw_gradient.shape or not np.all(np.isfinite(clipped)):
-                raise ValueError("clip_gradients must preserve each finite gradient tensor shape")
+                raise ValueError("clip_gradients must keep each finite gradient tensor shape")
             gradients[name] = clipped
         parameters = {"Wxh": Wxh, "Whh": Whh, "Why": Why, "bh": bh, "by": by}
         for name, values in parameters.items():
@@ -154,10 +154,10 @@ if __name__ == "__main__":
     artifact_path.write_text(json.dumps(RESULT, separators=(",", ":")), encoding="utf-8")`;
 
 /**
- * Host-authored entrypoint synchronized only into the isolated Python worker.
- * It selects the three learner-owned numerical operations and then defines its
- * own trainer, so an edited `train_character_rnn` in the learner file never has
- * artifact authority.
+ * This host-owned entry point is copied only into the isolated Python worker.
+ * It picks the three numerical operations the learner owns, then defines its
+ * own trainer. That means editing `train_character_rnn` in the learner file
+ * can't take control of the artifact.
  */
 export const characterRnnTrustedTrainingSource = `import runpy as _latent_runpy
 import numpy as np

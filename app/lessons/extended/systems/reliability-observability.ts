@@ -8,28 +8,28 @@ export const reliabilityObservabilityLesson = defineExtendedLesson({
     courseNumber: 3,
     lessonNumber: 2,
     mode: "core-mechanism",
-    modeLabel: "Worked failure trace",
+    modeLabel: "Failure walkthrough",
     eyebrow: "Operations · Timeouts, retries, metrics",
     title: "Reliability and Observability",
-    thesis: "A streaming chat request is a stateful operation whose failures must be classified, bounded, measured, and surfaced without duplicating generation or corrupting conversation state.",
+    thesis: "A streaming chat request has state. When it fails, you need to classify the failure, limit retries, measure what happened, and explain it to the user without duplicating text or messing up the conversation.",
     paperUrl: "https://sre.google/sre-book/monitoring-distributed-systems/",
     paperTitle: "Monitoring Distributed Systems",
     authors: "Google Site Reliability Engineering",
     year: "2016",
     summary: [
-      { label: "Request and attempt identity.", body: "Keep one logical request id across the operation, but assign a new attempt id to every retry. Stream events, logs, metrics, cancellation, and resource ownership carry the active attempt id so a delayed event from an earlier attempt cannot mutate the current one." },
-      { label: "Transparent-retry boundary.", body: "A retry is safe only when the failure is transient, zero tokens have become visible, and another attempt remains. In the practice API, attempt is a zero-based index and maxAttempts is the total attempt budget, so attempt + 1 < maxAttempts is the boundary test." },
-      { label: "Terminal event guard.", body: "Only queued, loading, prefill, and streaming requests accept matching events. Complete, error, cancelled, unknown, and stale-attempt events are rejected before they reach conversation state." },
-      { label: "Phase observability.", body: "Record queue time, prefill time, time to first token, decode duration or inter-token latency, terminal outcome, and resource release by request and attempt. Histograms and error classes preserve tail behavior that a single average hides; deterministic failure injection exercises those paths." },
+      { label: "Track the request and each try.", body: "Keep the same logical request id from start to finish, but assign a new attempt id to every retry. Put the active attempt id on stream events, logs, metrics, cancellation, and owned resources so a delayed event from an older attempt can't change the current one." },
+      { label: "Know when an automatic retry is safe.", body: "Only retry automatically when the failure is temporary, the user hasn't seen any tokens, and you still have another attempt. In this practice API, attempt is a zero-based index and maxAttempts is the total number of tries allowed, so the check is attempt + 1 < maxAttempts." },
+      { label: "Block events after the request ends.", body: "Only queued, loading, prefill, and streaming requests can accept matching events. Reject events for complete, error, cancelled, or unknown requests, along with events from an old attempt, before they touch conversation state." },
+      { label: "Measure each phase.", body: "For every request and attempt, record queue time, prefill time, time to first token, decode duration or inter-token latency, the final result, and whether resources were released. Histograms and error categories show slow tails that one average can hide. Fixed failure injection lets you exercise those paths on purpose." },
     ],
     claims: {
-      paper: "User-facing distributed systems should be monitored through latency, traffic, errors, and saturation with attention to distributions and symptoms.",
-      lab: "Four fixed failure traces show logical request identity, per-attempt identity, the visible-token retry boundary, authored timings, terminal transitions, late-event rejection, and resource release.",
-      limit: "Local traces cannot reproduce provider outages, cross-region partitions, or production traffic distributions.",
+      paper: "For a distributed system people use, watch latency, traffic, errors, and saturation. Pay attention to the full spread and to what users notice, not just averages.",
+      lab: "Four fixed failure traces show the logical request id, each attempt id, when visible output makes a retry unsafe, planned timings, final state changes, rejected late events, and released resources.",
+      limit: "Local traces can't recreate a provider outage, a cross-region network split, or real production traffic patterns.",
     },
     diagram: {
       title: "One request across two attempts",
-      caption: "The logical request survives a retry; attempt identity does not. A visible token closes the transparent-retry branch, and terminal or stale-attempt events are rejected before state mutation.",
+      caption: "The logical request keeps the same id after a retry, but the attempt id changes. Once a token is visible, an automatic retry is off the table. Reject events from finished or old attempts before they can change state.",
       nodes: [
         { label: "Attempt r-201.1", value: "queue 120 ms → transient timeout · visible 0" },
         { label: "Retry decision", value: "transient ∧ visible = 0 ∧ 0 + 1 < 2 → retry" },
@@ -39,28 +39,28 @@ export const reliabilityObservabilityLesson = defineExtendedLesson({
       ],
     },
     questions: {
-      intro: "Ask about retry safety, tail latency, request identity, terminal states, or failure injection.",
+      intro: "Ask about safe retries, slow tail latency, request ids, final states, or testing with injected failures.",
       suggestions: ["When is a generation retry unsafe?", "Why separate TTFT from total latency?", "How should late token events be handled?"],
     },
     dataset: {
       name: "Failure Trace",
-      source: "Deterministic injected scenarios",
+      source: "Fixed injected scenarios",
       license: "CC0",
       size: "4 failure modes · fixed seeds",
       preview: "queue timeout · malformed frame · worker crash · user abort",
     },
     implementation: {
       filename: "generation-reliability.py",
-      intro: "Implement retry policy and terminal-state guards in Python before injecting failures into a streaming request trace.",
+      intro: "Build the retry rules and final-state guards in Python, then inject failures into a streaming request trace.",
       codeBlocks: [
         {
           id: "retry-policy",
           label: "Retry policy",
-          purpose: "Retry only transient failures before visible output and within a bounded attempt count.",
+          purpose: "Retry only temporary failures that happen before visible output, and never go past the attempt limit.",
           concepts: [
-            { name: "tokens_emitted", detail: "Visible output makes transparent retry unsafe." },
-            { name: "transient", detail: "Classification based on the actual error type." },
-            { name: "attempt", detail: "Zero-based index of the failed attempt; maxAttempts is the total attempt budget in the input record." },
+            { name: "tokens_emitted", detail: "Once output is visible, an automatic retry isn't safe." },
+            { name: "transient", detail: "Whether the actual error type is temporary." },
+            { name: "attempt", detail: "The zero-based number of the failed attempt. maxAttempts is the total number of tries allowed in the input record." },
           ],
           code: `def should_retry(options):
     transient = options["transient"]
@@ -77,13 +77,13 @@ RESULT = {
         },
         {
           id: "terminal-guard",
-          label: "Terminal-state guard",
-          purpose: "Ignore late events after completion, error, or cancellation.",
+          label: "Finished-request guard",
+          purpose: "Ignore events that arrive after completion, error, or cancellation.",
           concepts: [
-            { name: "active", detail: "Queued, loading, prefill, and streaming are the only event-accepting states." },
-            { name: "attemptId", detail: "Changes on every retry and prevents a retired attempt from mutating the current one." },
-            { name: "requestId", detail: "Names the transport lifecycle within the active attempt." },
-            { name: "event", detail: "Typed transport event applied only to the matching active attempt and transport." },
+            { name: "active", detail: "Only queued, loading, prefill, and streaming states can accept events." },
+            { name: "attemptId", detail: "Changes with every retry so an old attempt can't update the current one." },
+            { name: "requestId", detail: "Names the transport run inside the active attempt." },
+            { name: "event", detail: "A typed transport event that only applies to the matching active attempt and transport." },
           ],
           code: `def accept_event(request, event):
     active = {"queued", "loading", "prefill", "streaming"}
@@ -107,5 +107,5 @@ RESULT = {
         },
       ],
     },
-    experiment: { kind: "systems", variant: "reliability", title: "Replay a generation failure", intro: "Replay authored timeout, malformed-frame, worker-crash, and cancellation paths. Each fixed trace names its request and attempts, timings, retry decision, terminal transition, rejected late event, and released resources." },
+    experiment: { kind: "systems", variant: "reliability", title: "Replay a generation failure", intro: "Replay the planned timeout, malformed-frame, worker-crash, and cancellation paths. Each fixed trace shows the request and attempt ids, timing, retry decision, final state change, rejected late event, and released resources." },
   });

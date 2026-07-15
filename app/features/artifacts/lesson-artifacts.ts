@@ -18,9 +18,9 @@ export async function recordValidatedLessonArtifact(input: {
   source: string;
   results: ValidatedLessonResult[];
 }) {
-  if (!input.results.length || input.results.some((result) => !result.passed)) throw new Error("Only a fully passing lesson can produce a validated artifact.");
+  if (!input.results.length || input.results.some((result) => !result.passed)) throw new Error("Every lesson check must pass before Latent can create a validated artifact.");
   const blueprint = lessonArtifactBlueprintById.get(input.lessonId);
-  if (!blueprint) throw new Error(`No artifact adapter is registered for ${input.lessonId}.`);
+  if (!blueprint) throw new Error(`Latent doesn’t have an artifact adapter for ${input.lessonId}.`);
   const { store } = await getArtifactRuntime();
   const training = await recordedTrainingRegistry.materializeForLesson(input.lessonId, store);
   const previousLessonId = previousArtifactLessonId(input.lessonId);
@@ -30,7 +30,7 @@ export async function recordValidatedLessonArtifact(input: {
     kind: blueprint.kind,
     mode: "learner-validated",
     title: blueprint.title,
-    description: `${blueprint.description} This receipt binds passing source to course-authored reference frames; the frames are not computed learner output.`,
+    description: `${blueprint.description} This result ties your passing code to example frames made for the course; the frames were not calculated from your code.`,
     projectId: "browser-chat",
     moduleId: blueprint.moduleId,
     lessonId: blueprint.lessonId,
@@ -83,7 +83,7 @@ export async function recordProjectBuildArtifact(input: {
     kind: "browser-chat-build",
     mode: "build",
     title: `Browser Chat build ${input.buildNumber}`,
-    description: "The passing project build assembled from validated lesson artifacts and promoted by the source-bound test receipt.",
+    description: "The passing project build made from validated lesson artifacts and activated by test results tied to this exact source.",
     projectId: "browser-chat",
     moduleId: null,
     lessonId: null,
@@ -114,7 +114,7 @@ export async function recordValidatedProjectLessonArtifacts(
     const expectedContracts = llmSystemsContractSuite.contracts.filter((contract) => contract.cases.some((exerciseCase) => exerciseCase.invoke.modulePath === blueprint.projectPath)).length;
     const file = files[blueprint.projectPath];
     if (!file || lessonResults.length !== expectedContracts || lessonResults.some((result) => !result.passed)) {
-      throw new Error(`The passing project run did not produce a complete artifact input for ${blueprint.projectPath}.`);
+      throw new Error(`The passing project run didn’t produce all the artifact data needed for ${blueprint.projectPath}.`);
     }
     artifacts.push(await recordValidatedLessonArtifact({ lessonId: blueprint.lessonId, source: file.content, results: lessonResults }));
   }

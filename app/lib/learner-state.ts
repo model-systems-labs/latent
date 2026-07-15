@@ -675,8 +675,8 @@ function enqueuePendingLearnerPersistence() {
     })
     .catch((error) => {
       setLearnerPersistenceError(pending.recoveryStored
-        ? `History sync failed, but a browser recovery copy remains available. ${error instanceof Error ? error.message : "Reload before editing in another tab."}`
-        : "This browser could not save lesson progress. Copy your code before leaving this page.");
+        ? `We couldn't sync your history, but a recovery copy is still saved in this browser. ${error instanceof Error ? error.message : "Reload before you edit in another tab."}`
+        : "This browser couldn't save your lesson progress. Copy your code before you leave this page.");
       console.error("Learner progress persistence failed", error);
     });
 }
@@ -696,7 +696,7 @@ function storeLearnerState(state: LearnerState) {
   const previous = loadLearnerState();
   cachedLearner = sanitizeLearnerState(state);
   const recoveryStored = storeLearnerRecovery(cachedLearner, previous);
-  if (!recoveryStored) setLearnerPersistenceError("Browser recovery storage is unavailable. Keep this tab open until history sync completes.");
+  if (!recoveryStored) setLearnerPersistenceError("This browser can't save a recovery copy. Keep this tab open until your history finishes syncing.");
   scheduleLearnerPersistence(cachedLearner, previous, recoveryStored);
   if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent(CHANGE_EVENT));
 }
@@ -741,7 +741,7 @@ export function initializeLearnerPersistence() {
     window.dispatchEvent(new CustomEvent(CHANGE_EVENT));
     window.dispatchEvent(new CustomEvent(LEARNER_RECOVERY_EVENT));
   })().catch((error) => {
-    setLearnerPersistenceError(`Lesson progress could not open durable storage. ${error instanceof Error ? error.message : "A browser recovery copy will be used."}`);
+    setLearnerPersistenceError(`We couldn't open the lesson progress saved in this browser. ${error instanceof Error ? error.message : "We'll use the browser recovery copy instead."}`);
     console.error("Learner progress hydration failed", error);
     if (!cachedLearner) {
       const journal = readCurrentRecoveryJournal();
@@ -884,14 +884,14 @@ export function saveCharacterRnnArtifact(
   trainedAt = Date.now(),
   binding?: CharacterRnnSourceBinding,
 ) {
-  if (!Number.isFinite(trainedAt) || trainedAt < 0) throw new TypeError("A character-RNN checkpoint requires a valid training timestamp.");
+  if (!Number.isFinite(trainedAt) || trainedAt < 0) throw new TypeError("A character-RNN checkpoint needs a valid training time.");
   const sourcePath = typeof binding?.sourcePath === "string" ? binding.sourcePath.trim() : undefined;
   const sourceHash = typeof binding?.sourceHash === "string" ? binding.sourceHash.trim() : undefined;
   if (origin === "python" && (!sourcePath || !sourceHash)) {
-    throw new TypeError("A Python character-RNN checkpoint requires the exact trained source path and hash.");
+    throw new TypeError("A Python character-RNN checkpoint needs the exact source path and hash used for training.");
   }
   if (Boolean(sourcePath) !== Boolean(sourceHash)) {
-    throw new TypeError("Character-RNN source path and hash must be saved together.");
+    throw new TypeError("Save the character-RNN source path and hash together.");
   }
   const checkpointId = `character-rnn:${origin}:${trainedAt}:${encodeURIComponent(sourceHash ?? "unbound")}`;
   updateLearnerState((state) => ({

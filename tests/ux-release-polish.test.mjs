@@ -179,11 +179,11 @@ test("compiled project touch targets expand on mobile without changing the deskt
 test("project autosave and recovery copy explain timing and expose a concise diff preview", async () => {
   const source = await readFile(projectWorkbenchUrl, "utf8");
   assert.match(source, /window\.setTimeout\(\(\) => \{[\s\S]*?\}, 650\)/);
-  assert.match(source, /Unsaved draft · autosaves after 650 ms idle/);
+  assert.match(source, /Unsaved draft · saves after you stop typing for 650 ms/);
   assert.match(source, /immediate recovery copy\. File history autosaves after 650 ms without typing/);
   assert.match(source, /draftDifferenceSummary\(draft, candidate\.content\)/);
   assert.match(source, /\+\$\{added\} \/ −\$\{removed\} lines/);
-  assert.match(source, /Recovery copy loaded as the current draft\. File history autosaves after 650 ms without typing/);
+  assert.match(source, /The recovery copy is now your current draft\. File history saves after you stop typing for 650 ms/);
   const loadBranch = source.slice(source.indexOf("const recoveryRestaged ="), source.indexOf("setMobilePanel(\"code\")", source.indexOf("const recoveryRestaged =")));
   assert.match(loadBranch, /loadProjectDraftRecoveryCandidate\(candidate, selected\.updatedAt \+ 1\)/);
   assert.match(loadBranch, /if \(!recoveryRestaged\)[\s\S]*?return/);
@@ -214,7 +214,7 @@ test("revision queries and restore actions are bound to the currently selected f
   const source = await readFile(projectWorkbenchUrl, "utf8");
   assert.match(source, /revisionResponseIsCurrent\(\{[\s\S]*?requestedPath: path,[\s\S]*?selectedPath: selectedPathRef\.current,[\s\S]*?currentRequestId: revisionRequestRef\.current/);
   assert.match(source, /selectedPathRef\.current = path;[\s\S]*?revisionRequestRef\.current \+= 1;[\s\S]*?setRevisions\(\[\]\)/);
-  assert.match(source, /if \(!revisionCanRestore\(selected\.path, revision\.path\)\)[\s\S]*?contents were not restored/);
+  assert.match(source, /if \(!revisionCanRestore\(selected\.path, revision\.path\)\)[\s\S]*?Nothing was restored/);
 });
 
 test("top-level navigation fits phones, preserves tablet scrolling, and keeps touch targets", async () => {
@@ -243,6 +243,6 @@ test("the in-context-learning loader honestly defers disposal when upstream cann
   assert.match(icl, /generatorRef\.current = null;[\s\S]*?disposeTextGenerator\(generator\)/);
   assert.match(icl, /settlePipelineLoad\(lifecycle, operation\) === "dispose"[\s\S]*?disposeTextGenerator\(generator\)/);
   assert.match(icl, /if \(!isCurrent\(\)\) return;[\s\S]*?const raw = extractGeneratedText/);
-  assert.match(icl, /may finish the current download before the resolved model can be disposed/);
+  assert.match(icl, /may still finish the current download before it can shut down the model/);
   assert.doesNotMatch(icl, /download cancelled|abort(?:ed)? download/i);
 });

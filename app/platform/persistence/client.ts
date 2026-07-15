@@ -6,7 +6,7 @@ let contextPromise: Promise<PersistenceContext> | null = null;
 
 /** One database connection and one legacy-import pass per browser tab. */
 export function getPersistenceContext() {
-  if (typeof window === "undefined") return Promise.reject(new Error("Browser persistence is only available in the browser."));
+  if (typeof window === "undefined") return Promise.reject(new Error("Saved browser data is only available in the browser."));
   contextPromise ??= initializePersistence();
   return contextPromise;
 }

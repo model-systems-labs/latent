@@ -35,6 +35,12 @@ type TextGenerator = {
   dispose?: () => Promise<void> | void;
 };
 type IclCondition = "Zero-shot" | "One-shot" | "Few-shot";
+const qualityCategoryLabels: Record<string, string> = {
+  "Input and focus": "Typing and keyboard focus",
+  "Persistence and context": "Saving and context",
+  "Lifecycle and recovery": "Request flow and recovery",
+  "Accessibility and responsive contract": "Accessibility and mobile layout",
+};
 type IclRow = {
   condition: IclCondition;
   correct: number;
@@ -80,7 +86,7 @@ function DatasetRecord({ lesson }: { lesson: CourseLesson }) {
   return (
     <div className="dataset-record">
       <div>
-        <span>Supplied dataset</span>
+        <span>Dataset included with the lesson</span>
         <strong>{lesson.dataset.name}</strong>
         <em>{lesson.dataset.preview}</em>
       </div>
@@ -111,7 +117,7 @@ function RnnExperiment({ onComplete }: ExperimentProps) {
   return (
     <>
       <div className="experiment-action">
-        <p>18 hidden units · sequence length 28 · 600 updates · deterministic seed</p>
+        <p>18 hidden units · sequence length 28 · 600 updates · fixed seed</p>
         <button type="button" onClick={run} disabled={running}>{running ? "Training…" : result ? "Train again" : "Train RNN"}</button>
       </div>
       {result ? (
@@ -125,7 +131,7 @@ function RnnExperiment({ onComplete }: ExperimentProps) {
           <LossChart values={result.losses} />
           <article className="sample-output"><span>Autoregressive sample · τ 0.78</span><p>{result.sample}</p></article>
         </div>
-      ) : <p className="experiment-empty">Results and a reusable artifact appear here.</p>}
+      ) : <p className="experiment-empty">Your results and reusable artifact will show up here.</p>}
     </>
   );
 }
@@ -171,7 +177,7 @@ function NeuralLmExperiment({ onComplete }: ExperimentProps) {
             </article>
           </div>
         </div>
-      ) : <p className="experiment-empty">Distribution and nearest words appear here.</p>}
+      ) : <p className="experiment-empty">The probability distribution and nearest words will show up here.</p>}
     </>
   );
 }
@@ -204,7 +210,7 @@ function BpeExperiment({ onComplete }: ExperimentProps) {
             ))}
           </div>
         </div>
-      ) : <p className="experiment-empty">Merges and tokens appear here.</p>}
+      ) : <p className="experiment-empty">The learned merges and tokens will show up here.</p>}
     </>
   );
 }
@@ -223,7 +229,7 @@ function AttentionExperiment({ onComplete }: ExperimentProps) {
   return (
     <>
       <div className="experiment-action">
-        <p>7-unit additive scorer · 2,000 epochs · three semantic alignment roles</p>
+        <p>7-unit additive scorer · 2,000 epochs · three alignment targets</p>
         <button type="button" onClick={run} disabled={running}>{running ? "Learning alignment…" : result ? "Train again" : "Train attention"}</button>
       </div>
       {result ? (
@@ -243,7 +249,7 @@ function AttentionExperiment({ onComplete }: ExperimentProps) {
             ])}
           </div>
         </div>
-      ) : <p className="experiment-empty">The learned alignment appears here.</p>}
+      ) : <p className="experiment-empty">The learned alignment will show up here.</p>}
     </>
   );
 }
@@ -258,7 +264,7 @@ function TransformerExperiment({ onComplete }: ExperimentProps) {
       </div>
       {result ? (
         <div className="experiment-results">
-          <div className="causal-note"><strong>Invariant</strong><span>Every cell above the diagonal is exactly zero after masking and softmax.</span></div>
+          <div className="causal-note"><strong>Always true</strong><span>Every cell above the diagonal is exactly zero after masking and softmax.</span></div>
           <div className="attention-matrix transformer-matrix" style={{ gridTemplateColumns: `6.5rem repeat(${result.tokens.length}, 1fr)` }}>
             <span />
             {result.tokens.map((token, index) => <strong key={`${token}-${index}`}>{token}</strong>)}
@@ -269,7 +275,7 @@ function TransformerExperiment({ onComplete }: ExperimentProps) {
           </div>
           <div className="context-norms">{result.contextNorms.map((value, index) => <span key={`${result.tokens[index]}-${index}`}><em>{result.tokens[index]}</em><code>‖c‖ {value.toFixed(3)}</code></span>)}</div>
         </div>
-      ) : <p className="experiment-empty">The causal matrix appears here.</p>}
+      ) : <p className="experiment-empty">The causal matrix will show up here.</p>}
     </>
   );
 }
@@ -324,7 +330,7 @@ function IclExperiment({ onComplete }: ExperimentProps) {
             settlePipelineLoadFailure(lifecycle, operation);
             return;
           }
-          setDetail("WebGPU unavailable; initializing WASM · q4");
+          setDetail("WebGPU isn’t available; starting WASM · q4");
           generator = await transformers.pipeline("text-generation", "onnx-community/SmolLM2-135M-Instruct-ONNX", { ...options, device: "wasm" }) as unknown as TextGenerator;
         }
       } else {
@@ -341,7 +347,7 @@ function IclExperiment({ onComplete }: ExperimentProps) {
     } catch (reason) {
       if (!settlePipelineLoadFailure(lifecycle, operation)) return;
       setModelStatus("error");
-      setError(reason instanceof Error ? reason.message : "The local model could not be initialized.");
+      setError(reason instanceof Error ? reason.message : "The local model couldn’t start.");
     }
   };
 
@@ -395,11 +401,11 @@ function IclExperiment({ onComplete }: ExperimentProps) {
         if (isCurrent()) setRows((current) => [...current, row]);
       }
       if (!isCurrent()) return;
-      setDetail("Evaluation complete · frozen weights throughout");
+      setDetail("Evaluation done · weights stayed frozen");
       onComplete();
     } catch (reason) {
       if (!isCurrent()) return;
-      setError(reason instanceof Error ? reason.message : "The local evaluation stopped.");
+      setError(reason instanceof Error ? reason.message : "The local evaluation stopped before it finished.");
     } finally {
       if (isCurrent()) setRunning(false);
     }
@@ -415,19 +421,19 @@ function IclExperiment({ onComplete }: ExperimentProps) {
   return (
     <>
       <div className="model-loader">
-        <div><span>Local model</span><strong>SmolLM2-135M-Instruct · q4</strong><em>{detail}</em>{modelStatus === "loading" ? <small>Leaving this lesson suppresses further UI updates. This Transformers.js version may finish the current download before the resolved model can be disposed.</small> : null}</div>
+        <div><span>Local model</span><strong>SmolLM2-135M-Instruct · q4</strong><em>{detail}</em>{modelStatus === "loading" ? <small>If you leave this lesson, the page will stop updating. This version of Transformers.js may still finish the current download before it can shut down the model.</small> : null}</div>
         <i><b style={{ width: `${progress}%` }} /></i>
         <button type="button" onClick={loadModel} disabled={modelStatus === "loading" || modelStatus === "ready"}>{modelStatus === "ready" ? "Model ready" : modelStatus === "loading" ? `${progress}% downloaded` : "Load model · ~181 MB"}</button>
       </div>
       <div className="experiment-action">
-        <p>Opaque sentiment labels · 2 held-out cases · exact match · frozen weights</p>
+        <p>Arbitrary sentiment labels · 2 test cases · exact match · frozen weights</p>
         <button type="button" onClick={runEvaluation} disabled={modelStatus !== "ready" || running}>{running ? "Evaluating…" : rows.length ? "Run evaluation again" : "Run three conditions"}</button>
       </div>
       {error ? <p className="model-error">{error}</p> : null}
       {rows.length ? (
         <div className="icl-result-stack">
           <div className="metric-grid"><span><em>Weights updated</em><strong>0</strong></span><span><em>Changed by examples</em><strong>{changedPredictions}/2</strong></span><span><em>Few-shot accuracy</em><strong>{fewShot?.correct ?? 0}/2</strong></span></div>
-          <p className="simulation-artifact">The causal result is prediction sensitivity with frozen weights—not a guarantee that adding more examples improves this small model.</p>
+          <p className="simulation-artifact">This run only shows whether the examples changed the model’s answers while the weights stayed frozen. It doesn’t guarantee that more examples make this small model better.</p>
           <div className="icl-results">
             {rows.map((row) => (
               <article key={row.condition}>
@@ -439,7 +445,7 @@ function IclExperiment({ onComplete }: ExperimentProps) {
             ))}
           </div>
         </div>
-      ) : <p className="experiment-empty">Compare zero-, one-, and few-shot results here.</p>}
+      ) : <p className="experiment-empty">Your zero-, one-, and few-shot comparison will show up here.</p>}
     </>
   );
 }
@@ -452,9 +458,9 @@ type ContextActionFlow = "stop" | "retry" | "edit";
 const STREAMING_UI_PROFILES = {
   burst: {
     label: "Burst",
-    description: "60 deltas arrive in twelve short bursts before animation-frame boundaries.",
+    description: "60 deltas arrive in twelve short bursts around animation frames.",
     status: "complete",
-    output: "A causal mask prevents each token from reading positions that occur later in the sequence. The masked logits become zero probability after softmax.",
+    output: "A causal mask keeps each token from reading positions that come later in the sequence. After softmax, the masked logits have zero probability.",
     metrics: [
       { label: "Delivered deltas", value: "60 / 60" },
       { label: "Visual commits", value: "12" },
@@ -462,11 +468,11 @@ const STREAMING_UI_PROFILES = {
       { label: "Dropped text", value: "0 chars" },
     ],
     trace: [
-      { time: "0–15 ms", label: "Burst 01", detail: "deltas 1–5 enter the pending UI queue in arrival order; no reducer dispatch yet" },
-      { time: "16 ms", label: "Frame 01", detail: "flush 5 deltas → one TOKEN_BATCH dispatch → visual commit 1/12" },
-      { time: "32–176 ms", label: "Frames 02–11", detail: "ten more frame callbacks flush 50 deltas → commits 2–11; transport order is unchanged" },
-      { time: "192 ms", label: "Frame 12", detail: "final 5 deltas flush → commit 12/12 → pending queue length 0" },
-      { time: "193 ms", label: "Complete", detail: "terminal status committed; no scheduled frame, pending text, or open reader remains" },
+      { time: "0–15 ms", label: "Burst 01", detail: "deltas 1–5 enter the UI queue in the order they arrived; the reducer hasn’t run yet" },
+      { time: "16 ms", label: "Frame 01", detail: "flush 5 deltas → send one TOKEN_BATCH → visual update 1/12" },
+      { time: "32–176 ms", label: "Frames 02–11", detail: "ten more frames flush 50 deltas → updates 2–11; the stream stays in order" },
+      { time: "192 ms", label: "Frame 12", detail: "flush the last 5 deltas → update 12/12 → queue is empty" },
+      { time: "193 ms", label: "Complete", detail: "commit the final status; no scheduled frame, pending text, or open reader remains" },
     ],
     scroll: "Following · 24 px from bottom ≤ 80 px · userScrolledUp false",
     announcements: [
@@ -475,14 +481,14 @@ const STREAMING_UI_PROFILES = {
       "Assistant: masked logits become zero probability",
       "Assistant response complete.",
     ],
-    cleanup: "complete → flush final pending text → announce completion → release reader",
+    cleanup: "complete → show any remaining text → announce completion → release reader",
     dropped: "none",
   },
   steady: {
     label: "Steady",
     description: "60 deltas arrive eight milliseconds apart, usually two per animation frame.",
     status: "complete",
-    output: "A causal mask prevents each token from reading positions that occur later in the sequence. The masked logits become zero probability after softmax.",
+    output: "A causal mask keeps each token from reading positions that come later in the sequence. After softmax, the masked logits have zero probability.",
     metrics: [
       { label: "Delivered deltas", value: "60 / 60" },
       { label: "Visual commits", value: "30" },
@@ -490,11 +496,11 @@ const STREAMING_UI_PROFILES = {
       { label: "Dropped text", value: "0 chars" },
     ],
     trace: [
-      { time: "0–15 ms", label: "Deltas 01–02", detail: "two parsed token events queue while one frame callback is scheduled" },
-      { time: "16 ms", label: "Frame 01", detail: "flush 2 deltas → one TOKEN_BATCH dispatch → visual commit 1/30" },
-      { time: "32–464 ms", label: "Frames 02–29", detail: "56 more deltas flush in ordered pairs → commits 2–29" },
-      { time: "480 ms", label: "Frame 30", detail: "final 2 deltas flush → commit 30/30 → pending queue length 0" },
-      { time: "481 ms", label: "Complete", detail: "terminal status committed; scheduled frame cleared and reader released" },
+      { time: "0–15 ms", label: "Deltas 01–02", detail: "two parsed token events wait in the queue while one frame is scheduled" },
+      { time: "16 ms", label: "Frame 01", detail: "flush 2 deltas → send one TOKEN_BATCH → visual update 1/30" },
+      { time: "32–464 ms", label: "Frames 02–29", detail: "56 more deltas flush in ordered pairs → updates 2–29" },
+      { time: "480 ms", label: "Frame 30", detail: "flush the last 2 deltas → update 30/30 → queue is empty" },
+      { time: "481 ms", label: "Complete", detail: "commit the final status, clear the scheduled frame, and release the reader" },
     ],
     scroll: "Following · 0 px from bottom ≤ 80 px · userScrolledUp false",
     announcements: [
@@ -503,14 +509,14 @@ const STREAMING_UI_PROFILES = {
       "Assistant: masked logits become zero probability",
       "Assistant response complete.",
     ],
-    cleanup: "complete → pending queue already empty → announce completion → release reader",
+    cleanup: "complete → queue is already empty → announce completion → release reader",
     dropped: "none",
   },
   stalled: {
     label: "Stalled",
     description: "The same response pauses for 440 milliseconds after delta 24, then resumes.",
     status: "complete",
-    output: "A causal mask prevents each token from reading positions that occur later in the sequence. The masked logits become zero probability after softmax.",
+    output: "A causal mask keeps each token from reading positions that come later in the sequence. After softmax, the masked logits have zero probability.",
     metrics: [
       { label: "Delivered deltas", value: "60 / 60" },
       { label: "Visual commits", value: "14" },
@@ -518,11 +524,11 @@ const STREAMING_UI_PROFILES = {
       { label: "Dropped text", value: "0 chars" },
     ],
     trace: [
-      { time: "0–80 ms", label: "Opening bursts", detail: "deltas 1–24 flush across 5 visual commits; pending queue length returns to 0" },
-      { time: "96–520 ms", label: "Transport stall", detail: "no deltas arrive, so no frame is scheduled and no empty reducer dispatch occurs" },
+      { time: "0–80 ms", label: "Opening bursts", detail: "deltas 1–24 flush across 5 visual updates; the queue returns to 0" },
+      { time: "96–520 ms", label: "Transport stall", detail: "no deltas arrive, so the app schedules no frame and sends no empty reducer action" },
       { time: "536 ms", label: "Resume", detail: "delta 25 schedules the next animation frame without replaying old content" },
-      { time: "552–680 ms", label: "Frames 06–14", detail: "deltas 25–60 flush in order → commits 6–14; all 60 deltas are visible" },
-      { time: "681 ms", label: "Complete", detail: "terminal status committed; pending queue 0, scheduled frame none, reader released" },
+      { time: "552–680 ms", label: "Frames 06–14", detail: "deltas 25–60 flush in order → updates 6–14; all 60 deltas are visible" },
+      { time: "681 ms", label: "Complete", detail: "commit the final status; the queue is empty, no frame is scheduled, and the reader is released" },
     ],
     scroll: "Paused · 214 px from bottom > 80 px · generation continues without moving the reader",
     announcements: [
@@ -531,12 +537,12 @@ const STREAMING_UI_PROFILES = {
       "Assistant: masked logits become zero probability",
       "Assistant response complete.",
     ],
-    cleanup: "complete → flush final resumed batch → announce completion → release reader",
+    cleanup: "complete → show the last resumed batch → announce completion → release reader",
     dropped: "none",
   },
   cancelled: {
     label: "Cancelled",
-    description: "Cancellation arrives with three delivered deltas still pending before the next frame.",
+    description: "The user cancels while three delivered deltas are still waiting for the next frame.",
     status: "cancelled",
     output: "A causal mask prevents each token from reading future",
     metrics: [
@@ -546,13 +552,13 @@ const STREAMING_UI_PROFILES = {
       { label: "Dropped text", value: "11 chars" },
     ],
     trace: [
-      { time: "0–64 ms", label: "Committed prefix", detail: "deltas 1–20 flush across 4 frame callbacks → visual commits 1–4" },
-      { time: "65–69 ms", label: "Pending tail", detail: "deltas 21–23 form the exact uncommitted text “ positions.”; next frame is scheduled" },
-      { time: "70 ms", label: "Cancel", detail: "drop 3 pending deltas / 11 characters and cancel the scheduled animation-frame callback" },
-      { time: "70 ms", label: "Terminal", detail: "request status becomes cancelled; partial committed response remains visible" },
-      { time: "71 ms", label: "Late delta", detail: "one post-cancel event is rejected; reader cancelled and generator return path confirmed" },
+      { time: "0–64 ms", label: "Visible start", detail: "deltas 1–20 flush across 4 frames → visual updates 1–4" },
+      { time: "65–69 ms", label: "Waiting tail", detail: "deltas 21–23 make the exact text “ positions.”, which hasn’t appeared yet; the next frame is scheduled" },
+      { time: "70 ms", label: "Cancel", detail: "drop 3 waiting deltas / 11 characters and cancel the scheduled animation frame" },
+      { time: "70 ms", label: "Final state", detail: "mark the request canceled; keep the partial response that was already visible" },
+      { time: "71 ms", label: "Late delta", detail: "ignore one event that arrives after canceling; cancel the reader and finish the generator cleanup" },
     ],
-    scroll: "Paused · 18 px from bottom but userScrolledUp true · explicit reader control wins",
+    scroll: "Paused · 18 px from bottom but userScrolledUp true · the user’s scroll choice wins",
     announcements: [
       "Assistant: A causal mask prevents each token from reading future",
       "Assistant generation cancelled. Partial response retained.",
@@ -594,11 +600,11 @@ function SystemsExperiment({ variant, onComplete }: { variant: SystemsVariant } 
           { label: "Decode rate", value: "21.4 tok/s" },
         ],
         trace: [
-          { label: "Admitted", detail: "request r-104 · prompt 96 · output budget 32 tokens" },
-          { label: "Queue", detail: "18 ms waiting for admission" },
-          { label: "Prefill", detail: "74 ms · 96 prompt positions processed · 6 KV pages allocated" },
+          { label: "Accepted", detail: "request r-104 · prompt 96 · output limit 32 tokens" },
+          { label: "Queue", detail: "18 ms waiting for capacity" },
+          { label: "Prefill", detail: "74 ms · process 96 prompt positions · set aside 6 KV pages" },
           { label: "First token", detail: "token 1/32 sampled from prefill logits · visible at TTFT 92 ms" },
-          { label: "Decode", detail: "31 subsequent one-position forwards produce tokens 2–32 · 21.4 tok/s · cache grows 6 → 8 pages" },
+          { label: "Decode", detail: "31 more one-position passes produce tokens 2–32 · 21.4 tok/s · cache grows 6 → 8 pages" },
           { label: "Complete", detail: "final sequence length 128 · 8 KV pages released" },
         ],
         artifact: "TTFT = queue 18 ms + prefill 74 ms = 92 ms\noutput 32 = 1 prefill sample + 31 decode forwards\nKV pages 6 → 8 → released",
@@ -615,12 +621,12 @@ function SystemsExperiment({ variant, onComplete }: { variant: SystemsVariant } 
             { label: "Late events", value: "0" },
           ],
           trace: [
-            { label: "meta", detail: "request id and model metadata decoded" },
-            { label: "token × 4", detail: "four ordered deltas parsed; render buffer flushes the visible partial response" },
-            { label: "abort", detail: "AbortSignal crosses the adapter boundary after token 4", tone: "warning" },
-            { label: "reader", detail: "reader.cancel() stops further chunk reads; decoder and host frame remainder ownership are cleared" },
-            { label: "generator", detail: "generator return path runs; tokens 5–10 are never produced" },
-            { label: "release", detail: "reader lock and generation resources released · late events ignored" },
+            { label: "meta", detail: "decode the request id and model details" },
+            { label: "token × 4", detail: "parse four deltas in order; flush the render buffer so the partial response is visible" },
+            { label: "abort", detail: "AbortSignal crosses the adapter after token 4", tone: "warning" },
+            { label: "reader", detail: "reader.cancel() stops more chunk reads; clear the decoder and leftover frame text" },
+            { label: "generator", detail: "run the generator cleanup; tokens 5–10 are never made" },
+            { label: "release", detail: "release the reader lock and generation resources · ignore late events" },
           ],
           artifact: "policy cancel-after-4\nproduced tokens 4 / 10 · parsed events 5 / 14\nreader cancelled yes · decoder cleared yes · host frame remainder cleared yes\nlate events 0 · resources released yes",
         });
@@ -634,11 +640,11 @@ function SystemsExperiment({ variant, onComplete }: { variant: SystemsVariant } 
           { label: "Remainder", value: "0 B" },
         ],
         trace: [
-          { label: "meta", detail: "request id and model metadata decoded" },
+          { label: "meta", detail: "decode the request id and model details" },
           { label: "token × 4", detail: "first frame split across three byte chunks" },
-          { label: "render pause", detail: "React commits pause; byte decoding and frame parsing continue into a typed-event render buffer" },
-          { label: "token × 6", detail: "ordered deltas recovered without duplication; buffered deltas flush in one render" },
-          { label: "done", detail: "terminal event leaves remainder 0 B, closes parser, and releases reader" },
+          { label: "render pause", detail: "React updates pause, but byte decoding and frame parsing keep filling the typed-event render buffer" },
+          { label: "token × 6", detail: "recover the remaining deltas in order with no duplicates; show the buffered deltas in one render" },
+          { label: "done", detail: "the final event leaves 0 B, closes the parser, and releases the reader" },
         ],
         artifact: "policy complete\n17 chunks → 14 events → 10 token deltas\nremainder 0 B · terminal done · resources released yes",
       });
@@ -654,21 +660,21 @@ function SystemsExperiment({ variant, onComplete }: { variant: SystemsVariant } 
           { label: "P95 wait", value: continuous ? "7 steps" : "19 steps" },
         ],
         trace: continuous ? [
-          { label: "Iteration 01", detail: "a, b, c admitted · d waiting · 11 pages active" },
-          { label: "Iteration 14", detail: "a routed to completed · its identity retained · KV pages released" },
-          { label: "Iteration 15", detail: "d admitted into the freed decode slot" },
+          { label: "Iteration 01", detail: "accept a, b, c · d waits · 11 pages active" },
+          { label: "Iteration 14", detail: "mark a complete · keep its id · release its KV pages" },
+          { label: "Iteration 15", detail: "move d into the open decode slot" },
           { label: "Iteration 31", detail: "b completes · 4 pages returned" },
           { label: "Iteration 88", detail: "final request completes · allocator empty" },
         ] : [
-          { label: "Batch 01", detail: "a, b, c admitted · d waiting · membership fixed until the longest request completes" },
+          { label: "Batch 01", detail: "accept a, b, c · d waits · the batch can’t change until the longest request finishes" },
           { label: "Iteration 14", detail: "a completes; its decode slot idles even though d is queued", tone: "warning" },
-          { label: "Idle slots", detail: "completed sequences can release memory, but this policy does not refill their batch positions", tone: "warning" },
-          { label: "Batch 02", detail: "d and other waiting requests admitted only after batch drain" },
+          { label: "Idle slots", detail: "finished sequences can release memory, but this policy doesn’t fill their open batch spots", tone: "warning" },
+          { label: "Batch 02", detail: "d and the other waiting requests can start only after the first batch finishes" },
           { label: "Iteration 116", detail: "final request completes" },
         ],
         artifact: continuous
-          ? "Same arrivals · completion → identity retained → pages released → next-iteration admission.\nThis fixed workload: 88 iterations · 86% utilization · p95 wait 7."
-          : "Same arrivals · completed positions stay idle until batch drain.\nThis fixed workload: 116 iterations · 61% utilization · p95 wait 19.",
+          ? "Same arrivals · finish → keep id → release pages → accept another request next iteration.\nThis fixed workload: 88 iterations · 86% utilization · p95 wait 7."
+          : "Same arrivals · finished spots stay idle until the whole batch ends.\nThis fixed workload: 116 iterations · 61% utilization · p95 wait 19.",
       });
       return;
     }
@@ -676,52 +682,52 @@ function SystemsExperiment({ variant, onComplete }: { variant: SystemsVariant } 
       "queue-timeout": {
         metrics: [{ label: "Retry", value: "yes" }, { label: "Tokens visible", value: "0" }, { label: "Attempts", value: "2" }, { label: "TTFT · attempt 2", value: "83 ms" }, { label: "End to end", value: "541 ms" }, { label: "Outcome", value: "complete" }],
         trace: [
-          { label: "Admit", detail: "logical request r-201 · active attempt r-201.1 · index 0/1" },
+          { label: "Accept", detail: "logical request r-201 · active attempt r-201.1 · index 0/1" },
           { label: "Queue timeout", detail: "r-201.1 queue 120 ms · transient · visible tokens 0", tone: "warning" },
-          { label: "Retry boundary", detail: "true ∧ 0 visible ∧ 0 + 1 < 2 → retire r-201.1; create r-201.2" },
+          { label: "Retry check", detail: "true ∧ 0 visible ∧ 0 + 1 < 2 → retire r-201.1; create r-201.2" },
           { label: "Queue + prefill", detail: "r-201.2 queue 14 ms + prefill 69 ms → TTFT 83 ms" },
           { label: "Stream", detail: "r-201.2 emits 10 ordered deltas · decode 338 ms" },
           { label: "Complete", detail: "r-201.2 streaming → complete at 421 ms for this attempt · reader and KV pages released" },
-          { label: "Late event", detail: "token tagged r-201.1 rejected because r-201.2 is the retired request's successor · no state or resource count changes", tone: "warning" },
+          { label: "Late event", detail: "ignore the token tagged r-201.1 because r-201.2 replaced it · state and resource counts don’t change", tone: "warning" },
         ],
         artifact: "request r-201\nattempts r-201.1 timeout → r-201.2 complete\nqueue 120 + attempt-2 total 421 = end-to-end 541 ms\nlate events rejected 1 · open readers 0 · allocated KV pages 0",
       },
       "malformed-frame": {
         metrics: [{ label: "Retry", value: "no" }, { label: "Tokens visible", value: "6" }, { label: "TTFT", value: "74 ms" }, { label: "Parser errors", value: "1" }, { label: "Late rejected", value: "1" }, { label: "Outcome", value: "error" }],
         trace: [
-          { label: "Admit", detail: "logical request r-202 · active attempt r-202.1 · index 0/1" },
+          { label: "Accept", detail: "logical request r-202 · active attempt r-202.1 · index 0/1" },
           { label: "First token", detail: "queue 12 ms + prefill 62 ms → TTFT 74 ms" },
           { label: "Visible output", detail: "r-202.1 applies six ordered token events" },
-          { label: "Parse error", detail: "invalid JSON frame at 192 ms · classified non-transient", tone: "error" },
-          { label: "Retry boundary", detail: "non-transient ∧ visible tokens 6 → no transparent retry; partial output remains" },
-          { label: "Terminal", detail: "r-202.1 streaming → error · reader cancelled and parser remainder discarded" },
-          { label: "Late event", detail: "post-error token tagged r-202.1 rejected by terminal status · open readers 0", tone: "warning" },
+          { label: "Parse error", detail: "invalid JSON frame at 192 ms · not a temporary error", tone: "error" },
+          { label: "Retry check", detail: "not temporary ∧ 6 visible tokens → don’t retry automatically; keep the partial output" },
+          { label: "Final state", detail: "r-202.1 streaming → error · cancel the reader and discard leftover parser text" },
+          { label: "Late event", detail: "the final error state ignores a later token tagged r-202.1 · open readers 0", tone: "warning" },
         ],
         artifact: "request r-202 · attempt r-202.1\nqueue 12 ms · prefill 62 ms · TTFT 74 ms · error 192 ms\npartial tokens preserved 6 · retry false\nlate events rejected 1 · open readers 0 · parser remainders 0",
       },
       "worker-crash": {
         metrics: [{ label: "Retry", value: "yes" }, { label: "Tokens visible", value: "0" }, { label: "Worker restarts", value: "1" }, { label: "TTFT · attempt 2", value: "101 ms" }, { label: "Late rejected", value: "1" }, { label: "Outcome", value: "complete" }],
         trace: [
-          { label: "Admit", detail: "logical request r-203 · active attempt r-203.1 · index 0/1" },
+          { label: "Accept", detail: "logical request r-203 · active attempt r-203.1 · index 0/1" },
           { label: "Worker crash", detail: "r-203.1 exits during model loading at 44 ms · transient · visible tokens 0", tone: "error" },
-          { label: "Retry boundary", detail: "true ∧ 0 visible ∧ 0 + 1 < 2 → retire attempt and terminate worker 1" },
-          { label: "Restart", detail: "worker 2 owns r-203.2 and a fresh model lifecycle · queue 16 ms + prefill 85 ms" },
+          { label: "Retry check", detail: "true ∧ 0 visible ∧ 0 + 1 < 2 → retire the attempt and stop worker 1" },
+          { label: "Restart", detail: "worker 2 owns r-203.2 and starts a fresh model run · queue 16 ms + prefill 85 ms" },
           { label: "First token", detail: "r-203.2 TTFT 101 ms · decode 302 ms" },
-          { label: "Complete", detail: "r-203.2 → complete at 403 ms for this attempt · worker 2 remains healthy; request resources released" },
-          { label: "Late event", detail: "worker 1 message tagged r-203.1 rejected against active r-203.2", tone: "warning" },
+          { label: "Complete", detail: "r-203.2 finishes at 403 ms for this attempt · worker 2 stays healthy; release the request resources" },
+          { label: "Late event", detail: "ignore worker 1’s r-203.1 message because r-203.2 is active", tone: "warning" },
         ],
         artifact: "request r-203\nattempts r-203.1 crash → r-203.2 complete\nworkers started 2 · crashed 1 · request resource owners released 2/2\nlate events rejected 1 · allocated KV pages 0",
       },
       "user-abort": {
         metrics: [{ label: "Retry", value: "no" }, { label: "Tokens visible", value: "11" }, { label: "TTFT", value: "74 ms" }, { label: "Abort latency", value: "14 ms" }, { label: "Late rejected", value: "1" }, { label: "Outcome", value: "cancelled" }],
         trace: [
-          { label: "Admit", detail: "logical request r-204 · active attempt r-204.1 · index 0/1" },
+          { label: "Accept", detail: "logical request r-204 · active attempt r-204.1 · index 0/1" },
           { label: "First token", detail: "queue 11 ms + prefill 63 ms → TTFT 74 ms" },
           { label: "Streaming", detail: "r-204.1 applies eleven token events before the user presses stop" },
-          { label: "Abort", detail: "AbortSignal reaches reader and worker at 286 ms · classified as a user action" },
-          { label: "Terminal", detail: "r-204.1 streaming → cancelled in 14 ms · partial message retained · retry false" },
-          { label: "Release", detail: "reader cancelled · generator return path runs · KV pages released" },
-          { label: "Late event", detail: "post-cancel token tagged r-204.1 rejected by terminal status", tone: "warning" },
+          { label: "Abort", detail: "AbortSignal reaches the reader and worker at 286 ms · this came from the user" },
+          { label: "Final state", detail: "r-204.1 streaming → canceled in 14 ms · keep the partial message · don’t retry" },
+          { label: "Release", detail: "cancel the reader · run the generator cleanup · release the KV pages" },
+          { label: "Late event", detail: "ignore a token tagged r-204.1 that arrives after canceling", tone: "warning" },
         ],
         artifact: "request r-204 · attempt r-204.1\nqueue 11 ms · prefill 63 ms · TTFT 74 ms\nabort 286 ms → cancelled 300 ms · latency 14 ms\nlate events rejected 1 · open readers 0 · allocated KV pages 0",
       },
@@ -742,16 +748,16 @@ function SystemsExperiment({ variant, onComplete }: { variant: SystemsVariant } 
         </div>
       ) : null}
       {variant === "reliability" ? (
-        <div className="simulation-controls"><label><span>Injected failure</span><select value={failure} onChange={(event) => { setFailure(event.target.value); setResult(null); }}><option value="queue-timeout">Queue timeout</option><option value="malformed-frame">Malformed frame</option><option value="worker-crash">Worker crash</option><option value="user-abort">User abort</option></select></label></div>
+        <div className="simulation-controls"><label><span>Failure to try</span><select value={failure} onChange={(event) => { setFailure(event.target.value); setResult(null); }}><option value="queue-timeout">Queue timeout</option><option value="malformed-frame">Malformed frame</option><option value="worker-crash">Worker crash</option><option value="user-abort">User abort</option></select></label></div>
       ) : null}
-      <div className="experiment-action"><p>{variant === "streaming" ? "Fixed worked trace · adversarial chunks · explicit stop and release evidence" : variant === "reliability" ? "Fixed worked failures · request and attempt ids · phase timing · terminal and resource evidence" : "Fixed worked trace · authored metrics · explicit resource accounting"}</p><button type="button" onClick={run}>{result ? "Replay trace again" : "Replay trace"}</button></div>
+      <div className="experiment-action"><p>{variant === "streaming" ? "Fixed example · tricky chunk boundaries · clear cancel and cleanup results" : variant === "reliability" ? "Fixed failures · request and attempt ids · phase timing · final state and cleanup" : "Fixed example · course-made metrics · clear resource counts"}</p><button type="button" onClick={run}>{result ? "Replay trace again" : "Replay trace"}</button></div>
       {result ? (
         <div className="simulation-result">
           <div className="metric-grid">{result.metrics.map((metric) => <span key={metric.label}><em>{metric.label}</em><strong>{metric.value}</strong></span>)}</div>
           <div className="trace-list">{result.trace.map((event, index) => <div className={event.tone ?? ""} key={`${event.label}-${index}`}><span>{String(index + 1).padStart(2, "0")}</span><strong>{event.label}</strong><p>{event.detail}</p></div>)}</div>
           <pre className="simulation-artifact">{result.artifact}</pre>
         </div>
-      ) : <p className="experiment-empty">Trace and metrics appear here.</p>}
+      ) : <p className="experiment-empty">The trace and metrics will show up here.</p>}
     </>
   );
 }
@@ -766,27 +772,27 @@ function ProductExperiment({ variant, onComplete }: { variant: ProductVariant } 
   const stateTraces = {
     complete: [
       { number: 1, action: "USER_MESSAGE", status: "complete", messageId: "m-u1", attemptId: "—", requestId: "—", content: "Explain causal masking.", canStop: false, canRegenerate: false, applied: true, evidence: "state revision 0 → 1 · conversation order appends m-u1" },
-      { number: 2, action: "START_ATTEMPT", status: "queued", messageId: "m-a1", attemptId: "a-17.1", requestId: "r-17.1", content: "", canStop: false, canRegenerate: false, applied: true, evidence: "revision 1 → 2 · new m-a1 record · m-u1 identity preserved" },
+      { number: 2, action: "START_ATTEMPT", status: "queued", messageId: "m-a1", attemptId: "a-17.1", requestId: "r-17.1", content: "", canStop: false, canRegenerate: false, applied: true, evidence: "revision 1 → 2 · new m-a1 record · keep the same m-u1 object" },
       { number: 3, action: "STREAM_START", status: "streaming", messageId: "m-a1", attemptId: "a-17.1", requestId: "r-17.1", content: "", canStop: true, canRegenerate: false, applied: true, evidence: "revision 2 → 3 · request status queued → streaming" },
-      { number: 4, action: "TOKEN_DELTA", status: "streaming", messageId: "m-a1", attemptId: "a-17.1", requestId: "r-17.1", content: "A causal", canStop: true, canRegenerate: false, applied: true, evidence: "revision 3 → 4 · m-a1 replaced · m-u1 identity preserved" },
+      { number: 4, action: "TOKEN_DELTA", status: "streaming", messageId: "m-a1", attemptId: "a-17.1", requestId: "r-17.1", content: "A causal", canStop: true, canRegenerate: false, applied: true, evidence: "revision 3 → 4 · replace m-a1 · keep the same m-u1 object" },
       { number: 5, action: "TOKEN_DELTA", status: "streaming", messageId: "m-a1", attemptId: "a-17.1", requestId: "r-17.1", content: "A causal mask removes future positions.", canStop: true, canRegenerate: false, applied: true, evidence: "revision 4 → 5 · m-a1 replaced · ordered ids unchanged" },
-      { number: 6, action: "COMPLETE", status: "complete", messageId: "m-a1", attemptId: "a-17.1", requestId: "r-17.1", content: "A causal mask removes future positions.", canStop: false, canRegenerate: true, applied: true, evidence: "revision 5 → 6 · terminal request releases active control" },
+      { number: 6, action: "COMPLETE", status: "complete", messageId: "m-a1", attemptId: "a-17.1", requestId: "r-17.1", content: "A causal mask removes future positions.", canStop: false, canRegenerate: true, applied: true, evidence: "revision 5 → 6 · final request releases the active controls" },
     ],
     cancel: [
       { number: 7, action: "USER_MESSAGE", status: "complete", messageId: "m-u2", attemptId: "—", requestId: "—", content: "Give one implementation detail.", canStop: false, canRegenerate: false, applied: true, evidence: "revision 6 → 7 · conversation order appends m-u2" },
-      { number: 8, action: "START_ATTEMPT", status: "queued", messageId: "m-a2", attemptId: "a-17.2", requestId: "r-17.2", content: "", canStop: false, canRegenerate: false, applied: true, evidence: "revision 7 → 8 · second message, attempt, and request ids allocated" },
-      { number: 9, action: "STREAM_START", status: "streaming", messageId: "m-a2", attemptId: "a-17.2", requestId: "r-17.2", content: "", canStop: true, canRegenerate: false, applied: true, evidence: "revision 8 → 9 · canStop derives from active streaming request" },
-      { number: 10, action: "TOKEN_DELTA", status: "streaming", messageId: "m-a2", attemptId: "a-17.2", requestId: "r-17.2", content: "Set future logits", canStop: true, canRegenerate: false, applied: true, evidence: "revision 9 → 10 · m-a2 replaced · all other messages preserved" },
-      { number: 11, action: "CANCEL_REQUEST", status: "cancelled", messageId: "m-a2", attemptId: "a-17.2", requestId: "r-17.2", content: "Set future logits", canStop: false, canRegenerate: true, applied: true, evidence: "revision 10 → 11 · partial text retained · request terminal" },
-      { number: 12, action: "TOKEN_DELTA", status: "cancelled", messageId: "m-a2", attemptId: "a-17.2", requestId: "r-17.2", content: "Set future logits", canStop: false, canRegenerate: true, applied: false, evidence: "revision remains 11 · late delta rejected · no object identities change" },
+      { number: 8, action: "START_ATTEMPT", status: "queued", messageId: "m-a2", attemptId: "a-17.2", requestId: "r-17.2", content: "", canStop: false, canRegenerate: false, applied: true, evidence: "revision 7 → 8 · create ids for the second message, attempt, and request" },
+      { number: 9, action: "STREAM_START", status: "streaming", messageId: "m-a2", attemptId: "a-17.2", requestId: "r-17.2", content: "", canStop: true, canRegenerate: false, applied: true, evidence: "revision 8 → 9 · canStop turns on because a request is streaming" },
+      { number: 10, action: "TOKEN_DELTA", status: "streaming", messageId: "m-a2", attemptId: "a-17.2", requestId: "r-17.2", content: "Set future logits", canStop: true, canRegenerate: false, applied: true, evidence: "revision 9 → 10 · replace m-a2 · keep every other message" },
+      { number: 11, action: "CANCEL_REQUEST", status: "cancelled", messageId: "m-a2", attemptId: "a-17.2", requestId: "r-17.2", content: "Set future logits", canStop: false, canRegenerate: true, applied: true, evidence: "revision 10 → 11 · keep the partial text · request is now final" },
+      { number: 12, action: "TOKEN_DELTA", status: "cancelled", messageId: "m-a2", attemptId: "a-17.2", requestId: "r-17.2", content: "Set future logits", canStop: false, canRegenerate: true, applied: false, evidence: "revision stays 11 · ignore the late delta · no objects change" },
     ],
     regenerate: [
-      { number: 13, action: "EDIT_MESSAGE", status: "complete", messageId: "m-u1", attemptId: "—", requestId: "—", content: "Explain causal masking precisely.", canStop: false, canRegenerate: false, applied: true, evidence: "revision 11 → 12 · m-u1 revision 0 → 1 · prior record retained" },
+      { number: 13, action: "EDIT_MESSAGE", status: "complete", messageId: "m-u1", attemptId: "—", requestId: "—", content: "Explain causal masking clearly.", canStop: false, canRegenerate: false, applied: true, evidence: "revision 11 → 12 · m-u1 revision 0 → 1 · keep the older record" },
       { number: 14, action: "REGENERATE", status: "queued", messageId: "m-a1", attemptId: "a-17.3", requestId: "r-17.3", content: "", canStop: false, canRegenerate: false, applied: true, evidence: "revision 12 → 13 · same message position · new attempt and request ids" },
-      { number: 15, action: "STREAM_START", status: "streaming", messageId: "m-a1", attemptId: "a-17.3", requestId: "r-17.3", content: "", canStop: true, canRegenerate: false, applied: true, evidence: "revision 13 → 14 · a-17.1 remains historical · a-17.3 becomes active" },
-      { number: 16, action: "TOKEN_DELTA", status: "streaming", messageId: "m-a1", attemptId: "a-17.3", requestId: "r-17.3", content: "A causal mask", canStop: true, canRegenerate: false, applied: true, evidence: "revision 14 → 15 · active assistant record replaced immutably" },
+      { number: 15, action: "STREAM_START", status: "streaming", messageId: "m-a1", attemptId: "a-17.3", requestId: "r-17.3", content: "", canStop: true, canRegenerate: false, applied: true, evidence: "revision 13 → 14 · keep a-17.1 in history · make a-17.3 active" },
+      { number: 16, action: "TOKEN_DELTA", status: "streaming", messageId: "m-a1", attemptId: "a-17.3", requestId: "r-17.3", content: "A causal mask", canStop: true, canRegenerate: false, applied: true, evidence: "revision 14 → 15 · replace the active assistant record without changing the old one" },
       { number: 17, action: "TOKEN_DELTA", status: "streaming", messageId: "m-a1", attemptId: "a-17.3", requestId: "r-17.3", content: "A causal mask sets future attention logits to negative infinity.", canStop: true, canRegenerate: false, applied: true, evidence: "revision 15 → 16 · conversation order and user records unchanged" },
-      { number: 18, action: "COMPLETE", status: "complete", messageId: "m-a1", attemptId: "a-17.3", requestId: "r-17.3", content: "A causal mask sets future attention logits to negative infinity.", canStop: false, canRegenerate: true, applied: true, evidence: "revision 16 → 17 · attempt a-17.3 terminal · request resources released" },
+      { number: 18, action: "COMPLETE", status: "complete", messageId: "m-a1", attemptId: "a-17.3", requestId: "r-17.3", content: "A causal mask sets future attention logits to negative infinity.", canStop: false, canRegenerate: true, applied: true, evidence: "revision 16 → 17 · attempt a-17.3 is final · release the request resources" },
     ],
   } as const;
   if (variant === "state") {
@@ -799,14 +805,14 @@ function ProductExperiment({ variant, onComplete }: { variant: ProductVariant } 
     };
     return (
       <>
-        <div className="simulation-controls state-flow-controls" role="group" aria-label="Focused reducer flow"><span>Focused flow</span><button aria-pressed={stateFlow === "complete"} className={stateFlow === "complete" ? "selected" : ""} type="button" onClick={() => setFlow("complete")}>Complete · 01–06</button><button aria-pressed={stateFlow === "cancel"} className={stateFlow === "cancel" ? "selected" : ""} type="button" onClick={() => setFlow("cancel")}>Cancel + late · 07–12</button><button aria-pressed={stateFlow === "regenerate"} className={stateFlow === "regenerate" ? "selected" : ""} type="button" onClick={() => setFlow("regenerate")}>Edit + regenerate · 13–18</button></div>
+        <div className="simulation-controls state-flow-controls" role="group" aria-label="Reducer flow to view"><span>Flow to view</span><button aria-pressed={stateFlow === "complete"} className={stateFlow === "complete" ? "selected" : ""} type="button" onClick={() => setFlow("complete")}>Complete · 01–06</button><button aria-pressed={stateFlow === "cancel"} className={stateFlow === "cancel" ? "selected" : ""} type="button" onClick={() => setFlow("cancel")}>Cancel + late · 07–12</button><button aria-pressed={stateFlow === "regenerate"} className={stateFlow === "regenerate" ? "selected" : ""} type="button" onClick={() => setFlow("regenerate")}>Edit + regenerate · 13–18</button></div>
         <div className="simulation-controls"><span>Reducer action</span><input aria-label="Reducer action" type="range" min="0" max={stateTrace.length - 1} value={step} onChange={(event) => setStep(Number(event.target.value))} /><code>{String(current.number).padStart(2, "0")}/18</code></div>
-        <div className="experiment-action"><p>Fixed authored reducer events · inspectable identities · no learner-code execution</p><button type="button" onClick={() => { setRan(true); onComplete(); }}>{ran ? "Replay selected flow again" : "Replay selected flow"}</button></div>
+        <div className="experiment-action"><p>Fixed reducer events · ids you can inspect · your code doesn’t run here</p><button type="button" onClick={() => { setRan(true); onComplete(); }}>{ran ? "Replay selected flow again" : "Replay selected flow"}</button></div>
         <div className="simulation-result product-simulation">
-          <div className="state-inspector"><div><span>Action</span><strong>{current.action}</strong></div><div><span>Status</span><strong>{current.status}</strong></div><div><span>Reducer result</span><strong>{current.applied ? "applied" : "ignored"}</strong></div><div><span>Derived controls</span><strong>{`stop ${current.canStop ? "on" : "off"} · regenerate ${current.canRegenerate ? "on" : "off"}`}</strong></div></div>
+          <div className="state-inspector"><div><span>Action</span><strong>{current.action}</strong></div><div><span>Status</span><strong>{current.status}</strong></div><div><span>Reducer result</span><strong>{current.applied ? "applied" : "ignored"}</strong></div><div><span>Controls now</span><strong>{`stop ${current.canStop ? "on" : "off"} · regenerate ${current.canRegenerate ? "on" : "off"}`}</strong></div></div>
           <div className="state-identity-strip"><span><em>messageId</em><code>{current.messageId}</code></span><span><em>attemptId</em><code>{current.attemptId}</code></span><span><em>requestId</em><code>{current.requestId}</code></span></div>
           <article className={`mini-message ${current.status}`}><span>{current.messageId.startsWith("m-u") ? "User" : "Assistant"} · {current.messageId}</span><p>{current.content || "Waiting for output…"}</p></article>
-          <p className={`state-revision-evidence${current.applied ? "" : " ignored"}`}><b>Identity evidence</b>{current.evidence}</p>
+          <p className={`state-revision-evidence${current.applied ? "" : " ignored"}`}><b>What changed</b>{current.evidence}</p>
           <div className="trace-list compact-trace">{stateTrace.map((event, index) => <button aria-label={`Action ${event.number}: ${event.action}`} aria-current={index === step ? "step" : undefined} className={index === step ? "active" : index < step ? "complete" : ""} type="button" onClick={() => setStep(index)} key={`${event.action}-${event.number}`}><span>{String(event.number).padStart(2, "0")}</span><strong>{event.action}</strong></button>)}</div>
         </div>
       </>
@@ -826,30 +832,30 @@ function ProductExperiment({ variant, onComplete }: { variant: ProductVariant } 
             <button aria-pressed={streamProfile === key} className={streamProfile === key ? "selected" : ""} type="button" onClick={() => chooseProfile(key)} key={key}>{STREAMING_UI_PROFILES[key].label}</button>
           ))}
         </div>
-        <div className="experiment-action"><p>Fixed authored timing profile · {profile.description}</p><button type="button" onClick={() => { setRan(true); onComplete(); }}>{ran ? `Replay ${profile.label.toLowerCase()} again` : `Replay ${profile.label.toLowerCase()} trace`}</button></div>
+        <div className="experiment-action"><p>Fixed timing example · {profile.description}</p><button type="button" onClick={() => { setRan(true); onComplete(); }}>{ran ? `Replay ${profile.label.toLowerCase()} again` : `Replay ${profile.label.toLowerCase()} trace`}</button></div>
         {ran ? (
           <div className="simulation-result product-simulation streaming-ui-result">
             <div className="metric-grid">{profile.metrics.map((metric) => <span key={metric.label}><em>{metric.label}</em><strong>{metric.value}</strong></span>)}</div>
             <article className={`stream-preview ${profile.status}`}><span>Assistant · {profile.status}</span><p>{profile.output}</p><i><b style={{ width: `${profile.status === "cancelled" ? 38 : 100}%` }} /></i></article>
             <div className="trace-list streaming-ui-trace">{profile.trace.map((event) => <div key={`${event.time}-${event.label}`}><span>{event.time}</span><strong>{event.label}</strong><p>{event.detail}</p></div>)}</div>
             <div className="streaming-policy-evidence">
-              <span><b>Scroll-follow result</b><code>{profile.scroll}</code></span>
-              <span><b>Terminal cleanup</b><code>{profile.cleanup}</code></span>
+              <span><b>Auto-scroll</b><code>{profile.scroll}</code></span>
+              <span><b>Final cleanup</b><code>{profile.cleanup}</code></span>
               <span><b>Exact dropped text</b><code>{profile.dropped}</code></span>
             </div>
             <div className="streaming-announcement-log">
-              <span>Bounded live-region writes · {profile.announcements.length}</span>
+              <span>Live-region updates · {profile.announcements.length}</span>
               <ol>{profile.announcements.map((announcement, index) => <li key={`${index}-${announcement}`}><b>{String(index + 1).padStart(2, "0")}</b><code>{announcement}</code></li>)}</ol>
             </div>
           </div>
-        ) : <p className="experiment-empty">Run this profile to inspect commits, scroll state, announcements, dropped text, and cleanup.</p>}
+        ) : <p className="experiment-empty">Run this profile to see the visual updates, scroll state, announcements, dropped text, and cleanup.</p>}
       </>
     );
   }
   if (variant === "context-actions") {
     const historyTurns = [
       {
-        label: "Older compact turn",
+        label: "Older short turn",
         messages: [
           { id: "m-u1", role: "user", tokens: 4, text: "What is a causal mask?" },
           { id: "m-a1", role: "assistant", tokens: 5, text: "It blocks attention to future positions." },
@@ -867,15 +873,15 @@ function ProductExperiment({ variant, onComplete }: { variant: ProductVariant } 
       stop: {
         label: "Stop",
         activeUser: { id: "m-u3", tokens: 6, text: "Give one implementation detail." },
-        outcome: "Abort r-31, retain m-a3 and its visible partial text, then mark attempt a-31 cancelled.",
+        outcome: "Stop r-31, keep m-a3 and the partial text already on screen, then mark attempt a-31 canceled.",
         branch: "s1 → m-u3 → m-a3",
-        invalidation: "none · stop changes lifecycle state, not ancestry",
+        invalidation: "none · stop changes the request state, not the conversation branch",
         attempt: { messageId: "m-a3", parentUserId: "m-u3", attemptId: "a-31", requestId: "r-31", status: "cancelled", partialContent: "Set future logits", modelId: "latent-local-135m", promptVersion: "chat-v3", sampling: { temperature: 0.7, topP: 0.9 } },
       },
       retry: {
         label: "Retry / regenerate",
         activeUser: { id: "m-u3", tokens: 6, text: "Give one implementation detail." },
-        outcome: "Keep cancelled m-a3 / a-31 / r-31, then allocate queued m-a4 / a-32 / r-32 from the same m-u3 prefix.",
+        outcome: "Keep canceled m-a3 / a-31 / r-31, then create queued m-a4 / a-32 / r-32 from the same m-u3 prompt.",
         branch: "s1 → m-u3 ↘ m-a3 cancelled · ↗ m-a4 queued",
         invalidation: "none · both assistant attempts share parent m-u3",
         attempt: { messageId: "m-a4", parentUserId: "m-u3", attemptId: "a-32", requestId: "r-32", status: "queued", content: "", modelId: "latent-local-135m", promptVersion: "chat-v3", sampling: { temperature: 0.7, topP: 0.9 } },
@@ -883,9 +889,9 @@ function ProductExperiment({ variant, onComplete }: { variant: ProductVariant } 
       edit: {
         label: "Edit prompt",
         activeUser: { id: "m-u3-e1", tokens: 8, text: "Show the exact mask assignment in JavaScript." },
-        outcome: "Create edited user revision m-u3-e1 and queued m-a5 / a-33 / r-33; retain m-a3 but invalidate it on the edited branch.",
+        outcome: "Create edited user message m-u3-e1 and queued m-a5 / a-33 / r-33. Keep m-a3 in history, but leave it off the edited branch.",
         branch: "s1 → m-u3-e1 → m-a5 queued",
-        invalidation: "m-u3 → m-a3 remains historical · excluded from branch m-u3-e1",
+        invalidation: "m-u3 → m-a3 stays in history · left out of branch m-u3-e1",
         attempt: { messageId: "m-a5", parentUserId: "m-u3-e1", attemptId: "a-33", requestId: "r-33", status: "queued", content: "", modelId: "latent-local-135m", promptVersion: "chat-v3", sampling: { temperature: 0.7, topP: 0.9 } },
       },
     }[contextFlow];
@@ -923,7 +929,7 @@ function ProductExperiment({ variant, onComplete }: { variant: ProductVariant } 
           <label><span>Request budget · {budget} tokens</span><input aria-label="Request budget" type="range" min="14" max="42" value={budget} onChange={(event) => { setBudget(Number(event.target.value)); setRan(false); }} /></label>
           <code>{used}/{budget} used</code>
         </div>
-        <div className="experiment-action"><p>Fixed authored branch and request trace · exact token accounting · no learner-code execution</p><button type="button" onClick={() => { setRan(true); onComplete(); }}>{ran ? "Replay selected request again" : "Replay selected request"}</button></div>
+        <div className="experiment-action"><p>Fixed conversation branch and request trace · exact token counts · your code doesn’t run here</p><button type="button" onClick={() => { setRan(true); onComplete(); }}>{ran ? "Replay selected request again" : "Replay selected request"}</button></div>
         <div className="simulation-result product-simulation context-action-result">
           <div className="context-action-summary">
             <span><b>Applied action</b><strong>{flow.label}</strong></span>
@@ -931,11 +937,11 @@ function ProductExperiment({ variant, onComplete }: { variant: ProductVariant } 
           </div>
           <div className="context-branch-evidence">
             <span><b>Active branch</b><code>{flow.branch}</code></span>
-            <span><b>Descendant policy</b><code>{flow.invalidation}</code></span>
-            <span><b>Retained partial</b><code>m-a3 · a-31 · r-31 · cancelled · “Set future logits”</code></span>
+            <span><b>What happens to replies</b><code>{flow.invalidation}</code></span>
+            <span><b>Saved partial answer</b><code>m-a3 · a-31 · r-31 · cancelled · “Set future logits”</code></span>
           </div>
           <div className="context-request-heading">
-            <div><span>Exact request assembly</span><strong>{includedMessageIds.join(" → ")}</strong></div>
+            <div><span>Messages sent to the model</span><strong>{includedMessageIds.join(" → ")}</strong></div>
             <code>{used} selected / {budget} budget</code>
           </div>
           <div className="context-decision-list">
@@ -944,11 +950,11 @@ function ProductExperiment({ variant, onComplete }: { variant: ProductVariant } 
               const included = selectedTurns.includes(turn);
               return <article className={included ? "included" : "excluded"} key={turn.label}><span>{turn.messages.map((message) => message.id).join(" + ")} · complete turn</span><p>{turn.label}</p><code>{decisions.get(turn.label)}</code></article>;
             })}
-            {contextFlow === "edit" ? <article className="excluded"><span>m-u3 → m-a3 · prior branch</span><p>Original prompt and cancelled descendant remain inspectable.</p><code>excluded · invalidated by edit m-u3-e1</code></article> : null}
+            {contextFlow === "edit" ? <article className="excluded"><span>m-u3 → m-a3 · earlier branch</span><p>You can still inspect the original prompt and canceled reply.</p><code>left out · replaced by edit m-u3-e1</code></article> : null}
             <article className="included"><span>{flow.activeUser.id} · active user</span><p>{flow.activeUser.text}</p><code>{flow.activeUser.tokens} tokens · required</code></article>
             <article className="excluded"><span>{flow.attempt.messageId} · assistant output</span><p>{flow.attempt.status === "cancelled" ? flow.attempt.partialContent : "No output yet."}</p><code>excluded · {flow.attempt.status} output is not request input</code></article>
           </div>
-          <div className="branch-record context-attempt-record"><span>Exact attempt record</span><code>{JSON.stringify(attemptRecord, null, 2)}</code></div>
+          <div className="branch-record context-attempt-record"><span>Full attempt record</span><code>{JSON.stringify(attemptRecord, null, 2)}</code></div>
         </div>
       </>
     );
@@ -960,25 +966,25 @@ function ProductExperiment({ variant, onComplete }: { variant: ProductVariant } 
   const passed = automatedChecks.filter((check) => check.passed).length;
   return (
     <>
-      <div className="experiment-action"><p>Pure contract evidence · {automatedChecks.length} executable checks · {specificationChecks.length} declared specifications · no browser, assistive-technology, or device emulation claims</p><button type="button" onClick={() => { setRan(true); onComplete(); }}>{ran ? "Review checks again" : "Run checks + review specs"}</button></div>
+      <div className="experiment-action"><p>{automatedChecks.length} automated code checks · {specificationChecks.length} written requirements · browser, assistive-technology, and device behavior still need hands-on testing</p><button type="button" onClick={() => { setRan(true); onComplete(); }}>{ran ? "Review checks again" : "Run checks + review specs"}</button></div>
       {ran ? (
         <div className="quality-audit-result">
-          <div className="quality-audit-summary"><span>Pure-function contract result</span><strong>{passed}/{automatedChecks.length} passed</strong><code>{specificationChecks.length} requirements remain browser/manual work</code></div>
+          <div className="quality-audit-summary"><span>Automated code-check result</span><strong>{passed}/{automatedChecks.length} passed</strong><code>{specificationChecks.length} requirements still need browser or hands-on work</code></div>
           {categories.map((category) => (
             <section className="quality-check-group" key={category}>
-              <header><span>{category}</span><code>{checks.filter((check) => check.category === category && check.verification === "automated-pure" && check.passed).length}/{checks.filter((check) => check.category === category && check.verification === "automated-pure").length} automated · {checks.filter((check) => check.category === category && check.verification === "specification").length} spec</code></header>
+              <header><span>{qualityCategoryLabels[category] ?? category}</span><code>{checks.filter((check) => check.category === category && check.verification === "automated-pure" && check.passed).length}/{checks.filter((check) => check.category === category && check.verification === "automated-pure").length} automated · {checks.filter((check) => check.category === category && check.verification === "specification").length} spec</code></header>
               <div className="quality-grid">
                 {checks.filter((check) => check.category === category).map((check) => <article className={check.verification === "specification" ? "specification" : check.passed ? "passed" : "failed"} key={check.label}><i>{check.verification === "specification" ? "◇" : check.passed ? "✓" : "×"}</i><div><strong>{check.label}</strong><p>{check.detail}</p></div></article>)}
               </div>
             </section>
           ))}
           <section className="quality-manual-boundary">
-            <header><span>Manual verification required</span><code>not automated</code></header>
-            <p>The pure checks and declared specifications do not pass these real interaction and observation tasks. The full-project build separately mounts the capstone and verifies submit, stream, stop, late-event rejection, and visible error behavior.</p>
+            <header><span>Hands-on testing required</span><code>not automated</code></header>
+            <p>The code checks and written specs can’t verify these real interactions by themselves. The full-project build separately opens the capstone and checks submit, stream, stop, late-event handling, and visible errors.</p>
             <ol>{MANUAL_PRODUCT_VERIFICATION.map((check) => <li key={check.label}><strong>{check.label}</strong><span>{check.detail}</span></li>)}</ol>
           </section>
         </div>
-      ) : <p className="experiment-empty">Run the audit to separate executable pure checks, declared product specifications, and manual verification work.</p>}
+      ) : <p className="experiment-empty">Run the audit to see what the code checks cover, what’s only a written requirement, and what still needs hands-on testing.</p>}
     </>
   );
 }
@@ -990,12 +996,12 @@ export function LessonExperiment({ lesson }: { lesson: CourseLesson }) {
     <div className="experiment-lab">
       <header className="experiment-header">
         <div>
-          <span>{isWorkedTrace ? "Deterministic worked trace" : "Supplied reference runtime"}</span>
+          <span>{isWorkedTrace ? "Fixed worked example" : "Course-provided runtime"}</span>
           <strong>{lesson.experiment.title}</strong>
           <p>{lesson.experiment.intro}</p>
           <p>{isWorkedTrace
-            ? "Replay authored data to inspect the mechanism. The trace does not execute your learner file; the IDE contracts verify that implementation separately."
-            : "This supplied runtime demonstrates the mechanism; it does not execute your learner cells. Your saved implementation is verified separately by the IDE contracts."}</p>
+            ? "Replay the course data to see how it works. This trace doesn’t run your file; the IDE checks your code separately."
+            : "This course-provided runtime shows how it works, but it doesn’t run your cells. The IDE checks your saved code separately."}</p>
         </div>
       </header>
       <DatasetRecord lesson={lesson} />

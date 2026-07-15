@@ -313,10 +313,10 @@ test("project views expose current completion, repository history, and accessibl
     readFile(new URL("../app/project/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/styles/responsive.css", import.meta.url), "utf8"),
   ]);
-  assert.match(structure, /Current workspace lesson source/);
-  assert.match(structure, /exact saved lesson proof matches the file/);
-  assert.match(structure, /complete current IDE receipt passes every expected contract/);
-  assert.match(structure, /Any trusted failure overrides both/);
+  assert.match(structure, /Current workspace build-ready lesson source/);
+  assert.match(structure, /saved lesson result still matches the file/);
+  assert.match(structure, /current IDE run passes every expected check/);
+  assert.match(structure, /A trusted failure overrides either one/);
   assert.match(structure, /role="progressbar"/);
   assert.match(structure, /aria-valuemin=\{0\}/);
   assert.match(structure, /aria-valuemax=\{sourceProgress\.total\}/);
@@ -326,11 +326,11 @@ test("project views expose current completion, repository history, and accessibl
 
   assert.match(timeline, /My course position · \{currentPosition \|\| "start"\}/);
   assert.match(timeline, /current .*lesson.* complete · \$\{currentPosition\} lesson/);
-  assert.match(timeline, /Repository snapshots/);
+  assert.match(timeline, /Project snapshots/);
   assert.match(timeline, /projectLessonIsComplete/);
-  assert.match(timeline, /Lesson complete/);
-  assert.match(timeline, /Current source needs verification/);
-  assert.match(timeline, /File introduced here/);
+  assert.match(timeline, /Lesson done/);
+  assert.match(timeline, /Current code needs another check/);
+  assert.match(timeline, /File added here/);
   assert.doesNotMatch(timeline, /My progress/);
   assert.match(timeline, /aria-pressed/);
   assert.match(timeline, /aria-valuetext/);
@@ -341,7 +341,7 @@ test("project views expose current completion, repository history, and accessibl
   assert.match(workbench, /aria-label=\{`\$\{file\.path\}, \$\{status\.label\}`\}/);
   assert.doesNotMatch(workbench, /status\.label\}.*verifiedCells.*checks verified/);
   assert.match(workbench, /projectUsesIntegratedEntryReceipt/);
-  assert.match(workbench, /full suite passes, but those receipts have not been promoted into the matching active build snapshot/);
+  assert.match(workbench, /Every test passes in the current workspace, but those results aren’t part of the matching active build yet/);
   assert.doesNotMatch(workbench, /repositories\.builds\.list\(/, "a stale historical build must not block a fresh promotion");
   assert.match(projectWorkspaceSource, /repositories\.builds\.activeValidated\(PROJECT_ID\)\.catch/, "hydration must reject legacy or invalid runtime authority without dropping source history");
   assert.match(workbench, /Import failed: \$\{detail\}/);
@@ -352,10 +352,10 @@ test("project views expose current completion, repository history, and accessibl
   assert.match(timeline, /trustedProjectResults\(project\.tests\)/);
   assert.match(workbench, /trustedProjectResults\(project\.tests\)/);
 
-  assert.match(projectPage, /Editing a lesson source clears that file’s check verification/);
-  assert.match(projectPage, /editing any file invalidates the current full-project test receipt/);
-  assert.match(projectPage, /Other exact saved lesson proofs remain verified/);
-  assert.match(projectPage, /last active build snapshot stays unchanged/);
+  assert.match(projectPage, /When you edit a lesson file, that file needs to pass its checks again/);
+  assert.match(projectPage, /Editing any file also makes the latest full-project test result out of date/);
+  assert.match(projectPage, /Other unchanged lesson results stay verified/);
+  assert.match(projectPage, /last active build stays in place/);
 
   const mobileRules = responsiveCss.slice(responsiveCss.indexOf("@media (max-width: 650px)"));
   assert.match(mobileRules, /\.project-timeline-controls button\s*\{[\s\S]*?min-height:\s*2\.75rem/);

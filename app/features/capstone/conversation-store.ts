@@ -48,7 +48,7 @@ export async function persistCapstoneConversation(selectedBackend: CapstoneBacke
       await database.conversations.put({
         id,
         backend,
-        title: backend === "student" ? "Learner-trained model" : "Local Transformer",
+        title: backend === "student" ? "Model you trained" : "Local Transformer",
         createdAt: now,
         updatedAt: now,
       });

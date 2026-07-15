@@ -4,7 +4,7 @@ import type { ExerciseCaseResult } from "@latent/browser-lab";
 export function formatPracticeContractDetail(cases: readonly ExerciseCaseResult[]): string {
   const failures = cases.filter((result) => !result.passed);
   if (!failures.length) {
-    return `${cases.length} isolated case${cases.length === 1 ? "" : "s"} passed host-owned assertions.`;
+    return `${cases.length} isolated case${cases.length === 1 ? "" : "s"} passed the course checks.`;
   }
 
   const firstFailure = failures[0];
@@ -20,10 +20,10 @@ export function formatPracticeContractDetail(cases: readonly ExerciseCaseResult[
   const additionalChecks = failedAssertions.length - 1;
 
   if (additionalCases > 0) {
-    return `${direction} · ${additionalCases} additional case${additionalCases === 1 ? "" : "s"} still ${additionalCases === 1 ? "fails" : "fail"}; rerun after this fix.`;
+    return `${direction} · ${additionalCases} more case${additionalCases === 1 ? "" : "s"} still ${additionalCases === 1 ? "fails" : "fail"}; run the checks again after this fix.`;
   }
   if (additionalChecks > 0) {
-    return `${direction} · ${additionalChecks} additional check${additionalChecks === 1 ? "" : "s"} in this case still ${additionalChecks === 1 ? "fails" : "fail"}; rerun after this fix.`;
+    return `${direction} · ${additionalChecks} more check${additionalChecks === 1 ? "" : "s"} in this case still ${additionalChecks === 1 ? "fails" : "fail"}; run the checks again after this fix.`;
   }
   return direction;
 }

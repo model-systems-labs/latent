@@ -132,9 +132,9 @@ export class ProjectRepository extends RepositoryBase {
   }
 
   async selectFile(projectId: string, path: string | null) {
-    if (path && !(await this.getFile(projectId, path))) throw new PersistenceInvariantError(`Cannot select missing file ${path}.`);
+    if (path && !(await this.getFile(projectId, path))) throw new PersistenceInvariantError(`Can't select ${path} because the file isn't there.`);
     const updated = await this.database.projects.update(projectId, { selectedPath: path, updatedAt: this.now() });
-    if (!updated) throw new PersistenceInvariantError(`Project ${projectId} does not exist.`);
+    if (!updated) throw new PersistenceInvariantError(`Project ${projectId} doesn't exist.`);
   }
 
   async saveFile(input: SaveProjectFileInput) {
@@ -145,17 +145,17 @@ export class ProjectRepository extends RepositoryBase {
 
     return this.database.transaction("rw", this.database.projects, this.database.files, this.database.fileRevisions, async () => {
       const project = await this.database.projects.get(input.projectId);
-      if (!project) throw new PersistenceInvariantError(`Project ${input.projectId} does not exist.`);
+      if (!project) throw new PersistenceInvariantError(`Project ${input.projectId} doesn't exist.`);
       const existing = await this.database.files.get(id);
       if (input.expected === null && existing) {
-        throw new PersistenceInvariantError(`${input.path} was created in another tab before this save completed.`);
+        throw new PersistenceInvariantError(`${input.path} was created in another tab before this save finished.`);
       }
       if (input.expected && (
         !existing
         || existing.revision !== input.expected.revision
         || existing.sourceHash !== input.expected.sourceHash
       )) {
-        throw new PersistenceInvariantError(`${input.path} changed in another tab before this save completed.`);
+        throw new PersistenceInvariantError(`${input.path} changed in another tab before this save finished.`);
       }
       const contentChanged = !existing || existing.content !== input.content;
       const archivedRevision = existing
@@ -211,24 +211,24 @@ export class ProjectRepository extends RepositoryBase {
 
     return this.database.transaction("rw", this.database.projects, this.database.files, this.database.fileRevisions, async () => {
       const project = await this.database.projects.get(input.projectId);
-      if (!project) throw new PersistenceInvariantError(`Project ${input.projectId} does not exist.`);
+      if (!project) throw new PersistenceInvariantError(`Project ${input.projectId} doesn't exist.`);
       const existing = await this.database.files.get(id);
       if (
         !existing
         || existing.revision !== input.expected.revision
         || existing.sourceHash !== input.expected.sourceHash
       ) {
-        throw new PersistenceInvariantError(`${input.path} changed in another tab before this archive completed.`);
+        throw new PersistenceInvariantError(`${input.path} changed in another tab before the archive finished.`);
       }
 
       let selectedPath = project.selectedPath;
       if (selectedPath === input.path) {
         const replacementPath = input.replacementPath ?? null;
         if (replacementPath === input.path) {
-          throw new PersistenceInvariantError(`Cannot keep archived file ${input.path} selected.`);
+          throw new PersistenceInvariantError(`You can't keep archived file ${input.path} selected.`);
         }
         if (replacementPath && !(await this.database.files.get(projectFileId(input.projectId, replacementPath)))) {
-          throw new PersistenceInvariantError(`Cannot select missing file ${replacementPath} after archiving ${input.path}.`);
+          throw new PersistenceInvariantError(`You can't select ${replacementPath} after archiving ${input.path} because the replacement file isn't there.`);
         }
         selectedPath = replacementPath;
       }
@@ -259,7 +259,7 @@ export type StartTestRunInput = {
 
 export class AssessmentRepository extends RepositoryBase {
   async start(input: StartTestRunInput) {
-    if (!(await this.database.projects.get(input.projectId))) throw new PersistenceInvariantError(`Project ${input.projectId} does not exist.`);
+    if (!(await this.database.projects.get(input.projectId))) throw new PersistenceInvariantError(`Project ${input.projectId} doesn't exist.`);
     const run: TestRunRecord = {
       id: input.id ?? this.createId("test-run"),
       projectId: input.projectId,
@@ -284,8 +284,8 @@ export class AssessmentRepository extends RepositoryBase {
       const existingReceipt = await this.database.testReceipts.where("runId").equals(runId).first();
       if (existingReceipt) return existingReceipt;
       const run = await this.database.testRuns.get(runId);
-      if (!run) throw new PersistenceInvariantError(`Test run ${runId} does not exist.`);
-      if (run.status !== "running") throw new PersistenceInvariantError(`Test run ${runId} is already ${run.status}.`);
+      if (!run) throw new PersistenceInvariantError(`Test run ${runId} doesn't exist.`);
+      if (run.status !== "running") throw new PersistenceInvariantError(`Test run ${runId} already finished with status ${run.status}.`);
       const passedCount = results.filter((result) => result.passed).length;
       const passed = results.length > 0 && passedCount === results.length;
       const completedAt = this.now();
@@ -338,39 +338,39 @@ function assertSourceBoundCharacterRnnCheckpoint(
   expectedSourceHash: string,
 ) {
   if (!checkpoint || checkpoint.projectId !== projectId) {
-    throw new PersistenceInvariantError("The Python checkpoint does not belong to this project.");
+    throw new PersistenceInvariantError("This Python checkpoint isn't part of this project.");
   }
   if (checkpoint.kind !== "character-rnn" || checkpoint.origin !== "python") {
-    throw new PersistenceInvariantError("Build the model from a host-verified Python character-RNN checkpoint.");
+    throw new PersistenceInvariantError("Test and train the model to create a host-verified Python character-RNN checkpoint before you build.");
   }
   if (checkpoint.importedFrom !== undefined) {
-    throw new PersistenceInvariantError("Imported checkpoints restore progress but cannot authorize a build. Test and train this Python file on this device.");
+    throw new PersistenceInvariantError("Imported checkpoints can restore progress, but they can't approve a build. Test and train this Python file on this device.");
   }
   if (checkpoint.sourcePath !== SOURCE_BOUND_CHARACTER_RNN_PATH || checkpoint.sourceHash !== expectedSourceHash) {
-    throw new PersistenceInvariantError("The Python checkpoint was trained from different source. Test and train the current models/character-rnn.py file, then build again.");
+    throw new PersistenceInvariantError("The Python checkpoint came from a different source. Test and train the current models/character-rnn.py file, then build again.");
   }
 }
 
 export function assertPromotionEligibility(project: ProjectRecord, receipt: TestReceiptRecord, input: PromotePassingBuildInput) {
-  if (!receipt.passed) throw new PersistenceInvariantError("Only a passing test receipt can be promoted.");
-  if (receipt.origin !== "host") throw new PersistenceInvariantError("Legacy receipts cannot authorize a new validated build.");
-  if (project.id !== input.projectId || receipt.projectId !== input.projectId) throw new PersistenceInvariantError("The project and test receipt do not match.");
+  if (!receipt.passed) throw new PersistenceInvariantError("You need a passing test receipt before you can build.");
+  if (receipt.origin !== "host") throw new PersistenceInvariantError("An old test receipt can't approve a new validated build.");
+  if (project.id !== input.projectId || receipt.projectId !== input.projectId) throw new PersistenceInvariantError("This project and test receipt don't match.");
   if (project.draftRevision !== input.projectRevision || receipt.projectRevision !== input.projectRevision) {
-    throw new PersistenceInvariantError("The test receipt is stale for the current project revision.");
+    throw new PersistenceInvariantError("This test receipt is stale because the project has changed.");
   }
-  if (receipt.sourceTreeHash !== input.sourceTreeHash) throw new PersistenceInvariantError("The tested source hash does not match the build source hash.");
-  if (receipt.contractVersion !== input.contractVersion) throw new PersistenceInvariantError("The test contract version does not match the build contract version.");
-  if (receipt.id !== input.testReceiptId) throw new PersistenceInvariantError("The supplied test receipt was not used for this build.");
-  if (!receipt.moduleHashes) throw new PersistenceInvariantError("The test receipt has no compiler module hash manifest.");
-  if (!input.bundleHashes) throw new PersistenceInvariantError("The promoted build has no compiler module hash manifest.");
+  if (receipt.sourceTreeHash !== input.sourceTreeHash) throw new PersistenceInvariantError("The tested source hash doesn't match the build source hash.");
+  if (receipt.contractVersion !== input.contractVersion) throw new PersistenceInvariantError("The test contract version doesn't match the build contract version.");
+  if (receipt.id !== input.testReceiptId) throw new PersistenceInvariantError("This build didn't use the test receipt you provided.");
+  if (!receipt.moduleHashes) throw new PersistenceInvariantError("The test receipt is missing its compiler module hash manifest.");
+  if (!input.bundleHashes) throw new PersistenceInvariantError("The build is missing its compiler module hash manifest.");
   const receiptPaths = Object.keys(receipt.moduleHashes).sort((left, right) => left.localeCompare(right));
   const bundlePaths = Object.keys(input.bundleHashes).sort((left, right) => left.localeCompare(right));
   if (receiptPaths.length !== bundlePaths.length || receiptPaths.some((path, index) => path !== bundlePaths[index])) {
-    throw new PersistenceInvariantError("The promoted bundle manifest does not match the tested compiler modules.");
+    throw new PersistenceInvariantError("The build's bundle manifest doesn't match the compiler modules that were tested.");
   }
   for (const path of receiptPaths) {
     if (receipt.moduleHashes[path] !== input.bundleHashes[path]) {
-      throw new PersistenceInvariantError(`The promoted bundle for ${path} does not match the tested compiler module hash.`);
+      throw new PersistenceInvariantError(`The build bundle for ${path} doesn't match the tested compiler module hash.`);
     }
   }
 }
@@ -380,7 +380,7 @@ export class BuildRepository extends RepositoryBase {
     try {
       return certifyValidatedPersistedBuild(build, receipt, run);
     } catch (error) {
-      throw new PersistenceInvariantError(error instanceof Error ? error.message : "The validated build receipt is invalid.");
+      throw new PersistenceInvariantError(error instanceof Error ? error.message : "This validated build has an invalid test receipt.");
     }
   }
 
@@ -415,14 +415,14 @@ export class BuildRepository extends RepositoryBase {
         this.database.builds.where("promotionKey").equals(key).first(),
         input.checkpointId ? this.database.checkpoints.get(input.checkpointId) : Promise.resolve(undefined),
       ]);
-      if (!project) throw new PersistenceInvariantError(`Project ${input.projectId} does not exist.`);
-      if (!receipt) throw new PersistenceInvariantError(`Test receipt ${input.testReceiptId} does not exist.`);
+      if (!project) throw new PersistenceInvariantError(`Project ${input.projectId} doesn't exist.`);
+      if (!receipt) throw new PersistenceInvariantError(`Test receipt ${input.testReceiptId} doesn't exist.`);
       const run = await this.database.testRuns.get(receipt.runId);
       assertPromotionEligibility(project, receipt, verifiedInput);
       if (characterRnnSourceHash) {
         assertSourceBoundCharacterRnnCheckpoint(checkpoint, project.id, characterRnnSourceHash);
       } else if (input.checkpointId && (!checkpoint || checkpoint.projectId !== project.id)) {
-        throw new PersistenceInvariantError("The build checkpoint does not belong to this project.");
+        throw new PersistenceInvariantError("This build checkpoint isn't part of this project.");
       }
 
       if (existing) {
@@ -474,12 +474,12 @@ export class BuildRepository extends RepositoryBase {
     const project = await this.database.projects.get(projectId);
     if (!project?.activeBuildId) return undefined;
     const build = await this.database.builds.get(project.activeBuildId);
-    if (!build) throw new PersistenceInvariantError(`Project ${project.id} references a missing active build.`);
-    if (build.projectId !== project.id) throw new PersistenceInvariantError(`Project ${project.id} references another project's active build.`);
+    if (!build) throw new PersistenceInvariantError(`Project ${project.id} points to a missing active build.`);
+    if (build.projectId !== project.id) throw new PersistenceInvariantError(`Project ${project.id} points to another project's active build.`);
     await assertBundleIntegrity(build.bundles, build.bundleHashes);
     if (build.provenance === "validated") return this.certifyStoredBuild(build);
     if (build.provenance === "legacy") return build;
-    throw new PersistenceInvariantError("The active build has invalid provenance.");
+    throw new PersistenceInvariantError("The active build has invalid provenance, so it can't run.");
   }
 
   async active(projectId: string): Promise<BuildRecord | undefined> {
@@ -490,7 +490,7 @@ export class BuildRepository extends RepositoryBase {
     const build = await this.activeRecord(projectId);
     if (!build) return undefined;
     if (!isValidatedPersistedBuild(build)) {
-      throw new PersistenceInvariantError("Only a host-validated active build can power the trusted runtime.");
+      throw new PersistenceInvariantError("The trusted runtime needs an active build that passed host validation.");
     }
     return build;
   }
@@ -498,7 +498,7 @@ export class BuildRepository extends RepositoryBase {
   async list(projectId: string) {
     const builds = await this.database.builds.where("projectId").equals(projectId).sortBy("buildNumber");
     if (builds.some((build) => build.provenance !== "validated" && build.provenance !== "legacy")) {
-      throw new PersistenceInvariantError("The build history contains invalid provenance.");
+      throw new PersistenceInvariantError("The build history contains invalid provenance, so it can't be opened safely.");
     }
     await Promise.all(builds.map((build) => assertBundleIntegrity(build.bundles, build.bundleHashes)));
     await Promise.all(builds.filter((build) => build.provenance === "validated").map((build) => this.certifyStoredBuild(build)));
@@ -509,7 +509,7 @@ export class BuildRepository extends RepositoryBase {
 export class CheckpointRepository extends RepositoryBase {
   async add(input: Omit<CheckpointRecord, "id" | "createdAt"> & { id?: string; createdAt?: number }) {
     assertStructuredValueWithinLimits(input.payload);
-    if (!(await this.database.projects.get(input.projectId))) throw new PersistenceInvariantError(`Project ${input.projectId} does not exist.`);
+    if (!(await this.database.projects.get(input.projectId))) throw new PersistenceInvariantError(`Project ${input.projectId} doesn't exist.`);
     const checkpoint: CheckpointRecord = { ...input, id: input.id ?? this.createId("checkpoint"), createdAt: input.createdAt ?? this.now() };
     await this.database.checkpoints.add(checkpoint);
     return checkpoint;
@@ -597,7 +597,7 @@ export class ConversationRepository extends RepositoryBase {
     assertStructuredValueWithinLimits(input);
     return this.database.transaction("rw", this.database.conversations, this.database.conversationMessages, async () => {
       const conversation = await this.database.conversations.get(input.conversationId);
-      if (!conversation) throw new PersistenceInvariantError(`Conversation ${input.conversationId} does not exist.`);
+      if (!conversation) throw new PersistenceInvariantError(`Conversation ${input.conversationId} doesn't exist.`);
       const latest = await this.database.conversationMessages
         .where("[conversationId+sequence]")
         .between([input.conversationId, 0], [input.conversationId, Number.MAX_SAFE_INTEGER], true, true)
@@ -616,7 +616,7 @@ export class ConversationRepository extends RepositoryBase {
 
   async updateMessageStatus(id: string, status: ConversationMessageRecord["status"]) {
     const message = await this.database.conversationMessages.get(id);
-    if (!message) throw new PersistenceInvariantError(`Message ${id} does not exist.`);
+    if (!message) throw new PersistenceInvariantError(`Message ${id} doesn't exist.`);
     await this.database.conversationMessages.update(id, { status });
     await this.database.conversations.update(message.conversationId, { updatedAt: this.now() });
   }

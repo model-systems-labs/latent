@@ -63,7 +63,7 @@ export function ProjectStructureMap() {
     void reconcileCanonicalProject().then(() => {
       if (active) setReconciliationError(null);
     }).catch((error) => {
-      if (active) setReconciliationError(error instanceof Error ? error.message : "The project could not finish syncing.");
+      if (active) setReconciliationError(error instanceof Error ? error.message : "The project couldn’t finish syncing.");
     });
     return () => { active = false; };
   }, []);
@@ -95,7 +95,7 @@ export function ProjectStructureMap() {
     sourceProgress.partial ? `${sourceProgress.partial} partially verified` : null,
     sourceProgress.needsWork ? `${sourceProgress.needsWork} ${sourceProgress.needsWork === 1 ? "needs" : "need"} work` : null,
     sourceProgress.notStarted ? `${sourceProgress.notStarted} not started` : null,
-  ].filter(Boolean).join(" · ") || "Every lesson source is build-ready";
+  ].filter(Boolean).join(" · ") || "Every lesson file is ready to build";
   const providedRows = runtimeRows.map(({ path, readOnly = false }): ProjectRow => ({
     path,
     filename: path.split("/").at(-1) ?? path,
@@ -142,12 +142,12 @@ export function ProjectStructureMap() {
     <section className="project-structure-map" aria-label="browser-chat project file structure">
       {reconciliationError ? (
         <p className="persistence-warning" role="alert">
-          Project sync paused: {reconciliationError} <Link href="/workspace">Resolve the recovery copy in the IDE.</Link>
+          Project sync paused: {reconciliationError} <Link href="/workspace">Choose which recovery copy to use in the IDE.</Link>
         </p>
       ) : null}
       <header className="project-structure-root">
         <div><span>Project root</span><strong>browser-chat/</strong></div>
-        <p><span>Current workspace lesson source</span><strong>{sourceProgress.verified} / {sourceProgress.total} files ready</strong></p>
+        <p><span>Current lesson files</span><strong>{sourceProgress.verified} / {sourceProgress.total} ready</strong></p>
       </header>
       <div className="project-structure-progress">
         <i
@@ -171,7 +171,7 @@ export function ProjectStructureMap() {
         ))}
       </div>
       <footer className="project-structure-footer">
-        <p>A lesson source is build-ready after either its exact saved lesson proof matches the file, or a complete current IDE receipt passes every expected contract. Any trusted failure overrides both. Lesson completion also requires its lab.</p>
+        <p>A lesson file is ready to build when its saved lesson result still matches the file, or when a current IDE run passes every expected check. A trusted failure overrides either one. You also need to finish the lab to complete the lesson.</p>
         <Link href="/workspace">Open project IDE →</Link>
       </footer>
     </section>

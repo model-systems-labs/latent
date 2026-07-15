@@ -56,7 +56,7 @@ type UsePythonExecutionOptions = {
   showPanel: (panel: "tests" | "output") => void;
 };
 
-const INITIAL_STATUS = "Python is off. Starting it downloads the roughly 9 MB WebAssembly core, the standard library, and NumPy; your browser can cache them.";
+const INITIAL_STATUS = "Python is off. Starting it downloads about 9 MB for the WebAssembly core, standard library, and NumPy. Your browser can cache those files.";
 
 function sourceIdentity(path: string, source: string) {
   return `${path}\u0000${source}`;
@@ -115,8 +115,8 @@ export function usePythonExecution({
     setTraceback(null);
     if (phaseRef.current === "ready") {
       setStatus(canTestAndTrain
-        ? "Source changed. Test and train again to replace the last verified checkpoint; the capstone still uses the previous checkpoint until then."
-        : "Source changed. Run the file to inspect its current output.");
+        ? "The source changed. Test and train again to replace the last verified checkpoint. Until then, the capstone keeps using the previous one."
+        : "The source changed. Run the file to see its current output.");
     }
   }, [canTestAndTrain, path, saveBeforeRun, showPanel, source]);
 
@@ -151,7 +151,7 @@ export function usePythonExecution({
     if (operation !== operationRef.current) return;
     if (isAbortError(error)) {
       setPhase("stopped");
-      setStatus("Python stopped. Restart the interpreter before running again.");
+      setStatus("Python stopped. Restart it before you run anything else.");
       return;
     }
     const message = error instanceof Error ? error.message : fallback;
@@ -166,7 +166,7 @@ export function usePythonExecution({
     const { controller, operation } = beginOperation();
     clearRunEvidence();
     setPhase("loading");
-    setStatus("Loading the Python core and NumPy in an isolated worker…");
+    setStatus("Loading Python and NumPy in an isolated worker…");
     try {
       // The package and its worker are split from the page bundle. This import
       // is intentionally reachable only from the explicit Start Python action.
@@ -180,13 +180,13 @@ export function usePythonExecution({
       );
       if (operation !== operationRef.current) return;
       setPhase("ready");
-      setStatus(`${initialized.pythonVersion} with NumPy is ready. Every run saves and syncs the current file first.`);
+      setStatus(`${initialized.pythonVersion} with NumPy is ready. Latent saves and syncs the current file before every run.`);
     } catch (error) {
       if (operation === operationRef.current) {
         clientRef.current?.dispose();
         clientRef.current = null;
       }
-      failOperation(error, operation, "Python could not start in this browser.");
+      failOperation(error, operation, "Python couldn’t start in this browser.");
     }
   }, [beginOperation, clearRunEvidence, enabled, eventHandler, failOperation, phase]);
 
@@ -218,9 +218,9 @@ export function usePythonExecution({
         return;
       }
       setPhase("ready");
-      setStatus(`${snapshot.path} completed in ${(result.durationMs / 1000).toFixed(2)} s. This run did not replace the verified training artifact.`);
+      setStatus(`${snapshot.path} finished in ${(result.durationMs / 1000).toFixed(2)} s. This run didn’t replace the verified training artifact.`);
     } catch (error) {
-      failOperation(error, operation, "The Python file could not run.");
+      failOperation(error, operation, "The Python file couldn’t run.");
     }
   }, [beginOperation, clearRunEvidence, enabled, eventHandler, failOperation, phase]);
 
@@ -233,7 +233,7 @@ export function usePythonExecution({
     setTests([]);
     setArtifactSourceIdentity(null);
     setPhase("testing");
-    setStatus(`Saving ${snapshot.path}, then running host-owned tests…`);
+    setStatus(`Saving ${snapshot.path}, then running the course tests…`);
     panelRef.current("tests");
     try {
       await saveRef.current();
@@ -251,7 +251,7 @@ export function usePythonExecution({
       setTraceback(result.traceback ?? null);
       if (!result.passed || !result.artifact) {
         setPhase("ready");
-        setStatus("The current source did not replace the last verified checkpoint. Fix the failing test, then run the checks again.");
+        setStatus("The current source didn’t replace the last verified checkpoint. Fix the failing test, then run the checks again.");
         return;
       }
       setTrainedArtifact({
@@ -263,9 +263,9 @@ export function usePythonExecution({
       });
       setArtifactSourceIdentity(sourceIdentity(snapshot.path, snapshot.source));
       setPhase("ready");
-      setStatus(`All ${result.tests.length} tests passed. The checkpoint was trained by Python and saved for browser inference.`);
+      setStatus(`All ${result.tests.length} tests passed. Python trained the checkpoint, and it’s saved for the browser to use.`);
     } catch (error) {
-      failOperation(error, operation, "Python tests or training could not finish.");
+      failOperation(error, operation, "The Python tests or training couldn’t finish.");
     }
   }, [beginOperation, canTestAndTrain, clearRunEvidence, enabled, eventHandler, failOperation, phase]);
 
@@ -276,7 +276,7 @@ export function usePythonExecution({
     abortRef.current = null;
     if (!client) {
       setPhase("stopped");
-      setStatus("Python stopped. Restart the interpreter before running again.");
+      setStatus("Python stopped. Restart it before you run anything else.");
       return;
     }
     setPhase("stopping");
@@ -285,7 +285,7 @@ export function usePythonExecution({
       await client.stop();
     } finally {
       setPhase("stopped");
-      setStatus("Python stopped. Restart creates a fresh interpreter; your saved file is unchanged.");
+      setStatus("Python stopped. Restarting gives you a fresh interpreter and leaves your saved file alone.");
     }
   }, []);
 
@@ -309,7 +309,7 @@ export function usePythonExecution({
       setPhase("ready");
       setStatus(`${initialized.pythonVersion} with NumPy is ready in a fresh worker.`);
     } catch (error) {
-      failOperation(error, operation, "Python could not restart.");
+      failOperation(error, operation, "Python couldn’t restart.");
     }
   }, [beginOperation, clearRunEvidence, enabled, eventHandler, failOperation, start]);
 
@@ -400,7 +400,7 @@ export function PythonInspector({
             <article className={item.passed ? "passed" : "failed"} key={item.id}>
               <i>{item.passed ? "✓" : "×"}</i><div><strong>{item.label}</strong><p>{item.detail}</p></div>
             </article>
-          )) : <p>{session.canTestAndTrain ? "Start Python, then run the host-owned checks. A checkpoint is saved only after every test passes." : "This Python file can run independently. Verified training is currently available only for models/character-rnn.py."}</p>}
+          )) : <p>{session.canTestAndTrain ? "Start Python, then run the course checks. Latent saves a checkpoint only after every test passes." : "You can run this Python file on its own. Verified training is currently available only for models/character-rnn.py."}</p>}
         </div>
       </section>
       <section className="project-output python-output">
@@ -408,7 +408,7 @@ export function PythonInspector({
         <p className="project-output-status" role="status">{session.status}</p>
         {session.traceback ? <pre className="python-traceback" role="alert">{session.traceback}</pre> : null}
         {session.stderr ? <pre className="python-stderr" aria-label="Python standard error">{session.stderr}</pre> : null}
-        {session.stdout ? <pre className="python-stdout" aria-label="Python standard output">{session.stdout}</pre> : <p className="python-empty-output">Printed output appears here. A successful Python program may complete without writing to stdout.</p>}
+        {session.stdout ? <pre className="python-stdout" aria-label="Python standard output">{session.stdout}</pre> : <p className="python-empty-output">Printed output will show up here. A Python program can finish successfully without printing anything.</p>}
         {session.artifact ? (
           <dl className="python-artifact-summary">
             <div><dt>checkpoint</dt><dd>{session.artifactIsCurrent ? "Verified for this source" : "Last verified · Python"}</dd></div>

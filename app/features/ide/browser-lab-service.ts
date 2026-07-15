@@ -104,16 +104,16 @@ export async function runPracticeContracts(input: {
 }) {
   const wanted = new Set(input.contractIds);
   const contracts = llmSystemsContractSuite.contracts.filter((contract) => wanted.has(contract.id));
-  if (!contracts.length || contracts.length !== wanted.size) throw new Error("The requested lesson contract is unavailable.");
+  if (!contracts.length || contracts.length !== wanted.size) throw new Error("That lesson check isn’t available.");
   if (contracts.some((contract) => contract.cases.some((exerciseCase) => exerciseCase.invoke.modulePath !== input.path))) {
-    throw new Error("The lesson contract does not belong to this project file.");
+    throw new Error("That lesson check doesn’t belong to this project file.");
   }
   const exportNames = [...new Set(contracts.flatMap((contract) => contract.cases.map((exerciseCase) => exerciseCase.invoke.exportName)))];
   let contents: string;
   try {
     contents = exposeLessonFunctions(input.source, exportNames);
   } catch (error) {
-    const detail = error instanceof Error ? error.message : "The practice source could not expose its tested function.";
+    const detail = error instanceof Error ? error.message : "The practice code didn’t make its tested function available.";
     return compileFailureResults(contracts, detail);
   }
   const snapshot: ProjectSnapshot = {
@@ -135,7 +135,7 @@ export async function runPracticeContracts(input: {
   try {
     program = await compiler.compile(job, { signal: input.signal });
   } catch (error) {
-    return compileFailureResults(contracts, error instanceof Error ? error.message : "The isolated compiler failed.");
+    return compileFailureResults(contracts, error instanceof Error ? error.message : "The compiler failed in the isolated worker.");
   } finally {
     compiler.dispose();
   }
@@ -164,7 +164,7 @@ export async function runLessonContracts(
   await flushProjectPersistence();
   const { repositories } = await getPersistenceContext();
   const project = await repositories.projects.get(PROJECT_ID);
-  if (!project) throw new Error("The persisted project is unavailable.");
+  if (!project) throw new Error("The saved project isn’t available.");
 
   const selectedContracts = options.onlyPath
     ? llmSystemsContractSuite.contracts.filter((contract) => contract.cases.some((exerciseCase) => exerciseCase.invoke.modulePath === options.onlyPath))
@@ -206,10 +206,10 @@ export async function runLessonContracts(
   if (!selectedContracts.length || preparationFailures.length || lessonEntryPoints.length !== selectedPaths.size || (includeCapstone && (!capstoneAvailable || missingBindingPaths.length))) {
     const existing = new Set(preparationFailures.map((result) => result.id));
     const missingProjectDetail = !capstoneAvailable
-      ? "The canonical capstone entry is missing from this project."
+      ? "The main capstone entry is missing from this project."
       : missingBindingPaths.length
-        ? `The provided capstone adapter is missing: ${missingBindingPaths.join(", ")}.`
-        : "The lesson module is not ready to compile.";
+        ? `The project is missing this provided capstone adapter: ${missingBindingPaths.join(", ")}.`
+        : "The lesson module isn’t ready to compile.";
     const results = [
       ...preparationFailures,
       ...selectedContracts.filter((contract) => !existing.has(contract.id)).map((contract) => preparationFailure(contract, missingProjectDetail)),
@@ -230,7 +230,7 @@ export async function runLessonContracts(
   try {
     program = await compiler.compile(job, { signal: options.signal });
   } catch (error) {
-    const detail = error instanceof Error ? error.message : "The isolated compiler failed.";
+    const detail = error instanceof Error ? error.message : "The compiler failed in the isolated worker.";
     const results = compileFailureResults(selectedContracts, detail);
     if (includeCapstone) results.push(await runCapstoneBehaviorContract(null, { signal: options.signal }));
     return { results, expectedIdsByPath, sourceHash, projectRevision: project.draftRevision, contractVersion: llmSystemsContractSuite.contractVersion, program: null, receipt: null, persistenceReceipt: null };
@@ -266,7 +266,7 @@ export async function runLessonContracts(
     const contracts = pythonContracts.filter((contract) => contract.cases[0]?.invoke.modulePath === path);
     const source = files[path]?.content;
     if (!source) {
-      for (const result of compileFailureResults(contracts, `The CPython source file is missing: ${path}.`)) {
+      for (const result of compileFailureResults(contracts, `The project is missing this CPython file: ${path}.`)) {
         unitResults.set(result.id, result);
       }
       continue;
@@ -302,7 +302,7 @@ export async function runLessonContracts(
       caseResults.push(...javascriptReceipt.results);
       for (const result of aggregateReceipt(javascriptReceipt, javascriptContracts)) unitResults.set(result.id, result);
     } catch (error) {
-      const detail = error instanceof Error ? error.message : "The isolated JavaScript test worker failed.";
+      const detail = error instanceof Error ? error.message : "The JavaScript tests failed in the isolated worker.";
       for (const result of compileFailureResults(javascriptContracts, detail)) unitResults.set(result.id, result);
     }
   }
@@ -329,7 +329,7 @@ export async function runLessonContracts(
   const results = [
     ...selectedContracts.map((contract) => unitResults.get(contract.id) ?? preparationFailure(
       contract,
-      "The lesson runner did not return this contract.",
+      "The lesson runner didn’t return this check.",
     )),
     ...(capstoneBehaviorResult ? [capstoneBehaviorResult] : []),
   ];

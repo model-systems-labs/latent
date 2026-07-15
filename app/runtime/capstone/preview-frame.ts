@@ -169,7 +169,7 @@ function limitsWith(overrides: Partial<PreviewFrameLimits> = {}): PreviewFrameLi
   const limits = { ...DEFAULT_PREVIEW_FRAME_LIMITS, ...overrides };
   for (const [name, value] of Object.entries(limits)) {
     if (!Number.isSafeInteger(value) || value < 1) {
-      throw new PreviewFrameError("INVALID_LIMITS", `${name} must be a positive safe integer.`);
+      throw new PreviewFrameError("INVALID_LIMITS", `${name} has to be a positive safe integer.`);
     }
   }
   return limits;
@@ -244,11 +244,11 @@ export function isBoundedPreviewJson(
 
 function assertBundleIdentity(input: PreviewBundleInput, limits: PreviewFrameLimits): void {
   if (!safeIdentity(input.projectId) || !safeIdentity(input.buildId)) {
-    throw new PreviewFrameError("INVALID_BUNDLE", "The preview bundle needs bounded project and build ids.");
+    throw new PreviewFrameError("INVALID_BUNDLE", "The preview bundle needs project and build ids that fit the length limit.");
   }
   if (!Number.isSafeInteger(input.buildNumber) || input.buildNumber < 1
     || !Number.isSafeInteger(input.projectRevision) || input.projectRevision < 0) {
-    throw new PreviewFrameError("INVALID_BUNDLE", "The preview bundle has an invalid build number or project revision.");
+    throw new PreviewFrameError("INVALID_BUNDLE", "The preview bundle's build number or project revision isn't valid.");
   }
   if (!isSourceHash(input.sourceHash) || !isSourceHash(input.codeHash)) {
     throw new PreviewFrameError("INVALID_BUNDLE", "The preview bundle needs valid SHA-256 identities.");
@@ -256,11 +256,11 @@ function assertBundleIdentity(input: PreviewBundleInput, limits: PreviewFrameLim
   try {
     assertVirtualPath(input.entryPath);
   } catch {
-    throw new PreviewFrameError("INVALID_BUNDLE", "The preview bundle entry path is not a safe virtual path.");
+    throw new PreviewFrameError("INVALID_BUNDLE", "The preview bundle entry path isn't a safe virtual path.");
   }
   if (!input.entryPath.endsWith(".js") && !input.entryPath.endsWith(".jsx")
     && !input.entryPath.endsWith(".ts") && !input.entryPath.endsWith(".tsx")) {
-    throw new PreviewFrameError("INVALID_BUNDLE", "The preview bundle entry path is not executable source.");
+    throw new PreviewFrameError("INVALID_BUNDLE", "The preview bundle entry path doesn't point to runnable source code.");
   }
   if (!input.code.trim() || utf8Bytes(input.code) > limits.maxBundleBytes) {
     throw new PreviewFrameError("BUNDLE_TOO_LARGE", `The preview bundle must contain at most ${limits.maxBundleBytes} UTF-8 bytes.`);
@@ -274,7 +274,7 @@ export async function verifyPreviewBundle(
   const limits = limitsWith(overrides);
   assertBundleIdentity(input, limits);
   if (await hashText(input.code) !== input.codeHash) {
-    throw new PreviewFrameError("BUNDLE_HASH_MISMATCH", "The preview bundle does not match its compiler hash.");
+    throw new PreviewFrameError("BUNDLE_HASH_MISMATCH", "The preview bundle doesn't match its compiler hash.");
   }
   return Object.freeze({ ...input, [VALIDATED_PREVIEW_BUNDLE]: true as const });
 }
@@ -460,7 +460,7 @@ export const PREVIEW_BOOTSTRAP_SOURCE = String.raw`(() => {
     if (disposed) return;
     disposed = true;
     revokeAll();
-    for (const item of pending.values()) item.reject(new Error("The preview frame was disposed."));
+    for (const item of pending.values()) item.reject(new Error("The preview was closed."));
     pending.clear();
     if (port) {
       port.postMessage({ schemaVersion: 1, type: "latent-preview/disposed" });
@@ -470,9 +470,9 @@ export const PREVIEW_BOOTSTRAP_SOURCE = String.raw`(() => {
   };
   const host = Object.freeze({
     request(method, payload = null, onEvent) {
-      if (!port || !loaded || disposed) return Promise.reject(new Error("The preview host is not ready."));
+      if (!port || !loaded || disposed) return Promise.reject(new Error("The preview isn't ready yet."));
       if (!methodOk(method) || !bounded(payload) || pending.size >= LIMITS.maxActiveRequests) {
-        return Promise.reject(new Error("The preview request exceeds its guarded contract."));
+        return Promise.reject(new Error("This preview request is too large or isn't allowed."));
       }
       const requestId = "frame:" + (++sequence).toString(36) + ":" + Date.now().toString(36);
       return new Promise((resolve, reject) => {
@@ -489,7 +489,7 @@ export const PREVIEW_BOOTSTRAP_SOURCE = String.raw`(() => {
   };
   const validCode = (input) => Boolean(input && typeof input.code === "string" && input.code.trim() && byteLength(input.code) <= LIMITS.maxBundleBytes && /^sha256:[a-f0-9]{64}$/.test(input.codeHash));
   const loadScript = (code, label) => new Promise((resolve, reject) => {
-    if (disposed) return reject(new Error("The preview frame was disposed."));
+    if (disposed) return reject(new Error("The preview was closed."));
     const url = createObjectURL(new Blob([code], { type: "text/javascript" }));
     activeUrls.add(url);
     const script = document.createElement("script");
@@ -502,7 +502,7 @@ export const PREVIEW_BOOTSTRAP_SOURCE = String.raw`(() => {
     script.onerror = () => {
       revokeObjectURL(url);
       activeUrls.delete(url);
-      reject(new Error(label + " failed to execute."));
+      reject(new Error(label + " couldn't run."));
     };
     document.head.append(script);
   });
@@ -515,7 +515,7 @@ export const PREVIEW_BOOTSTRAP_SOURCE = String.raw`(() => {
       if (!item || !bounded(data)) return;
       pending.delete(data.requestId);
       if (data.ok === true) item.resolve(data.value);
-      else item.reject(new Error(String(data.error && data.error.message || "The host request failed.").slice(0, 1000)));
+      else item.reject(new Error(String(data.error && data.error.message || "The preview request failed.").slice(0, 1000)));
       return;
     }
     if (data.type === "latent-preview/event" && requestIdOk(data.requestId) && eventOk(data.event) && bounded(data)) {
@@ -531,12 +531,12 @@ export const PREVIEW_BOOTSTRAP_SOURCE = String.raw`(() => {
     const bundle = data.bundle;
     try {
       if (!validCode(runtime) || !validCode(bundle) || !bundle.buildId || !bundle.entryPath) {
-        throw new Error("The host supplied invalid preview assets.");
+        throw new Error("The preview received invalid files from the host.");
       }
-      if (await hash(runtime.code) !== runtime.codeHash) throw new Error("The preview runtime hash does not match.");
-      if (await hash(bundle.code) !== bundle.codeHash) throw new Error("The preview bundle hash does not match.");
+      if (await hash(runtime.code) !== runtime.codeHash) throw new Error("The preview runtime hash doesn't match.");
+      if (await hash(bundle.code) !== bundle.codeHash) throw new Error("The preview bundle hash doesn't match.");
       await loadScript(runtime.code, "The trusted React runtime");
-      if (!globalThis.__LATENT_REACT__) throw new Error("The trusted React runtime did not install its global adapter.");
+      if (!globalThis.__LATENT_REACT__) throw new Error("The trusted React runtime didn't load its global adapter.");
       await loadScript(bundle.code, "The validated preview bundle");
       if (disposed) return;
       loaded = true;
@@ -566,7 +566,7 @@ export const PREVIEW_BOOTSTRAP_SOURCE = String.raw`(() => {
 })();`;
 
 /** Updated only when the fixed bootstrap source changes. */
-export const PREVIEW_BOOTSTRAP_SHA256 = "sha256-erFEUZn4ki799sSpmp9+cr8DuT7Cr+uE2zuZA+xQH+Y=";
+export const PREVIEW_BOOTSTRAP_SHA256 = "sha256-a9GHuFV/ttLSyIX5Il4XPn11l5DK3D4Xgq4MAESKgHU=";
 
 /** Learner and React runtime bytes enter only through the transferred port. */
 export function createPreviewFrameSrcdoc(): string {
@@ -617,10 +617,10 @@ export class PreviewFrameSession {
     channelId?: string;
   }) {
     if (!isValidatedPreviewBundle(input.bundle)) {
-      throw new PreviewFrameError("UNVALIDATED_BUNDLE", "Only a verified preview bundle may enter the frame.");
+      throw new PreviewFrameError("UNVALIDATED_BUNDLE", "Verify the preview bundle before you load it.");
     }
     if (!isValidatedPreviewRuntime(input.runtime)) {
-      throw new PreviewFrameError("UNVALIDATED_RUNTIME", "Only a verified React runtime may enter the frame.");
+      throw new PreviewFrameError("UNVALIDATED_RUNTIME", "Verify the React runtime before you load it.");
     }
     this.#iframe = input.iframe;
     this.#bundle = input.bundle;
@@ -629,7 +629,7 @@ export class PreviewFrameSession {
     this.#allowedMethods = input.allowedMethods;
     this.#handlers = input.handlers ?? {};
     this.#channelId = input.channelId ?? `preview:${crypto.randomUUID()}`;
-    if (!SAFE_CHANNEL_ID.test(this.#channelId)) throw new PreviewFrameError("INVALID_CHANNEL", "The preview channel id is invalid.");
+    if (!SAFE_CHANNEL_ID.test(this.#channelId)) throw new PreviewFrameError("INVALID_CHANNEL", "The preview channel id isn't valid.");
     this.#requests = new PreviewRequestGate({ limits: this.#limits, allowedMethods: this.#allowedMethods });
   }
 
@@ -637,7 +637,7 @@ export class PreviewFrameSession {
     if (this.#disposed || this.#port) return;
     const target = this.#iframe.contentWindow;
     if (!target) {
-      this.#handlers.onError?.({ schemaVersion: 1, type: "latent-preview/error", code: "missing-frame", message: "The preview iframe has no content window." });
+      this.#handlers.onError?.({ schemaVersion: 1, type: "latent-preview/error", code: "missing-frame", message: "The preview window isn't available." });
       return;
     }
     const channel = new MessageChannel();
@@ -673,14 +673,14 @@ export class PreviewFrameSession {
 
   #post(message: PreviewHostMessage): void {
     if (!this.#port || !isPreviewHostMessage(message, this.#limits)) {
-      throw new PreviewFrameError("INVALID_HOST_MESSAGE", "The host message exceeds the preview protocol contract.");
+      throw new PreviewFrameError("INVALID_HOST_MESSAGE", "This host message is too large or doesn't match the preview protocol.");
     }
     this.#port.postMessage(message);
   }
 
   start(): this {
-    if (this.#started) throw new PreviewFrameError("SESSION_ALREADY_STARTED", "A preview frame session can start only once.");
-    if (this.#disposed) throw new PreviewFrameError("SESSION_DISPOSED", "A disposed preview frame session cannot start.");
+    if (this.#started) throw new PreviewFrameError("SESSION_ALREADY_STARTED", "The preview session is already running.");
+    if (this.#disposed) throw new PreviewFrameError("SESSION_DISPOSED", "A closed preview session can't start.");
     this.#started = true;
     this.#iframe.setAttribute("sandbox", PREVIEW_FRAME_SANDBOX);
     this.#iframe.setAttribute("referrerpolicy", "no-referrer");
@@ -691,14 +691,14 @@ export class PreviewFrameSession {
   }
 
   respond(requestId: string, value: PreviewJson): void {
-    if (!this.#requests.has(requestId)) throw new PreviewFrameError("UNKNOWN_REQUEST", "The response does not match an active preview request.");
+    if (!this.#requests.has(requestId)) throw new PreviewFrameError("UNKNOWN_REQUEST", "This response isn't tied to an active preview request.");
     const message: PreviewResponseMessage = { schemaVersion: 1, type: "latent-preview/response", requestId, ok: true, value };
     this.#post(message);
     this.#requests.settle(requestId);
   }
 
   fail(requestId: string, code: string, message: string): void {
-    if (!this.#requests.has(requestId)) throw new PreviewFrameError("UNKNOWN_REQUEST", "The error does not match an active preview request.");
+    if (!this.#requests.has(requestId)) throw new PreviewFrameError("UNKNOWN_REQUEST", "This error isn't tied to an active preview request.");
     const response: PreviewResponseMessage = {
       schemaVersion: 1,
       type: "latent-preview/response",
@@ -711,7 +711,7 @@ export class PreviewFrameSession {
   }
 
   emit(requestId: string, event: string, payload: PreviewJson): void {
-    if (!this.#requests.has(requestId)) throw new PreviewFrameError("UNKNOWN_REQUEST", "The event does not match an active preview request.");
+    if (!this.#requests.has(requestId)) throw new PreviewFrameError("UNKNOWN_REQUEST", "This event isn't tied to an active preview request.");
     this.#post({ schemaVersion: 1, type: "latent-preview/event", requestId, event, payload });
   }
 

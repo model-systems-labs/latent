@@ -48,7 +48,7 @@ export function pytorchNotebookSource(handoff: PyTorchHandoffDefinition) {
       {
         cell_type: "markdown",
         metadata: {},
-        source: notebookLines("This notebook uses the real native PyTorch package. It is the framework translation of the browser NumPy lesson; it does not execute inside Pyodide. Run the next cell to install the exact framework versions tested by Latent.\n"),
+        source: notebookLines("This notebook uses the real native PyTorch package. It is the PyTorch version of the browser NumPy lesson, so it does not run inside Pyodide. Run the next cell to install the exact framework versions Latent tested.\n"),
       },
       {
         cell_type: "code",
@@ -107,19 +107,19 @@ export function PyTorchHandoff({ lessonId }: { lessonId: string }) {
   return (
     <details className={styles.handoff} onToggle={(event) => setOpen(event.currentTarget.open)}>
       <summary>
-        <span className={styles.kicker}>Native framework handoff</span>
+        <span className={styles.kicker}>Try it in native PyTorch</span>
         <span className={styles.summaryTitle}><strong>PyTorch</strong><span>{handoff.title}</span></span>
         <span className={styles.toggle}>{open ? "Close" : "Inspect"}</span>
       </summary>
       <div className={styles.body}>
         <div className={styles.copy}>
           <p>{handoff.rationale}</p>
-          <p><strong>Runtime boundary.</strong> The NumPy exercise above runs locally in this browser. This file uses genuine <code>import torch</code> and runs in native Python or Colab because official PyTorch is not distributed as a Pyodide package.</p>
+          <p><strong>Where it runs.</strong> The NumPy exercise above runs locally in your browser. This file uses the real <code>import torch</code> package, so you’ll run it in native Python or Colab. Official PyTorch isn’t available as a Pyodide package.</p>
         </div>
-        <dl className={styles.mapping} aria-label="Lesson mechanism to PyTorch API mapping">
+        <dl className={styles.mapping} aria-label="How the lesson maps to the PyTorch API">
           {handoff.mappings.map((mapping) => <div key={mapping.mechanism}><dt>{mapping.mechanism}</dt><dd>{mapping.pytorch}</dd></div>)}
         </dl>
-        <div className={styles.fileHeading}><span>{file.path}</span><em>Read-only translation · smoke test included</em></div>
+        <div className={styles.fileHeading}><span>{file.path}</span><em>Read-only PyTorch version · quick test included</em></div>
         {open ? (
           <div className={styles.editorSurface}>
             <Suspense fallback={<div className={styles.editorLoading} role="status">Loading Python highlighting…</div>}>
@@ -135,7 +135,7 @@ export function PyTorchHandoff({ lessonId }: { lessonId: string }) {
           </div>
         ) : null}
         <footer>
-          <p>Download the notebook, then choose <strong>File → Upload notebook</strong> in Colab. The same source is included in the completed portfolio ZIP.</p>
+          <p>Download the notebook, then choose <strong>File → Upload notebook</strong> in Colab. You’ll also get the same source in your finished portfolio ZIP.</p>
           <div>
             <button type="button" onClick={() => downloadSource(handoff)}>Download .py</button>
             <button type="button" onClick={() => downloadNotebook(handoff)}>Download notebook</button>

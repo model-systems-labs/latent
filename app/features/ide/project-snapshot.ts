@@ -72,7 +72,7 @@ export function prepareProjectSnapshotFiles(files: Readonly<Record<string, Proje
     } catch (error) {
       const detail = error instanceof Error
         ? error.message
-        : "The lesson module could not expose its tested functions.";
+        : "The lesson module didn’t make its tested functions available.";
       failures.push(...contracts.map((contract) => ({ contract, detail })));
       return { path: file.path, contents: file.content, loader: loaderFor(file.path) };
     }

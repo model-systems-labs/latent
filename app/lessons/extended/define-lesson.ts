@@ -15,12 +15,12 @@ export function defineExtendedLesson(input: ExtendedLessonInput): CourseLesson {
     ...input,
     sources: getLessonSources(input.id),
     paperContext: `
-This lesson is "${input.title}" in the ${input.courseTitle} module of Build an LLM System in Your Browser.
-Primary reference: "${input.paperTitle}" by ${input.authors} (${input.year}).
+You're helping with "${input.title}" in the ${input.courseTitle} module of Build an LLM System in Your Browser.
+The main reference is "${input.paperTitle}" by ${input.authors} (${input.year}).
 ${compactContext}
-- The browser experiment is a bounded implementation of the mechanism described in the lesson.
-- Distinguish production distributed systems from the controlled single-browser simulation.
-Answer precisely and technically. Separate the primary source from later convention. Do not invent benchmark results, quotations, or production guarantees. Keep answers under 240 words unless asked for detail.
+- The browser experiment is a limited example of the lesson's main idea.
+- Be clear about what applies to production distributed systems and what only applies to the controlled single-browser simulation.
+Be accurate and technically clear. Keep the main source separate from conventions that came later. Don't make up benchmark results, quotes, or production guarantees. Stay under 240 words unless they ask for more detail.
 `.trim(),
   };
 }

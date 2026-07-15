@@ -8,28 +8,28 @@ export const inferenceRuntimeLesson = defineExtendedLesson({
     courseNumber: 2,
     lessonNumber: 1,
     mode: "core-mechanism",
-    modeLabel: "Worked runtime trace",
+    modeLabel: "Runtime walkthrough",
     eyebrow: "Inference · Prefill and decode",
     title: "Inference Runtime",
-    thesis: "LLM inference separates parallel prompt prefill from one-position decode forwards while key-value memory grows with cached sequence positions.",
+    thesis: "LLM inference handles the prompt in a parallel prefill phase, then decodes one position at a time. The key-value cache grows with the cached sequence positions.",
     paperUrl: "https://arxiv.org/abs/2309.06180",
     paperTitle: "Efficient Memory Management for Large Language Model Serving with PagedAttention",
     authors: "Woosuk Kwon et al.",
     year: "2023",
     summary: [
-      { label: "Two phases.", body: "Prefill processes all prompt positions in parallel, stores their keys and values, and returns logits used to sample the first output token. To produce N generated tokens, the runtime then performs max(0, N - 1) one-position decode forwards for the remaining tokens." },
-      { label: "Memory growth.", body: "Each processed sequence position adds a key and a value at every layer. Per-request bytes are 2 × layers × KV heads × tokens × head dimension × bytes per value; KV heads—not query heads—matter for grouped-query attention." },
-      { label: "Isolation.", body: "Browser inference belongs in a Web Worker so model execution cannot block React rendering. Messages form an explicit boundary between product state and model state." },
-      { label: "Measurement.", body: "Time to first token (TTFT) measures admission through the first visible token, so it includes queueing and prefill. Inter-token latency (ITL) measures the gap between later visible tokens; tokens per second summarizes the steady decode rate. Combining them into one duration hides the user-visible latency shape." },
+      { label: "Two phases.", body: "Prefill processes every prompt position in parallel, saves the keys and values, and returns the logits used to sample the first output token. To generate N tokens total, the runtime then does max(0, N - 1) one-position decode forwards for the rest." },
+      { label: "How memory grows.", body: "Every processed sequence position adds one key and one value at each layer. The bytes for one request are 2 × layers × KV heads × tokens × head dimension × bytes per value. With grouped-query attention, KV heads matter here, not query heads." },
+      { label: "Keep it off the UI thread.", body: "Run browser inference in a Web Worker so the model can't freeze React rendering. Messages give you a clear boundary between product state and model state." },
+      { label: "Measure what the user feels.", body: "Time to first token (TTFT) runs from admission to the first token on screen, so it includes queueing and prefill. Inter-token latency (ITL) is the gap between later visible tokens. Tokens per second gives the steady decode rate. If you roll all of that into one duration, you lose the shape of the wait the user actually experiences." },
     ],
     claims: {
-      paper: "Paged allocation reduces KV-cache waste and enables higher serving throughput under dynamic request lengths.",
-      lab: "A fixed browser trace makes prefill, iterative decode, worker isolation, cache growth, and authored phase timing inspectable.",
-      limit: "No GPU kernel, multi-host network, or production memory allocator is reproduced.",
+      paper: "Paged allocation cuts down on wasted KV-cache space and can raise serving throughput when request lengths vary.",
+      lab: "A fixed browser trace lets you inspect prefill, repeated decode, worker isolation, cache growth, and the planned timing for each phase.",
+      limit: "This doesn't recreate a GPU kernel, a network of multiple hosts, or a production memory allocator.",
     },
     diagram: {
       title: "Worked request r-104",
-      caption: "A 96-token prompt and 32-token output require one prefill forward and 31 subsequent decode forwards; the final sequence contains 128 tokens.",
+      caption: "A 96-token prompt and a 32-token output need one prefill forward and 31 later decode forwards. The final sequence has 128 tokens.",
       nodes: [
         { label: "Queue", value: "18 ms" },
         { label: "Prefill", value: "74 ms · 96 positions · 6 KV pages" },
@@ -39,30 +39,30 @@ export const inferenceRuntimeLesson = defineExtendedLesson({
       ],
     },
     questions: {
-      intro: "Ask about prefill, decode, KV-cache growth, worker isolation, or latency measurement.",
+      intro: "Ask about prefill, decode, KV-cache growth, Web Workers, or how to measure latency.",
       suggestions: ["Why is decode memory-bandwidth bound?", "What determines time to first token?", "Why isolate inference in a Worker?"],
     },
     dataset: {
       name: "Inference Trace",
-      source: "Deterministic synthetic requests",
+      source: "Fixed synthetic requests",
       license: "CC0",
       size: "6 requests · fixed prompt and output lengths",
       preview: "r-104 · prompt 96 + output 32 = final length 128 · 1 prefill + 31 decode forwards",
     },
     implementation: {
       filename: "inference-runtime.py",
-      intro: "Implement phase accounting and KV-cache sizing in Python before replaying the authored request lifecycle trace.",
+      intro: "Build phase accounting and KV-cache sizing in Python, then replay the planned request timeline.",
       codeBlocks: [
         {
           id: "inference-phases",
           label: "Phase accounting",
-          purpose: "Distinguish generated tokens, model forwards, processed positions, and final sequence length.",
+          purpose: "Keep generated tokens, model forwards, processed positions, and final sequence length straight.",
           concepts: [
-            { name: "prompt_tokens", detail: "Tokens processed together during prefill." },
-            { name: "generated_tokens", detail: "Requested output length; the first token is sampled from prefill logits." },
-            { name: "decode_forwards", detail: "Subsequent one-position forwards: max(0, generated_tokens - 1)." },
-            { name: "processed_token_positions", detail: "Prompt positions plus positions processed by subsequent decode forwards." },
-            { name: "final_sequence_length", detail: "Prompt tokens plus every generated token, including the final unprocessed sample." },
+            { name: "prompt_tokens", detail: "The tokens processed together during prefill." },
+            { name: "generated_tokens", detail: "The requested output length. The first token is sampled from the prefill logits." },
+            { name: "decode_forwards", detail: "The one-position forwards after prefill: max(0, generated_tokens - 1)." },
+            { name: "processed_token_positions", detail: "All prompt positions plus the positions handled by later decode forwards." },
+            { name: "final_sequence_length", detail: "Prompt tokens plus every generated token, including the last sample that hasn't been processed again." },
           ],
           code: `def inference_phases(prompt_tokens, max_new_tokens):
     generated_tokens = max(0, max_new_tokens)
@@ -85,7 +85,7 @@ RESULT = {
     ),
     "detail": (
         f'{phases["prefillTokens"]} prefill · '
-        f'{phases["decodeForwards"]} subsequent decode forwards · '
+        f'{phases["decodeForwards"]} later decode forwards · '
         f'{phases["generatedTokens"]} generated'
     ),
 }`,
@@ -93,13 +93,13 @@ RESULT = {
         {
           id: "kv-bytes",
           label: "KV-cache bytes",
-          purpose: "Calculate request memory from model shape and sequence length.",
+          purpose: "Calculate how much memory a request needs from the model shape and sequence length.",
           concepts: [
-            { name: "2", detail: "Separate key and value tensors." },
-            { name: "layers", detail: "Every Transformer layer owns cached states." },
-            { name: "kv_heads", detail: "Key-value heads; this may be fewer than query heads under grouped-query attention." },
-            { name: "tokens × head_dimension", detail: "One head vector per cached sequence position." },
-            { name: "bytes_per_value", detail: "Storage width of each cached scalar." },
+            { name: "2", detail: "One tensor for keys and another for values." },
+            { name: "layers", detail: "Every Transformer layer has its own cached state." },
+            { name: "kv_heads", detail: "The number of key-value heads. Grouped-query attention may use fewer of these than query heads." },
+            { name: "tokens × head_dimension", detail: "One head vector for every cached sequence position." },
+            { name: "bytes_per_value", detail: "How many bytes each cached number uses." },
           ],
           code: `def kv_cache_bytes(config):
     layers = config["layers"]
@@ -122,5 +122,5 @@ RESULT = {
         },
       ],
     },
-    experiment: { kind: "systems", variant: "runtime", title: "Replay the inference lifecycle", intro: "Replay one authored request through queue, prefill, decode, and cache release. Its phase timings are fixed teaching data, not measurements of your device or learner file." },
+    experiment: { kind: "systems", variant: "runtime", title: "Replay the inference timeline", intro: "Follow one planned request through the queue, prefill, decode, and cache release. The phase timings are fixed examples for the lesson, not measurements from your device or your file." },
   });

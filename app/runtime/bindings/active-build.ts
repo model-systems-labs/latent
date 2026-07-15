@@ -100,15 +100,15 @@ function assertPositiveBuildIdentity(build: {
   contractVersion: string;
   createdAt: number;
 }): void {
-  if (!build.projectId.trim()) fail("INVALID_ACTIVE_BUILD", "The active build needs a project id.");
+  if (!build.projectId.trim()) fail("INVALID_ACTIVE_BUILD", "Add a project id to the active build.");
   if (!Number.isSafeInteger(build.buildNumber) || build.buildNumber < 1) {
-    fail("INVALID_ACTIVE_BUILD", "The active build needs a positive build number.");
+    fail("INVALID_ACTIVE_BUILD", "The active build number has to be greater than zero.");
   }
   if (!Number.isSafeInteger(build.projectRevision) || build.projectRevision < 0) {
-    fail("INVALID_ACTIVE_BUILD", "The active build revision is invalid.");
+    fail("INVALID_ACTIVE_BUILD", "The active build has an invalid project revision.");
   }
   if (!build.contractVersion.trim() || !Number.isFinite(build.createdAt)) {
-    fail("INVALID_ACTIVE_BUILD", "The active build metadata is incomplete.");
+    fail("INVALID_ACTIVE_BUILD", "The active build is missing required details.");
   }
 }
 
@@ -121,7 +121,7 @@ function assertCanonicalBinding(
   if (changed.length) {
     fail(
       "RUNTIME_BINDING_TAMPERED",
-      `Runtime capability ${expected.capability} changed its course-owned ${changed.join(", ")} contract.`,
+      `Runtime capability ${expected.capability} changed these course-owned fields: ${changed.join(", ")}.`,
     );
   }
 }
@@ -133,7 +133,7 @@ function assertCanonicalBinding(
  */
 export function assertLlmRuntimeBindingManifest(manifest: BindingManifest): void {
   if (manifest.schemaVersion !== 1) {
-    fail("UNSUPPORTED_BINDINGS", "Unsupported LLM runtime binding manifest version.");
+    fail("UNSUPPORTED_BINDINGS", "This LLM runtime binding manifest version isn't supported.");
   }
   const expectedByCapability = new Map(
     LLM_RUNTIME_CAPABILITIES.map((definition) => [definition.capability, definition]),
@@ -141,12 +141,12 @@ export function assertLlmRuntimeBindingManifest(manifest: BindingManifest): void
   const seen = new Set<string>();
   for (const binding of manifest.bindings) {
     if (seen.has(binding.capability)) {
-      fail("DUPLICATE_CAPABILITY", `Runtime capability ${binding.capability} is duplicated.`);
+      fail("DUPLICATE_CAPABILITY", `Runtime capability ${binding.capability} appears more than once.`);
     }
     seen.add(binding.capability);
     const expected = expectedByCapability.get(binding.capability);
     if (!expected) {
-      fail("UNKNOWN_RUNTIME_BINDING", `Runtime capability ${binding.capability} is not course-authored.`);
+      fail("UNKNOWN_RUNTIME_BINDING", `Runtime capability ${binding.capability} isn't provided by the course.`);
     }
     assertCanonicalBinding(binding, expected);
   }
@@ -168,7 +168,7 @@ function safeBindingReferences(manifest: BindingManifest): readonly SafeRuntimeB
           (candidate) => candidate.capability === binding.capability,
         );
         if (!definition) {
-          fail("UNKNOWN_RUNTIME_BINDING", `Runtime capability ${binding.capability} is not course-authored.`);
+          fail("UNKNOWN_RUNTIME_BINDING", `Runtime capability ${binding.capability} isn't provided by the course.`);
         }
         return Object.freeze({
           bindingId: binding.bindingId,
@@ -196,7 +196,7 @@ function assertCompleteLessonHashes(
     if (!hashes.has(lesson.sourcePath)) {
       fail(
         "INCOMPLETE_BUILD_CONTRIBUTIONS",
-        `The active build does not include tested lesson source ${lesson.sourcePath}.`,
+        `The active build is missing the tested lesson source ${lesson.sourcePath}.`,
       );
     }
   }
@@ -216,7 +216,7 @@ function persistedBindingManifest(build: BuildRecord): BindingManifest {
   );
   for (const key of Object.keys(build.bindings)) {
     if (!knownKeys.has(key)) {
-      fail("UNKNOWN_RUNTIME_BINDING", `Persisted runtime binding ${key} is not course-authored.`);
+      fail("UNKNOWN_RUNTIME_BINDING", `Saved runtime binding ${key} isn't provided by the course.`);
     }
   }
   const bindings = LLM_RUNTIME_CAPABILITIES.flatMap((definition) => {
@@ -240,10 +240,10 @@ function persistedBindingManifest(build: BuildRecord): BindingManifest {
 async function normalizeArtifact(artifact: BuildArtifact): Promise<NormalizedBuild> {
   assertPositiveBuildIdentity(artifact);
   if (artifact.schemaVersion !== 1 || artifact.program.schemaVersion !== 1) {
-    fail("INVALID_ACTIVE_BUILD", "Unsupported Browser Lab build artifact version.");
+    fail("INVALID_ACTIVE_BUILD", "This Browser Lab build artifact version isn't supported.");
   }
   if (!isSourceHash(artifact.sourceHash)) {
-    fail("INVALID_ACTIVE_BUILD", "The Browser Lab artifact has an invalid source hash.");
+    fail("INVALID_ACTIVE_BUILD", "This Browser Lab artifact has an invalid source hash.");
   }
   if (
     artifact.program.projectId !== artifact.projectId ||
@@ -251,10 +251,10 @@ async function normalizeArtifact(artifact: BuildArtifact): Promise<NormalizedBui
     artifact.program.sourceHash !== artifact.sourceHash ||
     artifact.program.compilerVersion !== artifact.compilerVersion
   ) {
-    fail("BUILD_IDENTITY_TAMPERED", "The Browser Lab program identity does not match its artifact.");
+    fail("BUILD_IDENTITY_TAMPERED", "The program details in this Browser Lab artifact don't match the artifact.");
   }
   if (!artifact.testReceiptId.trim()) {
-    fail("INVALID_ACTIVE_BUILD", "The Browser Lab artifact has no passing test receipt.");
+    fail("INVALID_ACTIVE_BUILD", "This Browser Lab artifact is missing a passing test receipt.");
   }
   validateBindingManifest(artifact.bindingManifest, artifact.program);
   assertLlmRuntimeBindingManifest(artifact.bindingManifest);
@@ -290,13 +290,13 @@ async function normalizeArtifact(artifact: BuildArtifact): Promise<NormalizedBui
 async function normalizePersistedBuild(build: ValidatedPersistedBuild): Promise<NormalizedBuild> {
   assertPositiveBuildIdentity(build);
   if (build.schemaVersion !== 1 || build.provenance !== "validated") {
-    fail("UNVALIDATED_ACTIVE_BUILD", "Only a validated persisted build may power the capstone.");
+    fail("UNVALIDATED_ACTIVE_BUILD", "Only a validated saved build can run the capstone.");
   }
   if (!build.testReceiptId?.trim()) {
-    fail("UNVALIDATED_ACTIVE_BUILD", "The persisted build has no host-owned passing test receipt.");
+    fail("UNVALIDATED_ACTIVE_BUILD", "The saved build is missing a host-owned passing test receipt.");
   }
   if (!isSourceHash(build.sourceTreeHash)) {
-    fail("INVALID_ACTIVE_BUILD", "The persisted build has an invalid source-tree hash.");
+    fail("INVALID_ACTIVE_BUILD", "The saved build has an invalid source-tree hash.");
   }
 
   const bindingManifest = persistedBindingManifest(build);
@@ -316,7 +316,7 @@ async function normalizePersistedBuild(build: ValidatedPersistedBuild): Promise<
     if (typeof bundle !== "string") {
       fail(
         "MISSING_RUNTIME_BUNDLE",
-        `Persisted capability ${binding.capability} has no isolated bundle for ${binding.modulePath}.`,
+        `Saved capability ${binding.capability} is missing its isolated bundle for ${binding.modulePath}.`,
       );
     }
     if (!executableModuleHashes.has(binding.modulePath)) {
@@ -368,7 +368,7 @@ export async function createCapstoneRuntimeDescriptor(
     ? await normalizeArtifact(build)
     : isValidatedPersistedBuild(build)
       ? await normalizePersistedBuild(build)
-      : fail("UNVALIDATED_ACTIVE_BUILD", "A bare persisted build cannot claim a host-owned passing receipt. Load it through the validated build repository.");
+      : fail("UNVALIDATED_ACTIVE_BUILD", "This saved build hasn't been validated. Load it through the validated build repository before using its host-owned passing receipt.");
   const bindings = safeBindingReferences(normalized.bindingManifest);
   const capabilitiesByPath = new Map<string, string[]>();
   for (const binding of bindings) {
@@ -383,7 +383,7 @@ export async function createCapstoneRuntimeDescriptor(
       );
       const contributionHash = normalized.lessonHashes.get(lesson.sourcePath);
       if (!contributionHash) {
-        fail("INCOMPLETE_BUILD_CONTRIBUTIONS", `Missing contribution ${lesson.sourcePath}.`);
+        fail("INCOMPLETE_BUILD_CONTRIBUTIONS", `The build is missing contribution ${lesson.sourcePath}.`);
       }
       return Object.freeze({
         ...lesson,
@@ -466,14 +466,14 @@ function boundedRuntimeNumber(value: unknown, minimum: number, maximum: number, 
     && (!integer || Number.isInteger(value));
 }
 
-/** Returns only the immutable runtime configuration stored with this exact certified build. */
+/** Returns only the fixed runtime settings stored with this exact verified build. */
 export function certifiedCapstoneRuntimeConfig(build: ValidatedPersistedBuild): CertifiedCapstoneRuntimeConfig {
   if (!isValidatedPersistedBuild(build)) {
-    fail("UNVALIDATED_RUNTIME_CONFIG", "A bare build record cannot provide capstone runtime authority.");
+    fail("UNVALIDATED_RUNTIME_CONFIG", "This build record hasn't been validated, so it can't supply the capstone runtime.");
   }
   const root = build.runtimeConfig;
   if (!plainRuntimeRecord(root) || !hasExactRuntimeKeys(root, ["version", "model", "transport", "interface", "buildNumber", "builtAt"]) || root.version !== 1) {
-    fail("INVALID_RUNTIME_CONFIG", "The certified build does not retain the exact runtime configuration schema.");
+    fail("INVALID_RUNTIME_CONFIG", "The verified build doesn't include the expected runtime settings.");
   }
   const model = root.model;
   const transport = root.transport;
@@ -483,19 +483,19 @@ export function certifiedCapstoneRuntimeConfig(build: ValidatedPersistedBuild): 
     || !boundedRuntimeNumber(model.topK, 0, 64, true)
     || !boundedRuntimeNumber(model.maxTokens, 40, 160, true)
     || !boundedRuntimeNumber(model.seed, 0, 99_999, true)) {
-    fail("INVALID_RUNTIME_CONFIG", "The certified build model configuration is missing or outside its supported bounds.");
+    fail("INVALID_RUNTIME_CONFIG", "The build's model settings are missing or outside the allowed range.");
   }
   if (!plainRuntimeRecord(transport) || !hasExactRuntimeKeys(transport, ["wordsPerEvent", "delayMs"])
     || !boundedRuntimeNumber(transport.wordsPerEvent, 1, 12, true)
     || !boundedRuntimeNumber(transport.delayMs, 0, 200, true)) {
-    fail("INVALID_RUNTIME_CONFIG", "The certified build transport configuration is missing or outside its supported bounds.");
+    fail("INVALID_RUNTIME_CONFIG", "The build's transport settings are missing or outside the allowed range.");
   }
   if (!plainRuntimeRecord(presentation) || !hasExactRuntimeKeys(presentation, ["assistantName", "responsePrefix", "showMetrics"])
     || typeof presentation.assistantName !== "string" || !presentation.assistantName.trim()
     || presentation.assistantName !== presentation.assistantName.trim() || presentation.assistantName.length > 24
     || typeof presentation.responsePrefix !== "string" || presentation.responsePrefix.length > 60
     || typeof presentation.showMetrics !== "boolean") {
-    fail("INVALID_RUNTIME_CONFIG", "The certified build interface configuration is missing or outside its supported bounds.");
+    fail("INVALID_RUNTIME_CONFIG", "The build's interface settings are missing or outside the allowed range.");
   }
   return Object.freeze({
     version: 1 as const,
@@ -518,7 +518,7 @@ export async function loadValidatedCapstoneBundle(
   const descriptor = await createCapstoneRuntimeDescriptor(build);
   const binding = descriptor.bindings.find((candidate) => candidate.capability === "ui.mount");
   if (!binding || binding.executionTarget !== "sandboxed-preview-frame") {
-    fail("MISSING_CAPSTONE_UI", "The active build has no validated capstone UI entry point.");
+    fail("MISSING_CAPSTONE_UI", "The active build is missing a validated capstone UI entry point.");
   }
   let code: string | undefined;
   let expectedHash: string | undefined;
@@ -531,14 +531,14 @@ export async function loadValidatedCapstoneBundle(
     expectedHash = build.bundleHashes?.[binding.modulePath];
   }
   if (!code || !expectedHash || !isSourceHash(expectedHash)) {
-    fail("UNVERIFIED_CAPSTONE_UI", "The active build does not retain a compiler hash for its capstone UI bundle.");
+    fail("UNVERIFIED_CAPSTONE_UI", "The active build is missing the compiler hash for its capstone UI bundle.");
   }
   const codeHash = await hashText(code);
   if (codeHash !== expectedHash) {
-    fail("COMPILED_CODE_TAMPERED", "The capstone UI bundle no longer matches its compiler hash.");
+    fail("COMPILED_CODE_TAMPERED", "The capstone UI bundle doesn't match its compiler hash anymore.");
   }
   if (new TextEncoder().encode(code).byteLength > 2_000_000) {
-    fail("CAPSTONE_UI_TOO_LARGE", "The capstone UI bundle exceeds the preview size limit.");
+    fail("CAPSTONE_UI_TOO_LARGE", "The capstone UI bundle is too large for the preview.");
   }
   return Object.freeze({ descriptor, entryPath: binding.modulePath, code, codeHash });
 }

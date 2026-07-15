@@ -49,7 +49,7 @@ const TEST_LABELS = {
   "rnn-step": "Recurrent transition",
   "cross-entropy": "Cross-entropy loss",
   "clip-gradients": "Symmetric gradient clipping",
-  "artifact-schema": "Portable checkpoint schema",
+  "artifact-schema": "Portable checkpoint format",
 } as const;
 
 /** These checks are host source, never files in the learner's project. */
@@ -66,7 +66,7 @@ state = list(step([1, 0], [0, 0], identity))
 assert len(state) == 2, "Return one value per hidden unit."
 assert 0.76 < float(state[0]) < 0.77 and abs(float(state[1])) < 1e-12, "Apply tanh after the input projection."
 memory = list(step([0, 0], [1, -1], {"Wxh": [[0, 0], [0, 0]], "Whh": [[1, 0], [0, 1]], "bias": [0, 0]}))
-assert 0.76 < float(memory[0]) < 0.77 and -0.77 < float(memory[1]) < -0.76, "The preceding hidden state must affect both units."
+assert 0.76 < float(memory[0]) < 0.77 and -0.77 < float(memory[1]) < -0.76, "The previous hidden state must affect both units."
 bias = list(step([0, 0], [0, 0], {"Wxh": [[0, 0], [0, 0]], "Whh": [[0, 0], [0, 0]], "bias": [0.5, -0.25]}))
 assert abs(float(bias[0]) - math.tanh(0.5)) < 1e-9 and abs(float(bias[1]) - math.tanh(-0.25)) < 1e-9, "Add the bias before tanh."
 mixed = np.asarray(step([1, 0], [0.5, -1], {
@@ -97,9 +97,9 @@ import numpy as np
 module = runpy.run_path(${JSON.stringify(PYTHON_CHARACTER_RNN_PATH)}, run_name="latent_hidden_test")
 clip = module["clip_gradients"]
 vector = [float(value) for value in clip([-12, -2, 0, 3, 20], 5)]
-assert vector == [-5.0, -2.0, 0.0, 3.0, 5.0], "Clip both tails and preserve values inside the limit."
+assert vector == [-5.0, -2.0, 0.0, 3.0, 5.0], "Clip both tails and keep values inside the limit."
 matrix = np.asarray(clip([[-9, 2], [4, 11]], 4), dtype=float)
-assert matrix.shape == (2, 2), "Preserve the gradient tensor shape."
+assert matrix.shape == (2, 2), "Keep the gradient tensor shape."
 assert matrix.tolist() == [[-4.0, 2.0], [4.0, 4.0]], "Apply the bound elementwise."`,
   },
   {
@@ -110,12 +110,12 @@ module = runpy.run_path(${JSON.stringify(PYTHON_CHARACTER_RNN_TRAINER_PATH)}, ru
 artifact = module["train_character_rnn"](4)
 repeat = module["train_character_rnn"](4)
 assert set(artifact) == {"checkpoint", "finalLoss", "parameters", "vocabularySize"}, "Return only the portable artifact fields."
-assert artifact == repeat, "Training must be deterministic for the fixed course seed."
+assert artifact == repeat, "Training must give the same result with the fixed course seed."
 checkpoint = artifact["checkpoint"]
 assert checkpoint["version"] == 1, "Use checkpoint schema version 1."
 vocabulary_size = len(checkpoint["vocabulary"])
 hidden_size = checkpoint["hiddenSize"]
-assert vocabulary_size == artifact["vocabularySize"] and len(set(checkpoint["vocabulary"])) == vocabulary_size, "Vocabulary metadata must match unique tokens."
+assert vocabulary_size == artifact["vocabularySize"] and len(set(checkpoint["vocabulary"])) == vocabulary_size, "The saved vocabulary size must match the number of unique tokens."
 assert len(checkpoint["Wxh"]) == hidden_size and all(len(row) == vocabulary_size for row in checkpoint["Wxh"]), "Wxh must be hiddenSize by vocabularySize."
 assert len(checkpoint["Whh"]) == hidden_size and all(len(row) == hidden_size for row in checkpoint["Whh"]), "Whh must be square."
 assert len(checkpoint["Why"]) == vocabulary_size and all(len(row) == hidden_size for row in checkpoint["Why"]), "Why must project hidden state to vocabulary."
@@ -153,19 +153,19 @@ export function validatePythonCharacterRnnPayload(value: unknown, trainedAt = Da
     throw new TypeError("Python artifact finalLoss must be a finite non-negative number.");
   }
   if (typeof parameters !== "number" || !Number.isSafeInteger(parameters) || parameters !== calculatedParameterCount(checkpoint)) {
-    throw new TypeError("Python artifact parameters must match the checkpoint tensor shapes.");
+    throw new TypeError("The Python artifact’s parameter count must match the checkpoint tensor shapes.");
   }
   if (typeof vocabularySize !== "number" || !Number.isSafeInteger(vocabularySize) || vocabularySize !== checkpoint.vocabulary.length) {
-    throw new TypeError("Python artifact vocabularySize must match checkpoint.vocabulary.");
+    throw new TypeError("The Python artifact’s vocabularySize must match checkpoint.vocabulary.");
   }
   if (finalLoss >= Math.log(vocabularySize)) {
-    throw new TypeError("Python artifact loss must beat the uniform next-character baseline.");
+    throw new TypeError("The Python artifact’s loss must beat a uniform next-character baseline.");
   }
   const learnedWeightMagnitude = [...checkpoint.Wxh, ...checkpoint.Whh, ...checkpoint.Why]
     .flat()
     .reduce((sum, value) => sum + Math.abs(value), 0);
   if (!Number.isFinite(learnedWeightMagnitude) || learnedWeightMagnitude <= 1e-6) {
-    throw new TypeError("Python artifact must contain learned, non-zero weights.");
+    throw new TypeError("The Python artifact must contain learned weights that aren’t all zero.");
   }
   if (!Number.isFinite(trainedAt) || trainedAt < 0) throw new TypeError("Python artifact trainedAt is invalid.");
   return { checkpoint, finalLoss, parameters, vocabularySize, trainedAt, origin: "python" };
@@ -189,7 +189,7 @@ function normalizeTests(value: unknown): PythonCharacterRnnTestResult[] {
       ? item.detail
       : typeof exception?.message === "string"
         ? exception.message
-        : passed ? "Passed." : "The Python test did not return a valid receipt.";
+        : passed ? "Passed." : "The Python test didn’t return a result Latent could verify.";
     const durationMs = typeof item?.durationMs === "number" && Number.isFinite(item.durationMs)
       ? item.durationMs
       : undefined;
@@ -201,19 +201,19 @@ function withArtifactSchemaFailure(
   tests: PythonCharacterRnnTestResult[],
   error: unknown,
 ): PythonCharacterRnnTestResult[] {
-  const detail = error instanceof Error ? error.message : "The emitted checkpoint did not satisfy the host schema.";
+  const detail = error instanceof Error ? error.message : "The generated checkpoint didn’t match the required format.";
   return tests.map((test) => test.id === "artifact-schema" ? { ...test, passed: false, detail } : test);
 }
 
 function decodedArtifactJson(value: unknown): unknown {
-  if (!Array.isArray(value)) throw new TypeError("Python training did not emit its checkpoint JSON file.");
+  if (!Array.isArray(value)) throw new TypeError("Python training didn’t create its checkpoint JSON file.");
   const artifact = value.find((item) => isRecord(item) && item.path === PYTHON_CHARACTER_RNN_ARTIFACT_PATH);
-  if (!artifact || typeof artifact.data !== "string") throw new TypeError("Python training did not emit readable checkpoint JSON.");
+  if (!artifact || typeof artifact.data !== "string") throw new TypeError("Python training didn’t create a readable checkpoint JSON file.");
   if (artifact.encoding !== "utf8") throw new TypeError("Python checkpoint JSON must use UTF-8 encoding.");
   try {
     return JSON.parse(artifact.data);
   } catch {
-    throw new TypeError("Python checkpoint artifact is not valid JSON.");
+    throw new TypeError("The Python checkpoint file isn’t valid JSON.");
   }
 }
 
@@ -226,21 +226,21 @@ function appendEventOutput(lines: string[], event: unknown, captured: { characte
   const remaining = MAX_CAPTURED_OUTPUT_CHARACTERS - captured.characters;
   if (remaining <= 0) {
     captured.truncated = true;
-    lines.push("\n[Python output truncated by the host.]\n");
+    lines.push("\n[Python output was shortened because it was too long.]\n");
     return;
   }
   lines.push(text.slice(0, remaining));
   captured.characters += Math.min(text.length, remaining);
   if (text.length > remaining) {
     captured.truncated = true;
-    lines.push("\n[Python output truncated by the host.]\n");
+    lines.push("\n[Python output was shortened because it was too long.]\n");
   }
 }
 
 export async function runPythonCharacterRnnArtifact(
   input: PythonCharacterRnnRunInput,
 ): Promise<PythonCharacterRnnRun> {
-  if (!input.source.trim()) throw new TypeError("Python source cannot be empty.");
+  if (!input.source.trim()) throw new TypeError("The Python file can’t be empty.");
   const output: string[] = [];
   const captured = { characters: 0, truncated: false };
   const onEvent = (event: PythonLabEvent) => {
@@ -262,7 +262,7 @@ export async function runPythonCharacterRnnArtifact(
   );
   if (!synchronized.files.includes(PYTHON_CHARACTER_RNN_PATH)
     || !synchronized.files.includes(PYTHON_CHARACTER_RNN_TRAINER_PATH)) {
-    throw new TypeError("Python training did not synchronize both the learner source and trusted harness.");
+    throw new TypeError("Python training couldn’t sync both your source file and the course test runner.");
   }
   const suite = await input.pythonLab.runTests(
     { tests: [...PYTHON_CHARACTER_RNN_TESTS] },
@@ -284,7 +284,7 @@ export async function runPythonCharacterRnnArtifact(
     { signal: input.signal, timeoutMs: 15_000, onEvent },
   );
   if (!restored.files.includes(PYTHON_CHARACTER_RNN_TRAINER_PATH)) {
-    throw new TypeError("Python training could not restore the trusted harness after learner tests.");
+    throw new TypeError("Python training couldn’t restore the course test runner after checking your code.");
   }
 
   const run = await input.pythonLab.run(
@@ -299,7 +299,7 @@ export async function runPythonCharacterRnnArtifact(
     const exception = run.exception;
     const detail = exception
       ? `${exception.type}: ${exception.message}`
-      : "Python training failed before it emitted a checkpoint.";
+      : "Python training stopped before it created a checkpoint.";
     tests = withArtifactSchemaFailure(tests, new Error(detail));
     return {
       passed: false,
@@ -319,7 +319,7 @@ export async function runPythonCharacterRnnArtifact(
       || resultArtifact.finalLoss !== fileArtifact.finalLoss
       || resultArtifact.parameters !== fileArtifact.parameters
       || resultArtifact.vocabularySize !== fileArtifact.vocabularySize) {
-      throw new TypeError("Python result and emitted checkpoint JSON do not match.");
+      throw new TypeError("The Python result doesn’t match the checkpoint JSON file it created.");
     }
     return { passed: true, tests, stdout: output.join(""), artifact: fileArtifact };
   } catch (error) {

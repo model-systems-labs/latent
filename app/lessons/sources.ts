@@ -8,7 +8,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "Andrej Karpathy",
       year: "2015",
       url: "https://karpathy.github.io/2015/05/21/rnn-effectiveness/",
-      relevance: "Character-level prediction, recurrent state, sampling, and the original qualitative demonstrations.",
+      relevance: "Covers character-by-character prediction, recurrent state, sampling, and the original demos.",
     },
     {
       role: "Implementation",
@@ -16,7 +16,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "Andrej Karpathy",
       year: "2015",
       url: "https://github.com/karpathy/char-rnn",
-      relevance: "The multi-layer Torch implementation used to produce the essay's character-model experiments.",
+      relevance: "This is the multi-layer Torch code behind the essay's character-model experiments.",
     },
     {
       role: "Paper",
@@ -24,7 +24,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "Sepp Hochreiter · Jürgen Schmidhuber",
       year: "1997",
       url: "https://direct.mit.edu/neco/article/9/8/1735/6109/Long-Short-Term-Memory",
-      relevance: "Explains the gated recurrent architecture and error-flow problem behind the essay's LSTM results.",
+      relevance: "Explains the gated recurrent setup and the gradient problem behind the essay's LSTM results.",
     },
   ],
   "neural-language-models": [
@@ -34,7 +34,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "Yoshua Bengio et al.",
       year: "2003",
       url: "https://www.jmlr.org/papers/v3/bengio03a.html",
-      relevance: "Introduces jointly learned distributed word representations inside a neural language model.",
+      relevance: "Shows how a neural language model can learn useful word embeddings while it trains.",
     },
     {
       role: "Paper",
@@ -42,7 +42,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "Tomas Mikolov et al.",
       year: "2013",
       url: "https://arxiv.org/abs/1301.3781",
-      relevance: "Shows how simpler objectives make high-quality distributed word representations practical at scale.",
+      relevance: "Shows how simpler training goals make strong word embeddings practical at scale.",
     },
     {
       role: "Paper",
@@ -50,7 +50,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "Tomas Mikolov et al.",
       year: "2013",
       url: "https://papers.nips.cc/paper/2013/hash/9aa42b31882ec039965f3c4923ce901b-Abstract.html",
-      relevance: "Adds negative sampling, subsampling, and phrase representations to the embedding lineage.",
+      relevance: "Adds negative sampling, subsampling, and phrase embeddings to the approach.",
     },
   ],
   "subword-tokenization": [
@@ -60,7 +60,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "Rico Sennrich · Barry Haddow · Alexandra Birch",
       year: "2016",
       url: "https://aclanthology.org/P16-1162/",
-      relevance: "Applies byte-pair encoding to open-vocabulary neural sequence modeling.",
+      relevance: "Shows how byte-pair encoding handles rare and unseen words in neural sequence models.",
     },
     {
       role: "Paper",
@@ -68,7 +68,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "Taku Kudo · John Richardson",
       year: "2018",
       url: "https://arxiv.org/abs/1808.06226",
-      relevance: "Extends subword training to raw sentences with a language-independent tokenizer and detokenizer.",
+      relevance: "Trains subword models straight from raw sentences, without language-specific tokenization rules.",
     },
     {
       role: "Implementation",
@@ -76,7 +76,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "Google",
       year: "Current",
       url: "https://github.com/google/sentencepiece",
-      relevance: "Production implementation of BPE and unigram tokenization with reproducible model artifacts.",
+      relevance: "Provides production-ready BPE and unigram tokenization with reproducible model files.",
     },
   ],
   "additive-attention": [
@@ -86,7 +86,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "Dzmitry Bahdanau · Kyunghyun Cho · Yoshua Bengio",
       year: "2014",
       url: "https://arxiv.org/abs/1409.0473",
-      relevance: "Introduces learned soft alignment that removes the fixed-vector encoder bottleneck.",
+      relevance: "Introduces learned soft alignment so the encoder isn't squeezed into one fixed vector.",
     },
     {
       role: "Paper",
@@ -94,7 +94,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "Minh-Thang Luong · Hieu Pham · Christopher Manning",
       year: "2015",
       url: "https://aclanthology.org/D15-1166/",
-      relevance: "Compares global and local attention plus alternative alignment scoring functions.",
+      relevance: "Compares global and local attention along with several ways to score alignment.",
     },
     {
       role: "Paper",
@@ -102,7 +102,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "Kelvin Xu et al.",
       year: "2015",
       url: "https://arxiv.org/abs/1502.03044",
-      relevance: "Demonstrates soft and hard visual attention in an image-captioning sequence model.",
+      relevance: "Shows soft and hard visual attention at work in an image-captioning model.",
     },
   ],
   transformers: [
@@ -112,7 +112,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "Ashish Vaswani et al.",
       year: "2017",
       url: "https://papers.nips.cc/paper_files/paper/2017/hash/3f5ee243547dee91fbd053c1c4a845aa-Abstract.html",
-      relevance: "Defines the Transformer architecture, multi-head attention, positional encoding, and residual blocks.",
+      relevance: "Lays out the Transformer, including multi-head attention, positional encoding, and residual blocks.",
     },
     {
       role: "Implementation",
@@ -120,7 +120,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "Harvard NLP",
       year: "2018",
       url: "https://nlp.seas.harvard.edu/annotated-transformer/",
-      relevance: "A line-by-line implementation that connects the paper's equations to working modules.",
+      relevance: "Walks through the implementation line by line and turns the paper's equations into working modules.",
     },
     {
       role: "Paper",
@@ -128,7 +128,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "Alec Radford et al.",
       year: "2018",
       url: "https://cdn.openai.com/research-covers/language-unsupervised/language_understanding_paper.pdf",
-      relevance: "Adapts a masked decoder-only Transformer to generative language-model pretraining and transfer.",
+      relevance: "Uses a masked decoder-only Transformer for language-model pretraining and transfer learning.",
     },
   ],
   "in-context-learning": [
@@ -138,7 +138,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "Tom Brown et al.",
       year: "2020",
       url: "https://arxiv.org/abs/2005.14165",
-      relevance: "Establishes the modern zero-, one-, and few-shot evaluation framing for scaled autoregressive models.",
+      relevance: "Popularized the modern zero-, one-, and few-shot setup for large autoregressive models.",
     },
     {
       role: "Paper",
@@ -146,7 +146,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "Sewon Min et al.",
       year: "2022",
       url: "https://aclanthology.org/2022.emnlp-main.759/",
-      relevance: "Tests which properties of prompt demonstrations actually drive classification performance.",
+      relevance: "Tests which parts of prompt examples actually help classification performance.",
     },
     {
       role: "Paper",
@@ -154,7 +154,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "Shivam Garg et al.",
       year: "2022",
       url: "https://arxiv.org/abs/2208.01066",
-      relevance: "Studies in-context learning as an executable learning algorithm on controlled function classes.",
+      relevance: "Studies in-context learning as a learning algorithm using controlled function tasks.",
     },
   ],
   "inference-runtime": [
@@ -164,7 +164,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "Woosuk Kwon et al.",
       year: "2023",
       url: "https://arxiv.org/abs/2309.06180",
-      relevance: "Connects KV-cache allocation, request concurrency, and serving throughput through paged memory.",
+      relevance: "Shows how paged memory connects KV-cache allocation, concurrent requests, and serving throughput.",
     },
     {
       role: "Paper",
@@ -172,7 +172,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "Tri Dao et al.",
       year: "2022",
       url: "https://papers.nips.cc/paper_files/paper/2022/hash/67d57c32e20fd0a7a302cb81d36e40d5-Abstract-Conference.html",
-      relevance: "Explains why attention performance depends on memory traffic and IO-aware kernel design.",
+      relevance: "Explains why attention speed depends so much on memory traffic and IO-aware kernels.",
     },
     {
       role: "Guide",
@@ -180,7 +180,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "Hugging Face Transformers",
       year: "Current",
       url: "https://huggingface.co/docs/transformers/kv_cache",
-      relevance: "Documents concrete KV-cache policies, offloading, quantization, and compile-time tradeoffs.",
+      relevance: "Covers real KV-cache options, including offloading, quantization, and compile-time tradeoffs.",
     },
   ],
   "streaming-transport": [
@@ -190,7 +190,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "WHATWG HTML Standard",
       year: "Living standard",
       url: "https://html.spec.whatwg.org/multipage/server-sent-events.html",
-      relevance: "Normative event-stream framing, parsing, identifiers, reconnection, and UTF-8 behavior.",
+      relevance: "The official rules for event-stream framing, parsing, IDs, reconnection, and UTF-8 behavior.",
     },
     {
       role: "Specification",
@@ -198,7 +198,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "WHATWG",
       year: "Living standard",
       url: "https://streams.spec.whatwg.org/",
-      relevance: "Defines readable streams, readers, queues, cancellation, and backpressure semantics.",
+      relevance: "Defines how readable streams, readers, queues, cancellation, and backpressure work.",
     },
     {
       role: "Guide",
@@ -206,7 +206,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "MDN Web Docs",
       year: "Current",
       url: "https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events",
-      relevance: "Practical browser and server examples for event names, data fields, errors, and connection limits.",
+      relevance: "Gives practical browser and server examples for event names, data fields, errors, and connection limits.",
     },
   ],
   "scheduling-memory": [
@@ -216,7 +216,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "Gyeong-In Yu et al.",
       year: "2022",
       url: "https://www.usenix.org/conference/osdi22/presentation/yu",
-      relevance: "Introduces iteration-level scheduling and selective batching for autoregressive serving.",
+      relevance: "Introduces iteration-level scheduling and selective batching for autoregressive model serving.",
     },
     {
       role: "Paper",
@@ -224,7 +224,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "Woosuk Kwon et al.",
       year: "2023",
       url: "https://arxiv.org/abs/2309.06180",
-      relevance: "Shows how memory allocation and continuous batching interact under variable-length requests.",
+      relevance: "Shows how memory allocation and continuous batching affect each other when requests have different lengths.",
     },
     {
       role: "Paper",
@@ -232,7 +232,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "Amey Agrawal et al.",
       year: "2024",
       url: "https://arxiv.org/abs/2403.02310",
-      relevance: "Adds chunked prefills and stall-free schedules to balance throughput with token latency.",
+      relevance: "Uses chunked prefills and stall-free schedules to balance throughput against token latency.",
     },
   ],
   "reliability-observability": [
@@ -242,7 +242,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "Google SRE",
       year: "2016",
       url: "https://sre.google/sre-book/monitoring-distributed-systems/",
-      relevance: "Defines latency, traffic, errors, and saturation as user-centered monitoring signals.",
+      relevance: "Explains why latency, traffic, errors, and saturation are the monitoring signals that matter most.",
     },
     {
       role: "Guide",
@@ -250,7 +250,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "Google SRE Workbook",
       year: "2018",
       url: "https://sre.google/workbook/alerting-on-slos/",
-      relevance: "Turns error budgets and burn rates into actionable multi-window alerts.",
+      relevance: "Shows how to turn error budgets and burn rates into alerts people can act on.",
     },
     {
       role: "Specification",
@@ -258,7 +258,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "OpenTelemetry",
       year: "Current",
       url: "https://opentelemetry.io/docs/specs/otel/trace/",
-      relevance: "Defines spans, context, events, status, sampling, and export boundaries for distributed traces.",
+      relevance: "Defines spans, context, events, status, sampling, and export rules for distributed traces.",
     },
   ],
   "conversation-state": [
@@ -268,7 +268,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "React",
       year: "Current",
       url: "https://react.dev/learn/extracting-state-logic-into-a-reducer",
-      relevance: "Establishes pure reducers and action-driven state transitions for complex UI behavior.",
+      relevance: "Shows how pure reducers and actions keep complicated UI state changes manageable.",
     },
     {
       role: "Guide",
@@ -276,7 +276,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "React",
       year: "Current",
       url: "https://react.dev/learn/choosing-the-state-structure",
-      relevance: "Covers normalization, derived state, contradiction avoidance, and stable identifiers.",
+      relevance: "Covers normalized data, derived state, avoiding contradictions, and using stable IDs.",
     },
     {
       role: "Guide",
@@ -284,7 +284,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "React",
       year: "Current",
       url: "https://react.dev/learn/preserving-and-resetting-state",
-      relevance: "Explains how component identity and keys determine whether conversation UI state survives a render.",
+      relevance: "Explains how component identity and keys decide whether chat state survives a render.",
     },
   ],
   "streaming-react": [
@@ -294,7 +294,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "MDN Web Docs",
       year: "Current",
       url: "https://developer.mozilla.org/en-US/docs/Web/API/Streams_API/Using_readable_streams",
-      relevance: "Practical asynchronous consumption, cancellation, and custom stream construction in the browser.",
+      relevance: "Shows how to read, cancel, and build asynchronous streams in the browser.",
     },
     {
       role: "Specification",
@@ -302,7 +302,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "WHATWG",
       year: "Living standard",
       url: "https://streams.spec.whatwg.org/",
-      relevance: "Normative behavior for chunks, readers, queues, cancellation, and backpressure.",
+      relevance: "The official rules for chunks, readers, queues, cancellation, and backpressure.",
     },
     {
       role: "Guide",
@@ -310,7 +310,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "React",
       year: "Current",
       url: "https://react.dev/reference/react/useTransition",
-      relevance: "Clarifies how non-blocking render work can preserve responsiveness during frequent updates.",
+      relevance: "Explains how non-blocking renders can keep the UI responsive during frequent updates.",
     },
   ],
   "chat-actions-context": [
@@ -320,7 +320,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "OpenAI API documentation",
       year: "Current",
       url: "https://developers.openai.com/api/docs/guides/conversation-state",
-      relevance: "Describes explicit conversation continuity across independent model requests.",
+      relevance: "Explains how to carry a conversation across separate model requests.",
     },
     {
       role: "Guide",
@@ -328,7 +328,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "MDN Web Docs",
       year: "Current",
       url: "https://developer.mozilla.org/en-US/docs/Web/API/AbortController",
-      relevance: "Defines the browser cancellation primitive used to stop fetches, streams, and generation work.",
+      relevance: "Covers the browser API used to stop fetches, streams, and generation work.",
     },
     {
       role: "Guide",
@@ -336,7 +336,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "React",
       year: "Current",
       url: "https://react.dev/learn/queueing-a-series-of-state-updates",
-      relevance: "Explains queued state transitions and updater functions used by retry, edit, and streaming actions.",
+      relevance: "Explains the queued state updates behind retry, edit, and streaming actions.",
     },
   ],
   "chat-product-quality": [
@@ -346,7 +346,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "W3C Web Accessibility Initiative",
       year: "WCAG 2.2",
       url: "https://www.w3.org/WAI/WCAG22/Techniques/aria/ARIA23",
-      relevance: "Defines how role=log identifies sequential additions such as messages in a conversation.",
+      relevance: "Explains how role=log identifies new items, like messages added to a conversation.",
     },
     {
       role: "Specification",
@@ -354,7 +354,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "W3C Web Accessibility Initiative",
       year: "WCAG 2.2",
       url: "https://www.w3.org/WAI/WCAG22/Understanding/status-messages",
-      relevance: "Explains when progress, completion, and error updates must be programmatically announced.",
+      relevance: "Explains when assistive technology needs to announce progress, completion, and errors.",
     },
     {
       role: "Guide",
@@ -362,7 +362,7 @@ export const lessonSources: Record<string, LessonSource[]> = {
       authors: "web.dev",
       year: "Current",
       url: "https://web.dev/articles/inp",
-      relevance: "Provides the responsiveness metric needed to evaluate interaction and streaming-render latency.",
+      relevance: "Provides a practical way to measure interaction and streaming-render responsiveness.",
     },
   ],
 };

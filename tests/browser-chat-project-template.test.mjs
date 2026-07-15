@@ -51,8 +51,8 @@ test("the canonical Browser Chat template owns a complete provided React surface
   assert.equal(adapters.length, adapterPaths.length);
   assert.deepEqual(adapters.map((file) => file.path), adapterPaths);
   assert.ok(adapters.every((file) => !file.editable));
-  assert.ok(adapters.every((file) => file.title.startsWith("Course-provided ")));
-  assert.ok(adapters.every((file) => file.source.startsWith("// Course-provided, read-only JavaScript interoperability adapter.")));
+  assert.ok(adapters.every((file) => file.title.startsWith("Provided ")));
+  assert.ok(adapters.every((file) => file.source.startsWith("// The course provides this read-only JavaScript adapter.")));
   assert.equal(template.browserChatProjectFileByPath.size, files.length);
 });
 
@@ -103,7 +103,7 @@ test("CPython lesson source remains external while provided adapters bridge its 
   assert.match(source, /const currentUser = \{ id: parentUserId, role: "user", status: "complete", content: userText/);
   assert.match(source, /selectContext\(\{ system: systemContext, history: historicalContext, activeUser: currentUser, budget: 2048 \}\)/);
   assert.match(source, /if \(bounded\.overflow\)/);
-  assert.match(source, /Required instructions and the current prompt exceed the 2048-token request budget/);
+  assert.match(source, /The required instructions and your prompt don't fit within the 2048-token limit/);
   assert.match(source, /const requestContext = bounded\.selected/);
   assert.match(source, /messages: requestContext\.map/);
   assert.match(source, /appendMessageDelta\(state\.messages, \{[\s\S]*attemptId: action\.attemptId,[\s\S]*requestId: action\.requestId/);
@@ -152,7 +152,7 @@ test("an invalid restored conversation suspends writes until explicit discard", 
   assert.match(source, /setRestoreBlocked\(true\)/);
   assert.match(source, /if \(!hydrated \|\| restoreBlocked\) return/);
   assert.match(source, /const discardUnreadableConversation = \(\) => \{[\s\S]*setRestoreBlocked\(false\)/);
-  assert.match(source, /The unreadable device-local record has not been changed/);
+  assert.match(source, /We left the unreadable copy on this device unchanged/);
   assert.match(source, />Discard saved conversation<\/button>/);
 });
 

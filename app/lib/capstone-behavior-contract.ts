@@ -6,4 +6,4 @@ export const CAPSTONE_BEHAVIOR_CONTRACT_ID =
 export const CAPSTONE_BEHAVIOR_CONTRACT_LABEL = "Browser Chat behavior" as const;
 
 export const CAPSTONE_BEHAVIOR_CONTRACT_SUMMARY =
-  "Accessible chat surface, submit, streaming, cancellation, stale-event rejection, and visible error recovery." as const;
+  "Checks the chat screen, sending, streaming, stopping, ignoring old events, and showing clear errors." as const;

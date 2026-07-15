@@ -107,7 +107,7 @@ test("hydration rejects same-revision receipts when restored source bytes differ
       [workspace.RUNTIME_PATHS.model]: [{
         id: `${workspace.RUNTIME_PATHS.model}:contract`,
         path: workspace.RUNTIME_PATHS.model,
-        label: "Runtime configuration",
+        label: "Runtime settings",
         passed: true,
         detail: "Passed",
       }],

@@ -45,14 +45,14 @@ export function LearningDataPanel() {
 
   return (
     <section className="learning-data-panel" aria-labelledby="learning-data-title">
-      <header><div><span>Privacy and learning evidence</span><h2 id="learning-data-title">Device-local learning data</h2></div><p>Latent records bounded event names and pass/fail outcomes. It never places source code, prompts, chat content, API keys, or free-form answers in this event log.</p></header>
+      <header><div><span>Privacy and progress</span><h2 id="learning-data-title">Learning data on this device</h2></div><p>Latent keeps a short list of event names and pass/fail results. It never puts your code, prompts, chat messages, API keys, or written answers in this log.</p></header>
       <dl aria-label="Device-local learning event summary">
         <div><dt>First runs</dt><dd>{ready ? summary.runs : "—"}</dd></div>
         <div><dt>Code checks</dt><dd>{ready ? summary.checks : "—"}</dd></div>
         <div><dt>Predictions</dt><dd>{ready ? summary.predictions : "—"}</dd></div>
         <div><dt>Checkpoints</dt><dd>{ready ? summary.checkpoints : "—"}</dd></div>
       </dl>
-      <footer><p>{events.length} of at most 500 local events stored. No analytics endpoint is configured.</p><div><Link href="/sources">Review sources and licenses</Link><button type="button" onClick={() => void download()} disabled={!events.length}>Export events</button><button type="button" onClick={() => void clear()} disabled={!events.length}>{confirmClear ? "Confirm delete" : "Delete events"}</button></div></footer>
+      <footer><p>{events.length} of at most 500 events saved on this device. Nothing is sent to an analytics service.</p><div><Link href="/sources">Review sources and licenses</Link><button type="button" onClick={() => void download()} disabled={!events.length}>Export events</button><button type="button" onClick={() => void clear()} disabled={!events.length}>{confirmClear ? "Confirm delete" : "Delete events"}</button></div></footer>
     </section>
   );
 }

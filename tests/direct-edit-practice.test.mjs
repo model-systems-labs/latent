@@ -147,15 +147,15 @@ test("destructive resets arm inline and recovery actions render only when usable
   assert.match(source, /Confirm reset \$\{block\.label\} to starter code/);
   assert.match(source, /onClick=\{\(\) => resetBlock\(block\)\}[^\n]*>Confirm reset<\/button>/);
   assert.match(source, /onClick=\{\(\) => cancelBlockReset\(block\)\}/);
-  assert.match(source, /hidden \? <button[^\n]*Restore reference<\/button>/);
+  assert.match(source, /hidden \? <button[^\n]*Show example<\/button>/);
   assert.match(source, /recoverableDraft \? <button[^\n]*Restore draft<\/button> : null/);
   assert.match(source, /onClick=\{armResetAll\}/);
   assert.match(source, /onClick=\{hideAll\}[^\n]*>Confirm reset all<\/button>/);
   assert.match(source, /onClick=\{cancelResetAll\}/);
-  assert.match(source, /hiddenBlocks\.length > 0 \? <button[^\n]*Restore all<\/button> : null/);
+  assert.match(source, /hiddenBlocks\.length > 0 \? <button[^\n]*Show all examples<\/button> : null/);
   assert.match(source, /aria-describedby=\{`practice-status-\$\{lesson\.id\}`\}/);
-  assert.match(source, /reset is ready\. Confirm to replace this draft with its starter, or cancel/);
-  assert.match(source, /Reset all is ready\. Confirm to replace every cell with its starter, or cancel/);
+  assert.match(source, /is ready to reset\. Confirm to replace this draft with starter code, or cancel to keep your code/);
+  assert.match(source, /Ready to reset everything\. Confirm to replace every cell with starter code, or cancel to keep your code/);
   assert.doesNotMatch(source, /disabled=\{!practiceReady \|\| \(!hidden && !recoverableDraft\)/);
 });
 

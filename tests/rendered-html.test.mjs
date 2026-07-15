@@ -94,7 +94,7 @@ test("all fourteen lessons use the reusable learning flow", async () => {
     assert.doesNotMatch(html, /primary and supporting references|supporting sources/);
     assert.match(html, /What the source says/);
     assert.match(html, /What this browser lab shows/);
-    assert.doesNotMatch(html, /Highlight a passage|data-selection-ask|Ask Claude|Ask Codex/);
+    assert.doesNotMatch(html, /How it works|Highlight a passage|data-selection-ask|Ask Claude|Ask Codex/);
     assert.match(html, /class="section-title"><h2>Summary<\/h2>/);
     assert.doesNotMatch(html, /class="section-title"><span>0[123]<\/span>/);
     assert.doesNotMatch(html, /OpenRouter API key|openrouter\.ai|paper-chat|Questions and answers/);

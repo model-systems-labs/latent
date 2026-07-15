@@ -10,8 +10,7 @@
 .lessonShell[data-flair-tone="blue"] { --lesson-accent: #4c6279; }
 .lessonShell[data-flair-tone="slate"] { --lesson-accent: #58636d; }
 
-.lessonShell[data-flair-tone] :global(.eyebrow),
-.lessonShell[data-flair-tone] :global(.concept-diagram > header > span) {
+.lessonShell[data-flair-tone] :global(.eyebrow) {
   color: var(--lesson-accent);
 }
 

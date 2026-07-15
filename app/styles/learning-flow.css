@@ -894,13 +894,9 @@ button:disabled {
 /* Technical labels stay legible without changing the diagrams' compact hierarchy. */
 
 .concept-diagram > header {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
   padding: 0 0 1rem;
 }
 
-.concept-diagram > header span,
 .dataset-record > div > span,
 .experiment-header span,
 .token-artifact > span,

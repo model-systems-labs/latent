@@ -152,7 +152,7 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
   ];
   return (
     <figure className={`concept-diagram${isRecurrent ? " recurrence-diagram" : ""}${isNeuralLanguageModel ? " neural-lm-diagram" : ""}${isSubwordTokenization ? " subword-tokenization-diagram" : ""}${isAdditiveAttention ? " additive-attention-diagram" : ""}${isTransformer ? " transformer-attention-diagram" : ""}${isInContextLearning ? " icl-comparison-diagram" : ""}${isInferenceRuntime ? " inference-runtime-diagram" : ""}${isSchedulingMemory ? " scheduling-memory-diagram" : ""}${isStreamingTransport ? " streaming-transport-diagram" : ""}${isReliabilityObservability ? " reliability-observability-diagram" : ""}${isConversationState ? " conversation-state-diagram" : ""}${isStreamingReact ? " streaming-react-diagram" : ""}${isChatActionsContext ? " chat-actions-context-diagram" : ""}${isChatProductQuality ? " chat-product-quality-diagram" : ""}`}>
-      <header><span>How it works</span><strong>{lesson.diagram.title}</strong></header>
+      <header><strong>{lesson.diagram.title}</strong></header>
       {isRecurrent ? (
         <div className="recurrence-unroll" role="group" aria-label="Three RNN steps use the same parameters. In teacher-forced training, the real next character is both the loss target and the next input. During generation, the model samples a character and feeds it into the next step.">
           <div className="unroll-columns">

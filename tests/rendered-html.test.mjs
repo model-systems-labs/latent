@@ -15,8 +15,22 @@ async function render(path = "/") {
   );
 }
 
-test("server-renders one LLM Systems program with four technical modules", async () => {
-  const response = await render();
+test("the landing page makes one product-specific argument and routes into the course", async () => {
+  const response = await render("/");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /The transformer is one file/);
+  assert.match(html, /Build the system around it/);
+  assert.match(html, /Token generation is the midpoint, not the finish line/);
+  assert.match(html, /Your code survives the lesson/);
+  assert.match(html, /models\/character-rnn\.py/);
+  assert.match(html, /capstone\/BrowserChat\.tsx/);
+  assert.match(html, /href="\/course"/);
+  assert.doesNotMatch(html, /Character-level RNN training|course-track-card catalog-track-card|Run the first model/);
+});
+
+test("the course home renders one LLM Systems program with four technical modules", async () => {
+  const response = await render("/course");
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /Build an LLM system right in your browser/);
@@ -414,7 +428,7 @@ test("the design kit, simulations, model engines, and artifact runtime remain re
   assert.match(paperLab, /lesson\.sources\.map\(\(source\)/);
   assert.doesNotMatch(paperLab, /supporting-sources|source\.role/);
   assert.doesNotMatch(paperLab, /SelectionAsk|selection-ask|data-selection-ask|Highlight a passage/);
-  assert.match(layout, /og-v2\.png/);
+  assert.match(layout, /og-v3\.png/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   await assert.rejects(access(new URL("../app/_sites-preview", templateRoot)));
 });
@@ -575,8 +589,8 @@ test("Product Quality separates executed checks, unexecuted specifications, and 
   assert.doesNotMatch(html, /Automated · 16 contracts|all 16 check-specific results/);
 });
 
-test("homepage offers a quiet first model run before the curriculum", async () => {
-  const response = await render("/");
+test("course home offers a quiet first model run before the curriculum", async () => {
+  const response = await render("/course");
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /Character-level RNN training/);

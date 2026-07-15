@@ -1,0 +1,362 @@
+.page {
+  min-height: 100vh;
+}
+
+.header {
+  grid-template-columns: 1fr auto;
+  max-width: 1120px;
+}
+
+.header :global(.wordmark) {
+  min-height: 2.75rem;
+}
+
+.headerLink {
+  align-items: center;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: max(0.72rem, 12px);
+  font-weight: 590;
+  letter-spacing: 0.08em;
+  min-height: 2.75rem;
+  text-transform: uppercase;
+}
+
+.headerLink:hover,
+.headerLink:focus-visible {
+  color: var(--ink);
+}
+
+.shell,
+.footer {
+  margin: 0 auto;
+  max-width: 1120px;
+  position: relative;
+  width: calc(100% - 5rem);
+  z-index: 1;
+}
+
+.hero {
+  align-content: center;
+  display: grid;
+  min-height: min(49rem, calc(100svh - 5.4rem));
+  padding: clamp(5.5rem, 10vw, 9rem) 0;
+}
+
+.hero h1 {
+  font-family: var(--serif);
+  font-size: clamp(3.6rem, 6vw, 5.5rem);
+  font-weight: 400;
+  letter-spacing: -0.065em;
+  line-height: 0.96;
+  margin: 0;
+  max-width: 70rem;
+  text-wrap: balance;
+}
+
+.hero p {
+  color: var(--muted);
+  font-family: var(--serif);
+  font-size: clamp(1.15rem, 1.7vw, 1.42rem);
+  line-height: 1.58;
+  margin: 2rem 0 0;
+  max-width: 48rem;
+}
+
+.actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+  margin-top: 2.4rem;
+}
+
+.primaryAction,
+.secondaryAction {
+  align-items: center;
+  display: inline-flex;
+  font-size: max(0.78rem, 13px);
+  min-height: 3rem;
+}
+
+.primaryAction {
+  background: var(--violet-wash);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--violet-deep);
+  gap: 1.4rem;
+  padding: 0.7rem 1.2rem 0.72rem 1.35rem;
+}
+
+.primaryAction:hover,
+.primaryAction:focus-visible {
+  background: rgba(205, 196, 220, 0.5);
+  border-color: var(--line-strong);
+}
+
+.secondaryAction {
+  border-bottom: 1px solid var(--line-strong);
+  color: var(--muted);
+}
+
+.secondaryAction:hover,
+.secondaryAction:focus-visible {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.argument {
+  border-top: 1px solid var(--line-strong);
+  padding: clamp(5rem, 9vw, 8rem) 0;
+}
+
+.argument h2 {
+  font-family: var(--serif);
+  font-size: clamp(2.55rem, 4.7vw, 4.45rem);
+  font-weight: 400;
+  letter-spacing: -0.055em;
+  line-height: 1;
+  margin: 0;
+}
+
+.argument > p {
+  color: var(--muted);
+  font-family: var(--serif);
+  font-size: clamp(1.08rem, 1.55vw, 1.28rem);
+  line-height: 1.7;
+  margin: 1.6rem 0 0;
+  max-width: 53rem;
+}
+
+.systemPath {
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  list-style: none;
+  margin: clamp(3.5rem, 6vw, 5rem) 0 0;
+  padding: 0;
+}
+
+.systemPath li {
+  min-height: 9rem;
+  padding: 1.6rem 1.4rem 1.5rem 0;
+  position: relative;
+}
+
+.systemPath li:not(:last-child)::after {
+  color: var(--violet);
+  content: "→";
+  font-size: 0.9rem;
+  position: absolute;
+  right: 1.2rem;
+  top: 1.55rem;
+}
+
+.systemPath strong,
+.systemPath span {
+  display: block;
+}
+
+.systemPath strong {
+  font-family: var(--serif);
+  font-size: 1.22rem;
+  font-weight: 400;
+}
+
+.systemPath span {
+  color: var(--muted);
+  font-size: max(0.7rem, 11px);
+  line-height: 1.45;
+  margin-top: 2.8rem;
+}
+
+.projectTree {
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  display: grid;
+  font-family: var(--mono);
+  margin-top: clamp(3.5rem, 6vw, 5rem);
+  padding: 2rem 0;
+}
+
+.projectTree > span {
+  color: var(--violet-deep);
+  font-size: max(0.78rem, 13px);
+  font-weight: 650;
+  margin-bottom: 0.8rem;
+}
+
+.projectTree code {
+  color: var(--muted);
+  font-size: clamp(0.76rem, 1.25vw, 0.94rem);
+  line-height: 2;
+  white-space: nowrap;
+}
+
+.projectTree code i {
+  color: var(--line-strong);
+  display: inline-block;
+  font-style: normal;
+  width: 2.4rem;
+}
+
+.closing {
+  align-items: end;
+  border-top: 1px solid var(--line-strong);
+  display: grid;
+  gap: 2rem;
+  grid-template-columns: 1fr auto;
+  padding: clamp(5rem, 9vw, 8rem) 0;
+}
+
+.closing p {
+  font-family: var(--serif);
+  font-size: clamp(2rem, 3.8vw, 3.7rem);
+  letter-spacing: -0.05em;
+  line-height: 1.12;
+  margin: 0;
+}
+
+.closing p code {
+  color: var(--violet-deep);
+  font-family: var(--serif);
+}
+
+.closing > a {
+  align-items: center;
+  border-bottom: 1px solid var(--line-strong);
+  display: inline-flex;
+  font-size: max(0.82rem, 13px);
+  gap: 1.5rem;
+  padding: 0.75rem 0;
+  white-space: nowrap;
+}
+
+.closing > a:hover,
+.closing > a:focus-visible {
+  border-color: var(--ink);
+}
+
+.footer {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  display: flex;
+  font-size: max(0.7rem, 11px);
+  justify-content: space-between;
+  min-height: 6.5rem;
+}
+
+.footer nav {
+  display: flex;
+  gap: 1.75rem;
+}
+
+.footer a {
+  align-items: center;
+  display: inline-flex;
+  min-height: 2.75rem;
+}
+
+.footer a:hover,
+.footer a:focus-visible {
+  color: var(--ink);
+}
+
+@media (max-width: 720px) {
+  .shell,
+  .footer {
+    width: calc(100% - 2rem);
+  }
+
+  .headerLink {
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  .hero {
+    min-height: calc(100svh - 4.75rem);
+    padding: 4.5rem 0 5rem;
+  }
+
+  .hero h1 {
+    font-size: clamp(2.55rem, 12vw, 3.25rem);
+    line-height: 1;
+  }
+
+  .hero p {
+    font-size: 1.06rem;
+    line-height: 1.58;
+    margin-top: 1.5rem;
+  }
+
+  .actions {
+    align-items: flex-start;
+    flex-direction: column;
+    margin-top: 1.8rem;
+  }
+
+  .argument {
+    padding: 4.5rem 0;
+  }
+
+  .argument h2 {
+    font-size: clamp(2.4rem, 11vw, 3.15rem);
+  }
+
+  .systemPath {
+    grid-template-columns: 1fr;
+    margin-top: 3rem;
+  }
+
+  .systemPath li {
+    align-items: baseline;
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: minmax(7rem, 0.6fr) 1fr;
+    min-height: 0;
+    padding: 1.1rem 0;
+  }
+
+  .systemPath li + li {
+    border-top: 1px solid var(--line);
+  }
+
+  .systemPath li:not(:last-child)::after {
+    bottom: -0.48rem;
+    left: 0.1rem;
+    right: auto;
+    top: auto;
+    transform: rotate(90deg);
+  }
+
+  .systemPath span {
+    margin-top: 0;
+  }
+
+  .projectTree {
+    overflow-x: auto;
+    padding: 1.5rem 0;
+  }
+
+  .closing {
+    align-items: start;
+    grid-template-columns: 1fr;
+    padding: 4.5rem 0;
+  }
+
+  .closing p {
+    font-size: clamp(2.1rem, 10vw, 2.85rem);
+  }
+
+  .footer {
+    min-height: 5.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page * {
+    scroll-behavior: auto;
+  }
+}

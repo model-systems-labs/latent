@@ -27,7 +27,7 @@ export default function SourcesPage() {
   return (
     <main>
       <div className="page-atmosphere" aria-hidden="true"><span className="orbit orbit-one" /><span className="node node-one" /><span className="warm-star" /></div>
-      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><Link href="/">Course</Link><Link href="/project">Project</Link><Link href="/workspace">IDE</Link></nav></header>
+      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><Link href="/course">Course</Link><Link href="/project">Project</Link><Link href="/workspace">IDE</Link></nav></header>
       <article className="sources-page">
         <header className="sources-hero"><h1>Sources</h1><p>Research, datasets, models, and software used by the course.</p></header>
 

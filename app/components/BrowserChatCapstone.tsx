@@ -909,7 +909,7 @@ export function BrowserChatCapstone() {
       <header className="capstone-topbar">
         <Link className="wordmark" href="/"><i />latent</Link>
         <div><strong>Browser Chat</strong></div>
-        <nav><Link href="/">Course</Link><Link href="/project">Project</Link><Link href="/workspace">IDE</Link></nav>
+        <nav><Link href="/course">Course</Link><Link href="/project">Project</Link><Link href="/workspace">IDE</Link></nav>
       </header>
       {status === "ready" && bundle && reactRuntime && buildRuntime && runRequested ? (
         <section className="compiled-capstone-runtime">

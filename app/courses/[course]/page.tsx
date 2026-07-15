@@ -27,7 +27,7 @@ export default async function CoursePage({ params }: { params: Promise<{ course:
   return (
     <main>
       <div className="page-atmosphere" aria-hidden="true"><span className="orbit orbit-one" /><span className="node node-one" /><span className="warm-star" /></div>
-      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><Link href="/">Course home</Link></header>
+      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><Link href="/course">Course home</Link></header>
       <article className="course-page track-page">
         <header className="course-hero track-hero catalog-track-hero">
           <h1>{track.title}</h1>
@@ -41,7 +41,7 @@ export default async function CoursePage({ params }: { params: Promise<{ course:
           </Link>
         ) : null}
         <footer className="track-navigation">
-          {previous ? <Link href={`/courses/${previous.id}`}>← {previous.title}</Link> : <Link href="/">← Course home</Link>}
+          {previous ? <Link href={`/courses/${previous.id}`}>← {previous.title}</Link> : <Link href="/course">← Course home</Link>}
           {next ? <Link href={`/courses/${next.id}`}>{next.title} →</Link> : <Link href="/capstone">Build the capstone →</Link>}
         </footer>
       </article>

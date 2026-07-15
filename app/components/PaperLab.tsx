@@ -1120,7 +1120,7 @@ export function PaperLab({ lesson }: { lesson: CourseLesson }) {
     <main className={styles.lessonShell} data-flair-tone={flair?.tone}>
       <Atmosphere />
       <header className="site-header lesson-header">
-        <Link className="wordmark" href="/" aria-label="Latent course home"><i />latent</Link>
+        <Link className="wordmark" href="/" aria-label="Latent home"><i />latent</Link>
         <nav aria-label="Lesson navigation">
           <a href="#summary">Read</a>
           <a href="#implementation">Code</a>

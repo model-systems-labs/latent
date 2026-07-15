@@ -22,9 +22,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "localhost:3001";
   const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   const metadataBase = new URL(`${protocol}://${host}`);
-  const title = "Latent · Build an LLM System in Your Browser";
+  const title = "Latent · Build the system around the transformer";
   const description =
-    "Build model basics, an inference runtime, LLM serving, and a React app in one hands-on browser course.";
+    "A browser course where model, runtime, serving, and React implementations become one tested LLM chatbot.";
 
   return {
     metadataBase,
@@ -34,13 +34,13 @@ export async function generateMetadata(): Promise<Metadata> {
       title,
       description,
       type: "website",
-      images: [{ url: new URL("/og-v2.png", metadataBase).toString(), width: 1200, height: 630 }],
+      images: [{ url: new URL("/og-v3.png", metadataBase).toString(), width: 1731, height: 909 }],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [new URL("/og-v2.png", metadataBase).toString()],
+      images: [new URL("/og-v3.png", metadataBase).toString()],
     },
   };
 }

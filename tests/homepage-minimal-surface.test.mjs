@@ -7,6 +7,8 @@ const courseCatalogCssUrl = new URL("../app/styles/course-catalog.css", import.m
 const codingWorkspaceCssUrl = new URL("../app/styles/coding-workspace.css", import.meta.url);
 const responsiveCssUrl = new URL("../app/styles/responsive.css", import.meta.url);
 const firstRunUrl = new URL("../app/components/FirstRunExperience.tsx", import.meta.url);
+const landingPageUrl = new URL("../app/page.tsx", import.meta.url);
+const landingCssUrl = new URL("../app/page.module.css", import.meta.url);
 
 function cssRule(source, selector) {
   const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -15,7 +17,7 @@ function cssRule(source, selector) {
   return match[1];
 }
 
-test("the homepage training demo stays on the warm editorial surface", async () => {
+test("the course training demo stays on the warm editorial surface", async () => {
   const [source, catalog, component] = await Promise.all([
     readFile(productizationCssUrl, "utf8"),
     readFile(courseCatalogCssUrl, "utf8"),
@@ -34,15 +36,32 @@ test("the homepage training demo stays on the warm editorial surface", async () 
   assert.doesNotMatch(firstRunSource, /#211f23|#211f22|#272329|rgba\(255,\s*255,\s*255,\s*0\.0[468]\)/);
 });
 
-test("the homepage CTA and responsive dividers do not reintroduce dark surfaces", async () => {
+test("the course CTA and responsive dividers do not reintroduce dark surfaces", async () => {
   const [codingWorkspaceCss, responsiveCss] = await Promise.all([
     readFile(codingWorkspaceCssUrl, "utf8"),
     readFile(responsiveCssUrl, "utf8"),
   ]);
 
-  const homepageCta = cssRule(codingWorkspaceCss, ".full-course-page .hero-actions a:first-child");
-  assert.match(homepageCta, /background:\s*var\(--violet-wash\)/);
-  assert.match(homepageCta, /color:\s*var\(--violet-deep\)/);
+  const courseCta = cssRule(codingWorkspaceCss, ".full-course-page .hero-actions a:first-child");
+  assert.match(courseCta, /background:\s*var\(--violet-wash\)/);
+  assert.match(courseCta, /color:\s*var\(--violet-deep\)/);
   assert.match(responsiveCss, /\.first-run-controls\s*\{[^}]*border-bottom:\s*1px solid var\(--line\)/s);
   assert.match(responsiveCss, /\.first-run-output article \+ article\s*\{[^}]*border-top:\s*1px solid var\(--line\)/s);
+});
+
+test("the marketing landing stays unboxed and reuses the established atmosphere", async () => {
+  const [page, css] = await Promise.all([
+    readFile(landingPageUrl, "utf8"),
+    readFile(landingCssUrl, "utf8"),
+  ]);
+
+  assert.match(page, /page-atmosphere/);
+  assert.match(page, /orbit orbit-one/);
+  assert.match(page, /node node-one/);
+  assert.match(page, /warm-star/);
+  assert.match(page, /href="\/course"/);
+  assert.doesNotMatch(page, /FirstRunExperience|courseTracks|testimonial|trusted by/i);
+  assert.doesNotMatch(css, /box-shadow|linear-gradient|#[0-9a-f]{3,8}/i);
+  assert.match(cssRule(css, ".argument"), /border-top:\s*1px solid var\(--line-strong\)/);
+  assert.match(cssRule(css, ".systemPath"), /grid-template-columns:\s*repeat\(5, minmax\(0, 1fr\)\)/);
 });

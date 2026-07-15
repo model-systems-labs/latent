@@ -22,7 +22,6 @@ import { runPracticeContracts, type PracticeContractRun } from "../features/ide/
 import { runPythonLessonContracts } from "../features/ide/python-lesson-service";
 import { ArtifactRuntimePanel } from "../features/artifacts/ArtifactRuntimePanel";
 import { recordValidatedLessonArtifact } from "../features/artifacts/lesson-artifacts";
-import { latentTensorOperations } from "@latent/tensor";
 import { lessonBlockComment, lessonImplementationPrelude, lessonImplementationSource } from "../lessons/implementation-source";
 import { canonicalProjectSeeds } from "../lib/canonical-project";
 import {
@@ -983,16 +982,6 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     <section className="paper-section implementation-section" id="implementation">
       <div className="section-title"><h2>Implementation</h2></div>
       <p className="implementation-intro">{lesson.implementation.intro}</p>
-      {pythonLesson || lesson.implementation.tensorOps?.length ? (
-        <div className="tensor-runtime-strip">
-          <div><span>{pythonLesson ? "Python runtime" : "Tensor runtime"}</span><strong>{pythonLesson ? "CPython · NumPy" : "runtime/latent-tensor.js"}</strong><p>{pythonLesson ? lesson.implementation.tensorOps?.length ? "NumPy handles the array operations; you build the model behavior." : "A browser worker runs this file in CPython; you build the behavior the tests check." : "The course handles shape checks and automatic differentiation; you build the model operation."}</p></div>
-          <div aria-label={pythonLesson ? "Python and NumPy operations used in this lesson" : "Latent Tensor operations used in this lesson"}>
-            {pythonLesson
-              ? lesson.implementation.tensorOps?.map((operation) => <span title="Python or NumPy operation used by this lesson" key={operation}>{operation}</span>)
-              : latentTensorOperations(lesson.implementation.tensorOps ?? []).map((operation) => <span title={operation.purpose} key={operation.name}>{operation.name}</span>)}
-          </div>
-        </div>
-      ) : null}
       <div className="practice-editor" data-project-conflict={projectConflict} aria-busy={!practiceReady || runningBlockIds.length > 0}>
         <div className="editor-toolbar">
           <div className="editor-file"><span>{projectPath}</span><strong>{!practiceReady ? "Loading saved work…" : projectConflict ? "Newer code in full IDE" : "Working file · saves automatically"}</strong></div>

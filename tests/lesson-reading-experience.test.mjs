@@ -116,6 +116,7 @@ test("lesson code opens one starter-first syntax-aware Python exercise in a ligh
     readFile(learningFlowUrl, "utf8"),
   ]);
   assert.match(paperLab, /import \{ SyntaxCode \} from "\.\.\/features\/ide\/SyntaxCode"/);
+  assert.doesNotMatch(paperLab, /tensor-runtime-strip|Python runtime|Tensor runtime|CPython · NumPy|NumPy handles the array operations/);
   assert.match(paperLab, /lazy\(async \(\) => \(\{[\s\S]*?import\("\.\.\/features\/ide\/CodeEditor"\)/);
   assert.match(syntaxCode, /import \{ parser \} from "@lezer\/javascript"/);
   assert.match(syntaxCode, /parser\.parse\(source\)/);

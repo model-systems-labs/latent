@@ -1,21 +1,4 @@
 /* Coding practice: one focused exercise per cell. */
-.tensor-runtime-strip {
-  align-items: start;
-  border-bottom: 1px solid var(--line);
-  border-top: 1px solid var(--line);
-  display: grid;
-  gap: 1.5rem;
-  grid-template-columns: minmax(14rem, 1.1fr) minmax(18rem, 1fr);
-  margin: 1.2rem 0;
-  padding: 1rem 0;
-}
-
-.tensor-runtime-strip > div:first-child {
-  display: grid;
-  gap: 0.28rem;
-}
-
-.tensor-runtime-strip > div:first-child span,
 .tensor-import-line > span,
 .tensor-import-line > em {
   color: var(--faint);
@@ -23,39 +6,6 @@
   font-style: normal;
   letter-spacing: 0.11em;
   text-transform: uppercase;
-}
-
-.tensor-runtime-strip strong {
-  color: var(--ink);
-  font-family: var(--mono);
-  font-size: 0.7rem;
-}
-
-.tensor-runtime-strip p {
-  color: var(--muted);
-  font-size: max(0.68rem, 11px);
-  line-height: 1.45;
-  margin: 0.15rem 0 0;
-}
-
-.tensor-runtime-strip > div:last-child {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  justify-content: flex-end;
-}
-
-.tensor-runtime-strip > div:last-child span {
-  color: #5f4d6d;
-  font-family: var(--mono);
-  font-size: max(0.68rem, 11px);
-  padding: 0.32rem 0;
-}
-
-.tensor-runtime-strip > div:last-child span + span::before {
-  color: var(--faint);
-  content: "·";
-  padding-right: 0.4rem;
 }
 
 .pytorch-handoff-loading {

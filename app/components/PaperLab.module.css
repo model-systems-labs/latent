@@ -67,11 +67,6 @@
   .lessonShell :global(.summary-section) { border-top: 0; }
   .lessonShell :global(.section-title) { gap: 0.5rem; grid-template-columns: 1fr; margin-bottom: 1.3rem; }
   .lessonShell :global(.summary-interlude) { margin: 1.75rem 0; padding: 1.1rem 0; }
-  .lessonShell :global(.tensor-runtime-strip) { gap: 0.55rem; grid-template-columns: 1fr; margin: 0.85rem 0; padding: 0.7rem 0; }
-  .lessonShell :global(.tensor-runtime-strip p) { display: none; }
-  .lessonShell :global(.tensor-runtime-strip > div:first-child) { align-items: baseline; display: flex; flex-wrap: wrap; gap: 0.25rem 0.5rem; }
-  .lessonShell :global(.tensor-runtime-strip > div:last-child) { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; scrollbar-width: none; }
-  .lessonShell :global(.tensor-runtime-strip > div:last-child::-webkit-scrollbar) { display: none; }
   .lessonShell :global(.implementation-section .practice-sequence),
   .lessonShell :global(.implementation-section .exercise-body),
   .lessonShell :global(.implementation-section .answer-area),

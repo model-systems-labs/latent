@@ -92,7 +92,7 @@ test("all fourteen lessons use the reusable learning flow", async () => {
     assert.match(html, /aria-labelledby="lesson-sources-title"/);
     assert.equal((html.match(/class="source-entry"/g) ?? []).length, 3);
     assert.doesNotMatch(html, /primary and supporting references|supporting sources/);
-    assert.doesNotMatch(html, /What the source says|What this browser lab shows|What it doesn.t cover|How it works|Highlight a passage|data-selection-ask|Ask Claude|Ask Codex/);
+    assert.doesNotMatch(html, /tensor-runtime-strip|Python runtime|Tensor runtime|CPython · NumPy|NumPy handles the array operations|What the source says|What this browser lab shows|What it doesn.t cover|How it works|Highlight a passage|data-selection-ask|Ask Claude|Ask Codex/);
     assert.match(html, /class="section-title"><h2>Summary<\/h2>/);
     assert.doesNotMatch(html, /class="section-title"><span>0[123]<\/span>/);
     assert.doesNotMatch(html, /OpenRouter API key|openrouter\.ai|paper-chat|Questions and answers/);

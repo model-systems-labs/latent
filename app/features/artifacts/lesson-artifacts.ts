@@ -17,15 +17,22 @@ export async function recordValidatedLessonArtifact(input: {
   lessonId: string;
   source: string;
   results: ValidatedLessonResult[];
+  signal?: AbortSignal;
+  isSourceCurrent?: () => boolean | Promise<boolean>;
 }) {
+  input.signal?.throwIfAborted();
   if (!input.results.length || input.results.some((result) => !result.passed)) throw new Error("Every lesson check must pass before Latent can create a validated artifact.");
   const blueprint = lessonArtifactBlueprintById.get(input.lessonId);
   if (!blueprint) throw new Error(`Latent doesn’t have an artifact adapter for ${input.lessonId}.`);
   const { store } = await getArtifactRuntime();
+  input.signal?.throwIfAborted();
   const training = await recordedTrainingRegistry.materializeForLesson(input.lessonId, store);
+  input.signal?.throwIfAborted();
   const previousLessonId = previousArtifactLessonId(input.lessonId);
   const previous = previousLessonId ? await store.latestForLesson(previousLessonId) : training?.run;
+  input.signal?.throwIfAborted();
   const sourceHash = await hashArtifactValue(input.source);
+  input.signal?.throwIfAborted();
   const artifact = await createArtifact({
     kind: blueprint.kind,
     mode: "learner-validated",
@@ -52,8 +59,19 @@ export async function recordValidatedLessonArtifact(input: {
     } as ArtifactJson,
     replay: { clock: blueprint.clock, unit: blueprint.unit, frames: blueprint.frames },
   });
+  input.signal?.throwIfAborted();
   const stored = await store.put(artifact);
-  await store.activate(stored, "lesson-output", input.lessonId);
+  input.signal?.throwIfAborted();
+  const activationGuard = input.signal || input.isSourceCurrent
+    ? async () => {
+        input.signal?.throwIfAborted();
+        const current = input.isSourceCurrent ? await input.isSourceCurrent() : true;
+        input.signal?.throwIfAborted();
+        return current;
+      }
+    : undefined;
+  await store.activate(stored, "lesson-output", input.lessonId, activationGuard);
+  input.signal?.throwIfAborted();
   return stored;
 }
 

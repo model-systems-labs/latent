@@ -107,7 +107,7 @@ test("lesson references use one responsive disclosure while full metadata remain
   assert.match(lessonMobile, /\.lessonShell :global\(\.source-set\[open\] \.source-set-title::after\)/);
 });
 
-test("lesson code uses lazy syntax-aware Python editors without loading the full IDE", async () => {
+test("lesson code opens one starter-first exercise with direct editing and a non-mutating reference comparison", async () => {
   const [paperLab, syntaxCode, codeEditor, codingWorkspace] = await Promise.all([
     readFile(paperLabUrl, "utf8"),
     readFile(syntaxCodeUrl, "utf8"),
@@ -124,11 +124,22 @@ test("lesson code uses lazy syntax-aware Python editors without loading the full
   assert.doesNotMatch(syntaxCode, /dangerouslySetInnerHTML/);
   assert.match(codeEditor, /import \{ python \} from "@codemirror\/lang-python"/);
   assert.match(codeEditor, /isPython \? python\(\) : javascript/);
+  assert.match(paperLab, /const \[activeBlockId, setActiveBlockId\] = useState\(blocks\[0\]\?\.id \?\? ""\)/);
+  assert.match(paperLab, /const active = activeBlockId === block\.id/);
+  assert.match(paperLab, /className="exercise-summary"[\s\S]*?aria-expanded=\{active\}[\s\S]*?aria-controls=\{`exercise-\$\{lesson\.id\}-\$\{block\.id\}`\}/);
+  assert.match(paperLab, /\{active \? \([\s\S]*?className="exercise-body" id=\{`exercise-\$\{lesson\.id\}-\$\{block\.id\}`\}/);
+  assert.match(paperLab, /const starterSource = starterCodeFor\(block, lesson\)/);
   assert.match(paperLab, /className="answer-area" data-direct-edit="true"/);
+  assert.match(paperLab, /value=\{workingSource\}/);
+  assert.match(paperLab, /onChange=\{\(value\) => updateAnswer\(block, value\)\}/);
+  assert.match(paperLab, /<SyntaxCode code=\{starterSource\} label=\{`\$\{block\.label\} starter loading`\}/);
   assert.match(paperLab, /"Running…" : "Run cell"/);
-  assert.match(paperLab, /hiddenBlocks\.length === blocks\.length \? "Check all my code"[\s\S]*?"Run all examples"/);
-  assert.match(paperLab, /Example passed · try this cell yourself to verify your work/);
-  assert.match(paperLab, /Running the examples alone doesn.t count as your work/);
+  assert.match(paperLab, /"Running in sandbox…" : "Check all my code"/);
+  assert.match(paperLab, /className="reference-comparison"[\s\S]*?<summary><span>Compare with reference<\/span><em>Your draft stays unchanged<\/em><\/summary>[\s\S]*?<SyntaxCode code=\{block\.code\}/);
+  assert.match(paperLab, /dirty \? <button className="start-over-button"[\s\S]*?>Start over<\/button> : null/);
+  assert.match(paperLab, /resetArmed \? \([\s\S]*?Confirm start over for \$\{block\.label\}[\s\S]*?>Confirm<\/button>[\s\S]*?Cancel start over for \$\{block\.label\}[\s\S]*?>Cancel<\/button>/);
+  assert.doesNotMatch(paperLab, /Reset all|Restore all|Restore reference|Restore draft|Run all examples|Run practice checks|Practice cell|Show solution|Hide solution/);
+  assert.doesNotMatch(paperLab, /const (?:hideAll|showSolution|restoreBlock|recoverBlock)\s*=/);
   assert.match(codeEditor, /variant === "lesson" \? lessonTheme/);
   assert.match(codeEditor, /lineNumbers\(\{ formatNumber: \(line\) => String\(line \+ lineNumberStart - 1\) \}\)/);
   for (const token of ["keyword", "string", "number", "comment", "variableName", "propertyName", "operator", "punctuation", "invalid"]) {

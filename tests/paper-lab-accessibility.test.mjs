@@ -58,10 +58,17 @@ test("question and practice async states expose stable live-region semantics", a
   assert.match(source, /Asking OpenRouter using this lesson.s notes/);
   assert.match(source, /Question failed: \$\{questionError\}/);
   assert.match(source, /Latent doesn.t save this key\. Your browser sends it straight to OpenRouter/);
-  assert.match(source, /className="practice-editor" aria-busy=\{!practiceReady \|\| runningBlockIds\.length > 0\}/);
-  assert.match(source, /aria-busy=\{runningBlockIds\.includes\(block\.id\)\}/);
-  assert.match(source, /className="cell-footer" role="status"[^>]*aria-live="polite" aria-atomic="true"/);
+  assert.match(source, /className="practice-editor" data-project-conflict=\{projectConflict\} aria-busy=\{!practiceReady \|\| runningBlockIds\.length > 0\}/);
+  assert.match(source, /readOnly=\{blockRunning \|\| projectConflict\}/);
+  assert.match(source, /className=\{`practice-block[\s\S]*?aria-busy=\{blockRunning\}/);
+  assert.match(source, /className="exercise-summary"[\s\S]*?aria-expanded=\{active\}[\s\S]*?aria-controls=\{`exercise-\$\{lesson\.id\}-\$\{block\.id\}`\}/);
+  assert.match(source, /\{active \? \([\s\S]*?className="exercise-body" id=\{`exercise-\$\{lesson\.id\}-\$\{block\.id\}`\}/);
+  assert.match(source, /className="cell-feedback" aria-live="polite" aria-atomic="true"/);
+  assert.match(source, /\{result \? <p[\s\S]*?: verified \? <p[\s\S]*?: null\}/, "untouched exercises must not announce placeholder feedback");
+  assert.match(source, /className="reset-confirmation"[\s\S]*?aria-label=\{`Confirm start over for \$\{block\.label\}`\}[\s\S]*?aria-label=\{`Cancel start over for \$\{block\.label\}`\}/);
+  assert.match(source, /<details className="reference-comparison">[\s\S]*?<summary><span>Compare with reference<\/span><em>Your draft stays unchanged<\/em><\/summary>/);
   assert.match(source, /id=\{`practice-status-\$\{lesson\.id\}`\} role="status" aria-live="polite" aria-atomic="true"/);
+  assert.doesNotMatch(source, /Reset all|Restore all|Restore reference|Restore draft|Show solution|Hide solution/);
 });
 
 test("unsafe lesson recovery remains an explicit accessible choice", async () => {
@@ -85,9 +92,17 @@ test("server-rendered lessons retain the async status relationships before hydra
   assert.match(html, /class="paper-chat" aria-busy="false"/);
   assert.match(html, /class="chat-log" role="log" aria-label="Questions and answers" aria-live="polite" aria-relevant="additions text"/);
   assert.match(html, /id="paper-question-status" role="status" aria-live="polite" aria-atomic="true"/);
-  assert.match(html, /class="practice-editor" aria-busy="true"/);
-  assert.match(html, /class="practice-block [^"]*"[^>]*aria-busy="false"/);
-  assert.match(html, /class="cell-footer" role="status" aria-label="[^\"]+ check status" aria-live="polite" aria-atomic="true"/);
+  assert.match(html, /class="practice-editor"[^>]*data-project-conflict="false"[^>]*aria-busy="true"/);
+  assert.match(html, /class="practice-block is-active"[^>]*aria-busy="false"/);
+  assert.match(html, /class="exercise-summary"[^>]*aria-expanded="true"[^>]*aria-controls="exercise-character-rnns-/);
+  const activeControl = html.match(/class="exercise-summary"[^>]*aria-expanded="true"[^>]*aria-controls="([^"]+)"/)?.[1];
+  assert.ok(activeControl, "the open exercise summary must identify its controlled body");
+  assert.match(html, new RegExp(`id="${activeControl}"`));
+  assert.equal((html.match(/class="exercise-body"/g) ?? []).length, 1, "only the active exercise body belongs in the first paint");
+  assert.match(html, /class="cell-feedback" aria-live="polite" aria-atomic="true"/);
+  assert.match(html, /class="reference-comparison"/);
+  assert.match(html, /Compare with reference/);
+  assert.match(html, /Your draft stays unchanged/);
   assert.match(html, /id="practice-status-character-rnns" role="status" aria-live="polite" aria-atomic="true"/);
 });
 
@@ -149,10 +164,10 @@ test("lesson Q&A and coding controls retain 44px touch-height floors", async () 
     ".chat-status button",
   ]) assertTouchTarget(learningFlow, selector);
   for (const selector of [
-    ".toolbar-actions button",
-    ".toolbar-actions a",
-    ".block-actions button",
-    ".practice-guidance button",
+    ".exercise-summary",
+    ".exercise-actions button",
+    ".reference-comparison > summary",
+    ".open-ide-link",
     ".editor-footer button",
   ]) assertTouchTarget(codingWorkspace, selector);
 });
@@ -173,11 +188,15 @@ test("visible async status copy remains readable as well as announced", async ()
     assert.match(rule.declarations, /color:\s*var\(--muted\)/);
     assert.match(rule.declarations, /font-size:\s*max\(0\.68rem, 11px\)/);
   }
-  const practiceStatus = cssRules(codingWorkspace).find((rule) => (
-    rule.selectors.includes(".cell-footer > span") && rule.selectors.includes(".editor-footer p")
-  ));
-  assert.ok(practiceStatus, "Expected a shared readable practice-status rule");
-  assert.match(practiceStatus.declarations, /color:\s*#a9a19a/);
-  assert.match(practiceStatus.declarations, /font-size:\s*max\(0\.68rem, 11px\)/);
-  assert.ok(contrastRatio("#a9a19a", "#19181b") >= 4.5, "practice status copy must clear AA contrast");
+  for (const selector of [".cell-feedback", ".editor-footer p"]) {
+    const statusRule = cssRules(codingWorkspace).find((rule) => rule.selectors.includes(selector));
+    assert.ok(statusRule, `Expected a readable practice-status rule for ${selector}`);
+    assert.match(statusRule.declarations, /color:\s*var\(--muted\)/);
+  }
+  for (const selector of [".cell-result", ".editor-footer p"]) {
+    const statusRule = cssRules(codingWorkspace).find((rule) => rule.selectors.includes(selector));
+    assert.ok(statusRule, `Expected a readable practice-status size for ${selector}`);
+    assert.match(statusRule.declarations, /font-size:\s*max\(0\.72rem, 12px\)/);
+  }
+  assert.ok(contrastRatio(palette.muted, palette.paper) >= 4.5, "practice status copy must clear AA contrast on the editorial surface");
 });

@@ -63,16 +63,17 @@ after(async () => {
   await vite?.close();
 });
 
-test("canonical lesson seeds accept only current practice-source-bound verification", () => {
+test("canonical lesson seeds use starter-first working source and source-bound verification", () => {
   const lesson = course.courseLessons[0];
   const block = lesson.implementation.codeBlocks[0];
+  const savedDraft = `${block.code}\n# learner-owned draft`;
   const lessonState = {
     verifiedCells: [block.id],
-    verifiedSources: { [block.id]: block.code },
+    verifiedSources: { [block.id]: savedDraft },
     verifiedContractVersion: contracts.llmSystemsContractSuite.contractVersion,
     experimentComplete: true,
-    hiddenBlocks: [block.id],
-    answers: { [block.id]: block.code },
+    hiddenBlocks: [],
+    answers: { [block.id]: savedDraft },
     knowledgeAnswers: {},
     knowledgeVerified: [],
     updatedAt: 0,
@@ -83,12 +84,19 @@ test("canonical lesson seeds accept only current practice-source-bound verificat
     artifacts: {},
   })[0];
 
-  assert.equal(seedFor(lessonState).verifiedCells, 1);
-  assert.equal(seedFor({
+  const savedSeed = seedFor(lessonState);
+  assert.equal(savedSeed.verifiedCells, 1);
+  assert.match(savedSeed.content, /learner-owned draft/);
+  assert.match(savedSeed.referenceContent, new RegExp(block.code.split("\n")[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+
+  const freshSeed = seedFor({
     ...lessonState,
     hiddenBlocks: [],
     answers: {},
-  }).verifiedCells, 0, "a visible reference receipt cannot become canonical learner progress");
+  });
+  assert.equal(freshSeed.verifiedCells, 0, "an authored-solution receipt cannot validate the starter working file");
+  assert.match(freshSeed.content, /NotImplementedError/);
+  assert.notEqual(freshSeed.content, freshSeed.referenceContent);
   assert.equal(seedFor({
     ...lessonState,
     verifiedSources: { [block.id]: "// changed after verification" },
@@ -585,4 +593,29 @@ test("invalid saved build authority fails closed without hiding durable project 
 
   await database.projects.update("browser-chat", { activeBuildId: null });
   assert.equal(await repositories.builds.activeValidated("browser-chat"), undefined);
+});
+
+test("an old untouched authored file migrates to the starter while an IDE edit remains authoritative", () => {
+  const suffix = crypto.randomUUID();
+  const referenceContent = "def value():\n    return 42";
+  const starterContent = "def value():\n    raise NotImplementedError('Implement value.')";
+  const base = {
+    courseId: "models",
+    lessonId: `starter-migration-${suffix}`,
+    title: "Starter migration",
+    referenceContent,
+    verifiedCells: 0,
+    totalCells: 1,
+  };
+  const untouchedPath = `models/starter-migration-${suffix}.py`;
+  const editedPath = `models/starter-migration-edited-${suffix}.py`;
+
+  workspace.ensureProjectWorkspace([{ ...base, path: untouchedPath, content: referenceContent }]);
+  workspace.ensureProjectWorkspace([{ ...base, path: untouchedPath, content: starterContent }]);
+  assert.equal(workspace.loadProjectState().files[untouchedPath].content, starterContent);
+
+  workspace.ensureProjectWorkspace([{ ...base, lessonId: `${base.lessonId}-edited`, path: editedPath, content: referenceContent }]);
+  workspace.saveProjectFile(editedPath, "def value():\n    return 7  # learner IDE edit");
+  workspace.ensureProjectWorkspace([{ ...base, lessonId: `${base.lessonId}-edited`, path: editedPath, content: starterContent }]);
+  assert.match(workspace.loadProjectState().files[editedPath].content, /learner IDE edit/);
 });

@@ -99,11 +99,21 @@ test("all fourteen lessons use the reusable learning flow", async () => {
     assert.match(html, /browser sends it straight to OpenRouter/);
     assert.match(html, /lesson notes \+ source details · linked papers aren.t downloaded/);
     assert.doesNotMatch(html, /Grounded in the lesson sources|Your key stays in this tab/);
-    assert.match(html, /Reset all/);
+    assert.equal((html.match(/aria-expanded="true"/g) ?? []).length >= 1, true, `${slug} must server-render its first exercise open`);
+    assert.equal((html.match(/class="exercise-body"/g) ?? []).length, 1, `${slug} must render exactly one active exercise body`);
+    assert.match(html, /class="exercise-summary"[^>]*aria-expanded="true"[^>]*aria-controls="exercise-/);
+    assert.match(html, /class="practice-block is-active"[^>]*aria-busy="false"/);
+    assert.match(html, /Complete the TODO below\. Every change saves automatically\./);
     assert.match(html, /data-direct-edit="true"/);
-    assert.doesNotMatch(html, /Practice all|Practice cell|Run example/);
+    assert.match(html, /data-edit-state="starter"/);
+    assert.match(html, /TODO/);
+    assert.match(html, /NotImplementedError/);
+    assert.doesNotMatch(html, /Practice all|Practice cell|Run example|Reset all|Restore all|Restore reference|Restore draft|Run all examples|Run practice checks/);
     assert.match(html, /Run cell/);
-    assert.match(html, /Run all examples/);
+    assert.match(html, /Check all my code/);
+    assert.match(html, /Compare with reference/);
+    assert.match(html, /Your draft stays unchanged/);
+    assert.match(html, /Open full IDE/);
     assert.match(html, /Saved results/);
     assert.match(html, /Proof tied to the exact code you ran/);
     assert.match(html, /examples made for the course/);
@@ -125,13 +135,16 @@ test("real PyTorch handoffs are present only in framework-relevant lessons", asy
   }
 });
 
-test("lesson code is syntax highlighted in the server-rendered first paint", async () => {
+test("the server-rendered first paint syntax-highlights starter code rather than the completed answer", async () => {
   const response = await render("/lessons/streaming-transport");
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /class="syntax-code"/);
   assert.match(html, /tok-keyword/);
   assert.match(html, /tok-string2/);
+  assert.match(html, /TODO/);
+  assert.match(html, /NotImplementedError/);
+  assert.match(html, /Compare with reference/);
   assert.doesNotMatch(html, /syntax-code-fallback/);
 });
 
@@ -414,19 +427,25 @@ test("the capstone host flushes framed UTF-8 and owns reader teardown", async ()
   assert.match(capstone, /resource\.controller\.abort\(\);[\s\S]*await releaseGenerationResource\(resource, true\)/);
 });
 
-test("all browser-rendered reference cells route behavior to host-owned contracts", async () => {
+test("each lesson server-renders one read-only reference comparison without embedding executable check code", async () => {
   const slugs = [
     "character-rnns", "neural-language-models", "subword-tokenization", "additive-attention", "transformers", "in-context-learning",
     "inference-runtime", "streaming-transport", "scheduling-memory", "reliability-observability",
     "conversation-state", "streaming-react", "chat-actions-context", "chat-product-quality",
   ];
-  let cellCount = 0;
+  let comparisonCount = 0;
   for (const slug of slugs) {
     const html = await (await render(`/lessons/${slug}`)).text();
-    cellCount += (html.match(/data-reference-code=/g) ?? []).length;
+    const comparisons = html.match(/class="reference-comparison"/g) ?? [];
+    assert.equal(comparisons.length, 1, `${slug} must expose reference code only for its single active exercise`);
+    comparisonCount += comparisons.length;
+    assert.match(html, /Compare with reference/);
+    assert.match(html, /Your draft stays unchanged/);
+    assert.match(html, /reference implementation/);
+    assert.doesNotMatch(html, /data-reference-code=/, slug);
     assert.doesNotMatch(html, /data-check-code=/, slug);
   }
-  assert.equal(cellCount, 34);
+  assert.equal(comparisonCount, 14);
 });
 
 test("Streaming Transport renders the worked byte path and both stream policies", async () => {

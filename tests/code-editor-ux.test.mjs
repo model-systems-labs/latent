@@ -260,7 +260,7 @@ test("lesson practice uses the available mobile viewport width", async () => {
   assert.match(practice, /max-width:\s*calc\(100% \+ 1\.5rem\)/);
   assert.match(practice, /width:\s*calc\(100% \+ 1\.5rem\)/);
 
-  const surface = cssRule(lessonMobileCss, ".lessonShell :global(.implementation-section .code-surface)");
+  const surface = cssRule(lessonMobileCss, ".lessonShell :global(.implementation-section .answer-area)");
   assert.match(surface, /padding-inline:\s*0/);
 });
 

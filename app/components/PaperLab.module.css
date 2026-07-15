@@ -48,35 +48,58 @@
   .lessonShell :global(.tensor-runtime-strip > div:first-child) { align-items: baseline; display: flex; flex-wrap: wrap; gap: 0.25rem 0.5rem; }
   .lessonShell :global(.tensor-runtime-strip > div:last-child) { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; scrollbar-width: none; }
   .lessonShell :global(.tensor-runtime-strip > div:last-child::-webkit-scrollbar) { display: none; }
-  .lessonShell :global(.implementation-section .practice-editor) { border-inline: 0; border-radius: 0; box-shadow: none; margin-left: -0.75rem; max-width: calc(100% + 1.5rem); width: calc(100% + 1.5rem); }
-  .lessonShell :global(.implementation-section .code-surface) { padding-inline: 0; }
+  .lessonShell :global(.implementation-section .practice-sequence),
+  .lessonShell :global(.implementation-section .exercise-body),
+  .lessonShell :global(.implementation-section .answer-area),
+  .lessonShell :global(.implementation-section .reference-comparison) { max-width: 100%; min-width: 0; width: 100%; }
 
-  .lessonShell :global(.editor-toolbar) { align-items: end; display: grid; gap: 0.7rem; grid-template-columns: minmax(0, 1fr) auto; padding: 0.75rem; }
-  .lessonShell :global(.editor-file) { grid-column: 1; min-width: 0; }
-  .lessonShell :global(.editor-file strong) { display: none; }
-  .lessonShell :global(.editor-progress) { grid-column: 2; justify-items: end; width: 5.25rem; }
-  .lessonShell :global(.editor-progress > i) { width: 5.25rem; }
-  .lessonShell :global(.toolbar-actions) { display: flex; grid-column: 1 / -1; width: 100%; }
-  .lessonShell :global(.toolbar-actions > *) { flex: 1 1 0; min-width: 0; }
-  .lessonShell :global(.toolbar-actions a) { grid-column: auto; text-align: center; }
+  .lessonShell :global(.implementation-section .practice-editor) {
+    margin-left: -0.75rem;
+    max-width: calc(100% + 1.5rem);
+    width: calc(100% + 1.5rem);
+  }
 
-  .lessonShell :global(.block-heading) { align-items: start; flex-direction: column; gap: 0.7rem; padding: 0.7rem 0.75rem; }
-  .lessonShell :global(.block-heading > div) { align-items: start; flex-wrap: wrap; }
-  .lessonShell :global(.block-heading > div:first-child) { display: grid; grid-template-columns: auto 1fr; }
-  .lessonShell :global(.block-heading > div:first-child > span) { grid-row: 1 / span 2; }
-  .lessonShell :global(.block-heading > div:first-child em) { display: -webkit-box; grid-column: 2; line-height: 1.45; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
-  .lessonShell :global(.block-actions) { display: flex !important; gap: 0.35rem !important; width: 100%; }
-  .lessonShell :global(.block-actions button) { flex: 1 1 0; min-width: 0; width: auto; }
-  .lessonShell :global(.block-actions .run-cell-button) { grid-column: auto; }
-  .lessonShell :global(.practice-guidance) { display: none; }
-  .lessonShell :global(.practice-block) { display: flex; flex-direction: column; }
-  .lessonShell :global(.practice-block .block-heading) { order: 1; }
-  .lessonShell :global(.practice-block .answer-area) { order: 2; }
-  .lessonShell :global(.practice-block .concept-strip) { order: 3; }
-  .lessonShell :global(.practice-block .cell-footer) { order: 4; }
-  .lessonShell :global(.block-heading button) { width: auto; }
-  .lessonShell :global(.concept-strip) { flex-direction: row; flex-wrap: nowrap; gap: 0.75rem; overflow-x: auto; padding: 0.65rem 0.75rem; scrollbar-width: none; }
-  .lessonShell :global(.concept-strip::-webkit-scrollbar) { display: none; }
-  .lessonShell :global(.concept-strip span) { display: inline-flex; flex: 0 0 auto; width: auto; }
+  .lessonShell :global(.implementation-section .answer-area) { padding-inline: 0; }
+
+  .lessonShell :global(.editor-toolbar) { align-items: end; display: grid; gap: 0.55rem 0.85rem; grid-template-columns: minmax(0, 1fr) auto; padding: 0.1rem 0 0.85rem; }
+  .lessonShell :global(.editor-file) { grid-column: 1 / -1; min-width: 0; }
+  .lessonShell :global(.editor-file span) { overflow-wrap: anywhere; }
+  .lessonShell :global(.editor-progress) { grid-column: 1; grid-row: 2; justify-items: start; min-width: 0; width: min(8rem, 100%); }
+  .lessonShell :global(.editor-progress > i) { width: 100%; }
+  .lessonShell :global(.open-ide-link) { grid-column: 2; grid-row: 2; justify-self: end; }
+
+  .lessonShell :global(.tensor-import-line) { gap: 0.25rem 0.65rem; grid-template-columns: auto minmax(0, 1fr); }
+  .lessonShell :global(.tensor-import-line em) { grid-column: 2; }
+  .lessonShell :global(.exercise-summary) { align-items: start; gap: 0.3rem 0.7rem; grid-template-columns: 1.65rem minmax(0, 1fr); min-height: 4.75rem; padding: 0.8rem 0; }
+  .lessonShell :global(.exercise-summary > span:nth-child(2)) { align-items: start; display: grid; gap: 0.2rem; }
+  .lessonShell :global(.exercise-summary em) { display: -webkit-box; line-height: 1.4; overflow: hidden; white-space: normal; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+  .lessonShell :global(.exercise-state) { grid-column: 2; justify-self: start; }
+  .lessonShell :global(.exercise-body) { padding: 0.15rem 0 1.7rem; }
+
+  .lessonShell :global(.concept-strip) { display: grid; gap: 0.55rem; grid-template-columns: 1fr; margin-bottom: 0.9rem; }
+  .lessonShell :global(.concept-strip span) { align-items: start; display: grid; gap: 0.15rem; min-width: 0; }
   .lessonShell :global(.concept-strip span + span::before) { display: none; }
+  .lessonShell :global(.editor-invitation) { align-items: start; display: grid; gap: 0.2rem; }
+
+  .lessonShell :global(.answer-area),
+  .lessonShell :global(.reference-comparison > div),
+  .lessonShell :global(.lesson-code-editor),
+  .lessonShell :global(.lesson-code-editor .cm-editor),
+  .lessonShell :global(.lesson-code-editor .cm-scroller),
+  .lessonShell :global(.syntax-code) { max-width: 100%; min-width: 0; }
+  .lessonShell :global(.lesson-code-editor .cm-editor),
+  .lessonShell :global(.syntax-code pre) { font-size: 16px; }
+
+  .lessonShell :global(.exercise-feedback) { align-items: stretch; flex-direction: column; gap: 0.65rem; }
+  .lessonShell :global(.exercise-actions) { justify-content: flex-start; width: 100%; }
+  .lessonShell :global(.exercise-actions > button) { flex: 1 1 8rem; min-height: 2.75rem; }
+  .lessonShell :global(.reset-confirmation) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
+  .lessonShell :global(.reset-confirmation > span:first-child) { grid-column: 1 / -1; }
+  .lessonShell :global(.reset-confirmation button) { min-height: 2.75rem; }
+
+  .lessonShell :global(.reference-comparison > summary) { grid-template-columns: minmax(0, 1fr) auto; }
+  .lessonShell :global(.reference-comparison > summary em) { grid-column: 1; grid-row: 2; }
+  .lessonShell :global(.reference-comparison > summary::after) { align-self: center; grid-column: 2; grid-row: 1 / span 2; }
+  .lessonShell :global(.editor-footer) { align-items: stretch; flex-direction: column; gap: 0.65rem; }
+  .lessonShell :global(.editor-footer button) { min-height: 2.75rem; width: 100%; }
 }

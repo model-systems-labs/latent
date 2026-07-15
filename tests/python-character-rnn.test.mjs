@@ -279,8 +279,9 @@ test("the canonical project keeps one editable learner source while the trusted 
   assert.ok(python);
   assert.equal(python.path, manifestPath);
   assert.notEqual(python.readOnly, true);
-  assert.equal(python.content, source.PYTHON_CHARACTER_RNN_SOURCE);
+  assert.notEqual(python.content, source.PYTHON_CHARACTER_RNN_SOURCE);
   assert.equal(python.referenceContent, source.PYTHON_CHARACTER_RNN_SOURCE);
+  assert.match(python.content, /raise NotImplementedError\("Implement Recurrent transition\."\)/);
   assert.match(python.content, /def train_character_rnn/);
   assert.match(python.content, /np\.random\.default_rng\(19\)/);
   assert.equal(seeds.some((seed) => seed.lessonId === "character-rnns" && seed.path.endsWith(".js")), false);

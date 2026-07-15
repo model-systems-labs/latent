@@ -813,10 +813,17 @@ export function ensureProjectWorkspace(seeds: LessonProjectSeed[]) {
         sourceTreeChanged = true;
       } else {
         const current = files[seed.path];
+        // Challenge-first lessons use an incomplete starter as their canonical
+        // working file. Migrate only the old untouched authored baseline; a
+        // learner-edited IDE file remains authoritative.
+        const migrateAuthoredBaseline = current.content === seed.referenceContent
+          && seed.content !== seed.referenceContent;
+        const nextContent = migrateAuthoredBaseline ? seed.content : current.content;
         const nextReadOnly = seed.readOnly ?? current.readOnly;
-        const nextVerifiedCells = current.content === seed.content ? seed.verifiedCells : 0;
+        const nextVerifiedCells = nextContent === seed.content ? seed.verifiedCells : 0;
         if (
-          current.courseId !== seed.courseId
+          current.content !== nextContent
+          || current.courseId !== seed.courseId
           || current.lessonId !== seed.lessonId
           || current.title !== seed.title
           || current.verifiedCells !== nextVerifiedCells
@@ -825,13 +832,16 @@ export function ensureProjectWorkspace(seeds: LessonProjectSeed[]) {
         ) {
           files[seed.path] = {
             ...current,
+            content: nextContent,
             courseId: seed.courseId,
             lessonId: seed.lessonId,
             title: seed.title,
             verifiedCells: nextVerifiedCells,
             totalCells: seed.totalCells,
             readOnly: nextReadOnly,
+            updatedAt: current.content === nextContent ? current.updatedAt : Date.now(),
           };
+          if (current.content !== nextContent) sourceTreeChanged = true;
         }
       }
     }

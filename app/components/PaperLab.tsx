@@ -18,7 +18,7 @@ import {
   useLearnerPersistenceError,
   useLearnerRecoveryCandidates,
 } from "../lib/learner-state";
-import { ensureProjectWorkspace, initializeProjectPersistence, saveLessonProjectFile, useProjectPersistenceError, type LessonProjectSeed } from "../lib/project-workspace";
+import { ensureProjectWorkspace, initializeProjectPersistence, loadProjectState, saveLessonProjectFile, useProjectPersistenceError, type LessonProjectSeed } from "../lib/project-workspace";
 import { runPracticeContracts } from "../features/ide/browser-lab-service";
 import { runPythonLessonContracts } from "../features/ide/python-lesson-service";
 import { ArtifactRuntimePanel } from "../features/artifacts/ArtifactRuntimePanel";
@@ -28,15 +28,16 @@ import { lessonBlockComment, lessonImplementationPrelude, lessonImplementationSo
 import { canonicalProjectSeeds } from "../lib/canonical-project";
 import {
   compatiblePracticeDrafts,
-  creditablePracticeBlockIds,
+  creditableWorkingBlockIds,
   editPracticeBlock,
   practiceDraftIsCompatible,
-  practiceBlockSource,
   resetPracticeBlock,
-  restoreReferenceBlock,
-  restoreSourceBoundVerification,
-  verificationAfterBlockRun,
+  restoreWorkingSourceVerification,
+  starterCodeFor,
+  verificationAfterWorkingSourceRun,
   waitForPracticeHydration,
+  workingPracticeBlockSource,
+  workingPracticeSources,
 } from "../features/ide/practice-state";
 import { llmSystemsContractSuite } from "../content/llm-systems/contracts";
 import { LessonOutcome } from "./LessonOutcome";
@@ -660,21 +661,6 @@ export function TextBoxSection({ lesson }: { lesson: CourseLesson }) {
   );
 }
 
-function starterCodeFor(block: CodeBlock, lesson: Pick<CourseLesson, "implementation">) {
-  if (lesson.implementation.filename.endsWith(".py")) {
-    const lines = block.code.split("\n");
-    const definition = lines.findIndex((line) => line.startsWith("def "));
-    if (definition < 0) return `# TODO: implement ${block.label.toLowerCase()}.\nraise NotImplementedError(${JSON.stringify(`Implement ${block.label}.`)})`;
-    const prefix = lines.slice(0, definition).join("\n").trimEnd();
-    const signature = lines[definition];
-    return [prefix, `${signature}\n    raise NotImplementedError(${JSON.stringify(`Implement ${block.label}.`)})`]
-      .filter(Boolean)
-      .join("\n\n");
-  }
-  const signature = block.code.split("\n")[0];
-  return `${signature}\n  // TODO: implement ${block.label.toLowerCase()}.\n}`;
-}
-
 function projectSeedForLesson(lesson: CourseLesson, hidden: string[], currentAnswers: Record<string, string>, verified: string[]): LessonProjectSeed {
   const blocks = lesson.implementation.codeBlocks;
   const contentFor = (practice: boolean) => lessonImplementationSource(lesson, blocks
@@ -699,24 +685,33 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
   const projectPath = `${lesson.courseId ?? "models"}/${lesson.implementation.filename}`;
   const pythonLesson = lesson.implementation.filename.endsWith(".py");
   const implementationPrelude = lessonImplementationPrelude(lesson);
-  const [hiddenBlocks, setHiddenBlocks] = useState<string[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [verifiedBlockIds, setVerifiedBlockIds] = useState<string[]>([]);
   const [verifiedSources, setVerifiedSources] = useState<Record<string, string>>({});
   const [verifiedContractVersion, setVerifiedContractVersion] = useState<string | null>(null);
   const [cellResults, setCellResults] = useState<Record<string, CheckResult | undefined>>({});
-  const [practiceMessage, setPracticeMessage] = useState("The working example is ready to run.");
+  const [practiceMessage, setPracticeMessage] = useState("The first exercise is open. Edit the starter, then run its checks.");
   const [runningBlockIds, setRunningBlockIds] = useState<string[]>([]);
   const [artifactRevision, setArtifactRevision] = useState(0);
   const [practiceReady, setPracticeReady] = useState(false);
-  const [pendingReset, setPendingReset] = useState<{ kind: "all" } | { kind: "block"; blockId: string } | null>(null);
+  const [projectConflict, setProjectConflict] = useState(false);
+  const [activeBlockId, setActiveBlockId] = useState(blocks[0]?.id ?? "");
+  const [pendingResetBlockId, setPendingResetBlockId] = useState<string | null>(null);
   const hiddenBlocksRef = useRef<string[]>([]);
   const answersRef = useRef<Record<string, string>>({});
+  const quarantinedAnswersRef = useRef<Record<string, string>>({});
+  const projectContentRef = useRef("");
+  const runAbortRef = useRef<AbortController | null>(null);
   const verifiedBlockIdsRef = useRef<string[]>([]);
   const verifiedSourcesRef = useRef<Record<string, string>>({});
   const verifiedContractVersionRef = useRef<string | null>(null);
   const runningBlockIdsRef = useRef<string[]>([]);
   const practiceReadyRef = useRef(false);
+
+  useEffect(() => () => {
+    runAbortRef.current?.abort();
+    runAbortRef.current = null;
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -732,11 +727,23 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
         saved?.hiddenBlocks ?? [],
         saved?.answers ?? {},
       );
-      const savedHidden = compatible.hiddenBlocks;
-      const savedAnswers = compatible.answers;
-      const restoredVerification = restoreSourceBoundVerification(
+      // `hiddenBlocks` is retained in storage for backward compatibility only.
+      // The lesson now has one stable working document per cell: a compatible
+      // saved draft when present, otherwise the authored starter scaffold.
+      const savedHidden = blocks.map((block) => block.id);
+      const quarantinedAnswers = Object.fromEntries(blocks.flatMap((block) => {
+        const savedSource = compatible.answers[block.id];
+        return savedSource !== undefined && !practiceDraftIsCompatible(lesson.implementation.filename, savedSource)
+          ? [[block.id, savedSource]]
+          : [];
+      }));
+      const savedAnswers = workingPracticeSources(
+        lesson.implementation.filename,
         blocks,
-        savedHidden,
+        compatible.answers,
+      );
+      const restoredVerification = restoreWorkingSourceVerification(
+        blocks.map((block) => block.id),
         savedAnswers,
         saved?.verifiedCells ?? [],
         saved?.verifiedSources ?? {},
@@ -748,30 +755,41 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
       const verifiedContractVersion = restoredVerification.contractVersion;
       hiddenBlocksRef.current = savedHidden;
       answersRef.current = savedAnswers;
+      quarantinedAnswersRef.current = quarantinedAnswers;
       verifiedBlockIdsRef.current = savedVerified;
       verifiedSourcesRef.current = verifiedSources;
       verifiedContractVersionRef.current = verifiedContractVersion;
       practiceReadyRef.current = true;
-      setHiddenBlocks(savedHidden);
       setAnswers(savedAnswers);
       setVerifiedBlockIds(savedVerified);
       setVerifiedSources(verifiedSources);
       setVerifiedContractVersion(verifiedContractVersion);
+      setActiveBlockId(blocks.find((block) => !savedVerified.includes(block.id))?.id ?? blocks[0]?.id ?? "");
       if ((saved?.verifiedCells.length ?? 0) !== savedVerified.length || (saved?.verifiedContractVersion ?? null) !== verifiedContractVersion) {
         recordVerifiedCells(lesson.id, savedVerified, verifiedSources, verifiedContractVersion);
       }
-      ensureProjectWorkspace([projectSeedForLesson(lesson, savedHidden, savedAnswers, savedVerified), ...canonicalProjectSeeds()]);
-      setPracticeMessage(compatible.ignoredLegacyLanguage
-        ? "This lesson now runs in CPython. Your older JavaScript draft is still saved on this device, but we loaded the editable Python example so incompatible code never runs."
-        : savedHidden.length
-          ? "Your saved practice work and project file are back."
-          : "The working example is ready to run.");
+      const lessonSeed = projectSeedForLesson(lesson, savedHidden, savedAnswers, savedVerified);
+      ensureProjectWorkspace([lessonSeed, ...canonicalProjectSeeds()]);
+      projectContentRef.current = lessonSeed.content;
+      const ideHasNewerSource = loadProjectState().files[projectPath]?.content !== lessonSeed.content;
+      setProjectConflict(ideHasNewerSource);
+      setPracticeMessage(ideHasNewerSource
+        ? "This file has newer changes in the full IDE. Continue there so this lesson doesn’t overwrite them."
+        : compatible.ignoredLegacyLanguage
+          ? "This lesson now runs in CPython. Your older JavaScript draft is still saved on this device, but we loaded the Python starter so incompatible code never runs."
+          : Object.keys(compatible.answers).length
+            ? "Your saved work is ready. Continue with any exercise."
+            : "The first exercise is open. Complete the starter, then run the checks.");
       setPracticeReady(true);
     });
     return () => { active = false; };
-  }, [blocks, lesson]);
+  }, [blocks, lesson, projectPath]);
 
-  const sourceFor = (block: CodeBlock) => practiceBlockSource(block, hiddenBlocksRef.current, answersRef.current);
+  const sourceFor = (block: CodeBlock) => workingPracticeBlockSource(
+    lesson.implementation.filename,
+    block,
+    answersRef.current,
+  );
   const applyPracticeState = (
     nextHidden: string[],
     nextAnswers: Record<string, string>,
@@ -784,7 +802,6 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     verifiedBlockIdsRef.current = nextVerified;
     verifiedSourcesRef.current = nextVerifiedSources;
     verifiedContractVersionRef.current = nextVerifiedContractVersion;
-    setHiddenBlocks(nextHidden);
     setAnswers(nextAnswers);
     setVerifiedBlockIds(nextVerified);
     setVerifiedSources(nextVerifiedSources);
@@ -794,8 +811,17 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     runningBlockIdsRef.current = ids;
     setRunningBlockIds(ids);
   };
-  const runContracts = async (source: string, contractIds: readonly string[]) => {
-    if (!pythonLesson) return runPracticeContracts({ path: projectPath, source, contractIds });
+  const projectSourceIsCurrent = () => loadProjectState().files[projectPath]?.content === projectContentRef.current;
+  const reportProjectConflict = () => {
+    setProjectConflict(true);
+    setPracticeMessage("This file changed in the full IDE. Continue there so this lesson doesn’t overwrite the newer code.");
+  };
+  const saveCurrentProjectSeed = (seed: LessonProjectSeed) => {
+    saveLessonProjectFile(seed);
+    projectContentRef.current = seed.content;
+  };
+  const runContracts = async (source: string, contractIds: readonly string[], signal: AbortSignal) => {
+    if (!pythonLesson) return runPracticeContracts({ path: projectPath, source, contractIds, signal });
     const wanted = new Set(contractIds);
     const contracts = llmSystemsContractSuite.contracts.filter((contract) => wanted.has(contract.id));
     if (!contracts.length || contracts.length !== wanted.size) {
@@ -805,8 +831,9 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
       path: projectPath,
       source,
       contracts,
+      signal,
       onEvent: (event) => {
-        if (event.type === "progress") setPracticeMessage(event.message);
+        if (!signal.aborted && event.type === "progress") setPracticeMessage(event.message);
       },
     });
     return run.results;
@@ -821,16 +848,24 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     },
   });
   const persistBlockState = (block: CodeBlock, next: ReturnType<typeof practiceDraftState>, message: string) => {
+    if (!projectSourceIsCurrent()) {
+      reportProjectConflict();
+      return;
+    }
     const nextVerified = next.verification.ids;
     const nextVerifiedSources = next.verification.sources;
+    const nextQuarantinedAnswers = { ...quarantinedAnswersRef.current };
+    delete nextQuarantinedAnswers[block.id];
+    quarantinedAnswersRef.current = nextQuarantinedAnswers;
+    const persistedAnswers = { ...next.answers, ...nextQuarantinedAnswers };
     setCellResults((current) => ({ ...current, [block.id]: undefined }));
     applyPracticeState(next.hiddenBlocks, next.answers, nextVerified, nextVerifiedSources, next.verification.contractVersion);
-    saveLessonPracticeAndVerification(lesson.id, next.hiddenBlocks, next.answers, nextVerified, nextVerifiedSources, next.verification.contractVersion);
-    saveLessonProjectFile(projectSeedForLesson(lesson, next.hiddenBlocks, next.answers, nextVerified));
+    saveLessonPracticeAndVerification(lesson.id, next.hiddenBlocks, persistedAnswers, nextVerified, nextVerifiedSources, next.verification.contractVersion);
+    saveCurrentProjectSeed(projectSeedForLesson(lesson, next.hiddenBlocks, next.answers, nextVerified));
     setPracticeMessage(message);
   };
   const resetBlock = (block: CodeBlock) => {
-    setPendingReset(null);
+    setPendingResetBlockId(null);
     persistBlockState(
       block,
       resetPracticeBlock(practiceDraftState(), block.id, starterCodeFor(block, lesson)),
@@ -838,138 +873,104 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     );
   };
   const armBlockReset = (block: CodeBlock) => {
-    setPendingReset({ kind: "block", blockId: block.id });
-    setPracticeMessage(`${block.label} is ready to reset. Confirm to replace this draft with starter code, or cancel to keep your code.`);
+    setPendingResetBlockId(block.id);
+    setPracticeMessage(`${block.label} is ready to start over. Confirm to replace this draft with starter code, or cancel to keep your code.`);
   };
   const cancelBlockReset = (block: CodeBlock) => {
-    setPendingReset(null);
-    setPracticeMessage(`${block.label} reset cancelled. Your code is unchanged.`);
-  };
-  const restoreBlock = (block: CodeBlock) => {
-    setPendingReset(null);
-    persistBlockState(
-      block,
-      restoreReferenceBlock(practiceDraftState(), block.id),
-      `${block.label} is showing the working example. Choose Restore draft to return to your saved edit.`,
-    );
-  };
-  const recoverBlock = (block: CodeBlock) => {
-    const savedDraft = answersRef.current[block.id];
-    if (savedDraft === undefined || !practiceDraftIsCompatible(lesson.implementation.filename, savedDraft)) return;
-    setPendingReset(null);
-    persistBlockState(
-      block,
-      editPracticeBlock(practiceDraftState(), block.id, savedDraft),
-      `${block.label} draft restored. Run the cell when you are ready.`,
-    );
-  };
-  const hideAll = () => {
-    setPendingReset(null);
-    const nextHidden = blocks.map((block) => block.id);
-    const nextAnswers = Object.fromEntries(blocks.map((block) => [block.id, starterCodeFor(block, lesson)]));
-    applyPracticeState(nextHidden, nextAnswers, [], {}, null);
-    saveLessonPracticeAndVerification(lesson.id, nextHidden, nextAnswers, [], {}, null);
-    saveLessonProjectFile(projectSeedForLesson(lesson, nextHidden, nextAnswers, []));
-    setCellResults({});
-    setPracticeMessage("Every cell is back to its starter code. Complete them in any valid way.");
-  };
-  const armResetAll = () => {
-    setPendingReset({ kind: "all" });
-    setPracticeMessage("Ready to reset everything. Confirm to replace every cell with starter code, or cancel to keep your code.");
-  };
-  const cancelResetAll = () => {
-    setPendingReset(null);
-    setPracticeMessage("Reset all cancelled. Your code is unchanged.");
-  };
-  const showSolution = () => {
-    setPendingReset(null);
-    const currentAnswers = answersRef.current;
-    applyPracticeState([], currentAnswers, [], {}, null);
-    saveLessonPracticeAndVerification(lesson.id, [], currentAnswers, [], {}, null);
-    saveLessonProjectFile(projectSeedForLesson(lesson, [], currentAnswers, []));
-    setCellResults({});
-    setPracticeMessage("The working example is back. Use Restore draft on any cell to return to your saved edit.");
+    setPendingResetBlockId(null);
+    setPracticeMessage(`${block.label} was left unchanged. Your code is still here.`);
   };
   const runCell = async (block: CodeBlock) => {
     if (!practiceReadyRef.current || runningBlockIdsRef.current.length) return;
-    setPendingReset(null);
+    if (!projectSourceIsCurrent()) {
+      reportProjectConflict();
+      return;
+    }
+    const controller = new AbortController();
+    runAbortRef.current = controller;
+    setPendingResetBlockId(null);
     const sourceSnapshot = sourceFor(block);
-    const hiddenSnapshot = [...hiddenBlocksRef.current];
-    const isPracticeRun = hiddenSnapshot.includes(block.id);
     setRunning([block.id]);
     setPracticeMessage(pythonLesson
-      ? `${isPracticeRun ? "Checking your" : "Running the example for"} ${block.label.toLowerCase()} in browser CPython…`
-      : `${isPracticeRun ? "Checking your" : "Running the example for"} ${block.label.toLowerCase()} in the isolated browser lab…`);
+      ? `Checking your ${block.label.toLowerCase()} in browser CPython…`
+      : `Checking your ${block.label.toLowerCase()} in the isolated browser lab…`);
     try {
       const [result] = await runContracts(
         lessonImplementationSource(lesson, [sourceSnapshot]),
         [`${lesson.id}/${block.id}`],
+        controller.signal,
       );
+      controller.signal.throwIfAborted();
       const check = result ?? { label: block.label, passed: false, detail: "The isolated test didn’t return a result." };
       if (sourceFor(block) !== sourceSnapshot) {
         setCellResults((current) => ({ ...current, [block.id]: undefined }));
         setPracticeMessage(`${block.label} changed while its check was running. Run the current source again.`);
         return;
       }
+      if (!projectSourceIsCurrent()) {
+        reportProjectConflict();
+        return;
+      }
       const currentVerification = { ids: verifiedBlockIdsRef.current, sources: verifiedSourcesRef.current, contractVersion: verifiedContractVersionRef.current };
       const currentHidden = [...hiddenBlocksRef.current];
       const currentAnswers = { ...answersRef.current };
-      const nextVerification = verificationAfterBlockRun(
+      const nextVerification = verificationAfterWorkingSourceRun(
         currentVerification,
         block.id,
         sourceSnapshot,
-        currentHidden,
         check.passed,
         llmSystemsContractSuite.contractVersion,
       );
       const nextVerified = nextVerification.ids;
       const nextVerifiedSources = nextVerification.sources;
-      if (isPracticeRun) {
-        applyPracticeState(currentHidden, currentAnswers, nextVerified, nextVerifiedSources, nextVerification.contractVersion);
-        recordVerifiedCells(lesson.id, nextVerified, nextVerifiedSources, nextVerification.contractVersion);
-        saveLessonProjectFile(projectSeedForLesson(lesson, currentHidden, currentAnswers, nextVerified));
-      }
+      applyPracticeState(currentHidden, currentAnswers, nextVerified, nextVerifiedSources, nextVerification.contractVersion);
+      recordVerifiedCells(lesson.id, nextVerified, nextVerifiedSources, nextVerification.contractVersion);
+      saveCurrentProjectSeed(projectSeedForLesson(lesson, currentHidden, currentAnswers, nextVerified));
       setCellResults((current) => ({ ...current, [block.id]: check }));
       setPracticeMessage(check.passed
-        ? isPracticeRun
-          ? `${block.label} passed the course checks and is now verified.`
-          : `${block.label} example passed. Try the cell yourself to verify your work.`
+        ? `${block.label} passed the course checks and is now verified.`
         : `${block.label} needs a fix. Check the failure below; your other cells didn’t change.`);
-      if (isPracticeRun) {
-        void recordLearningEvent("cell_check_completed", {
-          lessonId: lesson.id,
-          moduleId: lesson.courseId,
-          outcome: check.passed ? "passed" : "failed",
-        });
-      }
+      void recordLearningEvent("cell_check_completed", {
+        lessonId: lesson.id,
+        moduleId: lesson.courseId,
+        outcome: check.passed ? "passed" : "failed",
+      });
     } catch (error) {
+      if (controller.signal.aborted) return;
       const check = { label: block.label, passed: false, detail: error instanceof Error ? error.message : "The isolated test failed." };
       setCellResults((current) => ({ ...current, [block.id]: check }));
       setPracticeMessage(`${block.label} stopped safely.`);
     } finally {
-      setRunning([]);
+      if (runAbortRef.current === controller) {
+        runAbortRef.current = null;
+        setRunning([]);
+      }
     }
   };
   const runAll = async () => {
     if (!practiceReadyRef.current || runningBlockIdsRef.current.length) return;
-    setPendingReset(null);
+    if (!projectSourceIsCurrent()) {
+      reportProjectConflict();
+      return;
+    }
+    const controller = new AbortController();
+    runAbortRef.current = controller;
+    setPendingResetBlockId(null);
     const hiddenSnapshot = [...hiddenBlocksRef.current];
     const answersSnapshot = { ...answersRef.current };
     const sourceSnapshots = Object.fromEntries(blocks.map((block) => [block.id, sourceFor(block)]));
     setRunning(blocks.map((block) => block.id));
     setPracticeMessage(pythonLesson
-      ? hiddenSnapshot.length
-        ? "Checking your practice cells and running the other examples in browser CPython…"
-        : "Running every example in browser CPython. Edit a cell to verify your own work…"
-      : hiddenSnapshot.length
-        ? "Checking your practice cells and running the other examples in an isolated worker…"
-        : "Running every example. Edit a cell to verify your own work…");
+      ? "Checking all your exercises in browser CPython…"
+      : "Checking all your exercises in the isolated browser lab…");
     try {
       const combinedSource = lessonImplementationSource(lesson, blocks.map((block) => sourceSnapshots[block.id]));
       const results = await runContracts(
         combinedSource,
         blocks.map((block) => `${lesson.id}/${block.id}`),
+        controller.signal,
       );
+      controller.signal.throwIfAborted();
       const resultById = new Map(results.map((result) => [result.id, result]));
       const ordered = blocks.map((block) => resultById.get(`${lesson.id}/${block.id}`) ?? { id: `${lesson.id}/${block.id}`, path: projectPath, label: block.label, passed: false, detail: "The isolated test didn’t return a result." });
       if (blocks.some((block) => sourceFor(block) !== sourceSnapshots[block.id])) {
@@ -977,22 +978,22 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
         setPracticeMessage("The lesson source changed while checks were running. Run the current source again.");
         return;
       }
-      const nextVerified = creditablePracticeBlockIds(
+      if (!projectSourceIsCurrent()) {
+        reportProjectConflict();
+        return;
+      }
+      const nextVerified = creditableWorkingBlockIds(
         blocks.map((block) => block.id),
-        hiddenSnapshot,
         blocks.filter((_, index) => ordered[index].passed).map((block) => block.id),
       );
       const nextVerifiedSources = Object.fromEntries(nextVerified.map((id) => [id, sourceSnapshots[id]]));
       const nextVerifiedContractVersion = nextVerified.length ? llmSystemsContractSuite.contractVersion : null;
-      if (hiddenSnapshot.length) {
-        applyPracticeState(hiddenSnapshot, answersSnapshot, nextVerified, nextVerifiedSources, nextVerifiedContractVersion);
-        recordVerifiedCells(lesson.id, nextVerified, nextVerifiedSources, nextVerifiedContractVersion);
-        saveLessonProjectFile(projectSeedForLesson(lesson, hiddenSnapshot, answersSnapshot, nextVerified));
-      }
+      applyPracticeState(hiddenSnapshot, answersSnapshot, nextVerified, nextVerifiedSources, nextVerifiedContractVersion);
+      recordVerifiedCells(lesson.id, nextVerified, nextVerifiedSources, nextVerifiedContractVersion);
+      saveCurrentProjectSeed(projectSeedForLesson(lesson, hiddenSnapshot, answersSnapshot, nextVerified));
       setCellResults(Object.fromEntries(blocks.map((block, index) => [block.id, ordered[index]])));
       const passed = ordered.filter((result) => result.passed).length;
-      const allBlocksInPractice = hiddenSnapshot.length === blocks.length;
-      if (passed === ordered.length && allBlocksInPractice) {
+      if (passed === ordered.length) {
         void recordLearningEvent("lesson_checks_completed", {
           lessonId: lesson.id,
           moduleId: lesson.courseId,
@@ -1003,6 +1004,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
           const artifact = await recordValidatedLessonArtifact({
             lessonId: lesson.id,
             source: combinedSource,
+            signal: controller.signal,
             results: ordered.map((result, index) => ({
               id: result.id ?? `${lesson.id}/${blocks[index].id}`,
               label: result.label,
@@ -1010,22 +1012,28 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
               detail: result.detail,
             })),
           });
+          controller.signal.throwIfAborted();
           setArtifactRevision((revision) => revision + 1);
           setPracticeMessage(`Every isolated behavior check passes. Artifact ${artifact.contentHash.slice(7, 19)} is ready for the next lesson.`);
         } catch (artifactError) {
+          if (controller.signal.aborted) return;
           setPracticeMessage(`Every isolated behavior check passes, but the artifact couldn’t be saved: ${artifactError instanceof Error ? artifactError.message : "local storage is unavailable"}`);
         }
       } else {
-        setPracticeMessage(`${passed} of ${ordered.length} runs pass, and ${nextVerified.length} of ${blocks.length} practice cells are verified. Running the examples alone doesn’t count as your work.`);
+        setPracticeMessage(`${passed} of ${ordered.length} exercises pass. Open a failed exercise to see what went wrong.`);
       }
     } catch (error) {
+      if (controller.signal.aborted) return;
       setPracticeMessage(error instanceof Error ? error.message : "The isolated lesson test failed safely.");
     } finally {
-      setRunning([]);
+      if (runAbortRef.current === controller) {
+        runAbortRef.current = null;
+        setRunning([]);
+      }
     }
   };
   const updateAnswer = (block: CodeBlock, value: string) => {
-    setPendingReset(null);
+    setPendingResetBlockId(null);
     persistBlockState(
       block,
       editPracticeBlock(practiceDraftState(), block.id, value),
@@ -1048,84 +1056,100 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
           </div>
         </div>
       ) : null}
-      <div className="practice-editor" aria-busy={!practiceReady || runningBlockIds.length > 0}>
+      <div className="practice-editor" data-project-conflict={projectConflict} aria-busy={!practiceReady || runningBlockIds.length > 0}>
         <div className="editor-toolbar">
-          <div className="editor-file"><span>{projectPath}</span><strong>{!practiceReady ? "Loading saved work…" : hiddenBlocks.length === 0 ? "Working example · editable" : `${hiddenBlocks.length} ${hiddenBlocks.length === 1 ? "draft" : "drafts"} · saved here`}</strong></div>
+          <div className="editor-file"><span>{projectPath}</span><strong>{!practiceReady ? "Loading saved work…" : projectConflict ? "Newer code in full IDE" : "Working file · saves automatically"}</strong></div>
           <div className="editor-progress" aria-label={`${verifiedCells} of ${blocks.length} cells verified`}>
             <span>{verifiedCells}/{blocks.length} verified</span><i><b style={{ width: `${verifiedCells / blocks.length * 100}%` }} /></i>
           </div>
-          <div className="toolbar-actions" aria-label="Practice file actions">
-            {pendingReset?.kind === "all" ? (
-              <>
-                <button type="button" aria-label="Confirm reset all cells" aria-describedby={`practice-status-${lesson.id}`} onClick={hideAll} disabled={!practiceReady || runningBlockIds.length > 0}>Confirm reset all</button>
-                <button type="button" aria-label="Cancel reset all cells" aria-describedby={`practice-status-${lesson.id}`} onClick={cancelResetAll} disabled={runningBlockIds.length > 0}>Cancel</button>
-              </>
-            ) : <button type="button" aria-label="Reset all cells to starter code" aria-describedby={`practice-status-${lesson.id}`} onClick={armResetAll} disabled={!practiceReady || runningBlockIds.length > 0}>Reset all</button>}
-            {hiddenBlocks.length > 0 ? <button type="button" onClick={showSolution} disabled={!practiceReady || runningBlockIds.length > 0}>Show all examples</button> : null}
-            <Link href={`/workspace?file=${encodeURIComponent(`${lesson.courseId ?? "models"}/${lesson.implementation.filename}`)}`}>Open in IDE ↗</Link>
-          </div>
+          <Link className="open-ide-link" href={`/workspace?file=${encodeURIComponent(`${lesson.courseId ?? "models"}/${lesson.implementation.filename}`)}`}>Open in IDE ↗</Link>
         </div>
-        <div className="code-surface">
+        <div className="practice-sequence">
           {implementationPrelude ? (
             <div className="tensor-import-line"><span>uses</span><code>{implementationPrelude}</code><em>read only</em></div>
           ) : null}
           {blocks.map((block, blockIndex) => {
-            const hidden = hiddenBlocks.includes(block.id);
-            const recoverableDraft = !hidden
-              && answers[block.id] !== undefined
-              && answers[block.id] !== block.code
-              && practiceDraftIsCompatible(lesson.implementation.filename, answers[block.id]);
-            const startLine = blocks.slice(0, blockIndex).reduce((line, previous) => line + previous.code.split("\n").length + 1, implementationPrelude ? 3 : 1);
+            const starterSource = starterCodeFor(block, lesson);
+            const workingSource = practiceReady ? answers[block.id] ?? starterSource : starterSource;
+            const startLine = blocks.slice(0, blockIndex).reduce((line, previous) => {
+              const previousSource = practiceReady ? answers[previous.id] ?? starterCodeFor(previous, lesson) : starterCodeFor(previous, lesson);
+              return line + previousSource.split("\n").length + 1;
+            }, implementationPrelude ? 3 : 1);
             const result = cellResults[block.id];
-            const resetArmed = pendingReset?.kind === "block" && pendingReset.blockId === block.id;
+            const resetArmed = pendingResetBlockId === block.id;
             const blockRunning = runningBlockIds.includes(block.id);
+            const active = activeBlockId === block.id;
+            const dirty = workingSource !== starterSource;
+            const verified = verifiedContractVersion === llmSystemsContractSuite.contractVersion
+              && verifiedBlockIds.includes(block.id)
+              && verifiedSources[block.id] === workingSource;
+            const nextBlock = blocks[blockIndex + 1];
             return (
-              <div
-                className={`practice-block ${hidden ? "is-hidden" : ""}`}
-                data-reference-code={encodeURIComponent(block.code)}
-                aria-busy={runningBlockIds.includes(block.id)}
+              <article
+                className={`practice-block${active ? " is-active" : ""}${dirty ? " is-dirty" : ""}${result?.passed || verified ? " is-passed" : ""}`}
+                aria-busy={blockRunning}
                 key={block.id}
               >
-                <div className="block-heading">
-                  <div><span>0{blockIndex + 1}</span><strong>{block.label}</strong><em>{block.purpose}</em></div>
-                  <div className="block-actions">
-                    <button className="run-cell-button" type="button" onClick={() => void runCell(block)} disabled={!practiceReady || runningBlockIds.length > 0}>{blockRunning ? "Running…" : "Run cell"}</button>
-                    {resetArmed ? (
-                      <>
-                        <button type="button" aria-label={`Confirm reset ${block.label} to starter code`} aria-describedby={`practice-status-${lesson.id}`} onClick={() => resetBlock(block)} disabled={!practiceReady || blockRunning}>Confirm reset</button>
-                        <button type="button" aria-label={`Cancel reset ${block.label}`} aria-describedby={`practice-status-${lesson.id}`} onClick={() => cancelBlockReset(block)} disabled={blockRunning}>Cancel</button>
-                      </>
-                    ) : <button type="button" aria-label={`Reset ${block.label} to starter code`} aria-describedby={`practice-status-${lesson.id}`} onClick={() => armBlockReset(block)} disabled={!practiceReady || blockRunning}>Reset starter</button>}
-                    {hidden ? <button type="button" onClick={() => restoreBlock(block)} disabled={!practiceReady || blockRunning}>Show example</button> : recoverableDraft ? <button type="button" onClick={() => recoverBlock(block)} disabled={!practiceReady || blockRunning}>Restore draft</button> : null}
+                <button
+                  className="exercise-summary"
+                  type="button"
+                  aria-expanded={active}
+                  aria-controls={`exercise-${lesson.id}-${block.id}`}
+                  onClick={() => {
+                    setActiveBlockId(block.id);
+                    setPendingResetBlockId(null);
+                  }}
+                >
+                  <span>0{blockIndex + 1}</span>
+                  <span><strong>{block.label}</strong><em>{block.purpose}</em></span>
+                  <span className="exercise-state">{blockRunning ? "Running" : result?.passed || verified ? "Verified" : result ? "Needs a fix" : active ? "Editing" : "Open"}</span>
+                </button>
+                {active ? (
+                  <div className="exercise-body" id={`exercise-${lesson.id}-${block.id}`}>
+                    {block.concepts?.length ? <div className="concept-strip" aria-label={`${block.label} variables`}>{block.concepts.map((concept) => <span key={concept.name}><code>{concept.name}</code><em>{concept.detail}</em></span>)}</div> : null}
+                    <p className="editor-invitation"><span>{projectConflict ? "IDE code is active" : "Your draft"}</span><strong>{projectConflict ? "The full IDE has newer code. Continue there; this lesson is read-only." : "Complete the TODO below. Changes save automatically."}</strong></p>
+                    <div className="answer-area" data-direct-edit="true" data-edit-state={dirty ? "draft" : "starter"}>
+                      {practiceReady ? (
+                        <Suspense fallback={<div className="lesson-editor-loading" role="status">Loading syntax-aware editor…</div>}>
+                          <LessonCodeEditor
+                            ariaLabel={`Edit ${block.label}`}
+                            lineNumberStart={startLine}
+                            onChange={(value) => updateAnswer(block, value)}
+                            path={lesson.implementation.filename}
+                            readOnly={blockRunning || projectConflict}
+                            value={workingSource}
+                            variant="lesson"
+                          />
+                        </Suspense>
+                      ) : <SyntaxCode code={starterSource} label={`${block.label} starter loading`} startLine={startLine} />}
+                    </div>
+                    <div className="exercise-feedback">
+                      <div className="cell-feedback" aria-live="polite" aria-atomic="true">
+                        {result ? <p className={result.passed ? "cell-result passed" : "cell-result failed"}><i>{result.passed ? "✓" : "×"}</i>{result.detail}</p> : verified ? <p className="cell-result passed"><i>✓</i>Already verified on this device</p> : null}
+                      </div>
+                      <div className="exercise-actions">
+                        <button className="run-cell-button" type="button" onClick={() => void runCell(block)} disabled={!practiceReady || projectConflict || runningBlockIds.length > 0}>{blockRunning ? "Running…" : "Run cell"}</button>
+                        {resetArmed ? (
+                          <span className="reset-confirmation">
+                            <span>Replace this draft with starter code?</span>
+                            <button type="button" aria-label={`Confirm start over for ${block.label}`} aria-describedby={`practice-status-${lesson.id}`} onClick={() => resetBlock(block)} disabled={!practiceReady || projectConflict || blockRunning}>Confirm</button>
+                            <button type="button" aria-label={`Cancel start over for ${block.label}`} aria-describedby={`practice-status-${lesson.id}`} onClick={() => cancelBlockReset(block)} disabled={projectConflict || blockRunning}>Cancel</button>
+                          </span>
+                        ) : dirty ? <button className="start-over-button" type="button" aria-label={`Start ${block.label} over from starter code`} aria-describedby={`practice-status-${lesson.id}`} onClick={() => armBlockReset(block)} disabled={!practiceReady || projectConflict || blockRunning}>Start over</button> : null}
+                        {nextBlock && (result?.passed || verified) ? <button className="next-exercise-button" type="button" onClick={() => setActiveBlockId(nextBlock.id)}>Next exercise</button> : null}
+                      </div>
+                    </div>
+                    <details className="reference-comparison">
+                      <summary><span>Compare with reference</span><em>Your draft stays unchanged</em></summary>
+                      <div><SyntaxCode code={block.code} label={`${block.label} reference implementation`} startLine={startLine} /></div>
+                    </details>
                   </div>
-                </div>
-                {block.concepts?.length ? <div className="concept-strip" aria-label={`${block.label} variables`}>{block.concepts.map((concept) => <span key={concept.name}><code>{concept.name}</code><em>{concept.detail}</em></span>)}</div> : null}
-                <div className="answer-area" data-direct-edit="true">
-                  <div className="practice-guidance">
-                    <div><span>{hidden ? "Your draft" : "Editable example"}</span><strong>{hidden ? "Saved on this device · run it when you’re ready." : "Click the code and start typing."}</strong></div>
-                  </div>
-                  {practiceReady ? (
-                    <Suspense fallback={<div className="lesson-editor-loading" role="status">Loading syntax-aware editor…</div>}>
-                      <LessonCodeEditor
-                        ariaLabel={`Edit ${block.label}`}
-                        lineNumberStart={startLine}
-                        onChange={(value) => updateAnswer(block, value)}
-                        path={lesson.implementation.filename}
-                        readOnly={blockRunning}
-                        value={hidden ? answers[block.id] ?? "" : block.code}
-                        variant="lesson"
-                      />
-                    </Suspense>
-                  ) : <SyntaxCode code={block.code} label={`${block.label} editable reference loading`} startLine={startLine} />}
-                </div>
-                <div className="cell-footer" role="status" aria-label={`${block.label} check status`} aria-live="polite" aria-atomic="true">
-                  {result ? <span className={result.passed ? "cell-result passed" : "cell-result failed"}><i>{result.passed ? "✓" : "×"}</i>{!hidden && result.passed ? "Example passed · try this cell yourself to verify your work" : result.detail}</span> : verifiedContractVersion === llmSystemsContractSuite.contractVersion && hidden && verifiedBlockIds.includes(block.id) && verifiedSources[block.id] === (answers[block.id] ?? "") ? <span className="cell-result passed"><i>✓</i>Already verified on this device</span> : <span>{practiceReady ? hidden ? "Your code hasn’t run yet" : "Example hasn’t run · doesn’t count toward progress" : "Loading saved progress"}</span>}
-                </div>
-              </div>
+                ) : null}
+              </article>
             );
           })}
         </div>
-        <div className="editor-footer"><p id={`practice-status-${lesson.id}`} role="status" aria-live="polite" aria-atomic="true">{practiceReady ? practiceMessage : "Loading your saved practice before editing turns on…"}</p><button type="button" aria-describedby={`practice-status-${lesson.id}`} onClick={() => void runAll()} disabled={!practiceReady || runningBlockIds.length > 0}>{runningBlockIds.length ? "Running in sandbox…" : hiddenBlocks.length === blocks.length ? "Check all my code" : hiddenBlocks.length ? "Run my code + examples" : "Run all examples"}</button></div>
+        <div className="editor-footer"><p id={`practice-status-${lesson.id}`} role="status" aria-live="polite" aria-atomic="true">{practiceReady ? practiceMessage : "Loading your saved practice before editing turns on…"}</p><button type="button" aria-describedby={`practice-status-${lesson.id}`} onClick={() => void runAll()} disabled={!practiceReady || projectConflict || runningBlockIds.length > 0}>{runningBlockIds.length ? "Running in sandbox…" : "Check all my code"}</button></div>
       </div>
       {PYTORCH_HANDOFF_LESSONS.has(lesson.id) ? (
         <Suspense fallback={<div className="pytorch-handoff-loading" role="status">Loading the PyTorch version…</div>}>

@@ -3,7 +3,7 @@ import { initializeLearnerPersistence, loadLearnerState, type LearnerState } fro
 import { llmSystemsCurriculum } from "../lessons/course";
 import { lessonBlockComment, lessonImplementationSource } from "../lessons/implementation-source";
 import { llmSystemsContractSuite } from "../content/llm-systems/contracts";
-import { compatiblePracticeDrafts, restoreSourceBoundVerification } from "../features/ide/practice-state";
+import { restoreWorkingSourceVerification, workingPracticeSources } from "../features/ide/practice-state";
 import {
   ensureProjectWorkspace,
   flushProjectPersistence,
@@ -27,25 +27,22 @@ export function canonicalProjectSeeds(): LessonProjectSeed[] {
 
 /**
  * Materializes every curriculum lesson at its manifest-owned project path.
- * Learner practice state supplies hidden blocks and answers, while an existing
- * IDE edit remains authoritative when ensureProjectWorkspace reconciles it.
+ * Learner practice state supplies a stable working source per exercise, while
+ * an existing IDE edit remains authoritative when ensureProjectWorkspace
+ * reconciles it. Authored solutions are retained only as reference content.
  */
 export function canonicalLessonSeeds(
   learner: LearnerState = loadLearnerState(),
 ): LessonProjectSeed[] {
   return llmSystemsCurriculum.lessons.map(({ lesson, projectPath }) => {
     const local = learner.lessons[lesson.id];
-    const compatible = compatiblePracticeDrafts(
+    const answers = workingPracticeSources(
       lesson.implementation.filename,
       lesson.implementation.codeBlocks,
-      local?.hiddenBlocks ?? [],
       local?.answers ?? {},
     );
-    const hidden = compatible.hiddenBlocks;
-    const answers = compatible.answers;
-    const restoredVerification = restoreSourceBoundVerification(
-      lesson.implementation.codeBlocks,
-      hidden,
+    const restoredVerification = restoreWorkingSourceVerification(
+      lesson.implementation.codeBlocks.map((block) => block.id),
       answers,
       local?.verifiedCells ?? [],
       local?.verifiedSources ?? {},
@@ -56,7 +53,7 @@ export function canonicalLessonSeeds(
       lesson,
       lesson.implementation.codeBlocks.map((block, index) => (
         `${lessonBlockComment(lesson, index, block.label)}\n${
-          practice && hidden.includes(block.id) ? answers[block.id] ?? "" : block.code
+          practice ? answers[block.id] : block.code
         }`
       )),
     );

@@ -1,29 +1,18 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { RnnResult } from "@latent/model-lab/character-rnn";
 import { recordLearningEvent } from "../lib/learning-analytics";
-
-type Capability = { label: string; status: "ready" | "fallback" | "blocked"; detail: string };
-
-const subscribeToBrowser = () => () => {};
 
 export function FirstRunExperience() {
   const [prompt, setPrompt] = useState("the system ");
   const [result, setResult] = useState<RnnResult | null>(null);
   const [openOutput, setOpenOutput] = useState("");
   const [constrainedOutput, setConstrainedOutput] = useState("");
-  const [status, setStatus] = useState("The small model starts training only after you press run.");
+  const [status, setStatus] = useState("");
   const [working, setWorking] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
-  const browserReady = useSyncExternalStore(subscribeToBrowser, () => true, () => false);
-  const capabilities: Capability[] = browserReady ? [
-    { label: "Training worker", status: "Worker" in window ? "ready" : "blocked", detail: "Worker" in window ? "isolated thread" : "worker unavailable" },
-    { label: "Numerical runtime", status: "WebAssembly" in window ? "ready" : "blocked", detail: "WebAssembly" in window ? "WASM available" : "WASM unavailable" },
-    { label: "Project saving", status: "indexedDB" in window ? "ready" : "blocked", detail: "indexedDB" in window ? "device-local IndexedDB" : "saving unavailable" },
-    { label: "Transformer", status: "gpu" in navigator ? "ready" : "fallback", detail: "gpu" in navigator ? "WebGPU available" : "WASM fallback" },
-  ] : [];
 
   useEffect(() => {
     return () => abortRef.current?.abort();
@@ -68,26 +57,23 @@ export function FirstRunExperience() {
   };
 
   return (
-    <section className="first-run" id="first-run" aria-labelledby="first-run-title">
+    <section className="first-run first-run-minimal" id="first-run" aria-labelledby="first-run-title">
       <header>
-        <div><span>First run · real training</span><h2 id="first-run-title">Character-level RNN</h2></div>
-        <p>Train a 1,267-parameter character-level recurrent neural network in a background worker, then generate text from the same checkpoint with two sets of settings. Later, this same project loads a 135M-parameter Transformer on your device.</p>
+        <h2 id="first-run-title">Character-level RNN training</h2>
+        <p>Train 1,267 parameters in a Web Worker, then compare two continuations from the same checkpoint.</p>
       </header>
       <div className="first-run-layout">
         <div className="first-run-controls">
           <label><span>Prompt prefix</span><textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} maxLength={64} /></label>
           <button type="button" onClick={() => void run()} disabled={working}>{working ? "Running in worker…" : result ? "Generate both policies" : "Train and generate"}</button>
           <p aria-live="polite">{status}</p>
-          <div className="environment-readiness" aria-label="Browser environment readiness">
-            {capabilities.map((capability) => <span className={capability.status} key={capability.label}><i /> <strong>{capability.label}</strong><em>{capability.detail}</em></span>)}
-          </div>
         </div>
-        <div className="first-run-output">
-          <article><header><span>Open sampling</span><code>temperature 1.05 · top-k off</code></header><p>{openOutput || "Run the model to generate a continuation without a top-k limit."}</p></article>
-          <article><header><span>Top-k sampling</span><code>temperature 0.72 · top-k 5</code></header><p>{constrainedOutput || "The same weights will choose only from the five most likely characters."}</p></article>
-        </div>
+        {openOutput || constrainedOutput ? <div className="first-run-output">
+          <article><header><span>Open sampling</span><code>temperature 1.05 · top-k off</code></header><p>{openOutput}</p></article>
+          <article><header><span>Top-k sampling</span><code>temperature 0.72 · top-k 5</code></header><p>{constrainedOutput}</p></article>
+        </div> : null}
       </div>
-      <footer><p>This tiny model isn’t meant to be a capable assistant. It gives you a clear look at the idea you’ll build in Lesson 01.</p><Link href="/lessons/character-rnns">Open Character RNNs →</Link></footer>
+      <footer><Link href="/lessons/character-rnns">Continue to Character RNNs →</Link></footer>
     </section>
   );
 }

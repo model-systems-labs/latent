@@ -558,8 +558,7 @@ test("In-Context Learning holds the experiment constant and rejects prompt and s
   assert.match(lesson.diagram.title, /Controlled zero-, one-, and few-shot comparison/);
   assert.match(lesson.diagram.caption, /not whether few-shot prompting works in general/);
   assert.match(lesson.summary.find((section) => section.label === "Keep the comparison fair.")?.body ?? "", /provided local evaluator.*doesn't import or run your prompt and scoring functions/);
-  assert.match(lesson.experiment.intro, /provided local evaluator.*without importing or running your code/);
-  assert.match(lesson.experiment.intro, /don't show that accuracy always improves/);
+  assert.match(lesson.experiment.intro, /compare zero-, one-, and four-example prompts on the same two held-out items/);
 
   const byId = new Map(contracts.llmSystemsExerciseContracts.map((contract) => [contract.id, contract]));
   const evaluate = (contract, implementation) => contract.cases.map((exerciseCase) =>

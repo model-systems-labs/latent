@@ -25,6 +25,7 @@ import {
   settlePipelineLoad,
   settlePipelineLoadFailure,
 } from "../lib/pipeline-load-lifecycle";
+import styles from "./LessonExperiment.module.css";
 
 type ModelMessage = { role: "system" | "user" | "assistant"; content: string };
 type TextGenerator = {
@@ -84,18 +85,10 @@ function LossChart({ values }: { values: number[] }) {
 
 function DatasetRecord({ lesson }: { lesson: CourseLesson }) {
   return (
-    <div className="dataset-record">
-      <div>
-        <span>Dataset included with the lesson</span>
-        <strong>{lesson.dataset.name}</strong>
-        <em>{lesson.dataset.preview}</em>
-      </div>
-      <dl>
-        <div><dt>Source</dt><dd>{lesson.dataset.source}</dd></div>
-        <div><dt>License</dt><dd>{lesson.dataset.license}</dd></div>
-        <div><dt>Size</dt><dd>{lesson.dataset.size}</dd></div>
-      </dl>
-    </div>
+    <aside className={styles.dataset} aria-label={`Dataset sample: ${lesson.dataset.name}`}>
+      <strong>{lesson.dataset.name}</strong>
+      <span>{lesson.dataset.preview}</span>
+    </aside>
   );
 }
 
@@ -131,7 +124,7 @@ function RnnExperiment({ onComplete }: ExperimentProps) {
           <LossChart values={result.losses} />
           <article className="sample-output"><span>Autoregressive sample · τ 0.78</span><p>{result.sample}</p></article>
         </div>
-      ) : <p className="experiment-empty">Your results and reusable artifact will show up here.</p>}
+      ) : null}
     </>
   );
 }
@@ -177,7 +170,7 @@ function NeuralLmExperiment({ onComplete }: ExperimentProps) {
             </article>
           </div>
         </div>
-      ) : <p className="experiment-empty">The probability distribution and nearest words will show up here.</p>}
+      ) : null}
     </>
   );
 }
@@ -206,11 +199,11 @@ function BpeExperiment({ onComplete }: ExperimentProps) {
           <div className="token-artifact"><span>“modeling signals”</span><div>{result.encoded.map((token, index) => <code key={`${token}-${index}`}>{token}</code>)}</div></div>
           <div className="merge-list">
             {result.merges.map((merge, index) => (
-              <span key={`${merge.pair.join("-")}-${index}`}><em>{String(index + 1).padStart(2, "0")}</em><code>{merge.pair[0]} + {merge.pair[1]} → {merge.pair.join("")}</code><strong>{merge.count}×</strong></span>
+              <span key={`${merge.pair.join("-")}-${index}`}><em>{index + 1}</em><code>{merge.pair[0]} + {merge.pair[1]} → {merge.pair.join("")}</code><strong>{merge.count}×</strong></span>
             ))}
           </div>
         </div>
-      ) : <p className="experiment-empty">The learned merges and tokens will show up here.</p>}
+      ) : null}
     </>
   );
 }
@@ -249,7 +242,7 @@ function AttentionExperiment({ onComplete }: ExperimentProps) {
             ])}
           </div>
         </div>
-      ) : <p className="experiment-empty">The learned alignment will show up here.</p>}
+      ) : null}
     </>
   );
 }
@@ -275,7 +268,7 @@ function TransformerExperiment({ onComplete }: ExperimentProps) {
           </div>
           <div className="context-norms">{result.contextNorms.map((value, index) => <span key={`${result.tokens[index]}-${index}`}><em>{result.tokens[index]}</em><code>‖c‖ {value.toFixed(3)}</code></span>)}</div>
         </div>
-      ) : <p className="experiment-empty">The causal matrix will show up here.</p>}
+      ) : null}
     </>
   );
 }
@@ -445,7 +438,7 @@ function IclExperiment({ onComplete }: ExperimentProps) {
             ))}
           </div>
         </div>
-      ) : <p className="experiment-empty">Your zero-, one-, and few-shot comparison will show up here.</p>}
+      ) : null}
     </>
   );
 }
@@ -496,7 +489,7 @@ const STREAMING_UI_PROFILES = {
       { label: "Dropped text", value: "0 chars" },
     ],
     trace: [
-      { time: "0–15 ms", label: "Deltas 01–02", detail: "two parsed token events wait in the queue while one frame is scheduled" },
+      { time: "0–15 ms", label: "Deltas 1–2", detail: "two parsed token events wait in the queue while one frame is scheduled" },
       { time: "16 ms", label: "Frame 01", detail: "flush 2 deltas → send one TOKEN_BATCH → visual update 1/30" },
       { time: "32–464 ms", label: "Frames 02–29", detail: "56 more deltas flush in ordered pairs → updates 2–29" },
       { time: "480 ms", label: "Frame 30", detail: "flush the last 2 deltas → update 30/30 → queue is empty" },
@@ -750,14 +743,14 @@ function SystemsExperiment({ variant, onComplete }: { variant: SystemsVariant } 
       {variant === "reliability" ? (
         <div className="simulation-controls"><label><span>Failure to try</span><select value={failure} onChange={(event) => { setFailure(event.target.value); setResult(null); }}><option value="queue-timeout">Queue timeout</option><option value="malformed-frame">Malformed frame</option><option value="worker-crash">Worker crash</option><option value="user-abort">User abort</option></select></label></div>
       ) : null}
-      <div className="experiment-action"><p>{variant === "streaming" ? "Fixed example · tricky chunk boundaries · clear cancel and cleanup results" : variant === "reliability" ? "Fixed failures · request and attempt ids · phase timing · final state and cleanup" : "Fixed example · course-made metrics · clear resource counts"}</p><button type="button" onClick={run}>{result ? "Replay trace again" : "Replay trace"}</button></div>
+      <div className="experiment-action"><p>{variant === "streaming" ? "Chunk boundaries · cancellation · cleanup" : variant === "reliability" ? "Request and attempt ids · phase timing · cleanup" : "Queue, prefill, decode, and cache metrics"}</p><button type="button" onClick={run}>{result ? "Replay trace again" : "Replay trace"}</button></div>
       {result ? (
         <div className="simulation-result">
           <div className="metric-grid">{result.metrics.map((metric) => <span key={metric.label}><em>{metric.label}</em><strong>{metric.value}</strong></span>)}</div>
-          <div className="trace-list">{result.trace.map((event, index) => <div className={event.tone ?? ""} key={`${event.label}-${index}`}><span>{String(index + 1).padStart(2, "0")}</span><strong>{event.label}</strong><p>{event.detail}</p></div>)}</div>
+          <div className="trace-list">{result.trace.map((event, index) => <div className={event.tone ?? ""} key={`${event.label}-${index}`}><span>{index + 1}</span><strong>{event.label}</strong><p>{event.detail}</p></div>)}</div>
           <pre className="simulation-artifact">{result.artifact}</pre>
         </div>
-      ) : <p className="experiment-empty">The trace and metrics will show up here.</p>}
+      ) : null}
     </>
   );
 }
@@ -805,15 +798,15 @@ function ProductExperiment({ variant, onComplete }: { variant: ProductVariant } 
     };
     return (
       <>
-        <div className="simulation-controls state-flow-controls" role="group" aria-label="Reducer flow to view"><span>Flow to view</span><button aria-pressed={stateFlow === "complete"} className={stateFlow === "complete" ? "selected" : ""} type="button" onClick={() => setFlow("complete")}>Complete · 01–06</button><button aria-pressed={stateFlow === "cancel"} className={stateFlow === "cancel" ? "selected" : ""} type="button" onClick={() => setFlow("cancel")}>Cancel + late · 07–12</button><button aria-pressed={stateFlow === "regenerate"} className={stateFlow === "regenerate" ? "selected" : ""} type="button" onClick={() => setFlow("regenerate")}>Edit + regenerate · 13–18</button></div>
-        <div className="simulation-controls"><span>Reducer action</span><input aria-label="Reducer action" type="range" min="0" max={stateTrace.length - 1} value={step} onChange={(event) => setStep(Number(event.target.value))} /><code>{String(current.number).padStart(2, "0")}/18</code></div>
-        <div className="experiment-action"><p>Fixed reducer events · ids you can inspect · your code doesn’t run here</p><button type="button" onClick={() => { setRan(true); onComplete(); }}>{ran ? "Replay selected flow again" : "Replay selected flow"}</button></div>
+        <div className="simulation-controls state-flow-controls" role="group" aria-label="Reducer flow to view"><span>Flow to view</span><button aria-pressed={stateFlow === "complete"} className={stateFlow === "complete" ? "selected" : ""} type="button" onClick={() => setFlow("complete")}>Complete · 1–6</button><button aria-pressed={stateFlow === "cancel"} className={stateFlow === "cancel" ? "selected" : ""} type="button" onClick={() => setFlow("cancel")}>Cancel + late · 7–12</button><button aria-pressed={stateFlow === "regenerate"} className={stateFlow === "regenerate" ? "selected" : ""} type="button" onClick={() => setFlow("regenerate")}>Edit + regenerate · 13–18</button></div>
+        <div className="simulation-controls"><span>Reducer action</span><input aria-label="Reducer action" type="range" min="0" max={stateTrace.length - 1} value={step} onChange={(event) => setStep(Number(event.target.value))} /><code>{current.number}/18</code></div>
+        <div className="experiment-action"><p>18 reducer events · action, status, and message state</p><button type="button" onClick={() => { setRan(true); onComplete(); }}>{ran ? "Replay selected flow again" : "Replay selected flow"}</button></div>
         <div className="simulation-result product-simulation">
           <div className="state-inspector"><div><span>Action</span><strong>{current.action}</strong></div><div><span>Status</span><strong>{current.status}</strong></div><div><span>Reducer result</span><strong>{current.applied ? "applied" : "ignored"}</strong></div><div><span>Controls now</span><strong>{`stop ${current.canStop ? "on" : "off"} · regenerate ${current.canRegenerate ? "on" : "off"}`}</strong></div></div>
           <div className="state-identity-strip"><span><em>messageId</em><code>{current.messageId}</code></span><span><em>attemptId</em><code>{current.attemptId}</code></span><span><em>requestId</em><code>{current.requestId}</code></span></div>
           <article className={`mini-message ${current.status}`}><span>{current.messageId.startsWith("m-u") ? "User" : "Assistant"} · {current.messageId}</span><p>{current.content || "Waiting for output…"}</p></article>
           <p className={`state-revision-evidence${current.applied ? "" : " ignored"}`}><b>What changed</b>{current.evidence}</p>
-          <div className="trace-list compact-trace">{stateTrace.map((event, index) => <button aria-label={`Action ${event.number}: ${event.action}`} aria-current={index === step ? "step" : undefined} className={index === step ? "active" : index < step ? "complete" : ""} type="button" onClick={() => setStep(index)} key={`${event.action}-${event.number}`}><span>{String(event.number).padStart(2, "0")}</span><strong>{event.action}</strong></button>)}</div>
+          <div className="trace-list compact-trace">{stateTrace.map((event, index) => <button aria-label={`Action ${event.number}: ${event.action}`} aria-current={index === step ? "step" : undefined} className={index === step ? "active" : index < step ? "complete" : ""} type="button" onClick={() => setStep(index)} key={`${event.action}-${event.number}`}><span>{event.number}</span><strong>{event.action}</strong></button>)}</div>
         </div>
       </>
     );
@@ -832,7 +825,7 @@ function ProductExperiment({ variant, onComplete }: { variant: ProductVariant } 
             <button aria-pressed={streamProfile === key} className={streamProfile === key ? "selected" : ""} type="button" onClick={() => chooseProfile(key)} key={key}>{STREAMING_UI_PROFILES[key].label}</button>
           ))}
         </div>
-        <div className="experiment-action"><p>Fixed timing example · {profile.description}</p><button type="button" onClick={() => { setRan(true); onComplete(); }}>{ran ? `Replay ${profile.label.toLowerCase()} again` : `Replay ${profile.label.toLowerCase()} trace`}</button></div>
+        <div className="experiment-action"><p>{profile.description}</p><button type="button" onClick={() => { setRan(true); onComplete(); }}>{ran ? `Replay ${profile.label.toLowerCase()} again` : `Replay ${profile.label.toLowerCase()} trace`}</button></div>
         {ran ? (
           <div className="simulation-result product-simulation streaming-ui-result">
             <div className="metric-grid">{profile.metrics.map((metric) => <span key={metric.label}><em>{metric.label}</em><strong>{metric.value}</strong></span>)}</div>
@@ -845,10 +838,10 @@ function ProductExperiment({ variant, onComplete }: { variant: ProductVariant } 
             </div>
             <div className="streaming-announcement-log">
               <span>Live-region updates · {profile.announcements.length}</span>
-              <ol>{profile.announcements.map((announcement, index) => <li key={`${index}-${announcement}`}><b>{String(index + 1).padStart(2, "0")}</b><code>{announcement}</code></li>)}</ol>
+              <ol>{profile.announcements.map((announcement, index) => <li key={`${index}-${announcement}`}><b>{index + 1}</b><code>{announcement}</code></li>)}</ol>
             </div>
           </div>
-        ) : <p className="experiment-empty">Run this profile to see the visual updates, scroll state, announcements, dropped text, and cleanup.</p>}
+        ) : null}
       </>
     );
   }
@@ -929,7 +922,7 @@ function ProductExperiment({ variant, onComplete }: { variant: ProductVariant } 
           <label><span>Request budget · {budget} tokens</span><input aria-label="Request budget" type="range" min="14" max="42" value={budget} onChange={(event) => { setBudget(Number(event.target.value)); setRan(false); }} /></label>
           <code>{used}/{budget} used</code>
         </div>
-        <div className="experiment-action"><p>Fixed conversation branch and request trace · exact token counts · your code doesn’t run here</p><button type="button" onClick={() => { setRan(true); onComplete(); }}>{ran ? "Replay selected request again" : "Replay selected request"}</button></div>
+        <div className="experiment-action"><p>Conversation branch · request trace · exact token counts</p><button type="button" onClick={() => { setRan(true); onComplete(); }}>{ran ? "Replay selected request again" : "Replay selected request"}</button></div>
         <div className="simulation-result product-simulation context-action-result">
           <div className="context-action-summary">
             <span><b>Applied action</b><strong>{flow.label}</strong></span>
@@ -984,26 +977,15 @@ function ProductExperiment({ variant, onComplete }: { variant: ProductVariant } 
             <ol>{MANUAL_PRODUCT_VERIFICATION.map((check) => <li key={check.label}><strong>{check.label}</strong><span>{check.detail}</span></li>)}</ol>
           </section>
         </div>
-      ) : <p className="experiment-empty">Run the audit to see what the code checks cover, what’s only a written requirement, and what still needs hands-on testing.</p>}
+      ) : null}
     </>
   );
 }
 
 export function LessonExperiment({ lesson }: { lesson: CourseLesson }) {
   const complete = () => markExperimentComplete(lesson.id);
-  const isWorkedTrace = lesson.experiment.kind === "systems" || lesson.experiment.kind === "product";
   return (
-    <div className="experiment-lab">
-      <header className="experiment-header">
-        <div>
-          <span>{isWorkedTrace ? "Fixed worked example" : "Course-provided runtime"}</span>
-          <strong>{lesson.experiment.title}</strong>
-          <p>{lesson.experiment.intro}</p>
-          <p>{isWorkedTrace
-            ? "Replay the course data to see how it works. This trace doesn’t run your file; the IDE checks your code separately."
-            : "This course-provided runtime shows how it works, but it doesn’t run your cells. The IDE checks your saved code separately."}</p>
-        </div>
-      </header>
+    <section className="experiment-lab" aria-label={lesson.experiment.title}>
       <DatasetRecord lesson={lesson} />
       {lesson.experiment.kind === "rnn" ? <RnnExperiment onComplete={complete} /> : null}
       {lesson.experiment.kind === "neural-lm" ? <NeuralLmExperiment onComplete={complete} /> : null}
@@ -1013,6 +995,6 @@ export function LessonExperiment({ lesson }: { lesson: CourseLesson }) {
       {lesson.experiment.kind === "icl" ? <IclExperiment onComplete={complete} /> : null}
       {lesson.experiment.kind === "systems" && lesson.experiment.variant ? <SystemsExperiment variant={lesson.experiment.variant as SystemsVariant} onComplete={complete} /> : null}
       {lesson.experiment.kind === "product" && lesson.experiment.variant ? <ProductExperiment variant={lesson.experiment.variant as ProductVariant} onComplete={complete} /> : null}
-    </div>
+    </section>
   );
 }

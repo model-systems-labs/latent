@@ -225,7 +225,7 @@ test("the active exercise exposes a starter-first editor and persists exact edit
   assert.match(source, /className="answer-area" data-direct-edit="true"/);
   assert.match(source, /const active = activeBlockId === block\.id/);
   assert.match(source, /aria-expanded=\{active\}/);
-  assert.match(source, /setActiveBlockId\(block\.id\)/);
+  assert.match(source, /setActiveBlockId\(\(current\) => current === block\.id \? "" : block\.id\)/);
   assert.match(source, /const workingSource = practiceReady \? answers\[block\.id\] \?\? starterSource : starterSource/);
   assert.match(source, /ariaLabel=\{`Edit \$\{block\.label\}`\}/);
   assert.match(source, /const blockRunning = runningBlockIds\.includes\(block\.id\)/);
@@ -263,7 +263,8 @@ test("start over confirms inline while reference comparison never swaps the draf
   assert.match(source, /aria-describedby=\{`practice-status-\$\{lesson\.id\}`\}/);
   assert.match(source, /is ready to start over\. Confirm to replace this draft with starter code, or cancel to keep your code/);
   assert.match(source, /<details className="reference-comparison">[\s\S]*?<SyntaxCode code=\{block\.code\}/);
-  assert.match(source, /Your draft stays unchanged/);
+  assert.match(source, /<summary>Reference solution<\/summary>/);
+  assert.doesNotMatch(source, /Your draft stays unchanged|Compare with reference/);
   assert.doesNotMatch(source, /Restore reference|Restore draft|Restore all|Reset all|showSolution|hideAll|recoverBlock|restoreBlock/);
 });
 

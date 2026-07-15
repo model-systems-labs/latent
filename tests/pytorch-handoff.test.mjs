@@ -82,7 +82,8 @@ test("the downloadable notebook preserves the explicit native runtime boundary",
   assert.equal(parsed.nbformat, 4);
   assert.equal(parsed.metadata.latent.lessonId, "transformers");
   assert.equal(parsed.metadata.latent.sourcePath, "pytorch/models/causal_transformer_torch.py");
-  assert.match(parsed.cells[1].source.join(""), /real native PyTorch package/);
+  assert.match(parsed.cells[1].source.join(""), /Requires native Python 3/);
+  assert.match(parsed.cells[1].source.join(""), /does not run in Pyodide/);
   assert.match(parsed.cells[2].source.join(""), /torch==2\.9\.0/);
   assert.match(parsed.cells[2].source.join(""), /onnx==1\.22\.0/);
   assert.match(parsed.cells[2].source.join(""), /onnxscript==0\.7\.1/);

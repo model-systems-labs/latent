@@ -25,10 +25,9 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
   const learner = useLearnerState();
   const project = useProjectState();
   const [status, setStatus] = useState<CheckpointStatus>("idle");
-  const [detail, setDetail] = useState("Run this checkpoint on the exact files currently saved in your project.");
+  const [detail, setDetail] = useState("");
   const [output, setOutput] = useState("");
   const [trace, setTrace] = useState<string[]>([]);
-  const [score, setScore] = useState({ passed: 0, total: 0 });
   const [failures, setFailures] = useState<ProjectUnitResult[]>([]);
   const [ready, setReady] = useState(false);
   const [cancelRequested, setCancelRequested] = useState(false);
@@ -73,9 +72,6 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
       knowledge: lessonKnowledgeIsComplete(learner, lesson.id, check.id),
     };
   }), [learner, curriculumModule.lessons]);
-  const readyLessons = lessonReadiness.filter((item) => item.implementation).length;
-  const masteredLessons = lessonReadiness.filter((item) => item.knowledge).length;
-
   const runModuleBehavior = async (attempt: ModuleCheckpointAttempt) => {
     if (courseId === "models") {
       const artifact = learner.artifacts.characterRnn;
@@ -103,7 +99,6 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
       const subsequentDecodeForwards = Math.max(0, decodeTokens - 1);
       const kvUnits = promptTokens + decodeTokens;
       replaceAttemptOutput(attempt, [
-        "worked example · fixed course data; your files were checked separately",
         `request accepted · ${promptTokens}-token prompt`,
         `prefill · ${promptTokens} positions in parallel · first generated token sampled · KV length ${promptTokens}`,
         `decode · ${subsequentDecodeForwards} later one-position forwards · KV length ${kvUnits}`,
@@ -138,7 +133,6 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
     }
 
     replaceAttemptOutput(attempt, [
-      "worked example · fixed course data; your files were checked separately",
       "user message → normalized record m-u1",
       "context policy → active prompt + newest complete turns",
       "request r1 / attempt a1 → queued → prefill → streaming",
@@ -164,7 +158,7 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
     replaceAttemptOutput(attempt, "");
     replaceAttemptTrace(attempt, []);
     if (ownsAttempt(attempt)) setFailures([]);
-    setAttemptDetail(attempt, `Checking ${curriculumModule.lessonCount} project files in the isolated browser lab…`);
+    setAttemptDetail(attempt, `Running tests for ${curriculumModule.lessonCount} project files…`);
     const results = [];
     try {
       for (const item of curriculumModule.lessons) {
@@ -191,7 +185,6 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
       const passed = results.filter((result) => result.passed).length;
       const nextFailures = results.filter((result) => !result.passed);
       if (ownsAttempt(attempt)) {
-        setScore({ passed, total: results.length });
         setFailures(nextFailures);
       }
       if (!results.length || passed !== results.length) {
@@ -205,18 +198,14 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
         return;
       }
       setAttemptStatus(attempt, "running");
-      setAttemptDetail(attempt, courseId === "systems" || courseId === "product"
-        ? "The checks pass. Now replaying the module’s fixed worked example…"
-        : "The checks pass. Now running the module behavior…");
+      setAttemptDetail(attempt, "Tests passed. Running the module behavior…");
       const finalStatus = await runModuleBehavior(attempt);
       if (!ownsAttempt(attempt)) return;
       setAttemptStatus(attempt, finalStatus);
       setAttemptDetail(attempt, finalStatus === "cancelled"
         ? "The serving run was canceled, and its stream closed without a late update."
         : finalStatus === "passed"
-          ? courseId === "systems" || courseId === "product"
-            ? `${results.length} checks tied to this source pass, and the fixed example finished.`
-            : `${results.length} checks tied to this source pass, and the module behavior finished.`
+          ? `${results.length} tests passed. The module behavior finished.`
           : "The code checks pass, but this part needs the checkpoint from your module training run.");
       void recordLearningEvent("module_checkpoint_completed", {
         moduleId: definition.moduleId,
@@ -241,25 +230,13 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
   return (
     <article className="module-checkpoint-page">
       <header className="module-checkpoint-hero">
-        <p className="eyebrow">{definition.label}</p>
         <h1>{definition.title}</h1>
         <p>{definition.objective}</p>
-        <div className="checkpoint-readiness" aria-label={`${readyLessons} implementations and ${masteredLessons} concepts complete`}>
-          <span><strong>{readyLessons}/{curriculumModule.lessonCount}</strong> implementations</span>
-          <span><strong>{masteredLessons}/{curriculumModule.lessonCount}</strong> predictions</span>
-          <span><strong>{score.total ? `${score.passed}/${score.total}` : "—"}</strong> latest checks</span>
-        </div>
       </header>
-
-      <section className="checkpoint-change">
-        <article><span>Before this module</span><p>{definition.before}</p></article>
-        <i aria-hidden="true">→</i>
-        <article><span>After this module</span><p>{definition.after}</p></article>
-      </section>
 
       <section className="checkpoint-console" aria-live="polite" aria-busy={status === "verifying" || status === "running"}>
         <header>
-          <div><span>Live checkpoint</span><strong className={`status-${status}`}>{status}</strong></div>
+          {status !== "idle" ? <strong className={`status-${status}`} role="status">{status}</strong> : null}
           <div>
             {courseId === "backend" && status === "running" ? <button type="button" onClick={cancel} disabled={cancelRequested}>{cancelRequested ? "Cancelling…" : "Cancel stream"}</button> : null}
             <button className="primary" type="button" onClick={() => void runCheckpoint()} disabled={!ready || status === "verifying" || status === "running"}>
@@ -267,7 +244,7 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
             </button>
           </div>
         </header>
-        <p className="checkpoint-detail">{detail}</p>
+        {detail ? <p className="checkpoint-detail">{detail}</p> : null}
         {failures.length ? (
           <aside className="checkpoint-repair" aria-label="First failing module check">
             <div>
@@ -280,23 +257,29 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
             <Link href={`/workspace?file=${encodeURIComponent(failures[0].path)}`}>Open this file in the IDE →</Link>
           </aside>
         ) : null}
-        <div className="checkpoint-console-grid">
-          <pre aria-label="Module behavior output">{output || "Output will show up after the current project files pass their checks."}</pre>
-          <ol aria-label="Module execution trace">
-            {trace.length ? trace.map((item, index) => <li key={`${item}-${index}`}><span>{String(index + 1).padStart(2, "0")}</span><p>{item}</p></li>) : <li><span>—</span><p>No execution trace yet.</p></li>}
-          </ol>
-        </div>
+        {output || trace.length ? <div className="checkpoint-console-grid">
+          {output ? <pre aria-label="Module behavior output">{output}</pre> : null}
+          {trace.length ? <ol aria-label="Module execution trace">
+            {trace.map((item, index) => <li key={`${item}-${index}`}><p>{item}</p></li>)}
+          </ol> : null}
+        </div> : null}
       </section>
 
-      <section className="checkpoint-files" aria-label="Module project files">
-        {lessonReadiness.map((item) => (
+      <details className="checkpoint-files">
+        <summary>Module files</summary>
+        <div>{lessonReadiness.map((item) => (
           <Link href={`/workspace?file=${encodeURIComponent(item.projectPath)}`} key={item.lesson.id}>
             <code>{item.projectPath}</code>
-            <span>{item.implementation ? "code verified" : "code still to do"}</span>
-            <span>{item.knowledge ? "concept verified" : "prediction still to do"}</span>
+            <span>{item.implementation && item.knowledge
+              ? "Ready"
+              : !item.implementation && !item.knowledge
+                ? "Code and knowledge check incomplete"
+                : item.implementation
+                  ? "Knowledge check incomplete"
+                  : "Code incomplete"}</span>
           </Link>
-        ))}
-      </section>
+        ))}</div>
+      </details>
 
       <footer className="checkpoint-navigation">
         <Link href={`/courses/${courseId}`}>← Review module</Link>

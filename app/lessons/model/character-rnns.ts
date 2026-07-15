@@ -170,6 +170,6 @@ RESULT = {
     experiment: {
       kind: "rnn",
       title: "Train the recurrent model",
-      intro: "Run the provided trainer for 600 truncated-BPTT updates, then look at its loss curve and sample. This replay is separate from the functions you work on in the IDE.",
+      intro: "Run the character RNN for 600 truncated-BPTT updates, then inspect its loss curve and sample.",
     },
   } satisfies Omit<CourseLesson, "sources">;

@@ -313,30 +313,24 @@ test("project views expose current completion, repository history, and accessibl
     readFile(new URL("../app/project/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/styles/responsive.css", import.meta.url), "utf8"),
   ]);
-  assert.match(structure, /Current workspace build-ready lesson source/);
-  assert.match(structure, /saved lesson result still matches the file/);
-  assert.match(structure, /current IDE run passes every expected check/);
-  assert.match(structure, /A trusted failure overrides either one/);
-  assert.match(structure, /role="progressbar"/);
-  assert.match(structure, /aria-valuemin=\{0\}/);
-  assert.match(structure, /aria-valuemax=\{sourceProgress\.total\}/);
-  assert.match(structure, /aria-valuenow=\{sourceProgress\.verified\}/);
-  assert.match(structure, /aria-valuetext=/);
+  assert.match(structure, /lesson source files are build-ready/);
+  assert.doesNotMatch(structure, /saved lesson result still matches the file|current IDE run passes every expected check|A trusted failure overrides either one/);
+  assert.match(structure, /role="status" aria-label=/);
+  assert.doesNotMatch(structure, /role="progressbar"|aria-valuemin|aria-valuemax|aria-valuenow|project-structure-progress/);
   assert.doesNotMatch(structure, /Lesson files[\s\S]{0,80}complete/);
 
-  assert.match(timeline, /My course position · \{currentPosition \|\| "start"\}/);
-  assert.match(timeline, /current .*lesson.* complete · \$\{currentPosition\} lesson/);
-  assert.match(timeline, /Project snapshots/);
+  assert.match(timeline, /My course position · \$\{currentPosition \|\| "start"\}/);
+  assert.match(timeline, /Project history/);
   assert.match(timeline, /projectLessonIsComplete/);
   assert.match(timeline, /Lesson done/);
   assert.match(timeline, /Current code needs another check/);
   assert.match(timeline, /File added here/);
   assert.doesNotMatch(timeline, /My progress/);
-  assert.match(timeline, /aria-pressed/);
+  assert.doesNotMatch(timeline, /aria-pressed|Lesson 01|Lesson 07|Lesson 14|files visible|provided application shell/);
+  assert.match(timeline, /Return to my progress/);
   assert.match(timeline, /aria-valuetext/);
   assert.match(timeline, /aria-current=\{lesson\.id === active\?\.id \? "step" : undefined\}/);
-  assert.match(timeline, /Object\.values\(RUNTIME_PATHS\)/);
-  assert.doesNotMatch(timeline, /PROVIDED_RUNTIME_FILE_COUNT/);
+  assert.doesNotMatch(timeline, /RUNTIME_PATHS|PROVIDED_RUNTIME_FILE_COUNT/);
 
   assert.match(workbench, /aria-label=\{`\$\{file\.path\}, \$\{status\.label\}`\}/);
   assert.doesNotMatch(workbench, /status\.label\}.*verifiedCells.*checks verified/);
@@ -352,10 +346,9 @@ test("project views expose current completion, repository history, and accessibl
   assert.match(timeline, /trustedProjectResults\(project\.tests\)/);
   assert.match(workbench, /trustedProjectResults\(project\.tests\)/);
 
-  assert.match(projectPage, /When you edit a lesson file, that file needs to pass its checks again/);
-  assert.match(projectPage, /Editing any file also makes the latest full-project test result out of date/);
-  assert.match(projectPage, /Other unchanged lesson results stay verified/);
-  assert.match(projectPage, /last active build stays in place/);
+  assert.match(projectPage, /The files you work on across the course become one browser-chat project/);
+  assert.match(projectPage, /History and privacy/);
+  assert.doesNotMatch(projectPage, /When you edit a lesson file|latest full-project test result|Other unchanged lesson results|last active build stays in place/);
 
   const mobileRules = responsiveCss.slice(responsiveCss.indexOf("@media (max-width: 650px)"));
   assert.match(mobileRules, /\.project-timeline-controls button\s*\{[\s\S]*?min-height:\s*2\.75rem/);

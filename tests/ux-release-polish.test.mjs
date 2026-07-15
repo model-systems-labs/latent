@@ -86,7 +86,7 @@ test("outer and compiled-capstone secondary copy clears the AA contrast floor", 
   assert.match(template, /\.inference-panel summary > strong \{[^}]*font-size: 0\.68rem/);
   assert.match(template, /\.control-panel footer span \{[^}]*font-size: 0\.68rem/);
   assert.match(template, /\.composer > div > span \{[^}]*font-size: 0\.68rem/);
-  assert.match(capstone, /\.compiled-capstone-runtime > header span,[\s\S]*?font-size: max\(0\.68rem, 11px\)/);
+  assert.match(capstone, /\.compiled-capstone-runtime > header strong \{[\s\S]*?font-size: max\(0\.68rem, 11px\)/);
 });
 
 test("lesson evidence and model-status text retain an 11px readable floor", async () => {
@@ -102,17 +102,12 @@ test("lesson evidence and model-status text retain an 11px readable floor", asyn
   ]);
 });
 
-test("course progress and lesson-build metadata retain an 11px readable floor", async () => {
+test("course progress and lesson copy retain an 11px readable floor", async () => {
   const styles = await readFile(courseCatalogStylesUrl, "utf8");
   assertReadableFloor(styles, [
-    ".course-progress-record > a",
-    ".course-progress-record span,\n.course-progress-record strong",
-    ".lesson-card > span",
-    ".lesson-card p",
-    ".lesson-build em",
-    ".lesson-build code",
-    ".lesson-build strong",
-    ".lesson-build small",
+    ".course-progress-record span",
+    ".lesson-card.lesson-card-simple p",
+    ".lesson-card.lesson-card-simple > .lesson-card-status",
   ]);
 });
 
@@ -158,7 +153,6 @@ test("live stylesheet copy cannot regress below 11px outside audited non-text ex
       ".capstone-contract span",
       ".capstone-contract p",
     ]],
-    ["course-catalog.css", [".lesson-card > i"]],
     ["learning-flow.css", [".check > i"]],
   ]);
 
@@ -180,10 +174,11 @@ test("project autosave and recovery copy explain timing and expose a concise dif
   const source = await readFile(projectWorkbenchUrl, "utf8");
   assert.match(source, /window\.setTimeout\(\(\) => \{[\s\S]*?\}, 650\)/);
   assert.match(source, /Unsaved draft · saves after you stop typing for 650 ms/);
-  assert.match(source, /immediate recovery copy\. File history autosaves after 650 ms without typing/);
+  assert.match(source, /const recoveryStored = stageProjectDraftRecovery\(selected\.path, value\)/);
+  assert.match(source, /setMessage\(recoveryStored \? "Saving…" : "Saving… keep this tab open\."\)/);
   assert.match(source, /draftDifferenceSummary\(draft, candidate\.content\)/);
   assert.match(source, /\+\$\{added\} \/ −\$\{removed\} lines/);
-  assert.match(source, /The recovery copy is now your current draft\. File history saves after you stop typing for 650 ms/);
+  assert.match(source, /setMessage\("Recovery copy loaded\."\)/);
   const loadBranch = source.slice(source.indexOf("const recoveryRestaged ="), source.indexOf("setMobilePanel(\"code\")", source.indexOf("const recoveryRestaged =")));
   assert.match(loadBranch, /loadProjectDraftRecoveryCandidate\(candidate, selected\.updatedAt \+ 1\)/);
   assert.match(loadBranch, /if \(!recoveryRestaged\)[\s\S]*?return/);
@@ -199,10 +194,10 @@ test("test-gate failures expose actionable rows while compiler failures retain O
   const build = source.slice(source.indexOf("const build = async"), source.indexOf("const runTests = async"));
   const gateFailure = build.slice(build.indexOf("if (!gate.canPromote)"), build.indexOf("const result = compileProject"));
   assert.match(gateFailure, /setBuildFailures\(gate\.failures\)/);
-  assert.match(gateFailure, /setMobilePanel\("output"\)/);
+  assert.match(gateFailure, /showResults\("output"\)/);
   const compileFailure = build.slice(build.indexOf("if (!result.ok"), build.indexOf("const \{ repositories \}"));
   assert.match(compileFailure, /setErrors\(result\.ok/);
-  assert.match(compileFailure, /setMobilePanel\("output"\)/);
+  assert.match(compileFailure, /showResults\("output"\)/);
   assert.match(source, /<p className="project-output-status" role="status">\{message\}<\/p>/);
   assert.match(source, /failure\.detail/);
   assert.match(source, /actionableBuildFailurePath\(\{[\s\S]*?readOnly: failure\.path === CAPSTONE_ENTRY_PATH \|\| Boolean\(project\.files\[failure\.path\]\?\.readOnly\)[\s\S]*?editableFallbackPath: CAPSTONE_COMPONENT_PATH/);
@@ -233,7 +228,7 @@ test("top-level navigation fits phones, preserves tablet scrolling, and keeps to
   assert.match(narrowHeader, /\.compiled-capstone-runtime \{[\s\S]*?height: calc\(100dvh - 3\.75rem\)/);
   assert.match(narrowHeader, /@media \(max-width: 940px\) and \(max-height: 500px\)[\s\S]*?height: calc\(100dvh - 2\.75rem\)/);
   assert.match(lessonMobile, /\.lessonShell :global\(\.lesson-header nav\) \{[^}]*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
-  assert.match(lessonMobile, /\.lessonShell :global\(\.nav-label-short\) \{ display: inline; \}/);
+  assert.doesNotMatch(lessonMobile, /nav-label-short/);
 });
 
 test("the in-context-learning loader honestly defers disposal when upstream cannot abort a download", async () => {

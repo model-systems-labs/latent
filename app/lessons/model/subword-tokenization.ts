@@ -168,6 +168,6 @@ RESULT = {
     experiment: {
       kind: "bpe",
       title: "Train the tokenizer",
-      intro: "Run the provided BPE trainer with the merge budget you choose, then check its merge list, learned vocabulary, and encoded length. This replay doesn't run your code cells.",
+      intro: "Run the BPE trainer with the merge budget you choose, then inspect its merge list, learned vocabulary, and encoded length.",
     },
   } satisfies Omit<CourseLesson, "sources">;

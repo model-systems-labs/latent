@@ -7,50 +7,25 @@
   align-items: center;
   cursor: pointer;
   display: grid;
-  gap: 1.2rem;
-  grid-template-columns: 10rem minmax(0, 1fr) auto;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr) auto;
   list-style: none;
-  min-height: 5.4rem;
-  padding: 0.85rem 0;
+  min-height: 3.4rem;
+  padding: 0.7rem 0;
 }
 
 .handoff > summary::-webkit-details-marker { display: none; }
 
-.kicker,
-.fileHeading span {
-  color: var(--violet);
-  font-size: max(0.68rem, 11px);
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
-}
-
 .summaryTitle {
-  align-items: baseline;
-  display: flex;
-  gap: 0.75rem;
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 550;
   min-width: 0;
 }
 
-.summaryTitle strong {
-  color: var(--violet-deep);
-  font-family: var(--mono);
-  font-size: max(0.68rem, 11px);
-  font-weight: 550;
-}
-
-.summaryTitle > span {
-  color: var(--ink);
-  font-family: var(--serif);
-  font-size: 1.08rem;
-  font-weight: 450;
-  margin: 0;
-}
-
-.toggle,
-.fileHeading em {
+.toggle {
   color: var(--faint);
   font-size: max(0.68rem, 11px);
-  font-style: normal;
 }
 
 .handoff > summary:focus-visible {
@@ -122,20 +97,19 @@
 }
 
 .fileHeading {
-  align-items: center;
-  display: flex;
-  gap: 1rem;
-  justify-content: space-between;
   min-width: 0;
 }
 
-.fileHeading span {
+.fileHeading code {
+  color: var(--muted);
+  font-size: max(0.68rem, 11px);
   min-width: 0;
   overflow-wrap: anywhere;
 }
 
 .editorSurface :global(.code-editor) {
-  background: #1f1e21;
+  background: #fbfaf8;
+  border: 1px solid #ded9d2;
   border-radius: 0.55rem;
   max-height: 29rem;
   overflow: hidden;
@@ -148,9 +122,10 @@
 
 .editorLoading {
   align-items: center;
-  background: #1f1e21;
+  background: #fbfaf8;
+  border: 1px solid #ded9d2;
   border-radius: 0.55rem;
-  color: #aaa3ad;
+  color: #655f59;
   display: flex;
   font-size: max(0.68rem, 11px);
   justify-content: center;
@@ -158,16 +133,8 @@
 }
 
 .handoff footer {
-  align-items: flex-start;
   display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  justify-content: space-between;
-}
-
-.handoff footer p {
-  font-size: max(0.72rem, 12px);
-  max-width: none;
+  justify-content: flex-end;
 }
 
 .handoff footer > div {
@@ -181,7 +148,7 @@
   align-items: center;
   background: transparent;
   border: 1px solid var(--line-strong);
-  border-radius: 999px;
+  border-radius: 0.45rem;
   color: var(--ink);
   cursor: pointer;
   display: inline-flex;
@@ -201,18 +168,8 @@
 
 @media (max-width: 650px) {
   .handoff > summary {
-    align-items: start;
-    gap: 0.35rem 0.75rem;
+    gap: 0.75rem;
     grid-template-columns: 1fr auto;
-    padding: 1rem 0;
-  }
-
-  .kicker { grid-column: 1 / -1; }
-
-  .summaryTitle {
-    align-items: start;
-    flex-direction: column;
-    gap: 0.2rem;
   }
 
   .mapping { grid-template-columns: 1fr; }
@@ -237,11 +194,9 @@
 
   .handoff footer a { grid-column: 1 / -1; }
 
-  .kicker,
-  .summaryTitle strong,
+  .summaryTitle,
   .toggle,
-  .fileHeading span,
-  .fileHeading em,
+  .fileHeading code,
   .mapping dt,
   .mapping dd,
   .editorLoading,

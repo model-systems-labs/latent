@@ -26,7 +26,8 @@ test("server-renders one LLM Systems program with four technical modules", async
   assert.match(html, /Chat Integration/);
   assert.match(html, /Browser Chat/);
   assert.match(html, /href="\/project"/);
-  assert.equal((html.match(/class="course-track-card"/g) ?? []).length, 4);
+  assert.equal((html.match(/class="course-track-card catalog-track-card"/g) ?? []).length, 4);
+  assert.doesNotMatch(html, /environment-readiness|Capstone setup|Final project|Module 0[1-4]/);
   assert.doesNotMatch(html, /Mock Backend Systems/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/i);
 });
@@ -43,8 +44,9 @@ test("each module renders its technical lesson sequence", async () => {
     assert.equal(response.status, 200, slug);
     const html = await response.text();
     for (const title of titles) assert.match(html, new RegExp(title));
-    assert.match(html, /Your progress/);
-    assert.match(html, /href="\/project"/);
+    assert.match(html, /class="course-progress-record"/);
+    assert.match(html, /aria-label="0 of \d+ lessons complete"/);
+    assert.doesNotMatch(html, /Your progress|href="\/project"|lesson-build|track-outcome|Module 0[1-4]/);
     assert.doesNotMatch(html, /Project structure|BrowserChat\.tsx/);
   }
 });
@@ -55,7 +57,7 @@ test("the dedicated project route renders the complete progressive source tree",
   const html = await response.text();
   assert.match(html, /Project structure/);
   assert.match(html, /browser-chat\//);
-  assert.match(html, /14(?:<!-- -->)? not started/);
+  assert.match(html, /0(?:<!-- -->)? of (?:<!-- -->)?14(?:<!-- -->)? lesson files ready/);
   assert.match(html, /model\.config\.js/);
   assert.match(html, /character-rnn\.py/);
   assert.match(html, /inference-runtime\.py/);
@@ -88,12 +90,12 @@ test("all fourteen lessons use the reusable learning flow", async () => {
     assert.equal(response.status, 200, slug);
     const html = await response.text();
     assert.match(html, new RegExp(title));
-    assert.match(html, /id="lesson-sources-title">References/);
+    assert.match(html, /id="lesson-sources-title">Sources/);
     assert.match(html, /aria-labelledby="lesson-sources-title"/);
     assert.equal((html.match(/class="source-entry"/g) ?? []).length, 3);
     assert.doesNotMatch(html, /primary and supporting references|supporting sources/);
     assert.doesNotMatch(html, /tensor-runtime-strip|Python runtime|Tensor runtime|CPython · NumPy|NumPy handles the array operations|What the source says|What this browser lab shows|What it doesn.t cover|How it works|Highlight a passage|data-selection-ask|Ask Claude|Ask Codex/);
-    assert.match(html, /class="section-title"><h2>Summary<\/h2>/);
+    assert.match(html, /<h2 class="sr-only">Summary<\/h2>/);
     assert.doesNotMatch(html, /class="section-title"><span>0[123]<\/span>/);
     assert.doesNotMatch(html, /OpenRouter API key|openrouter\.ai|paper-chat|Questions and answers/);
     assert.equal((html.match(/aria-expanded="true"/g) ?? []).length >= 1, true, `${slug} must server-render its first exercise open`);
@@ -108,20 +110,18 @@ test("all fourteen lessons use the reusable learning flow", async () => {
       if (!control.expanded) assert.match(panel, /\shidden=""/, `${slug}: collapsed panel ${control.id} must be hidden`);
     }
     assert.match(html, /class="practice-block is-active"[^>]*aria-busy="false"/);
-    assert.match(html, /Complete the TODO below\. Changes save automatically\./);
+    assert.doesNotMatch(html, /Complete the TODO below|Your draft|>Editing</);
     assert.match(html, /data-direct-edit="true"/);
     assert.match(html, /data-edit-state="starter"/);
-    assert.match(html, /TODO/);
     assert.match(html, /NotImplementedError/);
     assert.doesNotMatch(html, /Practice all|Practice cell|Run example|Reset all|Restore all|Restore reference|Restore draft|Run all examples|Run practice checks/);
     assert.match(html, /Run cell/);
-    assert.match(html, /Check all my code/);
-    assert.match(html, /Compare with reference/);
-    assert.match(html, /Your draft stays unchanged/);
+    assert.match(html, /Run all tests/);
+    assert.match(html, /Reference solution/);
+    assert.doesNotMatch(html, /Compare with reference|Your draft stays unchanged/);
     assert.match(html, /Open in IDE/);
     assert.match(html, /Saved results/);
-    assert.match(html, /Proof tied to the exact code you ran/);
-    assert.match(html, /examples made for the course/);
+    assert.doesNotMatch(html, /Proof tied to the exact code you ran|Take a look|Course-provided runtime|Fixed worked example|Dataset included with the lesson/);
   }
 });
 
@@ -130,7 +130,7 @@ test("real PyTorch handoffs are present only in framework-relevant lessons", asy
     const response = await render(`/lessons/${slug}`);
     assert.equal(response.status, 200, slug);
     const html = await response.text();
-    assert.match(html, /Try it in native PyTorch/);
+    assert.match(html, /PyTorch version/);
     assert.match(html, /PyTorch/);
   }
   for (const slug of ["subword-tokenization", "streaming-transport", "conversation-state"]) {
@@ -147,9 +147,8 @@ test("the server-rendered first paint syntax-highlights starter code rather than
   assert.match(html, /class="syntax-code"/);
   assert.match(html, /tok-keyword/);
   assert.match(html, /tok-string2/);
-  assert.match(html, /TODO/);
   assert.match(html, /NotImplementedError/);
-  assert.match(html, /Compare with reference/);
+  assert.match(html, /Reference solution/);
   assert.doesNotMatch(html, /syntax-code-fallback/);
 });
 
@@ -167,7 +166,7 @@ test("Character RNNs teaches the unrolled mechanism while saved work restores be
   assert.match(html, /Same at every position/);
   assert.match(html, /aria-busy="true"/);
   assert.match(html, /Loading saved work/);
-  assert.match(html, /Loading your saved practice before editing turns on/);
+  assert.doesNotMatch(html, /Loading your saved practice before editing turns on/);
 });
 
 test("Neural Language Models teaches the complete numeric prediction path", async () => {
@@ -247,10 +246,8 @@ test("In-Context Learning renders a controlled comparison and explicit inference
   assert.match(html, /4 demonstrations/);
   assert.match(html, /weights updated: 0/);
   assert.match(html, /Exact-match measurement plan for two held-out items/);
-  assert.match(html, /What runs here/);
-  assert.match(html, /fixed local evaluator builds the prompts/);
-  assert.match(html, /Your code is checked separately and never runs here/);
-  assert.match(html, /What it doesn.t show/);
+  assert.match(html, /provided local evaluator runs that whole comparison/);
+  assert.match(html, /same two held-out items/);
   assert.match(html, /Load model · ~181 MB/);
 });
 
@@ -286,8 +283,7 @@ test("Scheduling and Memory renders a controlled policy comparison and completio
   assert.match(html, /<dd>88<\/dd>/);
   assert.match(html, /<dd>86%<\/dd>/);
   assert.match(html, /<dd>7<\/dd>/);
-  assert.match(html, /What this shows/);
-  assert.match(html, /What it doesn.t show/);
+  assert.match(html, /same arrivals and resource limits/);
   assert.match(html, /def decode_iteration\(active_requests\):/);
   assert.match(html, /pages × page_size/);
   assert.match(html, /capacity − tokens/);
@@ -312,8 +308,8 @@ test("the capstone contains the complete React chat system", async () => {
   const html = await response.text();
   assert.match(html, /Browser Chat/);
   assert.match(html, /compiled-capstone-shell/);
-  assert.match(html, /Verifying your active build/);
-  assert.match(html, /Checking the full-project test result/);
+  assert.match(html, /Checking your build/);
+  assert.match(html, /Verifying the current test result and preview bundle/);
   assert.match(html, /href="\/workspace"/);
   assert.match(html, /href="\/project"/);
   assert.doesNotMatch(html, /Project file editor/);
@@ -325,6 +321,7 @@ test("the project IDE is a dedicated tested authoring surface", async () => {
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /Project IDE/);
+  assert.doesNotMatch(html, /<span>Project IDE<\/span>/);
   assert.match(html, /href="\/project"/);
   assert.match(html, /lesson files verified/);
   assert.match(html, /runtime\/model.config.js/);
@@ -336,10 +333,13 @@ test("the project IDE is a dedicated tested authoring surface", async () => {
   assert.match(html, /0 of \d+ checks verified/);
   assert.match(html, /class="code-editor"/);
   assert.match(html, /Unit tests/);
+  assert.match(html, /data-inspector-view="tests"/);
+  assert.match(html, /aria-label="Results panel"/);
+  assert.match(html, /<summary>Actions<\/summary>/);
   assert.match(html, /Run all\s*(?:<!-- -->)?40/);
   assert.match(html, /Run file tests/);
   assert.match(html, /Test, build &amp; run/);
-  assert.match(html, /Last passing build/);
+  assert.match(html, /<span>Build<\/span>/);
 });
 
 test("the design kit, simulations, model engines, and artifact runtime remain reusable", async () => {
@@ -383,7 +383,8 @@ test("the design kit, simulations, model engines, and artifact runtime remain re
   assert.match(previewFrame, /MessageChannel/);
   assert.match(previewFrame, /PREVIEW_FRAME_SANDBOX/);
   assert.doesNotMatch(previewFrame, /new Function|eval\(/);
-  assert.match(workbench, /Previous build/);
+  assert.doesNotMatch(workbench, /Previous build|Active build|Portable build file/);
+  assert.match(workbench, /project-build-artifact/);
   assert.match(workbench, /saveProjectRuntime/);
   assert.match(workbench, /runProjectUnitTests/);
   assert.match(workbench, /Build blocked/);
@@ -442,8 +443,8 @@ test("each lesson server-renders one read-only reference comparison without embe
     const comparisons = html.match(/class="reference-comparison"/g) ?? [];
     assert.equal(comparisons.length, 1, `${slug} must expose reference code only for its single active exercise`);
     comparisonCount += comparisons.length;
-    assert.match(html, /Compare with reference/);
-    assert.match(html, /Your draft stays unchanged/);
+    assert.match(html, /Reference solution/);
+    assert.doesNotMatch(html, /Compare with reference|Your draft stays unchanged/);
     assert.match(html, /reference implementation/);
     assert.doesNotMatch(html, /data-reference-code=/, slug);
     assert.doesNotMatch(html, /data-check-code=/, slug);
@@ -480,7 +481,7 @@ test("Reliability and Observability renders an attempt-aware worked trace", asyn
   assert.match(html, /Malformed frame/);
   assert.match(html, /Worker crash/);
   assert.match(html, /User abort/);
-  assert.match(html, /request and attempt ids · phase timing · final state and cleanup/);
+  assert.match(html, /Request and attempt ids · phase timing · cleanup/);
 });
 
 test("Conversation State renders a normalized update and all 18 reducer actions", async () => {
@@ -495,15 +496,14 @@ test("Conversation State renders a normalized update and all 18 reducer actions"
   assert.match(html, /r-17\.2/);
   assert.match(html, /canStop: true · canRegenerate: false/);
   assert.match(html, /18 reducer actions · 3 generation attempts/);
-  assert.match(html, /Complete · 01–06/);
-  assert.match(html, /Cancel \+ late · 07–12/);
+  assert.match(html, /Complete · 1–6/);
+  assert.match(html, /Cancel \+ late · 7–12/);
   assert.match(html, /Edit \+ regenerate · 13–18/);
   assert.match(html, /messageId/);
   assert.match(html, /attemptId/);
   assert.match(html, /requestId/);
   assert.match(html, /What changed/);
   assert.match(html, /Replay selected flow/);
-  assert.match(html, /your code doesn.t run here/);
 });
 
 test("Streaming React renders the frame timing trace and four honest profiles", async () => {
@@ -522,7 +522,7 @@ test("Streaming React renders the frame timing trace and four honest profiles", 
   assert.match(html, /Stalled/);
   assert.match(html, /Cancelled/);
   assert.match(html, /Replay burst trace/);
-  assert.match(html, /Fixed timing example/);
+  assert.match(html, /same fixed 60-delta response/);
   assert.match(html, /short live-region announcements/);
 });
 
@@ -575,29 +575,27 @@ test("Product Quality separates executed checks, unexecuted specifications, and 
   assert.doesNotMatch(html, /Automated · 16 contracts|all 16 check-specific results/);
 });
 
-test("homepage offers an honest first model run before the curriculum", async () => {
+test("homepage offers a quiet first model run before the curriculum", async () => {
   const response = await render("/");
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /First run · real training/);
-  assert.match(html, /Character-level RNN/);
-  assert.match(html, /same checkpoint with two sets of settings/);
+  assert.match(html, /Character-level RNN training/);
+  assert.match(html, /Train 1,267 parameters in a Web Worker/);
+  assert.match(html, /same checkpoint/);
   assert.match(html, /Train and generate/);
-  assert.match(html, /1,267-parameter character-level recurrent neural network/);
-  assert.match(html, /temperature 1\.05 · top-k off/);
-  assert.match(html, /temperature 0\.72 · top-k 5/);
+  assert.doesNotMatch(html, /temperature 1\.05 · top-k off|temperature 0\.72 · top-k 5|No output yet/);
+  assert.doesNotMatch(html, /environment-readiness|First run · real training|This tiny model|Run the model to generate/);
 });
 
-test("every lesson renders the shared prediction and project-handoff contract", async () => {
+test("every lesson ends with one focused knowledge check and quiet lesson navigation", async () => {
   for (const lessonId of ["character-rnns", "inference-runtime", "streaming-transport", "chat-product-quality"]) {
     const response = await render(`/lessons/${lessonId}`);
     assert.equal(response.status, 200, lessonId);
     const html = await response.text();
-    assert.match(html, /Quick prediction/, lessonId);
-    assert.match(html, /Project file/, lessonId);
-    assert.match(html, /Before/, lessonId);
-    assert.match(html, /After/, lessonId);
-    assert.match(html, /Open changed file/, lessonId);
+    assert.match(html, /<h2 class="sr-only">Knowledge check<\/h2>/, lessonId);
+    assert.match(html, /Check answer/, lessonId);
+    assert.match(html, /class="paper-footer lesson-footer"/, lessonId);
+    assert.doesNotMatch(html, /Quick prediction|Project file|What you built|Open changed file|Prediction still to do/, lessonId);
   }
 });
 
@@ -612,10 +610,10 @@ test("all four executable module checkpoints render their exact project boundary
     assert.equal(response.status, 200, slug);
     const html = await response.text();
     assert.match(html, new RegExp(title), slug);
-    assert.match(html, /Live checkpoint/, slug);
+    assert.doesNotMatch(html, />Ready<\/strong>/, slug);
     assert.match(html, /Restoring project/, slug);
-    assert.match(html, /Before this module/, slug);
-    assert.match(html, /After this module/, slug);
+    assert.match(html, /Module files/, slug);
+    assert.doesNotMatch(html, /Before this module|After this module|Live checkpoint/, slug);
   }
 });
 
@@ -623,24 +621,25 @@ test("project route exposes the timeline, local learning data, and recovery lang
   const response = await render("/project");
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /Project snapshots/);
-  assert.match(html, /Lesson 01/);
-  assert.match(html, /Lesson 07/);
-  assert.match(html, /Lesson 14/);
-  assert.match(html, /Learning data on this device/);
-  assert.match(html, /Nothing is sent to an analytics service/);
+  assert.match(html, /Project history/);
+  assert.match(html, /My course position/);
+  assert.doesNotMatch(html, /Lesson 01|Lesson 07|Lesson 14|Project snapshots/);
+  assert.match(html, /Learning data/);
+  assert.match(html, /It does not include code, prompts, messages, API keys, or written answers/);
 });
 
 test("sources route lists the research, dataset, model, and runtime boundaries", async () => {
   const response = await render("/sources");
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /Sources and licenses/);
-  assert.match(html, /The research belongs to its authors/);
+  assert.match(html, /<h1>Sources<\/h1>/);
+  assert.match(html, /Papers and specifications remain the work of their authors/);
   assert.match(html, /SmolLM2-135M-Instruct/);
   assert.match(html, /Transformers\.js/);
   assert.match(html, /Apache-2\.0/);
-  assert.match(html, /Course source list/);
+  assert.match(html, /Lesson sources/);
   assert.match(html, /Character RNNs/);
   assert.match(html, /Product Quality/);
+  assert.match(html, /Original synthetic course corpus/);
+  assert.match(html, /Original fixed checklist/);
 });

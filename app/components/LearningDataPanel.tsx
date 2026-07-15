@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { useEffect, useState } from "react";
 import {
   clearLearningAnalytics,
   learningAnalyticsBlob,
@@ -25,13 +24,6 @@ export function LearningDataPanel() {
 
   useEffect(() => { void refresh(); }, []);
 
-  const summary = useMemo(() => ({
-    runs: events.filter((event) => event.name === "first_run_completed").length,
-    checks: events.filter((event) => event.name === "cell_check_completed").length,
-    predictions: events.filter((event) => event.name === "knowledge_check_completed").length,
-    checkpoints: events.filter((event) => event.name === "module_checkpoint_completed").length,
-  }), [events]);
-
   const download = async () => {
     downloadBrowserBlob(await learningAnalyticsBlob(), `latent-learning-events-${new Date().toISOString().slice(0, 10)}.json`);
   };
@@ -45,14 +37,11 @@ export function LearningDataPanel() {
 
   return (
     <section className="learning-data-panel" aria-labelledby="learning-data-title">
-      <header><div><span>Privacy and progress</span><h2 id="learning-data-title">Learning data on this device</h2></div><p>Latent keeps a short list of event names and pass/fail results. It never puts your code, prompts, chat messages, API keys, or written answers in this log.</p></header>
-      <dl aria-label="Device-local learning event summary">
-        <div><dt>First runs</dt><dd>{ready ? summary.runs : "—"}</dd></div>
-        <div><dt>Code checks</dt><dd>{ready ? summary.checks : "—"}</dd></div>
-        <div><dt>Predictions</dt><dd>{ready ? summary.predictions : "—"}</dd></div>
-        <div><dt>Checkpoints</dt><dd>{ready ? summary.checkpoints : "—"}</dd></div>
-      </dl>
-      <footer><p>{events.length} of at most 500 events saved on this device. Nothing is sent to an analytics service.</p><div><Link href="/sources">Review sources and licenses</Link><button type="button" onClick={() => void download()} disabled={!events.length}>Export events</button><button type="button" onClick={() => void clear()} disabled={!events.length}>{confirmClear ? "Confirm delete" : "Delete events"}</button></div></footer>
+      <header><span id="learning-data-title">Learning data</span><em>{ready ? `${events.length} saved` : "Loading…"}</em></header>
+      <div className="learning-data-body">
+        <p>This log contains event names and pass/fail results only. It does not include code, prompts, messages, API keys, or written answers.</p>
+        <div><button type="button" onClick={() => void download()} disabled={!events.length}>Export</button><button type="button" onClick={() => void clear()} disabled={!events.length}>{confirmClear ? "Confirm delete" : "Delete"}</button></div>
+      </div>
     </section>
   );
 }

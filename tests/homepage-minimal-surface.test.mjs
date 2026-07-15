@@ -3,8 +3,10 @@ import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
 const productizationCssUrl = new URL("../app/styles/productization.css", import.meta.url);
+const courseCatalogCssUrl = new URL("../app/styles/course-catalog.css", import.meta.url);
 const codingWorkspaceCssUrl = new URL("../app/styles/coding-workspace.css", import.meta.url);
 const responsiveCssUrl = new URL("../app/styles/responsive.css", import.meta.url);
+const firstRunUrl = new URL("../app/components/FirstRunExperience.tsx", import.meta.url);
 
 function cssRule(source, selector) {
   const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -14,7 +16,11 @@ function cssRule(source, selector) {
 }
 
 test("the homepage training demo stays on the warm editorial surface", async () => {
-  const source = await readFile(productizationCssUrl, "utf8");
+  const [source, catalog, component] = await Promise.all([
+    readFile(productizationCssUrl, "utf8"),
+    readFile(courseCatalogCssUrl, "utf8"),
+    readFile(firstRunUrl, "utf8"),
+  ]);
   const firstRunSource = source.slice(source.indexOf(".first-run {"), source.indexOf(".mobile-ide-tabs"));
 
   assert.match(cssRule(source, ".first-run-layout"), /background:\s*transparent/);
@@ -23,7 +29,8 @@ test("the homepage training demo stays on the warm editorial surface", async () 
   assert.match(cssRule(source, ".first-run-controls textarea"), /background:\s*rgba\(255,\s*255,\s*255,\s*0\.48\)/);
   assert.match(cssRule(source, ".first-run-controls textarea"), /color:\s*var\(--ink\)/);
   assert.match(cssRule(source, ".first-run-output article p"), /color:\s*var\(--ink\)/);
-  assert.match(cssRule(source, ".first-run-output article p"), /min-height:\s*9rem/);
+  assert.match(cssRule(catalog, ".first-run.first-run-minimal .first-run-output article p"), /min-height:\s*6\.5rem/);
+  assert.doesNotMatch(component, /environment-readiness|Browser environment readiness|First run · real training|This tiny model/);
   assert.doesNotMatch(firstRunSource, /#211f23|#211f22|#272329|rgba\(255,\s*255,\s*255,\s*0\.0[468]\)/);
 });
 

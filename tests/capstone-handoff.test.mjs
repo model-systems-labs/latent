@@ -235,9 +235,9 @@ test("a complete active build presents verified evidence and one honest run acti
   const progress = summarize(projectFixture({ complete: true }));
   const copy = capstone.capstoneReadyGateCopy(8);
   assert.equal(copy.eyebrow, "Verified build 8");
-  assert.equal(copy.title, "Run your verified build.");
-  assert.match(copy.summary, /lesson files and the React app passed together/);
-  assert.match(copy.summary, /isolated frame/);
+  assert.equal(copy.title, "Browser Chat is ready.");
+  assert.match(copy.summary, /current source and React app passed together/);
+  assert.match(copy.summary, /isolated browser preview/);
   assert.deepEqual(capstone.capstonePathPresentation("ready", progress), {
     sourceState: "complete",
     buildState: "complete",
@@ -322,7 +322,7 @@ test("a host runtime outage preserves the passing build and offers a retry rathe
   assert.equal(recovery.action, "retry");
   assert.equal(recovery.path, null);
   assert.equal(recovery.blockedStage, "preview");
-  assert.match(recovery.summary, /passing project build is still safe/);
+  assert.match(recovery.summary, /passing build is intact/);
 });
 
 test("generation admission verifies the React-authored request frame byte for byte", () => {
@@ -370,13 +370,12 @@ test("the learner-facing component no longer emits the old dead-end or raw capab
   ]);
   assert.doesNotMatch(source, /Canonical project required|Build the repository in the IDE/);
   assert.doesNotMatch(source, /Restore the capstone build/);
-  assert.match(source, /Verifying your active build/);
+  assert.match(source, /Checking your build/);
   assert.doesNotMatch(source, /setDetail\(error instanceof Error \? error\.message/);
   assert.doesNotMatch(source, /Last test run|passing in the last run/);
-  assert.match(source, /Current lesson files/);
-  assert.match(source, /<strong>Active build<\/strong>/);
+  assert.doesNotMatch(source, /Current lesson files|<strong>Active build<\/strong>|capstone-build-path|How it runs|What to fix next/);
+  assert.match(source, /className="capstone-action"/);
   assert.match(source, /await reconcileCanonicalProject\(\)/);
-  assert.match(source, /Sandboxed React preview/);
   assert.match(source, /aria-label="Verified lesson files"/);
   assert.match(source, /role="status" aria-live="polite" aria-atomic="true">\{detail\}/);
   assert.match(source, /const restoreRunFocusRef = useRef\(false\)/);
@@ -391,8 +390,7 @@ test("the learner-facing component no longer emits the old dead-end or raw capab
   const gateStyles = styles.slice(styles.indexOf(".capstone-gate-copy"), styles.indexOf("@media (max-width: 700px)"));
   assert.ok(gateStyles.length > 0, "capstone gate styles must remain a distinct scoped surface");
   assert.doesNotMatch(gateStyles, /font-size:\s*0\.(?:[0-5]\d*|6[0-7]?)rem/, "gate microcopy must retain an 11px minimum");
-  assert.match(gateStyles, /\.capstone-progress-line span[\s\S]*font-size: max\(0\.68rem, 11px\)/);
-  assert.match(gateStyles, /\.capstone-build-path li > span[^\n]*font-size: max\(0\.68rem, 11px\)/);
-  assert.match(gateStyles, /\.capstone-build-path code[^\n]*font-size: max\(0\.68rem, 11px\)/);
-  assert.match(gateStyles, /\.capstone-next-step > button[\s\S]*font-size: max\(0\.68rem, 11px\)/);
+  assert.match(gateStyles, /\.capstone-progress-line p[\s\S]*font-size: max\(0\.68rem, 11px\)/);
+  assert.match(gateStyles, /\.capstone-action > button[\s\S]*font-size: max\(0\.68rem, 11px\)/);
+  assert.doesNotMatch(gateStyles, /capstone-build-path|capstone-next-step/);
 });

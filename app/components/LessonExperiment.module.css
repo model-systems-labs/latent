@@ -1,0 +1,28 @@
+.dataset {
+  align-items: baseline;
+  display: flex;
+  gap: 0.65rem;
+  padding: 0.85rem 0 0.15rem;
+}
+
+.dataset strong {
+  color: var(--ink);
+  flex: 0 0 auto;
+  font-size: max(0.68rem, 11px);
+  font-weight: 550;
+}
+
+.dataset span {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: max(0.68rem, 11px);
+  line-height: 1.5;
+}
+
+@media (max-width: 650px) {
+  .dataset {
+    align-items: start;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+}

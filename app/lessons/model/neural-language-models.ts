@@ -88,7 +88,7 @@ ${commonQuestionInstruction}`.trim(),
     },
     implementation: {
       filename: "neural-language-model.py",
-      intro: "Rebuild the same number-crunching path in Python and NumPy. First normalize the logits without overflow. Then combine the chosen context rows coordinate by coordinate, and finally score the real target. Each cell runs on its own before the provided model trains.",
+      intro: "Implement stable softmax, average the context embeddings, and compute the target loss. Run each function independently before training.",
       tensorOps: ["numpy", "np.asarray", "np.exp", "np.mean", "np.log", "tolist"],
       codeBlocks: [
         {
@@ -178,6 +178,6 @@ RESULT = {
     experiment: {
       kind: "neural-lm",
       title: "Train the embedding model",
-      intro: "Run the provided two-word trainer, then check its validation loss, next-word probabilities, and nearest embedding neighbors. This replay doesn't run your code cells.",
+      intro: "Run the two-word trainer, then inspect its validation loss, next-word probabilities, and nearest embedding neighbors.",
     },
   } satisfies Omit<CourseLesson, "sources">;

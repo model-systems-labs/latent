@@ -180,8 +180,7 @@
 .project-editor-panel .code-editor .cm-editor { height: 100%; }
 .project-editor-panel .code-editor .cm-tooltip { border: 1px solid rgba(255, 255, 255, 0.12); }
 .project-editor-panel .code-editor .cm-panels { background: #28262a; color: #ddd6ce; }
-.project-editor-panel > footer { align-items: center; border-top: 1px solid rgba(255, 255, 255, 0.09); display: flex; gap: 1rem; justify-content: space-between; padding: 0.75rem 0.9rem; }
-.project-editor-panel > footer p { color: #aaa3ad; font-size: 0.7rem; line-height: 1.4; margin: 0; }
+.project-editor-panel > footer { align-items: center; border-top: 1px solid rgba(255, 255, 255, 0.09); display: flex; gap: 1rem; justify-content: flex-end; padding: 0.75rem 0.9rem; }
 .project-editor-panel > footer > div { display: flex; gap: 0.45rem; }
 .project-editor-panel > footer button { background: transparent; border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 999px; color: #c6bfb8; cursor: pointer; font-size: max(0.68rem, 11px); min-height: 2.75rem; padding: 0.58rem 0.75rem; text-transform: uppercase; white-space: nowrap; }
 .project-editor-panel > footer button:disabled { opacity: 0.35; }
@@ -424,16 +423,12 @@ details.artifact-runtime-panel > summary::after { color: var(--violet); content:
 details.artifact-runtime-panel[open] > summary::after { content: "−"; }
 
 .artifact-runtime-heading {
-  align-items: end;
-  border-bottom: 1px solid var(--line);
+  align-items: center;
   display: flex;
-  gap: 2rem;
   justify-content: space-between;
-  padding: 1.4rem 0 1.2rem;
+  padding: 1rem 0;
 }
 
-.artifact-runtime-heading > div { display: grid; gap: 0.35rem; }
-.artifact-runtime-heading span,
 .artifact-identity > span,
 .artifact-frame > span,
 .training-replay-stage header span,
@@ -443,9 +438,8 @@ details.artifact-runtime-panel[open] > summary::after { content: "−"; }
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
-.artifact-runtime-heading h3 { font-family: var(--serif); font-size: clamp(1.35rem, 2.6vw, 2.1rem); font-weight: 400; margin: 0; }
-.artifact-runtime-heading > code { color: var(--muted); font-size: max(0.68rem, 11px); }
-.artifact-runtime-intro { color: var(--muted); font-family: var(--serif); font-size: 0.95rem; line-height: 1.65; margin: 0; max-width: 56rem; padding: 1.2rem 0; }
+.artifact-runtime-heading h3 { font-size: 0.78rem; font-weight: 550; margin: 0; }
+.artifact-runtime-note { color: var(--muted); font-size: max(0.68rem, 11px); line-height: 1.55; margin: 0; padding: 0.85rem 0; }
 .artifact-runtime-error,
 .artifact-runtime-loading { color: var(--muted); margin: 0; padding: 1rem 0 1.5rem; }
 .artifact-runtime-error { color: var(--red); }
@@ -477,12 +471,10 @@ details.artifact-runtime-panel[open] > summary::after { content: "−"; }
 .artifact-download-row button,
 .project-build-artifact button { background: transparent; border: 1px solid var(--line-strong); border-radius: 999px; color: var(--muted); cursor: pointer; font-size: max(0.68rem, 11px); padding: 0.58rem 0.7rem; text-transform: uppercase; }
 
-.artifact-lineage-grid { border-top: 1px solid var(--line); display: grid; grid-template-columns: 1fr 1fr; }
-.artifact-identity { display: grid; gap: 0.5rem; min-height: 11rem; padding: 1.25rem 1.5rem; }
-.artifact-identity + .artifact-identity { border-left: 1px solid var(--line); }
-.artifact-identity strong { font-family: var(--serif); font-size: 1.05rem; font-weight: 400; }
-.artifact-identity p { color: var(--muted); font-size: max(0.68rem, 11px); line-height: 1.55; margin: 0; }
-.artifact-identity > div { align-items: end; display: flex; gap: 0.5rem; margin-top: auto; }
+.artifact-lineage-grid { border-top: 1px solid var(--line); display: grid; }
+.artifact-identity { align-items: baseline; display: grid; gap: 0.75rem; grid-template-columns: 8rem minmax(0, 1fr) auto; padding: 0.8rem 0; }
+.artifact-identity + .artifact-identity { border-top: 1px solid var(--line); }
+.artifact-identity strong { font-size: max(0.68rem, 11px); font-weight: 500; }
 .artifact-identity code { color: var(--muted); font-size: max(0.68rem, 11px); padding: 0.34rem 0; }
 .artifact-identity.pending { color: var(--faint); }
 
@@ -496,7 +488,7 @@ details.artifact-runtime-panel[open] > summary::after { content: "−"; }
 .artifact-timeline button code { color: var(--faint); font-size: max(0.68rem, 11px); }
 .artifact-frame { display: grid; gap: 0.45rem; padding: 1.2rem 1.5rem; }
 .artifact-frame strong { font-family: var(--serif); font-size: 1rem; font-weight: 400; }
-.artifact-frame pre { background: rgba(39, 34, 41, 0.94); border-radius: 0.65rem; color: #d9d1ca; font-family: var(--mono); font-size: max(0.68rem, 11px); line-height: 1.55; margin: 0.25rem 0 0; max-height: 13rem; overflow: auto; padding: 0.9rem; white-space: pre-wrap; }
+.artifact-frame pre { background: #fbfaf8; border: 1px solid #ded9d2; border-radius: 0.55rem; color: #292623; font-family: var(--mono); font-size: max(0.68rem, 11px); line-height: 1.55; margin: 0.25rem 0 0; max-height: 13rem; overflow: auto; padding: 0.9rem; white-space: pre-wrap; }
 .artifact-download-row { align-items: center; border-top: 1px solid var(--line); display: flex; justify-content: space-between; padding: 0.9rem 1.5rem; }
 .artifact-download-row p { color: var(--muted); font-size: max(0.68rem, 11px); margin: 0; }
 .artifact-download-row p strong { color: var(--ink); }
@@ -505,9 +497,7 @@ details.artifact-runtime-panel[open] > summary::after { content: "−"; }
 .project-build-artifact button { border-color: rgba(255, 255, 255, 0.15); color: #c8c0b9; justify-self: start; }
 .compiled-capstone-shell {
   --capstone-accent: #51465f;
-  --capstone-complete: #3f6547;
   --capstone-small: #5d5854;
-  --capstone-pending: #5d5961;
   background:
     radial-gradient(circle at 82% 8%, rgba(172, 148, 191, 0.2), transparent 30rem),
     radial-gradient(circle at 12% 92%, rgba(221, 184, 146, 0.16), transparent 28rem),
@@ -535,32 +525,10 @@ details.artifact-runtime-panel[open] > summary::after { content: "−"; }
   padding: 0.55rem 1.5rem;
 }
 
-.compiled-capstone-runtime > header > div {
-  align-items: baseline;
-  display: flex;
-  gap: 0.7rem;
-}
-
-.compiled-capstone-runtime > header span,
-.compiled-capstone-runtime > header strong,
-.compiled-capstone-runtime > header code {
-  font-size: max(0.68rem, 11px);
-}
-
-.compiled-capstone-runtime > header span {
-  color: var(--capstone-accent);
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-}
-
 .compiled-capstone-runtime > header strong {
   color: var(--capstone-small);
+  font-size: max(0.68rem, 11px);
   font-weight: 500;
-}
-
-.compiled-capstone-runtime > header code {
-  color: var(--capstone-small);
-  font-family: var(--mono);
 }
 
 .compiled-capstone-runtime > header button {
@@ -586,10 +554,10 @@ details.artifact-runtime-panel[open] > summary::after { content: "−"; }
 .capstone-build-gate {
   align-content: center;
   display: grid;
-  gap: clamp(1.6rem, 3vw, 2.5rem);
+  gap: 1.5rem;
   justify-content: center;
   margin: 0 auto;
-  max-width: 78rem;
+  max-width: 58rem;
   min-height: calc(100vh - 4.8rem);
   min-height: calc(100dvh - 4.8rem);
   padding: clamp(3rem, 8vh, 6.5rem) clamp(1.4rem, 5vw, 4.5rem);
@@ -597,24 +565,16 @@ details.artifact-runtime-panel[open] > summary::after { content: "−"; }
 }
 
 .capstone-gate-copy {
-  max-width: 68rem;
-}
-
-.capstone-gate-copy > span,
-.capstone-next-step > div > span {
-  color: var(--capstone-accent);
-  font-size: max(0.68rem, 11px);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  max-width: 48rem;
 }
 
 .capstone-gate-copy h1 {
   font-family: var(--serif);
-  font-size: clamp(2.55rem, 4.2vw, 4.25rem);
+  font-size: clamp(2.35rem, 4vw, 3.65rem);
   font-weight: 400;
   letter-spacing: -0.05em;
   line-height: 1.02;
-  margin: 0.75rem 0 0;
+  margin: 0;
   text-wrap: balance;
 }
 
@@ -631,28 +591,16 @@ details.artifact-runtime-panel[open] > summary::after { content: "−"; }
   border-bottom: 1px solid var(--line);
   border-top: 1px solid var(--line);
   display: grid;
-  gap: 1.25rem;
-  grid-template-columns: minmax(9rem, 0.65fr) minmax(10rem, 1fr) minmax(13rem, 0.85fr);
+  gap: 1rem;
+  grid-template-columns: minmax(10rem, 1fr) auto;
   padding: 0.95rem 0;
 }
 
-.capstone-progress-line > div {
-  display: grid;
-  gap: 0.3rem;
-}
-
-.capstone-progress-line span {
+.capstone-progress-line p {
   color: var(--capstone-small);
   font-size: max(0.68rem, 11px);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.capstone-progress-line strong {
-  color: var(--ink);
-  font-family: var(--mono);
-  font-size: 0.7rem;
-  font-weight: 500;
+  margin: 0;
+  white-space: nowrap;
 }
 
 .capstone-progress-line progress {
@@ -669,79 +617,12 @@ details.artifact-runtime-panel[open] > summary::after { content: "−"; }
 .capstone-progress-line progress::-webkit-progress-value { background: linear-gradient(90deg, #746487, #a28caf); border-radius: 99px; }
 .capstone-progress-line progress::-moz-progress-bar { background: linear-gradient(90deg, #746487, #a28caf); border-radius: 99px; }
 
-.capstone-build-path {
-  border-bottom: 1px solid var(--line);
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.capstone-action {
+  min-height: 2.75rem;
 }
 
-.capstone-build-path li {
-  display: grid;
-  gap: 0.42rem;
-  min-width: 0;
-  padding: 0 1.35rem 1.25rem 0;
-  position: relative;
-}
-
-.capstone-build-path li + li {
-  border-left: 1px solid var(--line);
-  padding-left: 1.35rem;
-}
-
-.capstone-build-path li::after {
-  background: var(--line-strong);
-  content: "";
-  height: 1px;
-  left: 0;
-  position: absolute;
-  top: -0.85rem;
-  width: 2rem;
-}
-
-.capstone-build-path li.complete::after { background: var(--capstone-complete); }
-.capstone-build-path li.current::after { background: var(--capstone-accent); height: 2px; width: 3.25rem; }
-.capstone-build-path li > span { color: var(--capstone-small); font-family: var(--mono); font-size: max(0.68rem, 11px); }
-.capstone-build-path li.complete > span { color: var(--capstone-complete); }
-.capstone-build-path li.current > span { color: var(--capstone-accent); }
-.capstone-build-path strong { font-family: var(--serif); font-size: 1rem; font-weight: 400; }
-.capstone-build-path code { color: var(--capstone-small); font-family: var(--mono); font-size: max(0.68rem, 11px); line-height: 1.45; overflow-wrap: anywhere; }
-.capstone-build-path li.pending strong,
-.capstone-build-path li.pending code { color: var(--capstone-pending); }
-
-.capstone-next-step {
-  align-items: end;
-  display: grid;
-  gap: 2rem;
-  grid-template-columns: minmax(0, 1fr) auto;
-}
-
-.capstone-next-step > div {
-  display: grid;
-  gap: 0.52rem;
-  max-width: 50rem;
-  min-width: 0;
-}
-
-.capstone-next-step code {
-  color: var(--ink);
-  font-family: var(--mono);
-  font-size: 0.7rem;
-  line-height: 1.5;
-  overflow-wrap: anywhere;
-}
-
-.capstone-next-step p {
-  color: var(--muted);
-  font-size: 0.7rem;
-  line-height: 1.6;
-  margin: 0;
-}
-
-.capstone-next-step > a,
-.capstone-next-step > button {
+.capstone-action > a,
+.capstone-action > button {
   background: transparent;
   border: 1px solid var(--line-strong);
   border-radius: 999px;
@@ -754,36 +635,25 @@ details.artifact-runtime-panel[open] > summary::after { content: "−"; }
   white-space: nowrap;
 }
 
-.capstone-next-step > a:hover,
-.capstone-next-step > button:hover { background: rgba(116, 100, 135, 0.07); border-color: rgba(116, 100, 135, 0.48); }
-.capstone-next-step > a:focus-visible,
-.capstone-next-step > button:focus-visible,
+.capstone-action > a:hover,
+.capstone-action > button:hover { background: rgba(116, 100, 135, 0.07); border-color: rgba(116, 100, 135, 0.48); }
+.capstone-action > a:focus-visible,
+.capstone-action > button:focus-visible,
 .compiled-capstone-runtime > header button:focus-visible { outline: 2px solid var(--capstone-accent); outline-offset: 3px; }
 .capstone-verifying { color: var(--muted); font-family: var(--mono); font-size: max(0.68rem, 11px); padding: 0.8rem 0; }
 
 @media (max-width: 700px) {
+  .artifact-identity { align-items: start; grid-template-columns: 1fr auto; }
+  .artifact-identity strong { grid-column: 1 / -1; grid-row: 2; }
   .capstone-build-gate { align-content: start; min-height: calc(100vh - 4.8rem); min-height: calc(100dvh - 4.8rem); padding-top: 3rem; }
   .capstone-gate-copy h1 { font-size: clamp(2.35rem, 10.5vw, 3rem); }
-  .capstone-progress-line { gap: 0.75rem; grid-template-columns: 1fr auto; }
-  .capstone-progress-line progress { grid-column: 1 / -1; grid-row: 2; }
-  .capstone-progress-line > div:last-child { justify-items: end; text-align: right; }
-  .capstone-build-path { grid-template-columns: 1fr; }
-  .capstone-build-path li { padding: 0 0 1.2rem 1.2rem; }
-  .capstone-build-path li + li { border-left: 0; border-top: 1px solid var(--line); padding: 1.2rem 0 1.2rem 1.2rem; }
-  .capstone-build-path li::after { height: 1.75rem; left: 0; top: 0.1rem; width: 1px; }
-  .capstone-build-path li + li::after { top: 1.3rem; }
-  .capstone-build-path li.current::after { height: 2.6rem; width: 2px; }
-  .capstone-next-step { align-items: stretch; gap: 1.25rem; grid-template-columns: 1fr; }
-  .capstone-next-step > a,
-  .capstone-next-step > button { justify-self: start; white-space: normal; }
+  .capstone-progress-line { align-items: start; grid-template-columns: 1fr; }
+  .capstone-progress-line p { white-space: normal; }
   .compiled-capstone-runtime > header { align-items: flex-start; gap: 0.5rem; padding: 0.6rem 0.85rem; }
-  .compiled-capstone-runtime > header > div { align-items: flex-start; display: grid; gap: 0.25rem; }
-  .compiled-capstone-runtime > header > div:last-child { justify-items: end; }
 }
 
 @media (max-width: 430px) {
   .capstone-build-gate { padding-left: 1.1rem; padding-right: 1.1rem; }
-  .capstone-progress-line strong { font-size: 0.7rem; }
-  .capstone-next-step > a,
-  .capstone-next-step > button { justify-self: stretch; width: 100%; }
+  .capstone-action > a,
+  .capstone-action > button { display: block; text-align: center; width: 100%; }
 }

@@ -14,11 +14,10 @@ function shortHash(artifact: ArtifactEnvelope) {
 
 function ArtifactIdentity({ artifact, label }: { artifact: ArtifactEnvelope; label: string }) {
   return (
-    <article className="artifact-identity">
+    <article className="artifact-identity" aria-label={`${label}: ${artifact.title}. ${artifact.description}`}>
       <span>{label}</span>
       <strong>{artifact.title}</strong>
-      <p>{artifact.description}</p>
-      <div><code>{artifact.kind}</code><code>{shortHash(artifact)}</code></div>
+      <code>{shortHash(artifact)}</code>
     </article>
   );
 }
@@ -40,7 +39,7 @@ function ReplayFrames({ artifact }: { artifact: ArtifactEnvelope }) {
         ))}
       </div>
       <article className="artifact-frame">
-        <span>Course example frame {active.index + 1} / {frames.length}</span>
+        <span>Recorded frame {active.index + 1} / {frames.length}</span>
         <strong>{active.label}</strong>
         <pre>{JSON.stringify(active.payload, null, 2)}</pre>
       </article>
@@ -65,20 +64,21 @@ export function ArtifactRuntimePanel({ lesson, refreshKey = 0 }: { lesson: Cours
   return (
     <details className="artifact-runtime-panel" id="artifacts">
       <summary className="artifact-runtime-heading">
-        <div><span>Saved results</span><h3 id="artifact-runtime-title">Proof tied to the exact code you ran.</h3></div>
-        <span className="artifact-runtime-action">Take a look</span>
+        <h3 id="artifact-runtime-title">Saved results</h3>
       </summary>
       <div className="artifact-runtime-body" aria-labelledby="artifact-runtime-title">
-        <p className="artifact-runtime-intro">When your code passes, Latent saves its source hash and check results on this device. The replay frames are examples made for the course, not output calculated from your code.</p>
+        <p className="artifact-runtime-note">Checks use your saved code. Training replays use recorded lesson data.</p>
         {error ? <p className="artifact-runtime-error">{error}</p> : null}
-        {!view && !error ? <p className="artifact-runtime-loading">Loading the saved artifact history…</p> : null}
+        {!view && !error ? <p className="artifact-runtime-loading">Loading…</p> : null}
         {view ? (
           <>
             {view.training ? <RecordedTrainingPanel key={view.training.scenario.id} replay={view.training} onDownload={downloadArtifact} /> : null}
-            <div className="artifact-lineage-grid">
-              {view.input ? <ArtifactIdentity artifact={view.input} label="Previous result" /> : <article className="artifact-identity pending"><span>Previous result still needed</span><strong>Finish the previous lesson</strong><p>Its saved result will become the starting point for this lesson&apos;s artifact history.</p></article>}
-              {view.output ? <ArtifactIdentity artifact={view.output} label="Validation result" /> : <article className="artifact-identity pending"><span>Result still needed</span><strong>Pass every behavior check</strong><p>Your passing code and check results will become a validation file you can download.</p></article>}
-            </div>
+            {view.input || view.output ? (
+              <div className="artifact-lineage-grid">
+                {view.input ? <ArtifactIdentity artifact={view.input} label="Previous result" /> : null}
+                {view.output ? <ArtifactIdentity artifact={view.output} label="Validation result" /> : null}
+              </div>
+            ) : view.training ? null : <p className="artifact-runtime-loading">No saved results yet.</p>}
             {view.output ? (
               <>
                 <ReplayFrames artifact={view.output} key={view.output.id} />

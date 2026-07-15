@@ -21,7 +21,7 @@ export default async function CheckpointPage({ params }: { params: Promise<{ mod
   if (!track) notFound();
   return (
     <main>
-      <div className="page-atmosphere" aria-hidden="true"><span className="orbit orbit-one" /><span className="orbit orbit-two" /><span className="orbit orbit-three" /><span className="node node-one" /><span className="warm-star" /></div>
+      <div className="page-atmosphere" aria-hidden="true"><span className="orbit orbit-one" /><span className="node node-one" /><span className="warm-star" /></div>
       <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><Link href={`/courses/${track.id}`}>Module</Link><Link href="/project">Project</Link><Link href="/workspace">IDE</Link></nav></header>
       <ModuleCheckpoint courseId={track.id} />
     </main>

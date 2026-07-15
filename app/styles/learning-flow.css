@@ -65,17 +65,6 @@ main {
   z-index: 0;
 }
 
-.page-atmosphere::before {
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.028) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
-  background-size: 5px 5px;
-  content: "";
-  inset: 0;
-  opacity: 0.7;
-  position: absolute;
-}
-
 .orbit {
   border: 1px solid rgba(107, 91, 133, 0.13);
   border-radius: 50%;
@@ -88,23 +77,6 @@ main {
 .orbit-one {
   height: 30rem;
   width: 57rem;
-}
-
-.orbit-two {
-  height: 23rem;
-  right: -2rem;
-  top: -1rem;
-  transform: rotate(23deg);
-  width: 45rem;
-}
-
-.orbit-three {
-  border-color: rgba(173, 128, 90, 0.09);
-  height: 43rem;
-  right: -24rem;
-  top: 7rem;
-  transform: rotate(38deg);
-  width: 72rem;
 }
 
 .node,
@@ -123,11 +95,6 @@ main {
 .node-one {
   right: 25%;
   top: 5.4rem;
-}
-
-.node-two {
-  right: 8%;
-  top: 20rem;
 }
 
 .warm-star {
@@ -211,7 +178,7 @@ main {
 }
 
 .paper-page {
-  padding: 2.5rem 0 5rem;
+  padding: 1.25rem 0 4rem;
 }
 
 .paper-hero,
@@ -231,7 +198,7 @@ main {
   max-width: none;
   min-height: 0;
   overflow: visible;
-  padding: clamp(2.5rem, 4vw, 3.25rem) 0 2.25rem;
+  padding: clamp(1.75rem, 3vw, 2.5rem) 0 1.75rem;
   position: relative;
   text-align: left;
 }
@@ -274,7 +241,7 @@ main {
   align-items: baseline;
   display: flex;
   gap: 0.85rem 1rem;
-  margin-top: 1.7rem;
+  margin-top: 1.25rem;
   max-width: none;
   text-align: left;
   width: 100%;
@@ -283,13 +250,13 @@ main {
 .source-set-title {
   color: var(--muted);
   font-family: var(--sans);
-  font-size: max(0.68rem, 11px);
-  font-weight: 590;
+  font-size: max(0.72rem, 12px);
+  font-weight: 550;
   flex: 0 0 auto;
-  letter-spacing: 0.11em;
+  letter-spacing: 0;
   margin: 0;
   padding: 0;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 /* Equal-weight source citations replace the former featured/supporting cards. */
@@ -311,7 +278,7 @@ main {
 .source-entry > a {
   align-items: center;
   display: inline-flex;
-  min-height: 2.75rem;
+  min-height: 2.25rem;
   padding: 0.2rem 0;
 }
 
@@ -346,7 +313,7 @@ main {
 
 .paper-section {
   border-top: 1px solid var(--line-strong);
-  padding: clamp(3.25rem, 5vw, 4.5rem) 0;
+  padding: clamp(2.25rem, 4vw, 3.25rem) 0;
   scroll-margin-top: 1rem;
 }
 
@@ -388,10 +355,8 @@ main {
 }
 
 .summary-interlude {
-  border-bottom: 1px solid var(--line);
-  border-top: 1px solid var(--line);
-  margin: 2.75rem 0;
-  padding: 1.8rem 0;
+  margin: 2.25rem 0;
+  padding: 0;
 }
 
 .nucleus-diagram {
@@ -822,7 +787,7 @@ button:disabled {
   border-top: 1px solid var(--line);
   display: grid;
   gap: 2rem;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   padding: 2.6rem 0 1rem;
 }
 
@@ -843,29 +808,9 @@ button:disabled {
   padding-bottom: 0.25rem;
 }
 
-.hero-record {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.55rem;
-  justify-content: flex-start;
-  margin-top: 0.85rem;
-}
-
-.hero-record span {
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  color: var(--muted);
-  font-size: max(0.68rem, 11px);
-  letter-spacing: 0.08em;
-  padding: 0;
-  text-transform: uppercase;
-}
-
-.hero-record span + span::before {
-  color: var(--faint);
-  content: "·";
-  margin-right: 0.55rem;
+.lesson-footer a:last-child {
+  justify-self: end;
+  text-align: right;
 }
 
 .summary-evidence {
@@ -886,10 +831,6 @@ button:disabled {
 
 /* Technical labels stay legible without changing the diagrams' compact hierarchy. */
 
-.concept-diagram > header {
-  padding: 0 0 1rem;
-}
-
 .dataset-record > div > span,
 .experiment-header span,
 .token-artifact > span,
@@ -903,7 +844,7 @@ button:disabled {
   text-transform: uppercase;
 }
 
-.concept-diagram > header strong {
+.concept-diagram > figcaption strong {
   font-family: var(--serif);
   font-size: 1.2rem;
   font-weight: 400;
@@ -2522,13 +2463,18 @@ button:disabled {
   margin-bottom: 0.28rem;
 }
 
-.concept-diagram figcaption {
-  border-top: 1px solid var(--line);
+.concept-diagram > figcaption {
+  border: 0;
+  display: grid;
+  gap: 0.35rem;
+  padding: 0 0 1.15rem;
+}
+
+.concept-diagram > figcaption span {
   color: var(--muted);
   font-family: var(--serif);
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   line-height: 1.55;
-  padding: 1rem 0 0;
 }
 
 .dataset-record dt {

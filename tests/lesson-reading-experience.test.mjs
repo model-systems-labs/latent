@@ -11,9 +11,12 @@ const codingWorkspaceUrl = new URL("app/styles/coding-workspace.css", root);
 const responsiveUrl = new URL("app/styles/responsive.css", root);
 const paperLabMobileUrl = new URL("app/components/PaperLab.module.css", root);
 const projectPageUrl = new URL("app/project/page.tsx", root);
+const learningDataPanelUrl = new URL("app/components/LearningDataPanel.tsx", root);
 const projectStructureUrl = new URL("app/styles/project-structure.css", root);
 const pytorchHandoffCssUrl = new URL("app/features/pytorch/PyTorchHandoff.module.css", root);
-const productizationUrl = new URL("app/styles/productization.css", root);
+const lessonOutcomeCssUrl = new URL("app/components/LessonOutcome.module.css", root);
+const lessonExperimentUrl = new URL("app/components/LessonExperiment.tsx", root);
+const artifactRuntimePanelUrl = new URL("app/features/artifacts/ArtifactRuntimePanel.tsx", root);
 
 function rule(source, selector) {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -33,7 +36,7 @@ test("lessons use an editorial hierarchy instead of landing-page scale", async (
   assert.match(learningFlow, /\.paper-hero h1\s*\{[^}]*font-size:\s*clamp\(2\.65rem,\s*4vw,\s*4rem\)/);
   assert.match(learningFlow, /\.paper-hero h1\s*\{[^}]*white-space:\s*nowrap/);
   assert.match(learningFlow, /\.section-title h2\s*\{[^}]*font-size:\s*clamp\(1\.65rem,\s*2\.3vw,\s*2\.15rem\)/);
-  assert.match(learningFlow, /\.paper-section\s*\{[^}]*padding:\s*clamp\(3\.25rem,\s*5vw,\s*4\.5rem\)/);
+  assert.match(learningFlow, /\.paper-section\s*\{[^}]*padding:\s*clamp\(2\.25rem,\s*4vw,\s*3\.25rem\)/);
   assert.match(lessonMobile, /\.lessonShell :global\(\.paper-hero h1\)\s*\{[^}]*font-size:\s*clamp\(2\.15rem,\s*9vw,\s*2\.65rem\)[^}]*white-space:\s*normal/);
   assert.match(lessonMobile, /\.lessonShell :global\(\.exercise-body\) \{ padding:\s*0\.15rem 0 1\.7rem; \}/);
   assert.match(lessonMobile, /\.lessonShell :global\(\.exercise-feedback\) \{[^}]*flex-direction:\s*column/);
@@ -43,15 +46,18 @@ test("lessons use an editorial hierarchy instead of landing-page scale", async (
 });
 
 test("selection prompts and project history stay out of the primary reading path", async () => {
-  const [paperLab, projectPage, projectStructure] = await Promise.all([
+  const [paperLab, projectPage, projectStructure, learningDataPanel] = await Promise.all([
     readFile(paperLabUrl, "utf8"),
     readFile(projectPageUrl, "utf8"),
     readFile(projectStructureUrl, "utf8"),
+    readFile(learningDataPanelUrl, "utf8"),
   ]);
   assert.doesNotMatch(paperLab, /SelectionAsk|selection-ask|data-selection-ask|Highlight a passage|questions-disclosure|paper-chat|OpenRouter/);
-  assert.match(projectPage, /<details className="project-history-disclosure">[\s\S]*?History and learning data/);
+  assert.match(projectPage, /<details className="project-history-disclosure">[\s\S]*?History and privacy/);
   assert.doesNotMatch(projectPage, /<details className="project-history-disclosure" open/);
-  assert.match(rule(projectStructure, ".project-history-disclosure > summary"), /min-height:\s*5rem/);
+  assert.match(learningDataPanel, /<section className="learning-data-panel"/);
+  assert.doesNotMatch(learningDataPanel, /<details className="learning-data-panel"/);
+  assert.match(rule(projectStructure, ".project-history-disclosure > summary"), /min-height:\s*3\.5rem/);
 });
 
 test("the native PyTorch handoff cannot widen a mobile lesson", async () => {
@@ -73,11 +79,11 @@ test("summary prose owns the reading flow and the mechanism follows the concepts
 });
 
 test("lesson prose, diagrams, contextual help, code, and outcomes share one editorial rail", async () => {
-  const [learningFlow, codingWorkspace, pytorch, productization] = await Promise.all([
+  const [learningFlow, codingWorkspace, pytorch, lessonOutcome] = await Promise.all([
     readFile(learningFlowUrl, "utf8"),
     readFile(codingWorkspaceUrl, "utf8"),
     readFile(pytorchHandoffCssUrl, "utf8"),
-    readFile(productizationUrl, "utf8"),
+    readFile(lessonOutcomeCssUrl, "utf8"),
   ]);
   assert.match(learningFlow, /\.paper-page\s*\{\s*max-width:\s*60rem/);
   for (const selector of [".paper-hero", ".paper-thesis", ".source-set", ".section-title", ".summary-reading", ".summary-copy", ".implementation-intro"]) {
@@ -85,26 +91,45 @@ test("lesson prose, diagrams, contextual help, code, and outcomes share one edit
   }
   assert.match(rule(codingWorkspace, ".practice-editor"), /max-width:\s*none/);
   assert.match(rule(pytorch, ".copy"), /max-width:\s*none/);
-  assert.match(rule(productization, ".lesson-outcome-layout"), /grid-template-columns:\s*1fr/);
-  assert.match(rule(productization, ".knowledge-check"), /border-right:\s*0/);
+  assert.match(rule(lessonOutcome, ".layout"), /display:\s*grid/);
+  assert.match(rule(lessonOutcome, ".check"), /border:\s*0/);
 });
 
-test("lesson references use one responsive disclosure while full metadata remains available to assistive technology", async () => {
+test("interactive experiments begin with one compact dataset sample instead of repeated framing", async () => {
+  const source = await readFile(lessonExperimentUrl, "utf8");
+  const dataset = source.slice(source.indexOf("function DatasetRecord"), source.indexOf("type ExperimentProps"));
+  const surface = source.slice(source.indexOf("export function LessonExperiment"));
+  assert.match(dataset, /aria-label=\{`Dataset sample: \$\{lesson\.dataset\.name\}`\}/);
+  assert.match(dataset, /<strong>\{lesson\.dataset\.name\}<\/strong>[\s\S]*?<span>\{lesson\.dataset\.preview\}<\/span>/);
+  assert.doesNotMatch(dataset, /lesson\.dataset\.(?:source|license|size)/);
+  assert.match(surface, /<section className="experiment-lab" aria-label=\{lesson\.experiment\.title\}>/);
+  assert.doesNotMatch(surface, /<header|lesson\.experiment\.intro/);
+});
+
+test("saved results render only artifacts that exist", async () => {
+  const source = await readFile(artifactRuntimePanelUrl, "utf8");
+  assert.match(source, /view\.input \|\| view\.output \? \(/);
+  assert.match(source, /view\.input \? <ArtifactIdentity artifact=\{view\.input\} label="Previous result" \/> : null/);
+  assert.match(source, /view\.output \? <ArtifactIdentity artifact=\{view\.output\} label="Validation result" \/> : null/);
+  assert.doesNotMatch(source, /artifact-identity pending|Not available yet|Pass all checks to create it/);
+  assert.match(source, /No saved results yet\./);
+});
+
+test("lesson sources use one compact inline list with assistive metadata", async () => {
   const [paperLab, learningFlow, lessonMobile] = await Promise.all([
     readFile(paperLabUrl, "utf8"),
     readFile(learningFlowUrl, "utf8"),
     readFile(paperLabMobileUrl, "utf8"),
   ]);
-  assert.match(paperLab, /function SourceSet[\s\S]*?useState\(false\)/, "references must not paint expanded before the mobile viewport is known");
-  assert.match(paperLab, /<details className="source-set" open=\{open\}[\s\S]*?aria-labelledby="lesson-sources-title"[\s\S]*?<summary className="source-set-title"><span id="lesson-sources-title">References<\/span><em>\{lesson\.sources\.length\}<\/em><\/summary>/);
+  assert.match(paperLab, /<div className="source-set" aria-labelledby="lesson-sources-title">[\s\S]*?<span className="source-set-title" id="lesson-sources-title">Sources<\/span>/);
+  assert.doesNotMatch(paperLab, /<details className="source-set"|matchMedia\("\(max-width: 650px\)/);
   assert.equal(paperLab.match(/<ul className="source-list">/g)?.length, 1, "references must have one semantic copy");
-  assert.match(paperLab, /aria-label=\{`\$\{source\.title\} — \$\{source\.authors\}, \$\{source\.year\}\. \$\{source\.relevance\}`\}/);
+  assert.match(paperLab, /aria-label=\{`\$\{source\.title\}, \$\{source\.authors\}, \$\{source\.year\}; opens in a new tab`\}/);
   assert.doesNotMatch(paperLab, /<p>\{source\.relevance\}<\/p>/);
   assert.match(rule(learningFlow, ".source-list"), /display:\s*flex/);
-  assert.match(rule(learningFlow, ".source-entry > a"), /min-height:\s*2\.75rem/);
-  assert.match(lessonMobile, /\.lessonShell :global\(\.source-set-title\)\s*\{[^}]*min-height:\s*3\.25rem/);
-  assert.match(lessonMobile, /\.lessonShell :global\(\.source-set-title\)\s*\{[^}]*list-style:\s*none/);
-  assert.match(lessonMobile, /\.lessonShell :global\(\.source-set\[open\] \.source-set-title::after\)/);
+  assert.match(rule(learningFlow, ".source-entry > a"), /min-height:\s*2\.25rem/);
+  assert.match(lessonMobile, /\.lessonShell :global\(\.source-set\)\s*\{[^}]*display:\s*grid/);
+  assert.doesNotMatch(lessonMobile, /source-set\[open\]|source-set-title::after/);
 });
 
 test("lesson code opens one starter-first syntax-aware Python exercise in a light-neutral workspace", async () => {
@@ -136,8 +161,8 @@ test("lesson code opens one starter-first syntax-aware Python exercise in a ligh
   assert.match(paperLab, /onChange=\{\(value\) => updateAnswer\(block, value\)\}/);
   assert.match(paperLab, /<SyntaxCode code=\{starterSource\} label=\{`\$\{block\.label\} starter loading`\}/);
   assert.match(paperLab, /"Running…" : "Run cell"/);
-  assert.match(paperLab, /"Running in sandbox…" : "Check all my code"/);
-  assert.match(paperLab, /className="reference-comparison"[\s\S]*?<summary><span>Compare with reference<\/span><em>Your draft stays unchanged<\/em><\/summary>[\s\S]*?<SyntaxCode code=\{block\.code\}/);
+  assert.match(paperLab, /"Running tests…" : "Run all tests"/);
+  assert.match(paperLab, /className="reference-comparison"[\s\S]*?<summary>Reference solution<\/summary>[\s\S]*?<SyntaxCode code=\{block\.code\}/);
   assert.match(paperLab, /dirty \? <button className="start-over-button"[\s\S]*?>Start over<\/button> : null/);
   assert.match(paperLab, /resetArmed \? \([\s\S]*?Confirm start over for \$\{block\.label\}[\s\S]*?>Confirm<\/button>[\s\S]*?Cancel start over for \$\{block\.label\}[\s\S]*?>Cancel<\/button>/);
   assert.doesNotMatch(paperLab, /Reset all|Restore all|Restore reference|Restore draft|Run all examples|Run practice checks|Practice cell|Show solution|Hide solution/);

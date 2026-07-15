@@ -7,13 +7,11 @@ import { courseLessons } from "../lessons/course";
 import { LessonExperiment } from "./LessonExperiment";
 import {
   discardLearnerRecoveryCandidate,
-  lessonIsComplete,
   initializeLearnerPersistence,
   loadLearnerRecoveryCandidate,
   loadLearnerState,
   recordVerifiedCells,
   saveLessonPracticeAndVerification,
-  useLearnerState,
   useLearnerPersistenceError,
   useLearnerRecoveryCandidates,
 } from "../lib/learner-state";
@@ -39,7 +37,7 @@ import {
 } from "../features/ide/practice-state";
 import { llmSystemsContractSuite } from "../content/llm-systems/contracts";
 import { LessonOutcome } from "./LessonOutcome";
-import { lessonLearningOutcome, moduleCheckpoint } from "../content/llm-systems/learning";
+import { moduleCheckpoint } from "../content/llm-systems/learning";
 import { recordLearningEvent } from "../lib/learning-analytics";
 import { SyntaxCode } from "../features/ide/SyntaxCode";
 import { getLessonFlair } from "../lessons/lesson-flair";
@@ -68,35 +66,20 @@ function Atmosphere() {
   return (
     <div className="page-atmosphere" aria-hidden="true">
       <span className="orbit orbit-one" />
-      <span className="orbit orbit-two" />
-      <span className="orbit orbit-three" />
       <span className="node node-one" />
-      <span className="node node-two" />
       <span className="warm-star" />
     </div>
   );
 }
 
 function SourceSet({ lesson }: { lesson: CourseLesson }) {
-  // Start collapsed so the server-rendered mobile page never paints a large
-  // references rail before the responsive preference is known.
-  const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    const mobile = window.matchMedia("(max-width: 650px), (max-width: 940px) and (max-height: 500px)");
-    const syncForViewport = () => setOpen(!mobile.matches);
-    syncForViewport();
-    mobile.addEventListener("change", syncForViewport);
-    return () => mobile.removeEventListener("change", syncForViewport);
-  }, []);
-
   return (
-    <details className="source-set" open={open} onToggle={(event) => setOpen(event.currentTarget.open)} aria-labelledby="lesson-sources-title">
-      <summary className="source-set-title"><span id="lesson-sources-title">References</span><em>{lesson.sources.length}</em></summary>
+    <div className="source-set" aria-labelledby="lesson-sources-title">
+      <span className="source-set-title" id="lesson-sources-title">Sources</span>
       <ul className="source-list">
         {lesson.sources.map((source) => (
           <li className="source-entry" key={source.url}>
-            <a href={source.url} target="_blank" rel="noreferrer" aria-label={`${source.title} — ${source.authors}, ${source.year}. ${source.relevance}`}>
+            <a href={source.url} target="_blank" rel="noreferrer" aria-label={`${source.title}, ${source.authors}, ${source.year}; opens in a new tab`}>
               <span className="source-citation">
                 <strong>{source.title}</strong>
                 <span aria-hidden="true">↗</span>
@@ -105,25 +88,16 @@ function SourceSet({ lesson }: { lesson: CourseLesson }) {
           </li>
         ))}
       </ul>
-    </details>
+    </div>
   );
 }
 
 export function HeaderSection({ lesson }: { lesson: CourseLesson }) {
-  const flair = getLessonFlair(lesson.id);
   return (
     <header className="paper-hero">
-      <div className="lesson-kicker">
-        <p className="eyebrow">{lesson.eyebrow}</p>
-        {flair ? <code className="lesson-notation" aria-hidden="true">{flair.notation}</code> : null}
-      </div>
+      <p className="eyebrow">{lesson.eyebrow}</p>
       <h1>{lesson.title}</h1>
       <p className="paper-thesis">{lesson.thesis}</p>
-      <div className="hero-record">
-        <span>{lesson.modeLabel}</span>
-        <span>{lesson.authors}</span>
-        <span>{lesson.year}</span>
-      </div>
       <SourceSet lesson={lesson} />
     </header>
   );
@@ -151,7 +125,7 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
   ];
   return (
     <figure className={`concept-diagram${isRecurrent ? " recurrence-diagram" : ""}${isNeuralLanguageModel ? " neural-lm-diagram" : ""}${isSubwordTokenization ? " subword-tokenization-diagram" : ""}${isAdditiveAttention ? " additive-attention-diagram" : ""}${isTransformer ? " transformer-attention-diagram" : ""}${isInContextLearning ? " icl-comparison-diagram" : ""}${isInferenceRuntime ? " inference-runtime-diagram" : ""}${isSchedulingMemory ? " scheduling-memory-diagram" : ""}${isStreamingTransport ? " streaming-transport-diagram" : ""}${isReliabilityObservability ? " reliability-observability-diagram" : ""}${isConversationState ? " conversation-state-diagram" : ""}${isStreamingReact ? " streaming-react-diagram" : ""}${isChatActionsContext ? " chat-actions-context-diagram" : ""}${isChatProductQuality ? " chat-product-quality-diagram" : ""}`}>
-      <header><strong>{lesson.diagram.title}</strong></header>
+      <figcaption><strong>{lesson.diagram.title}</strong><span>{lesson.diagram.caption}</span></figcaption>
       {isRecurrent ? (
         <div className="recurrence-unroll" role="group" aria-label="Three RNN steps use the same parameters. In teacher-forced training, the real next character is both the loss target and the next input. During generation, the model samples a character and feeds it into the next step.">
           <div className="unroll-columns">
@@ -183,7 +157,7 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
           <ol className="probability-stages">
             {lesson.diagram.nodes.map((node, index) => (
               <li key={node.label}>
-                <span>{String(index + 1).padStart(2, "0")}</span>
+                <span>{String(index + 1)}</span>
                 <div><strong>{node.label}</strong><code>{node.value}</code></div>
               </li>
             ))}
@@ -198,7 +172,7 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
           <ol className="bpe-rounds">
             {lesson.diagram.nodes.map((node, index) => (
               <li key={node.label}>
-                <span>{String(index + 1).padStart(2, "0")}</span>
+                <span>{String(index + 1)}</span>
                 <div><strong>{node.label}</strong><code>{node.value}</code></div>
               </li>
             ))}
@@ -221,7 +195,7 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
           <ol className="attention-stages">
             {lesson.diagram.nodes.map((node, index) => (
               <li key={node.label}>
-                <span>{String(index + 1).padStart(2, "0")}</span>
+                <span>{String(index + 1)}</span>
                 <div><strong>{node.label}</strong><code>{node.value}</code></div>
               </li>
             ))}
@@ -236,7 +210,7 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
           <ol className="transformer-stages">
             {lesson.diagram.nodes.map((node, index) => (
               <li key={node.label}>
-                <span>{String(index + 1).padStart(2, "0")}</span>
+                <span>{String(index + 1)}</span>
                 <div><strong>{node.label}</strong><code>{node.value}</code></div>
               </li>
             ))}
@@ -281,11 +255,6 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
               <tr><th scope="row">4 examples</th><td>prediction / K</td><td>prediction / M</td><td>? / 2</td></tr>
             </tbody>
           </table>
-          <div className="icl-inference-boundary">
-            <span><b>What runs here</b> The fixed local evaluator builds the prompts, runs the model, pulls out the labels, and fills in this table. Your code is checked separately and never runs here.</span>
-            <span><b>What this shows</b> whether the examples changed either answer in this run.</span>
-            <span><b>What it doesn’t show</b> a general accuracy boost or the paper&apos;s large-scale result from only two items.</span>
-          </div>
         </div>
       ) : isInferenceRuntime ? (
         <div className="runtime-worked-example" role="group" aria-label="Inference timeline for request r-104. It waits 18 milliseconds, prefills a 96-token prompt in 74 milliseconds with 6 KV pages, samples the first of 32 output tokens at a 92 millisecond TTFT, runs 31 more one-position decode passes while the cache grows to 8 pages, then releases every page. The KV-cache byte formula counts keys and values across every layer, KV head, cached token, head coordinate, and byte per value.">
@@ -298,7 +267,7 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
           <ol className="runtime-timeline">
             {lesson.diagram.nodes.map((node, index) => (
               <li key={node.label}>
-                <span>{String(index + 1).padStart(2, "0")}</span>
+                <span>{String(index + 1)}</span>
                 <div><strong>{node.label}</strong><code>{node.value}</code></div>
               </li>
             ))}
@@ -326,7 +295,7 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
             <section>
               <header><span>Static batch</span><code>membership fixed</code></header>
               <ol>
-                <li><b>01</b><span>a · b · c decode</span><em>d waits</em></li>
+                <li><b>1</b><span>a · b · c decode</span><em>d waits</em></li>
                 <li><b>14</b><span>a finishes; its slot idles</span><em>d still waits</em></li>
                 <li><b>drain</b><span>longest sequence finishes</span><em>next batch can enter</em></li>
               </ol>
@@ -335,16 +304,12 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
             <section>
               <header><span>Continuous</span><code>membership per iteration</code></header>
               <ol>
-                <li><b>01</b><span>a · b · c decode</span><em>d waits</em></li>
+                <li><b>1</b><span>a · b · c decode</span><em>d waits</em></li>
                 <li><b>14</b><span>a → completed; pages release</span><em>identity retained</em></li>
                 <li><b>15</b><span>d enters the freed slot</span><em>next iteration</em></li>
               </ol>
               <dl><div><dt>Iterations</dt><dd>88</dd></div><div><dt>Utilization</dt><dd>86%</dd></div><div><dt>P95 wait</dt><dd>7</dd></div></dl>
             </section>
-          </div>
-          <div className="scheduler-inference-boundary">
-            <span><b>What this shows</b> refilling finished slots helps this fixed workload under the simulator&apos;s limits.</span>
-            <span><b>What it doesn’t show</b> a speedup for every production system. You’d still need to measure overhead, fairness, prefill interference, and other traffic.</span>
           </div>
         </div>
       ) : isStreamingTransport ? (
@@ -356,7 +321,7 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
           <ol className="transport-stages">
             {lesson.diagram.nodes.map((node, index) => (
               <li key={node.label}>
-                <span>{String(index + 1).padStart(2, "0")}</span>
+                <span>{String(index + 1)}</span>
                 <div><strong>{node.label}</strong><code>{node.value}</code></div>
               </li>
             ))}
@@ -380,7 +345,7 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
           <ol className="reliability-trace">
             {lesson.diagram.nodes.map((node, index) => (
               <li key={node.label}>
-                <span>{String(index + 1).padStart(2, "0")}</span>
+                <span>{String(index + 1)}</span>
                 <div><strong>{node.label}</strong><code>{node.value}</code></div>
               </li>
             ))}
@@ -436,7 +401,7 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
           <ol className="streaming-render-path">
             {lesson.diagram.nodes.map((node, index) => (
               <li key={node.label}>
-                <span>{String(index + 1).padStart(2, "0")}</span>
+                <span>{String(index + 1)}</span>
                 <div><strong>{node.label}</strong><code>{node.value}</code></div>
               </li>
             ))}
@@ -486,7 +451,7 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
           <ol className="quality-lifecycle-trace">
             {lesson.diagram.nodes.map((node, index) => (
               <li key={node.label}>
-                <span>{String(index + 1).padStart(2, "0")}</span>
+                <span>{String(index + 1)}</span>
                 <div><strong>{node.label}</strong><code>{node.value}</code></div>
               </li>
             ))}
@@ -509,14 +474,13 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
         <div className="concept-flow">
           {lesson.diagram.nodes.map((node, index) => (
             <div key={node.label}>
-              <span>{String(index + 1).padStart(2, "0")}</span>
+              <span>{String(index + 1)}</span>
               <strong>{node.label}</strong>
               <code>{node.value}</code>
             </div>
           ))}
         </div>
       )}
-      <figcaption>{lesson.diagram.caption}</figcaption>
     </figure>
   );
 }
@@ -527,7 +491,7 @@ export function ParagraphSection({ lesson }: { lesson: CourseLesson }) {
   const closing = lesson.summary.slice(diagramAfter);
   return (
     <section className="paper-section summary-section" id="summary">
-      <div className="section-title"><h2>Summary</h2></div>
+      <h2 className="sr-only">Summary</h2>
       <div className="summary-reading">
         <div className="summary-copy">
           {opening.map((paragraph) => (
@@ -577,7 +541,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
   const [verifiedContractVersion, setVerifiedContractVersion] = useState<string | null>(null);
   const [cellResults, setCellResults] = useState<Record<string, CheckResult | undefined>>({});
   const [cellOutputs, setCellOutputs] = useState<Record<string, CellExecutionOutput | undefined>>({});
-  const [practiceMessage, setPracticeMessage] = useState("The first exercise is open. Edit the starter, then run its checks.");
+  const [practiceMessage, setPracticeMessage] = useState("");
   const [runningBlockIds, setRunningBlockIds] = useState<string[]>([]);
   const [artifactRevision, setArtifactRevision] = useState(0);
   const [practiceReady, setPracticeReady] = useState(false);
@@ -663,9 +627,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
         ? "This file has newer changes in the full IDE. Continue there so this lesson doesn’t overwrite them."
         : compatible.ignoredLegacyLanguage
           ? "This lesson now runs in CPython. Your older JavaScript draft is still saved on this device, but we loaded the Python starter so incompatible code never runs."
-          : Object.keys(compatible.answers).length
-            ? "Your saved work is ready. Continue with any exercise."
-            : "The first exercise is open. Complete the starter, then run the checks.");
+          : "");
       setPracticeReady(true);
     });
     return () => { active = false; };
@@ -778,9 +740,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     setPendingResetBlockId(null);
     const sourceSnapshot = sourceFor(block);
     setRunning([block.id]);
-    setPracticeMessage(pythonLesson
-      ? `Checking your ${block.label.toLowerCase()} in browser CPython…`
-      : `Checking your ${block.label.toLowerCase()} in the isolated browser lab…`);
+    setPracticeMessage(`Running ${block.label.toLowerCase()}…`);
     try {
       const execution = await runContracts(
         lessonImplementationSource(lesson, [sourceSnapshot]),
@@ -856,12 +816,10 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     setRunning(blocks.map((block) => block.id));
     setCellResults({});
     setCellOutputs({});
-    setPracticeMessage(pythonLesson
-      ? "Checking all your exercises in browser CPython…"
-      : "Checking all your exercises in the isolated browser lab…");
+    setPracticeMessage("Running all tests…");
     try {
       const combinedSource = lessonImplementationSource(lesson, blocks.map((block) => sourceSnapshots[block.id]));
-      setPracticeMessage("Validating the complete lesson file…");
+      setPracticeMessage("Loading the lesson file…");
       const combinedExecution = await runContracts(
         combinedSource,
         blocks.map((block) => `${lesson.id}/${block.id}`),
@@ -973,7 +931,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     persistBlockState(
       block,
       editPracticeBlock(practiceDraftState(), block.id, value),
-      "Draft saved locally. Run the affected cell again.",
+      "",
     );
   };
   const verifiedCells = verifiedBlockIds.length;
@@ -984,15 +942,13 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
       <p className="implementation-intro">{lesson.implementation.intro}</p>
       <div className="practice-editor" data-project-conflict={projectConflict} aria-busy={!practiceReady || runningBlockIds.length > 0}>
         <div className="editor-toolbar">
-          <div className="editor-file"><span>{projectPath}</span><strong>{!practiceReady ? "Loading saved work…" : projectConflict ? "Newer code in full IDE" : "Working file · saves automatically"}</strong></div>
-          <div className="editor-progress" aria-label={`${verifiedCells} of ${blocks.length} cells verified`}>
-            <span>{verifiedCells}/{blocks.length} verified</span><i><b style={{ width: `${verifiedCells / blocks.length * 100}%` }} /></i>
-          </div>
+          <div className="editor-file"><span>{projectPath}</span></div>
+          <span className="sr-only">{verifiedCells} of {blocks.length} exercises verified</span>
           <Link className="open-ide-link" href={`/workspace?file=${encodeURIComponent(`${lesson.courseId ?? "models"}/${lesson.implementation.filename}`)}`}>Open in IDE ↗</Link>
         </div>
         <div className="practice-sequence">
           {implementationPrelude ? (
-            <div className="tensor-import-line"><span>uses</span><code>{implementationPrelude}</code><em>read only</em></div>
+            <div className="tensor-import-line"><code>{implementationPrelude}</code></div>
           ) : null}
           {blocks.map((block, blockIndex) => {
             const starterSource = starterCodeFor(block, lesson);
@@ -1010,7 +966,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
             const verified = verifiedContractVersion === llmSystemsContractSuite.contractVersion
               && verifiedBlockIds.includes(block.id)
               && verifiedSources[block.id] === workingSource;
-            const nextBlock = blocks[blockIndex + 1];
+            const visibleState = blockRunning ? "Running" : result?.passed || verified ? "Verified" : result ? "Needs a fix" : null;
             return (
               <article
                 className={`practice-block${active ? " is-active" : ""}${dirty ? " is-dirty" : ""}${result?.passed || verified ? " is-passed" : ""}`}
@@ -1023,18 +979,16 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
                   aria-expanded={active}
                   aria-controls={`exercise-${lesson.id}-${block.id}`}
                   onClick={() => {
-                    setActiveBlockId(block.id);
+                    setActiveBlockId((current) => current === block.id ? "" : block.id);
                     setPendingResetBlockId(null);
                   }}
                 >
-                  <span>0{blockIndex + 1}</span>
-                  <span><strong>{block.label}</strong><em>{block.purpose}</em></span>
-                  <span className="exercise-state">{blockRunning ? "Running" : result?.passed || verified ? "Verified" : result ? "Needs a fix" : active ? "Editing" : "Open"}</span>
+                  <strong>{block.label}</strong>
+                  {visibleState ? <span className="exercise-state">{visibleState}</span> : null}
                 </button>
                 {active ? (
                   <div className="exercise-body" id={`exercise-${lesson.id}-${block.id}`}>
-                    {block.concepts?.length ? <div className="concept-strip" aria-label={`${block.label} variables`}>{block.concepts.map((concept) => <span key={concept.name}><code>{concept.name}</code><em>{concept.detail}</em></span>)}</div> : null}
-                    <p className="editor-invitation"><span>{projectConflict ? "IDE code is active" : "Your draft"}</span><strong>{projectConflict ? "The full IDE has newer code. Continue there; this lesson is read-only." : "Complete the TODO below. Changes save automatically."}</strong></p>
+                    {projectConflict ? <p className="editor-conflict-note" role="status">The full IDE has newer code. Continue there; this lesson is read-only.</p> : null}
                     <div className="answer-area" data-direct-edit="true" data-edit-state={dirty ? "draft" : "starter"}>
                       {practiceReady ? (
                         <Suspense fallback={<div className="lesson-editor-loading" role="status">Loading syntax-aware editor…</div>}>
@@ -1080,11 +1034,10 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
                             <button type="button" aria-label={`Cancel start over for ${block.label}`} aria-describedby={`practice-status-${lesson.id}`} onClick={() => cancelBlockReset(block)} disabled={projectConflict || blockRunning}>Cancel</button>
                           </span>
                         ) : dirty ? <button className="start-over-button" type="button" aria-label={`Start ${block.label} over from starter code`} aria-describedby={`practice-status-${lesson.id}`} onClick={() => armBlockReset(block)} disabled={!practiceReady || projectConflict || blockRunning}>Start over</button> : null}
-                        {nextBlock && (result?.passed || verified) ? <button className="next-exercise-button" type="button" onClick={() => setActiveBlockId(nextBlock.id)}>Next exercise</button> : null}
                       </div>
                     </div>
                     <details className="reference-comparison">
-                      <summary><span>Compare with reference</span><em>Your draft stays unchanged</em></summary>
+                      <summary>Reference solution</summary>
                       <div><SyntaxCode code={block.code} label={`${block.label} reference implementation`} startLine={startLine} /></div>
                     </details>
                   </div>
@@ -1093,7 +1046,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
             );
           })}
         </div>
-        <div className="editor-footer"><p id={`practice-status-${lesson.id}`} role="status" aria-live="polite" aria-atomic="true">{practiceReady ? practiceMessage : "Loading your saved practice before editing turns on…"}</p><button type="button" aria-describedby={`practice-status-${lesson.id}`} onClick={() => void runAll()} disabled={!practiceReady || projectConflict || runningBlockIds.length > 0}>{runningBlockIds.length ? "Running in sandbox…" : "Check all my code"}</button></div>
+        <div className="editor-footer"><p id={`practice-status-${lesson.id}`} role="status" aria-live="polite" aria-atomic="true">{practiceReady ? practiceMessage : "Loading saved work…"}</p><button type="button" aria-describedby={`practice-status-${lesson.id}`} onClick={() => void runAll()} disabled={!practiceReady || projectConflict || runningBlockIds.length > 0}>{runningBlockIds.length ? "Running tests…" : "Run all tests"}</button></div>
       </div>
       {PYTORCH_HANDOFF_LESSONS.has(lesson.id) ? (
         <Suspense fallback={<div className="pytorch-handoff-loading" role="status">Loading the PyTorch version…</div>}>
@@ -1152,7 +1105,6 @@ function LessonRecoveryCandidates({ lessonId, onLoaded }: { lessonId: string; on
 }
 
 export function PaperLab({ lesson }: { lesson: CourseLesson }) {
-  const learnerState = useLearnerState();
   const learnerPersistenceError = useLearnerPersistenceError();
   const projectPersistenceError = useProjectPersistenceError();
   const persistenceError = learnerPersistenceError ?? projectPersistenceError;
@@ -1161,8 +1113,6 @@ export function PaperLab({ lesson }: { lesson: CourseLesson }) {
   const previous = trackLessons[trackIndex - 1];
   const next = trackLessons[trackIndex + 1];
   const courseHref = `/courses/${lesson.courseId ?? "models"}`;
-  const progress = learnerState.lessons[lesson.id];
-  const complete = lessonIsComplete(learnerState, lesson.id, lesson.implementation.codeBlocks.length, lessonLearningOutcome(lesson.id).check.id);
   const checkpoint = moduleCheckpoint(lesson.courseId ?? "models");
   const flair = getLessonFlair(lesson.id);
   const [recoveryRevision, setRecoveryRevision] = useState(0);
@@ -1172,11 +1122,11 @@ export function PaperLab({ lesson }: { lesson: CourseLesson }) {
       <header className="site-header lesson-header">
         <Link className="wordmark" href="/" aria-label="Latent course home"><i />latent</Link>
         <nav aria-label="Lesson navigation">
-          <a href="#summary" aria-label="Summary"><span className="nav-label-full">Summary</span><span className="nav-label-short">Summary</span></a>
-          <a href="#implementation" aria-label="Implementation"><span className="nav-label-full">Implementation</span><span className="nav-label-short">Code</span></a>
-          <a href="#artifacts" aria-label="Artifacts"><span className="nav-label-full">Artifacts</span><span className="nav-label-short">Results</span></a>
+          <a href="#summary">Read</a>
+          <a href="#implementation">Code</a>
+          <a href="#artifacts">Results</a>
         </nav>
-        <span>{lesson.courseTitle ?? "Model Foundations"} · {String(trackIndex + 1).padStart(2, "0")} / {String(trackLessons.length).padStart(2, "0")}</span>
+        <span>{lesson.courseTitle ?? "Model Foundations"}</span>
       </header>
       {persistenceError ? <p className="persistence-warning lesson-persistence-warning" role="alert">Storage warning: {persistenceError}</p> : null}
       <article className="paper-page" id="top">
@@ -1187,7 +1137,6 @@ export function PaperLab({ lesson }: { lesson: CourseLesson }) {
         <LessonOutcome lesson={lesson} />
         <footer className="paper-footer lesson-footer">
           {previous ? <Link href={`/lessons/${previous.id}`}>← {previous.title}</Link> : <Link href={courseHref}>← Module</Link>}
-          <p>{complete ? `Lesson ${trackIndex + 1} done` : `${progress?.verifiedCells.length ?? 0}/${lesson.implementation.codeBlocks.length} checks · ${progress?.experimentComplete ? "lab done" : "lab still to do"}`}</p>
           {next ? <Link href={`/lessons/${next.id}`}>{next.title} →</Link> : checkpoint ? <Link href={`/checkpoints/${checkpoint.courseId}`}>Module checkpoint →</Link> : <Link href={courseHref}>Module ↑</Link>}
         </footer>
       </article>

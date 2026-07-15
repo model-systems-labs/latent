@@ -13,7 +13,7 @@
 .course-page {
   margin: 0 auto;
   max-width: 1120px;
-  padding: 2.5rem 0 5rem;
+  padding: 2rem 0 5rem;
   position: relative;
   width: calc(100% - 5rem);
   z-index: 1;
@@ -25,32 +25,36 @@
   flex-direction: column;
   justify-content: center;
   min-height: 0;
-  padding: clamp(3rem, 5vw, 4.5rem) 0 clamp(2.5rem, 4vw, 3.5rem);
+  padding: clamp(2.5rem, 4vw, 3.75rem) 0 clamp(2rem, 3vw, 3rem);
   text-align: left;
 }
 
 .course-hero h1 {
   font-family: var(--serif);
-  font-size: clamp(3.2rem, 5.4vw, 5.25rem);
+  font-size: clamp(2.8rem, 4.8vw, 4.2rem);
   font-weight: 400;
-  letter-spacing: -0.055em;
-  line-height: 0.95;
+  letter-spacing: -0.05em;
+  line-height: 1;
   margin: 0;
   white-space: normal;
+}
+
+.course-hero.home-course-hero h1,
+.course-hero.catalog-track-hero h1 {
+  font-size: clamp(2.8rem, 4.8vw, 4.2rem);
+}
+
+.track-hero.catalog-track-hero {
+  padding: clamp(2.5rem, 4vw, 3.75rem) 0 clamp(2rem, 3vw, 3rem);
 }
 
 .course-thesis {
   color: var(--muted);
   font-family: var(--serif);
-  font-size: 1.08rem;
+  font-size: 1.05rem;
   line-height: 1.6;
-  margin: 1.7rem 0 0;
+  margin: 1.25rem 0 0;
   max-width: 60rem;
-}
-
-.curriculum-list {
-  border-bottom: 1px solid var(--line);
-  margin-top: 0.5rem;
 }
 
 .course-progress-record {
@@ -58,43 +62,21 @@
   border-bottom: 1px solid var(--line);
   border-top: 1px solid var(--line);
   display: grid;
-  gap: 1.5rem;
-  grid-template-columns: auto 1fr auto;
-  margin-bottom: 0;
-  padding: 1rem 0;
-}
-
-.course-progress-record > a {
-  color: var(--violet);
-  font-size: max(0.68rem, 11px);
-  white-space: nowrap;
-}
-
-.course-progress-record div {
-  display: grid;
-  gap: 0.25rem;
-}
-
-.course-progress-record span,
-.course-progress-record strong {
-  font-size: max(0.68rem, 11px);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  gap: 1.25rem;
+  grid-template-columns: auto minmax(8rem, 1fr);
+  padding: 0.9rem 0;
 }
 
 .course-progress-record span {
   color: var(--muted);
-}
-
-.course-progress-record strong {
-  color: var(--violet);
-  font-weight: 600;
+  font-size: max(0.68rem, 11px);
+  white-space: nowrap;
 }
 
 .course-progress-record > i {
-  background: rgba(117, 100, 143, 0.09);
+  background: rgba(117, 100, 143, 0.1);
   border-radius: 999px;
-  height: 0.28rem;
+  height: 0.24rem;
   overflow: hidden;
 }
 
@@ -105,112 +87,188 @@
   transition: width 220ms ease;
 }
 
-.lesson-card {
-  align-items: start;
+.curriculum-list {
+  border-bottom: 1px solid var(--line);
+}
+
+.lesson-card.lesson-card-simple {
+  align-items: center;
   display: grid;
-  gap: 0.55rem 1.4rem;
-  grid-template-columns: 2.5rem minmax(0, 1fr) auto;
-  min-height: 7.5rem;
+  gap: 1.5rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 0;
   padding: 1.35rem 0;
 }
 
-.lesson-card > div:first-of-type {
-  grid-column: 2 / -1;
-}
-
-.lesson-card + .lesson-card {
+.lesson-card.lesson-card-simple + .lesson-card.lesson-card-simple {
   border-top: 1px solid var(--line);
 }
 
-.lesson-card:hover,
-.lesson-card:focus-visible {
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.38), transparent);
+.lesson-card.lesson-card-simple:hover,
+.lesson-card.lesson-card-simple:focus-visible {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.32), transparent);
 }
 
-.lesson-card > span {
-  color: var(--violet);
-  font-family: var(--mono);
-  font-size: max(0.68rem, 11px);
+.lesson-card.lesson-card-simple > div {
+  grid-column: auto;
 }
 
-.lesson-card h2 {
+.lesson-card.lesson-card-simple h2 {
   font-family: var(--serif);
-  font-size: 1.55rem;
+  font-size: 1.45rem;
   font-weight: 400;
   letter-spacing: -0.025em;
   margin: 0;
 }
 
-.lesson-card p {
+.lesson-card.lesson-card-simple p {
   color: var(--muted);
   font-size: max(0.68rem, 11px);
-  line-height: 1.45;
-  margin: 0.45rem 0 0;
+  line-height: 1.5;
+  margin: 0.4rem 0 0;
+  max-width: 56rem;
 }
 
-.lesson-build {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem 0.8rem;
-  grid-column: 2;
-}
-
-.lesson-build em {
-  color: var(--faint);
+.lesson-card.lesson-card-simple > .lesson-card-status {
+  color: var(--muted);
+  font-family: inherit;
   font-size: max(0.68rem, 11px);
-  font-style: normal;
-  letter-spacing: 0.04em;
-}
-
-.lesson-build code {
-  color: var(--violet);
-  font-family: var(--mono);
-  font-size: max(0.68rem, 11px);
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.lesson-build strong {
-  color: var(--muted);
-  font-size: max(0.68rem, 11px);
-  font-weight: 500;
+.lesson-card.lesson-card-simple.completed {
+  background: transparent;
 }
 
-.lesson-card > i {
-  color: var(--faint);
-  font-size: 0.62rem;
-  font-style: normal;
-  grid-column: 3;
-  grid-row: 2;
+.lesson-card.lesson-card-simple.completed > .lesson-card-status {
+  color: var(--green);
 }
 
-.lesson-card.completed {
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22), transparent);
+.course-track-card.catalog-track-card {
+  padding: 1.65rem 0;
 }
 
-.lesson-build small {
+.course-track-card.catalog-track-card h2 {
+  font-size: 1.9rem;
+  margin: 0;
+}
+
+.course-track-card.catalog-track-card > p {
+  margin: 0.55rem 0 0;
+  max-width: 58rem;
+}
+
+.catalog-capstone-link {
   align-items: center;
-  color: var(--muted);
+  border-bottom: 1px solid var(--line-strong);
+  border-top: 1px solid var(--line-strong);
   display: flex;
-  font-size: max(0.68rem, 11px);
-  gap: 0.45rem;
-  line-height: 1.35;
-}
-
-.course-note {
-  align-items: baseline;
-  display: grid;
   gap: 2rem;
-  grid-template-columns: auto 1fr;
-  padding: 2rem 0 0;
+  justify-content: space-between;
+  margin-top: 2.75rem;
+  padding: 1.75rem 0;
 }
 
-.course-note p {
+.catalog-capstone-link h2 {
+  font-family: var(--serif);
+  font-size: 1.9rem;
+  font-weight: 400;
+  letter-spacing: -0.035em;
+  margin: 0;
+}
+
+.catalog-capstone-link p {
   color: var(--muted);
   font-family: var(--serif);
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   line-height: 1.55;
+  margin: 0.5rem 0 0;
+}
+
+.catalog-capstone-link > span {
+  color: var(--violet);
+  font-size: 1rem;
+}
+
+.first-run.first-run-minimal {
+  margin-bottom: 4.5rem;
+  padding-top: 1.6rem;
+}
+
+.first-run.first-run-minimal > header {
+  padding-bottom: 1.5rem;
+}
+
+.first-run.first-run-minimal > header h2 {
+  font-size: clamp(1.9rem, 3vw, 2.7rem);
   margin: 0;
+}
+
+.first-run.first-run-minimal > header p {
+  margin-top: 0.65rem;
+}
+
+.first-run.first-run-minimal .first-run-controls textarea {
+  min-height: 3.75rem;
+}
+
+.first-run.first-run-minimal .first-run-controls > p:empty {
+  display: none;
+}
+
+.first-run.first-run-minimal .first-run-output article p {
+  min-height: 6.5rem;
+}
+
+.first-run.first-run-minimal > footer {
+  justify-content: flex-end;
+}
+
+.module-checkpoint-card.module-checkpoint-card-simple {
+  align-items: center;
+  display: flex;
+  gap: 2rem;
+  justify-content: space-between;
+  padding: 1.35rem 0;
+}
+
+.module-checkpoint-card.module-checkpoint-card-simple > span {
+  color: var(--violet);
+  font-size: 1rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.module-checkpoint-card.module-checkpoint-card-simple p {
+  max-width: 52rem;
+}
+
+@media (max-width: 650px) {
+  .course-page {
+    padding-top: 1rem;
+    width: calc(100% - 2rem);
+  }
+
+  .course-hero.home-course-hero h1,
+  .course-hero.catalog-track-hero h1 {
+    font-size: clamp(2.4rem, 12vw, 3rem);
+  }
+
+  .course-progress-record {
+    gap: 0.65rem;
+  }
+
+  .lesson-card.lesson-card-simple {
+    gap: 0.75rem;
+    grid-template-columns: 1fr;
+    padding: 1.15rem 0;
+  }
+
+  .lesson-card.lesson-card-simple > .lesson-card-status {
+    grid-column: 1;
+  }
+
+  .catalog-capstone-link {
+    align-items: flex-start;
+  }
 }

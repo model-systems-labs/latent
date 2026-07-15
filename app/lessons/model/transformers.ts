@@ -160,6 +160,6 @@ RESULT = {
     experiment: {
       kind: "transformer",
       title: "Run causal self-attention",
-      intro: "Run the provided masked-attention forward pass with identity Q/K/V projections, then look over the full probability matrix. This replay doesn't run your code cells.",
+      intro: "Run the masked-attention forward pass with identity Q/K/V projections, then inspect the full probability matrix.",
     },
   } satisfies Omit<CourseLesson, "sources">;

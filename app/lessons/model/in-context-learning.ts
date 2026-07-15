@@ -180,6 +180,6 @@ RESULT = {
     experiment: {
       kind: "icl",
       title: "Evaluate a frozen local model",
-      intro: "Download the quantized model once, then run the provided local evaluator on the same held-out cases. It builds its own prompts, pulls out labels, and scores exact matches without importing or running your code. The rows only describe this two-item run; they don't show that accuracy always improves when you add examples.",
+      intro: "Download the quantized model once, then compare zero-, one-, and four-example prompts on the same two held-out items.",
     },
   } satisfies Omit<CourseLesson, "sources">;

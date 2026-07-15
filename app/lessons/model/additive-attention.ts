@@ -168,6 +168,6 @@ RESULT = {
     experiment: {
       kind: "attention",
       title: "Learn the alignment function",
-      intro: "Run the provided additive-attention trainer on three fixed cases, then compare what it learned with a uniform baseline. This replay doesn't run your code cells.",
+      intro: "Run the additive-attention trainer on three fixed cases, then compare what it learned with a uniform baseline.",
     },
   } satisfies Omit<CourseLesson, "sources">;

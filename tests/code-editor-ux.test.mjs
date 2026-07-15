@@ -4,6 +4,7 @@ import { test } from "node:test";
 
 const codeEditorUrl = new URL("../app/features/ide/CodeEditor.tsx", import.meta.url);
 const projectWorkbenchUrl = new URL("../app/components/ProjectWorkbench.tsx", import.meta.url);
+const workspacePageUrl = new URL("../app/workspace/page.tsx", import.meta.url);
 const capstoneCssUrl = new URL("../app/styles/capstone.css", import.meta.url);
 const productizationCssUrl = new URL("../app/styles/productization.css", import.meta.url);
 const responsiveCssUrl = new URL("../app/styles/responsive.css", import.meta.url);
@@ -254,19 +255,17 @@ test("the desktop IDE keeps its three panes inside one workspace viewport", asyn
   assert.match(inspector, /overflow-y:\s*auto/);
 });
 
-test("the mobile project header fits its actions without shrinking touch targets", async () => {
+test("the mobile project header keeps project actions compact without shrinking touch targets", async () => {
   const responsiveCss = await readFile(responsiveCssUrl, "utf8");
   const actions = cssRule(responsiveCss, ".project-header-actions");
   assert.match(actions, /display:\s*grid/);
-  assert.match(actions, /grid-template-columns:\s*auto minmax\(0,\s*1fr\)/);
+  assert.match(actions, /grid-template-columns:\s*minmax\(0,\s*1fr\) auto/);
 
-  const actionGroup = cssRule(responsiveCss, ".project-header-actions > div:last-child");
-  assert.match(actionGroup, /grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+  const tabs = cssRule(responsiveCss, ".project-result-tabs");
+  assert.match(tabs, /display:\s*none/);
 
-  const button = cssRule(responsiveCss, ".project-header-actions button");
-  assert.match(button, /min-height:\s*2\.75rem/);
-  assert.match(button, /min-width:\s*0/);
-  assert.match(button, /width:\s*100%/);
+  const actionsSummary = cssRule(responsiveCss, ".project-tools > summary");
+  assert.match(actionsSummary, /min-height:\s*2\.75rem/);
 });
 
 test("the mobile editor status yields space to the selected file name", async () => {
@@ -313,13 +312,13 @@ test("mobile IDE microcopy stays legible across files, code, tests, and output",
   assert.match(responsiveCss, /\.project-progress span\s*\{[^}]*display:\s*none/);
   assert.match(responsiveCss, /\.project-header-actions button\s*\{[^}]*font-size:\s*max\(0\.68rem, 11px\)/);
   assert.match(responsiveCss, /\.project-workbench-grid\[data-mobile-view="files"\] > \.project-tree section > span\s*\{[^}]*color:\s*#aaa3ad[^}]*font-size:\s*max\(0\.68rem, 11px\)/);
-  assert.match(responsiveCss, /\.project-workbench-grid\[data-mobile-view="files"\] > \.project-tree button > em,[\s\S]*?\{[^}]*color:\s*#aaa3ad[^}]*font-size:\s*max\(0\.68rem, 11px\)/);
-  assert.match(responsiveCss, /\.project-workbench-grid\[data-mobile-view="code"\] \.project-editor-panel > header > div:first-child strong\s*\{[^}]*color:\s*#aaa3ad[^}]*font-size:\s*0\.7rem/);
+  assert.doesNotMatch(responsiveCss, /\.project-workbench-grid\[data-mobile-view="files"\] > \.project-tree button > em/);
+  assert.match(responsiveCss, /\.project-workbench-grid\[data-mobile-view="code"\] \.project-editor-panel > header > code\s*\{[^}]*font-size:\s*0\.75rem/);
   assert.match(responsiveCss, /\.project-workbench-grid\[data-mobile-view="code"\] \.project-editor-panel > header > div:last-child\s*\{[^}]*color:\s*#aaa3ad[^}]*font-size:\s*max\(0\.68rem, 11px\)/);
-  assert.match(responsiveCss, /\.project-editor-panel > footer p\s*\{[^}]*color:\s*#aaa3ad[^}]*font-size:\s*0\.7rem/);
+  assert.doesNotMatch(responsiveCss, /\.project-editor-panel > footer p\s*\{/);
   assert.match(responsiveCss, /\.unit-test-list article p\s*\{[^}]*color:\s*#aaa3ad[^}]*font-size:\s*max\(0\.68rem, 11px\)/);
   assert.match(responsiveCss, /\.project-output dt\s*\{[^}]*color:\s*#aaa3ad[^}]*font-size:\s*max\(0\.68rem, 11px\)/);
-  assert.match(responsiveCss, /\.project-file-history > div em,[\s\S]*?\{[^}]*color:\s*#aaa3ad[^}]*font-size:\s*max\(0\.68rem, 11px\)/);
+  assert.match(responsiveCss, /\.project-file-history-list > div em,[\s\S]*?\{[^}]*color:\s*#aaa3ad[^}]*font-size:\s*max\(0\.68rem, 11px\)/);
 });
 
 test("desktop IDE microcopy uses the same release-quality size and contrast floor", async () => {
@@ -328,15 +327,14 @@ test("desktop IDE microcopy uses the same release-quality size and contrast floo
     readFile(productizationCssUrl, "utf8"),
   ]);
   assert.match(capstoneCss, /\.project-progress span\s*\{[^}]*color:\s*#aaa3ad\s*!important[^}]*font-size:\s*max\(0\.68rem, 11px\)\s*!important/);
-  assert.match(capstoneCss, /\.project-header-actions button\s*\{[^}]*color:\s*#aaa3ad[^}]*font-size:\s*max\(0\.68rem, 11px\)/);
+  assert.match(productizationCss, /\.project-result-tabs button,[\s\S]*?\.project-tools > summary\s*\{[^}]*color:\s*#aaa3ad[^}]*font-size:\s*max\(0\.68rem, 11px\)/);
   assert.match(capstoneCss, /\.project-tree section > span\s*\{[^}]*color:\s*#aaa3ad[^}]*font-size:\s*max\(0\.68rem, 11px\)/);
-  assert.match(capstoneCss, /\.project-tree button > em,[\s\S]*?\{[^}]*color:\s*#aaa3ad[^}]*font-size:\s*max\(0\.68rem, 11px\)/);
-  assert.match(capstoneCss, /\.project-editor-panel > header > div:first-child strong\s*\{[^}]*color:\s*#aaa3ad[^}]*font-size:\s*max\(0\.68rem, 11px\)/);
+  assert.match(productizationCss, /\.project-editor-panel > header > code\s*\{[^}]*color:\s*#d5c3e2[^}]*font-size:\s*0\.72rem/);
   assert.match(capstoneCss, /\.project-editor-panel > header > div:last-child\s*\{[^}]*color:\s*#aaa3ad[^}]*font-size:\s*max\(0\.68rem, 11px\)/);
-  assert.match(capstoneCss, /\.project-editor-panel > footer p\s*\{[^}]*color:\s*#aaa3ad[^}]*font-size:\s*0\.7rem/);
+  assert.doesNotMatch(capstoneCss, /\.project-editor-panel > footer p\s*\{/);
   assert.match(capstoneCss, /\.unit-test-list article p\s*\{[^}]*color:\s*#aaa3ad[^}]*font-size:\s*max\(0\.68rem, 11px\)/);
   assert.match(capstoneCss, /\.project-output dt\s*\{[^}]*color:\s*#aaa3ad[^}]*font-size:\s*max\(0\.68rem, 11px\)/);
-  assert.match(productizationCss, /\.project-file-history > div em,[\s\S]*?\{[^}]*color:\s*#aaa3ad[^}]*font-size:\s*max\(0\.68rem, 11px\)/);
+  assert.match(productizationCss, /\.project-file-history-list > div em,[\s\S]*?\{[^}]*color:\s*#aaa3ad[^}]*font-size:\s*max\(0\.68rem, 11px\)/);
 });
 
 test("the mobile view switcher uses honest toggle-button semantics", async () => {
@@ -346,4 +344,35 @@ test("the mobile view switcher uses honest toggle-button semantics", async () =>
   assert.doesNotMatch(source, /role="tablist"/);
   assert.doesNotMatch(source, /role="tab"/);
   assert.doesNotMatch(source, /aria-selected=\{mobilePanel === panel\}/);
+});
+
+test("tablet result controls show exactly one inspector pane and restore returns to code", async () => {
+  const [source, responsiveCss] = await Promise.all([
+    readFile(projectWorkbenchUrl, "utf8"),
+    readFile(responsiveCssUrl, "utf8"),
+  ]);
+  const tablet = responsiveCss.slice(responsiveCss.indexOf("@media (max-width: 940px)"), responsiveCss.indexOf("@media (max-width: 650px)"));
+  assert.match(tablet, /data-inspector-view="tests"\] \.project-output,[\s\S]*?data-inspector-view="output"\] \.unit-test-panel[\s\S]*?display:\s*none/);
+  const restore = source.slice(source.indexOf("const restoreReference"), source.indexOf("return (", source.indexOf("const restoreReference")));
+  assert.match(restore, /setMobilePanel\("code"\);[\s\S]*?saveNowRef\.current\?\.focus/);
+  assert.ok((source.match(/setInspectorPanel\("output"\);\s*setMobilePanel\("output"\);/g) ?? []).length >= 4, "load and save failures must reveal Output on narrow screens");
+});
+
+test("the IDE defaults to tests and keeps secondary project metadata behind disclosures", async () => {
+  const [source, workspace, productizationCss] = await Promise.all([
+    readFile(projectWorkbenchUrl, "utf8"),
+    readFile(workspacePageUrl, "utf8"),
+    readFile(productizationCssUrl, "utf8"),
+  ]);
+
+  assert.match(source, /useState<InspectorPanel>\("tests"\)/);
+  assert.match(source, /data-inspector-view=\{inspectorPanel\}/);
+  assert.match(source, /<nav className="project-result-tabs" aria-label="Results panel">/);
+  assert.match(source, /<details className="project-tools" ref=\{toolsRef\}>/);
+  assert.match(source, /<details className="project-file-history">/);
+  assert.doesNotMatch(source, /<em>\{status\.label\}<\/em>/);
+  assert.doesNotMatch(source, /selected\?\.title/);
+  assert.doesNotMatch(workspace, /<span>Project IDE<\/span>/);
+  assert.match(productizationCss, /data-inspector-view="tests"\] \.project-output/);
+  assert.match(productizationCss, /\.project-file-history > summary/);
 });

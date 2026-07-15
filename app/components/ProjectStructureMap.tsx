@@ -27,7 +27,6 @@ function ProjectGroup({ label, rows, mobileDefaultOpen }: { label: string; rows:
   // Keep the server-rendered tree compact on phones; the viewport effect opens
   // every group on desktop and only the current group on mobile.
   const [open, setOpen] = useState(false);
-  const complete = rows.filter((row) => row.status.complete).length;
 
   useEffect(() => {
     const mobile = window.matchMedia("(max-width: 650px), (max-width: 940px) and (max-height: 500px)");
@@ -39,7 +38,7 @@ function ProjectGroup({ label, rows, mobileDefaultOpen }: { label: string; rows:
 
   return (
     <details className="project-structure-group" open={open} onToggle={(event) => setOpen(event.currentTarget.open)}>
-      <summary><span>{label}/</span><em>{complete}/{rows.length} ready</em></summary>
+      <summary>{label}/</summary>
       <ul>
         {rows.map((row) => (
           <li className={`status-${row.status.tone}`} key={row.path}>
@@ -91,11 +90,6 @@ export function ProjectStructureMap() {
   }));
   const sourceRows = groups.flatMap((group) => group.rows);
   const sourceProgress = projectSourceProgress(sourceRows.map((row) => row.status));
-  const progressDetails = [
-    sourceProgress.partial ? `${sourceProgress.partial} partially verified` : null,
-    sourceProgress.needsWork ? `${sourceProgress.needsWork} ${sourceProgress.needsWork === 1 ? "needs" : "need"} work` : null,
-    sourceProgress.notStarted ? `${sourceProgress.notStarted} not started` : null,
-  ].filter(Boolean).join(" · ") || "Every lesson file is ready to build";
   const providedRows = runtimeRows.map(({ path, readOnly = false }): ProjectRow => ({
     path,
     filename: path.split("/").at(-1) ?? path,
@@ -146,20 +140,9 @@ export function ProjectStructureMap() {
         </p>
       ) : null}
       <header className="project-structure-root">
-        <div><span>Project root</span><strong>browser-chat/</strong></div>
-        <p><span>Current lesson files</span><strong>{sourceProgress.verified} / {sourceProgress.total} ready</strong></p>
+        <strong>browser-chat/</strong>
+        <span role="status" aria-label={`${sourceProgress.verified} of ${sourceProgress.total} lesson source files are build-ready; ${sourceProgress.partial} partially verified; ${sourceProgress.needsWork} ${sourceProgress.needsWork === 1 ? "needs" : "need"} work; ${sourceProgress.notStarted} not started`}>{sourceProgress.verified} of {sourceProgress.total} lesson files ready</span>
       </header>
-      <div className="project-structure-progress">
-        <i
-          aria-label="Current workspace build-ready lesson source"
-          aria-valuemax={sourceProgress.total}
-          aria-valuemin={0}
-          aria-valuenow={sourceProgress.verified}
-          aria-valuetext={`${sourceProgress.verified} of ${sourceProgress.total} lesson source files are build-ready; ${sourceProgress.partial} partially verified; ${sourceProgress.needsWork} ${sourceProgress.needsWork === 1 ? "needs" : "need"} work; ${sourceProgress.notStarted} not started`}
-          role="progressbar"
-        ><b style={{ width: `${sourceProgress.percentage}%` }} /></i>
-        <p><strong>{sourceProgress.verified} build-ready</strong><span> · {progressDetails}</span></p>
-      </div>
       <div className="project-structure-groups">
         {projectGroups.map((group, index) => (
           <ProjectGroup
@@ -170,10 +153,6 @@ export function ProjectStructureMap() {
           />
         ))}
       </div>
-      <footer className="project-structure-footer">
-        <p>A lesson file is ready to build when its saved lesson result still matches the file, or when a current IDE run passes every expected check. A trusted failure overrides either one. You also need to finish the lab to complete the lesson.</p>
-        <Link href="/workspace">Open project IDE →</Link>
-      </footer>
     </section>
   );
 }

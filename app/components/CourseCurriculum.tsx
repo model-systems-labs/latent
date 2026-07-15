@@ -8,27 +8,22 @@ import { lessonLearningOutcome } from "../content/llm-systems/learning";
 export function CourseCurriculum({ title, lessons }: { title: string; lessons: CourseLesson[] }) {
   const learnerState = useLearnerState();
   const completed = lessons.filter((lesson) => lessonIsComplete(learnerState, lesson.id, lesson.implementation.codeBlocks.length, lessonLearningOutcome(lesson.id).check.id)).length;
+  const completionPercentage = lessons.length ? completed / lessons.length * 100 : 0;
   return (
     <>
       <div className="course-progress-record" aria-label={`${completed} of ${lessons.length} lessons complete`}>
-        <div><span>Your progress</span><strong>{completed}/{lessons.length} lessons done</strong></div>
-        <i><b style={{ width: `${completed / lessons.length * 100}%` }} /></i>
-        <Link href="/project">View project →</Link>
+        <span>{completed} of {lessons.length} complete</span>
+        <i aria-hidden="true"><b style={{ width: `${completionPercentage}%` }} /></i>
       </div>
       <section className="curriculum-list" aria-label={`${title} lessons`}>
-        {lessons.map((lesson, index) => {
+        {lessons.map((lesson) => {
           const progress = learnerState.lessons[lesson.id];
           const complete = lessonIsComplete(learnerState, lesson.id, lesson.implementation.codeBlocks.length, lessonLearningOutcome(lesson.id).check.id);
+          const status = complete ? "Complete" : progress?.updatedAt ? "In progress" : null;
           return (
-            <Link className={`lesson-card ${complete ? "completed" : ""}`} href={`/lessons/${lesson.id}`} key={lesson.id}>
-              <span>{String(index + 1).padStart(2, "0")}</span>
+            <Link className={`lesson-card lesson-card-simple ${complete ? "completed" : ""}`} href={`/lessons/${lesson.id}`} key={lesson.id}>
               <div><h2>{lesson.title}</h2><p>{lesson.thesis}</p></div>
-              <div className="lesson-build">
-                <em>{lesson.modeLabel}</em>
-                <strong>{lesson.experiment.title}</strong>
-                <small>{complete ? "Done on this device" : `${progress?.verifiedCells.length ?? 0}/${lesson.implementation.codeBlocks.length} checks · ${progress?.experimentComplete ? "lab done" : "lab still to do"}`}</small>
-              </div>
-              <i>{complete ? "Review →" : "Open →"}</i>
+              {status ? <span className="lesson-card-status">{status}</span> : null}
             </Link>
           );
         })}

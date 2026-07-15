@@ -26,21 +26,18 @@ export default async function CoursePage({ params }: { params: Promise<{ course:
   const checkpoint = moduleCheckpoint(track.id);
   return (
     <main>
-      <div className="page-atmosphere" aria-hidden="true"><span className="orbit orbit-one" /><span className="orbit orbit-two" /><span className="orbit orbit-three" /><span className="node node-one" /><span className="warm-star" /></div>
-      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><span>Module {String(track.number).padStart(2, "0")} / 04</span></header>
+      <div className="page-atmosphere" aria-hidden="true"><span className="orbit orbit-one" /><span className="node node-one" /><span className="warm-star" /></div>
+      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><Link href="/">Course home</Link></header>
       <article className="course-page track-page">
-        <header className="course-hero track-hero">
-          <p className="eyebrow">Module {String(track.number).padStart(2, "0")} · {track.shortTitle}</p>
+        <header className="course-hero track-hero catalog-track-hero">
           <h1>{track.title}</h1>
           <p className="course-thesis">{track.thesis}</p>
-          <div className="track-outcome"><span>What you’ll build</span><strong>{track.outcome}</strong></div>
         </header>
         <CourseCurriculum title={track.title} lessons={lessons} />
         {checkpoint ? (
-          <Link className="module-checkpoint-card" href={`/checkpoints/${track.id}`}>
-            <span>{checkpoint.label}</span>
+          <Link className="module-checkpoint-card module-checkpoint-card-simple" href={`/checkpoints/${track.id}`}>
             <div><strong>{checkpoint.title}</strong><p>{checkpoint.objective}</p></div>
-            <em>Try the checkpoint →</em>
+            <span aria-hidden="true">→</span>
           </Link>
         ) : null}
         <footer className="track-navigation">

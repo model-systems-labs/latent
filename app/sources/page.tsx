@@ -26,32 +26,26 @@ const runtimeNotices = [
 export default function SourcesPage() {
   return (
     <main>
-      <div className="page-atmosphere" aria-hidden="true"><span className="orbit orbit-one" /><span className="orbit orbit-two" /><span className="orbit orbit-three" /><span className="node node-one" /><span className="warm-star" /></div>
+      <div className="page-atmosphere" aria-hidden="true"><span className="orbit orbit-one" /><span className="node node-one" /><span className="warm-star" /></div>
       <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><Link href="/">Course</Link><Link href="/project">Project</Link><Link href="/workspace">IDE</Link></nav></header>
       <article className="sources-page">
-        <header className="sources-hero"><p className="eyebrow">Where everything came from</p><h1>Sources and licenses</h1><p>Latent links to the original research and specs, includes a few small datasets made for the course, and clearly lists the open-source software and model weights it uses.</p></header>
+        <header className="sources-hero"><h1>Sources</h1><p>Research, datasets, models, and software used by the course.</p></header>
 
-        <section className="source-policy">
-          <span>What’s included</span>
-          <div><strong>The research belongs to its authors.</strong><p>The course links to papers and docs but doesn’t republish their full text. Latent created the lesson explanations, diagrams, exercises, fixed scenarios, and small CC0 practice datasets.</p></div>
-          <div><strong>The code is for learning.</strong><p>The browser experiments show a limited version of each idea and call out what they leave out. They aren’t official implementations from the paper authors or copies of production benchmarks.</p></div>
-        </section>
+        <p className="source-policy-note">Papers and specifications remain the work of their authors. Latent links to them and provides original explanations, diagrams, exercises, and small practice datasets.</p>
 
-        <section className="runtime-notices" aria-labelledby="runtime-notices-title">
-          <header><span>Runtime notices</span><h2 id="runtime-notices-title">Models and open-source software</h2></header>
+        <details className="runtime-notices">
+          <summary id="runtime-notices-title">Models and open-source software</summary>
           <div>
-            {runtimeNotices.map((notice) => <a href={notice.url} target="_blank" rel="noreferrer" key={notice.name}><span><strong>{notice.name}</strong><em>{notice.version}</em></span><p>{notice.use}</p><code>{notice.license} ↗</code></a>)}
+            {runtimeNotices.map((notice) => <a href={notice.url} target="_blank" rel="noreferrer" aria-label={`${notice.name}, ${notice.version}, ${notice.license}; opens in a new tab`} key={notice.name}><span><strong>{notice.name}</strong><em>{notice.version}</em></span><code>{notice.license} ↗</code></a>)}
           </div>
-          <p className="license-note">This list is a handy attribution record, not legal advice. If anything here differs from a linked license or model card, the linked text is the one that counts.</p>
-        </section>
+        </details>
 
         <section className="lesson-source-index" aria-labelledby="lesson-source-index-title">
-          <header><span>Course source list</span><h2 id="lesson-source-index-title">Lesson sources and provided data</h2></header>
+          <header><h2 id="lesson-source-index-title">Lesson sources</h2></header>
           {courseLessons.map((lesson) => (
             <article key={lesson.id}>
-              <header><span>{String(lesson.number).padStart(2, "0")}</span><div><strong>{lesson.title}</strong><code>{lesson.dataset.name} · {lesson.dataset.license}</code></div></header>
-              <ul>{lesson.sources.map((source) => <li key={source.url}><a href={source.url} target="_blank" rel="noreferrer"><span><strong>{source.title}</strong><em>{source.authors} · {source.year}</em></span><p>{source.relevance}</p><i>↗</i></a></li>)}</ul>
-              <footer><span>Where the dataset came from</span><p>{lesson.dataset.source}</p><code>{lesson.dataset.size}</code></footer>
+              <header><strong>{lesson.title}</strong><code>{lesson.dataset.name} · {lesson.dataset.source} · {lesson.dataset.license} · {lesson.dataset.size}</code></header>
+              <ul>{lesson.sources.map((source) => <li key={source.url}><a href={source.url} target="_blank" rel="noreferrer" aria-label={`${source.title}, ${source.authors}, ${source.year}; opens in a new tab`}><span><strong>{source.title}</strong><em>{source.authors} · {source.year}</em></span><i aria-hidden="true">↗</i></a></li>)}</ul>
             </article>
           ))}
         </section>

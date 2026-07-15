@@ -9,11 +9,6 @@ const root = new URL("../", import.meta.url);
 const paperLabUrl = new URL("app/components/PaperLab.tsx", root);
 const paperLabCssUrl = new URL("app/components/PaperLab.module.css", root);
 
-function rule(source, selector) {
-  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return source.match(new RegExp(`${escaped}\\s*\\{[^}]*\\}`, "s"))?.[0] ?? "";
-}
-
 function luminance(hex) {
   const channels = hex.match(/[0-9a-f]{2}/gi).map((channel) => Number.parseInt(channel, 16) / 255);
   const linear = channels.map((channel) => channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
@@ -68,20 +63,15 @@ test("flair tones identify course families rather than rotating by lesson", () =
   );
 });
 
-test("the flair stays decorative, full-width, unboxed, and mobile-safe", async () => {
+test("the restrained course tone stays decorative and does not add lesson-header chrome", async () => {
   const [paperLab, css] = await Promise.all([
     readFile(paperLabUrl, "utf8"),
     readFile(paperLabCssUrl, "utf8"),
   ]);
-  const kickerRule = rule(css, ".lessonShell :global(.lesson-kicker)");
-
-  assert.match(paperLab, /className="lesson-notation" aria-hidden="true"/);
+  assert.doesNotMatch(paperLab, /lesson-notation|lesson-kicker|hero-record/);
   assert.match(paperLab, /data-flair-tone=\{flair\?\.tone\}/);
   assert.doesNotMatch(`${paperLab}\n${css}`, /<svg|dangerouslySetInnerHTML/i);
-  assert.match(kickerRule, /width:\s*100%/);
-  assert.match(kickerRule, /grid-template-columns:\s*minmax\(0, 1fr\) 17rem/);
-  assert.doesNotMatch(kickerRule, /background:|border:|border-radius:|box-shadow:/);
-  assert.match(css, /\.lessonShell :global\(\.lesson-notation\)\s*\{[^}]*overflow-wrap:\s*anywhere/s);
+  assert.doesNotMatch(css, /lesson-notation|lesson-kicker|hero-record/);
   assert.doesNotMatch(css, /@keyframes|animation:/);
 
   for (const tone of ["plum", "rust", "forest", "blue", "slate"]) {

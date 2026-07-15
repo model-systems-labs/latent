@@ -18,9 +18,9 @@
 
 .lessonShell :global(.lesson-kicker) {
   align-items: baseline;
-  display: flex;
-  gap: 1rem;
-  justify-content: space-between;
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: minmax(0, 1fr) 17rem;
   margin: 0 0 0.9rem;
   min-width: 0;
   width: 100%;
@@ -33,7 +33,7 @@
   font-size: max(0.68rem, 11px);
   letter-spacing: -0.01em;
   line-height: 1.45;
-  text-align: right;
+  text-align: left;
   white-space: nowrap;
 }
 
@@ -48,9 +48,9 @@
   .lessonShell :global(.nav-label-full) { display: none; }
   .lessonShell :global(.nav-label-short) { display: inline; }
   .lessonShell :global(.paper-page) { padding-top: 0.4rem; }
-  .lessonShell :global(.paper-hero) { min-height: 0; padding: 1.5rem 0 1.35rem; }
+  .lessonShell :global(.paper-hero) { min-height: 0; padding: 1.1rem 0 0; }
   .lessonShell :global(.paper-hero h1) { font-size: clamp(2.15rem, 9vw, 2.65rem); white-space: normal; }
-  .lessonShell :global(.lesson-kicker) { align-items: flex-start; flex-direction: column; gap: 0.35rem; }
+  .lessonShell :global(.lesson-kicker) { align-items: flex-start; display: flex; flex-direction: column; gap: 0.15rem; margin-bottom: 0.55rem; }
   .lessonShell :global(.lesson-notation) { overflow-wrap: anywhere; text-align: left; white-space: normal; }
   .lessonShell :global(.paper-thesis) { margin-top: 0.85rem; }
   .lessonShell :global(.hero-record) { margin-top: 0.6rem; }
@@ -66,6 +66,7 @@
   .lessonShell :global(.source-set .source-entry > a) { min-height: 2.75rem; width: 100%; }
 
   .lessonShell :global(.paper-section) { padding: 2.1rem 0; }
+  .lessonShell :global(.summary-section) { border-top: 0; }
   .lessonShell :global(.section-title) { gap: 0.5rem; grid-template-columns: 1fr; margin-bottom: 1.3rem; }
   .lessonShell :global(.summary-interlude) { margin: 1.75rem 0; padding: 1.1rem 0; }
   .lessonShell :global(.questions-section) { padding: 1.1rem 0; }

@@ -44,6 +44,30 @@ test("lesson signatures use unique technical notation within the brand palette",
   assert.ok(signatures.every((signature) => signature.length > 5));
 });
 
+test("flair tones identify course families rather than rotating by lesson", () => {
+  const expectedTones = {
+    "character-rnns": "plum",
+    "neural-language-models": "plum",
+    "subword-tokenization": "plum",
+    "additive-attention": "plum",
+    transformers: "plum",
+    "in-context-learning": "plum",
+    "inference-runtime": "blue",
+    "scheduling-memory": "blue",
+    "streaming-transport": "rust",
+    "reliability-observability": "rust",
+    "conversation-state": "forest",
+    "streaming-react": "forest",
+    "chat-actions-context": "forest",
+    "chat-product-quality": "forest",
+  };
+
+  assert.deepEqual(
+    Object.fromEntries(Object.entries(lessonFlairRegistry).map(([lessonId, flair]) => [lessonId, flair.tone])),
+    expectedTones,
+  );
+});
+
 test("the flair stays decorative, full-width, unboxed, and mobile-safe", async () => {
   const [paperLab, css] = await Promise.all([
     readFile(paperLabUrl, "utf8"),
@@ -55,6 +79,7 @@ test("the flair stays decorative, full-width, unboxed, and mobile-safe", async (
   assert.match(paperLab, /data-flair-tone=\{flair\?\.tone\}/);
   assert.doesNotMatch(`${paperLab}\n${css}`, /<svg|dangerouslySetInnerHTML/i);
   assert.match(kickerRule, /width:\s*100%/);
+  assert.match(kickerRule, /grid-template-columns:\s*minmax\(0, 1fr\) 17rem/);
   assert.doesNotMatch(kickerRule, /background:|border:|border-radius:|box-shadow:/);
   assert.match(css, /\.lessonShell :global\(\.lesson-notation\)\s*\{[^}]*overflow-wrap:\s*anywhere/s);
   assert.doesNotMatch(css, /@keyframes|animation:/);

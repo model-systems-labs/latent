@@ -12,59 +12,59 @@ export type LessonFlair = {
 export const lessonFlairRegistry = {
   "character-rnns": {
     tone: "plum",
-    notation: "hₜ = tanh(Wxh xₜ + Whh hₜ₋₁ + b)",
+    notation: "hₜ = tanh(Wₓₕxₜ + Wₕₕhₜ₋₁ + b)",
   },
   "neural-language-models": {
-    tone: "blue",
+    tone: "plum",
     notation: "mean(E[xₜ₋₂], E[xₜ₋₁]) → p(xₜ)",
   },
   "subword-tokenization": {
-    tone: "rust",
+    tone: "plum",
     notation: "l · o · w → lo · w",
   },
   "additive-attention": {
-    tone: "forest",
+    tone: "plum",
     notation: "eₜᵢ = vᵀ tanh(Wq qₜ + Wk hᵢ + b)",
   },
   transformers: {
     tone: "plum",
-    notation: "mask(QKᵀ / √dₖ)",
+    notation: "softmax(QKᵀ / √dₖ + M)V",
   },
   "in-context-learning": {
-    tone: "slate",
-    notation: "0 | 1 | 4 examples · θ fixed",
+    tone: "plum",
+    notation: "0 / 1 / 4 examples · θ fixed",
   },
   "inference-runtime": {
     tone: "blue",
-    notation: "queue → prefill → token₁ → decode",
+    notation: "prefill → token₁ → decode ×31",
   },
   "scheduling-memory": {
-    tone: "rust",
-    notation: "complete → release pages → admit",
+    tone: "blue",
+    notation: "a completes @14 · d admitted @15",
   },
   "streaming-transport": {
-    tone: "blue",
-    notation: "e2 82 │ ac → €",
+    tone: "rust",
+    notation: "E2 82 | AC → €",
   },
   "reliability-observability": {
     tone: "rust",
-    notation: "a₁ timeout · visible=0 → a₂ complete",
+    notation: "a₁ timeout · 0 visible → retry a₂",
   },
   "conversation-state": {
     tone: "forest",
     notation: "m-a1 → a-17.2 → r-17.2",
   },
   "streaming-react": {
-    tone: "plum",
-    notation: "2 · 7 · 11 ms → commit@16",
+    tone: "forest",
+    notation: "2 / 7 / 11 ms → commit @ 16 ms",
   },
   "chat-actions-context": {
-    tone: "slate",
-    notation: "prefix → {stop, retry, edit}",
+    tone: "forest",
+    notation: "m-u3 → {r-31, r-32, r-33}",
   },
   "chat-product-quality": {
     tone: "forest",
-    notation: "queued → loading → prefill → streaming → complete",
+    notation: "v1 · terminal records · secrets rejected",
   },
 } as const satisfies Record<string, LessonFlair>;
 

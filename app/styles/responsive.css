@@ -63,8 +63,7 @@
     white-space: normal;
   }
 
-  .summary-layout,
-  .questions-layout {
+  .summary-layout {
     grid-template-columns: 1fr;
   }
 
@@ -72,44 +71,8 @@
     grid-template-columns: 1fr;
   }
 
-  .questions-layout {
-    margin-left: 0;
-  }
-
   .summary-copy {
     columns: 1;
-  }
-
-  .questions-disclosure > summary {
-    gap: 0.35rem 0.75rem;
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .questions-disclosure > summary > span {
-    grid-column: 1 / -1;
-  }
-
-  .questions-disclosure > summary em {
-    grid-column: 1;
-  }
-
-  .questions-disclosure > summary::after {
-    grid-column: 2;
-  }
-
-  .key-panel {
-    display: grid;
-    gap: 1rem;
-    grid-template-columns: 1fr;
-  }
-
-  .key-panel > p {
-    grid-row: auto;
-    margin: 0;
-  }
-
-  .key-panel > a {
-    grid-column: auto;
   }
 
   .check-grid {
@@ -734,11 +697,6 @@
     padding-top: 2rem;
   }
 
-  .key-panel > a {
-    grid-column: auto;
-  }
-
-  .key-panel,
   .lab-controls,
   .output-grid,
   .check-grid,
@@ -805,18 +763,6 @@
   .course-note {
     gap: 0.7rem;
     grid-template-columns: 1fr;
-  }
-
-  .key-panel > p {
-    grid-row: auto;
-  }
-
-  .question-form {
-    grid-template-columns: 1fr;
-  }
-
-  .question-form button {
-    min-height: 3.3rem;
   }
 
   .implementation-intro {

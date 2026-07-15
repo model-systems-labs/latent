@@ -70,7 +70,9 @@ before(async () => {
       revision += 1;
       return { schemaVersion: 1, revision, files: [...files].sort() };
     },
-    async run({ code }) {
+    async run({ code }, options = {}) {
+      pyodide.setStdout({ batched(text) { options.onEvent?.({ type: "stdout", requestId: "test-run", text: `${text}\n` }); } });
+      pyodide.setStderr({ batched(text) { options.onEvent?.({ type: "stderr", requestId: "test-run", text: `${text}\n` }); } });
       try {
         pyodide.runPython(code);
         return {
@@ -93,6 +95,9 @@ before(async () => {
           artifacts: [],
           durationMs: 0,
         };
+      } finally {
+        pyodide.setStdout();
+        pyodide.setStderr();
       }
     },
   };
@@ -278,11 +283,42 @@ test("a cell can run independently without definitions from adjacent cells", asy
   const contract = contractsFor(entry.projectPath).find((candidate) => candidate.id.endsWith("/stable-softmax"));
   const run = await runPythonLessonContracts({
     path: entry.projectPath,
-    source: implementationSource(entry.lesson, [block.code]),
+    source: `print("visible cell output")\n${implementationSource(entry.lesson, [block.code])}`,
     contracts: [contract],
     pythonLab,
   });
   assert.equal(run.results[0].passed, true, run.results[0].detail);
+  assert.equal(run.stdout.match(/visible cell output/g)?.length, contract.cases.length);
+  assert.equal(run.stderr, "");
+});
+
+test("the combined lesson file rejects a cross-block export override that isolated cells miss", async () => {
+  const entry = curriculum.lessons.find(({ lesson }) => lesson.id === "character-rnns");
+  const [transition, loss, clipping] = entry.lesson.implementation.codeBlocks;
+  const selected = contractsFor(entry.projectPath);
+  const contractFor = (block) => selected.find((contract) => contract.id.endsWith(`/${block.id}`));
+  const sabotagedLoss = `${loss.code}\n\ndef rnn_step(input_vector, previous, parameters):\n    return [0]`;
+  const isolatedSources = [transition.code, sabotagedLoss, clipping.code];
+
+  for (const [index, block] of [transition, loss, clipping].entries()) {
+    const isolated = await runPythonLessonContracts({
+      path: entry.projectPath,
+      source: implementationSource(entry.lesson, [isolatedSources[index]]),
+      contracts: [contractFor(block)],
+      pythonLab,
+    });
+    assert.equal(isolated.results[0].passed, true, `${block.id}: ${isolated.results[0].detail}`);
+  }
+
+  const combined = await runPythonLessonContracts({
+    path: entry.projectPath,
+    source: implementationSource(entry.lesson, isolatedSources),
+    contracts: selected,
+    pythonLab,
+  });
+  assert.equal(combined.results.find((result) => result.id.endsWith("/rnn-step")).passed, false);
+  assert.equal(combined.results.find((result) => result.id.endsWith("/cross-entropy")).passed, true);
+  assert.equal(combined.results.find((result) => result.id.endsWith("/gradient-clipping")).passed, true);
 });
 
 test("promotable CPython evidence requires the exact contract-case set", () => {

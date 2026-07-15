@@ -232,7 +232,7 @@ test("top-level navigation fits phones, preserves tablet scrolling, and keeps to
   assert.match(narrowHeader, /\.ide-topbar nav a:last-child,[\s\S]*?\.capstone-topbar nav a:last-child \{[^}]*min-height: 2\.75rem/);
   assert.match(narrowHeader, /\.compiled-capstone-runtime \{[\s\S]*?height: calc\(100dvh - 3\.75rem\)/);
   assert.match(narrowHeader, /@media \(max-width: 940px\) and \(max-height: 500px\)[\s\S]*?height: calc\(100dvh - 2\.75rem\)/);
-  assert.match(lessonMobile, /\.lessonShell :global\(\.lesson-header nav\) \{[^}]*grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/);
+  assert.match(lessonMobile, /\.lessonShell :global\(\.lesson-header nav\) \{[^}]*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
   assert.match(lessonMobile, /\.lessonShell :global\(\.nav-label-short\) \{ display: inline; \}/);
 });
 

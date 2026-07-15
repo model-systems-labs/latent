@@ -60,7 +60,7 @@ export function LessonOutcome({ lesson }: { lesson: CourseLesson }) {
 
   return (
     <section className="paper-section lesson-outcome-section" id="outcome">
-      <div className="section-title"><span>04</span><h2>Verify the result</h2></div>
+      <div className="section-title"><span>03</span><h2>Verify the result</h2></div>
       <div className="lesson-outcome-layout">
         <section className="knowledge-check" aria-labelledby={`${lesson.id}-knowledge-title`}>
           <header>

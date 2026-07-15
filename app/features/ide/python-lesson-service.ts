@@ -22,8 +22,16 @@ type PythonLessonClient = Pick<PythonLabClient, "initialize" | "sync" | "run">;
 export type PythonLessonContractRun = {
   cases: ExerciseCaseResult[];
   results: ProjectUnitResult[];
+  output: PythonLessonOutputChunk[];
+  stdout: string;
+  stderr: string;
   startedAt: number;
   completedAt: number;
+};
+
+export type PythonLessonOutputChunk = {
+  stream: "stdout" | "stderr";
+  text: string;
 };
 
 type PythonObservationEnvelope = {
@@ -182,30 +190,49 @@ export async function runPythonLessonContracts(input: {
   const startedAt = Date.now();
   const pythonLab = input.pythonLab ?? await sharedClient();
   const operation = { signal: input.signal, onEvent: input.onEvent };
+  const output: PythonLessonOutputChunk[] = [];
+  const stdout: string[] = [];
+  const stderr: string[] = [];
+  const appendOutput = (stream: PythonLessonOutputChunk["stream"], text: string) => {
+    const previous = output[output.length - 1];
+    if (previous?.stream === stream) previous.text += text;
+    else output.push({ stream, text });
+  };
+  const runOperation = {
+    signal: input.signal,
+    timeoutMs: 30_000,
+    onEvent: (event: PythonLabEvent) => {
+      if (event.type === "stdout" || event.type === "stderr") {
+        appendOutput(event.type, event.text);
+        (event.type === "stdout" ? stdout : stderr).push(event.text);
+      }
+      input.onEvent?.(event);
+    },
+  };
   let initialization: PythonLabInitializeResult;
   let sync: PythonLabSyncResult;
   let run: PythonLabRunResult;
   try {
     initialization = await pythonLab.initialize({ packages: ["numpy"] }, operation);
     sync = await pythonLab.sync({ files: [{ path: input.path, contents: input.source }] }, operation);
-    run = await pythonLab.run({ code: invocationHarness(input.path, input.contracts) }, { ...operation, timeoutMs: 30_000 });
+    run = await pythonLab.run({ code: invocationHarness(input.path, input.contracts) }, runOperation);
   } catch (error) {
     const detail = error instanceof Error ? error.message : "The CPython lesson worker failed.";
-    return { cases: [], results: failedResults(input.contracts, detail), startedAt, completedAt: Date.now() };
+    return { cases: [], results: failedResults(input.contracts, detail), output, stdout: stdout.join(""), stderr: stderr.join(""), startedAt, completedAt: Date.now() };
   }
   if (initialization.runtime !== "pyodide" || !sync.files.includes(input.path)) {
-    return { cases: [], results: failedResults(input.contracts, "The CPython workspace did not synchronize this lesson."), startedAt, completedAt: Date.now() };
+    return { cases: [], results: failedResults(input.contracts, "The CPython workspace did not synchronize this lesson."), output, stdout: stdout.join(""), stderr: stderr.join(""), startedAt, completedAt: Date.now() };
   }
   if (run.status === "failed") {
     const detail = run.exception?.message || "The CPython contract harness failed.";
-    return { cases: [], results: failedResults(input.contracts, detail), startedAt, completedAt: Date.now() };
+    return { cases: [], results: failedResults(input.contracts, detail), output, stdout: stdout.join(""), stderr: stderr.join(""), startedAt, completedAt: Date.now() };
   }
   let envelopes: PythonObservationEnvelope[];
   try {
     envelopes = parseEnvelopes(run.result);
   } catch (error) {
     const detail = error instanceof Error ? error.message : "CPython returned unreadable contract evidence.";
-    return { cases: [], results: failedResults(input.contracts, detail), startedAt, completedAt: Date.now() };
+    return { cases: [], results: failedResults(input.contracts, detail), output, stdout: stdout.join(""), stderr: stderr.join(""), startedAt, completedAt: Date.now() };
   }
   const envelopeByCase = new Map(envelopes.map((item) => [`${item.contractId}/${item.caseId}`, item.observation]));
   const cases = input.contracts.flatMap((contract) => contract.cases.map((exerciseCase) => {
@@ -225,5 +252,5 @@ export async function runPythonLessonContracts(input: {
       detail: formatPracticeContractDetail(contractCases),
     };
   });
-  return { cases, results, startedAt, completedAt: Date.now() };
+  return { cases, results, output, stdout: stdout.join(""), stderr: stderr.join(""), startedAt, completedAt: Date.now() };
 }

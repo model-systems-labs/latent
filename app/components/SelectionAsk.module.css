@@ -1,0 +1,106 @@
+.toolbar {
+  align-items: center;
+  background: #201e22;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  box-shadow: 0 12px 34px rgba(34, 28, 39, 0.18);
+  color: #f2eee8;
+  display: flex;
+  gap: 0.15rem;
+  padding: 0.25rem;
+  position: fixed;
+  z-index: 40;
+}
+
+.label {
+  color: #a9a19a;
+  font-size: max(0.68rem, 11px);
+  letter-spacing: 0.09em;
+  margin: 0 0.35rem 0 0.55rem;
+  text-transform: uppercase;
+}
+
+.toolbar a,
+.toolbar button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: #eee8e0;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: max(0.72rem, 12px);
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0 0.75rem;
+  text-decoration: none;
+}
+
+.toolbar a:hover,
+.toolbar a:focus-visible {
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.toolbar button {
+  color: #9e9790;
+  font-size: 1rem;
+  padding: 0;
+  width: 2.75rem;
+}
+
+.toolbar button:hover,
+.toolbar button:focus-visible {
+  color: #f2eee8;
+}
+
+.toolbar a:focus-visible,
+.toolbar button:focus-visible {
+  outline: 2px solid #d8c8e5;
+  outline-offset: -2px;
+}
+
+.status {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.notice {
+  background: #201e22;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 0.55rem;
+  color: #eee8e0;
+  font-size: max(0.68rem, 11px);
+  left: 50%;
+  line-height: 1.4;
+  max-width: min(24rem, calc(100vw - 1.5rem));
+  padding: 0.55rem 0.7rem;
+  position: absolute;
+  text-align: center;
+  top: calc(100% + 0.45rem);
+  transform: translateX(-50%);
+  width: max-content;
+}
+
+@media (max-width: 650px) {
+  .toolbar {
+    border-radius: 0.7rem;
+    bottom: calc(0.75rem + env(safe-area-inset-bottom));
+    left: 0.75rem !important;
+    right: 0.75rem;
+    top: auto !important;
+  }
+
+  .toolbar a {
+    flex: 1 1 0;
+  }
+
+  .notice {
+    bottom: calc(100% + 0.45rem);
+    top: auto;
+  }
+}

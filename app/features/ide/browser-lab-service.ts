@@ -72,6 +72,45 @@ function compileFailureResults(contracts: readonly ExerciseContract[], detail: s
   return contracts.map((contract) => preparationFailure(contract, detail));
 }
 
+export type PracticeContractRun = {
+  results: ProjectUnitResult[];
+  output: PracticeOutputChunk[];
+  stdout: string;
+  stderr: string;
+};
+
+export type PracticeOutputChunk = {
+  stream: "stdout" | "stderr";
+  text: string;
+};
+
+function failedPracticeRun(contracts: readonly ExerciseContract[], detail: string): PracticeContractRun {
+  return { results: compileFailureResults(contracts, detail), output: [], stdout: "", stderr: "" };
+}
+
+export function practiceOutput(receipt: TestReceipt): Pick<PracticeContractRun, "output" | "stdout" | "stderr"> {
+  const output: PracticeOutputChunk[] = [];
+  const stdout: string[] = [];
+  const stderr: string[] = [];
+  const append = (stream: PracticeOutputChunk["stream"], text: string) => {
+    const previous = output[output.length - 1];
+    if (previous?.stream === stream) previous.text += text;
+    else output.push({ stream, text });
+  };
+  for (const entry of receipt.logs) {
+    const stream = entry.level === "warn" || entry.level === "error" ? "stderr" : "stdout";
+    append(stream, `${entry.text}\n`);
+    (stream === "stderr" ? stderr : stdout).push(entry.text);
+  }
+  if (receipt.logsTruncated) {
+    const text = "[Output truncated by the browser lab.]";
+    append("stderr", `${text}\n`);
+    stderr.push(text);
+  }
+  const join = (lines: string[]) => lines.length ? `${lines.join("\n")}\n` : "";
+  return { output, stdout: join(stdout), stderr: join(stderr) };
+}
+
 export function exerciseCaseResultsAreComplete(
   contracts: readonly ExerciseContract[],
   results: readonly ExerciseCaseResult[],
@@ -101,7 +140,7 @@ export async function runPracticeContracts(input: {
   source: string;
   contractIds: readonly string[];
   signal?: AbortSignal;
-}) {
+}): Promise<PracticeContractRun> {
   const wanted = new Set(input.contractIds);
   const contracts = llmSystemsContractSuite.contracts.filter((contract) => wanted.has(contract.id));
   if (!contracts.length || contracts.length !== wanted.size) throw new Error("The requested lesson contract is unavailable.");
@@ -114,7 +153,7 @@ export async function runPracticeContracts(input: {
     contents = exposeLessonFunctions(input.source, exportNames);
   } catch (error) {
     const detail = error instanceof Error ? error.message : "The practice source could not expose its tested function.";
-    return compileFailureResults(contracts, detail);
+    return failedPracticeRun(contracts, detail);
   }
   const snapshot: ProjectSnapshot = {
     projectId: `practice-${input.path.replace(/[^A-Za-z0-9]+/g, "-")}`,
@@ -135,7 +174,7 @@ export async function runPracticeContracts(input: {
   try {
     program = await compiler.compile(job, { signal: input.signal });
   } catch (error) {
-    return compileFailureResults(contracts, error instanceof Error ? error.message : "The isolated compiler failed.");
+    return failedPracticeRun(contracts, error instanceof Error ? error.message : "The isolated compiler failed.");
   } finally {
     compiler.dispose();
   }
@@ -154,7 +193,7 @@ export async function runPracticeContracts(input: {
     suite,
     limits: { ...DEFAULT_SANDBOX_LIMITS },
   }, { signal: input.signal });
-  return aggregateReceipt(receipt, contracts);
+  return { results: aggregateReceipt(receipt, contracts), ...practiceOutput(receipt) };
 }
 
 export async function runLessonContracts(

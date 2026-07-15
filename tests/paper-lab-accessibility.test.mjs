@@ -8,6 +8,8 @@ const tokensUrl = new URL("app/styles/tokens.css", root);
 const learningFlowUrl = new URL("app/styles/learning-flow.css", root);
 const codingWorkspaceUrl = new URL("app/styles/coding-workspace.css", root);
 const responsiveUrl = new URL("app/styles/responsive.css", root);
+const selectionAskUrl = new URL("app/components/SelectionAsk.tsx", root);
+const selectionAskCssUrl = new URL("app/components/SelectionAsk.module.css", root);
 
 function relativeLuminance(hex) {
   const channels = [1, 3, 5].map((offset) => Number.parseInt(hex.slice(offset, offset + 2), 16) / 255);
@@ -50,17 +52,29 @@ async function renderLesson() {
   );
 }
 
-test("question and practice async states expose stable live-region semantics", async () => {
-  const source = await readFile(paperLabUrl, "utf8");
-  assert.match(source, /className="paper-chat" aria-busy=\{asking\}/);
-  assert.match(source, /className="chat-log" role="log" aria-label="Questions and answers" aria-live="polite" aria-relevant="additions text"/);
-  assert.match(source, /id="paper-question-status" role="status" aria-live="polite" aria-atomic="true"/);
-  assert.match(source, /Asking OpenRouter from the supplied lesson brief/);
-  assert.match(source, /Question failed: \$\{questionError\}/);
-  assert.match(source, /Latent does not store this key\. Your browser sends it directly to OpenRouter/);
+test("selection handoff and practice states expose stable accessible semantics", async () => {
+  const [source, selectionAsk] = await Promise.all([
+    readFile(paperLabUrl, "utf8"),
+    readFile(selectionAskUrl, "utf8"),
+  ]);
+  assert.match(source, /data-selection-ask/);
+  assert.match(source, /<SelectionAsk lessonTitle=\{lesson\.title\} \/>/);
+  assert.doesNotMatch(source, /paper-chat|OpenRouter|paper-question-status/);
+  assert.match(selectionAsk, /role="group"/);
+  assert.match(selectionAsk, /role="status" aria-live="polite"/);
+  assert.match(selectionAsk, /document\.addEventListener\("mouseup", captureSelection\)/);
+  assert.match(selectionAsk, /document\.addEventListener\("keyup", captureSelection\)/);
+  assert.match(selectionAsk, /document\.addEventListener\("touchend", captureSelection\)/);
+  assert.match(selectionAsk, /startRoot !== endRoot/);
+  assert.match(selectionAsk, /event\.key !== "Escape"/);
+  assert.match(selectionAsk, /window\.addEventListener\("resize", dismissForViewportChange\)/);
+  assert.match(selectionAsk, /window\.addEventListener\("scroll", dismissForViewportChange, true\)/);
+  assert.match(selectionAsk, /Prompt copied\. Paste it if \$\{providerName\} did not open\./);
+  assert.match(selectionAsk, /claude:\/\/claude\.ai\/new\?q=\$\{encoded\}/);
+  assert.match(selectionAsk, /codex:\/\/new\?prompt=\$\{encoded\}/);
   assert.match(source, /className="practice-editor" aria-busy=\{!practiceReady \|\| runningBlockIds\.length > 0\}/);
   assert.match(source, /aria-busy=\{runningBlockIds\.includes\(block\.id\)\}/);
-  assert.match(source, /className="cell-footer" role="status"[^>]*aria-live="polite" aria-atomic="true"/);
+  assert.match(source, /className=\{`cell-footer[^`]*`\} role="status"[^>]*aria-live="polite" aria-atomic="true"/);
   assert.match(source, /id=\{`practice-status-\$\{lesson\.id\}`\} role="status" aria-live="polite" aria-atomic="true"/);
 });
 
@@ -82,12 +96,11 @@ test("server-rendered lessons retain the async status relationships before hydra
   const response = await renderLesson();
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /class="paper-chat" aria-busy="false"/);
-  assert.match(html, /class="chat-log" role="log" aria-label="Questions and answers" aria-live="polite" aria-relevant="additions text"/);
-  assert.match(html, /id="paper-question-status" role="status" aria-live="polite" aria-atomic="true"/);
+  assert.match(html, /Highlight a passage to ask Claude or Codex/);
+  assert.doesNotMatch(html, /paper-chat|Questions and answers|paper-question-status/);
   assert.match(html, /class="practice-editor" aria-busy="true"/);
   assert.match(html, /class="practice-block [^"]*"[^>]*aria-busy="false"/);
-  assert.match(html, /class="cell-footer" role="status" aria-label="[^\"]+ check status" aria-live="polite" aria-atomic="true"/);
+  assert.match(html, /class="cell-footer is-idle" role="status" aria-label="[^\"]+ check status" aria-live="polite" aria-atomic="true"/);
   assert.match(html, /id="practice-status-character-rnns" role="status" aria-live="polite" aria-atomic="true"/);
 });
 
@@ -137,42 +150,30 @@ test("technical diagrams preserve their native list and table semantics", async 
   assert.match(source, /<table className="icl-measurement-table" aria-label=/);
 });
 
-test("lesson Q&A and coding controls retain 44px touch-height floors", async () => {
-  const [learningFlow, codingWorkspace] = await Promise.all([
-    readFile(learningFlowUrl, "utf8"),
+test("selection handoff and coding controls retain 44px touch-height floors", async () => {
+  const [selectionAskCss, codingWorkspace] = await Promise.all([
+    readFile(selectionAskCssUrl, "utf8"),
     readFile(codingWorkspaceUrl, "utf8"),
   ]);
-  for (const selector of [
-    ".empty-chat button",
-    ".question-form button",
-    ".key-input button",
-    ".chat-status button",
-  ]) assertTouchTarget(learningFlow, selector);
+  for (const selector of [".toolbar a", ".toolbar button"]) assertTouchTarget(selectionAskCss, selector);
+  assert.match(selectionAskCss, /env\(safe-area-inset-bottom\)/);
   for (const selector of [
     ".toolbar-actions button",
     ".toolbar-actions a",
     ".block-actions button",
-    ".practice-guidance button",
     ".editor-footer button",
   ]) assertTouchTarget(codingWorkspace, selector);
 });
 
 test("visible async status copy remains readable as well as announced", async () => {
-  const [tokens, learningFlow, codingWorkspace] = await Promise.all([
+  const [tokens, codingWorkspace] = await Promise.all([
     readFile(tokensUrl, "utf8"),
-    readFile(learningFlowUrl, "utf8"),
     readFile(codingWorkspaceUrl, "utf8"),
   ]);
   const palette = Object.fromEntries(
     [...tokens.matchAll(/--([\w-]+):\s*(#[0-9a-f]{6});/gi)].map((match) => [match[1], match[2]]),
   );
-  assert.ok(contrastRatio(palette.muted, palette.paper) >= 4.5, "question status copy must clear AA contrast");
-  for (const selector of [".key-note", ".chat-status span"]) {
-    const rule = cssRules(learningFlow).find((candidate) => candidate.selectors.includes(selector));
-    assert.ok(rule, `Expected a CSS rule for ${selector}`);
-    assert.match(rule.declarations, /color:\s*var\(--muted\)/);
-    assert.match(rule.declarations, /font-size:\s*max\(0\.68rem, 11px\)/);
-  }
+  assert.ok(contrastRatio(palette.muted, palette.paper) >= 4.5, "contextual help copy must clear AA contrast");
   const practiceStatus = cssRules(codingWorkspace).find((rule) => (
     rule.selectors.includes(".cell-footer > span") && rule.selectors.includes(".editor-footer p")
   ));

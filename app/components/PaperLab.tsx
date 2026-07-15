@@ -1,6 +1,5 @@
 "use client";
 
-import type { FormEvent } from "react";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { CodeBlock, CourseLesson } from "@latent/course-kit";
@@ -19,7 +18,7 @@ import {
   useLearnerRecoveryCandidates,
 } from "../lib/learner-state";
 import { ensureProjectWorkspace, initializeProjectPersistence, saveLessonProjectFile, useProjectPersistenceError, type LessonProjectSeed } from "../lib/project-workspace";
-import { runPracticeContracts } from "../features/ide/browser-lab-service";
+import { runPracticeContracts, type PracticeContractRun } from "../features/ide/browser-lab-service";
 import { runPythonLessonContracts } from "../features/ide/python-lesson-service";
 import { ArtifactRuntimePanel } from "../features/artifacts/ArtifactRuntimePanel";
 import { recordValidatedLessonArtifact } from "../features/artifacts/lesson-artifacts";
@@ -44,10 +43,11 @@ import { lessonLearningOutcome, moduleCheckpoint } from "../content/llm-systems/
 import { recordLearningEvent } from "../lib/learning-analytics";
 import { SyntaxCode } from "../features/ide/SyntaxCode";
 import { getLessonFlair } from "../lessons/lesson-flair";
+import { SelectionAsk } from "./SelectionAsk";
 import styles from "./PaperLab.module.css";
 
-type ChatMessage = { role: "user" | "assistant"; content: string };
 type CheckResult = { label: string; passed: boolean; detail: string };
+type CellExecutionOutput = Pick<PracticeContractRun, "output" | "stdout" | "stderr">;
 
 const LessonCodeEditor = lazy(async () => ({
   default: (await import("../features/ide/CodeEditor")).CodeEditor,
@@ -113,7 +113,7 @@ function SourceSet({ lesson }: { lesson: CourseLesson }) {
 export function HeaderSection({ lesson }: { lesson: CourseLesson }) {
   const flair = getLessonFlair(lesson.id);
   return (
-    <header className="paper-hero">
+    <header className="paper-hero" data-selection-ask>
       <div className="lesson-kicker">
         <p className="eyebrow">{lesson.eyebrow}</p>
         {flair ? <code className="lesson-notation" aria-hidden="true">{flair.notation}</code> : null}
@@ -527,8 +527,9 @@ export function ParagraphSection({ lesson }: { lesson: CourseLesson }) {
   const opening = lesson.summary.slice(0, diagramAfter);
   const closing = lesson.summary.slice(diagramAfter);
   return (
-    <section className="paper-section summary-section" id="summary">
+    <section className="paper-section summary-section" id="summary" data-selection-ask>
       <div className="section-title"><span>01</span><h2>Summary</h2></div>
+      <p className="selection-ask-instruction">Highlight a passage to ask Claude or Codex.</p>
       <div className="summary-reading">
         <div className="summary-copy">
           {opening.map((paragraph) => (
@@ -554,115 +555,7 @@ export function ParagraphSection({ lesson }: { lesson: CourseLesson }) {
 }
 
 export function TextBoxSection({ lesson }: { lesson: CourseLesson }) {
-  const [openRouterKey, setOpenRouterKey] = useState("");
-  const [showKey, setShowKey] = useState(false);
-  const [question, setQuestion] = useState("");
-  const [chat, setChat] = useState<ChatMessage[]>([]);
-  const [asking, setAsking] = useState(false);
-  const [questionError, setQuestionError] = useState("");
-  const [answerModel, setAnswerModel] = useState("");
-  const sourceContext = lesson.sources
-    .map((source) => `- "${source.title}" — ${source.authors} (${source.year}). Relevance: ${source.relevance}`)
-    .join("\n");
-
-  const askPaper = async (event: FormEvent) => {
-    event.preventDefault();
-    const trimmedQuestion = question.trim();
-    if (!openRouterKey.trim() || !trimmedQuestion || asking) return;
-    const nextChat = [...chat, { role: "user", content: trimmedQuestion } as ChatMessage];
-    setChat(nextChat);
-    setQuestion("");
-    setQuestionError("");
-    setAsking(true);
-    try {
-      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${openRouterKey.trim()}`,
-          "Content-Type": "application/json",
-          "HTTP-Referer": window.location.origin,
-          "X-Title": "Latent LLM Paper Course",
-        },
-        body: JSON.stringify({
-          model: "openrouter/auto",
-          messages: [
-            { role: "system", content: `${lesson.paperContext}\n\nBibliographic source metadata (the linked full texts were not retrieved):\n${sourceContext}\nAnswer from the lesson-authored technical brief above. Treat this source list only as a reading map: do not attribute a detail to a listed source unless the brief explicitly supports that attribution. When the supplied context is insufficient, say so and point the learner to the relevant original link instead of inferring its contents.` },
-            ...nextChat.map((message) => ({ role: message.role, content: message.content })),
-          ],
-        }),
-      });
-      const data = await response.json() as {
-        error?: { message?: string };
-        model?: string;
-        choices?: Array<{ message?: { content?: string } }>;
-      };
-      if (!response.ok) throw new Error(data.error?.message ?? `OpenRouter returned ${response.status}.`);
-      const answer = data.choices?.[0]?.message?.content?.trim();
-      if (!answer) throw new Error("The model returned an empty answer.");
-      setChat((current) => [...current, { role: "assistant", content: answer }]);
-      setAnswerModel(data.model ?? "openrouter/auto");
-    } catch (error) {
-      setQuestionError(error instanceof Error ? error.message : "The question could not be answered.");
-    } finally {
-      setAsking(false);
-    }
-  };
-
-  return (
-    <section className="paper-section questions-section" id="questions">
-      <div className="section-title"><span>02</span><h2>Questions</h2></div>
-      <details className="questions-disclosure">
-        <summary>
-          <span><small>Optional study aid</small><strong>Ask about this lesson</strong></span>
-          <em>OpenRouter key required</em>
-        </summary>
-        <div className="questions-layout">
-          <p className="questions-intro">{lesson.questions.intro}</p>
-          <div className="key-panel">
-            <label>
-              <span>OpenRouter API key</span>
-              <div className="key-input">
-                <input type={showKey ? "text" : "password"} value={openRouterKey} onChange={(event) => setOpenRouterKey(event.target.value)} placeholder="sk-or-v1-…" autoComplete="off" />
-                <button type="button" onClick={() => setShowKey((value) => !value)}>{showKey ? "Hide" : "Show"}</button>
-              </div>
-            </label>
-            <div className="key-note"><i /><span>Latent does not store this key. Your browser sends it directly to OpenRouter for each question; OpenRouter’s policies and any account charges apply. It clears here on refresh.</span></div>
-            <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer">Get a key ↗</a>
-          </div>
-          <div className="paper-chat" aria-busy={asking}>
-            <div className="chat-log" role="log" aria-label="Questions and answers" aria-live="polite" aria-relevant="additions text">
-              {chat.length === 0 ? (
-                <div className="empty-chat">
-                  <span>Suggested questions</span>
-                  {lesson.questions.suggestions.map((suggestion) => <button type="button" key={suggestion} onClick={() => setQuestion(suggestion)}>{suggestion}</button>)}
-                </div>
-              ) : chat.map((message, index) => (
-                <div className={`chat-message ${message.role}`} key={`${message.role}-${index}`}>
-                  <span>{message.role === "user" ? "You" : "Source guide"}</span><p>{message.content}</p>
-                </div>
-              ))}
-            </div>
-            <form className="question-form" onSubmit={askPaper}>
-              <textarea aria-label="Question about the lesson brief" value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Ask about the lesson brief or what to verify in the linked sources…" />
-              <button type="submit" aria-describedby="paper-question-status" disabled={!openRouterKey.trim() || !question.trim() || asking}>{asking ? "Thinking…" : "Ask"}</button>
-            </form>
-            <div className="chat-status">
-              <span id="paper-question-status" role="status" aria-live="polite" aria-atomic="true">
-                {questionError
-                  ? `Question failed: ${questionError}`
-                  : asking
-                    ? "Asking OpenRouter from the supplied lesson brief…"
-                    : answerModel
-                      ? `Answered by ${answerModel} from the supplied lesson brief`
-                      : "Context: lesson brief + source metadata · no full-text retrieval"}
-              </span>
-              {openRouterKey ? <button type="button" onClick={() => setOpenRouterKey("")}>Clear key</button> : null}
-            </div>
-          </div>
-        </div>
-      </details>
-    </section>
-  );
+  return <SelectionAsk lessonTitle={lesson.title} />;
 }
 
 function starterCodeFor(block: CodeBlock, lesson: Pick<CourseLesson, "implementation">) {
@@ -710,6 +603,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
   const [verifiedSources, setVerifiedSources] = useState<Record<string, string>>({});
   const [verifiedContractVersion, setVerifiedContractVersion] = useState<string | null>(null);
   const [cellResults, setCellResults] = useState<Record<string, CheckResult | undefined>>({});
+  const [cellOutputs, setCellOutputs] = useState<Record<string, CellExecutionOutput | undefined>>({});
   const [practiceMessage, setPracticeMessage] = useState("The reference implementation is complete and runnable.");
   const [runningBlockIds, setRunningBlockIds] = useState<string[]>([]);
   const [artifactRevision, setArtifactRevision] = useState(0);
@@ -814,7 +708,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
         if (event.type === "progress") setPracticeMessage(event.message);
       },
     });
-    return run.results;
+    return { results: run.results, output: run.output, stdout: run.stdout, stderr: run.stderr };
   };
   const practiceDraftState = () => ({
     hiddenBlocks: [...hiddenBlocksRef.current],
@@ -829,6 +723,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     const nextVerified = next.verification.ids;
     const nextVerifiedSources = next.verification.sources;
     setCellResults((current) => ({ ...current, [block.id]: undefined }));
+    setCellOutputs((current) => ({ ...current, [block.id]: undefined }));
     applyPracticeState(next.hiddenBlocks, next.answers, nextVerified, nextVerifiedSources, next.verification.contractVersion);
     saveLessonPracticeAndVerification(lesson.id, next.hiddenBlocks, next.answers, nextVerified, nextVerifiedSources, next.verification.contractVersion);
     saveLessonProjectFile(projectSeedForLesson(lesson, next.hiddenBlocks, next.answers, nextVerified));
@@ -876,6 +771,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     saveLessonPracticeAndVerification(lesson.id, nextHidden, nextAnswers, [], {}, null);
     saveLessonProjectFile(projectSeedForLesson(lesson, nextHidden, nextAnswers, []));
     setCellResults({});
+    setCellOutputs({});
     setPracticeMessage("Every cell was reset to its starter. Reconstruct them in any valid way.");
   };
   const armResetAll = () => {
@@ -893,6 +789,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     saveLessonPracticeAndVerification(lesson.id, [], currentAnswers, [], {}, null);
     saveLessonProjectFile(projectSeedForLesson(lesson, [], currentAnswers, []));
     setCellResults({});
+    setCellOutputs({});
     setPracticeMessage("Reference solution restored. Use Restore draft on any cell to return to its saved edit.");
   };
   const runCell = async (block: CodeBlock) => {
@@ -906,13 +803,15 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
       ? `${isPracticeRun ? "Checking your" : "Running the reference"} ${block.label.toLowerCase()} in browser CPython…`
       : `${isPracticeRun ? "Checking your" : "Running the reference"} ${block.label.toLowerCase()} in the isolated browser lab…`);
     try {
-      const [result] = await runContracts(
+      const execution = await runContracts(
         lessonImplementationSource(lesson, [sourceSnapshot]),
         [`${lesson.id}/${block.id}`],
       );
+      const [result] = execution.results;
       const check = result ?? { label: block.label, passed: false, detail: "The isolated test returned no result." };
       if (sourceFor(block) !== sourceSnapshot) {
         setCellResults((current) => ({ ...current, [block.id]: undefined }));
+        setCellOutputs((current) => ({ ...current, [block.id]: undefined }));
         setPracticeMessage(`${block.label} changed while its check was running. Run the current source again.`);
         return;
       }
@@ -935,6 +834,10 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
         saveLessonProjectFile(projectSeedForLesson(lesson, currentHidden, currentAnswers, nextVerified));
       }
       setCellResults((current) => ({ ...current, [block.id]: check }));
+      setCellOutputs((current) => ({
+        ...current,
+        [block.id]: { output: execution.output, stdout: execution.stdout, stderr: execution.stderr },
+      }));
       setPracticeMessage(check.passed
         ? isPracticeRun
           ? `${block.label} passed host-owned assertions and earned verification.`
@@ -950,6 +853,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     } catch (error) {
       const check = { label: block.label, passed: false, detail: error instanceof Error ? error.message : "The isolated test failed." };
       setCellResults((current) => ({ ...current, [block.id]: check }));
+      setCellOutputs((current) => ({ ...current, [block.id]: { output: [], stdout: "", stderr: "" } }));
       setPracticeMessage(`${block.label} stopped safely.`);
     } finally {
       setRunning([]);
@@ -962,6 +866,8 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     const answersSnapshot = { ...answersRef.current };
     const sourceSnapshots = Object.fromEntries(blocks.map((block) => [block.id, sourceFor(block)]));
     setRunning(blocks.map((block) => block.id));
+    setCellResults({});
+    setCellOutputs({});
     setPracticeMessage(pythonLesson
       ? hiddenSnapshot.length
         ? "Checking practice cells and running the remaining reference examples in browser CPython…"
@@ -971,14 +877,32 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
         : "Running every reference example. Edit a cell to earn verification…");
     try {
       const combinedSource = lessonImplementationSource(lesson, blocks.map((block) => sourceSnapshots[block.id]));
-      const results = await runContracts(
+      setPracticeMessage("Validating the complete lesson file…");
+      const combinedExecution = await runContracts(
         combinedSource,
         blocks.map((block) => `${lesson.id}/${block.id}`),
       );
+      const executions: Array<CellExecutionOutput | undefined> = [];
+      let outputCaptureIncomplete = false;
+      for (const [index, block] of blocks.entries()) {
+        setPracticeMessage(`Running ${index + 1} of ${blocks.length}: ${block.label}…`);
+        try {
+          const execution = await runContracts(
+            lessonImplementationSource(lesson, [sourceSnapshots[block.id]]),
+            [`${lesson.id}/${block.id}`],
+          );
+          executions.push({ output: execution.output, stdout: execution.stdout, stderr: execution.stderr });
+        } catch {
+          executions.push(undefined);
+          outputCaptureIncomplete = true;
+        }
+      }
+      const results = combinedExecution.results;
       const resultById = new Map(results.map((result) => [result.id, result]));
       const ordered = blocks.map((block) => resultById.get(`${lesson.id}/${block.id}`) ?? { id: `${lesson.id}/${block.id}`, path: projectPath, label: block.label, passed: false, detail: "The isolated test returned no result." });
       if (blocks.some((block) => sourceFor(block) !== sourceSnapshots[block.id])) {
         setCellResults({});
+        setCellOutputs({});
         setPracticeMessage("The lesson source changed while checks were running. Run the current source again.");
         return;
       }
@@ -995,8 +919,12 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
         saveLessonProjectFile(projectSeedForLesson(lesson, hiddenSnapshot, answersSnapshot, nextVerified));
       }
       setCellResults(Object.fromEntries(blocks.map((block, index) => [block.id, ordered[index]])));
+      setCellOutputs(Object.fromEntries(blocks.flatMap((block, index) => (
+        executions[index] ? [[block.id, executions[index]]] : []
+      ))));
       const passed = ordered.filter((result) => result.passed).length;
       const allBlocksInPractice = hiddenSnapshot.length === blocks.length;
+      const outputCaptureNote = outputCaptureIncomplete ? " Program output was unavailable for one or more cells." : "";
       if (passed === ordered.length && allBlocksInPractice) {
         void recordLearningEvent("lesson_checks_completed", {
           lessonId: lesson.id,
@@ -1016,15 +944,23 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
             })),
           });
           setArtifactRevision((revision) => revision + 1);
-          setPracticeMessage(`All isolated behavioral checks pass. Artifact ${artifact.contentHash.slice(7, 19)} is ready for the next lesson.`);
+          setPracticeMessage(`All behavioral checks pass. Artifact ${artifact.contentHash.slice(7, 19)} is ready for the next lesson.${outputCaptureNote}`);
         } catch (artifactError) {
-          setPracticeMessage(`All isolated behavioral checks pass, but the artifact could not be stored: ${artifactError instanceof Error ? artifactError.message : "local storage is unavailable"}`);
+          const artifactErrorDetail = artifactError instanceof Error ? artifactError.message : "local storage is unavailable";
+          setPracticeMessage(`All behavioral checks pass, but the artifact could not be stored: ${artifactErrorDetail}${/[.!?]$/.test(artifactErrorDetail) ? "" : "."}${outputCaptureNote}`);
         }
       } else {
-        setPracticeMessage(`${passed} of ${ordered.length} executions pass; ${nextVerified.length} of ${blocks.length} practice cells are verified. Reference examples do not earn credit.`);
+        setPracticeMessage(`${passed} of ${ordered.length} executions pass; ${nextVerified.length} of ${blocks.length} practice cells are verified. Reference examples do not earn credit.${outputCaptureNote}`);
       }
     } catch (error) {
-      setPracticeMessage(error instanceof Error ? error.message : "The isolated lesson test failed safely.");
+      const detail = error instanceof Error ? error.message : "The isolated lesson test failed safely.";
+      setCellResults(Object.fromEntries(blocks.map((block) => [block.id, {
+        label: block.label,
+        passed: false,
+        detail: `Run all did not finish: ${detail}`,
+      }])));
+      setCellOutputs({});
+      setPracticeMessage(detail);
     } finally {
       setRunning([]);
     }
@@ -1041,7 +977,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
 
   return (
     <section className="paper-section implementation-section" id="implementation">
-      <div className="section-title"><span>03</span><h2>Implementation</h2></div>
+      <div className="section-title"><span>02</span><h2>Implementation</h2></div>
       <p className="implementation-intro">{lesson.implementation.intro}</p>
       {pythonLesson || lesson.implementation.tensorOps?.length ? (
         <div className="tensor-runtime-strip">
@@ -1082,6 +1018,11 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
               && practiceDraftIsCompatible(lesson.implementation.filename, answers[block.id]);
             const startLine = blocks.slice(0, blockIndex).reduce((line, previous) => line + previous.code.split("\n").length + 1, implementationPrelude ? 3 : 1);
             const result = cellResults[block.id];
+            const executionOutput = cellOutputs[block.id];
+            const previouslyVerified = verifiedContractVersion === llmSystemsContractSuite.contractVersion
+              && hidden
+              && verifiedBlockIds.includes(block.id)
+              && verifiedSources[block.id] === (answers[block.id] ?? "");
             const resetArmed = pendingReset?.kind === "block" && pendingReset.blockId === block.id;
             const blockRunning = runningBlockIds.includes(block.id);
             return (
@@ -1106,9 +1047,6 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
                 </div>
                 {block.concepts?.length ? <div className="concept-strip" aria-label={`${block.label} variables`}>{block.concepts.map((concept) => <span key={concept.name}><code>{concept.name}</code><em>{concept.detail}</em></span>)}</div> : null}
                 <div className="answer-area" data-direct-edit="true">
-                  <div className="practice-guidance">
-                    <div><span>{hidden ? "Your draft" : "Editable reference"}</span><strong>{hidden ? "Saved locally · run when ready." : "Click the code and start typing."}</strong></div>
-                  </div>
                   {practiceReady ? (
                     <Suspense fallback={<div className="lesson-editor-loading" role="status">Loading syntax-aware editor…</div>}>
                       <LessonCodeEditor
@@ -1123,8 +1061,25 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
                     </Suspense>
                   ) : <SyntaxCode code={block.code} label={`${block.label} editable reference loading`} startLine={startLine} />}
                 </div>
-                <div className="cell-footer" role="status" aria-label={`${block.label} check status`} aria-live="polite" aria-atomic="true">
-                  {result ? <span className={result.passed ? "cell-result passed" : "cell-result failed"}><i>{result.passed ? "✓" : "×"}</i>{!hidden && result.passed ? "Example passed · practice this cell to earn verification" : result.detail}</span> : verifiedContractVersion === llmSystemsContractSuite.contractVersion && hidden && verifiedBlockIds.includes(block.id) && verifiedSources[block.id] === (answers[block.id] ?? "") ? <span className="cell-result passed"><i>✓</i>Verified previously on this device</span> : <span>{practiceReady ? hidden ? "Practice not run" : "Example not run · no progress credit" : "Waiting for saved progress"}</span>}
+                {executionOutput?.output.length ? (
+                  <div className="cell-output" aria-label={`${block.label} program output`}>
+                    <span>Output</span>
+                    <div className="cell-output-streams">
+                      {executionOutput.output.map((chunk, index) => (
+                        <div className={`cell-output-chunk ${chunk.stream === "stderr" ? "cell-stderr" : ""}`} key={`${chunk.stream}-${index}`}>
+                          {chunk.stream === "stderr" ? <span>Standard error</span> : null}
+                          <pre aria-label={`${block.label} ${chunk.stream === "stderr" ? "standard error" : "standard output"}`}>{chunk.text}</pre>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+                <div className={`cell-footer ${result || previouslyVerified ? "" : "is-idle"}`} role="status" aria-label={`${block.label} check status`} aria-live="polite" aria-atomic="true">
+                  {result ? (
+                    <><span aria-hidden="true">Tests</span><output className={result.passed ? "cell-result passed" : "cell-result failed"}>{!hidden && result.passed ? "Example passed · practice this cell to earn verification" : result.detail}</output></>
+                  ) : previouslyVerified ? (
+                    <><span aria-hidden="true">Tests</span><output className="cell-result passed">Verified previously on this device</output></>
+                  ) : <span className="sr-only">{practiceReady ? "Tests not run." : "Restoring saved progress…"}</span>}
                 </div>
               </div>
             );
@@ -1210,7 +1165,6 @@ export function PaperLab({ lesson }: { lesson: CourseLesson }) {
         <Link className="wordmark" href="/" aria-label="Latent course home"><i />latent</Link>
         <nav aria-label="Lesson navigation">
           <a href="#summary" aria-label="Summary"><span className="nav-label-full">Summary</span><span className="nav-label-short">Summary</span></a>
-          <a href="#questions" aria-label="Questions"><span className="nav-label-full">Questions</span><span className="nav-label-short">Ask</span></a>
           <a href="#implementation" aria-label="Implementation"><span className="nav-label-full">Implementation</span><span className="nav-label-short">Code</span></a>
           <a href="#artifacts" aria-label="Artifacts"><span className="nav-label-full">Artifacts</span><span className="nav-label-short">Results</span></a>
         </nav>

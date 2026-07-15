@@ -94,11 +94,9 @@ test("all fourteen lessons use the reusable learning flow", async () => {
     assert.doesNotMatch(html, /primary and supporting references|supporting sources/);
     assert.match(html, /Source finding/);
     assert.match(html, /Browser reproduction/);
-    assert.match(html, /OpenRouter API key/);
-    assert.match(html, /Latent does not store this key/);
-    assert.match(html, /browser sends it directly to OpenRouter/);
-    assert.match(html, /lesson brief \+ source metadata · no full-text retrieval/);
-    assert.doesNotMatch(html, /Grounded in the lesson sources|Your key stays in this tab/);
+    assert.match(html, /Highlight a passage to ask Claude or Codex/);
+    assert.match(html, /data-selection-ask="true"/);
+    assert.doesNotMatch(html, /OpenRouter API key|openrouter\.ai|paper-chat|Questions and answers/);
     assert.match(html, /Reset all/);
     assert.match(html, /data-direct-edit="true"/);
     assert.doesNotMatch(html, /Practice all|Practice cell|Run example/);
@@ -325,8 +323,9 @@ test("the project IDE is a dedicated tested authoring surface", async () => {
 });
 
 test("the design kit, simulations, model engines, and artifact runtime remain reusable", async () => {
-  const [paperLab, experiment, capstone, capstoneTemplate, previewFrame, workbench, projectWorkspace, projectTests, browserLabService, quickJsRunner, compilerClient, persistence, artifactRuntime, artifactService, labTypes, engines, extended, sourceSets, layout, packageJson] = await Promise.all([
+  const [paperLab, selectionAsk, experiment, capstone, capstoneTemplate, previewFrame, workbench, projectWorkspace, projectTests, browserLabService, quickJsRunner, compilerClient, persistence, artifactRuntime, artifactService, labTypes, engines, extended, sourceSets, layout, packageJson] = await Promise.all([
     readFile(new URL("../app/components/PaperLab.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/SelectionAsk.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/LessonExperiment.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/BrowserChatCapstone.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/content/browser-chat/project-template.ts", import.meta.url), "utf8"),
@@ -394,9 +393,11 @@ test("the design kit, simulations, model engines, and artifact runtime remain re
   assert.equal((sourceSets.match(/^  (?:"[^"]+"|[a-z-]+): \[$/gm) ?? []).length, 14);
   assert.match(paperLab, /lesson\.sources\.map\(\(source\)/);
   assert.doesNotMatch(paperLab, /supporting-sources|source\.role/);
-  assert.match(paperLab, /linked full texts were not retrieved/);
-  assert.match(paperLab, /Treat this source list only as a reading map/);
-  assert.match(paperLab, /instead of inferring its contents/);
+  assert.match(paperLab, /<SelectionAsk lessonTitle=\{lesson\.title\} \/>/);
+  assert.match(selectionAsk, /export function buildSelectionPrompt/);
+  assert.match(selectionAsk, /export function selectionAskHref/);
+  assert.match(selectionAsk, /If context is missing, say what is missing instead of guessing/);
+  assert.match(selectionAsk, /closest\("\[data-selection-ask\]"\)/);
   assert.match(layout, /og-v2\.png/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   await assert.rejects(access(new URL("../app/_sites-preview", templateRoot)));

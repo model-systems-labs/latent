@@ -35,20 +35,25 @@ test("lessons use an editorial hierarchy instead of landing-page scale", async (
   assert.match(learningFlow, /\.section-title h2\s*\{[^}]*font-size:\s*clamp\(1\.65rem,\s*2\.3vw,\s*2\.15rem\)/);
   assert.match(learningFlow, /\.paper-section\s*\{[^}]*padding:\s*clamp\(3\.25rem,\s*5vw,\s*4\.5rem\)/);
   assert.match(lessonMobile, /\.lessonShell :global\(\.paper-hero h1\)\s*\{[^}]*font-size:\s*clamp\(2\.15rem,\s*9vw,\s*2\.65rem\)[^}]*white-space:\s*normal/);
+  assert.match(lessonMobile, /\.practice-block \.concept-strip\) \{ order: 2; \}/);
+  assert.match(lessonMobile, /\.practice-block \.answer-area\) \{ order: 3; \}/);
+  assert.match(lessonMobile, /\.practice-block \.cell-output\) \{ order: 4; \}/);
+  assert.match(lessonMobile, /\.practice-block \.cell-footer\) \{ order: 5; \}/);
   assert.doesNotMatch(responsive.slice(0, responsive.indexOf("@media (max-width: 650px)")), /\.summary-copy\s*\{[^}]*columns:\s*2/);
   assert.doesNotMatch(paperLab, /className=\{`summary-layout/);
 });
 
-test("optional study and project views stay out of the primary reading path", async () => {
+test("contextual help and project history stay out of the primary reading path", async () => {
   const [paperLab, learningFlow, projectPage, projectStructure] = await Promise.all([
     readFile(paperLabUrl, "utf8"),
     readFile(learningFlowUrl, "utf8"),
     readFile(projectPageUrl, "utf8"),
     readFile(projectStructureUrl, "utf8"),
   ]);
-  assert.match(paperLab, /<details className="questions-disclosure">[\s\S]*?<summary>[\s\S]*?Ask about this lesson/);
-  assert.doesNotMatch(paperLab, /<details className="questions-disclosure" open/);
-  assert.match(rule(learningFlow, ".questions-disclosure > summary"), /min-height:\s*5rem/);
+  assert.match(paperLab, /<p className="selection-ask-instruction">Highlight a passage to ask Claude or Codex\.<\/p>/);
+  assert.match(paperLab, /<SelectionAsk lessonTitle=\{lesson\.title\} \/>/);
+  assert.doesNotMatch(paperLab, /questions-disclosure|paper-chat|OpenRouter/);
+  assert.match(rule(learningFlow, ".selection-ask-instruction"), /max-width:\s*none/);
   assert.match(projectPage, /<details className="project-history-disclosure">[\s\S]*?History and learning data/);
   assert.doesNotMatch(projectPage, /<details className="project-history-disclosure" open/);
   assert.match(rule(projectStructure, ".project-history-disclosure > summary"), /min-height:\s*5rem/);
@@ -72,7 +77,7 @@ test("summary prose owns the reading flow and the mechanism follows the concepts
   assert.match(paperLab, /const diagramAfter = Math\.max\(1, lesson\.summary\.length - 1\)/);
 });
 
-test("lesson prose, diagrams, questions, code, and outcomes share one editorial rail", async () => {
+test("lesson prose, diagrams, contextual help, code, and outcomes share one editorial rail", async () => {
   const [learningFlow, codingWorkspace, pytorch, productization] = await Promise.all([
     readFile(learningFlowUrl, "utf8"),
     readFile(codingWorkspaceUrl, "utf8"),
@@ -80,7 +85,7 @@ test("lesson prose, diagrams, questions, code, and outcomes share one editorial 
     readFile(productizationUrl, "utf8"),
   ]);
   assert.match(learningFlow, /\.paper-page\s*\{\s*max-width:\s*60rem/);
-  for (const selector of [".paper-hero", ".paper-thesis", ".source-set", ".section-title", ".summary-reading", ".summary-copy", ".questions-layout", ".questions-disclosure", ".implementation-intro", ".summary-boundary"]) {
+  for (const selector of [".paper-hero", ".paper-thesis", ".source-set", ".section-title", ".summary-reading", ".summary-copy", ".selection-ask-instruction", ".implementation-intro", ".summary-boundary"]) {
     assert.match(rule(learningFlow, selector), /max-width:\s*none/, selector);
   }
   assert.match(rule(codingWorkspace, ".practice-editor"), /max-width:\s*none/);
@@ -108,11 +113,12 @@ test("lesson references use one responsive disclosure while full metadata remain
 });
 
 test("lesson code uses lazy syntax-aware Python editors without loading the full IDE", async () => {
-  const [paperLab, syntaxCode, codeEditor, codingWorkspace] = await Promise.all([
+  const [paperLab, syntaxCode, codeEditor, codingWorkspace, learningFlow] = await Promise.all([
     readFile(paperLabUrl, "utf8"),
     readFile(syntaxCodeUrl, "utf8"),
     readFile(codeEditorUrl, "utf8"),
     readFile(codingWorkspaceUrl, "utf8"),
+    readFile(learningFlowUrl, "utf8"),
   ]);
   assert.match(paperLab, /import \{ SyntaxCode \} from "\.\.\/features\/ide\/SyntaxCode"/);
   assert.match(paperLab, /lazy\(async \(\) => \(\{[\s\S]*?import\("\.\.\/features\/ide\/CodeEditor"\)/);
@@ -127,11 +133,25 @@ test("lesson code uses lazy syntax-aware Python editors without loading the full
   assert.match(paperLab, /className="answer-area" data-direct-edit="true"/);
   assert.match(paperLab, /"Running…" : "Run cell"/);
   assert.match(paperLab, /hiddenBlocks\.length === blocks\.length \? "Run practice checks"[\s\S]*?"Run all examples"/);
+  assert.match(paperLab, /const combinedExecution = await runContracts\([\s\S]*?combinedSource[\s\S]*?blocks\.map\(\(block\) => `\$\{lesson\.id\}\/\$\{block\.id\}`\)/);
+  assert.match(paperLab, /try \{[\s\S]*?lessonImplementationSource\(lesson, \[sourceSnapshots\[block\.id\]\]\)[\s\S]*?executions\.push\(\{ output: execution\.output[\s\S]*?catch \{[\s\S]*?outputCaptureIncomplete = true/);
   assert.match(paperLab, /Example passed · practice this cell to earn verification/);
+  assert.match(paperLab, /executionOutput\?\.output\.length \? \(/);
+  assert.doesNotMatch(paperLab, /<p>No output\.<\/p>/);
+  assert.match(paperLab, /className="cell-output" aria-label=\{`\$\{block\.label\} program output`\}/);
+  assert.match(paperLab, /chunk\.stream === "stderr" \? "standard error" : "standard output"/);
+  assert.match(paperLab, />Output<\/span>/);
+  assert.match(paperLab, />Standard error<\/span>/);
+  assert.match(paperLab, />Tests<\/span>/);
   assert.match(paperLab, /Reference examples do not earn credit/);
   assert.match(codeEditor, /variant === "lesson" \? lessonTheme/);
   assert.match(codeEditor, /lineNumbers\(\{ formatNumber: \(line\) => String\(line \+ lineNumberStart - 1\) \}\)/);
   for (const token of ["keyword", "string", "number", "comment", "variableName", "propertyName", "operator", "punctuation", "invalid"]) {
     assert.match(codingWorkspace, new RegExp(`\\.tok-${token}`));
   }
+  assert.doesNotMatch(codingWorkspace, /box-shadow:\s*inset 2px/);
+  assert.doesNotMatch(learningFlow, /box-shadow:\s*inset [^;]+/);
+  assert.match(rule(codingWorkspace, ".practice-block.is-hidden"), /background:\s*transparent/);
+  assert.match(rule(codingWorkspace, ".cell-output"), /background:\s*#151417/);
+  assert.match(rule(codingWorkspace, ".cell-output-streams"), /max-height:\s*16rem/);
 });

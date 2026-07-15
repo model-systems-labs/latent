@@ -38,6 +38,23 @@ const editorPalette = {
   invalid: "#ffb4ad",
 } as const;
 
+const lessonEditorPalette = {
+  background: "#fbfaf8",
+  foreground: "#292623",
+  keyword: "#6f3e78",
+  string: "#7b4b1f",
+  number: "#1d6174",
+  comment: "#68635e",
+  gutter: "#6f6963",
+  variable: "#292623",
+  function: "#2c5f78",
+  property: "#3f5969",
+  type: "#67456e",
+  punctuation: "#524d48",
+  operator: "#684c6e",
+  invalid: "#9c3434",
+} as const;
+
 const latentTheme = EditorView.theme({
   "&": {
     height: "100%",
@@ -81,20 +98,46 @@ const latentTheme = EditorView.theme({
 
 const lessonTheme = EditorView.theme({
   "&": {
+    height: "100%",
     minHeight: "0",
+    color: lessonEditorPalette.foreground,
+    backgroundColor: lessonEditorPalette.background,
     fontSize: "14px",
   },
   ".cm-content": {
     padding: "15px 0 20px",
+    caretColor: "#6d557b",
+    fontFamily: '"SFMono-Regular", Consolas, "Liberation Mono", monospace',
     lineHeight: "1.72",
   },
   ".cm-line": { padding: "0 20px 0 10px" },
   ".cm-gutters": {
+    backgroundColor: lessonEditorPalette.background,
+    color: lessonEditorPalette.gutter,
+    borderRight: "1px solid #e7e3de",
     paddingLeft: "4px",
   },
+  ".cm-activeLine, .cm-activeLineGutter": { backgroundColor: "#f2edf4" },
+  ".cm-selectionBackground, &.cm-focused .cm-selectionBackground": { backgroundColor: "#e7e1e9" },
+  ".cm-cursor, .cm-dropCursor": { borderLeftColor: "#6d557b" },
   ".cm-foldGutter": { display: "none" },
-  ".cm-scroller": { minHeight: "0" },
-}, { dark: true });
+  ".cm-scroller": {
+    minHeight: "0",
+    overflow: "auto",
+    overscrollBehaviorX: "contain",
+    overscrollBehaviorY: "auto",
+    scrollbarColor: "#b8b1aa transparent",
+    scrollbarWidth: "thin",
+  },
+  ".cm-matchingBracket": {
+    backgroundColor: "#eee8f0",
+    outline: "1px solid #a997b3",
+  },
+  "&.cm-focused": {
+    outline: "2px solid #6d557b",
+    outlineOffset: "-2px",
+  },
+}, { dark: false });
 
 const syntaxTheme = HighlightStyle.define([
   { tag: tags.keyword, color: editorPalette.keyword, fontWeight: "600" },
@@ -108,6 +151,20 @@ const syntaxTheme = HighlightStyle.define([
   { tag: tags.operator, color: editorPalette.operator },
   { tag: tags.punctuation, color: editorPalette.punctuation },
   { tag: tags.invalid, color: editorPalette.invalid, textDecoration: "underline wavy" },
+]);
+
+const lessonSyntaxTheme = HighlightStyle.define([
+  { tag: tags.keyword, color: lessonEditorPalette.keyword, fontWeight: "600" },
+  { tag: [tags.string, tags.regexp, tags.escape], color: lessonEditorPalette.string },
+  { tag: [tags.number, tags.bool, tags.null, tags.atom], color: lessonEditorPalette.number },
+  { tag: tags.comment, color: lessonEditorPalette.comment, fontStyle: "italic" },
+  { tag: [tags.function(tags.variableName), tags.labelName], color: lessonEditorPalette.function },
+  { tag: [tags.definition(tags.variableName), tags.className, tags.typeName], color: lessonEditorPalette.type },
+  { tag: [tags.propertyName, tags.attributeName], color: lessonEditorPalette.property },
+  { tag: [tags.variableName, tags.name], color: lessonEditorPalette.variable },
+  { tag: tags.operator, color: lessonEditorPalette.operator },
+  { tag: tags.punctuation, color: lessonEditorPalette.punctuation },
+  { tag: tags.invalid, color: lessonEditorPalette.invalid, textDecoration: "underline wavy" },
 ]);
 
 const editableEditorInstruction = "Code editor. Tab indents. Press Escape, then Tab, to leave the editor.";
@@ -152,9 +209,8 @@ export function CodeEditor({ value, path, onChange, onSave, readOnly = false, va
           variant === "lesson" ? lineNumbers({ formatNumber: (line) => String(line + lineNumberStart - 1) }) : [],
           isPython ? python() : javascript({ jsx: /\.[jt]sx$/.test(path), typescript: /\.tsx?$/.test(path) }),
           saveKeymap,
-          latentTheme,
-          variant === "lesson" ? lessonTheme : [],
-          syntaxHighlighting(syntaxTheme),
+          variant === "lesson" ? lessonTheme : latentTheme,
+          syntaxHighlighting(variant === "lesson" ? lessonSyntaxTheme : syntaxTheme),
           EditorState.tabSize.of(isPython ? 4 : 2),
           EditorState.readOnly.of(readOnly),
           EditorView.editable.of(!readOnly),

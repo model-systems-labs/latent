@@ -178,7 +178,11 @@ test("visible async status copy remains readable as well as announced", async ()
     rule.selectors.includes(".cell-footer > span") && rule.selectors.includes(".editor-footer p")
   ));
   assert.ok(practiceStatus, "Expected a shared readable practice-status rule");
-  assert.match(practiceStatus.declarations, /color:\s*#a9a19a/);
+  assert.match(practiceStatus.declarations, /color:\s*#655f59/);
   assert.match(practiceStatus.declarations, /font-size:\s*max\(0\.68rem, 11px\)/);
-  assert.ok(contrastRatio("#a9a19a", "#19181b") >= 4.5, "practice status copy must clear AA contrast");
+  assert.ok(contrastRatio("#655f59", "#f4f2ee") >= 4.5, "practice status copy must clear AA contrast");
+  assert.ok(contrastRatio("#282522", "#f4f2ee") >= 4.5, "standard output must clear AA contrast");
+  assert.ok(contrastRatio("#9a3f3f", "#f4f2ee") >= 4.5, "standard error must clear AA contrast");
+  assert.ok(contrastRatio("#356342", "#f7f6f3") >= 4.5, "passing test copy must clear AA contrast");
+  assert.ok(contrastRatio("#9a3f3f", "#f7f6f3") >= 4.5, "failing test copy must clear AA contrast");
 });

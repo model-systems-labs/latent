@@ -41,11 +41,47 @@ function compositeOnHexBackground(red, green, blue, alpha, background) {
 test("the IDE installs a real CodeMirror syntax highlighter and keeps long lines horizontally scrollable", async () => {
   const source = await readFile(codeEditorUrl, "utf8");
   assert.match(source, /HighlightStyle\.define\s*\(/);
-  assert.match(source, /syntaxHighlighting\s*\(\s*syntaxTheme\s*\)/);
+  assert.match(source, /syntaxHighlighting\s*\(\s*variant === "lesson" \? lessonSyntaxTheme : syntaxTheme\s*\)/);
+  assert.match(source, /variant === "lesson" \? lessonTheme : latentTheme/);
   assert.match(source, /tags\.keyword/);
   assert.match(source, /tags\.comment/);
   assert.doesNotMatch(source, /EditorView\.baseTheme\s*\(/);
   assert.doesNotMatch(source, /EditorView\.lineWrapping/);
+});
+
+test("the lesson editor uses a mutually exclusive light theme whose tokens clear WCAG AA", async () => {
+  const source = await readFile(codeEditorUrl, "utf8");
+  const paletteSource = source.match(/const lessonEditorPalette = \{([\s\S]*?)\} as const;/)?.[1];
+  assert.ok(paletteSource, "CodeEditor must expose a reviewable lesson palette");
+  const palette = Object.fromEntries(
+    [...paletteSource.matchAll(/(\w+):\s*"(#[0-9a-f]{6})"/gi)].map((match) => [match[1], match[2]]),
+  );
+  assert.match(source, /const lessonTheme = EditorView\.theme\([\s\S]*?\}, \{ dark: false \}\);/);
+  assert.match(source, /const latentTheme = EditorView\.theme\([\s\S]*?\}, \{ dark: true \}\);/);
+  assert.doesNotMatch(source, /latentTheme,\s*variant === "lesson"/);
+  for (const [name, color] of Object.entries(palette)) {
+    if (name === "background") continue;
+    assert.ok(
+      contrastRatio(color, palette.background) >= 4.5,
+      `lesson ${name} (${color}) must remain readable on ${palette.background}`,
+    );
+  }
+  const lessonThemeSource = source.slice(source.indexOf("const lessonTheme"), source.indexOf("const syntaxTheme"));
+  const activeLineBackground = lessonThemeSource.match(/cm-activeLine, \.cm-activeLineGutter[^\n]*backgroundColor: "(#[0-9a-f]{6})"/)?.[1];
+  const selectedBackground = lessonThemeSource.match(/cm-selectionBackground[^\n]*backgroundColor: "(#[0-9a-f]{6})"/)?.[1];
+  assert.match(activeLineBackground ?? "", /^#[0-9a-f]{6}$/i);
+  assert.match(selectedBackground ?? "", /^#[0-9a-f]{6}$/i);
+  assert.ok(
+    contrastRatio(palette.gutter, activeLineBackground) >= 4.5,
+    `lesson gutter (${palette.gutter}) must remain readable on active line ${activeLineBackground}`,
+  );
+  for (const [name, color] of Object.entries(palette)) {
+    if (name === "background" || name === "gutter") continue;
+    assert.ok(
+      contrastRatio(color, selectedBackground) >= 4.5,
+      `lesson ${name} (${color}) must remain readable on selected text background ${selectedBackground}`,
+    );
+  }
 });
 
 test("every declared editor token color clears WCAG AA contrast on the editor background", async () => {

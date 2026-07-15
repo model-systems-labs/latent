@@ -73,6 +73,8 @@ test("the Python editor has native syntax highlighting and the same keyboard esc
   assert.match(source, /import \{ python \} from "@codemirror\/lang-python"/);
   assert.match(source, /python\(\)/);
   assert.match(source, /syntaxHighlighting\(pythonSyntaxTheme\)/);
+  assert.match(source, /background:\s*"#1f1e21"/);
+  assert.match(source, /\}, \{ dark: true \}\);/);
   assert.match(source, /EditorState\.tabSize\.of\(4\)/);
   assert.match(source, /\{ key: "Escape", run: temporarilySetTabFocusMode \}/);
   assert.match(source, /Python code editor\. Tab indents four spaces\. Press Escape, then Tab, to leave the editor\./);

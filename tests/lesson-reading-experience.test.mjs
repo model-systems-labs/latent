@@ -144,7 +144,9 @@ test("lesson code uses lazy syntax-aware Python editors without loading the full
   assert.match(paperLab, />Standard error<\/span>/);
   assert.match(paperLab, />Tests<\/span>/);
   assert.match(paperLab, /Reference examples do not earn credit/);
-  assert.match(codeEditor, /variant === "lesson" \? lessonTheme/);
+  assert.match(codeEditor, /variant === "lesson" \? lessonTheme : latentTheme/);
+  assert.match(codeEditor, /syntaxHighlighting\(variant === "lesson" \? lessonSyntaxTheme : syntaxTheme\)/);
+  assert.match(codeEditor, /\}, \{ dark: false \}\);/);
   assert.match(codeEditor, /lineNumbers\(\{ formatNumber: \(line\) => String\(line \+ lineNumberStart - 1\) \}\)/);
   for (const token of ["keyword", "string", "number", "comment", "variableName", "propertyName", "operator", "punctuation", "invalid"]) {
     assert.match(codingWorkspace, new RegExp(`\\.tok-${token}`));
@@ -152,6 +154,10 @@ test("lesson code uses lazy syntax-aware Python editors without loading the full
   assert.doesNotMatch(codingWorkspace, /box-shadow:\s*inset 2px/);
   assert.doesNotMatch(learningFlow, /box-shadow:\s*inset [^;]+/);
   assert.match(rule(codingWorkspace, ".practice-block.is-hidden"), /background:\s*transparent/);
-  assert.match(rule(codingWorkspace, ".cell-output"), /background:\s*#151417/);
+  assert.match(rule(codingWorkspace, ".practice-editor"), /background:\s*#f7f6f3/);
+  assert.match(rule(codingWorkspace, ".lesson-code-editor"), /background:\s*#fbfaf8/);
+  assert.match(rule(codingWorkspace, ".lesson-editor-loading"), /background:\s*#fbfaf8/);
+  assert.match(rule(codingWorkspace, ".cell-output"), /background:\s*#f4f2ee/);
+  assert.match(rule(codingWorkspace, ".editor-footer"), /background:\s*#f4f2ee/);
   assert.match(rule(codingWorkspace, ".cell-output-streams"), /max-height:\s*16rem/);
 });

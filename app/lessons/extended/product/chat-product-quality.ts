@@ -8,50 +8,50 @@ export const chatProductQualityLesson = defineExtendedLesson({
     courseNumber: 4,
     lessonNumber: 4,
     mode: "core-mechanism",
-    modeLabel: "Product verification",
+    modeLabel: "Product quality check",
     eyebrow: "Quality · Persistence, a11y, latency",
     title: "Product Quality",
-    thesis: "A chat product is a verifiable contract: every input, generation phase, announcement, recovery action, and persisted record must remain understandable after failure and reload.",
+    thesis: "A chat product should still make sense after something fails or the page reloads. You need to be able to verify every input, generation phase, announcement, recovery action, and saved record.",
     paperUrl: "https://www.w3.org/WAI/WCAG22/Techniques/aria/ARIA23",
     paperTitle: "ARIA23: Using role=log to identify sequential information updates",
     authors: "W3C Web Accessibility Initiative",
     year: "WCAG 2.2",
     summary: [
-      { label: "One observable lifecycle.", body: "Enter queues a request; loading and prefill explain the wait; streaming adds bounded visual and programmatic updates; complete, cancelled, and error are terminal states. The visible label must come from the same phase that controls Stop and Retry." },
-      { label: "Recovery includes focus.", body: "Stop and regeneration are state transitions, not decorative buttons. Late events must be rejected, resources released, partial output labeled, and keyboard focus returned to a predictable control." },
-      { label: "Persistence is an input boundary.", body: "Reloaded history is untrusted data. A versioned record should admit only its exact safe fields, bounded terminal messages, and known roles and backends; streaming state and every secret-shaped extra field are rejected." },
-      { label: "Automation has a boundary.", body: "Pure contract checks can verify mappings, guards, serialization, and exact policy values. A separate full-build receipt mounts the capstone and drives submit, stream, stop, late-event rejection, and error behavior. Neither proves focus order, screen-reader speech, touch ergonomics, or layout at a real viewport; those remain explicit manual checks." },
+      { label: "One lifecycle you can see.", body: "Pressing Enter queues a request. Loading and prefill labels explain the wait, streaming sends updates in reasonable batches, and complete, cancelled, and error are the final states. The label on screen should come from the same phase that controls Stop and Retry." },
+      { label: "Recovery also means focus.", body: "Stop and regenerate aren't just buttons; they move the request into a new state. Reject late events, release resources, label partial output, and put keyboard focus back on a control the user can predict." },
+      { label: "Treat saved history as input.", body: "History loaded after a refresh is untrusted data. A versioned record should accept only the exact safe fields, size-limited final messages, and known roles and backends. Reject streaming state and any extra field that could hold a secret." },
+      { label: "Know what automation can't prove.", body: "Small contract checks can verify mappings, guards, serialization, and exact policy values. A separate full-build check mounts the capstone and runs through submit, stream, stop, late-event rejection, and errors. Neither one proves focus order, what a screen reader says, how touch controls feel, or how the layout works at a real screen size. Check those by hand." },
     ],
     claims: {
-      paper: "Dynamic sequential content can use an accessible log pattern that preserves reading order and announces meaningful additions.",
-      lab: "The lesson runs 11 executable pure checks, labels 5 unexecuted requirements as specifications, and names the keyboard, screen-reader, and mobile checks that still require a person. The full-project build adds a separate mounted behavior receipt.",
-      limit: "Automated checks supplement rather than replace testing with real browsers, keyboards, screen readers, and users.",
+      paper: "For content that updates in order, an accessible log can keep the reading order clear and announce useful additions.",
+      lab: "This lesson runs 11 small executable checks, marks 5 unexecuted requirements as specifications, and lists the keyboard, screen-reader, and mobile checks a person still needs to do. The full project build adds a separate mounted behavior check.",
+      limit: "Automated checks help, but they don't replace testing with real browsers, keyboards, screen readers, and users.",
     },
     diagram: {
       title: "One send through reload",
-      caption: "The visual surface, programmatic status, recovery controls, and safe persisted record follow one request without claiming that automated contracts replace device testing.",
+      caption: "The screen, status updates, recovery controls, and safely saved record all follow the same request. The automated checks still don't replace testing on real devices.",
       nodes: [
         { label: "Send", value: "Enter → queued" },
         { label: "Wait", value: "loading → prefill" },
-        { label: "Generate", value: "streaming → bounded batches" },
+        { label: "Generate", value: "streaming → limited batches" },
         { label: "Recover", value: "cancel / retry → composer focus" },
-        { label: "Reload", value: "validate v1 → restore terminal messages" },
+        { label: "Reload", value: "check v1 → restore finished messages" },
       ],
     },
-    questions: { intro: "Ask about local persistence, schema migration, live regions, focus management, or honest latency states.", suggestions: ["What chat data should never be persisted?", "How often should streaming text be announced?", "What should receive focus after retry?"] },
-    dataset: { name: "Product Contract Audit", source: "Original deterministic checklist", license: "CC0", size: "11 executable pure checks · 5 specifications · 3 manual verification groups", preview: "input + focus · persistence · lifecycle · accessibility + responsive contract" },
+    questions: { intro: "Ask about local storage, schema changes, live regions, keyboard focus, or clear latency labels.", suggestions: ["What chat data should never be saved?", "How often should streaming text be announced?", "Where should focus go after a retry?"] },
+    dataset: { name: "Product Contract Audit", source: "Original fixed checklist", license: "CC0", size: "11 executable pure checks · 5 specifications · 3 manual verification groups", preview: "input + focus · saved state · lifecycle · accessibility + responsive behavior" },
     implementation: {
       filename: "chat-quality.py",
-      intro: "Implement storage validation and user-visible phase labels in Python before running the capstone product audit.",
+      intro: "Build the saved-data check and user-facing phase labels in Python, then run the capstone product check.",
       codeBlocks: [
         {
           id: "storage-validation",
-          label: "Storage validation",
-          purpose: "Accept only one bounded v1 conversation record made of exact safe terminal-message fields.",
+          label: "Saved-data check",
+          purpose: "Accept only a size-limited v1 conversation record with the exact safe fields allowed for final messages.",
           concepts: [
-            { name: "version", detail: "Explicit schema version used for migration decisions." },
-            { name: "exact keys", detail: "Rejects top-level and nested extras, including secret-shaped fields." },
-            { name: "terminal messages", detail: "Streaming messages are never restored as if their request were still alive." },
+            { name: "version", detail: "The exact schema version used to decide whether a migration is needed." },
+            { name: "exact keys", detail: "Reject extra fields at the top level or inside messages, including fields that could hold secrets." },
+            { name: "terminal messages", detail: "Never restore a streaming message as though its request were still running." },
           ],
           code: `import json
 
@@ -134,11 +134,11 @@ RESULT = {
         {
           id: "phase-label",
           label: "Generation status",
-          purpose: "Map internal request phases to concise honest user-facing labels.",
+          purpose: "Turn internal request phases into short, honest labels for the user.",
           concepts: [
-            { name: "phase", detail: "Explicit state from the request lifecycle." },
-            { name: "labels", detail: "Finite mapping rather than inferred loading copy." },
-            { name: "fallback", detail: "Safe label for unknown future phases." },
+            { name: "phase", detail: "The request's current state, stored directly." },
+            { name: "labels", detail: "A fixed mapping instead of guessing which loading text to show." },
+            { name: "fallback", detail: "A safe label for a phase this version doesn't know yet." },
           ],
           code: `def generation_status_label(phase):
     labels = {
@@ -160,5 +160,5 @@ RESULT = {
         },
       ],
     },
-    experiment: { kind: "product", variant: "quality", title: "Audit the product contract", intro: "Run 11 executable pure checks, review 5 explicitly unexecuted specifications, then use the manual list for real keyboard, screen-reader, and mobile verification. The full build separately mounts the capstone for behavior checks." },
+    experiment: { kind: "product", variant: "quality", title: "Check the product contract", intro: "Run the 11 executable checks, review the 5 specifications that don't run here, then use the manual list to test with a real keyboard, screen reader, and mobile layout. The full build mounts the capstone separately for behavior checks." },
   });

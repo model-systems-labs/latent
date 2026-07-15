@@ -60,11 +60,11 @@ export function LessonOutcome({ lesson }: { lesson: CourseLesson }) {
 
   return (
     <section className="paper-section lesson-outcome-section" id="outcome">
-      <div className="section-title"><span>04</span><h2>Verify the result</h2></div>
+      <div className="section-title"><span>04</span><h2>Check what you learned</h2></div>
       <div className="lesson-outcome-layout">
         <section className="knowledge-check" aria-labelledby={`${lesson.id}-knowledge-title`}>
           <header>
-            <span>Prediction check</span>
+            <span>Quick prediction</span>
             <strong id={`${lesson.id}-knowledge-title`}>{check.prompt}</strong>
           </header>
           <fieldset>
@@ -92,29 +92,29 @@ export function LessonOutcome({ lesson }: { lesson: CourseLesson }) {
           </fieldset>
           <footer>
             <button type="button" onClick={submit} disabled={!choice}>
-              {submitted ? "Check again" : "Check prediction"}
+              {submitted ? "Try again" : "Check my answer"}
             </button>
             {submitted ? (
               <p className={submittedCorrect ? "correct" : "incorrect"} role="status">
                 <strong>{submittedCorrect ? "Correct." : "Not yet."}</strong> {check.explanation}
               </p>
-            ) : <p>Choose before revealing the explanation.</p>}
+            ) : <p>Pick an answer to see the explanation.</p>}
           </footer>
         </section>
 
         <section className="lesson-change-record" aria-label="Lesson project change">
-          <header><span>Project source</span><code>{projectPath}</code></header>
-          <div><span>Implemented</span><p>{outcome.concept}</p></div>
+          <header><span>Project file</span><code>{projectPath}</code></header>
+          <div><span>What you built</span><p>{outcome.concept}</p></div>
           <div className="behavior-change">
             <article><span>Before</span><p>{outcome.before}</p></article>
             <i aria-hidden="true">→</i>
             <article><span>After</span><p>{outcome.after}</p></article>
           </div>
           <dl>
-            <div><dt>Implementation</dt><dd className={implementationComplete ? "complete" : "pending"}>{implementationComplete ? "Verified" : "Complete code + experiment"}</dd></div>
-            <div><dt>Concept</dt><dd className={knowledgeComplete ? "complete" : "pending"}>{knowledgeComplete ? "Verified" : "Prediction pending"}</dd></div>
+            <div><dt>Code</dt><dd className={implementationComplete ? "complete" : "pending"}>{implementationComplete ? "Verified" : "Finish the code + lab"}</dd></div>
+            <div><dt>Concept</dt><dd className={knowledgeComplete ? "complete" : "pending"}>{knowledgeComplete ? "Verified" : "Prediction still to do"}</dd></div>
           </dl>
-          <p className="project-source-note">This exact Python source gates the promoted build. Browser adapters are read-only and checked against the same matching cases; the trained Character RNN additionally enters the chatbot as a checkpoint.</p>
+          <p className="project-source-note">This exact Python file has to pass before it can become part of the active build. The read-only browser adapters run the same matching cases, and the trained Character RNN also becomes a checkpoint the chatbot can use.</p>
           <footer>
             <Link href={`/workspace?file=${encodeURIComponent(projectPath)}`}>Open changed file</Link>
             {nextInModule ? (

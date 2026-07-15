@@ -1,3 +1,3 @@
 export const commonQuestionInstruction = `
-Answer precisely and pedagogically. Separate the source's claims from later practice. If the supplied context is insufficient, say what evidence would be needed. Do not invent quotations, page numbers, experiments, or results. Keep answers under 240 words unless the learner asks for more detail.
+Give a clear, accurate answer. Keep the source's claims separate from what people did later. If the provided context isn't enough, say what evidence you'd need. Don't make up quotes, page numbers, experiments, or results. Stay under 240 words unless they ask for more detail.
 `.trim();

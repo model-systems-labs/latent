@@ -43,8 +43,8 @@ export async function runProjectUnitTests(
       label: "Capstone application",
       passed: Boolean(compiled),
       detail: compiled
-        ? "The complete React repository compiled from the same tested source snapshot."
-        : "The capstone entry or one of its project imports did not compile.",
+        ? "The full React project compiled from the same files the tests checked."
+        : "The capstone entry or one of the files it imports didn't compile.",
     });
     expectedIdsByPath[CAPSTONE_ENTRY_PATH] = [compileId];
   }
@@ -57,9 +57,9 @@ export async function runProjectUnitTests(
       results.push({
         id: `${path}:contract`,
         path,
-        label: "Runtime configuration",
+        label: "Runtime settings",
         passed: !error,
-        detail: error ?? "JSON module parses and satisfies its typed runtime bounds.",
+        detail: error ?? "The JSON module parses and stays within the allowed runtime settings.",
       });
       expectedIdsByPath[path] = [`${path}:contract`];
     }

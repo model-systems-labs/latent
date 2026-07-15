@@ -54,15 +54,15 @@ export type PersistenceCapability =
   | { supported: false; reason: "server" | "indexeddb-unavailable" | "blocked"; detail: string };
 
 export function persistenceCapability(): PersistenceCapability {
-  if (typeof window === "undefined") return { supported: false, reason: "server", detail: "Browser persistence is only available in a client context." };
+  if (typeof window === "undefined") return { supported: false, reason: "server", detail: "Saved browser data is only available on the client." };
   if (!("indexedDB" in globalThis) || !("IDBKeyRange" in globalThis)) {
-    return { supported: false, reason: "indexeddb-unavailable", detail: "This browser does not expose IndexedDB." };
+    return { supported: false, reason: "indexeddb-unavailable", detail: "This browser doesn't support IndexedDB." };
   }
   try {
-    if (!globalThis.indexedDB) throw new Error("IndexedDB is disabled.");
+    if (!globalThis.indexedDB) throw new Error("IndexedDB is turned off.");
     return { supported: true };
   } catch (error) {
-    return { supported: false, reason: "blocked", detail: error instanceof Error ? error.message : "IndexedDB access is blocked." };
+    return { supported: false, reason: "blocked", detail: error instanceof Error ? error.message : "This browser is blocking access to IndexedDB." };
   }
 }
 
@@ -82,7 +82,7 @@ export async function openBrowserLabDatabase(name = DEFAULT_DATABASE_NAME) {
     return database;
   } catch (error) {
     database.close();
-    const detail = error instanceof Error ? error.message : "The browser could not open its local database.";
+    const detail = error instanceof Error ? error.message : "This browser couldn't open its local database.";
     throw new PersistenceUnavailableError({ supported: false, reason: "blocked", detail });
   }
 }

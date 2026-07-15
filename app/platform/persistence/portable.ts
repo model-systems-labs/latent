@@ -127,7 +127,7 @@ export function serializePersistenceSnapshot(snapshot: PortablePersistenceSnapsh
   const limits = { ...DEFAULT_PERSISTENCE_LIMITS, ...partial };
   validatePortableSnapshot(snapshot, limits);
   const serialized = JSON.stringify(snapshot);
-  if (serialized.length > limits.maxSerializedCharacters) throw new PersistenceDataError("The export exceeds the serialized size limit.");
+  if (serialized.length > limits.maxSerializedCharacters) throw new PersistenceDataError("This export is too large for the saved-file size limit.");
   return serialized;
 }
 

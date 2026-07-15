@@ -223,7 +223,7 @@ test("lessons 7-10 reject two plausible wrong Python implementations per block w
   const guard = exercise("reliability-observability", "terminal-guard");
 
   const attempts = [
-    [phases, "counts every generated token as a decode forward", replace(phases.block.code, "decode_forwards = max(0, generated_tokens - 1)", "decode_forwards = generated_tokens"), /31 subsequent decode forwards because prefill logits sample token 1/],
+    [phases, "counts every generated token as a decode forward", replace(phases.block.code, "decode_forwards = max(0, generated_tokens - 1)", "decode_forwards = generated_tokens"), /31 later decode passes because the prefill logits sample token 1/],
     [phases, "does not clamp the zero-token decode count", replace(phases.block.code, "decode_forwards = max(0, generated_tokens - 1)", "decode_forwards = generated_tokens - 1"), /Clamp maxNewTokens - 1/],
     [cache, "stores only keys", replace(cache.block.code, "return 2 * layers * kv_heads * tokens * head_dimension * bytes_per_value", "return layers * kv_heads * tokens * head_dimension * bytes_per_value"), /Multiply by 2 because every cached position stores both key and value/],
     [cache, "omits the layer factor", replace(cache.block.code, "return 2 * layers * kv_heads * tokens * head_dimension * bytes_per_value", "return 2 * kv_heads * tokens * head_dimension * bytes_per_value"), /all 3 layers/],
@@ -249,7 +249,7 @@ def encode_sse(event, data):
         for request in active_requests
         if request["remaining"] > 1
     ]`, /separate active and completed arrays/],
-    [iteration, "advances only the first request", replace(iteration.block.code, "for request in active_requests:", "for request in active_requests[:1]:"), /Advance every request/],
+    [iteration, "advances only the first request", replace(iteration.block.code, "for request in active_requests:", "for request in active_requests[:1]:"), /Move every request/],
     [retry, "ignores visible output", replace(retry.block.code, "return transient and tokens_emitted == 0 and attempt + 1 < max_attempts", "return transient and attempt + 1 < max_attempts"), /Return false once tokensEmitted is greater than zero/],
     [retry, "uses an off-by-one attempt budget", replace(retry.block.code, "attempt + 1 < max_attempts", "attempt < max_attempts"), /attempt 1 is already the second and final attempt/],
     [guard, "checks status without attempt identity", `def accept_event(request, event):

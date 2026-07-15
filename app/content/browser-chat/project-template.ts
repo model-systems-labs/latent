@@ -27,9 +27,9 @@ export const BROWSER_CHAT_ADAPTER_PATHS = Object.freeze({
   streamingReact: "runtime/adapters/streaming-react.js",
 } as const);
 
-export const MODEL_SOFTMAX_ADAPTER_SOURCE = `// Course-provided, read-only JavaScript interoperability adapter.
-// The CPython lesson and this adapter are checked against the same host-owned
-// behavioral contract; this module exposes the browser seam used by React.
+export const MODEL_SOFTMAX_ADAPTER_SOURCE = `// The course provides this read-only JavaScript adapter.
+// The CPython lesson and this file have to pass the same host-owned behavior
+// tests. This is where the model code connects to React in the browser.
 export function stableSoftmax(logits) {
   if (!Array.isArray(logits) || logits.length === 0) return [];
   const maximum = Math.max(...logits);
@@ -39,9 +39,9 @@ export function stableSoftmax(logits) {
 }
 `;
 
-export const STREAMING_TRANSPORT_ADAPTER_SOURCE = `// Course-provided, read-only JavaScript interoperability adapter.
-// The CPython lesson and this adapter are checked against the same host-owned
-// behavioral contract; this module supplies React's JavaScript framing boundary.
+export const STREAMING_TRANSPORT_ADAPTER_SOURCE = `// The course provides this read-only JavaScript adapter.
+// The CPython lesson and this file have to pass the same host-owned behavior
+// tests. This file handles SSE framing for React.
 export function encodeSse(event, data) {
   if (typeof event !== "string" || !event || /[\\r\\n]/.test(event)) {
     throw new Error("event name must be non-empty and contain no CR or LF");
@@ -74,9 +74,9 @@ export function parseSseChunk(buffer, chunk) {
 }
 `;
 
-export const GENERATION_RELIABILITY_ADAPTER_SOURCE = `// Course-provided, read-only JavaScript interoperability adapter.
-// The CPython lesson and this adapter are checked against the same host-owned
-// behavioral contract; this module supplies React's request-lifecycle guards.
+export const GENERATION_RELIABILITY_ADAPTER_SOURCE = `// The course provides this read-only JavaScript adapter.
+// The CPython lesson and this file have to pass the same host-owned behavior
+// tests. This file keeps React requests on the right attempt and transport.
 export function shouldRetry({ transient, tokensEmitted, attempt, maxAttempts = 2 }) {
   return transient && tokensEmitted === 0 && attempt + 1 < maxAttempts;
 }
@@ -89,9 +89,9 @@ export function acceptEvent(request, event) {
 }
 `;
 
-export const CHAT_REDUCER_ADAPTER_SOURCE = `// Course-provided, read-only JavaScript interoperability adapter.
-// The CPython lesson and this adapter are checked against the same host-owned
-// behavioral contract; this module supplies immutable reducer transitions.
+export const CHAT_REDUCER_ADAPTER_SOURCE = `// The course provides this read-only JavaScript adapter.
+// The CPython lesson and this file have to pass the same host-owned behavior
+// tests. This file gives React the immutable reducer updates it needs.
 export function createMessage({ id, role, content = "", status = "complete", attemptId = null, requestId = null }) {
   return { id, role, content, status, attemptId, requestId, createdAt: 0 };
 }
@@ -108,9 +108,9 @@ export function appendMessageDelta(messages, { messageId, attemptId, requestId, 
 }
 `;
 
-export const CHAT_ACTIONS_ADAPTER_SOURCE = `// Course-provided, read-only JavaScript interoperability adapter.
-// The CPython lesson and this adapter are checked against the same host-owned
-// behavioral contract; this module supplies React's context and regeneration seam.
+export const CHAT_ACTIONS_ADAPTER_SOURCE = `// The course provides this read-only JavaScript adapter.
+// The CPython lesson and this file have to pass the same host-owned behavior
+// tests. This is where React gets context selection and regeneration support.
 export function selectContext({ system, history, activeUser, budget }) {
   const requiredSystem = system.filter((message) => message.role === "system");
   const turns = [];
@@ -144,9 +144,9 @@ export function createRegeneration({ messageId, parentUserId, attemptId, request
 }
 `;
 
-export const CHAT_QUALITY_ADAPTER_SOURCE = `// Course-provided, read-only JavaScript interoperability adapter.
-// The CPython lesson and this adapter are checked against the same host-owned
-// behavioral contract; this module supplies React's validation and status seam.
+export const CHAT_QUALITY_ADAPTER_SOURCE = `// The course provides this read-only JavaScript adapter.
+// The CPython lesson and this file have to pass the same host-owned behavior
+// tests. This file handles React's saved-data checks and status labels.
 export function validConversationRecord(record) {
   const isPlainObject = (value) =>
     Boolean(value) && typeof value === "object" && !Array.isArray(value) &&
@@ -200,9 +200,9 @@ export function generationStatusLabel(phase) {
 }
 `;
 
-export const STREAMING_REACT_ADAPTER_SOURCE = `// Course-provided, read-only JavaScript interoperability adapter.
-// The CPython lesson and this adapter are checked against the same host-owned
-// behavioral contract; this module supplies React's render and scroll seam.
+export const STREAMING_REACT_ADAPTER_SOURCE = `// The course provides this read-only JavaScript adapter.
+// The CPython lesson and this file have to pass the same host-owned behavior
+// tests. This file handles buffered renders and scroll following for React.
 export function flushTokenBuffer(pending) {
   return { text: pending.join(""), remaining: [] };
 }
@@ -228,7 +228,7 @@ const React = (globalThis as {
 }).__LATENT_REACT__?.React;
 
 if (!React) {
-  throw new Error("The trusted React runtime was not installed by the Latent preview host.");
+  throw new Error("The Latent preview couldn't load its trusted React runtime.");
 }
 
 export const Fragment = React.Fragment;
@@ -251,7 +251,7 @@ const createRoot = (globalThis as {
 }).__LATENT_REACT__?.createRoot;
 
 if (!createRoot) {
-  throw new Error("The trusted React DOM runtime was not installed by the Latent preview host.");
+  throw new Error("The Latent preview couldn't load its trusted React DOM runtime.");
 }
 
 export { createRoot };
@@ -343,7 +343,7 @@ const previewHost = (globalThis as {
 }).__LATENT_PREVIEW_HOST__;
 
 if (!previewHost) {
-  throw new Error("The trusted Latent preview host was not installed.");
+  throw new Error("The trusted Latent preview host isn't available.");
 }
 
 function isGenerationEvent(value: unknown): value is GenerationEvent {
@@ -392,7 +392,7 @@ export function startGeneration(
   }).catch((error) => {
     if (closed) return;
     handlers.onError({
-      message: error instanceof Error ? error.message : "The preview host rejected generation.",
+      message: error instanceof Error ? error.message : "The preview host couldn't start generation.",
       transient: false,
     });
     close();
@@ -458,7 +458,7 @@ const EMPTY_METRICS: GenerationMetrics = {
   modelMs: 0,
   ttftMs: 0,
   generatedUnits: 0,
-  generatedUnitLabel: "Generated units",
+  generatedUnitLabel: "Output units",
   durationMs: 0,
 };
 
@@ -591,7 +591,7 @@ export function BrowserChat() {
       || !window.matchMedia("(max-width: 520px)").matches,
   );
   const [mobileControlsOpen, setMobileControlsOpen] = useState(false);
-  const [preparationDetail, setPreparationDetail] = useState("Checking model state");
+  const [preparationDetail, setPreparationDetail] = useState("Checking the model");
   const [persistencePhase, setPersistencePhase] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [restoreBlocked, setRestoreBlocked] = useState(false);
   const [streamAnnouncement, setStreamAnnouncement] = useState({ sequence: 0, text: "" });
@@ -645,7 +645,7 @@ export function BrowserChat() {
       if (!active) return;
       dispatch({ type: "replace", messages: [] });
       setHydrated(true);
-      setError(initializationError instanceof Error ? initializationError.message : "The preview host is unavailable.");
+      setError(initializationError instanceof Error ? initializationError.message : "The preview isn't available right now.");
     });
     return () => {
       active = false;
@@ -852,7 +852,7 @@ export function BrowserChat() {
       activeRequest.current.status = "error";
       dispatch({ type: "terminal", messageId: assistantId, status: "error" });
       setPhase("error");
-      setError("Required instructions and the current prompt exceed the 2048-token request budget.");
+      setError("The required instructions and your prompt don't fit within the 2048-token limit.");
       return;
     }
     const requestContext = bounded.selected;
@@ -947,7 +947,7 @@ export function BrowserChat() {
           dispatch({ type: "terminal", messageId: assistantId, status: "error" });
           activeHandle.current = null;
           setPhase("queued");
-          publishTerminalAnnouncement("Transient failure. Retrying request.");
+          publishTerminalAnnouncement("Something went wrong for a moment. Retrying now.");
           retryTimer.current = window.setTimeout(() => {
             retryTimer.current = null;
             runGeneration(userText, parentUserId, logicalRequestId, attempt + 1);
@@ -1004,7 +1004,7 @@ export function BrowserChat() {
   const prepareBackend = async () => {
     if (preparing || backendReady) return;
     if (backend === "student") {
-      setError("This build has no source-bound Python checkpoint. Test and train models/character-rnn.py, then rebuild the project.");
+      setError("This build doesn't have a Python checkpoint for the current source. Test and train models/character-rnn.py, then rebuild the project.");
       setPhase("error");
       return;
     }
@@ -1022,7 +1022,7 @@ export function BrowserChat() {
       setPreparationDetail("Active build #" + initialization.buildNumber);
       setPhase("complete");
     } catch (preparationError) {
-      setError(preparationError instanceof Error ? preparationError.message : "The selected model could not be prepared.");
+      setError(preparationError instanceof Error ? preparationError.message : "The selected model couldn't be set up.");
       setPhase("error");
     } finally {
       setPreparing(false);
@@ -1033,7 +1033,7 @@ export function BrowserChat() {
     <main className="browser-chat">
       <header className="app-header">
         <div>
-          <span className="project-label">browser-chat / active build</span>
+          <span className="project-label">browser-chat / current build</span>
           <h1>Browser Chat</h1>
         </div>
         <div className="phase-status" data-phase={phase} role="status" aria-live="polite" aria-atomic="true">
@@ -1059,7 +1059,7 @@ export function BrowserChat() {
               <button className={backend === "local" ? "active" : ""} disabled={busy} onClick={() => setBackend("local")} type="button">Local Transformer</button>
               <button className={backend === "student" ? "active" : ""} disabled={busy} onClick={() => setBackend("student")} type="button">Student RNN</button>
             </div>
-            <p>{backend === "local" ? "A real local model served through the isolated host bridge." : "The exact Python checkpoint bound to this active build in Model Foundations."}</p>
+            <p>{backend === "local" ? "A real model that runs locally through the isolated host bridge." : "The Python checkpoint tied to this build in Model Foundations."}</p>
             <button className="prepare-model" type="button" disabled={preparing || backendReady || backend === "student"} onClick={() => void prepareBackend()}>
               {backendReady ? "Model ready" : preparing ? preparationDetail : backend === "student" ? "Rebuild with Python checkpoint" : "Load local model"}
             </button>
@@ -1081,7 +1081,7 @@ export function BrowserChat() {
                   <span>Maximum generated units <strong>{maxTokens}</strong></span>
                   <input type="range" min="40" max="160" step="10" value={maxTokens} onChange={(event) => setMaxTokens(Number(event.currentTarget.value))} />
                 </label>
-                <p>Local Transformer: at most 160 tokenizer generation steps. Student RNN: at most 160 generated characters. The model.config.js seed applies to Student RNN sampling only; this local Transformer runtime does not expose deterministic seeding.</p>
+                <p>The Local Transformer can take up to 160 token-generation steps. The Student RNN can write up to 160 characters. The seed in model.config.js only affects Student RNN sampling; this local Transformer doesn't offer deterministic seeding.</p>
               </div>
             </details>
           </section>
@@ -1099,7 +1099,7 @@ export function BrowserChat() {
 
           <footer>
             <button type="button" onClick={clear} disabled={busy || visibleMessages.length === 0}>Clear conversation</button>
-            {persistencePhase === "error" ? <span role="alert">Save failed · latest terminal snapshot retained <button type="button" onClick={retryPersistence}>Retry save</button></span> : <span role="status" aria-live="polite">{persistencePhase === "saving" ? "Saving on this device…" : persistencePhase === "saved" ? "Saved on this device" : "Not saved yet"}</span>}
+            {persistencePhase === "error" ? <span role="alert">Save failed · your latest finished copy is still here <button type="button" onClick={retryPersistence}>Retry save</button></span> : <span role="status" aria-live="polite">{persistencePhase === "saving" ? "Saving on this device…" : persistencePhase === "saved" ? "Saved on this device" : "Not saved yet"}</span>}
           </footer>
         </aside>
 
@@ -1117,12 +1117,12 @@ export function BrowserChat() {
             aria-label="Conversation transcript"
             data-render-commits={renderCommitCount}
           >
-            {!hydrated ? <p className="empty-state">Restoring device-local conversation…</p> : null}
+            {!hydrated ? <p className="empty-state">Loading the conversation saved on this device…</p> : null}
             {hydrated && visibleMessages.length === 0 ? (
               <div className="empty-state">
-                <span>Active project connected</span>
+                <span>Current project connected</span>
                 <h2>Ask the system you built.</h2>
-                <p>Messages move through your context policy, serving protocol, reliability guards, reducer, and render buffer.</p>
+                <p>Your messages go through the context rules, serving protocol, reliability checks, reducer, and render buffer you built.</p>
               </div>
             ) : null}
             {visibleMessages.map((message) => {
@@ -1141,7 +1141,7 @@ export function BrowserChat() {
                   {message.status !== "complete"
                     ? <em>{message.status}</em>
                     : hasSiblingAttempt
-                      ? <em>{isActiveAttempt ? "Active attempt" : "Superseded"}</em>
+                      ? <em>{isActiveAttempt ? "Current try" : "Earlier try"}</em>
                       : null}
                 </article>
               );
@@ -1158,8 +1158,8 @@ export function BrowserChat() {
 
           {restoreBlocked ? (
             <div className="restore-error" role="alert">
-              <strong>Saved conversation could not be restored</strong>
-              <span>The unreadable device-local record has not been changed. Discard it explicitly to start a new saved conversation.</span>
+              <strong>We couldn't open the saved conversation</strong>
+              <span>We left the unreadable copy on this device unchanged. Discard it to start a new saved conversation.</span>
               <button type="button" onClick={discardUnreadableConversation}>Discard saved conversation</button>
             </div>
           ) : null}
@@ -1170,7 +1170,7 @@ export function BrowserChat() {
             <textarea
               ref={composerRef}
               aria-label="Chat message"
-              placeholder="Ask about the model, runtime, or serving path…"
+              placeholder="Ask about your model, runtime, or serving setup…"
               value={input}
               disabled={busy || !backendReady}
               onChange={(event) => setInput(event.currentTarget.value)}
@@ -1345,10 +1345,10 @@ export { styles };
 `;
 
 /**
- * Course-owned files that make the virtual project a complete React program.
- * CPython learner functions and these read-only JavaScript adapters are both
- * checked against the same host-owned behavioral contracts. The adapters are
- * the explicit interoperability boundary compiled into the React runtime.
+ * These course-owned files turn the virtual project into a complete React app.
+ * The learner's CPython functions and these read-only JavaScript adapters have
+ * to pass the same host-owned behavior tests. The adapters are the connection
+ * between the Python work and the React runtime.
  */
 export const CANONICAL_BROWSER_CHAT_FILES = Object.freeze([
   {
@@ -1374,49 +1374,49 @@ export const CANONICAL_BROWSER_CHAT_FILES = Object.freeze([
   },
   {
     path: BROWSER_CHAT_ADAPTER_PATHS.modelSoftmax,
-    title: "Course-provided model softmax adapter",
+    title: "Provided model softmax adapter",
     kind: "adapter",
     editable: false,
     source: MODEL_SOFTMAX_ADAPTER_SOURCE,
   },
   {
     path: BROWSER_CHAT_ADAPTER_PATHS.streamingTransport,
-    title: "Course-provided SSE transport adapter",
+    title: "Provided SSE transport adapter",
     kind: "adapter",
     editable: false,
     source: STREAMING_TRANSPORT_ADAPTER_SOURCE,
   },
   {
     path: BROWSER_CHAT_ADAPTER_PATHS.generationReliability,
-    title: "Course-provided generation reliability adapter",
+    title: "Provided generation reliability adapter",
     kind: "adapter",
     editable: false,
     source: GENERATION_RELIABILITY_ADAPTER_SOURCE,
   },
   {
     path: BROWSER_CHAT_ADAPTER_PATHS.chatReducer,
-    title: "Course-provided chat reducer adapter",
+    title: "Provided chat reducer adapter",
     kind: "adapter",
     editable: false,
     source: CHAT_REDUCER_ADAPTER_SOURCE,
   },
   {
     path: BROWSER_CHAT_ADAPTER_PATHS.chatActions,
-    title: "Course-provided chat actions adapter",
+    title: "Provided chat actions adapter",
     kind: "adapter",
     editable: false,
     source: CHAT_ACTIONS_ADAPTER_SOURCE,
   },
   {
     path: BROWSER_CHAT_ADAPTER_PATHS.chatQuality,
-    title: "Course-provided chat quality adapter",
+    title: "Provided chat quality adapter",
     kind: "adapter",
     editable: false,
     source: CHAT_QUALITY_ADAPTER_SOURCE,
   },
   {
     path: BROWSER_CHAT_ADAPTER_PATHS.streamingReact,
-    title: "Course-provided streaming React adapter",
+    title: "Provided streaming React adapter",
     kind: "adapter",
     editable: false,
     source: STREAMING_REACT_ADAPTER_SOURCE,

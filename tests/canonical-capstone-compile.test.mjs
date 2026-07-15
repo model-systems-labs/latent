@@ -215,12 +215,12 @@ test("the host-owned mounted behavior contract passes canonical BrowserChat and 
   assert.equal(canonicalResult.passed, true, canonicalResult.detail);
   assert.equal(canonicalResult.path, template.CAPSTONE_COMPONENT_PATH);
   assert.match(canonicalResult.detail, /accessible chat surface/);
-  assert.match(canonicalResult.detail, /stream deltas batch behind animation-frame commits/);
-  assert.match(canonicalResult.detail, /live output announcements are bounded and rate-limited with immediate terminal state/);
-  assert.match(canonicalResult.detail, /regeneration makes the newest sibling active for subsequent context/);
-  assert.match(canonicalResult.detail, /cancellation flushes accepted deltas and clears pending render work/);
-  assert.match(canonicalResult.detail, /cancellation rejects late stream output/);
-  assert.match(canonicalResult.detail, /error is visible and terminal/);
+  assert.match(canonicalResult.detail, /streamed chunks are grouped into animation-frame updates/);
+  assert.match(canonicalResult.detail, /live output announcements stay short, don’t fire too often, and announce the final state right away/);
+  assert.match(canonicalResult.detail, /Regenerating uses the newest answer in later context/);
+  assert.match(canonicalResult.detail, /Stopping keeps accepted chunks and clears pending screen updates/);
+  assert.match(canonicalResult.detail, /Stopping ignores late stream output/);
+  assert.match(canonicalResult.detail, /the error is visible and final/);
 
   const hiddenMetricsResult = await runBehavior(canonical, {
     selectedBackend: "local",
@@ -232,13 +232,13 @@ test("the host-owned mounted behavior contract passes canonical BrowserChat and 
     preparationDelayMs: 180,
   });
   assert.equal(hiddenMetricsResult.passed, true, hiddenMetricsResult.detail);
-  assert.match(hiddenMetricsResult.detail, /restored backend and metrics visibility configuration/);
-  assert.match(hiddenMetricsResult.detail, /runtime name and response prefix affect visible streamed output/);
-  assert.match(hiddenMetricsResult.detail, /backend preparation never exposes a false Stop action/);
-  assert.match(hiddenMetricsResult.detail, /mobile model controls begin as a compact, focusable disclosure/);
-  assert.match(hiddenMetricsResult.detail, /mobile inference controls remain available as a compact disclosure/);
-  assert.match(hiddenMetricsResult.detail, /mobile persistence recovery is keyboard-focusable/);
-  assert.match(hiddenMetricsResult.detail, /mobile persistence status and Clear action remain visible/);
+  assert.match(hiddenMetricsResult.detail, /saved backend and metrics choices were restored/);
+  assert.match(hiddenMetricsResult.detail, /runtime name and response prefix show up in the streamed answer/);
+  assert.match(hiddenMetricsResult.detail, /backend setup doesn’t show a misleading Stop button/);
+  assert.match(hiddenMetricsResult.detail, /mobile model controls start in a compact button that can receive keyboard focus/);
+  assert.match(hiddenMetricsResult.detail, /mobile inference controls stay available in the compact menu/);
+  assert.match(hiddenMetricsResult.detail, /mobile save recovery can receive keyboard focus/);
+  assert.match(hiddenMetricsResult.detail, /mobile save status and the Clear button stay visible/);
 
   const retryIdentityResult = await runBehavior(canonical, {
     selectedBackend: "student",
@@ -248,7 +248,7 @@ test("the host-owned mounted behavior contract passes canonical BrowserChat and 
     transientRetry: true,
   });
   assert.equal(retryIdentityResult.passed, true, retryIdentityResult.detail);
-  assert.match(retryIdentityResult.detail, /transient retry preserves logical request identity while rotating attempt and transport ids/);
+  assert.match(retryIdentityResult.detail, /a retry after a temporary error keeps the logical request id but creates new attempt and transport ids/);
 
   const invalidRestoreResult = await runBehavior(canonical, {
     selectedBackend: "student",
@@ -258,7 +258,7 @@ test("the host-owned mounted behavior contract passes canonical BrowserChat and 
     invalidConversation: true,
   });
   assert.equal(invalidRestoreResult.passed, true, invalidRestoreResult.detail);
-  assert.match(invalidRestoreResult.detail, /invalid restored conversation suspends persistence until explicit discard/);
+  assert.match(invalidRestoreResult.detail, /an invalid saved conversation pauses saving until the user discards it/);
 
   const blankComponent = `export function BrowserChat() { return null; }`;
   const blank = await compileCanonical(
@@ -281,7 +281,7 @@ test("the isolated preflight rejects a synchronous render loop without freezing 
   const startedAt = Date.now();
   const loopingResult = await runBehavior(looping);
   assert.equal(loopingResult.passed, false, "an unbounded render must not reach the browser mount");
-  assert.match(loopingResult.detail, /isolated QuickJS preflight rejected[\s\S]*browser mount was not started/i);
+  assert.match(loopingResult.detail, /isolated QuickJS check stopped[\s\S]*browser preview didn’t start/i);
   assert.ok(Date.now() - startedAt < 5_000, "the isolated worker should fail closed promptly");
   assert.equal(await behaviorPage.evaluate(() => 6 * 7), 42, "the host page must remain responsive after terminating learner code");
 });

@@ -9,50 +9,50 @@ export const transformersLesson = {
     eyebrow: "Architecture · Vaswani et al. · 2017",
     title: "Transformers",
     thesis:
-      "Self-attention constructs token representations through direct, content-dependent interactions while masking future positions in a causal language model.",
+      "Self-attention builds token representations by letting tokens interact directly based on their content, while a causal language model masks future token positions.",
     paperUrl: "https://papers.nips.cc/paper_files/paper/2017/hash/3f5ee243547dee91fbd053c1c4a845aa-Abstract.html",
     paperTitle: "Attention Is All You Need",
     authors: "Ashish Vaswani et al.",
     year: "2017",
     paperContext: `
-This lesson concerns "Attention Is All You Need" by Vaswani and colleagues.
-- The paper replaces recurrent and convolutional sequence processing with stacked attention and feed-forward layers.
-- Scaled dot-product attention compares queries with keys, normalizes the scores, and mixes value vectors.
-- Multi-head attention learns several projections so different interactions can be represented in parallel.
-- Positional information is added because attention alone does not encode token order.
-- Residual connections, normalization, masking, and position-wise feed-forward networks are essential parts of the architecture.
-- The original paper is an encoder-decoder translation system; the browser lab adapts its attention operation to a decoder-only causal setting.
+This lesson walks through "Attention Is All You Need" by Vaswani and colleagues.
+- The paper replaces recurrent and convolutional sequence processing with stacks of attention and feed-forward layers.
+- Scaled dot-product attention compares queries with keys, turns the scores into weights, and mixes the value vectors.
+- Multi-head attention learns several projections so it can model different kinds of interactions at the same time.
+- The model adds position information because attention by itself doesn't know token order.
+- Residual connections, normalization, masking, and position-wise feed-forward networks are all key parts of the design.
+- The original paper describes an encoder-decoder translation system. The browser lab takes its attention operation and uses it in a decoder-only causal setup.
 ${commonQuestionInstruction}`.trim(),
     summary: [
       {
-        label: "Tensor shapes.",
+        label: "Keep track of the shapes.",
         body:
-          "For a sequence of n token representations X ∈ ℝⁿˣᵈmodel, learned projections produce Q and K ∈ ℝⁿˣᵈk and V ∈ ℝⁿˣᵈv. QKᵀ therefore contains one compatibility score for every query row and key column, with shape n × n.",
+          "Start with n token representations X ∈ ℝⁿˣᵈmodel. Learned projections produce Q and K ∈ ℝⁿˣᵈk and V ∈ ℝⁿˣᵈv. That means QKᵀ has one compatibility score for every query row and key column, giving it shape n × n.",
       },
       {
-        label: "Scaled compatibility.",
+        label: "Scale the match scores.",
         body:
-          "Each query asks what information this position needs; each key describes what a position can match; each value carries the information to mix. Divide every query-key dot product by √dₖ so its magnitude does not grow with projection width and drive softmax into saturated, low-gradient probabilities.",
+          "A query asks what this position needs. A key says what a position can match, and a value carries the information that may get mixed in. Divide each query-key dot product by √dₖ so the scores don't grow with the projection width and push softmax into saturated probabilities with tiny gradients.",
       },
       {
-        label: "Mask, then normalize.",
+        label: "Mask first, then normalize.",
         body:
-          "For query row i, keep key columns j ≤ i and set every future score j > i to −Infinity before applying softmax independently across that row. Future probabilities become exactly zero; the remaining row probabilities sum to one and weight the rows of V.",
+          "For query row i, keep key columns j ≤ i and set every future score j > i to −Infinity. Then apply softmax across that row. Future positions get exactly zero probability, and the probabilities that remain add up to one and weight the rows of V.",
       },
       {
-        label: "Block boundary.",
+        label: "Attention isn't the whole block.",
         body:
-          "The resulting context C = softmax(mask(QKᵀ/√dₖ))V is only the attention sublayer. A usable decoder block also includes output and multi-head projections, residual paths, normalization, a position-wise MLP, and another residual path; stacked blocks operate on token-plus-position representations. The exercise below implements only the non-affine normalization core. A full affine layer normalization then applies learned per-feature gain gamma and bias beta; those two learned parameters are deliberately omitted here.",
+          "The context C = softmax(mask(QKᵀ/√dₖ))V is only the attention sublayer. A working decoder block also needs output and multi-head projections, residual paths, normalization, a position-wise MLP, and another residual path. Stacked blocks operate on representations that include both token and position information. The exercise below builds only the non-affine normalization core. Full affine layer normalization also applies a learned gain gamma and bias beta to each feature; this exercise leaves those two parameters out on purpose.",
       },
     ],
     claims: {
-      paper: "An architecture built around attention can outperform recurrent translation systems while training more efficiently in parallel.",
-      lab: "The exact causal masking and scaled dot-product mixing operations run over supplied token representations.",
-      limit: "This lesson executes an untrained attention block; it does not reproduce WMT training or claim that random attention weights are linguistic explanations.",
+      paper: "An attention-based architecture can beat recurrent translation systems while taking better advantage of parallel training.",
+      lab: "You'll run the exact causal masking and scaled dot-product mixing steps on the given token representations.",
+      limit: "This lesson runs an untrained attention block. It doesn't recreate WMT training or suggest that random attention weights explain language.",
     },
     diagram: {
       title: "One causal self-attention head",
-      caption: "A three-token worked pass: learned projections normally produce Q, K, and V; scale QKᵀ by √dₖ; mask future columns before row-wise softmax; then mix V. The reference experiment uses identity projections so the supplied token-position representations serve as Q, K, and V.",
+      caption: "Here's a worked three-token pass. Learned projections normally produce Q, K, and V. Scale QKᵀ by √dₖ, mask future columns before running softmax on each row, and then mix V. The reference experiment uses identity projections, so the given token-position representations act as Q, K, and V.",
       nodes: [
         { label: "Project", value: "XW → Q,K[3×d_k] · V[3×d_v]" },
         { label: "Score", value: "QKᵀ[3×3] / √d_k" },
@@ -61,7 +61,7 @@ ${commonQuestionInstruction}`.trim(),
       ],
     },
     questions: {
-      intro: "Ask about tensor shapes, masks, heads, positional information, residual paths, or the adaptation from the paper's translation model to a causal LLM.",
+      intro: "Ask about tensor shapes, masks, heads, position information, residual paths, or how the paper's translation model was adapted for a causal LLM.",
       suggestions: [
         "Why divide by the square root of d?",
         "What exactly does the causal mask prevent?",
@@ -77,17 +77,17 @@ ${commonQuestionInstruction}`.trim(),
     },
     implementation: {
       filename: "causal-transformer.py",
-      intro: "Implement in Python and NumPy the exact operations that determine which token positions can exchange information inside a causal attention block.",
+      intro: "Use Python and NumPy to build the exact steps that decide which token positions can share information inside a causal attention block.",
       tensorOps: ["numpy", "np.asarray", "np.matmul", "np.exp", "np.triu_indices", "np.mean", "np.sqrt", "tolist"],
       codeBlocks: [
         {
           id: "causal-mask",
           label: "Causal mask",
-          purpose: "Preserve the diagonal and prefix; replace only scores where column > row with -Infinity before softmax.",
+          purpose: "Keep the diagonal and earlier positions, and replace only scores where column > row with -Infinity before softmax.",
           concepts: [
-            { name: "row", detail: "Query position currently producing a representation." },
-            { name: "column", detail: "Key position the query might attend to." },
-            { name: "-np.inf", detail: "Becomes exactly zero probability after softmax." },
+            { name: "row", detail: "The query position that's building a representation." },
+            { name: "column", detail: "A key position that the query might look at." },
+            { name: "-np.inf", detail: "Turns into exactly zero probability after softmax." },
           ],
           code: `import numpy as np
 
@@ -107,11 +107,11 @@ RESULT = {
         {
           id: "scaled-attention",
           label: "Scaled dot-product attention",
-          purpose: "Divide query-key scores by √dₖ, apply softmax, and return the probability-weighted mixture of value rows.",
+          purpose: "Divide query-key scores by √dₖ, apply softmax, and return the weighted mix of value rows.",
           concepts: [
-            { name: "scale", detail: "NumPy square root of the key dimension." },
-            { name: "scores", detail: "Dot products between one query and each key." },
-            { name: "probabilities", detail: "Normalized weights applied to value vectors." },
+            { name: "scale", detail: "The NumPy square root of the key dimension." },
+            { name: "scores", detail: "The dot products between one query and every key." },
+            { name: "probabilities", detail: "The normalized weights used to mix the value vectors." },
           ],
           code: `import numpy as np
 
@@ -134,12 +134,12 @@ RESULT = {
         {
           id: "layer-norm",
           label: "Non-affine layer normalization",
-          purpose: "Standardize one token across features without the learned gain gamma and bias beta applied by a full affine layer normalization.",
+          purpose: "Standardize one token across its features, without the learned gain gamma and bias beta from full affine layer normalization.",
           concepts: [
-            { name: "mean", detail: "NumPy average activation across the feature dimension." },
-            { name: "variance", detail: "NumPy average squared deviation from that mean." },
-            { name: "epsilon", detail: "Stability constant inside the square root." },
-            { name: "omitted affine terms", detail: "A full layer norm applies learned per-feature gain gamma and bias beta after this normalization." },
+            { name: "mean", detail: "The NumPy average across the feature dimension." },
+            { name: "variance", detail: "The NumPy average of the squared distance from that mean." },
+            { name: "epsilon", detail: "A small stability constant inside the square root." },
+            { name: "omitted affine terms", detail: "Full layer norm applies a learned gain gamma and bias beta to each feature after this step." },
           ],
           code: `import numpy as np
 
@@ -160,6 +160,6 @@ RESULT = {
     experiment: {
       kind: "transformer",
       title: "Run causal self-attention",
-      intro: "Run the supplied masked-attention forward pass with identity Q/K/V projections and inspect the complete probability matrix. The replay does not execute the learner cells.",
+      intro: "Run the provided masked-attention forward pass with identity Q/K/V projections, then look over the full probability matrix. This replay doesn't run your code cells.",
     },
   } satisfies Omit<CourseLesson, "sources">;

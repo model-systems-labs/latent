@@ -11,25 +11,25 @@ export const conversationStateLesson = defineExtendedLesson({
     modeLabel: "React state model",
     eyebrow: "React · Messages and reducers",
     title: "Conversation State",
-    thesis: "A chat interface is a state machine over conversations, messages, generation attempts, and transport events—not a textarea appended to an array.",
+    thesis: "A chat interface is a state machine for conversations, messages, generation attempts, and transport events. It's more than a text box that keeps appending strings to an array.",
     paperUrl: "https://react.dev/learn/extracting-state-logic-into-a-reducer",
     paperTitle: "Extracting State Logic into a Reducer",
     authors: "React documentation",
-    year: "Current reference",
+    year: "Current docs",
     summary: [
-      { label: "Normalized state.", body: "A conversation stores an ordered messageIds list; messagesById stores each message once. Rendering follows the list, while streaming updates address a record by id instead of assuming the last array element is active." },
-      { label: "Three identities.", body: "messageId names the durable UI record, attemptId names one model-generation try, and requestId names one transport lifecycle. A regenerated assistant message can keep its conversation position while receiving a new attempt and request." },
-      { label: "Immutable transitions.", body: "A delta action returns a new messages collection and a new target message, preserves untouched message identities, and ignores events for missing or non-streaming targets. React can then detect exactly what changed." },
-      { label: "Derived controls.", body: "canStop is true only while the active request is streaming; canRegenerate is true only after an assistant attempt reaches a terminal state. Deriving both from normalized records prevents stored booleans from drifting." },
+      { label: "Keep state normalized.", body: "A conversation keeps messageIds in order, while messagesById stores each message once. Rendering follows the id list. Streaming updates target a message by id instead of assuming the last item in an array is the active one." },
+      { label: "Use three different ids.", body: "messageId names the long-lived UI record, attemptId names one try at generation, and requestId names one transport run. A regenerated assistant message can stay in the same place in the conversation while getting a new attempt and request." },
+      { label: "Don't mutate old state.", body: "A delta action returns a new messages collection and a new version of the target message. It keeps every other message's identity unchanged and ignores events aimed at missing or non-streaming targets. That lets React see exactly what changed." },
+      { label: "Calculate control state.", body: "canStop is true only while the active request is streaming. canRegenerate is true only after an assistant attempt reaches a final state. Calculate both from the normalized records so saved booleans can't get out of sync." },
     ],
     claims: {
-      paper: "Reducers consolidate state transitions when many event handlers update related state.",
-      lab: "An 18-action deterministic trace follows three generation attempts through completion, cancellation with a rejected late delta, and edit plus regeneration.",
-      limit: "The lesson models one-device state and does not implement collaborative synchronization.",
+      paper: "Reducers put related state changes in one place when lots of event handlers touch the same data.",
+      lab: "A fixed 18-action trace follows three generation attempts: one completes, one is cancelled and rejects a late delta, and one starts after an edit and regeneration.",
+      limit: "This lesson handles state on one device. It doesn't sync edits between people or devices.",
     },
     diagram: {
       title: "One delta through normalized state",
-      caption: "A concrete update preserves conversation order while message, attempt, and request identities remain distinct.",
+      caption: "This update keeps the conversation in order while treating message, attempt, and request ids as three separate things.",
       nodes: [
         { label: "Conversation c-17", value: "messageIds: [m-u1, m-a1]" },
         { label: "Message m-a1", value: "assistant · streaming · A causal" },
@@ -38,22 +38,22 @@ export const conversationStateLesson = defineExtendedLesson({
       ],
     },
     questions: {
-      intro: "Ask about normalized messages, reducer actions, stable identity, derived state, or generation attempts.",
-      suggestions: ["Why not use array indexes as message ids?", "What state belongs to an attempt?", "Which chat flags should be derived?"],
+      intro: "Ask about normalized messages, reducer actions, stable ids, calculated state, or generation attempts.",
+      suggestions: ["Why not use array indexes as message ids?", "What state belongs to an attempt?", "Which chat flags should be calculated?"],
     },
-    dataset: { name: "Conversation Event Log", source: "Original deterministic actions", license: "CC0", size: "18 reducer actions · 3 generation attempts", preview: "complete · cancel + ignored late delta · edit + regenerate" },
+    dataset: { name: "Conversation Event Log", source: "Original fixed actions", license: "CC0", size: "18 reducer actions · 3 generation attempts", preview: "complete · cancel + ignore a late delta · edit + regenerate" },
     implementation: {
       filename: "chat-reducer.py",
-      intro: "Implement immutable message creation and token-delta transitions in Python before replaying a complete conversation event log.",
+      intro: "Build message creation and token-delta updates without mutation in Python, then replay the full conversation event log.",
       codeBlocks: [
         {
           id: "create-message",
           label: "Message record",
-          purpose: "Create the exact serializable message record, including the active attempt and transport identities for assistant output.",
+          purpose: "Create the exact message record you can serialize, including the active attempt and transport ids for assistant output.",
           concepts: [
-            { name: "id", detail: "Stable identity independent of render position." },
-            { name: "role", detail: "User, assistant, or system domain role." },
-            { name: "attempt_id / request_id", detail: "Generation and transport identities; None for records that do not own a model request." },
+            { name: "id", detail: "A stable id that doesn't depend on where the message renders." },
+            { name: "role", detail: "The message role: user, assistant, or system." },
+            { name: "attempt_id / request_id", detail: "Ids for the generation attempt and transport run. Use None for records that don't own a model request." },
           ],
           code: `def create_message(options):
     return {
@@ -85,11 +85,11 @@ RESULT = {
         {
           id: "append-delta",
           label: "Delta transition",
-          purpose: "Immutably append one transport delta only when its message, attempt, and request identities all match the active streaming record.",
+          purpose: "Append one transport delta without mutation, but only when its message, attempt, and request ids all match the active streaming record.",
           concepts: [
-            { name: "message_id", detail: "Targets a stable message rather than the last array element." },
-            { name: "attempt_id / request_id", detail: "Reject late events from a retired generation or transport lifecycle." },
-            { name: "delta", detail: "Incremental text emitted by the transport." },
+            { name: "message_id", detail: "Targets a stable message instead of the last item in an array." },
+            { name: "attempt_id / request_id", detail: "Use these ids to reject late events from an old generation or transport run." },
+            { name: "delta", detail: "The next piece of text sent by the transport." },
           ],
           code: `def append_message_delta(messages, event):
     next_messages = []
@@ -129,5 +129,5 @@ RESULT = {
         },
       ],
     },
-    experiment: { kind: "product", variant: "state", title: "Replay the reducer", intro: "Replay all 18 actions in three focused flows; inspect message, attempt, and request ids, immutable revisions, derived controls, and the rejected late event." },
+    experiment: { kind: "product", variant: "state", title: "Replay the reducer", intro: "Replay all 18 actions in three short flows. Watch the message, attempt, and request ids; the new state versions; the calculated controls; and the rejected late event." },
   });

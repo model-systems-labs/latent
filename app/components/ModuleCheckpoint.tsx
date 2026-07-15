@@ -25,7 +25,7 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
   const learner = useLearnerState();
   const project = useProjectState();
   const [status, setStatus] = useState<CheckpointStatus>("idle");
-  const [detail, setDetail] = useState("Run the checkpoint against the exact files currently saved in your project.");
+  const [detail, setDetail] = useState("Run this checkpoint on the exact files currently saved in your project.");
   const [output, setOutput] = useState("");
   const [trace, setTrace] = useState<string[]>([]);
   const [score, setScore] = useState({ passed: 0, total: 0 });
@@ -59,7 +59,7 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
     void reconcileCanonicalProject().then(() => { if (active) setReady(true); }).catch((error) => {
       if (!active) return;
       setStatus("failed");
-      setDetail(error instanceof Error ? error.message : "The saved project could not be restored.");
+      setDetail(error instanceof Error ? error.message : "Latent couldn’t load the saved project.");
     });
     return () => { active = false; attemptCoordinator.invalidate(); };
   }, [attemptCoordinator]);
@@ -80,8 +80,8 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
     if (courseId === "models") {
       const artifact = learner.artifacts.characterRnn;
       if (!artifact) {
-        replaceAttemptOutput(attempt, "No learner-trained checkpoint is available. Run the Character RNN experiment, then return to compare open and constrained sampling from the same weights.");
-        replaceAttemptTrace(attempt, ["checkpoint lookup → missing", "generation withheld → no fabricated weights"]);
+        replaceAttemptOutput(attempt, "There isn’t a checkpoint from your training run yet. Run the Character RNN lab, then come back to compare open and top-k sampling with the same weights.");
+        replaceAttemptTrace(attempt, ["look for checkpoint → none found", "skip generation → don’t make up weights"]);
         return "failed" as const;
       }
       const prompt = "the system ";
@@ -103,17 +103,17 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
       const subsequentDecodeForwards = Math.max(0, decodeTokens - 1);
       const kvUnits = promptTokens + decodeTokens;
       replaceAttemptOutput(attempt, [
-        "worked integration trace · fixed teaching data; learner files were verified separately",
-        `request accepted · prompt ${promptTokens} tokens`,
+        "worked example · fixed course data; your files were checked separately",
+        `request accepted · ${promptTokens}-token prompt`,
         `prefill · ${promptTokens} positions in parallel · first generated token sampled · KV length ${promptTokens}`,
-        `decode · ${subsequentDecodeForwards} subsequent one-position forwards · KV length ${kvUnits}`,
+        `decode · ${subsequentDecodeForwards} later one-position forwards · KV length ${kvUnits}`,
         `complete · ${decodeTokens} generated tokens · cache released`,
       ].join("\n"));
       replaceAttemptTrace(attempt, [
-        "queue → admission checks capacity",
-        "prefill → first-token state",
+        "queue → check available capacity",
+        "prefill → prepare the first token",
         "continuous batch → one decode position per active request",
-        "terminal event → release KV allocation",
+        "final event → release the KV allocation",
       ]);
       return "passed" as const;
     }
@@ -122,7 +122,7 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
       const { controller } = attempt;
       replaceAttemptOutput(attempt, "");
       replaceAttemptTrace(attempt, ["request r-checkpoint-1 admitted", "waiting for first SSE frame"]);
-      const text = "The verified serving path preserves UTF-8 text, typed event boundaries, cancellation, and request identity.";
+      const text = "The verified serving path keeps UTF-8 text, typed event boundaries, cancellation, and request identity intact.";
       const stream = createMockServingStream(text, controller.signal, project.runtime.transport);
       await consumeSse(stream, (event) => {
         if (!ownsAttempt(attempt)) return;
@@ -138,18 +138,18 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
     }
 
     replaceAttemptOutput(attempt, [
-      "worked integration trace · fixed teaching data; learner files were verified separately",
+      "worked example · fixed course data; your files were checked separately",
       "user message → normalized record m-u1",
       "context policy → active prompt + newest complete turns",
       "request r1 / attempt a1 → queued → prefill → streaming",
       "ordered deltas → frame-buffered React commits",
-      "terminal assistant message → strict persistence schema",
+      "final assistant message → strict saved-data format",
       "focus → restored to the next usable action",
     ].join("\n"));
     replaceAttemptTrace(attempt, [
-      "state identity remains stable across rendering",
-      "stop, retry, and edit create explicit lifecycle transitions",
-      "unknown or streaming persistence records are rejected",
+      "state identity stays stable while React renders",
+      "stop, retry, and edit each create a clear state change",
+      "ignore unknown or still-streaming saved records",
       "the passing project can now be promoted in the IDE",
     ]);
     return "passed" as const;
@@ -164,7 +164,7 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
     replaceAttemptOutput(attempt, "");
     replaceAttemptTrace(attempt, []);
     if (ownsAttempt(attempt)) setFailures([]);
-    setAttemptDetail(attempt, `Verifying ${curriculumModule.lessonCount} project files in the isolated browser lab…`);
+    setAttemptDetail(attempt, `Checking ${curriculumModule.lessonCount} project files in the isolated browser lab…`);
     const results = [];
     try {
       for (const item of curriculumModule.lessons) {
@@ -182,8 +182,8 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
         if (!committed.accepted) {
           setAttemptStatus(attempt, "failed");
           setAttemptDetail(attempt, committed.reason === "stale-source"
-            ? "This checkpoint result was discarded because the saved project changed while its contracts were running. Run the checkpoint again."
-            : "This checkpoint result was discarded because its contract scope is no longer current. Reload and run it again.");
+            ? "We ignored this result because the saved project changed while the checks were running. Run the checkpoint again."
+            : "We ignored this result because its checklist is out of date. Reload and run it again.");
           return;
         }
         results.push(...run.results.filter((result) => result.path === item.projectPath));
@@ -196,7 +196,7 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
       }
       if (!results.length || passed !== results.length) {
         setAttemptStatus(attempt, "failed");
-        setAttemptDetail(attempt, `${passed} of ${results.length} module contracts pass. Repair the first failure below; completed files stay verified.`);
+        setAttemptDetail(attempt, `${passed} of ${results.length} module checks pass. Fix the first failure below; files that already passed stay verified.`);
         void recordLearningEvent("module_checkpoint_completed", {
           moduleId: definition.moduleId,
           outcome: "failed",
@@ -206,18 +206,18 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
       }
       setAttemptStatus(attempt, "running");
       setAttemptDetail(attempt, courseId === "systems" || courseId === "product"
-        ? "Contracts pass. Replaying the module's fixed worked integration trace…"
-        : "Contracts pass. Running the module-level behavior…");
+        ? "The checks pass. Now replaying the module’s fixed worked example…"
+        : "The checks pass. Now running the module behavior…");
       const finalStatus = await runModuleBehavior(attempt);
       if (!ownsAttempt(attempt)) return;
       setAttemptStatus(attempt, finalStatus);
       setAttemptDetail(attempt, finalStatus === "cancelled"
-        ? "The serving run was cancelled and its stream closed without a late update."
+        ? "The serving run was canceled, and its stream closed without a late update."
         : finalStatus === "passed"
           ? courseId === "systems" || courseId === "product"
-            ? `${results.length} source-bound contracts pass and the fixed integration trace was replayed.`
-            : `${results.length} source-bound contracts pass and the module behavior completed.`
-          : "The code contracts pass, but this behavior requires the learner-trained checkpoint produced by the module experiment.");
+            ? `${results.length} checks tied to this source pass, and the fixed example finished.`
+            : `${results.length} checks tied to this source pass, and the module behavior finished.`
+          : "The code checks pass, but this part needs the checkpoint from your module training run.");
       void recordLearningEvent("module_checkpoint_completed", {
         moduleId: definition.moduleId,
         outcome: finalStatus === "passed" ? "passed" : finalStatus === "cancelled" ? "cancelled" : "failed",
@@ -235,7 +235,7 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
     const attempt = attemptCoordinator.cancelCurrent();
     if (!attempt) return;
     setCancelRequested(true);
-    setAttemptDetail(attempt, "Cancellation requested. Waiting for the stream to close; rerun stays unavailable until it settles.");
+    setAttemptDetail(attempt, "Cancel requested. Waiting for the stream to close; you can run it again once that finishes.");
   };
 
   return (
@@ -247,7 +247,7 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
         <div className="checkpoint-readiness" aria-label={`${readyLessons} implementations and ${masteredLessons} concepts complete`}>
           <span><strong>{readyLessons}/{curriculumModule.lessonCount}</strong> implementations</span>
           <span><strong>{masteredLessons}/{curriculumModule.lessonCount}</strong> predictions</span>
-          <span><strong>{score.total ? `${score.passed}/${score.total}` : "—"}</strong> latest contracts</span>
+          <span><strong>{score.total ? `${score.passed}/${score.total}` : "—"}</strong> latest checks</span>
         </div>
       </header>
 
@@ -259,7 +259,7 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
 
       <section className="checkpoint-console" aria-live="polite" aria-busy={status === "verifying" || status === "running"}>
         <header>
-          <div><span>Executable checkpoint</span><strong className={`status-${status}`}>{status}</strong></div>
+          <div><span>Live checkpoint</span><strong className={`status-${status}`}>{status}</strong></div>
           <div>
             {courseId === "backend" && status === "running" ? <button type="button" onClick={cancel} disabled={cancelRequested}>{cancelRequested ? "Cancelling…" : "Cancel stream"}</button> : null}
             <button className="primary" type="button" onClick={() => void runCheckpoint()} disabled={!ready || status === "verifying" || status === "running"}>
@@ -269,19 +269,19 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
         </header>
         <p className="checkpoint-detail">{detail}</p>
         {failures.length ? (
-          <aside className="checkpoint-repair" aria-label="First failing module contract">
+          <aside className="checkpoint-repair" aria-label="First failing module check">
             <div>
-              <span>First failing contract</span>
+              <span>First failing check</span>
               <code>{failures[0].path}</code>
               <strong>{failures[0].label}</strong>
               <p>{failures[0].detail}</p>
-              {failures.length > 1 ? <small>+ {failures.length - 1} more failing {failures.length === 2 ? "contract" : "contracts"}</small> : null}
+              {failures.length > 1 ? <small>+ {failures.length - 1} more failing {failures.length === 2 ? "check" : "checks"}</small> : null}
             </div>
             <Link href={`/workspace?file=${encodeURIComponent(failures[0].path)}`}>Open this file in the IDE →</Link>
           </aside>
         ) : null}
         <div className="checkpoint-console-grid">
-          <pre aria-label="Module behavior output">{output || "Output appears after the current project files pass their contracts."}</pre>
+          <pre aria-label="Module behavior output">{output || "Output will show up after the current project files pass their checks."}</pre>
           <ol aria-label="Module execution trace">
             {trace.length ? trace.map((item, index) => <li key={`${item}-${index}`}><span>{String(index + 1).padStart(2, "0")}</span><p>{item}</p></li>) : <li><span>—</span><p>No execution trace yet.</p></li>}
           </ol>
@@ -292,8 +292,8 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
         {lessonReadiness.map((item) => (
           <Link href={`/workspace?file=${encodeURIComponent(item.projectPath)}`} key={item.lesson.id}>
             <code>{item.projectPath}</code>
-            <span>{item.implementation ? "implementation verified" : "implementation pending"}</span>
-            <span>{item.knowledge ? "concept verified" : "prediction pending"}</span>
+            <span>{item.implementation ? "code verified" : "code still to do"}</span>
+            <span>{item.knowledge ? "concept verified" : "prediction still to do"}</span>
           </Link>
         ))}
       </section>

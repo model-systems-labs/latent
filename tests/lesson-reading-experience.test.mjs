@@ -126,9 +126,9 @@ test("lesson code uses lazy syntax-aware Python editors without loading the full
   assert.match(codeEditor, /isPython \? python\(\) : javascript/);
   assert.match(paperLab, /className="answer-area" data-direct-edit="true"/);
   assert.match(paperLab, /"Running…" : "Run cell"/);
-  assert.match(paperLab, /hiddenBlocks\.length === blocks\.length \? "Run practice checks"[\s\S]*?"Run all examples"/);
-  assert.match(paperLab, /Example passed · practice this cell to earn verification/);
-  assert.match(paperLab, /Reference examples do not earn credit/);
+  assert.match(paperLab, /hiddenBlocks\.length === blocks\.length \? "Check all my code"[\s\S]*?"Run all examples"/);
+  assert.match(paperLab, /Example passed · try this cell yourself to verify your work/);
+  assert.match(paperLab, /Running the examples alone doesn.t count as your work/);
   assert.match(codeEditor, /variant === "lesson" \? lessonTheme/);
   assert.match(codeEditor, /lineNumbers\(\{ formatNumber: \(line\) => String\(line \+ lineNumberStart - 1\) \}\)/);
   for (const token of ["keyword", "string", "number", "comment", "variableName", "propertyName", "operator", "punctuation", "invalid"]) {

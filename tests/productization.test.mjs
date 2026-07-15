@@ -138,8 +138,8 @@ test("portfolio export contains source, evidence, runnable scaffolding, and a po
   }
   assert.equal(manifest.portableBuildReady, false);
   assert.equal(manifest.buildNumber, null, "an unfinished workspace must not invent active build #1");
-  assert.match(files["README.md"], /snapshot is unfinished/i);
-  assert.match(files["README.md"], /active build: none yet/i);
+  assert.match(files["README.md"], /copy isn't finished yet/i);
+  assert.match(files["README.md"], /current build: none yet/i);
 });
 
 function completePortfolioInput() {
@@ -238,7 +238,7 @@ test("a completed portfolio exposes lesson modules and bundles as a standalone b
   const manifest = JSON.parse(files["portfolio-manifest.json"]);
   assert.equal(manifest.portableBuildReady, true);
   assert.equal(manifest.buildNumber, 2);
-  assert.doesNotMatch(files["README.md"], /snapshot is unfinished/i);
+  assert.doesNotMatch(files["README.md"], /copy isn't finished yet/i);
   const lessonPaths = manifestLessonPaths();
   assert.equal(lessonPaths.length, course.llmSystemsCurriculum.lessonCount);
   assert.equal(lessonPaths.every((path) => path.endsWith(".py")), true);
@@ -249,7 +249,7 @@ test("a completed portfolio exposes lesson modules and bundles as a standalone b
   }
   for (const adapter of courseProvidedAdapters()) {
     const exportedPath = `src/${adapter.path}`;
-    assert.match(files[exportedPath], /Course-provided, read-only JavaScript interoperability adapter/);
+    assert.match(files[exportedPath], /course provides this read-only JavaScript adapter/i);
     assert.match(files[exportedPath], /export (?:function|const|\{)/, exportedPath);
     assert.ok(manifest.sourceFiles.includes(adapter.path));
   }
@@ -272,7 +272,7 @@ test("a completed portfolio exposes lesson modules and bundles as a standalone b
       logLevel: "silent",
     });
     assert.equal(result.errors.length, 0);
-    assert.ok(result.outputFiles?.[0]?.text.includes("Portable mock response"));
+    assert.ok(result.outputFiles?.[0]?.text.includes("This portable demo received"));
   } finally {
     await rm(root, { recursive: true, force: true });
   }

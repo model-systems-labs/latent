@@ -8,28 +8,28 @@ export const streamingTransportLesson = defineExtendedLesson({
     courseNumber: 3,
     lessonNumber: 1,
     mode: "core-mechanism",
-    modeLabel: "Mock protocol implementation",
+    modeLabel: "Practice protocol build",
     eyebrow: "Transport · SSE-compatible streams",
     title: "Streaming Transport",
-    thesis: "A chat client needs a transport adapter that turns arbitrarily split UTF-8 bytes into typed events while keeping parsing, cancellation, and render pacing as separate contracts.",
+    thesis: "A chat client needs a transport adapter that can turn UTF-8 bytes split at any point into typed events. Parsing, cancellation, and render timing should each have their own clear rules.",
     paperUrl: "https://html.spec.whatwg.org/multipage/server-sent-events.html",
     paperTitle: "Server-sent events",
     authors: "WHATWG HTML Living Standard",
     year: "Living standard",
     summary: [
-      { label: "Decode bytes before parsing frames.", body: "ReadableStream chunks are Uint8Array values, and a chunk may end midway through one UTF-8 character. TextDecoder.decode(chunk, { stream: true }) retains those incomplete bytes. The practice parser starts after this step: its chunk argument is decoded text, never raw bytes." },
-      { label: "Carry text until a frame is complete.", body: "Each SSE frame ends at a blank line. Prepend the previous text remainder, emit every complete frame, and return the unfinished suffix. This lesson supports LF or CRLF lines, an optional single space after the field colon, and the default event name message." },
-      { label: "Convert wire fields into domain events.", body: "The event field supplies the type; data lines contain a JSON payload. The transport adapter returns typed token, metrics, done, or error events so React never depends on byte boundaries or backend-specific callbacks." },
-      { label: "Keep lifecycle and presentation separate.", body: "AbortSignal must stop the reader, parser, and generator at the adapter boundary. Render buffering is different: it may batch several decoded token events into one React update, but it must not reorder events or let generation continue after cancellation." },
+      { label: "Decode bytes before you parse frames.", body: "ReadableStream chunks are Uint8Array values, and a chunk can stop in the middle of a UTF-8 character. TextDecoder.decode(chunk, { stream: true }) holds onto those incomplete bytes. The practice parser starts after that step, so its chunk argument is decoded text, never raw bytes." },
+      { label: "Hold text until the frame is done.", body: "Every SSE frame ends with a blank line. Add the leftover text from the previous chunk, emit each complete frame, and return the unfinished ending. This lesson handles LF or CRLF lines, one optional space after the field colon, and \"message\" as the default event name." },
+      { label: "Turn wire fields into app events.", body: "The event field gives the type, and data lines hold a JSON payload. The transport adapter returns typed token, metrics, done, or error events. That way React never has to care about byte boundaries or callbacks specific to one backend." },
+      { label: "Keep request control separate from rendering.", body: "AbortSignal must stop the reader, parser, and generator at the adapter boundary. Render buffering is different: it can group several decoded token events into one React update, but it can't change their order or let generation keep running after cancellation." },
     ],
     claims: {
-      paper: "The HTML event-stream format defines a one-way event channel with named events, data fields, reconnection behavior, and UTF-8 framing.",
-      lab: "The deterministic browser trace compares a complete stream with cancellation after four tokens, including parser stop, generator stop, late-event count, and resource release.",
-      limit: "The stream is local; proxy buffering, reconnection fields, retry timing, and multi-region disconnects are not reproduced.",
+      paper: "The HTML event-stream format defines a one-way channel with named events, data fields, reconnect behavior, and UTF-8 framing.",
+      lab: "The fixed browser trace compares a stream that finishes with one cancelled after four tokens. It shows when the parser and generator stop, how many late events arrive, and whether resources are released.",
+      limit: "This stream runs locally. It doesn't recreate proxy buffering, reconnect fields, retry timing, or disconnects across regions.",
     },
     diagram: {
       title: "One token across arbitrary chunks",
-      caption: "Bytes can split inside a character or frame. TextDecoder owns byte carry; parseSseChunk owns decoded-text carry; the reducer sees only typed events.",
+      caption: "A chunk can split in the middle of a character or frame. TextDecoder owns byte carry, parseSseChunk holds the leftover decoded text, and the reducer only sees typed events.",
       nodes: [
         { label: "Byte chunks", value: "… e2 82 | ac …" },
         { label: "TextDecoder", value: "stream: true → decoded text" },
@@ -39,28 +39,28 @@ export const streamingTransportLesson = defineExtendedLesson({
       ],
     },
     questions: {
-      intro: "Ask about SSE framing, arbitrary chunks, cancellation, adapters, or render backpressure.",
+      intro: "Ask about SSE framing, chunks split at any point, cancellation, adapters, or render backpressure.",
       suggestions: ["Why can one event span multiple chunks?", "Where should AbortSignal propagate?", "Why buffer token renders?"],
     },
     dataset: {
       name: "Token Event Trace",
-      source: "Original deterministic stream",
+      source: "Original fixed stream",
       license: "CC0",
       size: "14 frames · adversarial chunk boundaries",
       preview: "complete: meta → token × 10 → metrics → done · cancel: meta → token × 4 → abort → release",
     },
     implementation: {
       filename: "streaming-transport.py",
-      intro: "Implement framing and incremental parsing in Python against decoded text chunks. A streaming decoder has already converted byte chunks to strings and retained incomplete UTF-8 bytes.",
+      intro: "Build framing and step-by-step parsing in Python using decoded text chunks. A streaming decoder has already turned the byte chunks into strings and saved any incomplete UTF-8 bytes.",
       codeBlocks: [
         {
           id: "encode-sse",
           label: "SSE encoder",
-          purpose: "Serialize one typed event using the event-stream wire format.",
+          purpose: "Turn one typed event into the event-stream wire format.",
           concepts: [
-            { name: "event", detail: "A single safe field value such as token, metrics, done, or error; CR and LF are rejected." },
-            { name: "data", detail: "json.dumps escapes payload quotes and newlines without changing framing." },
-            { name: "blank line", detail: "A final empty line (\\n\\n) terminates the frame." },
+            { name: "event", detail: "One safe field value such as token, metrics, done, or error. Reject CR and LF." },
+            { name: "data", detail: "json.dumps escapes quotes and newlines in the payload without changing the frame." },
+            { name: "blank line", detail: "A final empty line (\\n\\n) ends the frame." },
           ],
           code: `import json
 
@@ -78,12 +78,12 @@ RESULT = {
         {
           id: "parse-sse",
           label: "Incremental parser",
-          purpose: "Retain incomplete decoded text and emit only complete typed events.",
+          purpose: "Keep incomplete decoded text and emit only complete typed events.",
           concepts: [
-            { name: "chunk", detail: "Decoded text from TextDecoder, not a Uint8Array." },
-            { name: "buffer", detail: "Unconsumed decoded text carried across network chunks." },
-            { name: "separator", detail: "An LF or CRLF blank line marking the end of one frame." },
-            { name: "remainder", detail: "Only the partial final frame is saved for the next chunk." },
+            { name: "chunk", detail: "Text already decoded by TextDecoder, not a Uint8Array." },
+            { name: "buffer", detail: "Decoded text that wasn't used yet and carries over to the next network chunk." },
+            { name: "separator", detail: "A blank LF or CRLF line that marks the end of a frame." },
+            { name: "remainder", detail: "Only the unfinished last frame gets saved for the next chunk." },
           ],
           code: `import json
 import re
@@ -129,5 +129,5 @@ RESULT = {
         },
       ],
     },
-    experiment: { kind: "systems", variant: "streaming", title: "Replay complete and cancelled streams", intro: "Replay the same authored response to completion or cancellation after four tokens. Compare parsing, render buffering, generator stop, late events, and resource release." },
+    experiment: { kind: "systems", variant: "streaming", title: "Replay complete and cancelled streams", intro: "Run the same planned response to completion, then replay it with cancellation after four tokens. Compare parsing, render buffering, when the generator stops, late events, and resource release." },
   });

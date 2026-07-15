@@ -11,7 +11,7 @@ export function CourseCurriculum({ title, lessons }: { title: string; lessons: C
   return (
     <>
       <div className="course-progress-record" aria-label={`${completed} of ${lessons.length} lessons complete`}>
-        <div><span>Module progress</span><strong>{completed}/{lessons.length} lessons complete</strong></div>
+        <div><span>Your progress</span><strong>{completed}/{lessons.length} lessons done</strong></div>
         <i><b style={{ width: `${completed / lessons.length * 100}%` }} /></i>
         <Link href="/project">View project →</Link>
       </div>
@@ -26,7 +26,7 @@ export function CourseCurriculum({ title, lessons }: { title: string; lessons: C
               <div className="lesson-build">
                 <em>{lesson.modeLabel}</em>
                 <strong>{lesson.experiment.title}</strong>
-                <small>{complete ? "Complete on this device" : `${progress?.verifiedCells.length ?? 0}/${lesson.implementation.codeBlocks.length} checks · ${progress?.experimentComplete ? "lab complete" : "lab pending"}`}</small>
+                <small>{complete ? "Done on this device" : `${progress?.verifiedCells.length ?? 0}/${lesson.implementation.codeBlocks.length} checks · ${progress?.experimentComplete ? "lab done" : "lab still to do"}`}</small>
               </div>
               <i>{complete ? "Review →" : "Open →"}</i>
             </Link>

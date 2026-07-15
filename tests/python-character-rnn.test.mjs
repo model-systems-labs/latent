@@ -316,7 +316,7 @@ test("the host accepts only schema-compatible Python checkpoints", () => {
   assert.equal(Object.isFrozen(artifact.checkpoint), true);
   assert.throws(
     () => service.validatePythonCharacterRnnPayload({ ...validPayload(), parameters: 15 }),
-    /parameters/i,
+    /parameter count/i,
   );
   assert.throws(
     () => service.validatePythonCharacterRnnPayload({ ...validPayload(), checkpoint: { ...validPayload().checkpoint, Wxh: [] } }),
@@ -330,7 +330,7 @@ test("the host accepts only schema-compatible Python checkpoints", () => {
   for (const key of ["Wxh", "Whh", "Why"]) zeroCheckpoint[key] = zeroCheckpoint[key].map((row) => row.map(() => 0));
   assert.throws(
     () => service.validatePythonCharacterRnnPayload({ ...validPayload(), checkpoint: zeroCheckpoint }),
-    /non-zero/i,
+    /aren’t all zero/i,
   );
 });
 
@@ -589,5 +589,5 @@ test("mismatched emitted JSON fails the host-owned artifact check", async () => 
   const result = await service.runPythonCharacterRnnArtifact({ source: source.PYTHON_CHARACTER_RNN_SOURCE, pythonLab: fake.client });
   assert.equal(result.passed, false);
   assert.equal(result.tests.find((entry) => entry.id === "artifact-schema").passed, false);
-  assert.match(result.tests.find((entry) => entry.id === "artifact-schema").detail, /do not match/i);
+  assert.match(result.tests.find((entry) => entry.id === "artifact-schema").detail, /match the checkpoint JSON/i);
 });

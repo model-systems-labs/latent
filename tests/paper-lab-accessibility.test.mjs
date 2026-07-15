@@ -55,9 +55,9 @@ test("question and practice async states expose stable live-region semantics", a
   assert.match(source, /className="paper-chat" aria-busy=\{asking\}/);
   assert.match(source, /className="chat-log" role="log" aria-label="Questions and answers" aria-live="polite" aria-relevant="additions text"/);
   assert.match(source, /id="paper-question-status" role="status" aria-live="polite" aria-atomic="true"/);
-  assert.match(source, /Asking OpenRouter from the supplied lesson brief/);
+  assert.match(source, /Asking OpenRouter using this lesson.s notes/);
   assert.match(source, /Question failed: \$\{questionError\}/);
-  assert.match(source, /Latent does not store this key\. Your browser sends it directly to OpenRouter/);
+  assert.match(source, /Latent doesn.t save this key\. Your browser sends it straight to OpenRouter/);
   assert.match(source, /className="practice-editor" aria-busy=\{!practiceReady \|\| runningBlockIds\.length > 0\}/);
   assert.match(source, /aria-busy=\{runningBlockIds\.includes\(block\.id\)\}/);
   assert.match(source, /className="cell-footer" role="status"[^>]*aria-live="polite" aria-atomic="true"/);
@@ -69,7 +69,7 @@ test("unsafe lesson recovery remains an explicit accessible choice", async () =>
     readFile(paperLabUrl, "utf8"),
     readFile(learningFlowUrl, "utf8"),
   ]);
-  assert.match(source, /A journal from another tab or an interrupted save differs from the saved lesson\. It was not loaded automatically\./);
+  assert.match(source, /A copy from another tab or an interrupted save is different from your saved lesson, so we didn.t load it automatically\./);
   assert.match(source, /loadLearnerRecoveryCandidate\(candidate\.sessionId, lessonId\)/);
   assert.match(source, /discardLearnerRecoveryCandidate\(candidate\.sessionId, lessonId\)/);
   assert.match(source, /"Loading…" : "Load copy"/);

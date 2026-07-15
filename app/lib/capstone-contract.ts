@@ -34,9 +34,9 @@ export const CANCELLATION_RESOURCE_CONTRACT = { abortTransport: true, cancelRend
 export const CAPSTONE_MOBILE_CONTRACT = { minimumViewportWidth: 320, singleColumnAt: 800, composerAfterTranscript: true } as const;
 
 export const MANUAL_PRODUCT_VERIFICATION = [
-  { label: "Keyboard and focus", detail: "Tab through every control at 100% and 200% zoom; send, stop, and regenerate without a pointer; confirm visible focus returns to the composer after a terminal action." },
-  { label: "Screen reader", detail: "With VoiceOver or NVDA, confirm new messages enter the log in reading order, phase changes are announced once, and streamed tokens are not spoken one by one." },
-  { label: "Mobile and touch", detail: "At 320 px and 390 px, confirm controls form one readable column, the transcript remains usable, the composer follows it, and touch targets do not overlap." },
+  { label: "Keyboard and focus", detail: "Tab through every control at 100% and 200% zoom. Send, stop, and regenerate without a mouse, then make sure focus returns to the message box when the request ends." },
+  { label: "Screen reader", detail: "With VoiceOver or NVDA, make sure new messages arrive in reading order, each phase change is announced once, and streamed tokens aren't read one at a time." },
+  { label: "Mobile and touch", detail: "At 320 px and 390 px, make sure the controls stack into one readable column, the chat still works, the message box comes after it, and touch targets don't overlap." },
 ] as const;
 
 const GENERATION_LABELS: Record<GenerationPhase, string> = {
@@ -193,24 +193,24 @@ export function runCapstoneQualityAudit(): QualityCheck[] {
   const exactLabels = phases.map(generationStatusLabelContract).join(" → ");
 
   return [
-    automated("Input and focus", "Enter sends", "Enter without Shift resolves to send.", composerKeyAction("Enter", false) === "send"),
-    automated("Input and focus", "Shift+Enter preserves a newline", "The same key with Shift resolves to newline, not send.", composerKeyAction("Enter", true) === "newline"),
-    specification("Input and focus", "Terminal focus target specification", "The policy names the composer as the terminal target; real keyboard focus still requires browser testing."),
-    automated("Input and focus", "Regeneration guard", "Retry needs an active-backend user message and is disabled while generating.", canRegenerate(messages, "local", false) && !canRegenerate(messages, "local", true) && !canRegenerate([], "local", false)),
+    automated("Input and focus", "Enter sends", "Pressing Enter without Shift sends the message.", composerKeyAction("Enter", false) === "send"),
+    automated("Input and focus", "Shift+Enter keeps a newline", "Pressing the same key with Shift adds a newline instead of sending.", composerKeyAction("Enter", true) === "newline"),
+    specification("Input and focus", "Focus returns to the message box", "The rules send focus back to the message box when a request ends. The real keyboard behavior still needs a browser check."),
+    automated("Input and focus", "Regenerate only when ready", "Regenerate needs a user message for the current backend and stays off while generation is running.", canRegenerate(messages, "local", false) && !canRegenerate(messages, "local", true) && !canRegenerate([], "local", false)),
 
-    automated("Persistence and context", "Versioned round trip", "v1 / active restores two exact terminal messages.", parsed?.version === 1 && parsed.id === "active" && parsed.messages.length === 2),
-    automated("Persistence and context", "Nested secret rejection", "A message containing providerKey fails the exact-field validator.", parseCapstoneRecord(secretRecord) === null),
-    automated("Persistence and context", "Streaming state is not persisted", "The in-flight l2 record is omitted; reload cannot resurrect a dead request.", !serialized.includes('"id":"l2"') && !serialized.includes("streaming")),
-    automated("Persistence and context", "Backend isolation", "Selecting local yields l1 and l2; student s1 stays outside that view.", messagesForBackend(messages, "local").map((message) => message.id).join(",") === "l1,l2"),
+    automated("Persistence and context", "Saved data makes a clean round trip", "v1 / active restores the same two finished messages.", parsed?.version === 1 && parsed.id === "active" && parsed.messages.length === 2),
+    automated("Persistence and context", "Secrets are rejected", "A message with providerKey fails the exact-field check.", parseCapstoneRecord(secretRecord) === null),
+    automated("Persistence and context", "Streaming messages aren't saved", "The in-flight l2 record is left out, so reloading can't bring a dead request back.", !serialized.includes('"id":"l2"') && !serialized.includes("streaming")),
+    automated("Persistence and context", "Backends stay separate", "Choosing local returns l1 and l2, while student message s1 stays out of that view.", messagesForBackend(messages, "local").map((message) => message.id).join(",") === "l1,l2"),
 
-    automated("Lifecycle and recovery", "Every phase has an honest label", exactLabels, exactLabels === "Waiting for capacity → Loading model → Processing context → Generating → Complete → Stopped → Generation failed"),
-    automated("Lifecycle and recovery", "Unknown phase fallback", "future-state → Status unavailable (never a false Ready).", generationStatusLabelContract("future-state") === "Status unavailable"),
-    automated("Lifecycle and recovery", "Stale and terminal events are rejected", "r2 accepts r2 while active; r1 and every post-terminal event are rejected.", lifecycleEventAccepted({ requestId: "r2", terminal: false }, "r2") && !lifecycleEventAccepted({ requestId: "r2", terminal: false }, "r1") && !lifecycleEventAccepted({ requestId: "r2", terminal: true }, "r2")),
-    specification("Lifecycle and recovery", "Cancellation resource specification", "The declared contract requires transport abort, render cancellation, late-event rejection, and generation release; the full-build browser receipt exercises stop and late-output rejection."),
+    automated("Lifecycle and recovery", "Every phase has a clear label", exactLabels, exactLabels === "Waiting for capacity → Loading model → Processing context → Generating → Complete → Stopped → Generation failed"),
+    automated("Lifecycle and recovery", "Unknown phase fallback", "future-state → Status unavailable, never a misleading Ready.", generationStatusLabelContract("future-state") === "Status unavailable"),
+    automated("Lifecycle and recovery", "Old and finished events are ignored", "r2 accepts r2 while it's active. It ignores r1 and anything that arrives after the request is done.", lifecycleEventAccepted({ requestId: "r2", terminal: false }, "r2") && !lifecycleEventAccepted({ requestId: "r2", terminal: false }, "r1") && !lifecycleEventAccepted({ requestId: "r2", terminal: true }, "r2")),
+    specification("Lifecycle and recovery", "Stop releases its resources", "Stopping has to abort the transport, cancel pending renders, ignore late events, and release generation. The full browser test checks both stop and late-output rejection."),
 
-    automated("Accessibility and responsive contract", "Complete-turn context", "A 12-token budget selects system,u2; it never keeps orphan assistant a1.", context.selected.map((message) => message.id).join(",") === "system,u2"),
-    specification("Accessibility and responsive contract", "Conversation log specification", "The declared role=log and aria-live=polite attributes are exercised by the full-build mounted behavior receipt; screen-reader speech remains manual."),
-    specification("Accessibility and responsive contract", "Status announcement specification", "The declared role=status, atomic update, and announcement bounds are requirements; assistive-technology timing remains manual."),
-    specification("Accessibility and responsive contract", "Mobile layout specification", "320 px support, one-column layout, and composer order are declared requirements that still need real viewport and touch verification."),
+    automated("Accessibility and responsive contract", "Context keeps whole turns", "With a 12-token limit, the context chooses system,u2 and never keeps the orphaned assistant message a1.", context.selected.map((message) => message.id).join(",") === "system,u2"),
+    specification("Accessibility and responsive contract", "Conversation log is labeled", "The full browser test checks role=log and aria-live=polite. What a screen reader actually says still needs a hands-on check."),
+    specification("Accessibility and responsive contract", "Status updates are announced", "The app requires role=status, atomic updates, and short announcements. The timing in assistive technology still needs a hands-on check."),
+    specification("Accessibility and responsive contract", "Mobile layout stays usable", "Support for 320 px screens, a one-column layout, and the message-box order still need a real viewport and touch check."),
   ];
 }

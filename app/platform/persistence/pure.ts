@@ -81,25 +81,25 @@ function exactManifestIssue(
   receipt: TestReceiptRecord,
 ) {
   if (!isRecord(build.bundles) || !isRecord(build.bundleHashes) || !isRecord(receipt.moduleHashes)) {
-    return "A validated build and its receipt must retain exact compiler module manifests.";
+    return "The build and its test receipt are missing the exact compiler module manifests.";
   }
   const bundlePaths = sortedKeys(build.bundles);
   const buildManifestPaths = sortedKeys(build.bundleHashes);
   const receiptManifestPaths = sortedKeys(receipt.moduleHashes);
-  if (!bundlePaths.length) return "A validated build cannot have an empty compiler module manifest.";
+  if (!bundlePaths.length) return "The build's compiler module manifest is empty.";
   if (
     bundlePaths.length !== buildManifestPaths.length
     || bundlePaths.some((path, index) => path !== buildManifestPaths[index])
     || bundlePaths.length !== receiptManifestPaths.length
     || bundlePaths.some((path, index) => path !== receiptManifestPaths[index])
   ) {
-    return "A validated build does not contain the exact compiler module manifest exercised by its receipt.";
+    return "The build doesn't include the exact compiler module manifest that its receipt tested.";
   }
   for (const path of bundlePaths) {
     const buildHash = build.bundleHashes[path];
     const receiptHash = receipt.moduleHashes[path];
     if (typeof buildHash !== "string" || !buildHash || buildHash !== receiptHash) {
-      return `A validated build module ${path} does not match its receipt hash.`;
+      return `Build module ${path} doesn't match its receipt hash.`;
     }
   }
   return null;
@@ -115,12 +115,12 @@ export function validatedBuildReceiptIssue(
   receipt: TestReceiptRecord | undefined,
   run: TestRunRecord | undefined,
 ) {
-  if (build.provenance !== "validated") return "Only validated builds can receive host build authority.";
+  if (build.provenance !== "validated") return "This build isn't validated, so it can't become the active host build.";
   if (typeof build.testReceiptId !== "string" || !build.testReceiptId || !receipt) {
-    return "A validated build references a missing test receipt.";
+    return "This validated build points to a missing test receipt.";
   }
-  if (receipt.id !== build.testReceiptId) return "A validated build is not bound to the exact supplied test receipt.";
-  if (receipt.origin !== "host") return "A validated build requires a host-owned test receipt.";
+  if (receipt.id !== build.testReceiptId) return "This validated build isn't tied to the exact test receipt it was given.";
+  if (receipt.origin !== "host") return "A validated build needs a host-owned test receipt.";
   if (
     receipt.passed !== true
     || !Number.isSafeInteger(receipt.totalCount)
@@ -128,12 +128,12 @@ export function validatedBuildReceiptIssue(
     || !Number.isSafeInteger(receipt.passedCount)
     || receipt.passedCount !== receipt.totalCount
   ) {
-    return "A validated build requires a complete passing test receipt.";
+    return "A validated build needs a complete passing test receipt.";
   }
-  if (receipt.projectId !== build.projectId) return "A validated build and its receipt reference different projects.";
-  if (receipt.projectRevision !== build.projectRevision) return "A validated build and its receipt reference different project revisions.";
-  if (receipt.sourceTreeHash !== build.sourceTreeHash) return "A validated build and its receipt reference different source trees.";
-  if (receipt.contractVersion !== build.contractVersion) return "A validated build and its receipt reference different contract versions.";
+  if (receipt.projectId !== build.projectId) return "The build and its receipt point to different projects.";
+  if (receipt.projectRevision !== build.projectRevision) return "The build and its receipt point to different project revisions.";
+  if (receipt.sourceTreeHash !== build.sourceTreeHash) return "The build and its receipt point to different source trees.";
+  if (receipt.contractVersion !== build.contractVersion) return "The build and its receipt point to different contract versions.";
   const acceptedPromotionKeys = new Set([
     promotionKey(build.projectId, build.sourceTreeHash, build.contractVersion, build.checkpointId),
     // Builds promoted before checkpoint identity joined the certification key
@@ -142,11 +142,11 @@ export function validatedBuildReceiptIssue(
     legacyPromotionKeyV1(build.projectId, build.sourceTreeHash, build.contractVersion),
   ]);
   if (!acceptedPromotionKeys.has(build.promotionKey)) {
-    return "A validated build has an invalid promotion key.";
+    return "This validated build has an invalid promotion key.";
   }
   const manifestIssue = exactManifestIssue(build, receipt);
   if (manifestIssue) return manifestIssue;
-  if (!run || receipt.runId !== run.id) return "A validated build receipt references a missing host test run.";
+  if (!run || receipt.runId !== run.id) return "This build receipt points to a missing host test run.";
   if (
     run.status !== "passed"
     || run.projectId !== receipt.projectId
@@ -159,7 +159,7 @@ export function validatedBuildReceiptIssue(
     || run.results.length !== receipt.totalCount
     || run.results.some((result) => !isRecord(result) || result.passed !== true)
   ) {
-    return "A validated build receipt does not match its complete passing host test run.";
+    return "This build receipt doesn't match its complete passing host test run.";
   }
   return null;
 }
@@ -194,16 +194,16 @@ export function assertStructuredValueWithinLimits(value: unknown, partial: Parti
   while (stack.length) {
     const item = stack.pop()!;
     nodes += 1;
-    if (nodes > limits.maxNodes) throw new PersistenceDataError("The data contains too many values to process safely.");
-    if (item.depth > limits.maxDepth) throw new PersistenceDataError("The data is nested too deeply to process safely.");
+    if (nodes > limits.maxNodes) throw new PersistenceDataError("This data has too many values to process safely.");
+    if (item.depth > limits.maxDepth) throw new PersistenceDataError("Part of this data is nested too deeply to process safely.");
 
     if (typeof item.value === "string") {
-      if (item.value.length > limits.maxStringCharacters) throw new PersistenceDataError("A string exceeds the persistence size limit.");
+      if (item.value.length > limits.maxStringCharacters) throw new PersistenceDataError("A string exceeds the saved-data size limit.");
       estimatedBytes += item.value.length * 3;
     } else if (typeof item.value === "number" || typeof item.value === "boolean" || item.value === null) {
       estimatedBytes += 16;
     } else if (typeof item.value === "object" && item.value) {
-      if (visited.has(item.value)) throw new PersistenceDataError("Persistence data must not contain circular references.");
+      if (visited.has(item.value)) throw new PersistenceDataError("Saved data can't contain circular references.");
       visited.add(item.value);
       const entries = Array.isArray(item.value) ? item.value.entries() : Object.entries(item.value);
       for (const [key, child] of entries) {
@@ -211,10 +211,10 @@ export function assertStructuredValueWithinLimits(value: unknown, partial: Parti
         stack.push({ value: child, depth: item.depth + 1 });
       }
     } else if (item.value !== undefined) {
-      throw new PersistenceDataError(`Unsupported persistence value: ${typeof item.value}.`);
+      throw new PersistenceDataError(`This saved value type isn't supported: ${typeof item.value}.`);
     }
 
-    if (estimatedBytes > limits.maxEstimatedBytes) throw new PersistenceDataError("The data exceeds the persistence memory budget.");
+    if (estimatedBytes > limits.maxEstimatedBytes) throw new PersistenceDataError("This data is too large for the browser storage memory limit.");
   }
 
   return { nodes, estimatedBytes };
@@ -222,12 +222,12 @@ export function assertStructuredValueWithinLimits(value: unknown, partial: Parti
 
 export function parseBoundedJson(serialized: string, partial: Partial<PersistenceLimits> = {}) {
   const limits = { ...DEFAULT_PERSISTENCE_LIMITS, ...partial };
-  if (serialized.length > limits.maxSerializedCharacters) throw new PersistenceDataError("The serialized data exceeds the import limit.");
+  if (serialized.length > limits.maxSerializedCharacters) throw new PersistenceDataError("This file is too large to import.");
   let parsed: unknown;
   try {
     parsed = JSON.parse(serialized);
   } catch {
-    throw new PersistenceDataError("The persistence payload is not valid JSON.");
+    throw new PersistenceDataError("The imported text isn't valid JSON.");
   }
   assertStructuredValueWithinLimits(parsed, limits);
   return parsed;
@@ -255,10 +255,10 @@ export function validatePortableSnapshot(value: unknown, partial: Partial<Persis
   const limits = { ...DEFAULT_PERSISTENCE_LIMITS, ...partial };
   assertStructuredValueWithinLimits(value, limits);
   if (!isRecord(value) || value.format !== "latent-browser-lab" || value.snapshotVersion !== PORTABLE_SNAPSHOT_VERSION || value.schemaVersion !== PERSISTENCE_SCHEMA_VERSION) {
-    throw new PersistenceDataError("This is not a supported Latent Browser Lab export.");
+    throw new PersistenceDataError("This file isn't a supported Latent Browser Lab export.");
   }
   if (typeof value.exportedAt !== "number" || !Number.isFinite(value.exportedAt) || !isRecord(value.tables)) {
-    throw new PersistenceDataError("The export metadata is invalid.");
+    throw new PersistenceDataError("This export is missing valid metadata.");
   }
   for (const tableName of TABLE_NAMES) {
     const records = value.tables[tableName];
@@ -282,12 +282,12 @@ export function validatePortableSnapshot(value: unknown, partial: Partial<Persis
   const runById = new Map(runs.map((record) => [record.id, record]));
   const conversationIds = new Set((value.tables.conversations as Array<{ id: string }>).map((record) => record.id));
   for (const file of value.tables.files as Array<{ projectId?: unknown }>) {
-    if (typeof file.projectId !== "string" || !projectIds.has(file.projectId)) throw new PersistenceDataError("An imported file references a missing project.");
+    if (typeof file.projectId !== "string" || !projectIds.has(file.projectId)) throw new PersistenceDataError("An imported file points to a project that isn't here.");
   }
   for (const build of builds) {
-    if (typeof build.projectId !== "string" || !projectIds.has(build.projectId)) throw new PersistenceDataError("An imported build references a missing project.");
+    if (typeof build.projectId !== "string" || !projectIds.has(build.projectId)) throw new PersistenceDataError("An imported build points to a project that isn't here.");
     if (build.provenance !== "validated" && build.provenance !== "legacy") {
-      throw new PersistenceDataError("An imported build has invalid provenance.");
+      throw new PersistenceDataError("An imported build has invalid provenance, so it can't be trusted.");
     }
     if (build.provenance === "validated") {
       const receipt = typeof build.testReceiptId === "string" ? receiptById.get(build.testReceiptId) : undefined;
@@ -298,20 +298,20 @@ export function validatePortableSnapshot(value: unknown, partial: Partial<Persis
   }
   for (const checkpoint of checkpoints) {
     if (typeof checkpoint.projectId !== "string" || !projectIds.has(checkpoint.projectId)) {
-      throw new PersistenceDataError("An imported checkpoint references a missing project.");
+      throw new PersistenceDataError("An imported checkpoint points to a project that isn't here.");
     }
     if (checkpoint.origin !== undefined && checkpoint.origin !== "javascript" && checkpoint.origin !== "python") {
-      throw new PersistenceDataError("An imported checkpoint has invalid trainer provenance.");
+      throw new PersistenceDataError("An imported checkpoint has invalid trainer provenance, so it can't be trusted.");
     }
     const hasSourcePath = typeof checkpoint.sourcePath === "string" && Boolean(checkpoint.sourcePath);
     const hasSourceHash = typeof checkpoint.sourceHash === "string" && Boolean(checkpoint.sourceHash);
     const sourcePathMissing = checkpoint.sourcePath === undefined || checkpoint.sourcePath === null;
     const sourceHashMissing = checkpoint.sourceHash === undefined || checkpoint.sourceHash === null;
     if ((!hasSourcePath && !sourcePathMissing) || (!hasSourceHash && !sourceHashMissing) || hasSourcePath !== hasSourceHash) {
-      throw new PersistenceDataError("An imported checkpoint has an invalid source binding.");
+      throw new PersistenceDataError("An imported checkpoint isn't tied to a valid source file and hash.");
     }
     if (checkpoint.importedFrom !== undefined && (typeof checkpoint.importedFrom !== "string" || !checkpoint.importedFrom)) {
-      throw new PersistenceDataError("An imported checkpoint has invalid import provenance.");
+      throw new PersistenceDataError("An imported checkpoint has invalid import provenance, so it can't be trusted.");
     }
   }
   for (const project of projects) {
@@ -320,11 +320,11 @@ export function validatePortableSnapshot(value: unknown, partial: Partial<Persis
       throw new PersistenceDataError("An imported project has an invalid active build id.");
     }
     const activeBuild = buildById.get(project.activeBuildId);
-    if (!activeBuild) throw new PersistenceDataError("An imported project references a missing active build.");
-    if (activeBuild.projectId !== project.id) throw new PersistenceDataError("An imported project references another project's active build.");
+    if (!activeBuild) throw new PersistenceDataError("An imported project points to a missing active build.");
+    if (activeBuild.projectId !== project.id) throw new PersistenceDataError("An imported project points to another project's active build.");
   }
   for (const message of value.tables.conversationMessages as Array<{ conversationId?: unknown }>) {
-    if (typeof message.conversationId !== "string" || !conversationIds.has(message.conversationId)) throw new PersistenceDataError("An imported message references a missing conversation.");
+    if (typeof message.conversationId !== "string" || !conversationIds.has(message.conversationId)) throw new PersistenceDataError("An imported message points to a conversation that isn't here.");
   }
   return value as unknown as PortablePersistenceSnapshot;
 }

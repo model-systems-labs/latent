@@ -3,7 +3,7 @@
 import type { RnnResult } from "@latent/model-lab/character-rnn";
 
 export function trainCharacterRnnInWorker(steps = 600, signal?: AbortSignal) {
-  if (typeof Worker === "undefined") return Promise.reject(new Error("This browser cannot run the training worker."));
+  if (typeof Worker === "undefined") return Promise.reject(new Error("This browser can't run the training worker."));
   const worker = new Worker(new URL("./training.worker.ts", import.meta.url), { type: "module", name: "latent-model-training" });
   return new Promise<RnnResult>((resolve, reject) => {
     const finish = (action: () => void) => {
@@ -13,13 +13,13 @@ export function trainCharacterRnnInWorker(steps = 600, signal?: AbortSignal) {
       action();
     };
     const abort = () => finish(() => reject(new DOMException("Aborted", "AbortError")));
-    const watchdog = window.setTimeout(() => finish(() => reject(new Error("Training exceeded its 15 second browser budget."))), 15_000);
+    const watchdog = window.setTimeout(() => finish(() => reject(new Error("Training took longer than the browser's 15-second limit."))), 15_000);
     worker.onmessage = (event: MessageEvent<{ type: "trained"; result: RnnResult } | { type: "error"; message: string }>) => {
       const data = event.data;
       if (data.type === "trained") finish(() => resolve(data.result));
       else finish(() => reject(new Error(data.message)));
     };
-    worker.onerror = (event) => finish(() => reject(new Error(event.message || "The training worker stopped.")));
+    worker.onerror = (event) => finish(() => reject(new Error(event.message || "Training stopped unexpectedly.")));
     signal?.addEventListener("abort", abort, { once: true });
     worker.postMessage({ type: "train-character-rnn", steps });
   });

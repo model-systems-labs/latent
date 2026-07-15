@@ -302,7 +302,7 @@ test("project archival removes only the live file while preserving history and a
       expected: { revision: current.revision, sourceHash: current.sourceHash },
       replacementPath: "models/missing.py",
     }),
-    /cannot select missing file/i,
+    /replacement file isn't there/i,
   );
   assert.ok(await repositories.projects.getFile("archive", current.path), "a rejected archive leaves the current file intact");
   assert.equal((await repositories.projects.get("archive")).draftRevision, beforeArchive.draftRevision);

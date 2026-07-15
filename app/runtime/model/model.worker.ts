@@ -54,7 +54,7 @@ async function ensureLoaded() {
 }
 
 async function generate(message: Extract<ModelWorkerRequest, { type: "generate" }>) {
-  if (!generator || !transformersModule) throw new Error("Load the local model explicitly before generating.");
+  if (!generator || !transformersModule) throw new Error("Load the local model before you start generating.");
   const criterion = new transformersModule.InterruptableStoppingCriteria();
   active.set(message.requestId, criterion);
   let emittedChunks = 0;

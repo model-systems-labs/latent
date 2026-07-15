@@ -46,8 +46,8 @@ export function ProjectTimeline() {
   return (
     <section className="project-timeline" aria-labelledby="project-timeline-title">
       <header>
-        <div><span>Curriculum history</span><h2 id="project-timeline-title">Repository snapshots</h2></div>
-        <p>Snapshots show when source files enter the course. Current lesson completion requires its lab, verified source, and no failing trusted IDE receipt.</p>
+        <div><span>Course history</span><h2 id="project-timeline-title">Project snapshots</h2></div>
+        <p>These snapshots show when each source file gets added. To finish a lesson, complete its lab, verify its code, and make sure there’s no trusted failing IDE result.</p>
       </header>
       <div className="project-timeline-controls">
         <div role="group" aria-label="Project timeline presets">
@@ -59,7 +59,7 @@ export function ProjectTimeline() {
         <label>
           <span>{selection === "current"
             ? `${completedLessons} current ${completedLessons === 1 ? "lesson" : "lessons"} complete · ${currentPosition} lesson ${currentPosition === 1 ? "file" : "files"} introduced historically`
-            : index === 0 ? "Curriculum snapshot · before lesson files" : `Curriculum snapshot · first ${index} lesson ${index === 1 ? "file" : "files"}`}</span>
+            : index === 0 ? "Course snapshot · before lesson files" : `Course snapshot · first ${index} lesson ${index === 1 ? "file" : "files"}`}</span>
           <input aria-valuetext={index === 0 ? "Before lesson files" : `${index} lesson ${index === 1 ? "file" : "files"} introduced`} type="range" min="0" max={courseLessons.length} value={index} onChange={(event) => setSelection(Number(event.target.value))} />
         </label>
       </div>
@@ -74,14 +74,14 @@ export function ProjectTimeline() {
             return (
               <li aria-current={lesson.id === active?.id ? "step" : undefined} className={lesson.id === active?.id ? "active" : ""} key={lesson.id}>
                 <span>{String(lessonIndex + 1).padStart(2, "0")}</span>
-                <Link href={`/workspace?file=${encodeURIComponent(path)}`}><code>{path}</code><em>{complete ? "Lesson complete" : learnerComplete ? "Current source needs verification" : "File introduced here"}</em></Link>
+                <Link href={`/workspace?file=${encodeURIComponent(path)}`}><code>{path}</code><em>{complete ? "Lesson done" : learnerComplete ? "Current code needs another check" : "File added here"}</em></Link>
               </li>
             );
-          }) : <li className="empty"><span>—</span><p>No lesson files have been introduced at project initialization.</p></li>}
+          }) : <li className="empty"><span>—</span><p>The project starts before any lesson files are added.</p></li>}
         </ol>
         <div className="timeline-capstone-files"><span>provided application shell</span><code>runtime/host-bridge.ts · vendor/* · capstone/*</code></div>
       </div>
-      <footer><p>{active ? `${active.title} is the newest lesson contribution in this snapshot.` : "The runtime and application shell exist before the first lesson file."}</p><Link href="/workspace">Open current project →</Link></footer>
+      <footer><p>{active ? `${active.title} is the newest lesson file in this snapshot.` : "The runtime and app shell are already there before the first lesson file."}</p><Link href="/workspace">Open current project →</Link></footer>
     </section>
   );
 }

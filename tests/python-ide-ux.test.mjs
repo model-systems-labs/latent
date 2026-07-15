@@ -17,7 +17,7 @@ test("Python is an explicit, lazy runtime rather than part of page startup", asy
   assert.match(start, /await import\("@latent\/python-lab"\)/);
   assert.match(start, /new PythonLabClient\(\)/);
   assert.match(start, /initialize\([\s\S]*?packages: \["numpy"\]/);
-  assert.match(source, /downloads the roughly 9 MB WebAssembly core, the standard library, and NumPy/);
+  assert.match(source, /downloads about 9 MB for the WebAssembly core, standard library, and NumPy/);
   assert.doesNotMatch(source, /^import \{ PythonLabClient/m, "the runtime package must not be imported into the initial workspace chunk");
 });
 
@@ -44,10 +44,10 @@ test("Python controls expose run, verified training, hard stop, restart, and hon
   assert.match(source, /clientRef\.current\.reset\(/);
   assert.match(source, /clientRef\.current\?\.dispose\(\)/);
   assert.match(source, /className="python-traceback" role="alert"/);
-  assert.match(source, /checkpoint was trained by Python and saved for browser inference/);
-  assert.match(source, /A checkpoint is saved only after every test passes/);
+  assert.match(source, /Python trained the checkpoint, and it’s saved for the browser to use/);
+  assert.match(source, /Latent saves a checkpoint only after every test passes/);
   assert.match(source, /setArtifactSourceIdentity\(null\)/, "a rerun makes the previous artifact explicitly historical");
-  assert.match(source, /Source changed\. Test and train again to replace the last verified checkpoint/);
+  assert.match(source, /The source changed\. Test and train again to replace the last verified checkpoint/);
   assert.match(source, /setTraceback\(result\.traceback \?\? null\)/);
   assert.match(source, /session\.artifactIsCurrent \? "Verified for this source" : "Last verified · Python"/);
 });

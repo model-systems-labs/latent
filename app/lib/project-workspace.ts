@@ -534,7 +534,7 @@ function projectPersistenceDiff(state: ProjectState, previous: ProjectState | nu
 
 function setProjectPersistenceError(error: unknown) {
   projectPersistenceError = error
-    ? error instanceof Error ? error.message : "Project storage is unavailable."
+    ? error instanceof Error ? error.message : "This browser can't save the project."
     : null;
   if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent(PROJECT_PERSISTENCE_EVENT));
 }
@@ -896,17 +896,17 @@ export function selectProjectFile(path: string) {
 
 function parseConfig(source: string, path: string) {
   const match = source.trim().match(/^export\s+default\s+([\s\S]+?);?\s*$/);
-  if (!match) throw new Error(`${path}: expected export default followed by a JSON object.`);
+  if (!match) throw new Error(`${path}: start with export default, followed by a JSON object.`);
   try {
     return JSON.parse(match[1]) as Record<string, unknown>;
   } catch {
-    throw new Error(`${path}: the exported object must use JSON syntax with quoted keys and strings.`);
+    throw new Error(`${path}: use JSON syntax in the exported object, including quoted keys and strings.`);
   }
 }
 
 function rangedNumber(value: unknown, path: string, name: string, minimum: number, maximum: number, integer = false) {
   if (typeof value !== "number" || !Number.isFinite(value) || value < minimum || value > maximum || (integer && !Number.isInteger(value))) {
-    throw new Error(`${path}: ${name} must be ${integer ? "an integer" : "a number"} from ${minimum} to ${maximum}.`);
+    throw new Error(`${path}: ${name} must be ${integer ? "an integer" : "a number"} between ${minimum} and ${maximum}.`);
   }
   return value;
 }
@@ -921,21 +921,21 @@ export function compileProject(files: Record<string, ProjectFile>, previous: Pro
       maxTokens: rangedNumber(value.maxTokens, RUNTIME_PATHS.model, "maxTokens", 40, 160, true),
       seed: rangedNumber(value.seed, RUNTIME_PATHS.model, "seed", 0, 99999, true),
     } };
-  } catch (error) { errors.push(error instanceof Error ? error.message : "Model config failed."); }
+  } catch (error) { errors.push(error instanceof Error ? error.message : "We couldn't read the model config."); }
   try {
     const value = parseConfig(files[RUNTIME_PATHS.transport]?.content ?? "", RUNTIME_PATHS.transport);
     previous = { ...previous, transport: {
       wordsPerEvent: rangedNumber(value.wordsPerEvent, RUNTIME_PATHS.transport, "wordsPerEvent", 1, 12, true),
       delayMs: rangedNumber(value.delayMs, RUNTIME_PATHS.transport, "delayMs", 0, 200, true),
     } };
-  } catch (error) { errors.push(error instanceof Error ? error.message : "Transport config failed."); }
+  } catch (error) { errors.push(error instanceof Error ? error.message : "We couldn't read the transport config."); }
   try {
     const value = parseConfig(files[RUNTIME_PATHS.interface]?.content ?? "", RUNTIME_PATHS.interface);
-    if (typeof value.assistantName !== "string" || !value.assistantName.trim() || value.assistantName.length > 24) throw new Error(`${RUNTIME_PATHS.interface}: assistantName must contain 1–24 characters.`);
-    if (typeof value.responsePrefix !== "string" || value.responsePrefix.length > 60) throw new Error(`${RUNTIME_PATHS.interface}: responsePrefix must contain at most 60 characters.`);
+    if (typeof value.assistantName !== "string" || !value.assistantName.trim() || value.assistantName.length > 24) throw new Error(`${RUNTIME_PATHS.interface}: assistantName must be 1–24 characters long.`);
+    if (typeof value.responsePrefix !== "string" || value.responsePrefix.length > 60) throw new Error(`${RUNTIME_PATHS.interface}: responsePrefix must be 60 characters or fewer.`);
     if (typeof value.showMetrics !== "boolean") throw new Error(`${RUNTIME_PATHS.interface}: showMetrics must be true or false.`);
     previous = { ...previous, interface: { assistantName: value.assistantName.trim(), responsePrefix: value.responsePrefix, showMetrics: value.showMetrics } };
-  } catch (error) { errors.push(error instanceof Error ? error.message : "Interface config failed."); }
+  } catch (error) { errors.push(error instanceof Error ? error.message : "We couldn't read the interface config."); }
   if (errors.length) return { ok: false as const, errors };
   return { ok: true as const, errors: [], runtime: { ...previous, version: 1 as const, buildNumber: previous.buildNumber + 1, builtAt: Date.now() } };
 }

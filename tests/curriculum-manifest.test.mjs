@@ -91,8 +91,8 @@ test("module identity is independent from stable saved-project paths", () => {
 
 test("model dataset records and reference frames match the supplied runtimes", () => {
   const expectedSizes = {
-    "character-rnns": "1,610 characters · fixed deterministic sequence",
-    "neural-language-models": "20 sentences · deterministic example-level modulo split",
+    "character-rnns": "1,610 characters · fixed repeatable sequence",
+    "neural-language-models": "20 sentences · fixed example-by-example modulo split",
     "subword-tokenization": "6 lines · 24 words · fixed",
     "additive-attention": "3 semantic roles · 3 fixed alignment cases · 2,000 epochs",
     transformers: "1 fixed six-token sequence",
@@ -139,17 +139,17 @@ test("Character RNN practice catches missing recurrent state and explains the fa
   const lesson = course.courseLessons.find((candidate) => candidate.id === "character-rnns");
   assert.ok(lesson);
   const lessonCopy = lesson.summary.map((section) => `${section.label} ${section.body}`).join(" ");
-  assert.match(lessonCopy, /Teacher forcing and sampled generation/);
-  assert.match(lessonCopy, /observed corpus character.*loss target.*next input/);
+  assert.match(lessonCopy, /Teacher forcing vs\. sampled generation/);
+  assert.match(lessonCopy, /real corpus character.*cross-entropy target.*next input/);
   assert.match(lessonCopy, /sample a character.*next input/);
-  assert.match(lesson.diagram.caption, /Teacher-forced training.*prediction is not fed back/);
+  assert.match(lesson.diagram.caption, /With teacher forcing.*model doesn't feed its guess back in/);
 
   const contract = contracts.llmSystemsExerciseContracts.find((candidate) => candidate.id === "character-rnns/rnn-step");
   assert.ok(contract);
   assert.equal(contract.cases.length, 4);
   const recurrentCase = contract.cases.find((candidate) => candidate.id === "non-empty-recurrent-state");
   assert.ok(recurrentCase);
-  assert.match(recurrentCase.label, /preceding hidden state/);
+  assert.match(recurrentCase.label, /previous hidden state/);
 
   const detail = practiceFeedback.formatPracticeContractDetail([{
     contractId: contract.id,
@@ -310,7 +310,7 @@ test("Subword Tokenization exposes pair identity and rejects shortcuts in every 
   accepts(countPairs, referenceCounts);
   const pairFeedback = practiceFeedback.formatPracticeContractDetail(evaluate(countPairs, concatenatedKeys));
   assert.match(pairFeedback, /json\.dumps/);
-  assert.match(pairFeedback, /2 additional cases still fail; rerun after this fix/);
+  assert.match(pairFeedback, /2 more cases still fail; run the checks again after this fix/);
 
   const mergePair = byId.get("subword-tokenization/merge-pair");
   assert.ok(mergePair);
@@ -370,11 +370,11 @@ test("Subword Tokenization exposes pair identity and rejects shortcuts in every 
 test("Additive Attention teaches the scoring network and rejects shortcuts in every cell", () => {
   const lesson = course.courseLessons.find((candidate) => candidate.id === "additive-attention");
   assert.ok(lesson);
-  const decoderStep = lesson.summary.find((section) => section.label === "One decoder step.");
+  const decoderStep = lesson.summary.find((section) => section.label === "One decoding step.");
   assert.ok(decoderStep);
-  assert.ok(decoderStep.body.indexOf("An encoder reads") < decoderStep.body.indexOf("In notation"));
-  assert.match(decoderStep.body, /decoder produces the target sequence one token at a time/);
-  assert.match(decoderStep.body, /current decoder state becomes the query q_t/);
+  assert.ok(decoderStep.body.indexOf("The encoder reads") < decoderStep.body.indexOf("In notation"));
+  assert.match(decoderStep.body, /decoder produces the target one token at a time/);
+  assert.match(decoderStep.body, /current state becomes the query q_t/);
 
   const byId = new Map(contracts.llmSystemsExerciseContracts.map((contract) => [contract.id, contract]));
   const evaluate = (contract, implementation) => contract.cases.map((exerciseCase) =>
@@ -414,7 +414,7 @@ test("Additive Attention teaches the scoring network and rejects shortcuts in ev
   accepts(score, additiveScore);
   const scoreFeedback = practiceFeedback.formatPracticeContractDetail(evaluate(score, dotProduct));
   assert.match(scoreFeedback, /Wq/);
-  assert.match(scoreFeedback, /3 additional cases still fail; rerun after this fix/);
+  assert.match(scoreFeedback, /3 more cases still fail; run the checks again after this fix/);
   assert.doesNotMatch(scoreFeedback, /Wk|plain query-key dot product/);
 
   const weights = byId.get("additive-attention/attention-softmax");
@@ -446,8 +446,8 @@ test("Additive Attention teaches the scoring network and rejects shortcuts in ev
     weights,
     (scores) => Array(scores.length).fill(1 / scores.length),
   ));
-  assert.match(weightFeedback, /one softmax across the complete scores array/);
-  assert.equal((weightFeedback.match(/complete scores array/g) ?? []).length, 1);
+  assert.match(weightFeedback, /one softmax across the whole scores array/);
+  assert.equal((weightFeedback.match(/whole scores array/g) ?? []).length, 1);
 
   const context = byId.get("additive-attention/context-vector");
   assert.ok(context);
@@ -467,13 +467,13 @@ test("Transformers teaches the causal attention computation and rejects semantic
   const lesson = course.courseLessons.find((candidate) => candidate.id === "transformers");
   assert.ok(lesson);
   assert.match(lesson.summary.map((section) => section.body).join(" "), /QKᵀ/);
-  assert.match(lesson.summary.map((section) => section.body).join(" "), /before applying softmax independently across that row/);
-  assert.match(lesson.diagram.caption, /three-token worked pass/i);
+  assert.match(lesson.summary.map((section) => section.body).join(" "), /Then apply softmax across that row/);
+  assert.match(lesson.diagram.caption, /worked three-token pass/i);
   const layerNormBlock = lesson.implementation.codeBlocks.find((block) => block.id === "layer-norm");
   assert.ok(layerNormBlock);
   assert.equal(layerNormBlock.label, "Non-affine layer normalization");
   assert.match(layerNormBlock.purpose, /learned gain gamma and bias beta/);
-  assert.match(layerNormBlock.concepts.map((concept) => concept.detail).join(" "), /full layer norm.*learned per-feature gain gamma and bias beta/);
+  assert.match(layerNormBlock.concepts.map((concept) => concept.detail).join(" "), /Full layer norm.*learned gain gamma and bias beta/);
 
   const byId = new Map(contracts.llmSystemsExerciseContracts.map((contract) => [contract.id, contract]));
   const evaluate = (contract, implementation) => contract.cases.map((exerciseCase) =>
@@ -556,10 +556,10 @@ test("In-Context Learning holds the experiment constant and rejects prompt and s
   assert.ok(lesson);
   assert.match(lesson.summary[0].body, /hidden activations and KV cache/);
   assert.match(lesson.diagram.title, /Controlled zero-, one-, and few-shot comparison/);
-  assert.match(lesson.diagram.caption, /not general few-shot ability/);
-  assert.match(lesson.summary.find((section) => section.label === "Evaluation design.")?.body ?? "", /supplied fixed local evaluator.*does not import or execute the learner's/);
-  assert.match(lesson.experiment.intro, /fixed local evaluator.*without importing or executing learner code/);
-  assert.match(lesson.experiment.intro, /do not show that accuracy must improve/);
+  assert.match(lesson.diagram.caption, /not whether few-shot prompting works in general/);
+  assert.match(lesson.summary.find((section) => section.label === "Keep the comparison fair.")?.body ?? "", /provided local evaluator.*doesn't import or run your prompt and scoring functions/);
+  assert.match(lesson.experiment.intro, /provided local evaluator.*without importing or running your code/);
+  assert.match(lesson.experiment.intro, /don't show that accuracy always improves/);
 
   const byId = new Map(contracts.llmSystemsExerciseContracts.map((contract) => [contract.id, contract]));
   const evaluate = (contract, implementation) => contract.cases.map((exerciseCase) =>
@@ -577,7 +577,7 @@ test("In-Context Learning holds the experiment constant and rejects prompt and s
   accepts(formatter, (examples) => examples.map(({ input, label }) => `Input: ${input.trim()}\nLabel: ${label.trim()}`).join("\n\n"));
   const formatterFeedback = practiceFeedback.formatPracticeContractDetail(evaluate(formatter, (examples) =>
     [...examples].reverse().map(({ input, label }) => `Input: ${input}\nLabel: ${label}`).join("\n\n")));
-  assert.match(formatterFeedback, /Preserve example order/);
+  assert.match(formatterFeedback, /Keep the examples in order/);
 
   const prompt = byId.get("in-context-learning/build-prompt");
   assert.ok(prompt);
@@ -630,7 +630,7 @@ test("In-Context Learning holds the experiment constant and rejects prompt and s
     passed: output.includes(expected),
   })));
   assert.match(scorerFeedback, /independently/);
-  assert.match(scorerFeedback, /additional cases still fail; rerun after this fix/);
+  assert.match(scorerFeedback, /more cases still fail; run the checks again after this fix/);
   assert.doesNotMatch(scorerFeedback, /first standalone/);
 });
 
@@ -643,7 +643,7 @@ test("Inference Runtime separates sampled tokens from decode forwards and sizes 
   assert.match(lesson.summary[3].body, /Time to first token \(TTFT\)/);
   assert.match(lesson.summary[3].body, /Inter-token latency \(ITL\)/);
   assert.equal(lesson.diagram.title, "Worked request r-104");
-  assert.match(lesson.diagram.caption, /31 subsequent decode forwards/);
+  assert.match(lesson.diagram.caption, /31 later decode forwards/);
   assert.match(lesson.dataset.preview, /final length 128 · 1 prefill \+ 31 decode forwards/);
 
   const byId = new Map(contracts.llmSystemsExerciseContracts.map((contract) => [contract.id, contract]));
@@ -690,8 +690,8 @@ test("Inference Runtime separates sampled tokens from decode forwards and sizes 
     processedTokenPositions: promptTokens + maxNewTokens,
     finalSequenceLength: promptTokens + maxNewTokens,
   })));
-  assert.match(phaseFeedback, /31 subsequent decode forwards because prefill logits sample token 1/);
-  assert.match(phaseFeedback, /1 additional case still fails; rerun after this fix/);
+  assert.match(phaseFeedback, /31 later decode passes because the prefill logits sample token 1/);
+  assert.match(phaseFeedback, /1 more case still fails; run the checks again after this fix/);
   assert.doesNotMatch(phaseFeedback, /Do not count the final sampled token as another processed input/);
 
   const cache = byId.get("inference-runtime/kv-bytes");
@@ -714,7 +714,7 @@ test("Inference Runtime separates sampled tokens from decode forwards and sizes 
     "the formatter must not discard complete host results",
   );
   assert.match(cacheFeedback, /Multiply by 2 because every cached position stores both key and value/);
-  assert.match(cacheFeedback, /5 additional cases still fail; rerun after this fix/);
+  assert.match(cacheFeedback, /5 more cases still fail; run the checks again after this fix/);
   assert.doesNotMatch(cacheFeedback, /all 3 layers|kvHeads|headDimension|FP32/);
 });
 
@@ -724,7 +724,7 @@ test("Streaming Transport separates byte decoding, frame carry, typed events, an
   assert.match(lesson.summary[0].body, /TextDecoder\.decode\(chunk, \{ stream: true \}\)/);
   assert.match(lesson.summary[0].body, /decoded text, never raw bytes/);
   assert.match(lesson.summary[1].body, /LF or CRLF/);
-  assert.match(lesson.summary[1].body, /default event name message/);
+  assert.match(lesson.summary[1].body, /"message" as the default event name/);
   assert.match(lesson.summary[3].body, /AbortSignal must stop the reader, parser, and generator/);
   assert.match(lesson.summary[3].body, /Render buffering is different/);
   assert.equal(lesson.diagram.title, "One token across arbitrary chunks");
@@ -896,7 +896,7 @@ test("Scheduling and Memory preserves completion identities and catches page-bou
   rejects(iteration, dropsCompleted);
   accepts(iteration, decodeReference);
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(iteration, oldActiveOnly)), /separate active and completed arrays/);
-  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(iteration, firstRequestOnly)), /Advance every request/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(iteration, firstRequestOnly)), /Move every request/);
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(iteration, dropsCompleted)), /Move a request that reaches zero into completed/);
 
   const block = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "batch-step");
@@ -949,7 +949,7 @@ test("Reliability and Observability binds retries and events to attempt identity
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(retry, ignoresVisibleOutput)), /Return false once tokensEmitted is greater than zero/);
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(retry, ignoresClassification)), /Return false for a non-transient failure/);
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(retry, offByOneBudget)), /attempt 1 is already the second and final attempt/);
-  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(retry, capsEveryBudgetAtTwo)), /Use the supplied maxAttempts value/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(retry, capsEveryBudgetAtTwo)), /Use the maxAttempts value you were given/);
   const retryBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "retry-policy");
   assertPythonExport(retryBlock, "should_retry");
   assert.match(retryBlock.code, /attempt \+ 1 < max_attempts/);
@@ -969,7 +969,7 @@ test("Reliability and Observability binds retries and events to attempt identity
   rejects(guard, acceptsUnknown);
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(guard, terminalOnly)), /Compare request\.attemptId with event\.attemptId/);
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(guard, identityOnly)), /Return false after complete/);
-  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(guard, requestIdOnly)), /stable logical request id must not let a retired attempt mutate/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(guard, requestIdOnly)), /sharing one logical request ID must not let an old attempt change the active one/);
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(guard, missesCancelled)), /Return false after cancelled/);
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(guard, acceptsUnknown)), /Accept only the known active states/);
   const guardBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "terminal-guard");
@@ -987,7 +987,7 @@ test("Conversation State enforces normalized records and immutable targeted delt
   assert.match(lesson.summary[1].body, /attemptId/);
   assert.match(lesson.summary[1].body, /requestId/);
   assert.match(lesson.summary[2].body, /new messages collection/);
-  assert.match(lesson.summary[2].body, /preserves untouched message identities/);
+  assert.match(lesson.summary[2].body, /keeps every other message's identity unchanged/);
   assert.match(lesson.summary[3].body, /canStop/);
   assert.match(lesson.summary[3].body, /canRegenerate/);
   assert.equal(lesson.diagram.title, "One delta through normalized state");
@@ -1024,8 +1024,8 @@ test("Conversation State enforces normalized records and immutable targeted delt
   const copiesCallerFields = (input) => ({ ...input, content: input.content ?? "", status: input.status ?? "complete", createdAt: 0 });
   rejects(create, defaultsOnly);
   rejects(create, copiesCallerFields);
-  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(create, defaultsOnly)), /attemptId and requestId to null/);
-  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(create, copiesCallerFields)), /attemptId and requestId to null/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(create, defaultsOnly)), /null attemptId and requestId/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(create, copiesCallerFields)), /null attemptId and requestId/);
   const createBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "create-message");
   assertPythonExport(createBlock, "create_message");
   assert.match(createBlock.code, /"createdAt": 0/);
@@ -1068,7 +1068,7 @@ test("Streaming React preserves render deltas and applies the complete scroll-fo
   assert.match(lesson.diagram.caption, /scrolling, announcements, and cancellation remain separate policies/);
   assert.match(lesson.dataset.size, /60 deltas · 4 timing profiles/);
   assert.match(lesson.experiment.intro, /burst, steady, stalled, and cancelled/);
-  assert.match(lesson.experiment.intro, /bounded live-region contents/);
+  assert.match(lesson.experiment.intro, /short live-region announcements/);
 
   const byId = new Map(contracts.llmSystemsExerciseContracts.map((contract) => [contract.id, contract]));
   const freeze = (value) => {
@@ -1126,7 +1126,7 @@ test("Streaming React preserves render deltas and applies the complete scroll-fo
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(scroll, distanceOnly)), /userScrolledUp override/);
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(scroll, userFlagOnly)), /exceeds the default 80-pixel threshold/);
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(scroll, exclusiveBoundary)), /distanceFromBottom <= threshold/);
-  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(scroll, fixedThreshold)), /supplied threshold/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(scroll, fixedThreshold)), /provided threshold/);
   const scrollBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "scroll-policy");
   assertPythonExport(scrollBlock, "should_follow_stream");
   assert.match(scrollBlock.code, /distance_from_bottom <= threshold/);
@@ -1137,7 +1137,7 @@ test("Actions and Context treats branches as durable records and admits only com
   assert.ok(lesson);
   assert.equal(lesson.diagram.title, "One prefix, three actions, one request boundary");
   assert.match(lesson.diagram.caption, /cancelled partial attempt/);
-  assert.match(lesson.diagram.caption, /complete historical pairs newest-first/);
+  assert.match(lesson.diagram.caption, /complete historical pairs from newest to oldest/);
   assert.match(lesson.summary.map((section) => section.body).join(" "), /overflow is reported/);
   assert.match(lesson.dataset.size, /3 action flows · 29 budgets \(14–42\)/);
   assert.match(lesson.experiment.intro, /message \/ attempt \/ request ids/);
@@ -1226,11 +1226,11 @@ test("Actions and Context treats branches as durable records and admits only com
   rejects(context, ignoresLifecycle);
   rejects(context, stopsAfterOversizedNewest);
   rejects(context, mutatesOrder);
-  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(context, individualMessages)), /atomic unit/);
-  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(context, oldestFirst)), /newest-first/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(context, individualMessages)), /user-assistant pair as one unit/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(context, oldestFirst)), /from newest to oldest/);
   assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(context, omitsActiveUser)), /active-user/);
-  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(context, ignoresLifecycle)), /exact chronological request/);
-  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(context, stopsAfterOversizedNewest)), /continue examining older/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(context, ignoresLifecycle)), /return the request in time order/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(context, stopsAfterOversizedNewest)), /keep checking older complete pairs/);
   const contextBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "context-budget");
   assertPythonExport(contextBlock, "select_context");
   assert.match(contextBlock.code, /for turn in reversed\(turns\):/);
@@ -1251,8 +1251,8 @@ test("Actions and Context treats branches as durable records and admits only com
   rejects(regeneration, spreadsCaller);
   rejects(regeneration, wrongDefaults);
   rejects(regeneration, mutatesCaller);
-  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(regeneration, hardcoded)), /supplied ids on every call/);
-  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(regeneration, spreadsCaller)), /four identity fields/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(regeneration, hardcoded)), /IDs passed in on every call/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(evaluate(regeneration, spreadsCaller)), /four ID fields/);
   const regenerationBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "regenerate-branch");
   assertPythonExport(regenerationBlock, "create_regeneration");
   assert.doesNotMatch(regenerationBlock.code, /\*\*options/);
@@ -1289,7 +1289,7 @@ test("Product Quality rejects shallow persistence guards and incomplete phase la
   const shallow = (record) => Boolean(record) && record.version === 1 && typeof record.id === "string" && Array.isArray(record.messages) && !("apiKey" in record);
   const shallowResults = evaluate(storage, shallow);
   assert.ok(shallowResults.some((result) => !result.passed));
-  assert.match(practiceFeedback.formatPracticeContractDetail(shallowResults), /exact message keys/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(shallowResults), /expected message keys/);
   const storageBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "storage-validation");
   assertPythonExport(storageBlock, "valid_conversation_record");
   assert.match(storageBlock.code, /def has_exact_keys\(/);
@@ -1301,7 +1301,7 @@ test("Product Quality rejects shallow persistence guards and incomplete phase la
   const missingComplete = (phase) => ({ queued: "Waiting for capacity", loading: "Loading model", prefill: "Processing context", streaming: "Generating", cancelled: "Stopped", error: "Generation failed" })[phase] ?? "Ready";
   const phaseResults = evaluate(phases, missingComplete);
   assert.ok(phaseResults.some((result) => !result.passed));
-  assert.match(practiceFeedback.formatPracticeContractDetail(phaseResults), /complete explicitly/);
+  assert.match(practiceFeedback.formatPracticeContractDetail(phaseResults), /Map complete directly/);
   const phaseBlock = lesson.implementation.codeBlocks.find((candidate) => candidate.id === "phase-label");
   assertPythonExport(phaseBlock, "generation_status_label");
   assert.match(phaseBlock.code, /labels\.get\(phase, "Status unavailable"\)/);

@@ -22,13 +22,13 @@ export const llmSystemsManifest = defineCurriculumManifest({
   title: "Build an LLM System in Your Browser",
   shortTitle: "LLM Systems",
   thesis:
-    "Implement the model, inference runtime, serving boundary, and React integration that form a complete browser-based LLM system.",
+    "Build the model, inference runtime, serving layer, and React integration for a complete LLM system that runs in the browser.",
   outcome:
-    "A tested, locally persisted chatbot that runs a real model, consumes the learner-trained RNN checkpoint, and uses browser adapters verified against the same behavioral contracts as the learner's Python.",
+    "You'll end up with a tested chatbot that saves data locally, runs a real model, loads the RNN checkpoint you trained, and uses browser adapters checked against the same behavior as your Python code.",
   capstone: {
     title: "Browser Chat",
     description:
-      "Promote the exact passing Python source tree, its trained checkpoint, the contract-equivalent browser adapters, and the React interface into a functional streaming chatbot.",
+      "Take your passing Python files, trained checkpoint, matching browser adapters, and React interface and turn them into a working streaming chatbot.",
     projectPath: "capstone/BrowserChat.tsx",
   },
   modules: [
@@ -39,9 +39,9 @@ export const llmSystemsManifest = defineCurriculumManifest({
       title: "Model Foundations",
       shortTitle: "Models",
       thesis:
-        "Build the numerical path from tokenization and learned representations to causal language modeling and local inference.",
+        "Build the full number-crunching path from tokenization and learned representations to causal language modeling and local inference.",
       outcome:
-        "A learner-trained character model plus a frozen local-model evaluation harness.",
+        "You'll have a character model you trained and a test setup for evaluating a frozen local model.",
       lessons: [
         { lessonId: "character-rnns", projectPath: "models/character-rnn.py" },
         { lessonId: "neural-language-models", projectPath: "models/neural-language-model.py" },
@@ -58,9 +58,9 @@ export const llmSystemsManifest = defineCurriculumManifest({
       title: "Inference Runtime",
       shortTitle: "Runtime",
       thesis:
-        "Implement prefill, decode, KV-cache accounting, admission, and continuous batching for autoregressive inference.",
+        "Build prefill, decode, KV-cache accounting, admission, and continuous batching for autoregressive inference.",
       outcome:
-        "An executable runtime model with explicit phase timing, memory use, and scheduling behavior.",
+        "You'll have a runtime model you can run, with clear timing for each phase, memory use, and scheduling behavior.",
       lessons: [
         { lessonId: "inference-runtime", projectPath: "systems/inference-runtime.py" },
         { lessonId: "scheduling-memory", projectPath: "systems/continuous-batching.py" },
@@ -73,9 +73,9 @@ export const llmSystemsManifest = defineCurriculumManifest({
       title: "LLM Serving",
       shortTitle: "Serving",
       thesis:
-        "Implement the streaming, cancellation, retry, failure, and observability contracts around model generation.",
+        "Build clear rules for streaming, cancellation, retries, failures, and observability around model generation.",
       outcome:
-        "A deterministic serving boundary and failure-injection harness for the browser chatbot.",
+        "You'll have a repeatable serving layer and a failure-injection test setup for the browser chatbot.",
       lessons: [
         { lessonId: "streaming-transport", projectPath: "backend/streaming-transport.py" },
         { lessonId: "reliability-observability", projectPath: "backend/generation-reliability.py" },
@@ -88,9 +88,9 @@ export const llmSystemsManifest = defineCurriculumManifest({
       title: "Chat Integration",
       shortTitle: "React",
       thesis:
-        "Connect generation events to a resilient React state machine, context policy, persistence layer, and accessible interface.",
+        "Connect generation events to a React state machine that can recover from problems, manage context, save data, and stay accessible.",
       outcome:
-        "A polished streaming chat interface with recovery, context controls, and observable generation state.",
+        "You'll have a polished streaming chat interface with recovery tools, context controls, and a clear view of generation state.",
       lessons: [
         { lessonId: "conversation-state", projectPath: "product/chat-reducer.py" },
         { lessonId: "streaming-react", projectPath: "product/streaming-react.py" },

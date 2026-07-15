@@ -18,7 +18,7 @@ import {
   useLearnerPersistenceError,
   useLearnerRecoveryCandidates,
 } from "../lib/learner-state";
-import { ensureProjectWorkspace, initializeProjectPersistence, loadProjectState, saveLessonProjectFile, useProjectPersistenceError, type LessonProjectSeed } from "../lib/project-workspace";
+import { ensureProjectWorkspace, flushProjectPersistence, initializeProjectPersistence, loadProjectState, projectFileSourceIsCurrent, saveLessonProjectFile, useProjectPersistenceError, type LessonProjectSeed } from "../lib/project-workspace";
 import { runPracticeContracts } from "../features/ide/browser-lab-service";
 import { runPythonLessonContracts } from "../features/ide/python-lesson-service";
 import { ArtifactRuntimePanel } from "../features/artifacts/ArtifactRuntimePanel";
@@ -30,7 +30,7 @@ import {
   compatiblePracticeDrafts,
   creditableWorkingBlockIds,
   editPracticeBlock,
-  practiceDraftIsCompatible,
+  preservedPracticeAnswers,
   resetPracticeBlock,
   restoreWorkingSourceVerification,
   starterCodeFor,
@@ -731,12 +731,11 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
       // The lesson now has one stable working document per cell: a compatible
       // saved draft when present, otherwise the authored starter scaffold.
       const savedHidden = blocks.map((block) => block.id);
-      const quarantinedAnswers = Object.fromEntries(blocks.flatMap((block) => {
-        const savedSource = compatible.answers[block.id];
-        return savedSource !== undefined && !practiceDraftIsCompatible(lesson.implementation.filename, savedSource)
-          ? [[block.id, savedSource]]
-          : [];
-      }));
+      const quarantinedAnswers = preservedPracticeAnswers(
+        lesson.implementation.filename,
+        blocks,
+        compatible.answers,
+      );
       const savedAnswers = workingPracticeSources(
         lesson.implementation.filename,
         blocks,
@@ -990,7 +989,8 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
       const nextVerifiedContractVersion = nextVerified.length ? llmSystemsContractSuite.contractVersion : null;
       applyPracticeState(hiddenSnapshot, answersSnapshot, nextVerified, nextVerifiedSources, nextVerifiedContractVersion);
       recordVerifiedCells(lesson.id, nextVerified, nextVerifiedSources, nextVerifiedContractVersion);
-      saveCurrentProjectSeed(projectSeedForLesson(lesson, hiddenSnapshot, answersSnapshot, nextVerified));
+      const validatedProjectSeed = projectSeedForLesson(lesson, hiddenSnapshot, answersSnapshot, nextVerified);
+      saveCurrentProjectSeed(validatedProjectSeed);
       setCellResults(Object.fromEntries(blocks.map((block, index) => [block.id, ordered[index]])));
       const passed = ordered.filter((result) => result.passed).length;
       if (passed === ordered.length) {
@@ -1001,10 +1001,16 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
           count: ordered.length,
         });
         try {
+          await flushProjectPersistence();
+          controller.signal.throwIfAborted();
           const artifact = await recordValidatedLessonArtifact({
             lessonId: lesson.id,
             source: combinedSource,
             signal: controller.signal,
+            isSourceCurrent: () => projectFileSourceIsCurrent(
+              projectPath,
+              validatedProjectSeed.content,
+            ),
             results: ordered.map((result, index) => ({
               id: result.id ?? `${lesson.id}/${blocks[index].id}`,
               label: result.label,
@@ -1144,7 +1150,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
                       <div><SyntaxCode code={block.code} label={`${block.label} reference implementation`} startLine={startLine} /></div>
                     </details>
                   </div>
-                ) : null}
+                ) : <div id={`exercise-${lesson.id}-${block.id}`} hidden />}
               </article>
             );
           })}

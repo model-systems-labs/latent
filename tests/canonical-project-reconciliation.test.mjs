@@ -595,7 +595,7 @@ test("invalid saved build authority fails closed without hiding durable project 
   assert.equal(await repositories.builds.activeValidated("browser-chat"), undefined);
 });
 
-test("an old untouched authored file migrates to the starter while an IDE edit remains authoritative", () => {
+test("an old untouched authored file migrates to the starter while IDE edits remain authoritative", async () => {
   const suffix = crypto.randomUUID();
   const referenceContent = "def value():\n    return 42";
   const starterContent = "def value():\n    raise NotImplementedError('Implement value.')";
@@ -618,4 +618,91 @@ test("an old untouched authored file migrates to the starter while an IDE edit r
   workspace.saveProjectFile(editedPath, "def value():\n    return 7  # learner IDE edit");
   workspace.ensureProjectWorkspace([{ ...base, lessonId: `${base.lessonId}-edited`, path: editedPath, content: starterContent }]);
   assert.match(workspace.loadProjectState().files[editedPath].content, /learner IDE edit/);
+
+  const referenceRestorePath = `models/starter-migration-reference-${suffix}.py`;
+  workspace.ensureProjectWorkspace([{ ...base, lessonId: `${base.lessonId}-reference`, path: referenceRestorePath, content: starterContent }]);
+  workspace.saveProjectFile(referenceRestorePath, referenceContent);
+  workspace.ensureProjectWorkspace([{ ...base, lessonId: `${base.lessonId}-reference`, path: referenceRestorePath, content: starterContent }]);
+  assert.equal(
+    workspace.loadProjectState().files[referenceRestorePath].content,
+    referenceContent,
+    "an explicit full-IDE restore to the authored reference is learner-owned source, not an old baseline",
+  );
+  await workspace.flushProjectPersistence();
+  const { repositories } = await client.getPersistenceContext();
+  assert.equal((await repositories.projects.getFile("browser-chat", referenceRestorePath)).sourceProvenance, "ide");
+});
+
+test("artifact source guards observe unsaved and durable edits from another tab", async () => {
+  const { repositories } = await client.getPersistenceContext();
+  const suffix = crypto.randomUUID();
+  const path = `models/artifact-source-guard-${suffix}.py`;
+  const expectedContent = "def value():\n    return 1";
+  const seed = {
+    path,
+    courseId: "models",
+    lessonId: `artifact-source-guard-${suffix}`,
+    title: "Artifact source guard",
+    content: expectedContent,
+    referenceContent: expectedContent,
+    verifiedCells: 1,
+    totalCells: 1,
+  };
+  workspace.saveLessonProjectFile(seed);
+  await workspace.flushProjectPersistence();
+  const durable = await repositories.projects.getFile("browser-chat", path);
+  assert.equal(await workspace.projectFileSourceIsCurrent(path, expectedContent), true);
+
+  const remoteRecoveryKey = workspace.projectDraftRecoveryStorageKey(`remote-guard-${suffix}`);
+  storage.set(remoteRecoveryKey, JSON.stringify({
+    [path]: { content: "def value():\n    return 0", updatedAt: durable.updatedAt - 1 },
+  }));
+  assert.equal(
+    await workspace.projectFileSourceIsCurrent(path, expectedContent),
+    true,
+    "a stale recovery journal superseded by the durable file must not block activation",
+  );
+  const conflictingDraftUpdatedAt = durable.updatedAt + 1;
+  storage.set(remoteRecoveryKey, JSON.stringify({
+    [path]: { content: "def value():\n    return 2", updatedAt: conflictingDraftUpdatedAt },
+  }));
+  assert.equal(
+    await workspace.projectFileSourceIsCurrent(path, expectedContent),
+    false,
+    "a newer cross-tab recovery write must invalidate activation before its autosave finishes",
+  );
+
+  await new Promise((resolve) => setTimeout(resolve, 3));
+  workspace.saveLessonProjectFile({ ...seed, verifiedCells: 0 });
+  await workspace.flushProjectPersistence();
+  const metadataOnlySave = await repositories.projects.getFile("browser-chat", path);
+  assert.ok(metadataOnlySave.updatedAt > conflictingDraftUpdatedAt);
+  assert.equal(metadataOnlySave.revision, durable.revision, "verification metadata must not create a new source revision");
+  assert.equal(
+    await workspace.projectFileSourceIsCurrent(path, expectedContent),
+    false,
+    "a metadata-only lesson save must not make a conflicting unsaved IDE draft look stale",
+  );
+  storage.delete(remoteRecoveryKey);
+
+  await repositories.projects.saveFile({
+    projectId: "browser-chat",
+    path,
+    track: "models",
+    title: seed.title,
+    content: "def value():\n    return 3",
+    referenceContent: expectedContent,
+    lessonId: seed.lessonId,
+    verifiedCells: 0,
+    totalCells: 1,
+    sourceProvenance: "ide",
+    reason: "edit",
+    expected: { revision: durable.revision, sourceHash: durable.sourceHash },
+  });
+  assert.equal(workspace.loadProjectState().files[path].content, expectedContent, "the local tab cache intentionally remains stale for this probe");
+  assert.equal(
+    await workspace.projectFileSourceIsCurrent(path, expectedContent),
+    false,
+    "the guard must read the durable repository rather than trusting its tab-local cache",
+  );
 });

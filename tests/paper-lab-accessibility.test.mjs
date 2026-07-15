@@ -95,7 +95,15 @@ test("server-rendered lessons retain the async status relationships before hydra
   assert.match(html, /class="practice-editor"[^>]*data-project-conflict="false"[^>]*aria-busy="true"/);
   assert.match(html, /class="practice-block is-active"[^>]*aria-busy="false"/);
   assert.match(html, /class="exercise-summary"[^>]*aria-expanded="true"[^>]*aria-controls="exercise-character-rnns-/);
-  const activeControl = html.match(/class="exercise-summary"[^>]*aria-expanded="true"[^>]*aria-controls="([^"]+)"/)?.[1];
+  const exerciseControls = [...html.matchAll(/class="exercise-summary"[^>]*aria-expanded="(true|false)"[^>]*aria-controls="([^"]+)"/g)]
+    .map((match) => ({ expanded: match[1] === "true", id: match[2] }));
+  assert.equal(exerciseControls.length, 3, "every exercise summary must expose its controlled panel");
+  for (const control of exerciseControls) {
+    const panel = html.match(new RegExp(`<div[^>]*id="${control.id}"[^>]*>`))?.[0];
+    assert.ok(panel, `${control.id} must resolve to an element in the rendered document`);
+    if (!control.expanded) assert.match(panel, /\shidden=""/, `${control.id} must remain hidden while collapsed`);
+  }
+  const activeControl = exerciseControls.find((control) => control.expanded)?.id;
   assert.ok(activeControl, "the open exercise summary must identify its controlled body");
   assert.match(html, new RegExp(`id="${activeControl}"`));
   assert.equal((html.match(/class="exercise-body"/g) ?? []).length, 1, "only the active exercise body belongs in the first paint");

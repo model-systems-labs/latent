@@ -5,6 +5,8 @@ import type { ArtifactEnvelope, ArtifactHeadRecord, PortableArtifactBundle } fro
 
 export const DEFAULT_ARTIFACT_DATABASE_NAME = "latent-artifact-runtime";
 
+export type ArtifactActivationGuard = () => boolean | Promise<boolean>;
+
 export class ArtifactRuntimeDatabase extends Dexie {
   artifacts!: Table<ArtifactEnvelope, string>;
   heads!: Table<ArtifactHeadRecord, string>;
@@ -48,12 +50,55 @@ export class ArtifactStore {
     return head ? this.database.artifacts.get(head.artifactId) : undefined;
   }
 
-  async activate(artifact: ArtifactEnvelope, channel: ArtifactHeadRecord["channel"], scopeId: string) {
+  async activate(
+    artifact: ArtifactEnvelope,
+    channel: ArtifactHeadRecord["channel"],
+    scopeId: string,
+    isCurrent?: ArtifactActivationGuard,
+  ) {
     const stored = await this.database.artifacts.get(artifact.id);
     if (!stored || stored.contentHash !== artifact.contentHash) throw new Error("Only a stored immutable artifact can become active.");
     const id = `${artifact.projectId}:${channel}:${scopeId}`;
-    await this.database.heads.put({ id, projectId: artifact.projectId, channel, scopeId, artifactId: artifact.id, updatedAt: Date.now() });
+    const rejected = () => new Error("Artifact activation was rejected because its source is no longer current.");
+    if (isCurrent && !(await isCurrent())) throw rejected();
+
+    const head = { id, projectId: artifact.projectId, channel, scopeId, artifactId: artifact.id, updatedAt: Date.now() };
+    let previous: ArtifactHeadRecord | undefined;
+    await this.database.transaction("rw", this.database.artifacts, this.database.heads, async () => {
+      const transactionStored = await this.database.artifacts.get(artifact.id);
+      if (!transactionStored || transactionStored.contentHash !== artifact.contentHash) {
+        throw new Error("Only a stored immutable artifact can become active.");
+      }
+      previous = await this.database.heads.get(id);
+      await this.database.heads.put(head);
+    });
+
+    if (isCurrent) {
+      let stillCurrent = false;
+      try {
+        stillCurrent = await isCurrent();
+      } catch (error) {
+        await this.restoreHeadAfterRejectedActivation(head, previous);
+        throw error;
+      }
+      if (!stillCurrent) {
+        await this.restoreHeadAfterRejectedActivation(head, previous);
+        throw rejected();
+      }
+    }
     return stored;
+  }
+
+  private async restoreHeadAfterRejectedActivation(
+    rejected: ArtifactHeadRecord,
+    previous: ArtifactHeadRecord | undefined,
+  ) {
+    await this.database.transaction("rw", this.database.heads, async () => {
+      const current = await this.database.heads.get(rejected.id);
+      if (current?.artifactId !== rejected.artifactId || current.updatedAt !== rejected.updatedAt) return;
+      if (previous) await this.database.heads.put(previous);
+      else await this.database.heads.delete(rejected.id);
+    });
   }
 
   async active(projectId: string, channel: ArtifactHeadRecord["channel"], scopeId: string) {

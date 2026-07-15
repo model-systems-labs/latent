@@ -66,6 +66,7 @@ export type SaveProjectFileInput = {
   lessonId?: string | null;
   verifiedCells?: number;
   totalCells?: number;
+  sourceProvenance?: "seed" | "lesson" | "ide";
   reason?: FileRevisionReason;
   /**
    * Optional compare-and-save guard. `null` means the caller observed no
@@ -174,6 +175,7 @@ export class ProjectRepository extends RepositoryBase {
         lessonId: input.lessonId ?? existing?.lessonId ?? null,
         verifiedCells: input.verifiedCells ?? existing?.verifiedCells ?? 0,
         totalCells: input.totalCells ?? existing?.totalCells ?? 1,
+        sourceProvenance: input.sourceProvenance ?? existing?.sourceProvenance,
         revision,
         sourceHash,
         createdAt: existing?.createdAt ?? timestamp,

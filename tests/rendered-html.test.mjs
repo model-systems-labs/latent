@@ -102,8 +102,16 @@ test("all fourteen lessons use the reusable learning flow", async () => {
     assert.equal((html.match(/aria-expanded="true"/g) ?? []).length >= 1, true, `${slug} must server-render its first exercise open`);
     assert.equal((html.match(/class="exercise-body"/g) ?? []).length, 1, `${slug} must render exactly one active exercise body`);
     assert.match(html, /class="exercise-summary"[^>]*aria-expanded="true"[^>]*aria-controls="exercise-/);
+    const exerciseControls = [...html.matchAll(/class="exercise-summary"[^>]*aria-expanded="(true|false)"[^>]*aria-controls="([^"]+)"/g)]
+      .map((match) => ({ expanded: match[1] === "true", id: match[2] }));
+    assert.ok(exerciseControls.length > 0, `${slug} must expose exercise disclosure controls`);
+    for (const control of exerciseControls) {
+      const panel = html.match(new RegExp(`<div[^>]*id="${control.id}"[^>]*>`))?.[0];
+      assert.ok(panel, `${slug}: ${control.id} must resolve to a rendered panel`);
+      if (!control.expanded) assert.match(panel, /\shidden=""/, `${slug}: collapsed panel ${control.id} must be hidden`);
+    }
     assert.match(html, /class="practice-block is-active"[^>]*aria-busy="false"/);
-    assert.match(html, /Complete the TODO below\. Every change saves automatically\./);
+    assert.match(html, /Complete the TODO below\. Changes save automatically\./);
     assert.match(html, /data-direct-edit="true"/);
     assert.match(html, /data-edit-state="starter"/);
     assert.match(html, /TODO/);
@@ -113,7 +121,7 @@ test("all fourteen lessons use the reusable learning flow", async () => {
     assert.match(html, /Check all my code/);
     assert.match(html, /Compare with reference/);
     assert.match(html, /Your draft stays unchanged/);
-    assert.match(html, /Open full IDE/);
+    assert.match(html, /Open in IDE/);
     assert.match(html, /Saved results/);
     assert.match(html, /Proof tied to the exact code you ran/);
     assert.match(html, /examples made for the course/);

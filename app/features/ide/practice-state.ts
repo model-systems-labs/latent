@@ -94,6 +94,22 @@ export function workingPracticeSources(
 }
 
 /**
+ * Keep learner bytes that cannot participate in the current working document.
+ * This includes incompatible pre-CPython source and answers for exercise ids
+ * removed or renamed by a later curriculum version.
+ */
+export function preservedPracticeAnswers(
+  filename: string,
+  blocks: readonly Pick<CodeBlock, "id">[],
+  answers: Readonly<Record<string, string>>,
+): Record<string, string> {
+  const knownIds = new Set(blocks.map((block) => block.id));
+  return Object.fromEntries(Object.entries(answers).filter(([id, source]) => (
+    !knownIds.has(id) || !practiceDraftIsCompatible(filename, source)
+  )));
+}
+
+/**
  * A pre-CPython save may use the same lesson and block ids as the Python
  * curriculum. Keep those bytes in `answers` for recovery, but never inject
  * obvious JavaScript into a `.py` module during hydration.

@@ -147,6 +147,7 @@ test("mixed Python migration quarantines only the incompatible JavaScript cell",
   const answers = {
     softmax: "function stableSoftmax(logits) { return logits; }",
     context: "def context_embedding(indices, embeddings):\n    return embeddings[indices]",
+    "removed-exercise": "def learner_archive():\n    return 'keep me'",
   };
   const migrated = practiceState.compatiblePracticeDrafts(
     "neural-language-model.py",
@@ -166,6 +167,14 @@ test("mixed Python migration quarantines only the incompatible JavaScript cell",
     practiceState.workingPracticeBlockSource("neural-language-model.py", pythonBlocks[1], migrated.answers),
     answers.context,
     "one incompatible save must not suppress a compatible Python draft",
+  );
+  assert.deepEqual(
+    practiceState.preservedPracticeAnswers("neural-language-model.py", pythonBlocks, migrated.answers),
+    {
+      softmax: answers.softmax,
+      "removed-exercise": answers["removed-exercise"],
+    },
+    "renamed or removed exercise answers must survive an unrelated current-cell save",
   );
 });
 
@@ -272,7 +281,7 @@ test("lesson writes preserve quarantined legacy bytes and never overwrite newer 
   assert.match(source, /if \(!projectSourceIsCurrent\(\)\) \{\s*reportProjectConflict\(\);\s*return;\s*\}/);
   assert.match(source, /data-project-conflict=\{projectConflict\}/);
   assert.match(source, /readOnly=\{blockRunning \|\| projectConflict\}/);
-  assert.match(source, /This file changed in the full IDE\. Continue there so the lesson does not overwrite the newer source\./);
+  assert.match(source, /This file changed in the full IDE\. Continue there so this lesson doesn.t overwrite the newer code\./);
 });
 
 test("lesson checks abort on unmount and cannot commit a superseded project snapshot", async () => {
@@ -283,7 +292,8 @@ test("lesson checks abort on unmount and cannot commit a superseded project snap
   assert.ok((source.match(/const controller = new AbortController\(\)/g) ?? []).length >= 2);
   assert.match(source, /runContracts\([\s\S]*?controller\.signal/);
   assert.match(source, /controller\.signal\.throwIfAborted\(\)/);
-  assert.match(source, /recordValidatedLessonArtifact\(\{[\s\S]*?signal: controller\.signal/);
+  assert.match(source, /await flushProjectPersistence\(\)/);
+  assert.match(source, /recordValidatedLessonArtifact\(\{[\s\S]*?signal: controller\.signal[\s\S]*?isSourceCurrent: \(\) => projectFileSourceIsCurrent\(/);
   assert.match(source, /if \(runAbortRef\.current === controller\) \{\s*runAbortRef\.current = null;\s*setRunning\(\[\]\);/);
 });
 

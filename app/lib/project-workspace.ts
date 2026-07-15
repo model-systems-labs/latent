@@ -31,6 +31,7 @@ export type ProjectFile = {
   totalCells: number;
   updatedAt: number;
   readOnly?: boolean;
+  sourceProvenance?: "seed" | "lesson" | "ide";
 };
 
 export type ProjectRuntime = {
@@ -130,6 +131,7 @@ function runtimeFiles(): Record<string, ProjectFile> {
     totalCells: 1,
     updatedAt: now,
     readOnly: file.readOnly,
+    sourceProvenance: "seed" as const,
   }] as const);
   const application = CANONICAL_BROWSER_CHAT_FILES.map((file) => [file.path, {
     path: file.path,
@@ -141,6 +143,7 @@ function runtimeFiles(): Record<string, ProjectFile> {
     totalCells: 1,
     updatedAt: now,
     readOnly: !file.editable,
+    sourceProvenance: "seed" as const,
   }] as const);
   return Object.fromEntries([...runtime, ...application]);
 }
@@ -243,6 +246,9 @@ function sanitizeProjectState(value: unknown): ProjectState {
         totalCells: Math.max(1, Math.round(finiteNumber(file.totalCells, 1))),
         updatedAt: finiteNumber(file.updatedAt, 0),
         readOnly: false,
+        sourceProvenance: file.sourceProvenance === "seed" || file.sourceProvenance === "lesson" || file.sourceProvenance === "ide"
+          ? file.sourceProvenance
+          : undefined,
       };
     }
   }
@@ -403,6 +409,7 @@ export function projectStateWithRecoveredDrafts(state: ProjectState, recovery: P
       content: draft.content,
       verifiedCells: file.lessonId ? 0 : file.verifiedCells,
       updatedAt: Math.max(file.updatedAt, draft.updatedAt),
+      sourceProvenance: "ide",
     };
     changed = true;
   }
@@ -509,16 +516,18 @@ function sameJson(left: unknown, right: unknown) {
 }
 
 function persistedFileMatchesProjectFile(
-  persisted: { track: string; title: string; content: string; referenceContent: string | null; lessonId: string | null; verifiedCells?: number; totalCells?: number },
+  persisted: { track: string; title: string; content: string; referenceContent: string | null; lessonId: string | null; verifiedCells?: number; totalCells?: number; sourceProvenance?: "seed" | "lesson" | "ide"; revision: number },
   file: ProjectFile,
 ) {
+  const persistedProvenance = persisted.sourceProvenance ?? (persisted.revision > 1 ? "ide" : undefined);
   return persisted.track === file.courseId
     && persisted.title === file.title
     && persisted.content === file.content
     && persisted.referenceContent === file.referenceContent
     && persisted.lessonId === (file.lessonId ?? null)
     && (persisted.verifiedCells ?? 0) === file.verifiedCells
-    && (persisted.totalCells ?? 1) === file.totalCells;
+    && (persisted.totalCells ?? 1) === file.totalCells
+    && persistedProvenance === file.sourceProvenance;
 }
 
 function projectPersistenceDiff(state: ProjectState, previous: ProjectState | null) {
@@ -580,6 +589,7 @@ async function persistProjectState(state: ProjectState, previous: ProjectState |
       lessonId: file.lessonId ?? null,
       verifiedCells: file.verifiedCells,
       totalCells: file.totalCells,
+      sourceProvenance: file.sourceProvenance,
       reason: "edit",
       expected: persisted ? { revision: persisted.revision, sourceHash: persisted.sourceHash } : null,
     });
@@ -675,6 +685,11 @@ export async function projectStateFromPersistence(): Promise<ProjectState | null
       totalCells: Math.max(1, Math.round(finiteNumber(record.totalCells, previous?.totalCells ?? 1))),
       updatedAt: record.updatedAt,
       readOnly: false,
+      sourceProvenance: record.sourceProvenance === "seed" || record.sourceProvenance === "lesson" || record.sourceProvenance === "ide"
+        ? record.sourceProvenance
+        : record.revision > 1
+          ? "ide"
+          : undefined,
     };
   }
   const latestRun = runs.at(-1);
@@ -760,6 +775,28 @@ export async function flushProjectPersistence() {
   if (projectPersistenceError) throw new Error(projectPersistenceError);
 }
 
+/**
+ * Fail closed before promoting source-bound output. The in-memory comparison
+ * catches this tab, recovery journals catch unsaved edits from another tab,
+ * and the repository read bypasses the tab-local cache for durable edits.
+ */
+export async function projectFileSourceIsCurrent(
+  path: string,
+  expectedContent: string,
+) {
+  await initializeProjectPersistence();
+  if (loadProjectState().files[path]?.content !== expectedContent) return false;
+  const { repositories } = await getPersistenceContext();
+  const persisted = await repositories.projects.getFile(PROJECT_ID, path);
+  if (!persisted || persisted.content !== expectedContent) return false;
+  const revisions = await repositories.projects.listFileRevisions(PROJECT_ID, path);
+  const sourceRevision = revisions.find((revision) => revision.revision === persisted.revision);
+  const durableSourceUpdatedAt = sourceRevision?.createdAt ?? persisted.updatedAt;
+  return !listProjectDraftRecoveryCandidates(path).some((candidate) => (
+    candidate.content !== expectedContent && candidate.updatedAt >= durableSourceUpdatedAt
+  ));
+}
+
 export function updateProjectState(update: (state: ProjectState) => ProjectState) {
   const previous = loadProjectState();
   cachedProject = sanitizeProjectState(update(previous));
@@ -787,17 +824,18 @@ export function ensureProjectWorkspace(seeds: LessonProjectSeed[]) {
         }
       }
       if (!files[seed.path]) {
-        files[seed.path] = { ...seed, updatedAt: Date.now() };
+        files[seed.path] = { ...seed, updatedAt: Date.now(), sourceProvenance: "seed" };
         sourceTreeChanged = true;
       } else if (seed.readOnly) {
         const current = files[seed.path];
         if (current.content !== seed.content || current.referenceContent !== seed.referenceContent || !current.readOnly) {
-          files[seed.path] = { ...seed, updatedAt: current.updatedAt };
+          files[seed.path] = { ...seed, updatedAt: current.updatedAt, sourceProvenance: "seed" };
           sourceTreeChanged = true;
         }
       } else if (files[seed.path].referenceContent !== seed.referenceContent) {
         const current = files[seed.path];
-        const untouched = current.content === current.referenceContent;
+        const untouched = (current.sourceProvenance === undefined || current.sourceProvenance === "seed")
+          && current.content === current.referenceContent;
         const nextContent = untouched
           ? seed.content
           : seed.content.startsWith("import {") && !current.content.startsWith("import {")
@@ -809,6 +847,7 @@ export function ensureProjectWorkspace(seeds: LessonProjectSeed[]) {
           content: nextContent,
           verifiedCells: nextContent === seed.content ? seed.verifiedCells : 0,
           updatedAt: nextContent === current.content ? current.updatedAt : Date.now(),
+          sourceProvenance: untouched ? "seed" : current.sourceProvenance,
         };
         sourceTreeChanged = true;
       } else {
@@ -816,7 +855,8 @@ export function ensureProjectWorkspace(seeds: LessonProjectSeed[]) {
         // Challenge-first lessons use an incomplete starter as their canonical
         // working file. Migrate only the old untouched authored baseline; a
         // learner-edited IDE file remains authoritative.
-        const migrateAuthoredBaseline = current.content === seed.referenceContent
+        const migrateAuthoredBaseline = (current.sourceProvenance === undefined || current.sourceProvenance === "seed")
+          && current.content === seed.referenceContent
           && seed.content !== seed.referenceContent;
         const nextContent = migrateAuthoredBaseline ? seed.content : current.content;
         const nextReadOnly = seed.readOnly ?? current.readOnly;
@@ -840,6 +880,7 @@ export function ensureProjectWorkspace(seeds: LessonProjectSeed[]) {
             totalCells: seed.totalCells,
             readOnly: nextReadOnly,
             updatedAt: current.content === nextContent ? current.updatedAt : Date.now(),
+            sourceProvenance: migrateAuthoredBaseline ? "seed" : current.sourceProvenance,
           };
           if (current.content !== nextContent) sourceTreeChanged = true;
         }
@@ -856,7 +897,7 @@ export function ensureProjectWorkspace(seeds: LessonProjectSeed[]) {
   });
 }
 
-export function projectStateAfterFileEdit(state: ProjectState, path: string, content: string, updatedAt = Date.now()) {
+export function projectStateAfterFileEdit(state: ProjectState, path: string, content: string, updatedAt = Date.now()): ProjectState {
   const file = state.files[path];
   if (!file) return state;
   if (file.readOnly) return { ...state, selectedPath: path };
@@ -866,7 +907,7 @@ export function projectStateAfterFileEdit(state: ProjectState, path: string, con
     selectedPath: path,
     files: {
       ...state.files,
-      [path]: { ...file, content, verifiedCells: file.lessonId ? 0 : file.verifiedCells, updatedAt },
+      [path]: { ...file, content, verifiedCells: file.lessonId ? 0 : file.verifiedCells, updatedAt, sourceProvenance: "ide" },
     },
     tests: { results: {}, ranAt: 0, runner: "none" as const, sourceTreeHash: null, projectRevision: null, contractVersion: null, contractIdsByPath: {} },
   };
@@ -892,7 +933,7 @@ export function saveLessonProjectFile(seed: LessonProjectSeed) {
       || existing.readOnly !== seed.readOnly;
     return {
       ...state,
-      files: { ...state.files, [seed.path]: { ...seed, updatedAt: contentChanged || metadataChanged ? Date.now() : existing?.updatedAt ?? Date.now() } },
+      files: { ...state.files, [seed.path]: { ...seed, updatedAt: contentChanged || metadataChanged ? Date.now() : existing?.updatedAt ?? Date.now(), sourceProvenance: "lesson" } },
       tests: contentChanged
         ? { results: {}, ranAt: 0, runner: "none", sourceTreeHash: null, projectRevision: null, contractVersion: null, contractIdsByPath: {} }
         : state.tests,

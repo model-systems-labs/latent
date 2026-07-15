@@ -67,13 +67,25 @@ test("the lesson editor uses a mutually exclusive light theme whose tokens clear
     );
   }
   const lessonThemeSource = source.slice(source.indexOf("const lessonTheme"), source.indexOf("const syntaxTheme"));
-  const activeLineBackground = lessonThemeSource.match(/cm-activeLine, \.cm-activeLineGutter[^\n]*backgroundColor: "(#[0-9a-f]{6})"/)?.[1];
+  const activeLineBackground = lessonThemeSource.match(/"\.cm-activeLine":\s*\{[^\n]*backgroundColor:\s*"([^"]+)"/)?.[1];
+  const activeLineGutterBackground = lessonThemeSource.match(/"\.cm-activeLineGutter":\s*\{[^\n]*backgroundColor:\s*"(#[0-9a-f]{6})"/)?.[1];
   const selectedBackground = lessonThemeSource.match(/cm-selectionBackground[^\n]*backgroundColor: "(#[0-9a-f]{6})"/)?.[1];
-  assert.match(activeLineBackground ?? "", /^#[0-9a-f]{6}$/i);
+  assert.equal(activeLineBackground, "transparent", "the active line must not cover CodeMirror's selection layer");
+  assert.match(activeLineGutterBackground ?? "", /^#[0-9a-f]{6}$/i);
   assert.match(selectedBackground ?? "", /^#[0-9a-f]{6}$/i);
+  assert.match(
+    lessonThemeSource,
+    /&\.cm-focused > \.cm-scroller > \.cm-selectionLayer \.cm-selectionBackground[^\n]*backgroundColor: "#[0-9a-f]{6}"/,
+    "the lesson selection color must beat CodeMirror's focused-selection specificity",
+  );
+  assert.match(lessonThemeSource, /"\.cm-selectionMatch":\s*\{[^\n]*backgroundColor:/, "other occurrences of a selected token should also be visible");
   assert.ok(
-    contrastRatio(palette.gutter, activeLineBackground) >= 4.5,
-    `lesson gutter (${palette.gutter}) must remain readable on active line ${activeLineBackground}`,
+    contrastRatio(selectedBackground, palette.background) >= 1.3,
+    `selection ${selectedBackground} must be visibly distinct from editor ${palette.background}`,
+  );
+  assert.ok(
+    contrastRatio(palette.gutter, activeLineGutterBackground) >= 4.5,
+    `lesson gutter (${palette.gutter}) must remain readable on active line ${activeLineGutterBackground}`,
   );
   for (const [name, color] of Object.entries(palette)) {
     if (name === "background" || name === "gutter") continue;
@@ -82,6 +94,8 @@ test("the lesson editor uses a mutually exclusive light theme whose tokens clear
       `lesson ${name} (${color}) must remain readable on selected text background ${selectedBackground}`,
     );
   }
+  assert.match(lessonThemeSource, /userSelect:\s*"text"/);
+  assert.match(lessonThemeSource, /WebkitUserSelect:\s*"text"/);
 });
 
 test("every declared editor token color clears WCAG AA contrast on the editor background", async () => {
@@ -115,6 +129,12 @@ test("every declared editor token color clears WCAG AA contrast on the editor ba
       `${name} (${color}) must remain readable when text is selected on ${selectedBackground}`,
     );
   }
+  const latentThemeSource = source.slice(source.indexOf("const latentTheme"), source.indexOf("const lessonTheme"));
+  assert.match(
+    latentThemeSource,
+    /&\.cm-focused > \.cm-scroller > \.cm-selectionLayer \.cm-selectionBackground[^\n]*backgroundColor: "rgba\(181,151,209,\.20\)"/,
+    "the project selection color must beat CodeMirror's focused-selection specificity",
+  );
 });
 
 test("the mobile IDE source contract preserves readable type, bounded scrolling, focus, and touch targets", async () => {

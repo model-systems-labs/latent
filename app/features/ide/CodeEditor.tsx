@@ -44,7 +44,7 @@ const lessonEditorPalette = {
   keyword: "#6f3e78",
   string: "#7b4b1f",
   number: "#1d6174",
-  comment: "#68635e",
+  comment: "#605b56",
   gutter: "#6f6963",
   variable: "#292623",
   function: "#2c5f78",
@@ -66,8 +66,11 @@ const latentTheme = EditorView.theme({
   ".cm-content": {
     padding: "18px 0 56px",
     caretColor: "#d9b98c",
+    cursor: "text",
     fontFamily: '"SFMono-Regular", Consolas, "Liberation Mono", monospace',
     lineHeight: "1.72",
+    userSelect: "text",
+    WebkitUserSelect: "text",
   },
   ".cm-line": { padding: "0 22px 0 10px" },
   ".cm-gutters": {
@@ -77,7 +80,8 @@ const latentTheme = EditorView.theme({
     paddingLeft: "8px",
   },
   ".cm-activeLine, .cm-activeLineGutter": { backgroundColor: "rgba(191,169,214,.065)" },
-  ".cm-selectionBackground, &.cm-focused .cm-selectionBackground": { backgroundColor: "rgba(181,151,209,.20)" },
+  ".cm-selectionBackground": { backgroundColor: "rgba(181,151,209,.20)" },
+  "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground": { backgroundColor: "rgba(181,151,209,.20)" },
   ".cm-cursor, .cm-dropCursor": { borderLeftColor: "#e4c79e" },
   ".cm-scroller": {
     overflow: "auto",
@@ -107,8 +111,11 @@ const lessonTheme = EditorView.theme({
   ".cm-content": {
     padding: "15px 0 20px",
     caretColor: "#6d557b",
+    cursor: "text",
     fontFamily: '"SFMono-Regular", Consolas, "Liberation Mono", monospace',
     lineHeight: "1.72",
+    userSelect: "text",
+    WebkitUserSelect: "text",
   },
   ".cm-line": { padding: "0 20px 0 10px" },
   ".cm-gutters": {
@@ -117,8 +124,12 @@ const lessonTheme = EditorView.theme({
     borderRight: "1px solid #e7e3de",
     paddingLeft: "4px",
   },
-  ".cm-activeLine, .cm-activeLineGutter": { backgroundColor: "#f2edf4" },
-  ".cm-selectionBackground, &.cm-focused .cm-selectionBackground": { backgroundColor: "#e7e1e9" },
+  ".cm-activeLine": { backgroundColor: "transparent" },
+  ".cm-activeLineGutter": { backgroundColor: "#f2edf4" },
+  ".cm-selectionBackground": { backgroundColor: "#ded2e4" },
+  "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground": { backgroundColor: "#ded2e4" },
+  ".cm-selectionMatch": { backgroundColor: "#eee8f0", outline: "1px solid #d2c2d9" },
+  ".cm-selectionMatch-main": { backgroundColor: "#e5dbe9" },
   ".cm-cursor, .cm-dropCursor": { borderLeftColor: "#6d557b" },
   ".cm-foldGutter": { display: "none" },
   ".cm-scroller": {

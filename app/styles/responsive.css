@@ -182,7 +182,7 @@
   }
 
   .first-run-controls {
-    border-bottom: 1px solid rgba(255,255,255,0.1);
+    border-bottom: 1px solid var(--line);
     border-right: 0;
   }
 }
@@ -1280,11 +1280,20 @@
 
   .first-run-output article + article {
     border-left: 0;
-    border-top: 1px solid rgba(255,255,255,0.1);
+    border-top: 1px solid var(--line);
+  }
+
+  .first-run-output article + article header,
+  .first-run-output article + article p {
+    padding-left: 0;
   }
 
   .first-run-output article p {
-    min-height: 11rem;
+    min-height: 7rem;
+  }
+
+  .environment-readiness {
+    grid-template-columns: 1fr;
   }
 
   .first-run > footer {

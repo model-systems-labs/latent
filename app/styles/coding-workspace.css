@@ -755,6 +755,12 @@
   color: #f7f3ec;
 }
 
+.full-course-page .hero-actions a:first-child {
+  background: var(--violet-wash);
+  border-color: rgba(118, 104, 137, 0.28);
+  color: var(--violet-deep);
+}
+
 .hero-actions a:hover,
 .hero-actions a:focus-visible {
   border-color: var(--violet);

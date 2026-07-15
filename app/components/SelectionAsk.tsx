@@ -37,7 +37,7 @@ export function buildSelectionPrompt(lessonTitle: string, selectedText: string):
 export function selectionAskHref(provider: AskProvider, prompt: string): string {
   const encoded = encodeURIComponent(prompt);
   return provider === "claude"
-    ? `claude://claude.ai/new?q=${encoded}`
+    ? `https://claude.ai/new?q=${encoded}`
     : `codex://new?prompt=${encoded}`;
 }
 
@@ -157,7 +157,7 @@ export function SelectionAsk({ lessonTitle }: { lessonTitle: string }) {
         style={{ left: anchor.left, top: anchor.top }}
       >
         <span className={styles.label}>Ask</span>
-        <a aria-label="Open in Claude and copy the prepared prompt" href={selectionAskHref("claude", prompt)} onClick={() => prepareHandoff("claude")}>Claude</a>
+        <a aria-label="Open Claude in a browser and copy the prepared prompt" href={selectionAskHref("claude", prompt)} onClick={() => prepareHandoff("claude")} rel="noopener noreferrer" target="_blank">Claude</a>
         <a aria-label="Open in Codex and copy the prepared prompt" href={selectionAskHref("codex", prompt)} onClick={() => prepareHandoff("codex")}>Codex</a>
         <button type="button" aria-label="Close ask controls" onClick={dismiss}>×</button>
         {status ? <span className={styles.notice} role="status" aria-live="polite">{status}</span> : null}

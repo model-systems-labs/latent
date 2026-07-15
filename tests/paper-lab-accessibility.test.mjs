@@ -70,7 +70,10 @@ test("selection handoff and starter-first practice states expose stable accessib
   assert.match(selectionAsk, /window\.addEventListener\("resize", dismissForViewportChange\)/);
   assert.match(selectionAsk, /window\.addEventListener\("scroll", dismissForViewportChange, true\)/);
   assert.match(selectionAsk, /Prompt copied\. Paste it if \$\{providerName\} did not open\./);
-  assert.match(selectionAsk, /claude:\/\/claude\.ai\/new\?q=\$\{encoded\}/);
+  assert.match(selectionAsk, /https:\/\/claude\.ai\/new\?q=\$\{encoded\}/);
+  assert.doesNotMatch(selectionAsk, /claude:\/\//);
+  assert.match(selectionAsk, /aria-label="Open Claude in a browser and copy the prepared prompt"/);
+  assert.match(selectionAsk, /rel="noopener noreferrer" target="_blank">Claude<\/a>/);
   assert.match(selectionAsk, /codex:\/\/new\?prompt=\$\{encoded\}/);
   assert.match(source, /className="practice-editor" data-project-conflict=\{projectConflict\} aria-busy=\{!practiceReady \|\| runningBlockIds\.length > 0\}/);
   assert.match(source, /readOnly=\{blockRunning \|\| projectConflict\}/);

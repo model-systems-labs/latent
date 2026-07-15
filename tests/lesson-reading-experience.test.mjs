@@ -42,17 +42,13 @@ test("lessons use an editorial hierarchy instead of landing-page scale", async (
   assert.doesNotMatch(paperLab, /className=\{`summary-layout/);
 });
 
-test("contextual help and project history stay out of the primary reading path", async () => {
-  const [paperLab, learningFlow, projectPage, projectStructure] = await Promise.all([
+test("selection prompts and project history stay out of the primary reading path", async () => {
+  const [paperLab, projectPage, projectStructure] = await Promise.all([
     readFile(paperLabUrl, "utf8"),
-    readFile(learningFlowUrl, "utf8"),
     readFile(projectPageUrl, "utf8"),
     readFile(projectStructureUrl, "utf8"),
   ]);
-  assert.match(paperLab, /<p className="selection-ask-instruction">Highlight a passage to ask Claude or Codex\.<\/p>/);
-  assert.match(paperLab, /<SelectionAsk lessonTitle=\{lesson\.title\} \/>/);
-  assert.doesNotMatch(paperLab, /questions-disclosure|paper-chat|OpenRouter/);
-  assert.match(rule(learningFlow, ".selection-ask-instruction"), /max-width:\s*none/);
+  assert.doesNotMatch(paperLab, /SelectionAsk|selection-ask|data-selection-ask|Highlight a passage|questions-disclosure|paper-chat|OpenRouter/);
   assert.match(projectPage, /<details className="project-history-disclosure">[\s\S]*?History and learning data/);
   assert.doesNotMatch(projectPage, /<details className="project-history-disclosure" open/);
   assert.match(rule(projectStructure, ".project-history-disclosure > summary"), /min-height:\s*5rem/);
@@ -84,7 +80,7 @@ test("lesson prose, diagrams, contextual help, code, and outcomes share one edit
     readFile(productizationUrl, "utf8"),
   ]);
   assert.match(learningFlow, /\.paper-page\s*\{\s*max-width:\s*60rem/);
-  for (const selector of [".paper-hero", ".paper-thesis", ".source-set", ".section-title", ".summary-reading", ".summary-copy", ".selection-ask-instruction", ".implementation-intro", ".summary-boundary"]) {
+  for (const selector of [".paper-hero", ".paper-thesis", ".source-set", ".section-title", ".summary-reading", ".summary-copy", ".implementation-intro", ".summary-boundary"]) {
     assert.match(rule(learningFlow, selector), /max-width:\s*none/, selector);
   }
   assert.match(rule(codingWorkspace, ".practice-editor"), /max-width:\s*none/);

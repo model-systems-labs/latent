@@ -44,7 +44,6 @@ import { lessonLearningOutcome, moduleCheckpoint } from "../content/llm-systems/
 import { recordLearningEvent } from "../lib/learning-analytics";
 import { SyntaxCode } from "../features/ide/SyntaxCode";
 import { getLessonFlair } from "../lessons/lesson-flair";
-import { SelectionAsk } from "./SelectionAsk";
 import styles from "./PaperLab.module.css";
 
 type CheckResult = { label: string; passed: boolean; detail: string };
@@ -114,7 +113,7 @@ function SourceSet({ lesson }: { lesson: CourseLesson }) {
 export function HeaderSection({ lesson }: { lesson: CourseLesson }) {
   const flair = getLessonFlair(lesson.id);
   return (
-    <header className="paper-hero" data-selection-ask>
+    <header className="paper-hero">
       <div className="lesson-kicker">
         <p className="eyebrow">{lesson.eyebrow}</p>
         {flair ? <code className="lesson-notation" aria-hidden="true">{flair.notation}</code> : null}
@@ -528,9 +527,8 @@ export function ParagraphSection({ lesson }: { lesson: CourseLesson }) {
   const opening = lesson.summary.slice(0, diagramAfter);
   const closing = lesson.summary.slice(diagramAfter);
   return (
-    <section className="paper-section summary-section" id="summary" data-selection-ask>
-      <div className="section-title"><span>01</span><h2>Summary</h2></div>
-      <p className="selection-ask-instruction">Highlight a passage to ask Claude or Codex.</p>
+    <section className="paper-section summary-section" id="summary">
+      <div className="section-title"><h2>Summary</h2></div>
       <div className="summary-reading">
         <div className="summary-copy">
           {opening.map((paragraph) => (
@@ -553,10 +551,6 @@ export function ParagraphSection({ lesson }: { lesson: CourseLesson }) {
       </div>
     </section>
   );
-}
-
-export function TextBoxSection({ lesson }: { lesson: CourseLesson }) {
-  return <SelectionAsk lessonTitle={lesson.title} />;
 }
 
 function projectSeedForLesson(lesson: CourseLesson, hidden: string[], currentAnswers: Record<string, string>, verified: string[]): LessonProjectSeed {
@@ -992,7 +986,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
 
   return (
     <section className="paper-section implementation-section" id="implementation">
-      <div className="section-title"><span>02</span><h2>Implementation</h2></div>
+      <div className="section-title"><h2>Implementation</h2></div>
       <p className="implementation-intro">{lesson.implementation.intro}</p>
       {pythonLesson || lesson.implementation.tensorOps?.length ? (
         <div className="tensor-runtime-strip">
@@ -1204,7 +1198,6 @@ export function PaperLab({ lesson }: { lesson: CourseLesson }) {
       <article className="paper-page" id="top">
         <HeaderSection lesson={lesson} />
         <ParagraphSection lesson={lesson} />
-        <TextBoxSection lesson={lesson} />
         <LessonRecoveryCandidates lessonId={lesson.id} onLoaded={() => setRecoveryRevision((revision) => revision + 1)} />
         <CodingSection key={`${lesson.id}:${recoveryRevision}`} lesson={lesson} />
         <LessonOutcome lesson={lesson} />

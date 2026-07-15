@@ -186,7 +186,6 @@ main {
 .site-header nav a,
 .site-header > span,
 .eyebrow,
-.section-title > span,
 .block-heading > div > span,
 .lab-controls label > span,
 .lab-header > div:first-child > span,
@@ -352,29 +351,15 @@ main {
 }
 
 .section-title {
-  align-items: baseline;
-  display: flex;
-  gap: 0.75rem;
   margin-bottom: 1.8rem;
   max-width: none;
   padding-bottom: 0;
-}
-
-.section-title > span {
-  color: var(--violet);
 }
 
 .section-title h2 {
   font-size: clamp(1.65rem, 2.3vw, 2.15rem);
   letter-spacing: -0.035em;
   line-height: 1.15;
-}
-
-.selection-ask-instruction {
-  color: var(--muted);
-  font-size: max(0.68rem, 11px);
-  margin: -1.1rem 0 1.6rem;
-  max-width: none;
 }
 
 .summary-reading {

@@ -11,7 +11,6 @@
 .lessonShell[data-flair-tone="slate"] { --lesson-accent: #58636d; }
 
 .lessonShell[data-flair-tone] :global(.eyebrow),
-.lessonShell[data-flair-tone] :global(.section-title > span),
 .lessonShell[data-flair-tone] :global(.concept-diagram > header > span) {
   color: var(--lesson-accent);
 }

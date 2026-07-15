@@ -94,8 +94,9 @@ test("all fourteen lessons use the reusable learning flow", async () => {
     assert.doesNotMatch(html, /primary and supporting references|supporting sources/);
     assert.match(html, /What the source says/);
     assert.match(html, /What this browser lab shows/);
-    assert.match(html, /Highlight a passage to ask Claude or Codex/);
-    assert.match(html, /data-selection-ask="true"/);
+    assert.doesNotMatch(html, /Highlight a passage|data-selection-ask|Ask Claude|Ask Codex/);
+    assert.match(html, /class="section-title"><h2>Summary<\/h2>/);
+    assert.doesNotMatch(html, /class="section-title"><span>0[123]<\/span>/);
     assert.doesNotMatch(html, /OpenRouter API key|openrouter\.ai|paper-chat|Questions and answers/);
     assert.equal((html.match(/aria-expanded="true"/g) ?? []).length >= 1, true, `${slug} must server-render its first exercise open`);
     assert.equal((html.match(/class="exercise-body"/g) ?? []).length, 1, `${slug} must render exactly one active exercise body`);
@@ -344,9 +345,8 @@ test("the project IDE is a dedicated tested authoring surface", async () => {
 });
 
 test("the design kit, simulations, model engines, and artifact runtime remain reusable", async () => {
-  const [paperLab, selectionAsk, experiment, capstone, capstoneTemplate, previewFrame, workbench, projectWorkspace, projectTests, browserLabService, quickJsRunner, compilerClient, persistence, artifactRuntime, artifactService, labTypes, engines, extended, sourceSets, layout, packageJson] = await Promise.all([
+  const [paperLab, experiment, capstone, capstoneTemplate, previewFrame, workbench, projectWorkspace, projectTests, browserLabService, quickJsRunner, compilerClient, persistence, artifactRuntime, artifactService, labTypes, engines, extended, sourceSets, layout, packageJson] = await Promise.all([
     readFile(new URL("../app/components/PaperLab.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/components/SelectionAsk.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/LessonExperiment.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/BrowserChatCapstone.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/content/browser-chat/project-template.ts", import.meta.url), "utf8"),
@@ -370,7 +370,7 @@ test("the design kit, simulations, model engines, and artifact runtime remain re
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
   ]);
-  for (const component of ["HeaderSection", "ParagraphSection", "DiagramSection", "TextBoxSection", "CodingSection"]) assert.match(paperLab, new RegExp(`export function ${component}`));
+  for (const component of ["HeaderSection", "ParagraphSection", "DiagramSection", "CodingSection"]) assert.match(paperLab, new RegExp(`export function ${component}`));
   assert.match(experiment, /function SystemsExperiment/);
   assert.match(experiment, /function ProductExperiment/);
   assert.match(capstone, /createMockServingStream/);
@@ -414,12 +414,7 @@ test("the design kit, simulations, model engines, and artifact runtime remain re
   assert.equal((sourceSets.match(/^  (?:"[^"]+"|[a-z-]+): \[$/gm) ?? []).length, 14);
   assert.match(paperLab, /lesson\.sources\.map\(\(source\)/);
   assert.doesNotMatch(paperLab, /supporting-sources|source\.role/);
-  assert.match(paperLab, /<SelectionAsk lessonTitle=\{lesson\.title\} \/>/);
-  assert.match(selectionAsk, /export function buildSelectionPrompt/);
-  assert.match(selectionAsk, /export function selectionAskHref/);
-  assert.match(selectionAsk, /distinguish what the passage establishes from broader claims/);
-  assert.match(selectionAsk, /If context is missing, say what is missing instead of guessing/);
-  assert.match(selectionAsk, /closest\("\[data-selection-ask\]"\)/);
+  assert.doesNotMatch(paperLab, /SelectionAsk|selection-ask|data-selection-ask|Highlight a passage/);
   assert.match(layout, /og-v2\.png/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   await assert.rejects(access(new URL("../app/_sites-preview", templateRoot)));

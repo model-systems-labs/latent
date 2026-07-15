@@ -84,7 +84,7 @@ test("a cancelled deferred checkpoint stream must settle before an immediate rer
 test("the checkpoint UI keeps cancellation pending and gates async writes to the attempt owner", async () => {
   const source = await readFile(new URL("../app/components/ModuleCheckpoint.tsx", import.meta.url), "utf8");
   assert.match(source, /status === "running"[\s\S]*disabled=\{cancelRequested\}/);
-  assert.match(source, /Waiting for the stream to close; rerun stays unavailable until it settles/);
+  assert.match(source, /Waiting for the stream to close; you can run it again once that finishes/);
   assert.match(source, /if \(ownsAttempt\(attempt\)\) setStatus\(next\)/);
   assert.match(source, /if \(ownsAttempt\(attempt\)\) setDetail\(next\)/);
   assert.match(source, /if \(coordinator\.settle\(attempt\)\) setCancelRequested\(false\)/);

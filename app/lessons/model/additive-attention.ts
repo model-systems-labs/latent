@@ -9,54 +9,54 @@ export const additiveAttentionLesson = {
     eyebrow: "Alignment · Bahdanau et al. · 2014 / 2015",
     title: "Additive Attention",
     thesis:
-      "The decoder can construct a different context vector at every output step by learning soft alignments over all encoder states.",
+      "At each output step, the decoder can build a new context vector by learning a soft alignment—how much to focus—over every encoder state.",
     paperUrl: "https://arxiv.org/abs/1409.0473",
     paperTitle: "Neural Machine Translation by Jointly Learning to Align and Translate",
     authors: "Dzmitry Bahdanau, Kyunghyun Cho, Yoshua Bengio",
     year: "2014 preprint · ICLR 2015",
     paperContext: `
-This lesson concerns "Neural Machine Translation by Jointly Learning to Align and Translate" by Bahdanau, Cho, and Bengio.
-- Earlier encoder-decoder systems compressed a source sentence into a single fixed-length vector.
-- The paper proposes a learned alignment model that scores each encoder state for the current decoder state.
-- Softmax converts scores into attention weights, and their weighted sum becomes a step-specific context vector.
-- The alignment and translation components are trained jointly by gradient descent.
-- The browser lab trains the additive scoring function on a deterministic date-alignment task, not a full translation system.
+This lesson walks through "Neural Machine Translation by Jointly Learning to Align and Translate" by Bahdanau, Cho, and Bengio.
+- Older encoder-decoder systems squeezed a whole source sentence into one fixed-length vector.
+- The paper introduces a learned alignment model that scores every encoder state against the decoder's current state.
+- Softmax turns those scores into attention weights. Their weighted sum becomes the context vector for that step.
+- Gradient descent trains the alignment and translation parts together.
+- In the browser lab, you'll train the additive scoring function on a fixed date-alignment task, not a full translation system.
 ${commonQuestionInstruction}`.trim(),
     summary: [
       {
-        label: "Fixed-vector bottleneck.",
+        label: "The fixed-vector squeeze.",
         body:
-          "Without attention, the encoder must compress all n source positions into one fixed vector before decoding begins. The decoder receives that same summary while producing every output token, so details needed late in a long sequence must survive both compression and many recurrent updates.",
+          "Without attention, the encoder has to squeeze all n source positions into one fixed vector before decoding starts. The decoder gets that same summary for every output token. That means details needed late in a long sequence have to survive both the initial squeeze and many recurrent updates.",
       },
       {
-        label: "One decoder step.",
+        label: "One decoding step.",
         body:
-          "An encoder reads the source sequence and leaves one state h_i at each source position. A decoder produces the target sequence one token at a time; immediately before output step t, its current decoder state becomes the query q_t, which can look back at every encoder state. In notation, q_t has shape [d_s] and the encoder states H = [h_1, ..., h_n] have shape [n, d_h]. The same scorer is applied n times—once to q_t and each h_i—so it produces one scalar e_(t,i) for every source position.",
+          "The encoder reads the source sequence and leaves one state h_i at each position. The decoder produces the target one token at a time. Right before output step t, its current state becomes the query q_t, which can look back at every encoder state. In notation, q_t has shape [d_s], and H = [h_1, ..., h_n] has shape [n, d_h]. The same scorer runs n times—once for q_t paired with each h_i—and produces one number e_(t,i) per source position.",
       },
       {
         label: "Additive score.",
         body:
-          "The score is e_(t,i) = v^T tanh(Wq q_t + Wk h_i + b). Wq and Wk project the query and key into a shared attention width d_a; tanh combines them nonlinearly; v collapses the d_a values to one number. This is additive attention. A dot-product scorer instead uses q_t^T h_i and has no scoring MLP inside that comparison.",
+          "The score is e_(t,i) = v^T tanh(Wq q_t + Wk h_i + b). Wq and Wk project the query and key into the same attention width d_a. Then tanh combines them, and v turns the d_a values into one number. That's additive attention. A dot-product scorer uses q_t^T h_i instead, with no scoring MLP inside the comparison.",
       },
       {
-        label: "Normalize over positions.",
+        label: "Normalize across positions.",
         body:
-          "For a fixed t, softmax is applied across the n source-position scores: alpha_(t,:) = softmax(e_(t,:)). The weights are positive and sum to 1. In the date task, the row for emitting year should place most of its mass on the source state for 2026—not merely assign a large independent score to it.",
+          "For a given t, apply softmax across all n source-position scores: alpha_(t,:) = softmax(e_(t,:)). The weights are positive and add up to 1. In the date task, the row that outputs the year should put most of its weight on the source state for 2026. A large standalone score isn't enough; it has to win against the other positions.",
       },
       {
-        label: "Construct the context.",
+        label: "Build the context.",
         body:
-          "The step-specific context is c_t = sum_i alpha_(t,i) h_i, with shape [d_h]. Multiply each encoder state by its corresponding alignment weight, then sum coordinate-wise. The decoder uses c_t for the current output; at the month and day steps a new query produces new scores, weights, and context. Because every operation is differentiable, the translation loss can train the alignment jointly with the model.",
+          "The context for this step is c_t = sum_i alpha_(t,i) h_i, with shape [d_h]. Multiply each encoder state by its matching alignment weight, then add the results coordinate by coordinate. The decoder uses c_t for the current output. At the month and day steps, a new query creates new scores, weights, and context. Since every operation is differentiable, the translation loss can train the alignment along with the rest of the model.",
       },
     ],
     claims: {
-      paper: "Learned soft alignment reduces the fixed-length representation bottleneck in neural translation.",
-      lab: "A real additive scorer is optimized to align output roles with supplied encoder states and produces a learned heatmap.",
-      limit: "Supervised alignment roles replace the paper's end-to-end translation objective in this small experiment.",
+      paper: "Learned soft alignment eases the fixed-length bottleneck in neural translation.",
+      lab: "You'll train a real additive scorer to match output roles with the given encoder states and produce a learned heatmap.",
+      limit: "This small experiment uses labeled alignment roles instead of the paper's end-to-end translation goal.",
     },
     diagram: {
       title: "One output step: emit year",
-      caption: "The experiment repeats this computation for year, month, and day. Read each heatmap row across source positions: a concentrated row has one alpha near 1, while uniform attention stays at 0.333 for all three positions.",
+      caption: "The experiment runs this calculation for the year, month, and day. Read each heatmap row across the source positions. A focused row has one alpha near 1, while uniform attention stays at 0.333 for all three positions.",
       nodes: [
         { label: "Query", value: "q_year [d_s]" },
         { label: "Encoder states", value: "H = [h_day, h_month, h_year] [3 × d_h]" },
@@ -66,7 +66,7 @@ ${commonQuestionInstruction}`.trim(),
       ],
     },
     questions: {
-      intro: "Ask about the fixed-vector bottleneck, alignment normalization, differentiability, or how this attention differs from Transformer self-attention.",
+      intro: "Ask about the fixed-vector bottleneck, how the weights are normalized, why the setup is differentiable, or how this differs from Transformer self-attention.",
       suggestions: [
         "Why is the context vector dynamic?",
         "Is an attention heatmap an explanation?",
@@ -75,14 +75,14 @@ ${commonQuestionInstruction}`.trim(),
     },
     dataset: {
       name: "Date Alignment",
-      source: "Deterministic synthetic task",
+      source: "Fixed synthetic task",
       license: "CC0",
       size: "3 semantic roles · 3 fixed alignment cases · 2,000 epochs",
       preview: "14 · March · 2026  →  2026 · 03 · 14",
     },
     implementation: {
       filename: "additive-attention.py",
-      intro: "Implement one attention step in three isolated Python/NumPy cells: score one query-key pair with the additive MLP, softmax all source-position scores together, then multiply each state by its matching alpha and sum by coordinate.",
+      intro: "Build one attention step in three separate Python/NumPy cells. First score one query-key pair with the additive MLP. Then run softmax over all source-position scores. Finally, multiply each state by its matching alpha and add the results coordinate by coordinate.",
       tensorOps: ["numpy", "np.asarray", "np.matmul", "np.tanh", "np.dot", "np.exp", "tolist"],
       codeBlocks: [
         {
@@ -90,10 +90,10 @@ ${commonQuestionInstruction}`.trim(),
           label: "Compatibility score",
           purpose: "Score one decoder query against one encoder state.",
           concepts: [
-            { name: "Wq", detail: "Projects the decoder query into attention space." },
-            { name: "Wk", detail: "Projects one encoder state into the same space." },
-            { name: "bias + np.tanh", detail: "Combines both projections nonlinearly before reduction." },
-            { name: "v", detail: "Collapses the attention-width hidden vector to one scalar score." },
+            { name: "Wq", detail: "Moves the decoder query into attention space." },
+            { name: "Wk", detail: "Moves one encoder state into that same space." },
+            { name: "bias + np.tanh", detail: "Combines the two projections nonlinearly before reducing them." },
+            { name: "v", detail: "Turns the attention-width hidden vector into one score." },
           ],
           code: `import numpy as np
 
@@ -118,11 +118,11 @@ RESULT = {
         {
           id: "attention-softmax",
           label: "Alignment weights",
-          purpose: "Normalize compatibility scores across source positions.",
+          purpose: "Turn the compatibility scores across source positions into weights.",
           concepts: [
-            { name: "scores", detail: "One scalar compatibility value per encoder state." },
-            { name: "shifted", detail: "Subtracts the maximum score before normalizing across every source position." },
-            { name: "tolist", detail: "Returns one JSON-serializable alignment weight per source position." },
+            { name: "scores", detail: "One compatibility score for each encoder state." },
+            { name: "shifted", detail: "Subtracts the largest score before normalizing across all source positions." },
+            { name: "tolist", detail: "Returns one JSON-friendly alignment weight for each source position." },
           ],
           code: `import numpy as np
 
@@ -143,11 +143,11 @@ RESULT = {
         {
           id: "context-vector",
           label: "Weighted context",
-          purpose: "Combine encoder states using the learned alignment distribution.",
+          purpose: "Combine the encoder states using the learned alignment weights.",
           concepts: [
-            { name: "states", detail: "Encoder representation at every source position." },
-            { name: "weights / alpha", detail: "One normalized NumPy weight corresponding to each state." },
-            { name: "dimension", detail: "Width of the resulting context vector." },
+            { name: "states", detail: "The encoder representation at each source position." },
+            { name: "weights / alpha", detail: "One normalized NumPy weight that matches each state." },
+            { name: "dimension", detail: "The width of the context vector you get back." },
           ],
           code: `import numpy as np
 
@@ -168,6 +168,6 @@ RESULT = {
     experiment: {
       kind: "attention",
       title: "Learn the alignment function",
-      intro: "Run the supplied additive-attention trainer on three fixed cases, then compare its learned alignment against a uniform baseline. The replay does not execute the learner cells.",
+      intro: "Run the provided additive-attention trainer on three fixed cases, then compare what it learned with a uniform baseline. This replay doesn't run your code cells.",
     },
   } satisfies Omit<CourseLesson, "sources">;

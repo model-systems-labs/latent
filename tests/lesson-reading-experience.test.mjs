@@ -35,10 +35,9 @@ test("lessons use an editorial hierarchy instead of landing-page scale", async (
   assert.match(learningFlow, /\.section-title h2\s*\{[^}]*font-size:\s*clamp\(1\.65rem,\s*2\.3vw,\s*2\.15rem\)/);
   assert.match(learningFlow, /\.paper-section\s*\{[^}]*padding:\s*clamp\(3\.25rem,\s*5vw,\s*4\.5rem\)/);
   assert.match(lessonMobile, /\.lessonShell :global\(\.paper-hero h1\)\s*\{[^}]*font-size:\s*clamp\(2\.15rem,\s*9vw,\s*2\.65rem\)[^}]*white-space:\s*normal/);
-  assert.match(lessonMobile, /\.practice-block \.concept-strip\) \{ order: 2; \}/);
-  assert.match(lessonMobile, /\.practice-block \.answer-area\) \{ order: 3; \}/);
-  assert.match(lessonMobile, /\.practice-block \.cell-output\) \{ order: 4; \}/);
-  assert.match(lessonMobile, /\.practice-block \.cell-footer\) \{ order: 5; \}/);
+  assert.match(lessonMobile, /\.lessonShell :global\(\.exercise-body\) \{ padding:\s*0\.15rem 0 1\.7rem; \}/);
+  assert.match(lessonMobile, /\.lessonShell :global\(\.exercise-feedback\) \{[^}]*flex-direction:\s*column/);
+  assert.match(lessonMobile, /\.lessonShell :global\(\.answer-area\),[\s\S]*?\.lessonShell :global\(\.syntax-code\) \{ max-width:\s*100%; min-width:\s*0; \}/);
   assert.doesNotMatch(responsive.slice(0, responsive.indexOf("@media (max-width: 650px)")), /\.summary-copy\s*\{[^}]*columns:\s*2/);
   assert.doesNotMatch(paperLab, /className=\{`summary-layout/);
 });
@@ -112,7 +111,7 @@ test("lesson references use one responsive disclosure while full metadata remain
   assert.match(lessonMobile, /\.lessonShell :global\(\.source-set\[open\] \.source-set-title::after\)/);
 });
 
-test("lesson code uses lazy syntax-aware Python editors without loading the full IDE", async () => {
+test("lesson code opens one starter-first syntax-aware Python exercise in a light-neutral workspace", async () => {
   const [paperLab, syntaxCode, codeEditor, codingWorkspace, learningFlow] = await Promise.all([
     readFile(paperLabUrl, "utf8"),
     readFile(syntaxCodeUrl, "utf8"),
@@ -130,12 +129,24 @@ test("lesson code uses lazy syntax-aware Python editors without loading the full
   assert.doesNotMatch(syntaxCode, /dangerouslySetInnerHTML/);
   assert.match(codeEditor, /import \{ python \} from "@codemirror\/lang-python"/);
   assert.match(codeEditor, /isPython \? python\(\) : javascript/);
+  assert.match(paperLab, /const \[activeBlockId, setActiveBlockId\] = useState\(blocks\[0\]\?\.id \?\? ""\)/);
+  assert.match(paperLab, /const active = activeBlockId === block\.id/);
+  assert.match(paperLab, /className="exercise-summary"[\s\S]*?aria-expanded=\{active\}[\s\S]*?aria-controls=\{`exercise-\$\{lesson\.id\}-\$\{block\.id\}`\}/);
+  assert.match(paperLab, /\{active \? \([\s\S]*?className="exercise-body" id=\{`exercise-\$\{lesson\.id\}-\$\{block\.id\}`\}/);
+  assert.match(paperLab, /const starterSource = starterCodeFor\(block, lesson\)/);
   assert.match(paperLab, /className="answer-area" data-direct-edit="true"/);
+  assert.match(paperLab, /value=\{workingSource\}/);
+  assert.match(paperLab, /onChange=\{\(value\) => updateAnswer\(block, value\)\}/);
+  assert.match(paperLab, /<SyntaxCode code=\{starterSource\} label=\{`\$\{block\.label\} starter loading`\}/);
   assert.match(paperLab, /"Running…" : "Run cell"/);
-  assert.match(paperLab, /hiddenBlocks\.length === blocks\.length \? "Run practice checks"[\s\S]*?"Run all examples"/);
-  assert.match(paperLab, /const combinedExecution = await runContracts\([\s\S]*?combinedSource[\s\S]*?blocks\.map\(\(block\) => `\$\{lesson\.id\}\/\$\{block\.id\}`\)/);
-  assert.match(paperLab, /try \{[\s\S]*?lessonImplementationSource\(lesson, \[sourceSnapshots\[block\.id\]\]\)[\s\S]*?executions\.push\(\{ output: execution\.output[\s\S]*?catch \{[\s\S]*?outputCaptureIncomplete = true/);
-  assert.match(paperLab, /Example passed · practice this cell to earn verification/);
+  assert.match(paperLab, /"Running in sandbox…" : "Check all my code"/);
+  assert.match(paperLab, /className="reference-comparison"[\s\S]*?<summary><span>Compare with reference<\/span><em>Your draft stays unchanged<\/em><\/summary>[\s\S]*?<SyntaxCode code=\{block\.code\}/);
+  assert.match(paperLab, /dirty \? <button className="start-over-button"[\s\S]*?>Start over<\/button> : null/);
+  assert.match(paperLab, /resetArmed \? \([\s\S]*?Confirm start over for \$\{block\.label\}[\s\S]*?>Confirm<\/button>[\s\S]*?Cancel start over for \$\{block\.label\}[\s\S]*?>Cancel<\/button>/);
+  assert.doesNotMatch(paperLab, /Reset all|Restore all|Restore reference|Restore draft|Run all examples|Run practice checks|Practice cell|Show solution|Hide solution/);
+  assert.doesNotMatch(paperLab, /const (?:hideAll|showSolution|restoreBlock|recoverBlock)\s*=/);
+  assert.match(paperLab, /setCellOutputs/);
+  assert.match(paperLab, /output: execution\.output[\s\S]*?stdout: execution\.stdout[\s\S]*?stderr: execution\.stderr/);
   assert.match(paperLab, /executionOutput\?\.output\.length \? \(/);
   assert.doesNotMatch(paperLab, /<p>No output\.<\/p>/);
   assert.match(paperLab, /className="cell-output" aria-label=\{`\$\{block\.label\} program output`\}/);
@@ -143,7 +154,6 @@ test("lesson code uses lazy syntax-aware Python editors without loading the full
   assert.match(paperLab, />Output<\/span>/);
   assert.match(paperLab, />Standard error<\/span>/);
   assert.match(paperLab, />Tests<\/span>/);
-  assert.match(paperLab, /Reference examples do not earn credit/);
   assert.match(codeEditor, /variant === "lesson" \? lessonTheme : latentTheme/);
   assert.match(codeEditor, /syntaxHighlighting\(variant === "lesson" \? lessonSyntaxTheme : syntaxTheme\)/);
   assert.match(codeEditor, /\}, \{ dark: false \}\);/);
@@ -153,11 +163,10 @@ test("lesson code uses lazy syntax-aware Python editors without loading the full
   }
   assert.doesNotMatch(codingWorkspace, /box-shadow:\s*inset 2px/);
   assert.doesNotMatch(learningFlow, /box-shadow:\s*inset [^;]+/);
-  assert.match(rule(codingWorkspace, ".practice-block.is-hidden"), /background:\s*transparent/);
-  assert.match(rule(codingWorkspace, ".practice-editor"), /background:\s*#f7f6f3/);
+  assert.match(rule(codingWorkspace, ".practice-editor"), /background:\s*transparent/);
   assert.match(rule(codingWorkspace, ".lesson-code-editor"), /background:\s*#fbfaf8/);
   assert.match(rule(codingWorkspace, ".lesson-editor-loading"), /background:\s*#fbfaf8/);
   assert.match(rule(codingWorkspace, ".cell-output"), /background:\s*#f4f2ee/);
-  assert.match(rule(codingWorkspace, ".editor-footer"), /background:\s*#f4f2ee/);
+  assert.match(rule(codingWorkspace, ".editor-footer"), /background:\s*transparent/);
   assert.match(rule(codingWorkspace, ".cell-output-streams"), /max-height:\s*16rem/);
 });

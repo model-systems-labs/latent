@@ -182,14 +182,14 @@ export function capstoneMissingBuildRecovery(progress: CapstoneProgress): Capsto
   const sourceComplete = progress.totalLessonFiles > 0 && progress.verifiedLessonFiles === progress.totalLessonFiles;
   if (!sourceComplete) {
     return {
-      eyebrow: "Passing build required",
-      title: "Complete the next tested module.",
+      eyebrow: "You need a passing build",
+      title: "Finish the next module.",
       summary: progress.totalLessonFiles
-        ? `${progress.verifiedLessonFiles} of ${progress.totalLessonFiles} lesson files are verified. The capstone remains locked until every module passes in one full build.`
-        : "No passing full-project build exists on this device yet. Restore or begin the project in the IDE.",
+        ? `${progress.verifiedLessonFiles} of ${progress.totalLessonFiles} lesson files are verified. The capstone unlocks after every module passes in one full build.`
+        : "There isn’t a passing full-project build on this device yet. Restore your project or start it in the IDE.",
       path: progress.nextPath,
       pathLabel: `Next source · ${progress.nextPath}`,
-      why: "This file is the earliest unfinished input to the model, serving, and React system assembled by the capstone.",
+      why: "This is the first unfinished file the capstone still needs for its model, serving layer, and React app.",
       action: "workspace",
       actionLabel: `Open ${progress.nextTitle}`,
       href: workspaceHref(progress.nextPath),
@@ -197,12 +197,12 @@ export function capstoneMissingBuildRecovery(progress: CapstoneProgress): Capsto
     };
   }
   return {
-    eyebrow: "Full build required",
-    title: "Create the first passing build.",
-    summary: `All ${progress.totalLessonFiles} lesson files are verified. Run the complete suite once to compile the React application and promote a source-bound build.`,
+    eyebrow: "Run a full build",
+    title: "Create your first passing build.",
+    summary: `All ${progress.totalLessonFiles} lesson files are verified. Run every test once to build the React app and create a build tied to your current source.`,
     path: CAPSTONE_COMPONENT_PATH,
     pathLabel: `Final integration · ${CAPSTONE_COMPONENT_PATH}`,
-    why: "A passing full build binds every source-verified Python lesson, every contract-equivalent browser adapter, and the React integration to one promoted snapshot before project code reaches the preview.",
+    why: "A passing full build puts every verified Python lesson, its matching browser adapter, and the React app into one snapshot before any project code reaches the preview.",
     action: "workspace",
     actionLabel: "Open integration · Test, build & run",
     href: workspaceHref(CAPSTONE_COMPONENT_PATH),
@@ -213,31 +213,31 @@ export function capstoneMissingBuildRecovery(progress: CapstoneProgress): Capsto
 export function capstoneReadyGateCopy(buildNumber: number) {
   return {
     eyebrow: `Verified build ${buildNumber}`,
-    title: "Run the verified build.",
-    summary: "The complete lesson source tree and React integration passed together. The preview will run inside an isolated frame with only explicit model, stream, cancel, and persistence capabilities.",
+    title: "Run your verified build.",
+    summary: "All lesson files and the React app passed together. The preview runs in an isolated frame that can only use the model, streaming, cancel, and save features it was given.",
   } as const;
 }
 
 export function capstoneTestEvidence(status: HostStatus, buildNumber: number | null, progress: CapstoneProgress) {
   if (status === "ready" && buildNumber) {
-    return { label: "Build test evidence", value: `Full suite passed for build #${buildNumber}` } as const;
+    return { label: "Build test results", value: `Every test passed for build #${buildNumber}` } as const;
   }
   return {
-    label: "Saved test receipts",
+    label: "Saved test results",
     value: progress.totalTests
       ? `${progress.passingTests}/${progress.totalTests} currently passing`
-      : "No saved test receipts",
+      : "No saved test results",
   } as const;
 }
 
 function failureRecord(error: unknown): CapstoneFailure {
   if (!error || typeof error !== "object") {
-    return { code: null, message: typeof error === "string" ? error : "The active capstone build could not be verified." };
+    return { code: null, message: typeof error === "string" ? error : "Latent couldn’t verify the active capstone build." };
   }
   const candidate = error as { code?: unknown; message?: unknown };
   return {
     code: typeof candidate.code === "string" ? candidate.code : null,
-    message: typeof candidate.message === "string" ? candidate.message : "The active capstone build could not be verified.",
+    message: typeof candidate.message === "string" ? candidate.message : "Latent couldn’t verify the active capstone build.",
   };
 }
 
@@ -246,12 +246,12 @@ export function capstoneRecoveryForFailure(error: unknown, progress: CapstonePro
   const failure = failureRecord(error);
   if (failure.code === "MISSING_SOURCE_BOUND_CHECKPOINT") {
     return {
-      eyebrow: "Python checkpoint required",
-      title: "Train the current model source.",
-      summary: `The active build does not carry a local Python checkpoint produced from its exact ${PYTHON_CHARACTER_RNN_PATH} bytes, so the host rejected it before execution.`,
+      eyebrow: "You need a Python checkpoint",
+      title: "Train the current model file.",
+      summary: `The active build doesn’t include a local Python checkpoint trained from this exact version of ${PYTHON_CHARACTER_RNN_PATH}, so it stopped before running.`,
       path: PYTHON_CHARACTER_RNN_PATH,
       pathLabel: `Model source · ${PYTHON_CHARACTER_RNN_PATH}`,
-      why: "Run Test & train on this exact file, then run the full build. Imported, JavaScript-trained, older-source, and latest-global checkpoints cannot power the capstone.",
+      why: "Choose Test & train for this exact file, then run the full build. The capstone can’t use imported checkpoints, checkpoints trained in JavaScript, or checkpoints from older source.",
       action: "workspace",
       actionLabel: "Open model · Test & train",
       actionPath: PYTHON_CHARACTER_RNN_PATH,
@@ -265,14 +265,14 @@ export function capstoneRecoveryForFailure(error: unknown, progress: CapstonePro
     const target = source ?? CAPABILITY_SOURCE["ui.mount"];
     const isEntrypoint = target.path === CAPSTONE_ENTRY_PATH;
     return {
-      eyebrow: "Build contract incomplete",
+      eyebrow: "The build is missing a required piece",
       title: isEntrypoint ? "Rebuild the React entrypoint." : "Rebuild the missing runtime export.",
-      summary: `The current passing build does not prove ${target.path}. The host rejected it before project code could execute.`,
+      summary: `The current passing build doesn’t verify ${target.path}, so it stopped before any project code could run.`,
       path: target.path,
       pathLabel: target.label,
       why: isEntrypoint
-        ? "This provided entrypoint mounts your editable BrowserChat component inside the isolated preview. A fresh full build rebinds that boundary; the provided file itself does not need editing."
-        : "This tested export is required by the assembled chatbot. Rebuilding links its current source and test receipt into the active build.",
+        ? "This provided entrypoint mounts your editable BrowserChat component in the isolated preview. A fresh full build reconnects it; you don’t need to edit the provided file."
+        : "The finished chatbot needs this tested export. Rebuilding adds its current source and test result to the active build.",
       action: "workspace",
       actionLabel: `Open ${isEntrypoint ? "BrowserChat.tsx" : target.path.split("/").at(-1)} · Test, build & run`,
       actionPath: isEntrypoint ? CAPSTONE_COMPONENT_PATH : target.path,
@@ -282,12 +282,12 @@ export function capstoneRecoveryForFailure(error: unknown, progress: CapstonePro
   }
   if (failure.message.includes("trusted React preview runtime") || failure.code === "PREVIEW_RUNTIME_ERROR") {
     return {
-      eyebrow: "Preview runtime unavailable",
-      title: "Restore the isolated preview.",
-      summary: "The passing project build is still protected. Its trusted browser runtime did not initialize, so learner code was not executed.",
+      eyebrow: "The preview can’t start",
+      title: "Reload the isolated preview.",
+      summary: "Your passing project build is still safe. The trusted browser runtime didn’t start, so none of your code ran.",
       path: null,
-      pathLabel: "Host preview runtime · no project source changed",
-      why: "Reloading retries the course-owned runtime and repeats bundle verification before the iframe receives any code.",
+      pathLabel: "Course preview runtime · your source didn’t change",
+      why: "Reloading tries the course runtime again and rechecks the bundle before the iframe gets any code.",
       action: "retry",
       actionLabel: "Reload and verify again",
       href: "/capstone",
@@ -298,12 +298,12 @@ export function capstoneRecoveryForFailure(error: unknown, progress: CapstonePro
     const missingPath = LLM_LESSON_SOURCES.find((lesson) => failure.message.includes(lesson.sourcePath))?.sourcePath
       ?? progress.nextPath;
     return {
-      eyebrow: "Lesson coverage incomplete",
-      title: "Rebuild the complete source tree.",
-      summary: "The current build does not contain a tested contribution from every lesson module, so it cannot become the active capstone.",
+      eyebrow: "A lesson file is missing",
+      title: "Rebuild the whole project.",
+      summary: "The current build doesn’t include a tested piece from every lesson module, so it can’t become the active capstone.",
       path: missingPath,
       pathLabel: `Missing contribution · ${missingPath}`,
-      why: "The capstone records all lesson files as build provenance, even when a file is not invoked directly at runtime.",
+      why: "The capstone keeps track of every lesson file in the build, even when the app doesn’t call a file directly at runtime.",
       action: "workspace",
       actionLabel: `Open ${missingPath.split("/").at(-1)} · run the full build`,
       actionPath: missingPath,
@@ -312,12 +312,12 @@ export function capstoneRecoveryForFailure(error: unknown, progress: CapstonePro
     };
   }
   return {
-    eyebrow: "Project source changed",
-    title: "Build the current source.",
-    summary: "Your saved build belongs to an earlier project revision, so Latent kept it inactive. Run a fresh full build to update the preview.",
+    eyebrow: "Your project changed",
+    title: "Build the current code.",
+    summary: "Your saved build belongs to an older version of the project, so Latent didn’t activate it. Run a new full build to update the preview.",
     path: progress.nextPath,
     pathLabel: `Start with · ${progress.nextPath}`,
-    why: "A fresh full build rechecks source hashes, required exports, and the React entrypoint as one atomic release.",
+    why: "A new full build rechecks the source hashes, required exports, and React entrypoint together.",
     action: "workspace",
     actionLabel: "Open the IDE · Build current source",
     href: workspaceHref(progress.nextPath),
@@ -369,17 +369,17 @@ const COURSE_GROUNDING = [
   {
     terms: ["causal", "mask", "future"],
     minTerms: 2,
-    answer: "A causal mask prevents position t from attending to future positions. Those logits receive zero probability after softmax, so a token cannot read the target it is supposed to predict.",
+    answer: "A causal mask keeps position t from looking at later positions. Softmax gives those logits zero probability, so a token can’t peek at the target it’s supposed to predict.",
   },
   {
     terms: ["sse", "stream", "chunk"],
     minTerms: 1,
-    answer: "SSE events end with a blank line, while network chunks can split anywhere. A correct parser retains incomplete bytes and emits only complete events.",
+    answer: "SSE events end with a blank line, but network chunks can break anywhere. A good parser holds onto incomplete bytes and only sends out complete events.",
   },
   {
     terms: ["token", "subword", "bpe"],
     minTerms: 1,
-    answer: "Subword tokenization learns frequent symbol merges. Common sequences become shorter while rare words remain representable as smaller units.",
+    answer: "Subword tokenization learns which symbols often go together. Common sequences get shorter, while rare words can still be built from smaller pieces.",
   },
 ];
 
@@ -397,10 +397,10 @@ export function composeLocalModelResponse(question: string, draft: string) {
     modelDraft,
     reference,
     response: [
-      "Local Transformer sample · sampling controls applied",
+      "Local Transformer sample · using your generation settings",
       sampledSection,
       ...(reference ? [
-        "Course reference · fixed teaching text · controls do not affect this section · excluded from generated-unit metrics",
+        "Course note · fixed explanation · generation settings don’t change this section · not counted in generated units",
         reference,
       ] : []),
     ].join("\n\n"),
@@ -539,7 +539,7 @@ export function capstonePathPresentation(
     sourceState: sourceComplete ? "complete" : blockedStage === "source" ? "current" : "pending",
     buildState: status === "ready" ? "complete" : status === "loading" || blockedStage === "build" ? "current" : "pending",
     previewState: status === "ready" || blockedStage === "preview" ? "current" : "pending",
-    previewDetail: status === "ready" ? "ready to run" : blockedStage === "preview" ? "runtime needs reload" : "locked until build passes",
+    previewDetail: status === "ready" ? "ready to run" : blockedStage === "preview" ? "reload the runtime" : "locked until the build passes",
   } as const;
 }
 
@@ -559,13 +559,13 @@ function CapstoneBuildPath({
     <ol className="capstone-build-path" aria-label="Capstone execution path">
       <li className={presentation.sourceState}>
         <span>01</span>
-        <strong>Current workspace lesson source</strong>
-        <code>{progress.totalLessonFiles ? `${progress.verifiedLessonFiles}/${progress.totalLessonFiles} files verified` : "restoring source state"}</code>
+        <strong>Current lesson files</strong>
+        <code>{progress.totalLessonFiles ? `${progress.verifiedLessonFiles}/${progress.totalLessonFiles} files verified` : "loading file status"}</code>
       </li>
       <li className={presentation.buildState}>
         <span>02</span>
-        <strong>Active build snapshot</strong>
-        <code>{status === "ready" && buildNumber ? `build #${buildNumber} verified` : status === "loading" ? "checking receipt + hashes" : "full suite required"}</code>
+        <strong>Active build</strong>
+        <code>{status === "ready" && buildNumber ? `build #${buildNumber} verified` : status === "loading" ? "checking test result + hashes" : "run every test"}</code>
       </li>
       <li className={presentation.previewState}>
         <span>03</span>
@@ -593,7 +593,7 @@ export function BrowserChatCapstone() {
   const [descriptor, setDescriptor] = useState<CapstoneRuntimeDescriptor | null>(null);
   const [buildRuntime, setBuildRuntime] = useState<CertifiedCapstoneRuntimeConfig | null>(null);
   const [status, setStatus] = useState<HostStatus>("loading");
-  const [detail, setDetail] = useState("Loading the last passing project build…");
+  const [detail, setDetail] = useState("Loading your last passing project build…");
   const [runRequested, setRunRequested] = useState(false);
   const [failure, setFailure] = useState<CapstoneFailure | null>(null);
 
@@ -610,11 +610,11 @@ export function BrowserChatCapstone() {
       studentRef.current = null;
       setRunRequested(false);
       setFailure(null);
-      setDetail("Loading the last passing project build…");
+      setDetail("Loading your last passing project build…");
       const { repositories } = await getPersistenceContext();
       const build = await repositories.builds.activeValidated("browser-chat");
       if (!build) {
-        if (active) { setStatus("missing"); setDetail("No passing full-project build exists on this device yet."); }
+        if (active) { setStatus("missing"); setDetail("There isn’t a passing full-project build on this device yet."); }
         return;
       }
       const expectedSourceHash = build.fileHashes[PYTHON_CHARACTER_RNN_PATH];
@@ -636,7 +636,7 @@ export function BrowserChatCapstone() {
         cache: "force-cache",
         credentials: "same-origin",
       });
-      if (!runtimeResponse.ok) throw new Error("The trusted React preview runtime is unavailable.");
+      if (!runtimeResponse.ok) throw new Error("The trusted React preview runtime isn’t available.");
       const [verified, verifiedRuntime] = await Promise.all([
         verifyPreviewBundle({
           projectId: loaded.descriptor.projectId,
@@ -657,13 +657,13 @@ export function BrowserChatCapstone() {
       setBundle(verified);
       setReactRuntime(verifiedRuntime);
       setStatus("ready");
-      setDetail(`Build ${loaded.descriptor.buildNumber} is verified. It runs with isolated host capabilities; a synchronous loop can still require reloading this tab.`);
+      setDetail(`Build ${loaded.descriptor.buildNumber} is verified. It runs with limited, isolated browser access. A stuck synchronous loop may still require reloading this tab.`);
     })().catch((error) => {
       if (!active) return;
       studentRef.current = null;
       setFailure(failureRecord(error));
       setStatus("error");
-      setDetail("The active capstone build could not be verified, so it was not executed.");
+      setDetail("The active capstone build couldn’t be verified, so it didn’t run.");
     });
     return () => { active = false; };
   }, [project.activeBuild?.id]);
@@ -710,19 +710,19 @@ export function BrowserChatCapstone() {
         let generatedUnitLabel = "Generated units";
         if (payload.backend === "student") {
           const student = studentRef.current;
-          if (!student) throw new Error("This build has no source-bound Python checkpoint. Test and train the model file, then rebuild.");
+          if (!student) throw new Error("This build doesn’t have a Python checkpoint for the current source. Test and train the model file, then rebuild.");
           const continuation = sampleCharacterRnn(student.checkpoint, latestUser, payload.options.maxTokens, payload.options.temperature, buildRuntime.model.seed, payload.options.topK);
           const checkpointLabel = student.origin === "python"
             ? "Python + NumPy checkpoint"
-            : "browser-trained checkpoint";
-          response = `${checkpointLabel}\n\nPrompt-conditioned character continuation:\n\n…${latestUser.slice(-32)}${continuation}`;
+            : "checkpoint trained in the browser";
+          response = `${checkpointLabel}\n\nCharacter continuation based on your prompt:\n\n…${latestUser.slice(-32)}${continuation}`;
           generatedUnits = continuation.length;
           generatedUnitLabel = "Generated characters";
         } else {
           const client = localModelRef.current;
           if (!client || !localReadyRef.current || !client.isReady()) {
             localReadyRef.current = false;
-            throw new Error("Load the local model explicitly before generating.");
+            throw new Error("Load the local model before you generate a response.");
           }
           let draft = "";
           const generation = await client.generate(payload.requestId, payload.messages.slice(-12), payload.options, { onDelta: (delta) => { draft += delta; } });
@@ -828,7 +828,7 @@ export function BrowserChatCapstone() {
             }
             await client.load({ onProgress: (progress, progressDetail) => emit(request.requestId, "progress", { type: "progress", progress, detail: progressDetail }) });
             localReadyRef.current = client.isReady();
-            if (!localReadyRef.current) throw new Error("The local-model worker did not reach an explicit ready state.");
+            if (!localReadyRef.current) throw new Error("The local-model worker never reported that it was ready.");
             respond(request.requestId, { ready: true });
           } finally {
             capabilityGate.finishPreparation("load");
@@ -837,7 +837,7 @@ export function BrowserChatCapstone() {
         }
         if (request.method === "generate") {
           const payload = generationPayload(request.payload);
-          if (!payload) return fail(request.requestId, "invalid-generation", "The generation request did not satisfy the bounded host contract.");
+          if (!payload) return fail(request.requestId, "invalid-generation", "The generation request was invalid or too large.");
           const admission = capabilityGate.beginGeneration(payload.requestId);
           if (admission !== "accepted") return fail(request.requestId, admission, "Only one unique model generation may run at a time.");
           await generate(request.requestId, payload);
@@ -858,13 +858,13 @@ export function BrowserChatCapstone() {
         }
         if (request.method === "persist") {
           const write = safeConversationWrite(request.payload);
-          if (!write) return fail(request.requestId, "invalid-conversation", "The conversation record did not satisfy its storage schema.");
+          if (!write) return fail(request.requestId, "invalid-conversation", "The conversation record didn’t match the saved-data format.");
           await conversationWriter.enqueue(write.selectedBackend, write.messages);
           respond(request.requestId, null);
           return;
         }
-        fail(request.requestId, "unknown-method", "The preview requested an unavailable host capability.");
-      })().catch((error) => fail(request.requestId, "host-capability-failed", error instanceof Error ? error.message : "The host capability failed."));
+        fail(request.requestId, "unknown-method", "The preview asked for a browser feature that isn’t available.");
+      })().catch((error) => fail(request.requestId, "host-capability-failed", error instanceof Error ? error.message : "The browser feature stopped with an error."));
     };
 
     const previewSession = mountPreviewFrame({
@@ -879,9 +879,9 @@ export function BrowserChatCapstone() {
           setFailure({ code: "PREVIEW_RUNTIME_ERROR", message: message.message });
           setStatus("error");
           setRunRequested(false);
-          setDetail("The preview stopped before learner code could continue.");
+          setDetail("The preview stopped before your code could continue.");
         },
-        onProtocolViolation: () => setDetail("The preview rejected an out-of-contract message."),
+        onProtocolViolation: () => setDetail("The preview ignored a message the app doesn’t allow."),
       },
     });
     sessionRef.current = previewSession;
@@ -928,9 +928,9 @@ export function BrowserChatCapstone() {
       : null;
   const gateCopy = status === "loading"
     ? {
-        eyebrow: "Build admission",
-        title: "Verifying the active build.",
-        summary: "Checking the full-project test receipt, compiler hashes, and isolated React entrypoint before any learner code executes.",
+        eyebrow: "Checking the build",
+        title: "Verifying your active build.",
+        summary: "Checking the full-project test result, compiler hashes, and isolated React entrypoint before any of your code runs.",
       }
     : status === "ready"
       ? capstoneReadyGateCopy(descriptor?.buildNumber ?? project.activeBuild?.buildNumber ?? 1)
@@ -961,10 +961,10 @@ export function BrowserChatCapstone() {
             <p>{gateCopy.summary}</p>
           </div>
 
-          <div className="capstone-progress-line" aria-label="Current project evidence">
+          <div className="capstone-progress-line" aria-label="Current project status">
             <div>
-              <span>Current workspace lesson source</span>
-              <strong>{progress.totalLessonFiles ? `${progress.verifiedLessonFiles}/${progress.totalLessonFiles} verified` : "Restoring"}</strong>
+              <span>Current lesson files</span>
+              <strong>{progress.totalLessonFiles ? `${progress.verifiedLessonFiles}/${progress.totalLessonFiles} verified` : "Loading"}</strong>
             </div>
             <progress
               aria-label="Verified lesson files"
@@ -986,13 +986,13 @@ export function BrowserChatCapstone() {
 
           <div className="capstone-next-step">
             <div>
-              <span>{status === "ready" ? "Execution boundary" : "Next repair"}</span>
+              <span>{status === "ready" ? "How it runs" : "What to fix next"}</span>
               <code>{status === "ready" ? "capstone/main.tsx → isolated preview" : recovery?.pathLabel}</code>
-              <p>{status === "ready" ? "The host verifies the bundle, then exposes only allowlisted capabilities across the iframe boundary." : recovery?.why}</p>
+              <p>{status === "ready" ? "The trusted host verifies the bundle, then runs it in an opaque-origin sandbox with access only to the approved features it needs." : recovery?.why}</p>
             </div>
             {status === "ready" ? (
               <button ref={runPreviewButtonRef} type="button" onClick={() => { setRunRequested(true); void recordLearningEvent("capstone_started", { outcome: "passed" }); }}>
-                Run verified preview
+                Run the verified preview
               </button>
             ) : recovery?.action === "retry" ? (
               <button type="button" onClick={() => window.location.reload()}>{recovery.actionLabel}</button>

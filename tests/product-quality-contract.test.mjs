@@ -115,10 +115,10 @@ test("local model samples remain model-derived and fixed course references stay 
   const composed = capstone.composeLocalModelResponse("Why does a causal mask block future tokens?", draft);
   assert.equal(composed.modelDraft, draft);
   assert.ok(composed.reference);
-  assert.match(composed.response, /Local Transformer sample · sampling controls applied/);
+  assert.match(composed.response, /Local Transformer sample · using your generation settings/);
   assert.match(composed.response, /MODEL-DERIVED-7f31/);
-  assert.match(composed.response, /Course reference · fixed teaching text · controls do not affect this section · excluded from generated-unit metrics/);
-  assert.ok(composed.response.indexOf(draft) < composed.response.indexOf("Course reference"));
+  assert.match(composed.response, /Course note · fixed explanation · generation settings don’t change this section · not counted in generated units/);
+  assert.ok(composed.response.indexOf(draft) < composed.response.indexOf("Course note"));
   assert.equal(capstone.applyInterfaceResponsePrefix("configured: ", composed.response).startsWith("configured: Local Transformer sample"), true);
 });
 
@@ -161,7 +161,7 @@ test("a dead or stalled local-model worker is discarded so an explicit retry sta
   assert.equal(client.isReady(), false);
   await assert.rejects(
     client.generate("r2", [{ role: "user", content: "must reload" }], { maxTokens: 160, temperature: 0.7, topK: 24 }, { onDelta() {} }),
-    /Load it explicitly before generating/,
+    /Load it before you start generating/,
   );
   assert.equal(workers.length, 2, "generation must not create or implicitly load a replacement worker");
   const explicitReload = client.load({ onProgress() {} });
@@ -201,12 +201,12 @@ test("the capstone template and host implement the same safe persistence and sta
   assert.doesNotMatch(template, /phase === "error" \? "Generation failed" : "Ready"/);
   assert.match(template, /composerRef\.current\?\.focus/);
   assert.match(template, /terminalConversationIdentity/);
-  assert.match(template, /latest terminal snapshot retained/);
+  assert.match(template, /latest finished copy is still here/);
   assert.match(template, /Retry save/);
   assert.doesNotMatch(template, /persistConversation\(record\)\.catch\(\(\) => undefined\)/);
   assert.match(template, /Maximum generated units/);
   assert.match(template, /max="160"/);
-  assert.match(template, /seed applies to Student RNN sampling only/);
+  assert.match(template, /seed in model\.config\.js only affects Student RNN sampling/);
   assert.match(template, /preview\?\.runtime\.interface\.showMetrics !== false/);
   assert.match(template, /preview\?\.runtime\.interface\.assistantName/);
   assert.match(template, /setBackend\(initialization\.selectedBackend\)/);
@@ -235,6 +235,6 @@ test("the capstone template and host implement the same safe persistence and sta
   assert.match(worker, /max_new_tokens: Math\.min\(message\.options\.maxTokens, LOCAL_MODEL_MAX_NEW_TOKENS\)/);
   assert.match(worker, /generatedUnits: emittedChunks, unit: "stream-chunks"/);
   assert.doesNotMatch(worker, /async function generate\([^\n]+\) \{\s*await ensureLoaded\(\)/);
-  assert.match(worker, /Load the local model explicitly before generating/);
+  assert.match(worker, /Load the local model before you start generating/);
   assert.match(template, /initializePreview\(\)\.then\(setPreview\)/);
 });

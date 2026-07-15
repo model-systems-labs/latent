@@ -60,7 +60,7 @@ export class LocalModelClient {
     };
     worker.onerror = (event) => {
       event.preventDefault();
-      const error = new Error(event.message || "The local-model worker stopped unexpectedly.");
+      const error = new Error(event.message || "The local model stopped unexpectedly.");
       this.failWorker(error, worker);
     };
     this.worker = worker;
@@ -114,10 +114,10 @@ export class LocalModelClient {
     try {
       worker.postMessage({ type: "load" } satisfies ModelWorkerRequest);
       this.loadTimer = globalThis.setTimeout(() => {
-        this.failWorker(new Error(`The local model did not finish loading within ${this.loadTimeoutMs} ms.`), worker);
+        this.failWorker(new Error(`The local model didn't finish loading within ${this.loadTimeoutMs} ms.`), worker);
       }, Math.max(1, this.loadTimeoutMs));
     } catch (error) {
-      this.failWorker(error instanceof Error ? error : new Error("The local-model worker could not start."), worker);
+      this.failWorker(error instanceof Error ? error : new Error("The local model couldn't start."), worker);
     }
     return promise;
   }
@@ -134,14 +134,14 @@ export class LocalModelClient {
     if (this.generations.has(requestId)) return Promise.reject(new Error("That generation is already active."));
     const worker = this.worker;
     if (!worker || this.readyWorker !== worker) {
-      return Promise.reject(new Error("The local model is not ready on the current worker. Load it explicitly before generating."));
+      return Promise.reject(new Error("The local model isn't ready on the current worker. Load it before you start generating."));
     }
     return new Promise<LocalModelGenerationResult>((resolve, reject) => {
       this.generations.set(requestId, { ...callbacks, resolve, reject });
       try {
         worker.postMessage({ type: "generate", requestId, messages, options } satisfies ModelWorkerRequest);
       } catch (error) {
-        this.failWorker(error instanceof Error ? error : new Error("The local-model worker rejected generation."), worker);
+        this.failWorker(error instanceof Error ? error : new Error("The local model couldn't start generating."), worker);
       }
     });
   }
@@ -152,12 +152,12 @@ export class LocalModelClient {
     try {
       worker.postMessage({ type: "cancel", requestId } satisfies ModelWorkerRequest);
     } catch (error) {
-      this.failWorker(error instanceof Error ? error : new Error("The local-model worker rejected cancellation."), worker);
+      this.failWorker(error instanceof Error ? error : new Error("The local model couldn't stop the generation."), worker);
     }
   }
 
   dispose() {
     if (this.worker) this.worker.postMessage({ type: "dispose" } satisfies ModelWorkerRequest);
-    this.failWorker(new Error("The local-model client was disposed."));
+    this.failWorker(new Error("The local model was closed."));
   }
 }

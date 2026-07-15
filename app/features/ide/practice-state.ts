@@ -18,6 +18,8 @@ export type CompatiblePracticeDrafts = {
   ignoredLegacyLanguage: boolean;
 };
 
+type PracticeSourceBlock = Pick<CodeBlock, "id" | "code" | "label">;
+
 const JAVASCRIPT_DRAFT_MARKERS = [
   /\bfunction\s+[A-Za-z_$]/,
   /\b(?:const|let|var)\s+[A-Za-z_$]/,
@@ -27,7 +29,84 @@ const JAVASCRIPT_DRAFT_MARKERS = [
 ];
 
 export function practiceDraftIsCompatible(filename: string, source: string): boolean {
-  return !filename.endsWith(".py") || !JAVASCRIPT_DRAFT_MARKERS.some((marker) => marker.test(source));
+  return !filename.toLowerCase().endsWith(".py") || !JAVASCRIPT_DRAFT_MARKERS.some((marker) => marker.test(source));
+}
+
+/**
+ * Produce the incomplete source a learner should encounter before they have a
+ * saved draft. This is shared state policy, not presentation: lesson pages and
+ * the canonical project must resolve an untouched cell to the same bytes.
+ */
+export function starterPracticeSource(filename: string, block: Pick<CodeBlock, "code" | "label">): string {
+  if (filename.toLowerCase().endsWith(".py")) {
+    const lines = block.code.split("\n");
+    const definition = lines.findIndex((line) => line.startsWith("def "));
+    if (definition < 0) {
+      return `# TODO: implement ${block.label.toLowerCase()}.\nraise NotImplementedError(${JSON.stringify(`Implement ${block.label}.`)})`;
+    }
+    const prefix = lines.slice(0, definition).join("\n").trimEnd();
+    const signature = lines[definition];
+    return [prefix, `${signature}\n    raise NotImplementedError(${JSON.stringify(`Implement ${block.label}.`)})`]
+      .filter(Boolean)
+      .join("\n\n");
+  }
+  const signature = block.code.split("\n")[0];
+  return `${signature}\n  // TODO: implement ${block.label.toLowerCase()}.\n}`;
+}
+
+/** Compatibility-shaped entrypoint for lesson components. */
+export function starterCodeFor(
+  block: Pick<CodeBlock, "code" | "label">,
+  lesson: { implementation: { filename: string } },
+) {
+  return starterPracticeSource(lesson.implementation.filename, block);
+}
+
+/**
+ * Resolve the stable working document for one cell. `answers` is deliberately
+ * sparse and independent of the old hidden/reference UI state: both an active
+ * legacy draft and a draft archived by "Restore reference" reopen as the exact
+ * learner bytes. An incompatible pre-CPython save remains in `answers` for
+ * recovery but is never injected into a Python editor.
+ */
+export function workingPracticeBlockSource(
+  filename: string,
+  block: PracticeSourceBlock,
+  answers: Readonly<Record<string, string>>,
+): string {
+  const saved = Object.prototype.hasOwnProperty.call(answers, block.id)
+    ? answers[block.id]
+    : undefined;
+  return saved !== undefined && practiceDraftIsCompatible(filename, saved)
+    ? saved
+    : starterPracticeSource(filename, block);
+}
+
+export function workingPracticeSources(
+  filename: string,
+  blocks: readonly PracticeSourceBlock[],
+  answers: Readonly<Record<string, string>>,
+): Record<string, string> {
+  return Object.fromEntries(blocks.map((block) => [
+    block.id,
+    workingPracticeBlockSource(filename, block, answers),
+  ]));
+}
+
+/**
+ * Keep learner bytes that cannot participate in the current working document.
+ * This includes incompatible pre-CPython source and answers for exercise ids
+ * removed or renamed by a later curriculum version.
+ */
+export function preservedPracticeAnswers(
+  filename: string,
+  blocks: readonly Pick<CodeBlock, "id">[],
+  answers: Readonly<Record<string, string>>,
+): Record<string, string> {
+  const knownIds = new Set(blocks.map((block) => block.id));
+  return Object.fromEntries(Object.entries(answers).filter(([id, source]) => (
+    !knownIds.has(id) || !practiceDraftIsCompatible(filename, source)
+  )));
 }
 
 /**
@@ -44,14 +123,19 @@ export function compatiblePracticeDrafts(
   const knownIds = new Set(blocks.map((block) => block.id));
   const hidden = hiddenBlocks.filter((id) => knownIds.has(id));
   const preservedAnswers = { ...answers };
-  if (!filename.endsWith(".py")) {
+  if (!filename.toLowerCase().endsWith(".py")) {
     return { hiddenBlocks: hidden, answers: preservedAnswers, ignoredLegacyLanguage: false };
   }
-  const ignoredLegacyLanguage = hidden.some((id) => !practiceDraftIsCompatible(filename, preservedAnswers[id] ?? ""));
+  const incompatible = new Set(blocks.flatMap((block) => (
+    Object.prototype.hasOwnProperty.call(preservedAnswers, block.id)
+      && !practiceDraftIsCompatible(filename, preservedAnswers[block.id])
+      ? [block.id]
+      : []
+  )));
   return {
-    hiddenBlocks: ignoredLegacyLanguage ? [] : hidden,
+    hiddenBlocks: hidden.filter((id) => !incompatible.has(id)),
     answers: preservedAnswers,
-    ignoredLegacyLanguage,
+    ignoredLegacyLanguage: incompatible.size > 0,
   };
 }
 
@@ -97,6 +181,31 @@ export function restoreSourceBoundVerification(
   };
 }
 
+/** Restore receipts against the documents the learner is actually editing. */
+export function restoreWorkingSourceVerification(
+  blockIds: readonly string[],
+  workingSources: Readonly<Record<string, string>>,
+  verifiedIds: readonly string[],
+  verifiedSources: Readonly<Record<string, string>>,
+  verifiedContractVersion: string | null | undefined,
+  currentContractVersion: string,
+): SourceBoundVerification {
+  if (verifiedContractVersion !== currentContractVersion) {
+    return { ids: [], sources: {}, contractVersion: null };
+  }
+  const knownIds = new Set(blockIds);
+  const ids = [...new Set(verifiedIds)].filter((id) => (
+    knownIds.has(id)
+    && Object.prototype.hasOwnProperty.call(workingSources, id)
+    && verifiedSources[id] === workingSources[id]
+  ));
+  return {
+    ids,
+    sources: Object.fromEntries(ids.map((id) => [id, verifiedSources[id]])),
+    contractVersion: ids.length ? currentContractVersion : null,
+  };
+}
+
 export function invalidateBlockVerification(
   verification: SourceBoundVerification,
   blockId: string,
@@ -109,8 +218,9 @@ export function invalidateBlockVerification(
 }
 
 /**
- * Turn a reference cell into a learner draft without throwing away the text
- * that was visible when the learner started typing.
+ * Persist the learner's working document and invalidate only its old receipt.
+ * `hiddenBlocks` is still populated for older consumers, but working-source
+ * resolution no longer reads it.
  */
 export function editPracticeBlock(
   state: PracticeDraftState,
@@ -180,6 +290,19 @@ export function verificationAfterBlockRun(
     : invalidateBlockVerification(verification, blockId);
 }
 
+/** A working cell earns source-bound credit without any reveal/hide mode. */
+export function verificationAfterWorkingSourceRun(
+  verification: SourceBoundVerification,
+  blockId: string,
+  source: string,
+  passed: boolean,
+  currentContractVersion: string,
+): SourceBoundVerification {
+  return passed
+    ? bindBlockVerification(verification, blockId, source, currentContractVersion)
+    : invalidateBlockVerification(verification, blockId);
+}
+
 export function creditablePracticeBlockIds(
   blockIds: readonly string[],
   hiddenBlocks: readonly string[],
@@ -188,4 +311,12 @@ export function creditablePracticeBlockIds(
   const hidden = new Set(hiddenBlocks);
   const passing = new Set(passingBlockIds);
   return blockIds.filter((id) => hidden.has(id) && passing.has(id));
+}
+
+export function creditableWorkingBlockIds(
+  blockIds: readonly string[],
+  passingBlockIds: readonly string[],
+) {
+  const passing = new Set(passingBlockIds);
+  return blockIds.filter((id) => passing.has(id));
 }

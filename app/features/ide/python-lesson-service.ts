@@ -153,13 +153,13 @@ function parseObservation(value: unknown): InvocationObservation | null {
 }
 
 function parseEnvelopes(value: unknown): PythonObservationEnvelope[] {
-  if (!Array.isArray(value)) throw new Error("CPython returned an invalid contract result.");
+  if (!Array.isArray(value)) throw new Error("CPython returned a check result Latent couldn’t read.");
   return value.map((item) => {
     if (!isRecord(item) || typeof item.contractId !== "string" || typeof item.caseId !== "string") {
-      throw new Error("CPython returned an unidentified contract result.");
+      throw new Error("CPython returned a check result without an id.");
     }
     const observation = parseObservation(item.observation);
-    if (!observation) throw new Error(`CPython returned an invalid observation for ${item.contractId}/${item.caseId}.`);
+    if (!observation) throw new Error(`CPython returned an unreadable result for ${item.contractId}/${item.caseId}.`);
     return { contractId: item.contractId, caseId: item.caseId, observation };
   });
 }
@@ -182,10 +182,10 @@ export async function runPythonLessonContracts(input: {
   onEvent?: (event: PythonLabEvent) => void;
   pythonLab?: PythonLessonClient;
 }): Promise<PythonLessonContractRun> {
-  if (!input.path.endsWith(".py")) throw new Error("CPython lesson contracts require a .py project file.");
-  if (!input.contracts.length) throw new Error("The requested Python lesson contract is unavailable.");
+  if (!input.path.endsWith(".py")) throw new Error("CPython lesson checks need a .py project file.");
+  if (!input.contracts.length) throw new Error("That Python lesson check isn’t available.");
   if (input.contracts.some((contract) => contract.cases.some((exerciseCase) => exerciseCase.invoke.modulePath !== input.path))) {
-    throw new Error("The Python lesson contract does not belong to this project file.");
+    throw new Error("That Python lesson check doesn’t belong to this project file.");
   }
   const startedAt = Date.now();
   const pythonLab = input.pythonLab ?? await sharedClient();
@@ -217,28 +217,28 @@ export async function runPythonLessonContracts(input: {
     sync = await pythonLab.sync({ files: [{ path: input.path, contents: input.source }] }, operation);
     run = await pythonLab.run({ code: invocationHarness(input.path, input.contracts) }, runOperation);
   } catch (error) {
-    const detail = error instanceof Error ? error.message : "The CPython lesson worker failed.";
+    const detail = error instanceof Error ? error.message : "The CPython lesson worker stopped with an error.";
     return { cases: [], results: failedResults(input.contracts, detail), output, stdout: stdout.join(""), stderr: stderr.join(""), startedAt, completedAt: Date.now() };
   }
   if (initialization.runtime !== "pyodide" || !sync.files.includes(input.path)) {
-    return { cases: [], results: failedResults(input.contracts, "The CPython workspace did not synchronize this lesson."), output, stdout: stdout.join(""), stderr: stderr.join(""), startedAt, completedAt: Date.now() };
+    return { cases: [], results: failedResults(input.contracts, "The CPython workspace didn’t sync this lesson."), output, stdout: stdout.join(""), stderr: stderr.join(""), startedAt, completedAt: Date.now() };
   }
   if (run.status === "failed") {
-    const detail = run.exception?.message || "The CPython contract harness failed.";
+    const detail = run.exception?.message || "The CPython check runner stopped with an error.";
     return { cases: [], results: failedResults(input.contracts, detail), output, stdout: stdout.join(""), stderr: stderr.join(""), startedAt, completedAt: Date.now() };
   }
   let envelopes: PythonObservationEnvelope[];
   try {
     envelopes = parseEnvelopes(run.result);
   } catch (error) {
-    const detail = error instanceof Error ? error.message : "CPython returned unreadable contract evidence.";
+    const detail = error instanceof Error ? error.message : "CPython returned check results Latent couldn’t read.";
     return { cases: [], results: failedResults(input.contracts, detail), output, stdout: stdout.join(""), stderr: stderr.join(""), startedAt, completedAt: Date.now() };
   }
   const envelopeByCase = new Map(envelopes.map((item) => [`${item.contractId}/${item.caseId}`, item.observation]));
   const cases = input.contracts.flatMap((contract) => contract.cases.map((exerciseCase) => {
     const observation = envelopeByCase.get(`${contract.id}/${exerciseCase.id}`) ?? {
       status: "harness-error" as const,
-      message: "CPython did not return this case.",
+      message: "CPython didn’t return this case.",
     };
     return evaluateExerciseCase(contract, exerciseCase, observation);
   }));

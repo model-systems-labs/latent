@@ -235,8 +235,8 @@ test("a complete active build presents verified evidence and one honest run acti
   const progress = summarize(projectFixture({ complete: true }));
   const copy = capstone.capstoneReadyGateCopy(8);
   assert.equal(copy.eyebrow, "Verified build 8");
-  assert.equal(copy.title, "Run the verified build.");
-  assert.match(copy.summary, /lesson source tree and React integration passed together/);
+  assert.equal(copy.title, "Run your verified build.");
+  assert.match(copy.summary, /lesson files and the React app passed together/);
   assert.match(copy.summary, /isolated frame/);
   assert.deepEqual(capstone.capstonePathPresentation("ready", progress), {
     sourceState: "complete",
@@ -253,12 +253,12 @@ test("saved test receipts are not mislabeled as one test run", () => {
     totalTests: 18,
   };
   assert.deepEqual(capstone.capstoneTestEvidence("missing", null, progress), {
-    label: "Saved test receipts",
+    label: "Saved test results",
     value: "12/18 currently passing",
   });
   assert.deepEqual(capstone.capstoneTestEvidence("ready", 9, progress), {
-    label: "Build test evidence",
-    value: "Full suite passed for build #9",
+    label: "Build test results",
+    value: "Every test passed for build #9",
   });
 });
 
@@ -322,7 +322,7 @@ test("a host runtime outage preserves the passing build and offers a retry rathe
   assert.equal(recovery.action, "retry");
   assert.equal(recovery.path, null);
   assert.equal(recovery.blockedStage, "preview");
-  assert.match(recovery.summary, /build is still protected/);
+  assert.match(recovery.summary, /passing project build is still safe/);
 });
 
 test("generation admission verifies the React-authored request frame byte for byte", () => {
@@ -360,7 +360,7 @@ test("a missing source-bound Python checkpoint routes directly to the model trai
   assert.equal(recovery.path, "models/character-rnn.py");
   assert.equal(recovery.actionPath, "models/character-rnn.py");
   assert.equal(recovery.href, "/workspace?file=models%2Fcharacter-rnn.py");
-  assert.match(recovery.why, /Imported, JavaScript-trained, older-source/);
+  assert.match(recovery.why, /imported checkpoints, checkpoints trained in JavaScript, or checkpoints from older source/);
 });
 
 test("the learner-facing component no longer emits the old dead-end or raw capability failure", async () => {
@@ -370,11 +370,11 @@ test("the learner-facing component no longer emits the old dead-end or raw capab
   ]);
   assert.doesNotMatch(source, /Canonical project required|Build the repository in the IDE/);
   assert.doesNotMatch(source, /Restore the capstone build/);
-  assert.match(source, /Verifying the active build/);
+  assert.match(source, /Verifying your active build/);
   assert.doesNotMatch(source, /setDetail\(error instanceof Error \? error\.message/);
   assert.doesNotMatch(source, /Last test run|passing in the last run/);
-  assert.match(source, /Current workspace lesson source/);
-  assert.match(source, /Active build snapshot/);
+  assert.match(source, /Current lesson files/);
+  assert.match(source, /<strong>Active build<\/strong>/);
   assert.match(source, /await reconcileCanonicalProject\(\)/);
   assert.match(source, /Sandboxed React preview/);
   assert.match(source, /aria-label="Verified lesson files"/);

@@ -107,6 +107,34 @@ test("the Dexie seam stores immutable lineage and round-trips portable bundles",
     await store.put(child);
     await store.activate(child, "lesson-output", "two");
     assert.equal((await store.latestForLesson("two", "test-project")).id, child.id);
+
+    const staleReplacement = await core.createArtifact(artifactInput({
+      kind: "output",
+      title: "Stale replacement",
+      lessonId: "two",
+      payload: { value: 2 },
+    }));
+    await store.put(staleReplacement);
+    let replacementChecks = 0;
+    await assert.rejects(
+      store.activate(staleReplacement, "lesson-output", "two", () => ++replacementChecks === 1),
+      /source is no longer current/i,
+    );
+    assert.equal((await store.latestForLesson("two", "test-project")).id, child.id, "a source change during activation must restore the prior head");
+
+    const staleFirstHead = await core.createArtifact(artifactInput({
+      kind: "output",
+      title: "Stale first head",
+      lessonId: "three",
+      payload: { value: 3 },
+    }));
+    await store.put(staleFirstHead);
+    let firstHeadChecks = 0;
+    await assert.rejects(
+      store.activate(staleFirstHead, "lesson-output", "three", () => ++firstHeadChecks === 1),
+      /source is no longer current/i,
+    );
+    assert.equal(await store.latestForLesson("three", "test-project"), undefined, "a rejected first activation must not leave a head behind");
     assert.equal((await store.lineage(child.id)).length, 2);
 
     const serialized = portable.serializeArtifactBundle(await store.bundle(child.id));

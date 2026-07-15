@@ -39,8 +39,68 @@ function verifiedState() {
   };
 }
 
-test("the first direct edit preserves the visible source, creates a draft, and invalidates only that cell", () => {
-  const typedSource = "function first() { return 42; } // typed directly into the reference";
+const pythonBlocks = [{
+  id: "softmax",
+  label: "Stable softmax",
+  code: `import numpy as np
+
+def stable_softmax(logits):
+    shifted = np.asarray(logits) - np.max(logits)
+    weights = np.exp(shifted)
+    return weights / np.sum(weights)`,
+}, {
+  id: "context",
+  label: "Context embedding",
+  code: `import numpy as np
+
+def context_embedding(indices, embeddings):
+    return np.asarray(embeddings)[indices].mean(axis=0)`,
+}];
+
+test("a fresh cell resolves directly to inviting starter source", () => {
+  const starter = practiceState.starterPracticeSource("neural-language-model.py", pythonBlocks[0]);
+
+  assert.equal(
+    starter,
+    `import numpy as np
+
+def stable_softmax(logits):
+    raise NotImplementedError("Implement Stable softmax.")`,
+  );
+  assert.equal(
+    practiceState.workingPracticeBlockSource("neural-language-model.py", pythonBlocks[0], {}),
+    starter,
+  );
+  assert.deepEqual(
+    practiceState.workingPracticeSources("neural-language-model.py", pythonBlocks, {}),
+    {
+      softmax: starter,
+      context: practiceState.starterPracticeSource("neural-language-model.py", pythonBlocks[1]),
+    },
+  );
+});
+
+test("active and formerly archived legacy drafts both reopen as the exact working source", () => {
+  const typedSource = "def stable_softmax(logits):\n    return logits";
+  const answers = { softmax: typedSource };
+
+  for (const hiddenBlocks of [[], ["softmax"]]) {
+    const compatible = practiceState.compatiblePracticeDrafts(
+      "neural-language-model.py",
+      pythonBlocks,
+      hiddenBlocks,
+      answers,
+    );
+    assert.equal(
+      practiceState.workingPracticeBlockSource("neural-language-model.py", pythonBlocks[0], compatible.answers),
+      typedSource,
+      "legacy visibility state must not swap the learner's document",
+    );
+  }
+});
+
+test("the first direct edit retains exact bytes and invalidates only that cell", () => {
+  const typedSource = "function first() { return 42; } // typed directly into the starter";
   const next = practiceState.editPracticeBlock(verifiedState(), "first", typedSource);
 
   assert.deepEqual(next.hiddenBlocks, ["first"]);
@@ -51,59 +111,71 @@ test("the first direct edit preserves the visible source, creates a draft, and i
     contractVersion: "contracts-v1",
   });
   assert.equal(
-    practiceState.practiceBlockSource({ id: "first", code: "reference first" }, next.hiddenBlocks, next.answers),
+    practiceState.workingPracticeBlockSource(
+      "lesson.js",
+      { id: "first", label: "First", code: "function first() { return 1; }" },
+      next.answers,
+    ),
     typedSource,
   );
 
   const restoredFromStorage = JSON.parse(JSON.stringify(next));
   assert.equal(
-    practiceState.practiceBlockSource({ id: "first", code: "reference first" }, restoredFromStorage.hiddenBlocks, restoredFromStorage.answers),
+    practiceState.workingPracticeBlockSource(
+      "lesson.js",
+      { id: "first", label: "First", code: "function first() { return 1; }" },
+      restoredFromStorage.answers,
+    ),
     typedSource,
     "a serialized learner draft must resolve to the same source after reload",
   );
 });
 
-test("reset and restore remain explicit, source-bound transitions", () => {
+test("reset replaces only one working source and invalidates only its receipt", () => {
   const edited = practiceState.editPracticeBlock(verifiedState(), "first", "learner attempt");
   const reset = practiceState.resetPracticeBlock(edited, "first", "starter TODO");
   assert.deepEqual(reset.hiddenBlocks, ["first"]);
   assert.equal(reset.answers.first, "starter TODO");
-  assert.deepEqual(reset.verification.ids, ["second"]);
-
-  const restored = practiceState.restoreReferenceBlock(reset, "first");
-  assert.deepEqual(restored.hiddenBlocks, []);
-  assert.equal(restored.answers.first, "starter TODO", "restoring the reference must retain the prior draft for recovery");
-  assert.equal(
-    practiceState.practiceBlockSource({ id: "first", code: "reference first" }, restored.hiddenBlocks, restored.answers),
-    "reference first",
-  );
-  assert.deepEqual(restored.verification.ids, ["second"]);
+  assert.deepEqual(reset.verification, {
+    ids: ["second"],
+    sources: { second: "reference second" },
+    contractVersion: "contracts-v1",
+  });
 });
 
-test("a pre-migration JavaScript draft is preserved but never injected into a Python lesson", () => {
+test("mixed Python migration quarantines only the incompatible JavaScript cell", () => {
   const answers = {
     softmax: "function stableSoftmax(logits) { return logits; }",
-    untouched: "def untouched(value):\n    return value",
+    context: "def context_embedding(indices, embeddings):\n    return embeddings[indices]",
+    "removed-exercise": "def learner_archive():\n    return 'keep me'",
   };
   const migrated = practiceState.compatiblePracticeDrafts(
     "neural-language-model.py",
-    [{ id: "softmax" }, { id: "untouched" }],
-    ["softmax"],
+    pythonBlocks,
+    ["softmax", "context"],
     answers,
   );
 
-  assert.deepEqual(migrated.hiddenBlocks, []);
+  assert.deepEqual(migrated.hiddenBlocks, ["context"]);
   assert.equal(migrated.answers.softmax, answers.softmax, "legacy bytes remain available for recovery");
   assert.equal(migrated.ignoredLegacyLanguage, true);
-
-  const python = practiceState.compatiblePracticeDrafts(
-    "neural-language-model.py",
-    [{ id: "untouched" }],
-    ["untouched"],
-    answers,
+  assert.equal(
+    practiceState.workingPracticeBlockSource("neural-language-model.py", pythonBlocks[0], migrated.answers),
+    practiceState.starterPracticeSource("neural-language-model.py", pythonBlocks[0]),
   );
-  assert.deepEqual(python.hiddenBlocks, ["untouched"]);
-  assert.equal(python.ignoredLegacyLanguage, false);
+  assert.equal(
+    practiceState.workingPracticeBlockSource("neural-language-model.py", pythonBlocks[1], migrated.answers),
+    answers.context,
+    "one incompatible save must not suppress a compatible Python draft",
+  );
+  assert.deepEqual(
+    practiceState.preservedPracticeAnswers("neural-language-model.py", pythonBlocks, migrated.answers),
+    {
+      softmax: answers.softmax,
+      "removed-exercise": answers["removed-exercise"],
+    },
+    "renamed or removed exercise answers must survive an unrelated current-cell save",
+  );
 });
 
 test("saved Python drafts can be restored while legacy JavaScript remains quarantined", () => {
@@ -112,20 +184,60 @@ test("saved Python drafts can be restored while legacy JavaScript remains quaran
   assert.equal(practiceState.practiceDraftIsCompatible("lesson.js", "function softmax(values) { return values; }"), true);
 });
 
-test("every lesson cell exposes an editor without a practice-mode gate and persists edits", async () => {
+test("verification binds to the exact stable working source without a visibility mode", () => {
+  const empty = { ids: [], sources: {}, contractVersion: null };
+  const workingSources = {
+    softmax: "def stable_softmax(logits):\n    return logits",
+    context: "def context_embedding(indices, embeddings):\n    return embeddings[indices]",
+  };
+  const verified = practiceState.verificationAfterWorkingSourceRun(
+    empty,
+    "softmax",
+    workingSources.softmax,
+    true,
+    "contracts-v1",
+  );
+  assert.deepEqual(verified, {
+    ids: ["softmax"],
+    sources: { softmax: workingSources.softmax },
+    contractVersion: "contracts-v1",
+  });
+  assert.deepEqual(
+    practiceState.restoreWorkingSourceVerification(
+      ["softmax", "context"],
+      workingSources,
+      ["softmax", "context"],
+      { softmax: workingSources.softmax, context: "changed after verification" },
+      "contracts-v1",
+      "contracts-v1",
+    ),
+    verified,
+  );
+  assert.deepEqual(
+    practiceState.creditableWorkingBlockIds(["softmax", "context"], ["context"]),
+    ["context"],
+  );
+});
+
+test("the active exercise exposes a starter-first editor and persists exact edits", async () => {
   const source = await readFile(paperLabUrl, "utf8");
 
   assert.match(source, /className="answer-area" data-direct-edit="true"/);
+  assert.match(source, /const active = activeBlockId === block\.id/);
+  assert.match(source, /aria-expanded=\{active\}/);
+  assert.match(source, /setActiveBlockId\(block\.id\)/);
+  assert.match(source, /const workingSource = practiceReady \? answers\[block\.id\] \?\? starterSource : starterSource/);
   assert.match(source, /ariaLabel=\{`Edit \$\{block\.label\}`\}/);
   assert.match(source, /const blockRunning = runningBlockIds\.includes\(block\.id\)/);
-  assert.match(source, /readOnly=\{blockRunning\}/);
-  assert.match(source, /value=\{hidden \? answers\[block\.id\] \?\? "" : block\.code\}/);
+  assert.match(source, /readOnly=\{blockRunning \|\| projectConflict\}/);
+  assert.match(source, /value=\{workingSource\}/);
+  assert.match(source, /<SyntaxCode code=\{starterSource\} label=\{`\$\{block\.label\} starter loading`\}/);
   assert.match(source, /onChange=\{\(value\) => updateAnswer\(block, value\)\}/);
   assert.match(source, /editPracticeBlock\(practiceDraftState\(\), block\.id, value\)/);
-  assert.match(source, /saveLessonPracticeAndVerification\(lesson\.id, next\.hiddenBlocks, next\.answers/);
-  assert.match(source, /saveLessonProjectFile\(projectSeedForLesson\(lesson, next\.hiddenBlocks, next\.answers/);
-  assert.doesNotMatch(source, />Practice cell<\/button>/);
-  assert.doesNotMatch(source, /hidden \? \([\s\S]*<LessonCodeEditor[\s\S]*\) : \([\s\S]*<SyntaxCode/);
+  assert.match(source, /saveLessonPracticeAndVerification\(lesson\.id, next\.hiddenBlocks, persistedAnswers/);
+  assert.match(source, /saveCurrentProjectSeed\(projectSeedForLesson\(lesson, next\.hiddenBlocks, next\.answers/);
+  assert.doesNotMatch(source, /Editable reference|Practice not run|Example not run|>Practice cell<\/button>/);
+  assert.doesNotMatch(source, /data-reference-code/);
 });
 
 test("a single-cell check locks only that cell and preserves concurrent edits elsewhere", async () => {
@@ -135,28 +247,54 @@ test("a single-cell check locks only that cell and preserves concurrent edits el
   assert.match(runCellSource, /const currentHidden = \[\.\.\.hiddenBlocksRef\.current\]/);
   assert.match(runCellSource, /const currentAnswers = \{ \.\.\.answersRef\.current \}/);
   assert.match(runCellSource, /applyPracticeState\(currentHidden, currentAnswers, nextVerified/);
-  assert.match(runCellSource, /saveLessonProjectFile\(projectSeedForLesson\(lesson, currentHidden, currentAnswers, nextVerified\)\)/);
+  assert.match(runCellSource, /saveCurrentProjectSeed\(projectSeedForLesson\(lesson, currentHidden, currentAnswers, nextVerified\)\)/);
   assert.doesNotMatch(runCellSource, /applyPracticeState\(hiddenSnapshot, answersSnapshot, nextVerified/);
-  assert.match(source, /disabled=\{!practiceReady \|\| blockRunning\}>Reset starter/);
+  assert.match(source, /dirty \? <button className="start-over-button"/);
+  assert.match(source, /disabled=\{!practiceReady \|\| projectConflict \|\| blockRunning\}>Start over/);
 });
 
-test("destructive resets arm inline and recovery actions render only when usable", async () => {
+test("start over confirms inline while reference comparison never swaps the draft", async () => {
   const source = await readFile(paperLabUrl, "utf8");
 
   assert.match(source, /onClick=\{\(\) => armBlockReset\(block\)\}/);
-  assert.match(source, /Confirm reset \$\{block\.label\} to starter code/);
-  assert.match(source, /onClick=\{\(\) => resetBlock\(block\)\}[^\n]*>Confirm reset<\/button>/);
+  assert.match(source, /Confirm start over for \$\{block\.label\}/);
+  assert.match(source, /onClick=\{\(\) => resetBlock\(block\)\}[^\n]*>Confirm<\/button>/);
   assert.match(source, /onClick=\{\(\) => cancelBlockReset\(block\)\}/);
-  assert.match(source, /hidden \? <button[^\n]*Restore reference<\/button>/);
-  assert.match(source, /recoverableDraft \? <button[^\n]*Restore draft<\/button> : null/);
-  assert.match(source, /onClick=\{armResetAll\}/);
-  assert.match(source, /onClick=\{hideAll\}[^\n]*>Confirm reset all<\/button>/);
-  assert.match(source, /onClick=\{cancelResetAll\}/);
-  assert.match(source, /hiddenBlocks\.length > 0 \? <button[^\n]*Restore all<\/button> : null/);
   assert.match(source, /aria-describedby=\{`practice-status-\$\{lesson\.id\}`\}/);
-  assert.match(source, /reset is ready\. Confirm to replace this draft with its starter, or cancel/);
-  assert.match(source, /Reset all is ready\. Confirm to replace every cell with its starter, or cancel/);
-  assert.doesNotMatch(source, /disabled=\{!practiceReady \|\| \(!hidden && !recoverableDraft\)/);
+  assert.match(source, /is ready to start over\. Confirm to replace this draft with starter code, or cancel to keep your code/);
+  assert.match(source, /<details className="reference-comparison">[\s\S]*?<SyntaxCode code=\{block\.code\}/);
+  assert.match(source, /Your draft stays unchanged/);
+  assert.doesNotMatch(source, /Restore reference|Restore draft|Restore all|Reset all|showSolution|hideAll|recoverBlock|restoreBlock/);
+});
+
+test("lesson writes preserve quarantined legacy bytes and never overwrite newer IDE source", async () => {
+  const source = await readFile(paperLabUrl, "utf8");
+
+  assert.match(source, /const quarantinedAnswersRef = useRef<Record<string, string>>\(\{\}\)/);
+  assert.match(source, /quarantinedAnswersRef\.current = quarantinedAnswers/);
+  assert.match(source, /const nextQuarantinedAnswers = \{ \.\.\.quarantinedAnswersRef\.current \}/);
+  assert.match(source, /delete nextQuarantinedAnswers\[block\.id\]/);
+  assert.match(source, /const persistedAnswers = \{ \.\.\.next\.answers, \.\.\.nextQuarantinedAnswers \}/);
+  assert.match(source, /saveLessonPracticeAndVerification\(lesson\.id, next\.hiddenBlocks, persistedAnswers/);
+
+  assert.match(source, /const projectSourceIsCurrent = \(\) => loadProjectState\(\)\.files\[projectPath\]\?\.content === projectContentRef\.current/);
+  assert.match(source, /if \(!projectSourceIsCurrent\(\)\) \{\s*reportProjectConflict\(\);\s*return;\s*\}/);
+  assert.match(source, /data-project-conflict=\{projectConflict\}/);
+  assert.match(source, /readOnly=\{blockRunning \|\| projectConflict\}/);
+  assert.match(source, /This file changed in the full IDE\. Continue there so this lesson doesn.t overwrite the newer code\./);
+});
+
+test("lesson checks abort on unmount and cannot commit a superseded project snapshot", async () => {
+  const source = await readFile(paperLabUrl, "utf8");
+
+  assert.match(source, /const runAbortRef = useRef<AbortController \| null>\(null\)/);
+  assert.match(source, /useEffect\(\(\) => \(\) => \{\s*runAbortRef\.current\?\.abort\(\);\s*runAbortRef\.current = null;\s*\}, \[\]\)/);
+  assert.ok((source.match(/const controller = new AbortController\(\)/g) ?? []).length >= 2);
+  assert.match(source, /runContracts\([\s\S]*?controller\.signal/);
+  assert.match(source, /controller\.signal\.throwIfAborted\(\)/);
+  assert.match(source, /await flushProjectPersistence\(\)/);
+  assert.match(source, /recordValidatedLessonArtifact\(\{[\s\S]*?signal: controller\.signal[\s\S]*?isSourceCurrent: \(\) => projectFileSourceIsCurrent\(/);
+  assert.match(source, /if \(runAbortRef\.current === controller\) \{\s*runAbortRef\.current = null;\s*setRunning\(\[\]\);/);
 });
 
 test("external reset and restore updates do not masquerade as learner typing", async () => {

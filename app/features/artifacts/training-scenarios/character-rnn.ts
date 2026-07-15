@@ -12,14 +12,14 @@ export const characterRnnTrainingScenario = {
   checkpoint: {
     kind: "model-checkpoint",
     title: "Character RNN",
-    description: "Actual weights captured from the deterministic course trainer; the browser replays the expensive lifecycle without fabricating model output.",
+    description: "Real weights from the course’s repeatable trainer. The browser replays the slow parts without making up model output.",
     payloadFormat: "latent-character-rnn-checkpoint",
     labels: ["actual-weights", "character-rnn"],
   },
   run: {
     kind: "training-run",
     title: "Character RNN training replay",
-    description: "A replay over four real checkpoint artifacts. Training time is simulated; every loss, sample, and downloadable weight tensor comes from an actual deterministic run.",
+    description: "A replay of four real checkpoints. The timing is simulated, but every loss, sample, and downloadable weight tensor comes from a real repeatable run.",
     labels: ["checkpoint-ladder", "character-rnn"],
     metrics: {
       initialLoss: { checkpoint: "first", metric: "finalLoss" },
@@ -34,7 +34,7 @@ export const characterRnnTrainingScenario = {
 } satisfies RecordedTrainingScenario;
 
 export const characterRnnTrainingPresentation = {
-  checkpointEyebrow: "Actual checkpoint weights",
+  checkpointEyebrow: "Real checkpoint weights",
   metrics: [
     { id: "loss", key: "finalLoss", label: "Loss", format: { kind: "decimal", digits: 3 } },
     { id: "change", key: "finalLoss", label: "Change", format: { kind: "decimal", digits: 3 }, comparison: true },
@@ -47,5 +47,5 @@ export const characterRnnTrainingPresentation = {
     key: "sample",
     label: "Sample generated from this checkpoint",
   },
-  disclosure: "Training time is replayed. The loss, generated text, and downloadable tensors come from the recorded deterministic run.",
+  disclosure: "The browser replays the training time. The loss, generated text, and downloadable tensors all come from the recorded repeatable run.",
 } satisfies TrainingReplayPresentation;

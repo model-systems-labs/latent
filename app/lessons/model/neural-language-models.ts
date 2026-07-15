@@ -9,59 +9,59 @@ export const neuralLanguageModelsLesson = {
     eyebrow: "Embeddings · Bengio et al. · 2003",
     title: "Neural Language Models",
     thesis:
-      "A learned continuous representation lets related words share statistical strength instead of treating every context as an unrelated symbolic event.",
+      "What the model learns about one word can help it predict related words, instead of treating every context as unrelated.",
     paperUrl: "https://www.jmlr.org/papers/v3/bengio03a.html",
     paperTitle: "A Neural Probabilistic Language Model",
     authors: "Yoshua Bengio, Réjean Ducharme, Pascal Vincent, Christian Jauvin",
     year: "2003",
     paperContext: `
-This lesson concerns "A Neural Probabilistic Language Model" by Bengio, Ducharme, Vincent, and Jauvin.
-- Count-based n-grams generalize poorly to unseen word sequences because words and contexts are discrete.
-- The model jointly learns a distributed vector representation for each word and a neural probability function over the next word.
-- Nearby representations allow training on one sentence to affect predictions for related sentences.
-- The paper evaluates neural language models against statistical baselines and discusses the computational cost of the output vocabulary.
-- This browser lab uses a smaller context-embedding softmax model rather than the paper's full architecture and corpora.
+This lesson walks through "A Neural Probabilistic Language Model" by Bengio, Ducharme, Vincent, and Jauvin.
+- Count-based n-grams struggle with word sequences they haven't seen because they treat words and contexts as separate, discrete items.
+- The model learns a vector for each word and a neural probability function for the next word at the same time.
+- When related words get nearby vectors, training on one sentence can help with similar sentences.
+- The paper compares neural language models with statistical baselines and covers the compute cost of scoring the whole output vocabulary.
+- This browser lab uses a smaller context-embedding softmax model, not the paper's full architecture or datasets.
 ${commonQuestionInstruction}`.trim(),
     summary: [
       {
-        label: "Discrete n-gram estimate.",
+        label: "How an n-gram counts.",
         body:
-          "An n-gram model estimates the next word from an exact window of preceding words. A trigram estimate for “the researcher reads” depends on how often that exact three-word sequence occurred. If “the researcher” never appeared, its count supplies no direct evidence—even if “the analyst reads” appeared many times.",
+          "An n-gram model guesses the next word from an exact window of earlier words. A trigram estimate for “the researcher reads” depends on how often that exact three-word sequence showed up. If the model never saw “the researcher,” that count gives it no direct help—even if it saw “the analyst reads” many times.",
       },
       {
-        label: "Embedding lookup.",
+        label: "Look up the embeddings.",
         body:
-          "Assign every vocabulary word an integer id, then use that id to select one row of a trainable embedding table. That row is a short vector of continuous coordinates. For a two-word context, this lab looks up two rows and averages each coordinate to produce one context vector.",
+          "Give every word in the vocabulary an integer id, then use that id to pick a row from a trainable embedding table. Each row is a short vector of continuous values. For a two-word context, this lab looks up both rows and averages them coordinate by coordinate to make one context vector.",
       },
       {
-        label: "Vocabulary logits.",
+        label: "Score every possible next word.",
         body:
-          "A learned projection maps the context vector to one logit—a raw, unnormalized score—for every possible next word. Softmax exponentiates relative score differences and divides by their sum. Subtracting the largest logit first leaves the probabilities unchanged while preventing numerical overflow.",
+          "A learned projection turns the context vector into one logit—a raw score—for every possible next word. Softmax exponentiates the score differences and divides by their total. Subtracting the largest logit first doesn't change the probabilities, but it does prevent numerical overflow.",
       },
       {
-        label: "Negative log-likelihood.",
+        label: "Score the real next word.",
         body:
-          "Training scores the observed next word with −log p(target). With 30 vocabulary items, a uniform model assigns probability 1/30 and has loss ln(30) ≈ 3.40. A validation loss of 2.53 corresponds to perplexity exp(2.53) ≈ 12.6: the model has reduced the effective next-word uncertainty from 30 equally likely choices.",
+          "Training scores the real next word with −log p(target). With 30 vocabulary items, a uniform model gives each one probability 1/30 and gets a loss of ln(30) ≈ 3.40. A validation loss of 2.53 means a perplexity of exp(2.53) ≈ 12.6. In effect, the model has cut its next-word uncertainty from 30 equally likely choices to about 12.6.",
       },
       {
-        label: "Joint parameter learning.",
+        label: "Learn both parts together.",
         body:
-          "Backpropagation updates the output projection and the selected embedding rows together. Words acquire nearby vectors only when similar coordinates help predict their observed continuations; the nearest-neighbor list after training is evidence about the learned geometry, not a dictionary of manually assigned meanings.",
+          "Backpropagation updates the output projection and the chosen embedding rows together. Words end up with nearby vectors only when similar coordinates help predict what follows them. The nearest-neighbor list after training shows the shape the model learned; it isn't a dictionary of meanings someone entered by hand.",
       },
       {
-        label: "Vocabulary-scale cost.",
+        label: "A big vocabulary costs more.",
         body:
-          "The lab has 30 output words, but a production vocabulary may contain tens of thousands of tokens. Producing and normalizing one logit per vocabulary item makes the output layer expensive. Modern architectures change the context encoder, yet embedding lookup, logits, stable softmax, and negative log-likelihood remain fundamental.",
+          "This lab has 30 output words, but a production vocabulary can have tens of thousands of tokens. Creating and normalizing one logit for every item makes the output layer expensive. Modern models use different context encoders, but embedding lookup, logits, stable softmax, and negative log-likelihood are still basic building blocks.",
       },
     ],
     claims: {
-      paper: "Distributed word representations improve generalization beyond exact observed n-grams.",
-      lab: "A small context-embedding model is trained and compared with a count baseline on held-out examples.",
-      limit: "The lab omits the paper's hidden network depth, corpus size, and full vocabulary-softmax cost.",
+      paper: "Distributed word representations help models go beyond the exact n-grams they saw during training.",
+      lab: "You'll train a small context-embedding model and compare it with a count-based baseline on held-out examples.",
+      limit: "The lab leaves out the paper's deeper hidden network, large dataset, and full vocabulary-softmax cost.",
     },
     diagram: {
       title: "Context vectors to next-word loss",
-      caption: "A numerical toy path for a three-word output vocabulary. The live experiment repeats the same operations over 30 words and learns both the embedding table and output projection.",
+      caption: "Here's a small numerical example with a three-word output vocabulary. The live experiment runs the same steps over 30 words and learns both the embedding table and the output projection.",
       nodes: [
         { label: "Context ids", value: "the analyst → [4, 17]" },
         { label: "Embedding lookup", value: "[.6, −.2], [.2, .8]" },
@@ -72,7 +72,7 @@ ${commonQuestionInstruction}`.trim(),
       ],
     },
     questions: {
-      intro: "Ask about embeddings, perplexity, the n-gram comparison, or which parts of the 2003 architecture persist in current LLMs.",
+      intro: "Ask about embeddings, perplexity, the n-gram comparison, or which parts of this 2003 design still show up in today's LLMs.",
       suggestions: [
         "Why do embeddings reduce sparsity?",
         "What does perplexity measure?",
@@ -83,22 +83,22 @@ ${commonQuestionInstruction}`.trim(),
       name: "Roles and Actions",
       source: "Original synthetic course corpus",
       license: "CC0",
-      size: "20 sentences · deterministic example-level modulo split",
+      size: "20 sentences · fixed example-by-example modulo split",
       preview: "the analyst reads the report · the model predicts the token",
     },
     implementation: {
       filename: "neural-language-model.py",
-      intro: "Reconstruct the same numerical path in Python and NumPy. First normalize logits stably, then combine every selected context row coordinate by coordinate, and finally score the observed target. Each cell runs independently before the supplied model trains.",
+      intro: "Rebuild the same number-crunching path in Python and NumPy. First normalize the logits without overflow. Then combine the chosen context rows coordinate by coordinate, and finally score the real target. Each cell runs on its own before the provided model trains.",
       tensorOps: ["numpy", "np.asarray", "np.exp", "np.mean", "np.log", "tolist"],
       codeBlocks: [
         {
           id: "stable-softmax",
           label: "Stable softmax",
-          purpose: "Normalize vocabulary logits without exponent overflow.",
+          purpose: "Turn vocabulary logits into probabilities without exponent overflow.",
           concepts: [
-            { name: "logits", detail: "One raw score per vocabulary word; they are not probabilities yet." },
-            { name: "shifted", detail: "Subtracts max(logits) before exponentiation for numerical stability." },
-            { name: "result", detail: "One finite probability per input logit, summing to 1." },
+            { name: "logits", detail: "One raw score for each vocabulary word. They aren't probabilities yet." },
+            { name: "shifted", detail: "Subtracts max(logits) before exponentiation to keep the math stable." },
+            { name: "result", detail: "One finite probability for each input logit, adding up to 1." },
           ],
           code: `import numpy as np
 
@@ -119,11 +119,11 @@ RESULT = {
         {
           id: "context-embedding",
           label: "Context representation",
-          purpose: "Average the learned vectors for the context words.",
+          purpose: "Average the learned vectors for the words in the context.",
           concepts: [
-            { name: "indices", detail: "Vocabulary ids for every word in the current context window." },
-            { name: "table[indices]", detail: "Selects one trainable table row for each id, preserving order and repeats." },
-            { name: "mean(axis=0)", detail: "Averages down the row axis, leaving one value per embedding coordinate." },
+            { name: "indices", detail: "The vocabulary ids for every word in the current context window." },
+            { name: "table[indices]", detail: "Picks one trainable table row for each id while keeping the order and repeats." },
+            { name: "mean(axis=0)", detail: "Averages down the rows, leaving one value for each embedding coordinate." },
           ],
           code: `import numpy as np
 
@@ -147,11 +147,11 @@ RESULT = {
         {
           id: "negative-log-likelihood",
           label: "Negative log-likelihood",
-          purpose: "Convert the target word probability into a training loss.",
+          purpose: "Turn the target word's probability into a training loss.",
           concepts: [
-            { name: "target_index", detail: "Index of the observed next word." },
-            { name: "probability", detail: "Read only the model mass at target_index, not the maximum value." },
-            { name: "np.log", detail: "Returns −log p(target) after clamping p to 10⁻¹²." },
+            { name: "target_index", detail: "The index of the real next word." },
+            { name: "probability", detail: "Read the probability at target_index, not whichever value is largest." },
+            { name: "np.log", detail: "Returns −log p(target) after keeping p from falling below 10⁻¹²." },
           ],
           code: `import numpy as np
 
@@ -178,6 +178,6 @@ RESULT = {
     experiment: {
       kind: "neural-lm",
       title: "Train the embedding model",
-      intro: "Run the supplied two-word reference trainer, then inspect validation loss, its next-word distribution, and nearest embedding neighbors. The replay does not execute the learner cells.",
+      intro: "Run the provided two-word trainer, then check its validation loss, next-word probabilities, and nearest embedding neighbors. This replay doesn't run your code cells.",
     },
   } satisfies Omit<CourseLesson, "sources">;

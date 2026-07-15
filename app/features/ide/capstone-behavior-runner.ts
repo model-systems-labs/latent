@@ -51,7 +51,7 @@ export const CAPSTONE_PREFLIGHT_SOURCE = String.raw`(() => {
   };
   const walk = (element) => {
     visited += 1;
-    if (visited > 5000) throw new Error("The render tree exceeded the bounded preflight node budget.");
+    if (visited > 5000) throw new Error("The render tree went over the preflight limit of 5,000 nodes.");
     if (element === null || element === undefined || typeof element === "boolean" || typeof element === "string" || typeof element === "number") return;
     if (Array.isArray(element)) {
       for (const child of element) walk(child);
@@ -229,7 +229,7 @@ export const CAPSTONE_BEHAVIOR_BOOTSTRAP_SOURCE = String.raw`(() => {
     script.onerror = () => {
       nativeRevokeObjectURL(url);
       activeUrls.delete(url);
-      reject(new Error(label + " did not execute."));
+      reject(new Error(label + " didn’t run."));
     };
     document.head.append(script);
   });
@@ -275,7 +275,7 @@ export const CAPSTONE_BEHAVIOR_BOOTSTRAP_SOURCE = String.raw`(() => {
         cancellations.push(payload);
         return Promise.resolve(null);
       }
-      if (method !== "generate") return Promise.reject(new Error("Unsupported behavior fixture method: " + method));
+      if (method !== "generate") return Promise.reject(new Error("The behavior fixture doesn’t support this method: " + method));
       generationCount += 1;
       generations.push(payload);
       if (fixture.transientRetry && generationCount === 1) {
@@ -328,16 +328,16 @@ export const CAPSTONE_BEHAVIOR_BOOTSTRAP_SOURCE = String.raw`(() => {
     const composer = await waitFor(() => {
       const candidate = query('textarea[aria-label="Chat message"]');
       return candidate && visible(candidate) && !candidate.disabled ? candidate : null;
-    }, "The enabled chat composer was not rendered.");
+    }, "The page didn’t show an enabled chat message box.");
     nativeTextareaValue.call(composer, value);
     nativeDispatch.call(composer, new NativeEvent("input", { bubbles: true }));
     nativeDispatch.call(composer, new NativeEvent("change", { bubbles: true }));
     const send = await waitFor(() => {
       const send = button("Send");
       return send && !send.disabled ? send : null;
-    }, "Typing did not enable the Send action.");
+    }, "Typing didn’t turn on the Send button.");
     const form = query("form");
-    if (!form) throw new Error("The chat composer is not contained in a form.");
+    if (!form) throw new Error("The chat message box isn’t inside a form.");
     nativeDispatch.call(form, new NativeSubmitEvent("submit", { bubbles: true, cancelable: true, submitter: send }));
   };
   const runBehavior = async () => {
@@ -350,10 +350,10 @@ export const CAPSTONE_BEHAVIOR_BOOTSTRAP_SOURCE = String.raw`(() => {
     const log = await waitFor(() => {
       const candidate = query('[role="log"][aria-live="off"]');
       return candidate && visible(candidate) ? candidate : null;
-    }, "An accessible visible conversation log outside the polite live region was not rendered.");
+    }, "The page didn’t show an accessible conversation log outside the polite live region.");
     const streamAnnouncement = await waitFor(
       () => query('[data-stream-announcement][role="status"][aria-live="polite"][aria-atomic="true"]'),
-      "A separate bounded stream announcement channel was not rendered.",
+      "The page didn’t show a separate, size-limited channel for stream announcements.",
     );
     const announcementUpdates = [];
     let previousAnnouncement = text(streamAnnouncement);
@@ -369,7 +369,7 @@ export const CAPSTONE_BEHAVIOR_BOOTSTRAP_SOURCE = String.raw`(() => {
       visible(mobileControlsToggle)
         && focusable(mobileControlsToggle)
         && mobileControlsToggle?.getAttribute("aria-expanded") === "false",
-      "mobile model controls begin as a compact, focusable disclosure",
+      "mobile model controls start in a compact button that can receive keyboard focus",
     );
     nativeClick.call(mobileControlsToggle);
     const controlsSummary = await waitFor(
@@ -377,130 +377,130 @@ export const CAPSTONE_BEHAVIOR_BOOTSTRAP_SOURCE = String.raw`(() => {
         const candidate = query(".inference-panel summary");
         return candidate && visible(candidate) ? candidate : null;
       },
-      "Opening the mobile model controls did not expose inference controls.",
+      "Opening the mobile model controls didn’t show the inference settings.",
     );
     check(
       mobileControlsToggle?.getAttribute("aria-expanded") === "true" && visible(controlsSummary),
-      "mobile inference controls remain available as a compact disclosure",
+      "mobile inference controls stay available in the compact menu",
     );
     if (fixture.requirePreparation) {
       const prepare = await waitFor(() => {
         const candidate = query("button.prepare-model");
         return candidate && focusable(candidate) && !candidate.disabled ? candidate : null;
-      }, "An unprepared backend did not expose its preparation action.");
+      }, "A backend that wasn’t ready didn’t show its setup button.");
       nativeClick.call(prepare);
-      await waitFor(() => query('[data-phase="loading"]'), "Backend preparation did not expose its loading state.");
+      await waitFor(() => query('[data-phase="loading"]'), "Backend setup didn’t show a loading state.");
       await delay(Math.max(20, Math.min(80, fixture.preparationDelayMs / 2)));
-      check(!button("Stop") && Boolean(button("Send")?.disabled), "backend preparation never exposes a false Stop action");
-      await waitFor(() => text(query("button.prepare-model")) === "Model ready", "Backend preparation did not resolve to the ready state.");
+      check(!button("Stop") && Boolean(button("Send")?.disabled), "backend setup doesn’t show a misleading Stop button");
+      await waitFor(() => text(query("button.prepare-model")) === "Model ready", "Backend setup never finished with a Model ready state.");
     }
     if (fixture.persistFailures > 0) {
       const retry = await waitFor(() => {
         const candidate = button("Retry save");
         return candidate && focusable(candidate) ? candidate : null;
-      }, "A rejected persistence acknowledgement did not expose a visible, focusable Retry save action.");
+      }, "After a save failed, the page didn’t show a visible Retry save button that could receive focus.");
       nativeFocus.call(retry);
-      check(document.activeElement === retry, "mobile persistence recovery is keyboard-focusable");
+      check(document.activeElement === retry, "mobile save recovery can receive keyboard focus");
       nativeClick.call(retry);
     }
     if (fixture.invalidConversation) {
       const discard = await waitFor(() => {
         const candidate = button("Discard saved conversation");
         return candidate && focusable(candidate) ? candidate : null;
-      }, "An invalid restored conversation did not expose explicit recovery.");
+      }, "An invalid saved conversation didn’t show a clear recovery option.");
       await delay(60);
       check(!requestMethods.includes("persist")
-        && text(query(".restore-error")).includes("has not been changed"), "invalid restored conversation suspends persistence until explicit discard");
+        && text(query(".restore-error")).includes("left the unreadable copy on this device unchanged"), "an invalid saved conversation pauses saving until the user discards it");
       nativeClick.call(discard);
     }
     const savedStatus = await waitFor(() => {
       const candidate = query(".control-panel footer [role=status]");
       return candidate && visible(candidate) && text(candidate).includes("Saved on this device") ? candidate : null;
-    }, "The visible persistence acknowledgement did not reach the saved state.");
-    check(Boolean(savedStatus && button("Clear conversation")), "mobile persistence status and Clear action remain visible");
+    }, "The visible save status never changed to saved.");
+    check(Boolean(savedStatus && button("Clear conversation")), "mobile save status and the Clear button stay visible");
     const status = query('.phase-status[role="status"][aria-live="polite"][aria-atomic="true"]');
     const composer = query('textarea[aria-label="Chat message"]');
     check(Boolean(query("main") && query("h1") && log && visible(status) && visible(composer) && button("Send")), "accessible chat surface");
     const selectedLabel = fixture.selectedBackend === "student" ? "Student RNN" : "Local Transformer";
     const metricsVisible = visible(query(".metrics-panel"));
-    check(Boolean(button(selectedLabel)?.classList.contains("active") && metricsVisible === fixture.showMetrics), "restored backend and metrics visibility configuration");
+    check(Boolean(button(selectedLabel)?.classList.contains("active") && metricsVisible === fixture.showMetrics), "saved backend and metrics choices were restored");
 
     const initialGenerationCount = fixture.transientRetry ? 2 : 1;
     await setComposer("u1");
     try {
-      await waitFor(() => generations.length === initialGenerationCount, "Submitting the composer did not invoke the generation bridge.");
+      await waitFor(() => generations.length === initialGenerationCount, "Sending the message didn’t call the generation bridge.");
     } catch {
-      throw new Error("Submitting the composer did not invoke the generation bridge. Host methods: " + requestMethods.join(",") + ". Surface: " + text(query("main")));
+      throw new Error("Sending the message didn’t call the generation bridge. Host methods: " + requestMethods.join(",") + ". Page: " + text(query("main")));
     }
     const first = generations[0];
     check(Boolean(first && typeof first.requestId === "string" && first.requestId
       && first.backend === fixture.selectedBackend
       && Array.isArray(first.messages)
       && first.messages.at(-1)?.role === "user"
-      && first.messages.at(-1)?.content === "u1"), "submit forwards the active user request");
+      && first.messages.at(-1)?.content === "u1"), "Send passes along the current user request");
     if (fixture.transientRetry) {
       const retried = generations[1];
       check(Boolean(retried
         && first.logicalRequestId === retried.logicalRequestId
         && first.attemptId !== retried.attemptId
-        && first.requestId !== retried.requestId), "transient retry preserves logical request identity while rotating attempt and transport ids");
+        && first.requestId !== retried.requestId), "a retry after a temporary error keeps the logical request id but creates new attempt and transport ids");
     }
-    await waitFor(() => text(log).includes(fixture.responsePrefix + "original answer with batched tokens."), "Streamed generation chunks did not render in the transcript.");
-    await waitFor(() => text(status).includes("Complete"), "The completed stream did not reach a terminal status.");
-    check(text(log).includes("u1") && text(log).includes(fixture.responsePrefix + "original answer with batched tokens.") && text(log).includes(fixture.assistantName), "runtime name and response prefix affect visible streamed output");
+    await waitFor(() => text(log).includes(fixture.responsePrefix + "original answer with batched tokens."), "The streamed chunks didn’t appear in the conversation.");
+    await waitFor(() => text(status).includes("Complete"), "The finished stream never reached a final status.");
+    check(text(log).includes("u1") && text(log).includes(fixture.responsePrefix + "original answer with batched tokens.") && text(log).includes(fixture.assistantName), "the runtime name and response prefix show up in the streamed answer");
     check(Number(log.getAttribute("data-render-commits")) === 2
       && renderFrames.completed >= 2
-      && renderFrames.requested < 6, "stream deltas batch behind animation-frame commits");
+      && renderFrames.requested < 6, "streamed chunks are grouped into animation-frame updates");
     const streamingAnnouncements = announcementUpdates.filter((entry) => entry.value.startsWith("Assistant update:") && !entry.value.includes("Response complete."));
     const announcementIntervalsAreBounded = streamingAnnouncements.every((entry, index) => index === 0 || entry.at - streamingAnnouncements[index - 1].at >= 450);
     check(announcementUpdates.length >= 2
       && announcementUpdates.every((entry) => entry.value.length <= 160)
       && announcementIntervalsAreBounded
-      && announcementUpdates.some((entry) => entry.value.includes("Response complete.")), "live output announcements are bounded and rate-limited with immediate terminal state");
+      && announcementUpdates.some((entry) => entry.value.includes("Response complete.")), "live output announcements stay short, don’t fire too often, and announce the final state right away");
 
     const regenerate = await waitFor(() => {
       const candidate = button("Regenerate");
       return candidate && !candidate.disabled ? candidate : null;
-    }, "A completed assistant response did not expose regeneration.");
+    }, "A finished assistant response didn’t show a Regenerate button.");
     nativeClick.call(regenerate);
-    await waitFor(() => generations.length === initialGenerationCount + 1, "Regeneration did not invoke the generation bridge.");
-    await waitFor(() => text(query('article.message.assistant[data-active-attempt="true"] p')).includes(fixture.responsePrefix + "regenerated answer"), "The regenerated response did not become the active attempt.");
-    await waitFor(() => text(status).includes("Complete"), "Regeneration did not reach a terminal status.");
+    await waitFor(() => generations.length === initialGenerationCount + 1, "Regenerate didn’t call the generation bridge.");
+    await waitFor(() => text(query('article.message.assistant[data-active-attempt="true"] p')).includes(fixture.responsePrefix + "regenerated answer"), "The regenerated response didn’t become the active attempt.");
+    await waitFor(() => text(status).includes("Complete"), "The regenerated response never reached a final status.");
     check(Boolean(query('article.message.assistant[data-active-attempt="false"]')
-      && query('article.message.assistant[data-active-attempt="true"]')), "regeneration exposes active and superseded attempts");
+      && query('article.message.assistant[data-active-attempt="true"]')), "Regenerating shows both the current and replaced answers");
 
     await setComposer("u2");
-    await waitFor(() => generations.length === initialGenerationCount + 2, "The follow-up after regeneration did not invoke the generation bridge.");
+    await waitFor(() => generations.length === initialGenerationCount + 2, "The follow-up after regeneration didn’t call the generation bridge.");
     const followUpContext = generations[initialGenerationCount + 1]?.messages || [];
     const followUpContents = followUpContext.map((message) => message.content);
     check(followUpContents.includes("u1")
       && followUpContents.includes(fixture.responsePrefix + "regenerated answer")
       && !followUpContents.includes(fixture.responsePrefix + "original answer with batched tokens.")
-      && followUpContents.at(-1) === "u2", "regeneration makes the newest sibling active for subsequent context");
-    await waitFor(() => text(log).includes("follow-up answer") && text(status).includes("Complete"), "The branch-aware follow-up did not complete.");
+      && followUpContents.at(-1) === "u2", "Regenerating uses the newest answer in later context");
+    await waitFor(() => text(log).includes("follow-up answer") && text(status).includes("Complete"), "The follow-up on the regenerated branch didn’t finish.");
 
     await setComposer("Cancel this generation");
-    await waitFor(() => generations.length === initialGenerationCount + 3 && button("Stop"), "An active generation did not expose the Stop action.");
+    await waitFor(() => generations.length === initialGenerationCount + 3 && button("Stop"), "An active generation didn’t show the Stop button.");
     const cancellationRequestId = generations[initialGenerationCount + 2]?.requestId;
     const cancelledFramesBeforeStop = renderFrames.cancelled;
-    await waitFor(() => renderFrames.requested > renderFrames.completed + renderFrames.cancelled, "The cancellation fixture did not leave an animation-frame commit pending.");
+    await waitFor(() => renderFrames.requested > renderFrames.completed + renderFrames.cancelled, "The cancel test didn’t leave an animation-frame update waiting.");
     nativeClick.call(button("Stop"));
-    await waitFor(() => query("article.message.assistant.cancelled"), "Stopping did not mark the active assistant message as cancelled.");
-    await waitFor(() => cancellations.some((entry) => entry?.requestId === cancellationRequestId), "Stopping did not cancel the matching bridge request.");
-    await waitFor(() => renderFrames.requested === renderFrames.completed + renderFrames.cancelled, "Stopping left animation-frame work pending.");
+    await waitFor(() => query("article.message.assistant.cancelled"), "Stopping didn’t mark the active assistant message as canceled.");
+    await waitFor(() => cancellations.some((entry) => entry?.requestId === cancellationRequestId), "Stopping didn’t cancel the matching bridge request.");
+    await waitFor(() => renderFrames.requested === renderFrames.completed + renderFrames.cancelled, "Stopping left an animation-frame update waiting.");
     check(renderFrames.cancelled > cancelledFramesBeforeStop
-      && text(log).includes("partial before cancellation"), "cancellation flushes accepted deltas and clears pending render work");
+      && text(log).includes("partial before cancellation"), "Stopping keeps accepted chunks and clears pending screen updates");
     await delay(240);
-    check(!text(log).includes("LATE-IGNORED"), "cancellation rejects late stream output");
+    check(!text(log).includes("LATE-IGNORED"), "Stopping ignores late stream output");
 
     await setComposer("Trigger controlled failure");
-    await waitFor(() => generations.length === initialGenerationCount + 4, "The post-cancellation composer could not submit another request.");
+    await waitFor(() => generations.length === initialGenerationCount + 4, "The message box couldn’t send another request after canceling.");
     const alert = await waitFor(() => {
       const candidate = query('[role="alert"]');
       return candidate && visible(candidate) && text(candidate).includes("Controlled generation failure") ? candidate : null;
-    }, "A bridge failure did not render a meaningful alert.");
-    await waitFor(() => text(status).includes("Generation failed"), "A bridge failure did not reach the error phase.");
-    check(Boolean(alert && query("article.message.assistant.error")), "error is visible and terminal");
+    }, "A bridge failure didn’t show a useful alert.");
+    await waitFor(() => text(status).includes("Generation failed"), "A bridge failure never reached the error phase.");
+    check(Boolean(alert && query("article.message.assistant.error")), "the error is visible and final");
     announcementObserver.disconnect();
     return checks;
   };
@@ -544,13 +544,13 @@ export const CAPSTONE_BEHAVIOR_BOOTSTRAP_SOURCE = String.raw`(() => {
         };
         prepared = !fixture.requirePreparation;
       }
-      if (await digest(data.runtime.code) !== data.runtime.codeHash) throw new Error("The trusted React runtime hash does not match.");
-      if (await digest(data.bundle.code) !== data.bundle.codeHash) throw new Error("The compiled capstone hash does not match.");
+      if (await digest(data.runtime.code) !== data.runtime.codeHash) throw new Error("The trusted React runtime hash doesn’t match.");
+      if (await digest(data.bundle.code) !== data.bundle.codeHash) throw new Error("The compiled capstone hash doesn’t match.");
       await loadScript(data.runtime.code, "The trusted React runtime");
-      if (!globalThis.__LATENT_REACT__) throw new Error("The trusted React runtime did not install.");
+      if (!globalThis.__LATENT_REACT__) throw new Error("The trusted React runtime didn’t install.");
       await loadScript(data.bundle.code, "The compiled capstone entry");
       const checks = await runBehavior();
-      report(true, checks.length + " host-owned browser checks passed.", checks);
+      report(true, checks.length + " course browser checks passed.", checks);
     } catch (error) {
       report(false, error && error.message ? error.message : error);
     } finally {
@@ -561,7 +561,7 @@ export const CAPSTONE_BEHAVIOR_BOOTSTRAP_SOURCE = String.raw`(() => {
 })();`;
 
 /** Updated whenever the fixed host-owned bootstrap changes. */
-export const CAPSTONE_BEHAVIOR_BOOTSTRAP_SHA256 = "sha256-1AFANo5bjziRcd9BDZIucC7Lp2afj49pUVPYs63cbXA=" as const;
+export const CAPSTONE_BEHAVIOR_BOOTSTRAP_SHA256 = "sha256-k3yJtOBMiYL518ne3XFb5I+lh5THUygesb0wX03fUWk=" as const;
 
 export function createCapstoneBehaviorFrameSrcdoc(): string {
   return `<!doctype html>
@@ -571,7 +571,7 @@ export function createCapstoneBehaviorFrameSrcdoc(): string {
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="referrer" content="no-referrer">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src '${CAPSTONE_BEHAVIOR_BOOTSTRAP_SHA256}' blob:; style-src 'unsafe-inline'; connect-src 'none'; img-src 'none'; font-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; base-uri 'none'; form-action 'none'">
-<title>Browser Chat behavior contract</title>
+<title>Browser Chat behavior check</title>
 </head>
 <body><div id="root"></div><script>${CAPSTONE_BEHAVIOR_BOOTSTRAP_SOURCE}</script></body>
 </html>`;
@@ -598,14 +598,14 @@ async function sha256(source: string): Promise<string> {
 }
 
 function createCapstonePreflightWorker(): BrowserLabWorkerPort {
-  if (typeof Worker === "undefined") throw new Error("The isolated capstone preflight requires a Web Worker.");
+  if (typeof Worker === "undefined") throw new Error("The isolated capstone check needs a Web Worker.");
   return new Worker("/capstone-sandbox-worker.js", { type: "module", name: "capstone-behavior-preflight" });
 }
 
 async function runCapstoneBehaviorPreflight(bundle: BehaviorBundle, signal?: AbortSignal): Promise<ProjectUnitResult | null> {
   const verifiedBundleHash = await sha256(bundle.code);
   if (verifiedBundleHash !== bundle.codeHash) {
-    return failure("The compiled capstone hash changed before the isolated behavior preflight.");
+    return failure("The compiled capstone hash changed before the isolated behavior check could run.");
   }
   const preflightCode = createCapstoneBehaviorPreflightCode(bundle.code);
   const preflightCodeHash = await sha256(preflightCode);
@@ -627,12 +627,12 @@ async function runCapstoneBehaviorPreflight(bundle: BehaviorBundle, signal?: Abo
   };
   const preflightContract: ExerciseContract = {
     id: CAPSTONE_PREFLIGHT_CONTRACT_VERSION,
-    label: "Bounded synchronous capstone render",
+    label: "Capstone render stays within limits",
     cases: [{
       id: "initial-render",
-      label: "Initial render and visible handlers finish within the isolated CPU budget",
+      label: "The first render and visible actions finish within the isolated CPU limit",
       invoke: { modulePath: CAPSTONE_PREFLIGHT_MODULE_PATH, exportName: "done", args: [] },
-      assertions: [{ id: "completed", label: "The isolated probe completed", kind: "truthy" }],
+      assertions: [{ id: "completed", label: "The isolated check finished", kind: "truthy" }],
     }],
   };
   try {
@@ -663,13 +663,13 @@ async function runCapstoneBehaviorPreflight(bundle: BehaviorBundle, signal?: Abo
         ? "its initial render or a visible handler exceeded the CPU limit"
         : observation === "resource-error"
           ? "its initial render or a visible handler exceeded the memory or stack limit"
-          : `the bounded probe ${observation ?? "returned no observation"}`;
-      return failure(`The isolated QuickJS preflight rejected the compiled capstone because ${reason}. The browser mount was not started.`);
+          : `the limited check ${observation ?? "returned no result"}`;
+      return failure(`The isolated QuickJS check stopped the compiled capstone because ${reason}. The browser preview didn’t start.`);
     }
     return null;
   } catch (error) {
-    const detail = error instanceof Error ? error.message : "The isolated QuickJS preflight failed.";
-    return failure(`The isolated QuickJS preflight could not establish bounded synchronous execution: ${detail} The browser mount was not started.`);
+    const detail = error instanceof Error ? error.message : "The isolated QuickJS check failed.";
+    return failure(`The isolated QuickJS check couldn’t prove that synchronous code stays within its limits: ${detail} The browser preview didn’t start.`);
   }
 }
 
@@ -704,7 +704,7 @@ async function trustedRuntimeSource(signal?: AbortSignal): Promise<string> {
     cache: "force-cache",
     credentials: "same-origin",
   }).then(async (response) => {
-    if (!response.ok) throw new Error("The trusted React behavior runtime is unavailable.");
+    if (!response.ok) throw new Error("The trusted React behavior runtime isn’t available.");
     return response.text();
   }).catch((error) => {
     cachedRuntimeSource = null;
@@ -734,13 +734,13 @@ export async function runCapstoneBehaviorContract(
   } = {},
 ): Promise<ProjectUnitResult> {
   if (!bundle || bundle.modulePath !== "capstone/main.tsx" || !bundle.code.trim()) {
-    return failure("The compiled capstone entry is unavailable, so the editable BrowserChat component could not be mounted.");
+    return failure("The compiled capstone entry isn’t available, so the editable BrowserChat component couldn’t open.");
   }
   if (typeof document === "undefined" || !document.body) {
-    return failure("The host-owned browser behavior runner is unavailable outside a document.");
+    return failure("The course’s browser behavior runner needs a document to work.");
   }
   if (new TextEncoder().encode(bundle.code).byteLength > MAX_BEHAVIOR_ASSET_BYTES) {
-    return failure("The compiled capstone exceeds the behavior runner's 2 MB limit.");
+    return failure("The compiled capstone is larger than the behavior runner’s 2 MB limit.");
   }
   const preflightFailure = await runCapstoneBehaviorPreflight(bundle, options.signal);
   if (preflightFailure) return preflightFailure;
@@ -749,15 +749,15 @@ export async function runCapstoneBehaviorContract(
   try {
     runtimeSource = options.runtimeSource ?? await trustedRuntimeSource(options.signal);
   } catch (error) {
-    return failure(error instanceof Error ? error.message : "The trusted React behavior runtime is unavailable.");
+    return failure(error instanceof Error ? error.message : "The trusted React behavior runtime isn’t available.");
   }
   if (!runtimeSource.trim() || new TextEncoder().encode(runtimeSource).byteLength > MAX_BEHAVIOR_ASSET_BYTES) {
-    return failure("The trusted React behavior runtime is empty or exceeds the 2 MB limit.");
+    return failure("The trusted React behavior runtime is empty or larger than the 2 MB limit.");
   }
 
   const channelId = `behavior:${crypto.randomUUID()}`;
   const iframe = document.createElement("iframe");
-  iframe.title = "Browser Chat behavior contract";
+  iframe.title = "Browser Chat behavior check";
   iframe.setAttribute("sandbox", "allow-scripts");
   iframe.setAttribute("referrerpolicy", "no-referrer");
   iframe.setAttribute("aria-hidden", "true");
@@ -775,7 +775,7 @@ export async function runCapstoneBehaviorContract(
       iframe.remove();
       resolve(result);
     };
-    const onAbort = () => finish(failure("The host-owned browser behavior check was aborted."));
+    const onAbort = () => finish(failure("The course’s browser behavior check was stopped."));
     const onMessage = (event: MessageEvent<unknown>) => {
       if (event.source !== iframe.contentWindow || !isBehaviorFrameResult(event.data, channelId)) return;
       const result = event.data;
@@ -787,11 +787,11 @@ export async function runCapstoneBehaviorContract(
         passed: result.passed,
         detail: result.passed
           ? `${result.detail}${checks}`
-          : `The mounted BrowserChat failed its host-owned behavior contract: ${result.detail}`,
+          : `The running BrowserChat failed the course behavior check: ${result.detail}`,
       });
     };
     const timer = window.setTimeout(() => {
-      finish(failure("The mounted BrowserChat did not report within the asynchronous observation limit. The frame timer does not interrupt synchronous learner code; bounded initial render and visible-handler execution were checked separately in the isolated QuickJS worker."));
+      finish(failure("The running BrowserChat didn’t report back before the async time limit. The frame timer can’t interrupt synchronous project code, so an isolated QuickJS worker checks the first render and visible actions separately."));
     }, Math.max(1000, Math.min(options.timeoutMs ?? CAPSTONE_BEHAVIOR_FRAME_TIMEOUT_MS, 30_000)));
     window.addEventListener("message", onMessage);
     options.signal?.addEventListener("abort", onAbort, { once: true });
@@ -807,7 +807,7 @@ export async function runCapstoneBehaviorContract(
           runtime: { code: runtimeSource, codeHash: runtimeHash },
           bundle: { code: bundle.code, codeHash },
         }, "*");
-      }).catch((error) => finish(failure(error instanceof Error ? error.message : "The behavior assets could not be hashed.")));
+      }).catch((error) => finish(failure(error instanceof Error ? error.message : "Latent couldn’t hash the behavior-test files.")));
     }, { once: true });
     iframe.srcdoc = createCapstoneBehaviorFrameSrcdoc();
     document.body.appendChild(iframe);

@@ -110,6 +110,39 @@ test("the Dexie adapter stores immutable lineage and round-trips portable bundle
   await destination.delete();
 });
 
+test("validated lesson activation restores the prior head when source changes during promotion", async () => {
+  await artifactClient.closeArtifactRuntime();
+  const cleanDatabase = new runtime.ArtifactRuntimeDatabase(runtime.DEFAULT_ARTIFACT_DATABASE_NAME);
+  await cleanDatabase.delete();
+
+  const passing = [{ id: "character-rnns/rnn-step", label: "Recurrent transition", passed: true, detail: "Host-owned assertions passed." }];
+  const previous = await artifactService.recordValidatedLessonArtifact({
+    lessonId: "character-rnns",
+    source: "# previously validated source",
+    results: passing,
+    isSourceCurrent: () => true,
+  });
+
+  let activationChecks = 0;
+  await assert.rejects(
+    artifactService.recordValidatedLessonArtifact({
+      lessonId: "character-rnns",
+      source: "# source superseded in another tab",
+      results: passing,
+      isSourceCurrent: () => ++activationChecks === 1,
+    }),
+    /source is no longer current/i,
+  );
+
+  const { store } = await artifactClient.getArtifactRuntime();
+  assert.equal(activationChecks, 2, "activation must guard both sides of the head update");
+  assert.equal((await store.latestForLesson("character-rnns")).id, previous.id, "the superseded source must never remain active");
+
+  await artifactClient.closeArtifactRuntime();
+  const database = new runtime.ArtifactRuntimeDatabase(runtime.DEFAULT_ARTIFACT_DATABASE_NAME);
+  await database.delete();
+});
+
 test("the registered training scenario exposes real checkpoint state and improving samples", async () => {
   const database = new runtime.ArtifactRuntimeDatabase(`training-test-${crypto.randomUUID()}`);
   await database.open();

@@ -29,6 +29,8 @@ export type ProjectFileRecord = {
   /** Lesson verification metadata; optional only on pre-productization records. */
   verifiedCells?: number;
   totalCells?: number;
+  /** Identifies whether current bytes came from a canonical seed or an editor. */
+  sourceProvenance?: "seed" | "lesson" | "ide";
   revision: number;
   sourceHash: string;
   createdAt: number;

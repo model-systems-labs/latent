@@ -45,13 +45,12 @@ export const LLM_LESSON_SOURCES: readonly LlmLessonSourceDefinition[] =
   Object.freeze(lessonSources);
 
 /**
- * These are real JavaScript integration seams for the capstone. Learner
- * CPython and each matching course-provided adapter are checked against the
- * same host-owned behavioral cases. The exact passing Python bytes remain in
- * the promoted source identity; the trained character-RNN also crosses the
- * boundary as the checkpoint used by the student-model backend. Only adapters
- * enumerated here are claimed as runtime capabilities; the remaining read-only
- * adapters stay explicit, contract-tested instructional implementations.
+ * These are the JavaScript connection points used by the capstone. The
+ * learner's CPython and each matching course adapter have to pass the same
+ * host-owned behavior tests. The passing Python source stays tied to the build,
+ * and the trained character RNN comes along as the student model's checkpoint.
+ * Only the adapters listed here count as runtime capabilities. The rest stay
+ * visible as read-only, tested examples.
  */
 export const LLM_RUNTIME_CAPABILITIES: readonly LlmRuntimeCapabilityDefinition[] =
   Object.freeze([
@@ -65,7 +64,7 @@ export const LLM_RUNTIME_CAPABILITIES: readonly LlmRuntimeCapabilityDefinition[]
       requirement: "core",
       consumer: "compiled-chat-ui",
       summary:
-        "Mounts the validated React capstone inside an opaque-origin sandboxed preview frame; its JavaScript imports resolve through course-provided adapters checked against the same contracts as the source-bound CPython lessons.",
+        "The trusted host verifies the React capstone, then runs it in an opaque-origin sandboxed preview. Its JavaScript imports use course adapters that pass the same tests as the matching CPython lessons.",
     },
     {
       bindingId: "transport-encode-sse",
@@ -77,7 +76,7 @@ export const LLM_RUNTIME_CAPABILITIES: readonly LlmRuntimeCapabilityDefinition[]
       requirement: "adapter",
       consumer: "mock-stream-producer",
       summary:
-        "A course-provided JavaScript adapter frames typed generation events for React and must pass every matching behavioral case used for the streaming-transport CPython implementation.",
+        "This course-provided JavaScript adapter frames typed generation events for React and has to pass the same behavior tests as the streaming-transport CPython code.",
     },
     {
       bindingId: "transport-parse-sse",
@@ -89,7 +88,7 @@ export const LLM_RUNTIME_CAPABILITIES: readonly LlmRuntimeCapabilityDefinition[]
       requirement: "core",
       consumer: "stream-consumer",
       summary:
-        "A course-provided JavaScript adapter incrementally turns SSE text into typed React events and must pass every matching behavioral case used for the CPython parser.",
+        "This course-provided JavaScript adapter turns incoming SSE text into typed React events as it arrives. It has to pass the same behavior tests as the CPython parser.",
     },
     {
       bindingId: "serving-retry-policy",
@@ -101,7 +100,7 @@ export const LLM_RUNTIME_CAPABILITIES: readonly LlmRuntimeCapabilityDefinition[]
       requirement: "core",
       consumer: "generation-recovery",
       summary:
-        "A course-provided JavaScript adapter applies retry guards inside the React runtime and must pass every matching behavioral case used for the reliability CPython implementation.",
+        "This course-provided JavaScript adapter handles safe retries in React and has to pass the same behavior tests as the reliability CPython code.",
     },
     {
       bindingId: "chat-context-selection",
@@ -113,7 +112,7 @@ export const LLM_RUNTIME_CAPABILITIES: readonly LlmRuntimeCapabilityDefinition[]
       requirement: "core",
       consumer: "prompt-context",
       summary:
-        "A course-provided JavaScript adapter selects React's bounded prompt context and must pass every matching behavioral case used for the actions-and-context CPython implementation.",
+        "This course-provided JavaScript adapter chooses the prompt context that fits React's limit. It has to pass the same behavior tests as the actions-and-context CPython code.",
     },
     {
       bindingId: "chat-generation-status",
@@ -125,7 +124,7 @@ export const LLM_RUNTIME_CAPABILITIES: readonly LlmRuntimeCapabilityDefinition[]
       requirement: "adapter",
       consumer: "generation-presentation",
       summary:
-        "A course-provided JavaScript adapter maps runtime phases to accessible React status text and must pass every matching behavioral case used for the product-quality CPython implementation.",
+        "This course-provided JavaScript adapter turns runtime phases into accessible React status text. It has to pass the same behavior tests as the product-quality CPython code.",
     },
   ] satisfies readonly LlmRuntimeCapabilityDefinition[]);
 

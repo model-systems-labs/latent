@@ -33,18 +33,18 @@ export default async function CoursePage({ params }: { params: Promise<{ course:
           <p className="eyebrow">Module {String(track.number).padStart(2, "0")} · {track.shortTitle}</p>
           <h1>{track.title}</h1>
           <p className="course-thesis">{track.thesis}</p>
-          <div className="track-outcome"><span>Module artifact</span><strong>{track.outcome}</strong></div>
+          <div className="track-outcome"><span>What you’ll build</span><strong>{track.outcome}</strong></div>
         </header>
         <CourseCurriculum title={track.title} lessons={lessons} />
         {checkpoint ? (
           <Link className="module-checkpoint-card" href={`/checkpoints/${track.id}`}>
             <span>{checkpoint.label}</span>
             <div><strong>{checkpoint.title}</strong><p>{checkpoint.objective}</p></div>
-            <em>Run checkpoint →</em>
+            <em>Try the checkpoint →</em>
           </Link>
         ) : null}
         <footer className="track-navigation">
-          {previous ? <Link href={`/courses/${previous.id}`}>← {previous.title}</Link> : <Link href="/">← Curriculum</Link>}
+          {previous ? <Link href={`/courses/${previous.id}`}>← {previous.title}</Link> : <Link href="/">← Course home</Link>}
           {next ? <Link href={`/courses/${next.id}`}>{next.title} →</Link> : <Link href="/capstone">Build the capstone →</Link>}
         </footer>
       </article>

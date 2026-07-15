@@ -17,11 +17,11 @@ export async function hashText(source: string) {
 async function hashTextForExpectedAlgorithm(source: string, expected: string) {
   if (expected.startsWith("fnv1a32:")) return stableFingerprint(source);
   if (!expected.startsWith("sha256:")) {
-    throw new PersistenceIntegrityError("A persisted bundle uses an unsupported content-hash algorithm.");
+    throw new PersistenceIntegrityError("This saved bundle uses a content-hash algorithm the app doesn't support.");
   }
   const subtle = globalThis.crypto?.subtle;
   if (!subtle) {
-    throw new PersistenceIntegrityError("SHA-256 is unavailable, so persisted bundle integrity cannot be verified.");
+    throw new PersistenceIntegrityError("SHA-256 isn't available, so the app can't verify this saved bundle.");
   }
   const digest = await subtle.digest("SHA-256", new TextEncoder().encode(source));
   return `sha256:${Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
@@ -49,16 +49,16 @@ export async function assertBundleIntegrity(
   const bundlePaths = Object.keys(bundles).sort((left, right) => left.localeCompare(right));
   const hashPaths = Object.keys(bundleHashes).sort((left, right) => left.localeCompare(right));
   if (bundlePaths.length !== hashPaths.length || bundlePaths.some((path, index) => path !== hashPaths[index])) {
-    throw new PersistenceIntegrityError("Persisted bundle hashes do not cover the complete bundle manifest.");
+    throw new PersistenceIntegrityError("The saved bundle hashes don't cover every file in the bundle manifest.");
   }
   for (const path of bundlePaths) {
     const expected = bundleHashes[path];
     if (typeof expected !== "string" || !expected) {
-      throw new PersistenceIntegrityError(`Persisted bundle ${path} has no valid content hash.`);
+      throw new PersistenceIntegrityError(`Saved bundle ${path} doesn't have a valid content hash.`);
     }
     const actual = await hashTextForExpectedAlgorithm(bundles[path], expected);
     if (actual !== expected) {
-      throw new PersistenceIntegrityError(`Persisted bundle ${path} failed its content-hash integrity check.`);
+      throw new PersistenceIntegrityError(`Saved bundle ${path} failed its content-hash integrity check.`);
     }
   }
 }

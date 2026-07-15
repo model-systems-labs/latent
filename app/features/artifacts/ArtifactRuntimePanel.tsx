@@ -40,7 +40,7 @@ function ReplayFrames({ artifact }: { artifact: ArtifactEnvelope }) {
         ))}
       </div>
       <article className="artifact-frame">
-        <span>Course-authored reference frame {active.index + 1} / {frames.length}</span>
+        <span>Course example frame {active.index + 1} / {frames.length}</span>
         <strong>{active.label}</strong>
         <pre>{JSON.stringify(active.payload, null, 2)}</pre>
       </article>
@@ -57,7 +57,7 @@ export function ArtifactRuntimePanel({ lesson, refreshKey = 0 }: { lesson: Cours
     void loadLessonArtifactView(lesson.id).then((next) => {
       if (active) { setView(next); setError(null); }
     }).catch((reason) => {
-      if (active) setError(reason instanceof Error ? reason.message : "Artifact Runtime is unavailable.");
+      if (active) setError(reason instanceof Error ? reason.message : "The artifact viewer isn’t available right now.");
     });
     return () => { active = false; };
   }, [lesson.id, refreshKey]);
@@ -65,26 +65,26 @@ export function ArtifactRuntimePanel({ lesson, refreshKey = 0 }: { lesson: Cours
   return (
     <details className="artifact-runtime-panel" id="artifacts">
       <summary className="artifact-runtime-heading">
-        <div><span>Artifacts</span><h3 id="artifact-runtime-title">A source-bound validation receipt.</h3></div>
-        <span className="artifact-runtime-action">Inspect</span>
+        <div><span>Saved results</span><h3 id="artifact-runtime-title">Proof tied to the exact code you ran.</h3></div>
+        <span className="artifact-runtime-action">Take a look</span>
       </summary>
       <div className="artifact-runtime-body" aria-labelledby="artifact-runtime-title">
-        <p className="artifact-runtime-intro">Passing code stores its source hash and contract results on this device. The replay frames are course-authored references for the mechanism, not output computed from your implementation.</p>
+        <p className="artifact-runtime-intro">When your code passes, Latent saves its source hash and check results on this device. The replay frames are examples made for the course, not output calculated from your code.</p>
         {error ? <p className="artifact-runtime-error">{error}</p> : null}
-        {!view && !error ? <p className="artifact-runtime-loading">Loading local artifact lineage…</p> : null}
+        {!view && !error ? <p className="artifact-runtime-loading">Loading the saved artifact history…</p> : null}
         {view ? (
           <>
             {view.training ? <RecordedTrainingPanel key={view.training.scenario.id} replay={view.training} onDownload={downloadArtifact} /> : null}
             <div className="artifact-lineage-grid">
-              {view.input ? <ArtifactIdentity artifact={view.input} label="Prior receipt" /> : <article className="artifact-identity pending"><span>Prior receipt pending</span><strong>Complete the previous lesson</strong><p>Its source-bound validation receipt will become this lesson&apos;s lineage input.</p></article>}
-              {view.output ? <ArtifactIdentity artifact={view.output} label="Validation receipt" /> : <article className="artifact-identity pending"><span>Receipt pending</span><strong>Pass every behavioral check</strong><p>Your passing source and contract evidence will become a downloadable validation receipt.</p></article>}
+              {view.input ? <ArtifactIdentity artifact={view.input} label="Previous result" /> : <article className="artifact-identity pending"><span>Previous result still needed</span><strong>Finish the previous lesson</strong><p>Its saved result will become the starting point for this lesson&apos;s artifact history.</p></article>}
+              {view.output ? <ArtifactIdentity artifact={view.output} label="Validation result" /> : <article className="artifact-identity pending"><span>Result still needed</span><strong>Pass every behavior check</strong><p>Your passing code and check results will become a validation file you can download.</p></article>}
             </div>
             {view.output ? (
               <>
                 <ReplayFrames artifact={view.output} key={view.output.id} />
                 <div className="artifact-download-row">
                   <p><strong>{view.output.validation.passedCount}/{view.output.validation.totalCount}</strong> checks passed</p>
-                  <button type="button" onClick={() => void downloadArtifact(view.output!)}>Download with lineage</button>
+                  <button type="button" onClick={() => void downloadArtifact(view.output!)}>Download with history</button>
                 </div>
               </>
             ) : null}

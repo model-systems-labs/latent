@@ -24,7 +24,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const metadataBase = new URL(`${protocol}://${host}`);
   const title = "Latent · Build an LLM System in Your Browser";
   const description =
-    "Implement model foundations, inference runtime, LLM serving, and React integration in one executable browser course.";
+    "Build model basics, an inference runtime, LLM serving, and a React app in one hands-on browser course.";
 
   return {
     metadataBase,

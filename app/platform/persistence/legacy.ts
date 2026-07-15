@@ -81,7 +81,7 @@ function jsonValue(value: unknown): JsonValue {
 }
 
 function decodeLearner(raw: unknown, timestamp: number, fingerprint: string) {
-  if (!isRecord(raw) || raw.version !== 2) throw new Error("Expected learner state version 2.");
+  if (!isRecord(raw) || raw.version !== 2) throw new Error("This isn't learner state version 2.");
   const bundle = emptyBundle();
   const lessons = isRecord(raw.lessons) ? raw.lessons : {};
   for (const [lessonId, value] of Object.entries(lessons)) {
@@ -150,7 +150,7 @@ function sourceTreeFingerprint(files: ProjectFileRecord[]) {
 }
 
 function decodeProject(raw: unknown, timestamp: number, fingerprint: string) {
-  if (!isRecord(raw) || raw.version !== 1) throw new Error("Expected project state version 1.");
+  if (!isRecord(raw) || raw.version !== 1) throw new Error("This isn't project state version 1.");
   const bundle = emptyBundle();
   const filesObject = isRecord(raw.files) ? raw.files : {};
   for (const [path, value] of Object.entries(filesObject)) {
@@ -169,6 +169,9 @@ function decodeProject(raw: unknown, timestamp: number, fingerprint: string) {
       lessonId: typeof value.lessonId === "string" ? value.lessonId : null,
       verifiedCells: typeof value.verifiedCells === "number" && Number.isFinite(value.verifiedCells) ? Math.max(0, Math.round(value.verifiedCells)) : 0,
       totalCells: typeof value.totalCells === "number" && Number.isFinite(value.totalCells) ? Math.max(1, Math.round(value.totalCells)) : 1,
+      sourceProvenance: value.sourceProvenance === "seed" || value.sourceProvenance === "lesson" || value.sourceProvenance === "ide"
+        ? value.sourceProvenance
+        : undefined,
       revision: 1,
       sourceHash,
       createdAt: updatedAt,
@@ -269,7 +272,7 @@ function decodeProject(raw: unknown, timestamp: number, fingerprint: string) {
 }
 
 function decodeCapstone(raw: unknown, timestamp: number) {
-  if (!isRecord(raw) || raw.version !== 2) throw new Error("Expected capstone state version 2.");
+  if (!isRecord(raw) || raw.version !== 2) throw new Error("This isn't capstone state version 2.");
   const bundle = emptyBundle();
   const backends = ["student", "local"] as const;
   const messages = Array.isArray(raw.messages) ? raw.messages : [];
@@ -354,25 +357,25 @@ const DATA_TABLES = (database: BrowserLabDatabase) => [
 ] as const;
 
 export async function importLegacyLocalStorage(database: BrowserLabDatabase, storage: LegacyStorageReader | null = safeLegacyStorage(), timestamp = Date.now()) {
-  if (!storage) return LEGACY_STORAGE_KEYS.map<LegacyImportResult>((key) => ({ key, status: "unavailable", detail: "localStorage is unavailable; no legacy data was changed." }));
+  if (!storage) return LEGACY_STORAGE_KEYS.map<LegacyImportResult>((key) => ({ key, status: "unavailable", detail: "localStorage isn't available, so we left the old data alone." }));
   const report: LegacyImportResult[] = [];
 
   for (const key of LEGACY_STORAGE_KEYS) {
     const migrationId = legacyMigrationId(key);
     const prior = await database.migrations.get(migrationId);
     if (prior?.status === "complete") {
-      report.push({ key, status: "already-imported", detail: "This source was imported previously; the legacy key remains available for rollback." });
+      report.push({ key, status: "already-imported", detail: "This data was already imported. The old key is still there in case you need to roll back." });
       continue;
     }
     let serialized: string | null;
     try {
       serialized = storage.getItem(key);
     } catch {
-      report.push({ key, status: "unavailable", detail: "The browser blocked access to this legacy key; no data was changed." });
+      report.push({ key, status: "unavailable", detail: "The browser blocked access to this old key, so we didn't change anything." });
       continue;
     }
     if (serialized === null) {
-      report.push({ key, status: "missing", detail: "No legacy record exists. A later initialization may retry." });
+      report.push({ key, status: "missing", detail: "We didn't find an old record. The app can try again later." });
       continue;
     }
 
@@ -388,7 +391,7 @@ export async function importLegacyLocalStorage(database: BrowserLabDatabase, sto
         attempts: (prior?.attempts ?? 0) + 1,
         startedAt: timestamp,
         completedAt: null,
-        error: error instanceof Error ? error.message : "The legacy record is invalid.",
+        error: error instanceof Error ? error.message : "The old record isn't valid.",
       };
       await database.migrations.put(failed);
       report.push({ key, status: "invalid", detail: failed.error! });
@@ -412,8 +415,8 @@ export async function importLegacyLocalStorage(database: BrowserLabDatabase, sto
       return true;
     });
     report.push(imported
-      ? { key, status: "imported", detail: "Imported transactionally. The legacy key was intentionally preserved." }
-      : { key, status: "already-imported", detail: "Another tab completed this import first; the legacy key remains available." });
+      ? { key, status: "imported", detail: "The import finished. We kept the old key in case you need to roll back." }
+      : { key, status: "already-imported", detail: "Another tab finished this import first. The old key is still available." });
   }
   return report;
 }

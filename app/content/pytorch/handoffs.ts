@@ -19,13 +19,13 @@ onnxscript==0.7.1
 
 export const PYTORCH_PORTFOLIO_README = `# Native PyTorch track
 
-These files are the production-framework translations of selected Latent
-lessons. They use the real PyTorch package for Python: eager tensors, autograd,
+These files show how selected Latent lessons look in a production framework.
+They use the real PyTorch package for Python, including eager tensors, autograd,
 nn.Module, optimizers, and export APIs.
 
-They do not run in the browser's Pyodide worker. PyTorch does not publish an
-official Pyodide/WebAssembly wheel. Run them in a native Python 3.10-3.13
-environment or upload the lesson notebook downloaded from Latent to Colab.
+They do not run in the browser's Pyodide worker because PyTorch doesn't publish
+an official Pyodide/WebAssembly wheel. Run them with native Python 3.10-3.13,
+or upload the lesson notebook you downloaded from Latent to Colab.
 
 ## Setup
 
@@ -40,9 +40,9 @@ python models/causal_transformer_torch.py
 python systems/kv_cache_torch.py
 \`\`\`
 
-The NumPy lesson files remain the transparent, browser-executable source of
-truth for the course exercises. These PyTorch files show how the same
-mechanisms become trainable modules and portable model artifacts.
+The NumPy lesson files are still the clear, browser-ready source of truth for
+the course exercises. These PyTorch files show how the same ideas become
+trainable modules and model files you can move between runtimes.
 `;
 
 const characterRnn = `import torch
@@ -394,8 +394,8 @@ if __name__ == "__main__":
 export const PYTORCH_HANDOFFS: Record<string, PyTorchHandoff> = {
   "character-rnns": {
     lessonId: "character-rnns",
-    title: "Train the recurrence with autograd",
-    rationale: "The NumPy cells expose the recurrence, loss, and clipping rule. PyTorch then registers those weights, differentiates through time, and lets an optimizer update them.",
+    title: "Train the recurrent model with autograd",
+    rationale: "The NumPy cells show the recurrence, loss, and clipping rule directly. PyTorch registers those weights, runs backpropagation through time, and lets an optimizer update them.",
     mappings: [
       { mechanism: "Wxh, Whh, Why arrays", pytorch: "nn.Parameter" },
       { mechanism: "manual cross-entropy path", pytorch: "F.cross_entropy" },
@@ -405,8 +405,8 @@ export const PYTORCH_HANDOFFS: Record<string, PyTorchHandoff> = {
   },
   "neural-language-models": {
     lessonId: "neural-language-models",
-    title: "Learn embeddings as model parameters",
-    rationale: "PyTorch makes the embedding table and output projection trainable modules while preserving the lesson's context-vector and next-token-loss path.",
+    title: "Train embeddings as model parameters",
+    rationale: "PyTorch turns the embedding table and output projection into trainable modules while keeping the lesson's path from context vector to next-token loss.",
     mappings: [
       { mechanism: "embedding matrix row lookup", pytorch: "nn.Embedding" },
       { mechanism: "context and vocabulary projections", pytorch: "nn.Linear" },
@@ -416,8 +416,8 @@ export const PYTORCH_HANDOFFS: Record<string, PyTorchHandoff> = {
   },
   "additive-attention": {
     lessonId: "additive-attention",
-    title: "Make the alignment scorer trainable",
-    rationale: "The scalar equations become batched projections over queries, keys, and values. Autograd verifies that the alignment parameters receive gradients.",
+    title: "Train the alignment scorer",
+    rationale: "The scalar equations become batched projections over queries, keys, and values. Autograd confirms that the alignment parameters get gradients.",
     mappings: [
       { mechanism: "Wq and Wk projections", pytorch: "nn.Linear" },
       { mechanism: "soft alignment", pytorch: "Tensor.softmax" },
@@ -427,19 +427,19 @@ export const PYTORCH_HANDOFFS: Record<string, PyTorchHandoff> = {
   },
   transformers: {
     lessonId: "transformers",
-    title: "Assemble a trainable causal decoder",
-    rationale: "This translation adds learned QKV projections, multiple heads, residual paths, affine LayerNorm, an MLP, next-token loss, and a native ONNX export boundary.",
+    title: "Build a trainable causal decoder",
+    rationale: "This version adds learned QKV projections, multiple heads, residual paths, affine LayerNorm, an MLP, next-token loss, and native ONNX export.",
     mappings: [
       { mechanism: "scaled causal attention", pytorch: "F.scaled_dot_product_attention" },
       { mechanism: "residual block and MLP", pytorch: "nn.Module" },
-      { mechanism: "browser deployment artifact", pytorch: "torch.onnx.export" },
+      { mechanism: "browser deployment file", pytorch: "torch.onnx.export" },
     ],
     files: [{ path: "pytorch/models/causal_transformer_torch.py", label: "Causal decoder", code: causalTransformer }],
   },
   "inference-runtime": {
     lessonId: "inference-runtime",
-    title: "Check KV-cache accounting against a real tensor",
-    rationale: "The serving formula becomes concrete when a PyTorch allocation reports its element count and dtype width. The factor of two is one key tensor plus one value tensor.",
+    title: "Check the KV-cache math with a real tensor",
+    rationale: "The serving formula is easier to see when a PyTorch allocation reports its element count and dtype width. The factor of two comes from one key tensor and one value tensor.",
     mappings: [
       { mechanism: "KV-cache dimensions", pytorch: "torch.empty shape" },
       { mechanism: "bytes per value", pytorch: "Tensor.element_size" },

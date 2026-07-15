@@ -31,6 +31,7 @@ export type ProjectFile = {
   totalCells: number;
   updatedAt: number;
   readOnly?: boolean;
+  sourceProvenance?: "seed" | "lesson" | "ide";
 };
 
 export type ProjectRuntime = {
@@ -130,6 +131,7 @@ function runtimeFiles(): Record<string, ProjectFile> {
     totalCells: 1,
     updatedAt: now,
     readOnly: file.readOnly,
+    sourceProvenance: "seed" as const,
   }] as const);
   const application = CANONICAL_BROWSER_CHAT_FILES.map((file) => [file.path, {
     path: file.path,
@@ -141,6 +143,7 @@ function runtimeFiles(): Record<string, ProjectFile> {
     totalCells: 1,
     updatedAt: now,
     readOnly: !file.editable,
+    sourceProvenance: "seed" as const,
   }] as const);
   return Object.fromEntries([...runtime, ...application]);
 }
@@ -243,6 +246,9 @@ function sanitizeProjectState(value: unknown): ProjectState {
         totalCells: Math.max(1, Math.round(finiteNumber(file.totalCells, 1))),
         updatedAt: finiteNumber(file.updatedAt, 0),
         readOnly: false,
+        sourceProvenance: file.sourceProvenance === "seed" || file.sourceProvenance === "lesson" || file.sourceProvenance === "ide"
+          ? file.sourceProvenance
+          : undefined,
       };
     }
   }
@@ -403,6 +409,7 @@ export function projectStateWithRecoveredDrafts(state: ProjectState, recovery: P
       content: draft.content,
       verifiedCells: file.lessonId ? 0 : file.verifiedCells,
       updatedAt: Math.max(file.updatedAt, draft.updatedAt),
+      sourceProvenance: "ide",
     };
     changed = true;
   }
@@ -509,16 +516,18 @@ function sameJson(left: unknown, right: unknown) {
 }
 
 function persistedFileMatchesProjectFile(
-  persisted: { track: string; title: string; content: string; referenceContent: string | null; lessonId: string | null; verifiedCells?: number; totalCells?: number },
+  persisted: { track: string; title: string; content: string; referenceContent: string | null; lessonId: string | null; verifiedCells?: number; totalCells?: number; sourceProvenance?: "seed" | "lesson" | "ide"; revision: number },
   file: ProjectFile,
 ) {
+  const persistedProvenance = persisted.sourceProvenance ?? (persisted.revision > 1 ? "ide" : undefined);
   return persisted.track === file.courseId
     && persisted.title === file.title
     && persisted.content === file.content
     && persisted.referenceContent === file.referenceContent
     && persisted.lessonId === (file.lessonId ?? null)
     && (persisted.verifiedCells ?? 0) === file.verifiedCells
-    && (persisted.totalCells ?? 1) === file.totalCells;
+    && (persisted.totalCells ?? 1) === file.totalCells
+    && persistedProvenance === file.sourceProvenance;
 }
 
 function projectPersistenceDiff(state: ProjectState, previous: ProjectState | null) {
@@ -534,7 +543,7 @@ function projectPersistenceDiff(state: ProjectState, previous: ProjectState | nu
 
 function setProjectPersistenceError(error: unknown) {
   projectPersistenceError = error
-    ? error instanceof Error ? error.message : "Project storage is unavailable."
+    ? error instanceof Error ? error.message : "This browser can't save the project."
     : null;
   if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent(PROJECT_PERSISTENCE_EVENT));
 }
@@ -580,6 +589,7 @@ async function persistProjectState(state: ProjectState, previous: ProjectState |
       lessonId: file.lessonId ?? null,
       verifiedCells: file.verifiedCells,
       totalCells: file.totalCells,
+      sourceProvenance: file.sourceProvenance,
       reason: "edit",
       expected: persisted ? { revision: persisted.revision, sourceHash: persisted.sourceHash } : null,
     });
@@ -675,6 +685,11 @@ export async function projectStateFromPersistence(): Promise<ProjectState | null
       totalCells: Math.max(1, Math.round(finiteNumber(record.totalCells, previous?.totalCells ?? 1))),
       updatedAt: record.updatedAt,
       readOnly: false,
+      sourceProvenance: record.sourceProvenance === "seed" || record.sourceProvenance === "lesson" || record.sourceProvenance === "ide"
+        ? record.sourceProvenance
+        : record.revision > 1
+          ? "ide"
+          : undefined,
     };
   }
   const latestRun = runs.at(-1);
@@ -760,6 +775,28 @@ export async function flushProjectPersistence() {
   if (projectPersistenceError) throw new Error(projectPersistenceError);
 }
 
+/**
+ * Fail closed before promoting source-bound output. The in-memory comparison
+ * catches this tab, recovery journals catch unsaved edits from another tab,
+ * and the repository read bypasses the tab-local cache for durable edits.
+ */
+export async function projectFileSourceIsCurrent(
+  path: string,
+  expectedContent: string,
+) {
+  await initializeProjectPersistence();
+  if (loadProjectState().files[path]?.content !== expectedContent) return false;
+  const { repositories } = await getPersistenceContext();
+  const persisted = await repositories.projects.getFile(PROJECT_ID, path);
+  if (!persisted || persisted.content !== expectedContent) return false;
+  const revisions = await repositories.projects.listFileRevisions(PROJECT_ID, path);
+  const sourceRevision = revisions.find((revision) => revision.revision === persisted.revision);
+  const durableSourceUpdatedAt = sourceRevision?.createdAt ?? persisted.updatedAt;
+  return !listProjectDraftRecoveryCandidates(path).some((candidate) => (
+    candidate.content !== expectedContent && candidate.updatedAt >= durableSourceUpdatedAt
+  ));
+}
+
 export function updateProjectState(update: (state: ProjectState) => ProjectState) {
   const previous = loadProjectState();
   cachedProject = sanitizeProjectState(update(previous));
@@ -787,17 +824,18 @@ export function ensureProjectWorkspace(seeds: LessonProjectSeed[]) {
         }
       }
       if (!files[seed.path]) {
-        files[seed.path] = { ...seed, updatedAt: Date.now() };
+        files[seed.path] = { ...seed, updatedAt: Date.now(), sourceProvenance: "seed" };
         sourceTreeChanged = true;
       } else if (seed.readOnly) {
         const current = files[seed.path];
         if (current.content !== seed.content || current.referenceContent !== seed.referenceContent || !current.readOnly) {
-          files[seed.path] = { ...seed, updatedAt: current.updatedAt };
+          files[seed.path] = { ...seed, updatedAt: current.updatedAt, sourceProvenance: "seed" };
           sourceTreeChanged = true;
         }
       } else if (files[seed.path].referenceContent !== seed.referenceContent) {
         const current = files[seed.path];
-        const untouched = current.content === current.referenceContent;
+        const untouched = (current.sourceProvenance === undefined || current.sourceProvenance === "seed")
+          && current.content === current.referenceContent;
         const nextContent = untouched
           ? seed.content
           : seed.content.startsWith("import {") && !current.content.startsWith("import {")
@@ -809,14 +847,23 @@ export function ensureProjectWorkspace(seeds: LessonProjectSeed[]) {
           content: nextContent,
           verifiedCells: nextContent === seed.content ? seed.verifiedCells : 0,
           updatedAt: nextContent === current.content ? current.updatedAt : Date.now(),
+          sourceProvenance: untouched ? "seed" : current.sourceProvenance,
         };
         sourceTreeChanged = true;
       } else {
         const current = files[seed.path];
+        // Challenge-first lessons use an incomplete starter as their canonical
+        // working file. Migrate only the old untouched authored baseline; a
+        // learner-edited IDE file remains authoritative.
+        const migrateAuthoredBaseline = (current.sourceProvenance === undefined || current.sourceProvenance === "seed")
+          && current.content === seed.referenceContent
+          && seed.content !== seed.referenceContent;
+        const nextContent = migrateAuthoredBaseline ? seed.content : current.content;
         const nextReadOnly = seed.readOnly ?? current.readOnly;
-        const nextVerifiedCells = current.content === seed.content ? seed.verifiedCells : 0;
+        const nextVerifiedCells = nextContent === seed.content ? seed.verifiedCells : 0;
         if (
-          current.courseId !== seed.courseId
+          current.content !== nextContent
+          || current.courseId !== seed.courseId
           || current.lessonId !== seed.lessonId
           || current.title !== seed.title
           || current.verifiedCells !== nextVerifiedCells
@@ -825,13 +872,17 @@ export function ensureProjectWorkspace(seeds: LessonProjectSeed[]) {
         ) {
           files[seed.path] = {
             ...current,
+            content: nextContent,
             courseId: seed.courseId,
             lessonId: seed.lessonId,
             title: seed.title,
             verifiedCells: nextVerifiedCells,
             totalCells: seed.totalCells,
             readOnly: nextReadOnly,
+            updatedAt: current.content === nextContent ? current.updatedAt : Date.now(),
+            sourceProvenance: migrateAuthoredBaseline ? "seed" : current.sourceProvenance,
           };
+          if (current.content !== nextContent) sourceTreeChanged = true;
         }
       }
     }
@@ -846,7 +897,7 @@ export function ensureProjectWorkspace(seeds: LessonProjectSeed[]) {
   });
 }
 
-export function projectStateAfterFileEdit(state: ProjectState, path: string, content: string, updatedAt = Date.now()) {
+export function projectStateAfterFileEdit(state: ProjectState, path: string, content: string, updatedAt = Date.now()): ProjectState {
   const file = state.files[path];
   if (!file) return state;
   if (file.readOnly) return { ...state, selectedPath: path };
@@ -856,7 +907,7 @@ export function projectStateAfterFileEdit(state: ProjectState, path: string, con
     selectedPath: path,
     files: {
       ...state.files,
-      [path]: { ...file, content, verifiedCells: file.lessonId ? 0 : file.verifiedCells, updatedAt },
+      [path]: { ...file, content, verifiedCells: file.lessonId ? 0 : file.verifiedCells, updatedAt, sourceProvenance: "ide" },
     },
     tests: { results: {}, ranAt: 0, runner: "none" as const, sourceTreeHash: null, projectRevision: null, contractVersion: null, contractIdsByPath: {} },
   };
@@ -882,7 +933,7 @@ export function saveLessonProjectFile(seed: LessonProjectSeed) {
       || existing.readOnly !== seed.readOnly;
     return {
       ...state,
-      files: { ...state.files, [seed.path]: { ...seed, updatedAt: contentChanged || metadataChanged ? Date.now() : existing?.updatedAt ?? Date.now() } },
+      files: { ...state.files, [seed.path]: { ...seed, updatedAt: contentChanged || metadataChanged ? Date.now() : existing?.updatedAt ?? Date.now(), sourceProvenance: "lesson" } },
       tests: contentChanged
         ? { results: {}, ranAt: 0, runner: "none", sourceTreeHash: null, projectRevision: null, contractVersion: null, contractIdsByPath: {} }
         : state.tests,
@@ -896,17 +947,17 @@ export function selectProjectFile(path: string) {
 
 function parseConfig(source: string, path: string) {
   const match = source.trim().match(/^export\s+default\s+([\s\S]+?);?\s*$/);
-  if (!match) throw new Error(`${path}: expected export default followed by a JSON object.`);
+  if (!match) throw new Error(`${path}: start with export default, followed by a JSON object.`);
   try {
     return JSON.parse(match[1]) as Record<string, unknown>;
   } catch {
-    throw new Error(`${path}: the exported object must use JSON syntax with quoted keys and strings.`);
+    throw new Error(`${path}: use JSON syntax in the exported object, including quoted keys and strings.`);
   }
 }
 
 function rangedNumber(value: unknown, path: string, name: string, minimum: number, maximum: number, integer = false) {
   if (typeof value !== "number" || !Number.isFinite(value) || value < minimum || value > maximum || (integer && !Number.isInteger(value))) {
-    throw new Error(`${path}: ${name} must be ${integer ? "an integer" : "a number"} from ${minimum} to ${maximum}.`);
+    throw new Error(`${path}: ${name} must be ${integer ? "an integer" : "a number"} between ${minimum} and ${maximum}.`);
   }
   return value;
 }
@@ -921,21 +972,21 @@ export function compileProject(files: Record<string, ProjectFile>, previous: Pro
       maxTokens: rangedNumber(value.maxTokens, RUNTIME_PATHS.model, "maxTokens", 40, 160, true),
       seed: rangedNumber(value.seed, RUNTIME_PATHS.model, "seed", 0, 99999, true),
     } };
-  } catch (error) { errors.push(error instanceof Error ? error.message : "Model config failed."); }
+  } catch (error) { errors.push(error instanceof Error ? error.message : "We couldn't read the model config."); }
   try {
     const value = parseConfig(files[RUNTIME_PATHS.transport]?.content ?? "", RUNTIME_PATHS.transport);
     previous = { ...previous, transport: {
       wordsPerEvent: rangedNumber(value.wordsPerEvent, RUNTIME_PATHS.transport, "wordsPerEvent", 1, 12, true),
       delayMs: rangedNumber(value.delayMs, RUNTIME_PATHS.transport, "delayMs", 0, 200, true),
     } };
-  } catch (error) { errors.push(error instanceof Error ? error.message : "Transport config failed."); }
+  } catch (error) { errors.push(error instanceof Error ? error.message : "We couldn't read the transport config."); }
   try {
     const value = parseConfig(files[RUNTIME_PATHS.interface]?.content ?? "", RUNTIME_PATHS.interface);
-    if (typeof value.assistantName !== "string" || !value.assistantName.trim() || value.assistantName.length > 24) throw new Error(`${RUNTIME_PATHS.interface}: assistantName must contain 1–24 characters.`);
-    if (typeof value.responsePrefix !== "string" || value.responsePrefix.length > 60) throw new Error(`${RUNTIME_PATHS.interface}: responsePrefix must contain at most 60 characters.`);
+    if (typeof value.assistantName !== "string" || !value.assistantName.trim() || value.assistantName.length > 24) throw new Error(`${RUNTIME_PATHS.interface}: assistantName must be 1–24 characters long.`);
+    if (typeof value.responsePrefix !== "string" || value.responsePrefix.length > 60) throw new Error(`${RUNTIME_PATHS.interface}: responsePrefix must be 60 characters or fewer.`);
     if (typeof value.showMetrics !== "boolean") throw new Error(`${RUNTIME_PATHS.interface}: showMetrics must be true or false.`);
     previous = { ...previous, interface: { assistantName: value.assistantName.trim(), responsePrefix: value.responsePrefix, showMetrics: value.showMetrics } };
-  } catch (error) { errors.push(error instanceof Error ? error.message : "Interface config failed."); }
+  } catch (error) { errors.push(error instanceof Error ? error.message : "We couldn't read the interface config."); }
   if (errors.length) return { ok: false as const, errors };
   return { ok: true as const, errors: [], runtime: { ...previous, version: 1 as const, buildNumber: previous.buildNumber + 1, builtAt: Date.now() } };
 }

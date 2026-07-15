@@ -4,7 +4,7 @@ import { ProjectWorkbench } from "../components/ProjectWorkbench";
 
 export const metadata: Metadata = {
   title: "Project IDE · Latent",
-  description: "Edit, test, and build the browser chatbot assembled throughout the Latent LLM Systems course.",
+  description: "Edit, test, and build the browser chatbot you put together in the Latent LLM Systems course.",
 };
 
 export default function WorkspacePage() {

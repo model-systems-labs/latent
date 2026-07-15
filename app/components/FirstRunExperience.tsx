@@ -14,7 +14,7 @@ export function FirstRunExperience() {
   const [result, setResult] = useState<RnnResult | null>(null);
   const [openOutput, setOpenOutput] = useState("");
   const [constrainedOutput, setConstrainedOutput] = useState("");
-  const [status, setStatus] = useState("A worker trains the small model only after you press run.");
+  const [status, setStatus] = useState("The small model starts training only after you press run.");
   const [working, setWorking] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const browserReady = useSyncExternalStore(subscribeToBrowser, () => true, () => false);
@@ -39,7 +39,7 @@ export function FirstRunExperience() {
   const run = async () => {
     if (working) return;
     setWorking(true);
-    setStatus(result ? "Sampling twice from the same weights and seed…" : "Training 1,267 parameters for 100 deterministic updates…");
+    setStatus(result ? "Generating twice with the same weights and seed…" : "Training 1,267 parameters for 100 repeatable updates…");
     void recordLearningEvent("first_run_started");
     try {
       let trained = result;
@@ -56,7 +56,7 @@ export function FirstRunExperience() {
         abortRef.current = null;
       }
       await generate(trained);
-      setStatus(`Loss ${trained.initialLoss.toFixed(3)} → ${trained.finalLoss.toFixed(3)}. The two outputs differ only because inference policy changed.`);
+      setStatus(`Loss ${trained.initialLoss.toFixed(3)} → ${trained.finalLoss.toFixed(3)}. The outputs differ only because the generation settings changed.`);
       void recordLearningEvent("first_run_completed", { outcome: "passed" });
     } catch (error) {
       const cancelled = error instanceof DOMException && error.name === "AbortError";
@@ -70,8 +70,8 @@ export function FirstRunExperience() {
   return (
     <section className="first-run" id="first-run" aria-labelledby="first-run-title">
       <header>
-        <div><span>First run · actual training</span><h2 id="first-run-title">Character-level RNN</h2></div>
-        <p>Train a 1,267-parameter character-level recurrent neural network in a worker, then sample the same checkpoint under two inference policies. Later, the same project loads a 135M-parameter local Transformer.</p>
+        <div><span>First run · real training</span><h2 id="first-run-title">Character-level RNN</h2></div>
+        <p>Train a 1,267-parameter character-level recurrent neural network in a background worker, then generate text from the same checkpoint with two sets of settings. Later, this same project loads a 135M-parameter Transformer on your device.</p>
       </header>
       <div className="first-run-layout">
         <div className="first-run-controls">
@@ -83,11 +83,11 @@ export function FirstRunExperience() {
           </div>
         </div>
         <div className="first-run-output">
-          <article><header><span>Open distribution</span><code>temperature 1.05 · top-k off</code></header><p>{openOutput || "Run the model to produce an unconstrained continuation."}</p></article>
-          <article><header><span>Restricted distribution</span><code>temperature 0.72 · top-k 5</code></header><p>{constrainedOutput || "The same weights will sample only from the five highest-probability characters."}</p></article>
+          <article><header><span>Open sampling</span><code>temperature 1.05 · top-k off</code></header><p>{openOutput || "Run the model to generate a continuation without a top-k limit."}</p></article>
+          <article><header><span>Top-k sampling</span><code>temperature 0.72 · top-k 5</code></header><p>{constrainedOutput || "The same weights will choose only from the five most likely characters."}</p></article>
         </div>
       </div>
-      <footer><p>The result is not presented as a capable assistant. It isolates the mechanism you implement in Lesson 01.</p><Link href="/lessons/character-rnns">Open Character RNNs →</Link></footer>
+      <footer><p>This tiny model isn’t meant to be a capable assistant. It gives you a clear look at the idea you’ll build in Lesson 01.</p><Link href="/lessons/character-rnns">Open Character RNNs →</Link></footer>
     </section>
   );
 }

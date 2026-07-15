@@ -7,43 +7,43 @@ export const neuralTextDegenerationLesson: PaperLesson = {
   eyebrow: "Decoding · Holtzman et al. · 2020",
   title: "Neural Text Degeneration",
   thesis:
-    "The model is only half the generator. The algorithm that selects its next token can determine whether language remains coherent, collapses into repetition, or wanders into noise.",
+    "The model is only half of the generator. The way you pick each next token can be the difference between clear writing, endless repetition, and plain noise.",
   paperUrl: "https://arxiv.org/abs/1904.09751",
   paperTitle: "The Curious Case of Neural Text Degeneration",
   paperContext: `
-You are the discussion partner for one research paper: "The Curious Case of Neural Text Degeneration" by Ari Holtzman, Jan Buys, Li Du, Maxwell Forbes, and Yejin Choi.
+You're helping someone work through one research paper: "The Curious Case of Neural Text Degeneration" by Ari Holtzman, Jan Buys, Li Du, Maxwell Forbes, and Yejin Choi.
 
-Use this compact paper context when answering:
-- The paper studies open-ended neural text generation and compares human text with text produced by likelihood-maximizing decoding and stochastic sampling.
-- Maximization methods such as greedy and beam search often become bland or repetitive, even when the underlying language model assigns useful probabilities.
-- Sampling from the full distribution avoids some repetition but can select from an unreliable low-probability tail, producing incoherent continuations.
-- Nucleus sampling, also called top-p sampling, sorts next-token probabilities and retains the smallest dynamic set whose cumulative mass is at least p. It samples only from that renormalized set.
-- Unlike top-k, the nucleus changes size with the uncertainty of the model: it is small for peaked distributions and larger for flatter distributions.
-- The paper's central lesson is that generation quality depends on the decoding algorithm, not only on model weights or likelihood.
-- Nucleus sampling is a decoding heuristic, not a source of new knowledge, a safety system, or a guarantee of factuality. The choice of p remains application-dependent.
+Use this short paper summary when you answer:
+- The paper looks at open-ended neural text generation. It compares human writing with text made by likelihood-maximizing decoding and stochastic, or random, sampling.
+- Maximizing methods like greedy search and beam search often get bland or repetitive, even when the language model itself assigns useful probabilities.
+- Sampling from the full distribution avoids some repetition, but it can pick from an unreliable tail of low-probability tokens and send the text off track.
+- Nucleus sampling, also called top-p sampling, sorts next-token probabilities and keeps the smallest changing set whose cumulative probability mass is at least p. It samples only from that renormalized set.
+- Unlike top-k, the nucleus gets smaller when the model is confident and larger when the distribution is flatter.
+- The paper's main point is that generation quality depends on the decoding algorithm, not just the model's weights or likelihood.
+- Nucleus sampling is a decoding heuristic—a practical rule of thumb—not new knowledge, a safety system, or a promise that the answer is factual. The right p depends on the application.
 
-Answer precisely and pedagogically. Distinguish claims made by the paper from later practice. If the question cannot be answered from this context, say what additional source would be needed. Keep answers under 220 words unless the user asks for more detail.
+Give a clear, accurate answer. Keep the paper's claims separate from what people did later. If this summary isn't enough to answer the question, say what other source you'd need. Stay under 220 words unless they ask for more detail.
 `.trim(),
   summary: [
     {
-      label: "The problem.",
+      label: "Where decoding goes wrong.",
       body:
-        "A language model produces a probability distribution over the next token. Turning that distribution into text requires a separate decoding decision. Greedy search and beam search maximize likelihood, yet open-ended generations from these methods often become generic and repeat themselves.",
+        "A language model gives you probabilities for the next token. You still need a decoding rule to turn those probabilities into text. Greedy search and beam search chase the highest likelihood, but their open-ended writing often gets generic and starts repeating itself.",
     },
     {
-      label: "The other failure mode.",
+      label: "The other way it can fail.",
       body:
-        "Sampling from the complete distribution introduces diversity, but it also exposes the unreliable tail: many individually unlikely tokens that collectively contain substantial probability mass. Selecting one of them can push a continuation away from coherent human language.",
+        "Sampling from the full distribution adds variety, but it also opens the door to an unreliable tail. That tail contains lots of individually unlikely tokens whose combined probability mass is still substantial. Picking one can knock the continuation away from clear, human-sounding language.",
     },
     {
-      label: "The finding.",
+      label: "What nucleus sampling does.",
       body:
-        "Nucleus sampling sorts tokens by probability and keeps the smallest dynamic set whose cumulative mass reaches a threshold p. The candidate set contracts when the model is confident and expands when uncertainty is genuinely distributed across several plausible continuations.",
+        "Nucleus sampling sorts tokens by probability and keeps the smallest changing set whose cumulative probability mass reaches the threshold p. The candidate set shrinks when the model is confident and grows when several next tokens are honestly plausible.",
     },
     {
-      label: "The implication.",
+      label: "Why it matters.",
       body:
-        "Generation quality is not determined by model weights alone. The same model can produce repetitive, incoherent, or fluent text depending on its inference policy. Top-p is a useful heuristic, not new knowledge, factuality, or safety, and its threshold remains an application decision.",
+        "Model weights don't decide generation quality on their own. The same model can produce repetitive, confusing, or fluent text depending on its inference policy, meaning its decoding setup. Top-p is a useful heuristic, but it doesn't add knowledge, factuality, or safety. You still have to choose the threshold for your specific use case.",
     },
   ],
   diagram: {
@@ -65,7 +65,7 @@ Answer precisely and pedagogically. Distinguish claims made by the paper from la
   },
   questions: {
     intro:
-      "Ask an LLM to explain, challenge, or extend the summary while keeping the discussion grounded in this paper.",
+      "Ask an LLM to explain, question, or build on the summary while sticking to what this paper actually says.",
     suggestions: [
       "Why does beam search repeat?",
       "How is top-p different from top-k?",
@@ -75,24 +75,24 @@ Answer precisely and pedagogically. Distinguish claims made by the paper from la
   implementation: {
     filename: "nucleus-sampling.py",
     intro:
-      "Begin with the complete Python and NumPy solution. Run it, then hide any conceptual block and reconstruct it without losing the surrounding program. Checks judge behavior rather than exact text.",
+      "Start with the complete Python and NumPy solution and run it once. Then hide any concept block and rebuild it without losing the rest of the program. The checks care about what your code does, not whether the text matches exactly.",
     codeBlocks: [
       {
         id: "softmax",
         label: "Temperature-scaled softmax",
-        purpose: "Convert logits into a normalized next-token distribution.",
+        purpose: "Turn logits into normalized probabilities for the next token.",
         concepts: [
           {
             name: "safe_temperature",
-            detail: "Clamp the denominator before scaling so temperature cannot divide logits by zero.",
+            detail: "Put a safe floor under the denominator so temperature can't divide the logits by zero.",
           },
           {
             name: "max_logit",
-            detail: "Subtract the largest scaled logit before exponentiation to keep exp() numerically stable.",
+            detail: "Subtract the largest scaled logit before exponentiation so exp() stays numerically stable.",
           },
           {
             name: "total",
-            detail: "Normalize every positive weight into a probability distribution whose mass sums to 1.",
+            detail: "Turn all the positive weights into probabilities that add up to 1.",
           },
         ],
         code: `import numpy as np
@@ -116,19 +116,19 @@ def softmax(logits, temperature=1):
       {
         id: "nucleus",
         label: "Dynamic nucleus",
-        purpose: "Keep the smallest ranked token set whose probability mass reaches p.",
+        purpose: "Keep the smallest ranked set of tokens whose cumulative probability mass reaches p.",
         concepts: [
           {
             name: "ranked",
-            detail: "Sort candidate tokens from most likely to least likely before applying the cumulative cutoff.",
+            detail: "Sort the possible tokens from most likely to least likely before applying the cutoff.",
           },
           {
             name: "cumulative_mass",
-            detail: "Track how much probability mass the dynamic nucleus has captured.",
+            detail: "Keep track of how much cumulative probability mass the changing nucleus has collected.",
           },
           {
             name: "renormalized",
-            detail: "Return probabilities scaled back to sum to 1 after the low-probability tail is removed.",
+            detail: "After removing the low-probability tail, scale the remaining probabilities so they add up to 1 again.",
           },
         ],
         code: `def nucleus(tokens, probabilities, top_p=0.9):
@@ -160,19 +160,19 @@ def softmax(logits, temperature=1):
       {
         id: "policy",
         label: "Generation policy",
-        purpose: "Expose the inference-time controls used by the local transformer.",
+        purpose: "Show the generation controls used by the local transformer.",
         concepts: [
           {
             name: "temperature",
-            detail: "Lower values sharpen the distribution; higher values flatten it.",
+            detail: "Lower values make the distribution sharper; higher values make it flatter.",
           },
           {
             name: "top_p",
-            detail: "Keep the smallest dynamic token set whose cumulative probability reaches this threshold.",
+            detail: "Keep the smallest changing set of tokens whose cumulative probability mass reaches this threshold.",
           },
           {
             name: "repetition_penalty",
-            detail: "Reduce the model's tendency to reuse tokens it has already emitted.",
+            detail: "Make the model less likely to reuse tokens it already wrote.",
           },
         ],
         code: `policy = {
@@ -187,19 +187,19 @@ def softmax(logits, temperature=1):
       {
         id: "contract",
         label: "Output contract",
-        purpose: "Apply deterministic product requirements after token decoding.",
+        purpose: "Apply fixed product rules after token decoding.",
         concepts: [
           {
             name: "banned",
-            detail: "Remove product-specific phrases after generation without changing the model weights.",
+            detail: "Remove product-specific phrases after generation without touching the model weights.",
           },
           {
             name: "words",
-            detail: "Count user-visible tokens at the text level, not the model-token level.",
+            detail: "Count the words people see in the text, not the model's internal tokens.",
           },
           {
             name: "max_words",
-            detail: "Enforce a predictable product boundary after stochastic decoding has finished.",
+            detail: "Enforce a clear product limit after random decoding is done.",
           },
         ],
         code: `import re
@@ -227,6 +227,6 @@ def enforce_output_contract(text, config):
   },
   footer: {
     label: "Paper lab 01 complete",
-    next: "Next: train a character-level language model from Karpathy's recurrent-network essay.",
+    next: "Next up: train a character-level language model based on Karpathy's recurrent-network essay.",
   },
 };

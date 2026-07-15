@@ -8,28 +8,28 @@ export const chatActionsContextLesson = defineExtendedLesson({
     courseNumber: 4,
     lessonNumber: 3,
     mode: "core-mechanism",
-    modeLabel: "Interaction state lab",
+    modeLabel: "Interaction state workshop",
     eyebrow: "Product · Stop, retry, context",
     title: "Actions and Context",
-    thesis: "Editing, regenerating, stopping, and retrying are graph operations over conversation history whose model context must be reconstructed under a finite token budget.",
+    thesis: "Editing, regenerating, stopping, and retrying all change the conversation graph. After any of them, you need to rebuild the model context within a fixed token budget.",
     paperUrl: "https://platform.openai.com/docs/guides/conversation-state",
     paperTitle: "Conversation state",
     authors: "OpenAI API documentation",
-    year: "Current reference",
+    year: "Current docs",
     summary: [
-      { label: "Branch graph.", body: "Stop retains the partial assistant record with cancelled status. Retry or regenerate adds a new assistant attempt from the same user prefix; editing a user message creates a new branch and invalidates dependent descendants without erasing them." },
-      { label: "Request assembly.", body: "System instructions and the active user prompt are required request inputs. Completed history is admitted only as user-assistant pairs, newest pair first, then emitted in chronological order so truncation never creates an orphan half-turn." },
-      { label: "Budget contract.", body: "If a newer completed pair is too large, selection continues to older pairs that may fit. Token use is the exact sum of selected records. If required system instructions alone exceed the selector budget, they remain selected and overflow is reported; the caller must not send that request unchanged." },
-      { label: "Attempt record.", body: "Every attempt records stable message, parent-user, attempt, and request ids together with model id, prompt version, sampling policy, included message ids, and terminal status so two outputs can be explained and replayed." },
+      { label: "How branches work.", body: "Stop keeps the partial assistant message and marks it cancelled. Retry or regenerate starts a new assistant attempt from the same user message. Editing a user message starts a new branch and marks everything that depended on the old version invalid without deleting it." },
+      { label: "Building the request.", body: "The system instructions and current user prompt always go into the request. Completed history can only come along in full user-assistant pairs. Pick the newest pairs first, then send them in time order so truncation never leaves half a turn behind." },
+      { label: "Staying in budget.", body: "If a newer completed pair is too big, keep looking for older pairs that fit. The token count is the exact total for the records you picked. If the required system instructions already exceed the budget, keep them selected; overflow is reported, and the caller shouldn't send that request as-is." },
+      { label: "Tracking each attempt.", body: "For every attempt, save stable message, parent-user, attempt, and request ids. Also save the model id, prompt version, sampling policy, included message ids, and final status. That gives you what you need to explain or replay two different outputs." },
     ],
     claims: {
-      paper: "Conversation state can be represented explicitly and carried across model requests rather than inferred from rendered UI.",
-      lab: "Three selectable action flows retain cancellation, allocate new attempt and request ids, expose edit invalidation, and rebuild the exact request as the token budget changes.",
-      limit: "Token estimates are deterministic approximations rather than the selected model's production tokenizer.",
+      paper: "You can store conversation state directly and carry it from one model request to the next instead of trying to reconstruct it from the UI.",
+      lab: "The three action flows keep cancelled output, create new attempt and request ids, show what an edit invalidates, and rebuild the exact request as you change the token budget.",
+      limit: "The token counts are fixed estimates, not results from the selected model's production tokenizer.",
     },
     diagram: {
       title: "One prefix, three actions, one request boundary",
-      caption: "Stopping retains a cancelled partial attempt. Retry allocates a new attempt and request from the same user; edit creates a new user branch and invalidates the old descendant. Request assembly keeps required inputs, then admits complete historical pairs newest-first under the remaining budget.",
+      caption: "Stopping keeps a cancelled partial attempt. Retry creates a new attempt and request from the same user message. Edit starts a new user branch and invalidates the old follow-up. When you build the next request, keep the required inputs, consider complete historical pairs from newest to oldest, and send the selected pairs in time order.",
       nodes: [
         { label: "Active prefix", value: "s1 → m-u3" },
         { label: "Stop", value: "m-a3 · a-31 · r-31 · cancelled" },
@@ -38,20 +38,20 @@ export const chatActionsContextLesson = defineExtendedLesson({
         { label: "Request", value: "required prefix + complete turn units ≤ budget" },
       ],
     },
-    questions: { intro: "Ask about branching history, cancellation, retries, prompt records, or token-budget policy.", suggestions: ["What should regenerate preserve?", "Should stopping delete partial text?", "Which messages leave the context first?"] },
-    dataset: { name: "Branching Conversation", source: "Original deterministic scenario", license: "CC0", size: "3 action flows · 29 budgets (14–42)", preview: "stop partial → retry same prefix → edit into a new branch" },
+    questions: { intro: "Ask about conversation branches, cancellation, retries, prompt records, or how the token budget works.", suggestions: ["What should regenerate keep?", "Should stopping delete partial text?", "Which messages should leave the context first?"] },
+    dataset: { name: "Branching Conversation", source: "Original fixed scenario", license: "CC0", size: "3 action flows · 29 budgets (14–42)", preview: "stop midway → retry from the same point → edit into a new branch" },
     implementation: {
       filename: "chat-actions.py",
-      intro: "Implement bounded context selection and regeneration branching in Python before manipulating a complete conversation graph.",
+      intro: "Build token-limited context selection and regeneration branches in Python before you work with a full conversation graph.",
       codeBlocks: [
         {
           id: "context-budget",
           label: "Context selection",
-          purpose: "Assemble the exact request: required system instructions and active user prompt plus the newest complete historical pairs that fit.",
+          purpose: "Build the exact request from the required system instructions, the current user prompt, and the newest complete history pairs that fit.",
           concepts: [
-            { name: "history", detail: "Only adjacent complete user-assistant pairs are admissible; streaming, cancelled, error, and orphan records are skipped." },
-            { name: "active_user", detail: "Required current prompt, selected after system and historical context and counted inside the same budget." },
-            { name: "overflow", detail: "True when required system plus active-user tokens already exceed budget; the caller must not send the request unchanged." },
+            { name: "history", detail: "Only complete user-assistant pairs next to each other can be included. Skip streaming, cancelled, error, and orphan records." },
+            { name: "active_user", detail: "The current prompt is required. It comes after the system and history context and counts toward the same budget." },
+            { name: "overflow", detail: "True when the required system and current user prompt already exceed the budget. The caller shouldn't send that request unchanged." },
           ],
           code: `def select_context(options):
     system = options["system"]
@@ -117,11 +117,11 @@ RESULT = {
         {
           id: "regenerate-branch",
           label: "Regeneration branch",
-          purpose: "Create the exact queued assistant record for a new generation attempt and transport request without copying caller-only fields.",
+          purpose: "Create the queued assistant record for a new generation attempt and transport request without copying fields that only the caller needs.",
           concepts: [
-            { name: "parent_user_id", detail: "Branch point shared by all regenerated attempts." },
-            { name: "attempt_id", detail: "Unique identity for metrics and model parameters." },
-            { name: "request_id", detail: "Unique identity for this transport lifecycle and its incoming events." },
+            { name: "parent_user_id", detail: "The branch point all regenerated attempts share." },
+            { name: "attempt_id", detail: "A unique id for metrics and model settings." },
+            { name: "request_id", detail: "A unique id for this transport run and the events it receives." },
           ],
           code: `def create_regeneration(options):
     return {
@@ -151,5 +151,5 @@ RESULT = {
         },
       ],
     },
-    experiment: { kind: "product", variant: "context-actions", title: "Branch the conversation", intro: "Choose Stop, Retry / regenerate, or Edit prompt, then vary the 14–42 token request budget. Inspect retained partial text, invalidated descendants, exact message / attempt / request ids, included and excluded context ids with token reasons, and the recorded model, prompt, and sampling policy." },
+    experiment: { kind: "product", variant: "context-actions", title: "Branch the conversation", intro: "Choose Stop, Retry / regenerate, or Edit prompt, then move the request budget from 14 to 42 tokens. Check the partial text that stays, the follow-ups an edit invalidates, the exact message / attempt / request ids, why each context id was included or left out, and the saved model, prompt, and sampling settings." },
   });

@@ -43,6 +43,7 @@ import { LessonOutcome } from "./LessonOutcome";
 import { lessonLearningOutcome, moduleCheckpoint } from "../content/llm-systems/learning";
 import { recordLearningEvent } from "../lib/learning-analytics";
 import { SyntaxCode } from "../features/ide/SyntaxCode";
+import { getLessonFlair } from "../lessons/lesson-flair";
 import styles from "./PaperLab.module.css";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
@@ -110,9 +111,13 @@ function SourceSet({ lesson }: { lesson: CourseLesson }) {
 }
 
 export function HeaderSection({ lesson }: { lesson: CourseLesson }) {
+  const flair = getLessonFlair(lesson.id);
   return (
     <header className="paper-hero">
-      <p className="eyebrow">{lesson.eyebrow}</p>
+      <div className="lesson-kicker">
+        <p className="eyebrow">{lesson.eyebrow}</p>
+        {flair ? <code className="lesson-notation" aria-hidden="true">{flair.notation}</code> : null}
+      </div>
       <h1>{lesson.title}</h1>
       <p className="paper-thesis">{lesson.thesis}</p>
       <div className="hero-record">
@@ -1196,9 +1201,10 @@ export function PaperLab({ lesson }: { lesson: CourseLesson }) {
   const progress = learnerState.lessons[lesson.id];
   const complete = lessonIsComplete(learnerState, lesson.id, lesson.implementation.codeBlocks.length, lessonLearningOutcome(lesson.id).check.id);
   const checkpoint = moduleCheckpoint(lesson.courseId ?? "models");
+  const flair = getLessonFlair(lesson.id);
   const [recoveryRevision, setRecoveryRevision] = useState(0);
   return (
-    <main className={styles.lessonShell}>
+    <main className={styles.lessonShell} data-flair-tone={flair?.tone}>
       <Atmosphere />
       <header className="site-header lesson-header">
         <Link className="wordmark" href="/" aria-label="Latent course home"><i />latent</Link>

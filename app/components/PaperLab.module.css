@@ -4,6 +4,39 @@
 .lessonShell :global(.source-set-title::marker) { content: ""; }
 .lessonShell :global(.source-set-title:focus-visible) { outline: 2px solid rgba(120, 91, 142, 0.45); outline-offset: 3px; }
 
+.lessonShell[data-flair-tone="plum"] { --lesson-accent: #695a78; }
+.lessonShell[data-flair-tone="rust"] { --lesson-accent: #7a513e; }
+.lessonShell[data-flair-tone="forest"] { --lesson-accent: #486750; }
+.lessonShell[data-flair-tone="blue"] { --lesson-accent: #4c6279; }
+.lessonShell[data-flair-tone="slate"] { --lesson-accent: #58636d; }
+
+.lessonShell[data-flair-tone] :global(.eyebrow),
+.lessonShell[data-flair-tone] :global(.section-title > span),
+.lessonShell[data-flair-tone] :global(.concept-diagram > header > span) {
+  color: var(--lesson-accent);
+}
+
+.lessonShell :global(.lesson-kicker) {
+  align-items: baseline;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  margin: 0 0 0.9rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.lessonShell :global(.lesson-kicker .eyebrow) { margin: 0; }
+
+.lessonShell :global(.lesson-notation) {
+  color: var(--lesson-accent, var(--violet));
+  font-size: max(0.68rem, 11px);
+  letter-spacing: -0.01em;
+  line-height: 1.45;
+  text-align: right;
+  white-space: nowrap;
+}
+
 @media (max-width: 650px), (max-width: 940px) and (max-height: 500px) {
   .lessonShell :global(.lesson-header nav) {
     gap: 0;
@@ -17,6 +50,8 @@
   .lessonShell :global(.paper-page) { padding-top: 0.4rem; }
   .lessonShell :global(.paper-hero) { min-height: 0; padding: 1.5rem 0 1.35rem; }
   .lessonShell :global(.paper-hero h1) { font-size: clamp(2.15rem, 9vw, 2.65rem); white-space: normal; }
+  .lessonShell :global(.lesson-kicker) { align-items: flex-start; flex-direction: column; gap: 0.35rem; }
+  .lessonShell :global(.lesson-notation) { overflow-wrap: anywhere; text-align: left; white-space: normal; }
   .lessonShell :global(.paper-thesis) { margin-top: 0.85rem; }
   .lessonShell :global(.hero-record) { margin-top: 0.6rem; }
   .lessonShell :global(.hero-record span:nth-child(n + 2)) { display: none; }

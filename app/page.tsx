@@ -3,9 +3,9 @@ import Link from "next/link";
 import styles from "./page.module.css";
 
 export const metadata: Metadata = {
-  title: "Latent · Build the system around the transformer",
+  title: "Latent · Notes on LLM systems",
   description:
-    "A browser course where model, runtime, serving, and React implementations become one tested LLM chatbot.",
+    "Notes, implementations, and browser experiments for studying language models, inference runtimes, serving systems, and chat interfaces.",
 };
 
 const systemPath = [
@@ -35,28 +35,31 @@ export default function Home() {
 
       <header className={`site-header course-header ${styles.header}`}>
         <Link className="wordmark" href="/"><i />latent</Link>
-        <Link className={styles.headerLink} href="/course">Open the course</Link>
+        <Link className={styles.headerLink} href="/course">Course notes</Link>
       </header>
 
       <article className={styles.shell}>
         <section className={styles.hero}>
-          <h1>The transformer is one file. Build the system around it.</h1>
+          <h1>I built this to understand LLM systems.</h1>
           <p>
-            Token generation is the midpoint, not the finish line. Latent continues into inference,
-            serving, and React—fourteen tested project files that become one browser chatbot.
+            Latent is a set of notes, implementations, and browser experiments that follows the path
+            from sequence modeling to inference, serving, and interface design. It is how I am
+            learning the subject. You can use it too.
           </p>
           <div className={styles.actions}>
-            <Link className={styles.primaryAction} href="/course">Open the course <span aria-hidden="true">→</span></Link>
-            <Link className={styles.secondaryAction} href="/project">See the project structure</Link>
+            <Link className={styles.primaryAction} href="/course">Read the notes <span aria-hidden="true">→</span></Link>
+            <Link className={styles.secondaryAction} href="/project">Browse the project</Link>
           </div>
         </section>
 
         <section className={styles.argument} aria-labelledby="system-title">
-          <h2 id="system-title">One system, from weights to interface.</h2>
+          <h2 id="system-title">Model, runtime, serving, and interface.</h2>
           <p>
-            Implement recurrence, tokenization, attention, and causal masking. Then keep going:
-            prefill and decode, KV-cache accounting, continuous batching, SSE framing,
-            cancellation, retries, and conversation state.
+            A paper can explain one mechanism clearly while leaving the surrounding system implicit.
+            These lessons begin with recurrence, tokenization, attention, and causal masking, then
+            continue into prefill and decoding, KV-cache accounting, continuous batching, SSE framing,
+            cancellation, retries, and conversation state. Each example is small enough to inspect
+            and run in a browser.
           </p>
           <ol className={styles.systemPath} aria-label="The system built across the course">
             {systemPath.map((step) => (
@@ -69,11 +72,12 @@ export default function Home() {
         </section>
 
         <section className={styles.argument} aria-labelledby="project-title">
-          <h2 id="project-title">Your code survives the lesson.</h2>
+          <h2 id="project-title">The implementation accumulates.</h2>
           <p>
-            Each lesson leaves behind a tested file. Your project keeps all fourteen; the capstone
-            runs browser versions checked against the same behavior. Source, checkpoints, and builds
-            stay on your device.
+            Each lesson adds a tested file to the same project. The tests isolate the idea under study;
+            the capstone connects browser versions of those pieces into a local chatbot. This is not a
+            production-scale model or serving stack. It is a compact implementation for studying where
+            the boundaries are and how data moves across them.
           </p>
           <div className={styles.projectTree} role="group" aria-label="Course files accumulating into the Browser Chat capstone">
             <span>browser-chat/</span>
@@ -84,15 +88,15 @@ export default function Home() {
         </section>
 
         <section className={styles.closing}>
-          <p>Start with <code>models/character-rnn.py</code>.<br />Finish with <code>capstone/BrowserChat.tsx</code>.</p>
-          <Link href="/course">Build the system <span aria-hidden="true">→</span></Link>
+          <p>Begin with a character-level recurrent model. Continue until the pieces form a browser chat system.</p>
+          <Link href="/course">Read from the beginning <span aria-hidden="true">→</span></Link>
         </section>
       </article>
 
       <footer className={styles.footer}>
         <span>Latent</span>
         <nav aria-label="Footer navigation">
-          <Link href="/course">Course</Link>
+          <Link href="/course">Course notes</Link>
           <Link href="/workspace">IDE</Link>
           <Link href="/sources">Sources</Link>
         </nav>

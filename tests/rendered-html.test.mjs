@@ -15,17 +15,20 @@ async function render(path = "/") {
   );
 }
 
-test("the landing page makes one product-specific argument and routes into the course", async () => {
+test("the landing page frames the course as a personal academic notebook", async () => {
   const response = await render("/");
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /The transformer is one file/);
-  assert.match(html, /Build the system around it/);
-  assert.match(html, /Token generation is the midpoint, not the finish line/);
-  assert.match(html, /Your code survives the lesson/);
+  assert.match(html, /I built this to understand LLM systems/);
+  assert.match(html, /It is how I am learning the subject/);
+  assert.match(html, /You can use it too/);
+  assert.match(html, /Model, runtime, serving, and interface/);
+  assert.match(html, /The implementation accumulates/);
+  assert.match(html, /This is not a production-scale model or serving stack/);
   assert.match(html, /models\/character-rnn\.py/);
   assert.match(html, /capstone\/BrowserChat\.tsx/);
   assert.match(html, /href="\/course"/);
+  assert.doesNotMatch(html, /Open the course|Build the system|Token generation is the midpoint|It is free to use/);
   assert.doesNotMatch(html, /Character-level RNN training|course-track-card catalog-track-card|Run the first model/);
 });
 
@@ -428,7 +431,7 @@ test("the design kit, simulations, model engines, and artifact runtime remain re
   assert.match(paperLab, /lesson\.sources\.map\(\(source\)/);
   assert.doesNotMatch(paperLab, /supporting-sources|source\.role/);
   assert.doesNotMatch(paperLab, /SelectionAsk|selection-ask|data-selection-ask|Highlight a passage/);
-  assert.match(layout, /og-v3\.png/);
+  assert.match(layout, /og-v4\.png/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   await assert.rejects(access(new URL("../app/_sites-preview", templateRoot)));
 });

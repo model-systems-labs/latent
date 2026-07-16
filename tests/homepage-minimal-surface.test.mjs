@@ -49,7 +49,7 @@ test("the course CTA and responsive dividers do not reintroduce dark surfaces", 
   assert.match(responsiveCss, /\.first-run-output article \+ article\s*\{[^}]*border-top:\s*1px solid var\(--line\)/s);
 });
 
-test("the marketing landing stays unboxed and reuses the established atmosphere", async () => {
+test("the academic landing stays unboxed and reuses the established atmosphere", async () => {
   const [page, css] = await Promise.all([
     readFile(landingPageUrl, "utf8"),
     readFile(landingCssUrl, "utf8"),

@@ -39,13 +39,13 @@
 .hero {
   align-content: center;
   display: grid;
-  min-height: min(49rem, calc(100svh - 5.4rem));
-  padding: clamp(5.5rem, 10vw, 9rem) 0;
+  min-height: 0;
+  padding: clamp(5.5rem, 10vw, 8rem) 0;
 }
 
 .hero h1 {
   font-family: var(--serif);
-  font-size: clamp(3.6rem, 6vw, 5.5rem);
+  font-size: clamp(3.1rem, 4.8vw, 4.25rem);
   font-weight: 400;
   letter-spacing: -0.065em;
   line-height: 0.96;
@@ -60,7 +60,7 @@
   font-size: clamp(1.15rem, 1.7vw, 1.42rem);
   line-height: 1.58;
   margin: 2rem 0 0;
-  max-width: 48rem;
+  max-width: 53rem;
 }
 
 .actions {
@@ -74,28 +74,24 @@
 .primaryAction,
 .secondaryAction {
   align-items: center;
+  border-bottom: 1px solid var(--line-strong);
   display: inline-flex;
   font-size: max(0.78rem, 13px);
   min-height: 3rem;
+  padding: 0.4rem 0;
 }
 
 .primaryAction {
-  background: var(--violet-wash);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--violet-deep);
-  gap: 1.4rem;
-  padding: 0.7rem 1.2rem 0.72rem 1.35rem;
+  color: var(--ink);
+  gap: 1rem;
 }
 
 .primaryAction:hover,
 .primaryAction:focus-visible {
-  background: rgba(205, 196, 220, 0.5);
-  border-color: var(--line-strong);
+  border-color: var(--ink);
 }
 
 .secondaryAction {
-  border-bottom: 1px solid var(--line-strong);
   color: var(--muted);
 }
 
@@ -107,12 +103,12 @@
 
 .argument {
   border-top: 1px solid var(--line-strong);
-  padding: clamp(5rem, 9vw, 8rem) 0;
+  padding: clamp(4.5rem, 8vw, 7rem) 0;
 }
 
 .argument h2 {
   font-family: var(--serif);
-  font-size: clamp(2.55rem, 4.7vw, 4.45rem);
+  font-size: clamp(2.25rem, 3.6vw, 3.1rem);
   font-weight: 400;
   letter-spacing: -0.055em;
   line-height: 1;
@@ -207,15 +203,16 @@
   display: grid;
   gap: 2rem;
   grid-template-columns: 1fr auto;
-  padding: clamp(5rem, 9vw, 8rem) 0;
+  padding: clamp(4.5rem, 8vw, 7rem) 0;
 }
 
 .closing p {
   font-family: var(--serif);
-  font-size: clamp(2rem, 3.8vw, 3.7rem);
-  letter-spacing: -0.05em;
-  line-height: 1.12;
+  font-size: clamp(1.55rem, 2.4vw, 2.1rem);
+  letter-spacing: -0.035em;
+  line-height: 1.22;
   margin: 0;
+  max-width: 45rem;
 }
 
 .closing p code {
@@ -276,12 +273,11 @@
   }
 
   .hero {
-    min-height: calc(100svh - 4.75rem);
     padding: 4.5rem 0 5rem;
   }
 
   .hero h1 {
-    font-size: clamp(2.55rem, 12vw, 3.25rem);
+    font-size: clamp(2.55rem, 10.5vw, 3rem);
     line-height: 1;
   }
 
@@ -302,7 +298,7 @@
   }
 
   .argument h2 {
-    font-size: clamp(2.4rem, 11vw, 3.15rem);
+    font-size: clamp(2.15rem, 8.8vw, 2.6rem);
   }
 
   .systemPath {
@@ -347,7 +343,7 @@
   }
 
   .closing p {
-    font-size: clamp(2.1rem, 10vw, 2.85rem);
+    font-size: clamp(1.65rem, 7.5vw, 2.2rem);
   }
 
   .footer {

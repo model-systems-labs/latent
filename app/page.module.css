@@ -124,47 +124,298 @@
   max-width: 53rem;
 }
 
-.systemPath {
+.architecture {
   border-bottom: 1px solid var(--line);
   border-top: 1px solid var(--line);
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  list-style: none;
   margin: clamp(3.5rem, 6vw, 5rem) 0 0;
-  padding: 0;
+  padding: 1.5rem 0 1.25rem;
 }
 
-.systemPath li {
-  min-height: 9rem;
-  padding: 1.6rem 1.4rem 1.5rem 0;
-  position: relative;
+.architectureCaption {
+  align-items: start;
+  display: grid;
+  gap: 2rem;
+  grid-template-columns: minmax(13rem, 0.7fr) minmax(20rem, 1fr);
+  justify-content: space-between;
 }
 
-.systemPath li:not(:last-child)::after {
-  color: var(--violet);
-  content: "→";
-  font-size: 0.9rem;
-  position: absolute;
-  right: 1.2rem;
-  top: 1.55rem;
-}
-
-.systemPath strong,
-.systemPath span {
+.architectureCaption div,
+.architectureCaption strong,
+.architectureCaption span {
   display: block;
 }
 
-.systemPath strong {
+.architectureCaption strong {
   font-family: var(--serif);
-  font-size: 1.22rem;
+  font-size: 1.2rem;
   font-weight: 400;
 }
 
-.systemPath span {
+.architectureCaption span {
+  color: var(--violet-deep);
+  font-family: var(--mono);
+  font-size: max(0.68rem, 11px);
+  letter-spacing: 0.09em;
+  margin-top: 0.35rem;
+  text-transform: uppercase;
+}
+
+.architectureCaption p {
   color: var(--muted);
-  font-size: max(0.7rem, 11px);
-  line-height: 1.45;
+  font-size: max(0.72rem, 12px);
+  line-height: 1.55;
+  margin: 0;
+  max-width: 34rem;
+}
+
+.architectureBoundaries,
+.architectureFlow {
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.architectureBoundaries {
+  grid-template-columns: repeat(8, minmax(0, 1fr));
   margin-top: 2.8rem;
+}
+
+.architectureBoundaries li {
+  border-top: 1px solid var(--line-strong);
+  display: flex;
+  gap: 0.65rem;
+  padding: 0.75rem 1rem 0 0;
+}
+
+.architectureBoundaries li + li {
+  border-left: 1px solid var(--line);
+  padding-left: 1rem;
+}
+
+.architectureBoundaries li:nth-child(1) {
+  grid-column: 1 / span 2;
+}
+
+.architectureBoundaries li:nth-child(2) {
+  grid-column: 3 / span 3;
+}
+
+.architectureBoundaries li:nth-child(3) {
+  grid-column: 6;
+}
+
+.architectureBoundaries li:nth-child(4) {
+  grid-column: 7 / span 2;
+}
+
+.architectureBoundaries span,
+.architectureBoundaries strong {
+  font-size: max(0.68rem, 11px);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.architectureBoundaries span {
+  color: var(--violet);
+  font-family: var(--mono);
+}
+
+.architectureBoundaries strong {
+  color: var(--muted);
+  font-weight: 620;
+}
+
+.architectureFlow {
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  margin-top: 1rem;
+}
+
+.architectureFlow li {
+  min-height: 8.8rem;
+  padding: 2rem 1rem 1.3rem 0;
+  position: relative;
+}
+
+.architectureFlow li::before {
+  background: var(--paper);
+  border: 1px solid var(--violet);
+  border-radius: 50%;
+  content: "";
+  height: 0.48rem;
+  left: 0;
+  position: absolute;
+  top: 0.42rem;
+  width: 0.48rem;
+  z-index: 1;
+}
+
+.architectureFlow li::after {
+  border-top: 1px solid var(--line-strong);
+  content: "";
+  left: 0.48rem;
+  position: absolute;
+  right: 0;
+  top: 0.66rem;
+}
+
+.architectureFlow li:last-child::before {
+  background: var(--violet);
+  outline: 0.28rem solid var(--violet-wash);
+}
+
+.architectureFlow li:last-child::after {
+  display: none;
+}
+
+.architectureFlow strong,
+.architectureFlow code {
+  display: block;
+}
+
+.architectureFlow strong {
+  font-family: var(--serif);
+  font-size: clamp(0.94rem, 1.3vw, 1.1rem);
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.architectureFlow code {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: max(0.68rem, 11px);
+  line-height: 1.45;
+  margin-top: 1.55rem;
+  white-space: normal;
+}
+
+.architectureScope {
+  display: none;
+}
+
+.architectureArrow {
+  background: var(--paper);
+  color: var(--violet);
+  font-size: 0.72rem;
+  font-style: normal;
+  line-height: 1;
+  padding: 0 0.24rem;
+  position: absolute;
+  right: 0.32rem;
+  top: 0.27rem;
+  z-index: 2;
+}
+
+.architectureState {
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  padding-top: 1.5rem;
+}
+
+.architectureState > div {
+  min-height: 5.2rem;
+  padding: 0.1rem 0.8rem 0 1rem;
+  position: relative;
+}
+
+.architectureState > div::before {
+  border-left: 1px dashed var(--violet);
+  content: "";
+  height: 1.5rem;
+  left: 0;
+  position: absolute;
+  top: -1.5rem;
+}
+
+.architectureState > div::after {
+  background: var(--paper);
+  border: 1px solid var(--violet);
+  border-radius: 50%;
+  content: "";
+  height: 0.38rem;
+  left: -0.18rem;
+  position: absolute;
+  top: -1.72rem;
+  width: 0.38rem;
+}
+
+.architectureState strong,
+.architectureState code {
+  display: block;
+}
+
+.architectureState strong {
+  color: var(--violet-deep);
+  font-size: max(0.66rem, 11px);
+  font-weight: 620;
+}
+
+.architectureState code {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: max(0.68rem, 11px);
+  line-height: 1.45;
+  margin-top: 0.45rem;
+  white-space: normal;
+}
+
+.stateWeights {
+  grid-column: 4;
+}
+
+.stateCache {
+  grid-column: 5;
+}
+
+.stateArtifacts {
+  grid-column: 7;
+}
+
+.statePersistence {
+  grid-column: 8;
+}
+
+.architectureLegend {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: max(0.68rem, 11px);
+  gap: 1.4rem;
+  letter-spacing: 0.04em;
+  padding-top: 1rem;
+}
+
+.architectureLegend span {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.5rem;
+}
+
+.architectureLegend i {
+  display: inline-block;
+  height: 0.6rem;
+  position: relative;
+  width: 1.35rem;
+}
+
+.flowKey::before,
+.stateKey::before {
+  content: "";
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 50%;
+}
+
+.flowKey::before {
+  border-top: 1px solid var(--line-strong);
+}
+
+.stateKey::before {
+  border-top: 1px dashed var(--violet);
 }
 
 .projectTree {
@@ -301,34 +552,115 @@
     font-size: clamp(2.15rem, 8.8vw, 2.6rem);
   }
 
-  .systemPath {
-    grid-template-columns: 1fr;
-    margin-top: 3rem;
+  .architecture {
+    padding-top: 1.25rem;
   }
 
-  .systemPath li {
-    align-items: baseline;
-    display: grid;
+  .architectureCaption {
     gap: 1rem;
-    grid-template-columns: minmax(7rem, 0.6fr) 1fr;
+    grid-template-columns: 1fr;
+  }
+
+  .architectureCaption p {
+    max-width: 30rem;
+  }
+
+  .architectureBoundaries {
+    display: none;
+  }
+
+  .architectureFlow {
+    grid-template-columns: 1fr;
+    margin-top: 2.4rem;
+    padding-left: 0.1rem;
+  }
+
+  .architectureFlow li {
+    align-items: start;
+    display: grid;
+    gap: 0.25rem 1rem;
+    grid-template-columns: minmax(7.2rem, 0.75fr) 1fr;
     min-height: 0;
-    padding: 1.1rem 0;
+    padding: 0.35rem 0 1.5rem 1.7rem;
   }
 
-  .systemPath li + li {
-    border-top: 1px solid var(--line);
+  .architectureFlow li::before {
+    left: 0;
+    top: 0.55rem;
   }
 
-  .systemPath li:not(:last-child)::after {
-    bottom: -0.48rem;
-    left: 0.1rem;
+  .architectureFlow li::after {
+    border-left: 1px solid var(--line-strong);
+    border-top: 0;
+    bottom: 0;
+    left: 0.23rem;
+    right: auto;
+    top: 1rem;
+  }
+
+  .architectureArrow {
+    bottom: 0.28rem;
+    left: -0.14rem;
     right: auto;
     top: auto;
     transform: rotate(90deg);
   }
 
-  .systemPath span {
+  .architectureFlow strong {
+    font-size: 1.03rem;
+    grid-column: 1;
+  }
+
+  .architectureFlow code {
+    grid-column: 2;
+    grid-row: 2;
+    margin-top: 0.1rem;
+  }
+
+  .architectureScope {
+    color: var(--violet-deep);
+    display: block;
+    font-family: var(--mono);
+    font-size: max(0.68rem, 11px);
+    grid-column: 2;
+    grid-row: 1;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  .architectureState {
+    gap: 0;
+    grid-template-columns: 1fr;
+    padding-top: 0;
+  }
+
+  .architectureState > div,
+  .stateWeights,
+  .stateCache,
+  .stateArtifacts,
+  .statePersistence {
+    border-top: 1px solid var(--line);
+    display: grid;
+    gap: 1rem;
+    grid-column: 1;
+    grid-template-columns: minmax(7.2rem, 0.75fr) 1fr;
+    min-height: 0;
+    padding: 0.9rem 0;
+  }
+
+  .architectureState > div::before,
+  .architectureState > div::after {
+    display: none;
+  }
+
+  .architectureState code {
     margin-top: 0;
+  }
+
+  .architectureLegend {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.55rem;
   }
 
   .projectTree {

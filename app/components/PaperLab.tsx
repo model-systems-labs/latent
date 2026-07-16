@@ -939,7 +939,6 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
   return (
     <section className="paper-section implementation-section" id="implementation">
       <div className="section-title"><h2>Implementation</h2></div>
-      <p className="implementation-intro">{lesson.implementation.intro}</p>
       <div className="practice-editor" data-project-conflict={projectConflict} aria-busy={!practiceReady || runningBlockIds.length > 0}>
         <div className="editor-toolbar">
           <div className="editor-file"><span>{projectPath}</span></div>
@@ -1048,6 +1047,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
         </div>
         <div className="editor-footer"><p id={`practice-status-${lesson.id}`} role="status" aria-live="polite" aria-atomic="true">{practiceReady ? practiceMessage : "Loading saved work…"}</p><button type="button" aria-describedby={`practice-status-${lesson.id}`} onClick={() => void runAll()} disabled={!practiceReady || projectConflict || runningBlockIds.length > 0}>{runningBlockIds.length ? "Running tests…" : "Run all tests"}</button></div>
       </div>
+      <p className="implementation-intro">{lesson.implementation.intro}</p>
       {PYTORCH_HANDOFF_LESSONS.has(lesson.id) ? (
         <Suspense fallback={<div className="pytorch-handoff-loading" role="status">Loading the PyTorch version…</div>}>
           <PyTorchHandoff lessonId={lesson.id} />
@@ -1122,8 +1122,8 @@ export function PaperLab({ lesson }: { lesson: CourseLesson }) {
       <header className="site-header lesson-header">
         <Link className="wordmark" href="/" aria-label="Latent home"><i />latent</Link>
         <nav aria-label="Lesson navigation">
-          <a href="#summary">Read</a>
           <a href="#implementation">Code</a>
+          <a href="#summary">Read</a>
           <a href="#artifacts">Results</a>
         </nav>
         <span>{lesson.courseTitle ?? "Model Foundations"}</span>
@@ -1131,9 +1131,9 @@ export function PaperLab({ lesson }: { lesson: CourseLesson }) {
       {persistenceError ? <p className="persistence-warning lesson-persistence-warning" role="alert">Storage warning: {persistenceError}</p> : null}
       <article className="paper-page" id="top">
         <HeaderSection lesson={lesson} />
-        <ParagraphSection lesson={lesson} />
         <LessonRecoveryCandidates lessonId={lesson.id} onLoaded={() => setRecoveryRevision((revision) => revision + 1)} />
         <CodingSection key={`${lesson.id}:${recoveryRevision}`} lesson={lesson} />
+        <ParagraphSection lesson={lesson} />
         <LessonOutcome lesson={lesson} />
         <footer className="paper-footer lesson-footer">
           {previous ? <Link href={`/lessons/${previous.id}`}>← {previous.title}</Link> : <Link href={courseHref}>← Module</Link>}

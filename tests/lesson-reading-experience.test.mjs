@@ -78,6 +78,25 @@ test("summary prose owns the reading flow and the mechanism follows the concepts
   assert.match(paperLab, /const diagramAfter = Math\.max\(1, lesson\.summary\.length - 1\)/);
 });
 
+test("every shared lesson opens with editable code before its explanation", async () => {
+  const paperLab = await readFile(paperLabUrl, "utf8");
+  const lessonShell = paperLab.slice(paperLab.indexOf("export function PaperLab"));
+  const header = lessonShell.indexOf("<HeaderSection");
+  const implementation = lessonShell.indexOf("<CodingSection");
+  const summary = lessonShell.indexOf("<ParagraphSection");
+  const outcome = lessonShell.indexOf("<LessonOutcome");
+  const codeNav = lessonShell.indexOf('<a href="#implementation">Code</a>');
+  const readNav = lessonShell.indexOf('<a href="#summary">Read</a>');
+  const codingSection = paperLab.slice(
+    paperLab.indexOf("export function CodingSection"),
+    paperLab.indexOf("function LessonRecoveryCandidates"),
+  );
+
+  assert.ok(header >= 0 && header < implementation && implementation < summary && summary < outcome);
+  assert.ok(codeNav >= 0 && codeNav < readNav);
+  assert.ok(codingSection.indexOf('className="practice-editor"') < codingSection.indexOf('className="implementation-intro"'));
+});
+
 test("lesson prose, diagrams, contextual help, code, and outcomes share one editorial rail", async () => {
   const [learningFlow, codingWorkspace, pytorch, lessonOutcome] = await Promise.all([
     readFile(learningFlowUrl, "utf8"),

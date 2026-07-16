@@ -8,6 +8,10 @@
   color: var(--lesson-accent);
 }
 
+.lessonShell :global(.implementation-section .implementation-intro) {
+  margin: 1.5rem 0 0;
+}
+
 @media (max-width: 650px), (max-width: 940px) and (max-height: 500px) {
   .lessonShell :global(.lesson-header nav) {
     gap: 0;

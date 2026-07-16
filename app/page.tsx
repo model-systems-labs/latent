@@ -8,12 +8,29 @@ export const metadata: Metadata = {
     "Notes, implementations, and browser experiments for studying language models, inference runtimes, serving systems, and chat interfaces.",
 };
 
-const systemPath = [
-  { title: "Model", detail: "Weights and tokens" },
-  { title: "Runtime", detail: "Prefill and decode" },
-  { title: "Serving", detail: "Streams and recovery" },
-  { title: "Interface", detail: "React state" },
-  { title: "Chatbot", detail: "One local build" },
+const architectureStages = [
+  { scope: "Browser input", title: "Prompt + messages", detail: "UTF-8 text" },
+  { scope: "Browser input", title: "Tokenizer", detail: "text → token IDs" },
+  { scope: "Inference runtime", title: "Scheduler", detail: "admit · batch · cancel" },
+  { scope: "Inference runtime", title: "Prefill", detail: "prompt → K,V" },
+  { scope: "Inference runtime", title: "Decode loop", detail: "logits → next token" },
+  { scope: "Streaming transport", title: "SSE stream", detail: "typed token events" },
+  { scope: "Application", title: "React reducer", detail: "events → chat state" },
+  { scope: "Application", title: "Browser Chat", detail: "rendered response" },
+] as const;
+
+const architectureBoundaries = [
+  "Browser input",
+  "Inference runtime",
+  "Streaming transport",
+  "Application",
+] as const;
+
+const architectureState = [
+  { className: "stateWeights", title: "Model weights", detail: "used by prefill + decode" },
+  { className: "stateCache", title: "KV cache", detail: "K,V reused at every decode step" },
+  { className: "stateArtifacts", title: "Project artifacts", detail: "lesson files · tests · BrowserChat.tsx" },
+  { className: "statePersistence", title: "Browser persistence", detail: "IndexedDB drafts · checkpoints" },
 ] as const;
 
 const projectFiles = [
@@ -61,14 +78,62 @@ export default function Home() {
             cancellation, retries, and conversation state. Each example is small enough to inspect
             and run in a browser.
           </p>
-          <ol className={styles.systemPath} aria-label="The system built across the course">
-            {systemPath.map((step) => (
-              <li key={step.title}>
-                <strong>{step.title}</strong>
-                <span>{step.detail}</span>
-              </li>
-            ))}
-          </ol>
+          <figure
+            className={styles.architecture}
+            aria-labelledby="architecture-title"
+            aria-describedby="architecture-description"
+          >
+            <figcaption className={styles.architectureCaption}>
+              <div>
+                <strong id="architecture-title">Browser-native LLM system</strong>
+                <span>One generation request</span>
+              </div>
+              <p id="architecture-description">
+                Text moves left to right. The lower rail shows state that is loaded, reused, or
+                persisted rather than streamed with each token.
+              </p>
+            </figcaption>
+
+            <ol className={styles.architectureBoundaries} aria-label="System boundaries">
+              {architectureBoundaries.map((boundary, index) => (
+                <li key={boundary}>
+                  <span aria-hidden="true">0{index + 1}</span>
+                  <strong>{boundary}</strong>
+                </li>
+              ))}
+            </ol>
+
+            <ol className={styles.architectureFlow} aria-label="Request and token event flow">
+              {architectureStages.map((stage, index) => (
+                <li key={stage.title}>
+                  <span className={styles.architectureScope}>{stage.scope}</span>
+                  <strong>{stage.title}</strong>
+                  <code>{stage.detail}</code>
+                  {index < architectureStages.length - 1 ? (
+                    <i className={styles.architectureArrow} aria-hidden="true">→</i>
+                  ) : null}
+                </li>
+              ))}
+            </ol>
+
+            <div
+              className={styles.architectureState}
+              role="group"
+              aria-label="State reused or persisted across the request path"
+            >
+              {architectureState.map((state) => (
+                <div className={styles[state.className]} key={state.title}>
+                  <strong>{state.title}</strong>
+                  <code>{state.detail}</code>
+                </div>
+              ))}
+            </div>
+
+            <div className={styles.architectureLegend} aria-hidden="true">
+              <span><i className={styles.flowKey} />request + token events</span>
+              <span><i className={styles.stateKey} />reused or persisted state</span>
+            </div>
+          </figure>
         </section>
 
         <section className={styles.argument} aria-labelledby="project-title">

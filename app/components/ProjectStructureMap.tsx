@@ -172,7 +172,7 @@ export function ProjectStructureMap() {
       <footer className={`project-structure-next ${styles.next}`}>
         <div>
           <p>Lesson checks prove one file. The Python checkpoint stores trained weights. A full build ties the checked project to Browser Chat.</p>
-          <span>Saved on this device. Export a backup from the IDE for a portable copy.</span>
+          <span>Saved in this browser. You can save an optional backup from the IDE.</span>
         </div>
         <Link href={nextAction.href}>{nextAction.label} →</Link>
       </footer>

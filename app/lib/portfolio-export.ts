@@ -3,11 +3,6 @@ import type { CourseLesson } from "@latent/course-kit";
 import { exposeLessonFunctions } from "@latent/browser-lab/compiler";
 import { llmSystemsContractSuite } from "../content/llm-systems/contracts";
 import { lessonLearningOutcome } from "../content/llm-systems/learning";
-import {
-  PYTORCH_HANDOFF_FILES,
-  PYTORCH_PORTFOLIO_README,
-  PYTORCH_REQUIREMENTS,
-} from "../content/pytorch/handoffs";
 import { lessonIsComplete, type LearnerState } from "./learner-state";
 import type { ProjectFile, ProjectState, ProjectUnitResult } from "./project-workspace";
 import { trustedProjectResults } from "./project-file-status";
@@ -256,17 +251,14 @@ export function portfolioProjectFiles(input: {
     buildNumber: input.project.activeBuild?.buildNumber ?? null,
     completedLessons: completedLessons.map((lesson) => lesson.id),
     sourceFiles: sourceFiles.map((file) => file.path),
-    pytorchFiles: PYTORCH_HANDOFF_FILES.map((file) => file.path),
     portableBuildReady: readiness.ready,
     tests: { passing: readiness.passingTests, total: results.length, required: readiness.requiredTests },
   };
   const files: Record<string, string> = {
-    "README.md": `# Browser Chat\n\nThis is the browser-first LLM project you built in Latent. It includes your model, runtime, serving, product, and React capstone files.\n\n## Where things stand\n\n- ${completedLessons.length}/${input.lessons.length} lessons complete\n- ${manifest.tests.passing}/${readiness.requiredTests} required host-owned tests passing\n- portable build ready: ${readiness.ready ? "yes" : "no"}\n- current build: ${input.project.activeBuild ? `#${input.project.activeBuild.buildNumber}` : "none yet"}\n\n${readiness.ready ? "" : "> This copy isn't finished yet. Go back to Latent, finish every lesson file, and make a full passing build before you treat it as a runnable portfolio project.\n\n"}## Run it locally\n\n\`\`\`bash\nnpm install\nnpm run build\nnpm run dev\n\`\`\`\n\nThe exported app uses a repeatable in-browser SSE demo, so it runs without a secret or hosted backend. Read BACKEND_INTEGRATION.md before you connect a real model service.\n\nThe \`pytorch/\` folder is a separate native Python track with real \`import torch\` code. It isn't bundled into the browser app; see \`pytorch/README.md\`.\n\n## How the pieces fit together\n\n1. \`src/models\` contains the browser model foundations.\n2. \`pytorch\` turns selected ideas into native PyTorch modules and export code.\n3. \`src/systems\` handles inference accounting and scheduling.\n4. \`src/backend\` handles SSE framing and attempt-aware reliability.\n5. \`src/product\` handles the conversation, rendering, actions, context, and quality rules.\n6. \`src/capstone\` puts the React app together.\n`,
-    "BACKEND_INTEGRATION.md": `# Replace the portable demo backend\n\nThe exported \`src/runtime/host-bridge.ts\` creates repeatable SSE frames right in the browser. It has no API key and doesn't make network requests.\n\nTo connect a real service:\n\n1. Keep the exported \`StartGenerationInput\`, \`GenerationBridgeHandlers\`, and \`GenerationHandle\` interface.\n2. POST the size-limited message and context payload to your own same-origin endpoint. Never put a provider key in this client.\n3. Decode response bytes with a streaming \`TextDecoder\`, then send the decoded text through \`parseSseChunk\`.\n4. Check requestId and attempt identity before you accept events.\n5. Pass AbortSignal through fetch, the stream reader, parser state, and server generation.\n6. Retry only temporary failures that happen before the user sees any output.\n7. Save only finished states, and leave out secrets and messages that are still streaming.\n\nYour lesson files are Python and still run on their own in CPython. The React app uses course-provided JavaScript adapters that pass the same tests. The browser bundler can't import Python directly, and these adapters don't pretend otherwise.\n`,
+    "README.md": `# Browser Chat\n\nThis is the source and test-evidence archive for the browser-first LLM project you built in Latent. Your working project stays in Latent: every exercise, model run, test, and capstone preview happens in the browser. No lesson requires a separate runtime.\n\n## Where things stand\n\n- ${completedLessons.length}/${input.lessons.length} lessons complete\n- ${manifest.tests.passing}/${readiness.requiredTests} required host-owned tests passing\n- portable build ready: ${readiness.ready ? "yes" : "no"}\n- current build: ${input.project.activeBuild ? `#${input.project.activeBuild.buildNumber}` : "none yet"}\n\n${readiness.ready ? "" : "> This archive isn't finished yet. Go back to Latent, finish every lesson file, and make a full passing build before you treat it as complete evidence of the project.\n\n"}The included React source uses a repeatable in-browser SSE demo, so the verified capstone runs without a secret or hosted backend. Read BACKEND_INTEGRATION.md before connecting a real model service.\n\n## How the pieces fit together\n\n1. \`src/models\` contains the browser model foundations.\n2. \`src/systems\` handles inference accounting and scheduling.\n3. \`src/backend\` handles SSE framing and attempt-aware reliability.\n4. \`src/product\` handles the conversation, rendering, actions, context, and quality rules.\n5. \`src/capstone\` puts the React app together.\n`,
+    "BACKEND_INTEGRATION.md": `# Replace the portable demo backend\n\nThe exported \`src/runtime/host-bridge.ts\` creates repeatable SSE frames right in the browser. It has no API key and doesn't make network requests.\n\nTo connect a real service:\n\n1. Keep the exported \`StartGenerationInput\`, \`GenerationBridgeHandlers\`, and \`GenerationHandle\` interface.\n2. POST the size-limited message and context payload to your own same-origin endpoint. Never put a provider key in this client.\n3. Decode response bytes with a streaming \`TextDecoder\`, then send the decoded text through \`parseSseChunk\`.\n4. Check requestId and attempt identity before you accept events.\n5. Pass AbortSignal through fetch, the stream reader, parser state, and server generation.\n6. Retry only temporary failures that happen before the user sees any output.\n7. Save only finished states, and leave out secrets and messages that are still streaming.\n\nInside Latent, lesson files execute in a CPython worker through Pyodide and WebAssembly. The React app uses course-provided JavaScript adapters that pass the same tests. The browser bundler can't import Python directly, and these adapters don't pretend otherwise.\n`,
     "TEST_REPORT.md": markdownTestReport(results),
-    "THIRD_PARTY_NOTICES.md": `# Third-party notices\n\nThis export uses React and React DOM (MIT) and Vite (MIT). The optional model runtime in the hosted Latent course uses Transformers.js (Apache-2.0) and SmolLM2-135M-Instruct (Apache-2.0); this archive doesn't include the model weights. The optional native Python track uses PyTorch (BSD-3-Clause), which also isn't bundled here. Check the original license texts before you redistribute anything.\n`,
-    "pytorch/README.md": PYTORCH_PORTFOLIO_README,
-    "pytorch/requirements.txt": PYTORCH_REQUIREMENTS,
+    "THIRD_PARTY_NOTICES.md": `# Third-party notices\n\nThis export uses React and React DOM (MIT) and Vite (MIT). The optional model runtime in the hosted Latent course uses Transformers.js (Apache-2.0) and SmolLM2-135M-Instruct (Apache-2.0); this archive doesn't include the model weights. Check the original license texts before you redistribute anything.\n`,
     "portfolio-manifest.json": JSON.stringify(manifest, null, 2),
     "package.json": JSON.stringify({
       name: "latent-browser-chat-portfolio",
@@ -282,7 +274,6 @@ export function portfolioProjectFiles(input: {
     ".gitignore": "node_modules\ndist\n.env*\n",
   };
   for (const file of sourceFiles) files[`src/${safePath(file.path)}`] = portableSource(file);
-  for (const file of PYTORCH_HANDOFF_FILES) files[safePath(file.path)] = file.code;
   return files;
 }
 

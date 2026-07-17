@@ -13,7 +13,6 @@ const paperLabMobileUrl = new URL("app/components/PaperLab.module.css", root);
 const projectPageUrl = new URL("app/project/page.tsx", root);
 const learningDataPanelUrl = new URL("app/components/LearningDataPanel.tsx", root);
 const projectStructureUrl = new URL("app/styles/project-structure.css", root);
-const pytorchHandoffCssUrl = new URL("app/features/pytorch/PyTorchHandoff.module.css", root);
 const lessonOutcomeCssUrl = new URL("app/components/LessonOutcome.module.css", root);
 const lessonExperimentUrl = new URL("app/components/LessonExperiment.tsx", root);
 const artifactRuntimePanelUrl = new URL("app/features/artifacts/ArtifactRuntimePanel.tsx", root);
@@ -60,14 +59,6 @@ test("selection prompts and project history stay out of the primary reading path
   assert.match(rule(projectStructure, ".project-history-disclosure > summary"), /min-height:\s*3\.5rem/);
 });
 
-test("the native PyTorch handoff cannot widen a mobile lesson", async () => {
-  const css = await readFile(pytorchHandoffCssUrl, "utf8");
-  assert.match(rule(css, ".body"), /grid-template-columns:\s*minmax\(0,\s*1fr\)/);
-  assert.match(rule(css, ".body"), /min-width:\s*0/);
-  assert.match(rule(css, ".copy"), /min-width:\s*0/);
-  assert.match(rule(css, ".editorSurface"), /min-width:\s*0/);
-});
-
 test("summary prose owns the reading flow and the mechanism follows the concepts it visualizes", async () => {
   const paperLab = await readFile(paperLabUrl, "utf8");
   const opening = paperLab.indexOf("{opening.map");
@@ -97,11 +88,10 @@ test("every shared lesson opens with editable code before its explanation", asyn
   assert.ok(codingSection.indexOf('className="practice-editor"') < codingSection.indexOf('className="implementation-intro"'));
 });
 
-test("lesson prose, diagrams, contextual help, code, and outcomes share one editorial rail", async () => {
-  const [learningFlow, codingWorkspace, pytorch, lessonOutcome] = await Promise.all([
+test("lesson prose, diagrams, code, and outcomes share one editorial rail", async () => {
+  const [learningFlow, codingWorkspace, lessonOutcome] = await Promise.all([
     readFile(learningFlowUrl, "utf8"),
     readFile(codingWorkspaceUrl, "utf8"),
-    readFile(pytorchHandoffCssUrl, "utf8"),
     readFile(lessonOutcomeCssUrl, "utf8"),
   ]);
   assert.match(learningFlow, /\.paper-page\s*\{\s*max-width:\s*60rem/);
@@ -109,7 +99,6 @@ test("lesson prose, diagrams, contextual help, code, and outcomes share one edit
     assert.match(rule(learningFlow, selector), /max-width:\s*none/, selector);
   }
   assert.match(rule(codingWorkspace, ".practice-editor"), /max-width:\s*none/);
-  assert.match(rule(pytorch, ".copy"), /max-width:\s*none/);
   assert.match(rule(lessonOutcome, ".layout"), /display:\s*grid/);
   assert.match(rule(lessonOutcome, ".check"), /border:\s*0/);
 });

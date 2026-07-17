@@ -122,7 +122,7 @@ export function FirstRunExperience() {
           {projectOnly && nextLesson ? <Link href={`/lessons/${nextLesson.id}`}>Return to {nextLesson.title}</Link> : null}
           {!projectOnly ? <Link href={`/workspace?file=${encodeURIComponent(nextPath)}`}>Open {nextPath}</Link> : null}
         </div>
-        <p className={`course-resume-storage ${styles.storage}`}>Progress and code are saved on this device. Export a backup from the IDE to move them elsewhere.</p>
+        <p className={`course-resume-storage ${styles.storage}`}>Progress and code are saved in this browser. You can save an optional backup from the IDE.</p>
       </section>
     );
   }

@@ -53,18 +53,6 @@ const LessonCodeEditor = lazy(async () => ({
   default: (await import("../features/ide/CodeEditor")).CodeEditor,
 }));
 
-const PyTorchHandoff = lazy(async () => ({
-  default: (await import("../features/pytorch/PyTorchHandoff")).PyTorchHandoff,
-}));
-
-const PYTORCH_HANDOFF_LESSONS = new Set([
-  "character-rnns",
-  "neural-language-models",
-  "additive-attention",
-  "transformers",
-  "inference-runtime",
-]);
-
 function Atmosphere() {
   return (
     <div className="page-atmosphere" aria-hidden="true">
@@ -1121,11 +1109,6 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
         <div className="editor-footer"><p id={`practice-status-${lesson.id}`} role="status" aria-live="polite" aria-atomic="true">{practiceReady ? practiceMessage : "Loading saved work…"}</p><button type="button" aria-describedby={`practice-status-${lesson.id}`} onClick={() => void runAll()} disabled={!practiceReady || projectConflict || runningBlockIds.length > 0}>{runningBlockIds.length ? "Running tests…" : "Run all tests"}</button></div>
       </div>
       <p className="implementation-intro">{lesson.implementation.intro}</p>
-      {PYTORCH_HANDOFF_LESSONS.has(lesson.id) ? (
-        <Suspense fallback={<div className="pytorch-handoff-loading" role="status">Loading the PyTorch version…</div>}>
-          <PyTorchHandoff lessonId={lesson.id} />
-        </Suspense>
-      ) : null}
       <LessonExperiment lesson={lesson} />
       <ArtifactRuntimePanel lesson={lesson} refreshKey={artifactRevision} />
     </section>

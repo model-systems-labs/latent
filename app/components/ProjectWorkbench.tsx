@@ -681,13 +681,13 @@ export function ProjectWorkbench() {
         && portfolioStatus.fullSuitePasses
         && !portfolioStatus.activeBuildMatchesTests;
       setMessage(awaitingMatchingBuild
-        ? "Every test passes in the current workspace, but those results aren’t part of the matching active build yet. Choose Test, build & run, then export the portfolio."
-        : `The portfolio ZIP unlocks after all ${courseLessons.length} lessons are done and all ${portfolioStatus.requiredTests} test results match the active build. Choose Test, build & run, or use Backup if you’re not finished yet.`);
+        ? "Every test passes in the current workspace, but those results aren’t part of the matching active build yet. Choose Test, build & run, then export the source archive."
+        : `The source archive unlocks after all ${courseLessons.length} lessons are done and all ${portfolioStatus.requiredTests} test results match the active build. Choose Test, build & run, or use Backup if you’re not finished yet.`);
       showResults("output");
       return;
     }
     downloadBrowserBlob(portfolioProjectBlob({ project, learner, lessons: courseLessons }), `browser-chat-portfolio-${new Date().toISOString().slice(0, 10)}.zip`);
-    setMessage("Portfolio downloaded.");
+    setMessage("Source and test evidence downloaded.");
   };
 
   const restoreRevision = (revision: FileRevisionRecord) => {
@@ -747,7 +747,7 @@ export function ProjectWorkbench() {
           <details className="project-tools" ref={toolsRef}>
             <summary>Actions</summary>
             <div>
-              <button type="button" onClick={() => { toolsRef.current?.removeAttribute("open"); exportPortfolio(); }} aria-label={portfolioStatus.ready ? "Download verified portfolio ZIP" : "Portfolio ZIP — complete every lesson and create a passing full build to unlock"} title={portfolioStatus.ready ? "Download the verified standalone project" : "Finish every lesson and create a passing full build first"}>Portfolio</button>
+              <button type="button" onClick={() => { toolsRef.current?.removeAttribute("open"); exportPortfolio(); }} aria-label={portfolioStatus.ready ? "Save verified source archive" : "Source archive — complete every lesson and create a passing full build to unlock"} title={portfolioStatus.ready ? "Save an optional copy of your verified source and test evidence" : "Finish every lesson and create a passing full build first"}>Archive</button>
               <button type="button" onClick={() => { toolsRef.current?.removeAttribute("open"); void exportProgress(); }} disabled={working}>Backup</button>
               <button type="button" onClick={() => { toolsRef.current?.removeAttribute("open"); importRef.current?.click(); }} disabled={working}>Import</button>
               <button type="button" onClick={restoreReference} disabled={!projectReady || interfaceWorking || !selected || selected.readOnly || draft === selected?.referenceContent}>{confirmReferenceRestore ? "Confirm restore" : "Restore file"}</button>
@@ -871,7 +871,7 @@ export function ProjectWorkbench() {
                       ? project.output.current || `Verified build #${project.activeBuild.buildNumber} is ready to run.`
                       : `Build #${project.activeBuild.buildNumber} still runs, but it does not include the current project changes.`
                     : `${buildArtifact?.links.length ?? 0} lesson artifacts · ${buildArtifact?.contentHash.slice(7, 19) ?? ""}`}</p>
-                  {buildArtifact ? <button type="button" onClick={() => void downloadArtifact(buildArtifact)}>Download build + history</button> : null}
+                  {buildArtifact ? <button type="button" onClick={() => void downloadArtifact(buildArtifact)}>Save build record</button> : null}
                 </article> : null}
                 <details className="project-file-history">
                   <summary><span>History</span><strong>{recoveryCandidates.length ? `${recoveryCandidates.length} recoverable` : `${revisions.length} revisions`}</strong></summary>

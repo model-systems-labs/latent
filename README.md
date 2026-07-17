@@ -14,11 +14,10 @@ Every lesson links to its curated sources, explains the technical finding, and
 includes implementation cells backed by host-owned tests. The same project files
 open in a dedicated IDE and produce the validated build used by the capstone.
 
-Selected numerical lessons also include a native PyTorch handoff. The browser
-first exposes the mechanism in CPython and NumPy; learners can then download the
-same computation as a real `import torch` source file or runnable notebook. The
-completed portfolio keeps this native training/export track separate from the
-browser runtime instead of mislabeling an approximation as PyTorch.
+Numerical lessons run CPython and NumPy through WebAssembly in the browser.
+Learners edit the same Python files in the lesson and project IDE, run
+host-owned tests, train the course model, and carry the resulting checkpoint
+into the capstone without switching tools or installing a local runtime.
 
 ## What runs in the browser
 
@@ -48,7 +47,6 @@ assertions, compiler policy, resource limits, build receipts, and promotion gate
 - `packages/course-kit/` — lesson types, curriculum schema, and curriculum compiler
 - `packages/mock-services/` — MSW handlers, SSE transport, cancellation, and failure scenarios
 - `app/content/llm-systems/` — curriculum manifest and typed exercise contracts
-- `app/content/pytorch/` — real PyTorch translations and native portfolio sources
 - `app/features/ide/` — authoring experience and Browser Lab orchestration
 - `app/platform/persistence/` — Dexie schema, repositories, migrations, exports
 - `app/runtime/model/` — character training and local Transformer workers
@@ -75,14 +73,6 @@ Validation:
 
 ```bash
 npm run validate
-```
-
-The standard suite validates the browser boundary and parses every PyTorch
-source file. To execute the native smoke tests and ONNX export against the
-pinned framework environment, point the dedicated verifier at that venv:
-
-```bash
-PYTORCH_PYTHON=/path/to/venv/bin/python npm run test:pytorch-native
 ```
 
 `npm run validate` enforces package boundaries, builds and typechecks every

@@ -17,7 +17,8 @@ test("the course restores a returning learner before choosing first-run or resum
   assert.match(firstRun, /workspace\?file=/);
   assert.match(firstRun, /projectStarted/);
   assert.match(firstRun, /Resume project/);
-  assert.match(firstRun, /Export a backup from the IDE/);
+  assert.match(firstRun, /Progress and code are saved in this browser/);
+  assert.match(firstRun, /optional backup from the IDE/);
   assert.match(firstRun, /Introductory JavaScript RNN/);
   assert.match(firstRun, /not a capstone checkpoint/);
   assert.doesNotMatch(firstRun, /saveCharacterRnnArtifact/);
@@ -49,7 +50,7 @@ test("project continuity treats every file as scaffolded and gates capstone on t
   assert.match(structure, /The full project is scaffolded now\. Your verified lesson implementations progressively replace its placeholders\./);
   assert.match(structure, /Lesson checks prove one file/);
   assert.match(structure, /Python checkpoint stores trained weights/);
-  assert.match(structure, /Saved on this device\. Export a backup/);
+  assert.match(structure, /Saved in this browser\. You can save an optional backup/);
   assert.match(structure, /portfolioReadiness/);
   assert.match(structure, /activeBuildIsCurrent/);
   assert.match(structure, /\/lessons\/\$\{nextLesson\.lessonId\}#implementation/);

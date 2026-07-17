@@ -61,21 +61,21 @@ export const exerciseContracts = {
     inputs: "words list[list[str]]; one symbol list per vocabulary item",
     output: "dict[str, int] keyed by JSON pairs",
     rule: "slide over every adjacent pair and add one to its shared count",
-    example: "[[\"l\",\"o\",\"w\"], [\"l\",\"o\"]] → {\"[\\\"l\\\",\\\"o\\\"]\": 2, …}",
+    example: "[[\"s\",\"i\",\"g\"], [\"s\",\"i\"]] → {\"[\\\"s\\\",\\\"i\\\"]\": 2, …}",
   },
   "subword-tokenization/merge-pair": {
     signature: "def merge_pair(symbols, pair):",
     inputs: "symbols list[str], pair list[str] with length 2",
     output: "list[str] in the original order",
     rule: "scan left to right and replace each non-overlapping [left, right] with left + right",
-    example: "[\"l\",\"o\",\"w\"], [\"l\",\"o\"] → [\"lo\",\"w\"]",
+    example: "[\"s\",\"i\",\"g\"], [\"s\",\"i\"] → [\"si\",\"g\"]",
   },
   "subword-tokenization/encode-word": {
     signature: "def encode_word(word, merges):",
     inputs: "word str, merges list[[str, str]] in learned order",
     output: "list[str] tokens",
     rule: "start from characters, then apply every learned merge in order",
-    example: "\"lower\", [[\"l\",\"o\"], [\"lo\",\"w\"], [\"e\",\"r\"]] → [\"low\",\"er\"]",
+    example: "\"signaling\", [[\"s\",\"i\"], [\"si\",\"g\"], [\"sig\",\"n\"], [\"i\",\"n\"], [\"in\",\"g\"]] → [\"sign\",\"a\",\"l\",\"ing\"]",
   },
 
   "additive-attention/additive-score": {

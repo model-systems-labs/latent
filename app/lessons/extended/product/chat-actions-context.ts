@@ -39,7 +39,7 @@ export const chatActionsContextLesson = defineExtendedLesson({
       ],
     },
     questions: { intro: "Ask about conversation branches, cancellation, retries, prompt records, or how the token budget works.", suggestions: ["What should regenerate keep?", "Should stopping delete partial text?", "Which messages should leave the context first?"] },
-    dataset: { name: "Branching Conversation", source: "Original fixed scenario", license: "CC0", size: "3 action flows · 29 budgets (14–42)", preview: "stop midway → retry from the same point → edit into a new branch" },
+    dataset: { name: "Branching Conversation", source: "Course-authored synthetic scenario", license: "Not separately licensed", size: "3 action flows · 29 budgets (14–42)", preview: "stop midway → retry from the same point → edit into a new branch" },
     implementation: {
       filename: "chat-actions.py",
       intro: "Build token-limited context selection and regeneration branches in Python before you work with a full conversation graph.",

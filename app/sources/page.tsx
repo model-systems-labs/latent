@@ -30,7 +30,7 @@ export default function SourcesPage() {
       <article className="sources-page">
         <header className="sources-hero"><h1>Sources</h1><p>Research, datasets, models, and software used by the course.</p></header>
 
-        <p className="source-policy-note">Papers and specifications remain the work of their authors. Latent links to them and provides original explanations, diagrams, exercises, and small practice datasets.</p>
+        <p className="source-policy-note">Sources establish the research, equations, standards, and APIs behind each lesson. Their prose, figures, tutorial code, and datasets are not republished here; Latent&apos;s explanations, diagrams, exercises, implementations, and synthetic fixtures are course-authored.</p>
 
         <details className="runtime-notices">
           <summary id="runtime-notices-title">Models and open-source software</summary>

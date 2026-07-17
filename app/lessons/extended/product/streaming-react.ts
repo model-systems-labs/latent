@@ -39,7 +39,7 @@ export const streamingReactLesson = defineExtendedLesson({
       ],
     },
     questions: { intro: "Ask about grouping renders, following the scroll, cancellation, live regions, or reading a stream.", suggestions: ["Why not render every token?", "When should auto-scroll stop?", "How should a screen reader announce streaming text?"] },
-    dataset: { name: "Render Trace", source: "Fixed 60-token stream", license: "CC0", size: "60 deltas · 4 timing profiles", preview: "burst · steady · stalled · cancelled" },
+    dataset: { name: "Render Trace", source: "Course-authored synthetic stream", license: "Not separately licensed", size: "60 deltas · 4 timing profiles", preview: "burst · steady · stalled · cancelled" },
     implementation: {
       filename: "streaming-react.py",
       intro: "Build delta buffering and scroll-follow rules in Python, then compare transport events with the updates React would actually render.",

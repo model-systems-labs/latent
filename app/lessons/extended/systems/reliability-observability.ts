@@ -44,8 +44,8 @@ export const reliabilityObservabilityLesson = defineExtendedLesson({
     },
     dataset: {
       name: "Failure Trace",
-      source: "Fixed injected scenarios",
-      license: "CC0",
+      source: "Course-authored synthetic scenarios",
+      license: "Not separately licensed",
       size: "4 failure modes · fixed seeds",
       preview: "queue timeout · malformed frame · worker crash · user abort",
     },

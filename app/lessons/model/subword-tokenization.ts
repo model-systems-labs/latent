@@ -32,7 +32,7 @@ ${commonQuestionInstruction}`.trim(),
       {
         label: "How BPE trains.",
         body:
-          "BPE starts each training word as a list of symbols: lower becomes [l, o, w, e, r]. It counts every neighboring pair, picks the most common one, replaces every non-overlapping match, and then counts again. You have to recount because each merge creates new possible pairs.",
+          "BPE starts each training word as a list of symbols: signaling becomes [s, i, g, n, a, l, i, n, g]. It counts every neighboring pair, picks the most common one, replaces every non-overlapping match, and then counts again. You have to recount because each merge creates new possible pairs.",
       },
       {
         label: "Keep pairs distinct.",
@@ -59,10 +59,10 @@ ${commonQuestionInstruction}`.trim(),
       title: "Two BPE training rounds",
       caption: "Recount the pairs after every corpus-wide merge. When you encode a new word, replay the final merge list once in order.",
       nodes: [
-        { label: "Training words", value: "l · o · w   |   l · o · w   |   l · o" },
-        { label: "Round 1 counts", value: "[l,o]: 3   [o,w]: 2   → select [l,o]" },
-        { label: "Merge 1", value: "[l,o] → lo   then recount the modified words" },
-        { label: "Round 2 counts", value: "[lo,w]: 2   → next candidate" },
+        { label: "Training words", value: "s · i · g · n   |   s · i · g · n · a · l" },
+        { label: "Round 1 counts", value: "[s,i]: 2   [i,g]: 2   [n,a]: 1   → select [s,i]" },
+        { label: "Merge 1", value: "[s,i] → si   then recount the modified words" },
+        { label: "Round 2 counts", value: "[si,g]: 2   → next candidate" },
       ],
     },
     questions: {
@@ -75,8 +75,8 @@ ${commonQuestionInstruction}`.trim(),
     },
     dataset: {
       name: "Morphology Set",
-      source: "Original synthetic course corpus",
-      license: "CC0",
+      source: "Course-authored synthetic corpus",
+      license: "Not separately licensed",
       size: "6 lines · 24 words · fixed",
       preview: "signal signals signaling signaled · model models modeling modeled",
     },
@@ -105,10 +105,10 @@ def count_pairs(words):
             )
             counts[pair] = counts.get(pair, 0) + 1
     return counts`,
-          checkCode: `counts = count_pairs([["l", "o", "w"], ["l", "o"]])
+          checkCode: `counts = count_pairs([["s", "i", "g"], ["s", "i"]])
 RESULT = {
-    "passed": counts['["l","o"]'] == 2 and counts['["o","w"]'] == 1,
-    "detail": "[l,o] = " + str(counts['["l","o"]']),
+    "passed": counts['["s","i"]'] == 2 and counts['["i","g"]'] == 1,
+    "detail": "[s,i] = " + str(counts['["s","i"]']),
 }`,
         },
         {
@@ -132,9 +132,9 @@ RESULT = {
             output.append(symbols[index])
             index += 1
     return output`,
-          checkCode: `merged = merge_pair(["l", "o", "w", "e", "r"], ["l", "o"])
+          checkCode: `merged = merge_pair(["s", "i", "g", "n", "a", "l"], ["s", "i"])
 RESULT = {
-    "passed": "|".join(merged) == "lo|w|e|r",
+    "passed": "|".join(merged) == "si|g|n|a|l",
     "detail": " · ".join(merged),
 }`,
         },
@@ -157,9 +157,9 @@ RESULT = {
             else:
                 index += 1
     return symbols`,
-          checkCode: `tokens = encode_word("lower", [["l", "o"], ["lo", "w"], ["e", "r"]])
+          checkCode: `tokens = encode_word("signaling", [["s", "i"], ["si", "g"], ["sig", "n"], ["i", "n"], ["in", "g"]])
 RESULT = {
-    "passed": "|".join(tokens) == "low|er",
+    "passed": "|".join(tokens) == "sign|a|l|ing",
     "detail": " · ".join(tokens),
 }`,
         },

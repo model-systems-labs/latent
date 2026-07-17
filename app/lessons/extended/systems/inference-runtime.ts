@@ -44,8 +44,8 @@ export const inferenceRuntimeLesson = defineExtendedLesson({
     },
     dataset: {
       name: "Inference Trace",
-      source: "Fixed synthetic requests",
-      license: "CC0",
+      source: "Course-authored synthetic requests",
+      license: "Not separately licensed",
       size: "6 requests · fixed prompt and output lengths",
       preview: "r-104 · prompt 96 + output 32 = final length 128 · 1 prefill + 31 decode forwards",
     },

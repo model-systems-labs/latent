@@ -41,7 +41,7 @@ export const conversationStateLesson = defineExtendedLesson({
       intro: "Ask about normalized messages, reducer actions, stable ids, calculated state, or generation attempts.",
       suggestions: ["Why not use array indexes as message ids?", "What state belongs to an attempt?", "Which chat flags should be calculated?"],
     },
-    dataset: { name: "Conversation Event Log", source: "Original fixed actions", license: "CC0", size: "18 reducer actions · 3 generation attempts", preview: "complete · cancel + ignore a late delta · edit + regenerate" },
+    dataset: { name: "Conversation Event Log", source: "Course-authored synthetic actions", license: "Not separately licensed", size: "18 reducer actions · 3 generation attempts", preview: "complete · cancel + ignore a late delta · edit + regenerate" },
     implementation: {
       filename: "chat-reducer.py",
       intro: "Build message creation and token-delta updates without mutation in Python, then replay the full conversation event log.",

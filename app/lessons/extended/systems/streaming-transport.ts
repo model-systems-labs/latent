@@ -44,8 +44,8 @@ export const streamingTransportLesson = defineExtendedLesson({
     },
     dataset: {
       name: "Token Event Trace",
-      source: "Original fixed stream",
-      license: "CC0",
+      source: "Course-authored synthetic stream",
+      license: "Not separately licensed",
       size: "14 frames · adversarial chunk boundaries",
       preview: "complete: meta → token × 10 → metrics → done · cancel: meta → token × 4 → abort → release",
     },

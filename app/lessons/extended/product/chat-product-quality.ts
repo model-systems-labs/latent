@@ -39,7 +39,7 @@ export const chatProductQualityLesson = defineExtendedLesson({
       ],
     },
     questions: { intro: "Ask about local storage, schema changes, live regions, keyboard focus, or clear latency labels.", suggestions: ["What chat data should never be saved?", "How often should streaming text be announced?", "Where should focus go after a retry?"] },
-    dataset: { name: "Product Contract Audit", source: "Original fixed checklist", license: "CC0", size: "11 executable pure checks · 5 specifications · 3 manual verification groups", preview: "input + focus · saved state · lifecycle · accessibility + responsive behavior" },
+    dataset: { name: "Product Contract Audit", source: "Course-authored synthetic checklist", license: "Not separately licensed", size: "11 executable pure checks · 5 specifications · 3 manual verification groups", preview: "input + focus · saved state · lifecycle · accessibility + responsive behavior" },
     implementation: {
       filename: "chat-quality.py",
       intro: "Build the saved-data check and user-facing phase labels in Python, then run the capstone product check.",

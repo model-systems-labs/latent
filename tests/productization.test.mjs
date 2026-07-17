@@ -17,6 +17,7 @@ let canonicalProject;
 let fileStatus;
 let contracts;
 let template;
+let provenance;
 
 before(async () => {
   vite = await createServer({
@@ -26,7 +27,7 @@ before(async () => {
     appType: "custom",
     logLevel: "silent",
   });
-  [course, learning, portfolio, projectWorkspace, learnerState, canonicalProject, fileStatus, contracts, template] = await Promise.all([
+  [course, learning, portfolio, projectWorkspace, learnerState, canonicalProject, fileStatus, contracts, template, provenance] = await Promise.all([
     vite.ssrLoadModule("/app/lessons/course.ts"),
     vite.ssrLoadModule("/app/content/llm-systems/learning.ts"),
     vite.ssrLoadModule("/app/lib/portfolio-export.ts"),
@@ -36,6 +37,7 @@ before(async () => {
     vite.ssrLoadModule("/app/lib/project-file-status.ts"),
     vite.ssrLoadModule("/app/content/llm-systems/contracts.ts"),
     vite.ssrLoadModule("/app/content/browser-chat/project-template.ts"),
+    vite.ssrLoadModule("/app/lessons/provenance.ts"),
   ]);
 });
 
@@ -82,6 +84,10 @@ test("the four module checkpoints cover the canonical curriculum exactly", () =>
 });
 
 test("lesson source and dataset attribution is complete and reviewable", () => {
+  assert.deepEqual(
+    Object.keys(provenance.lessonContentProvenance).sort(),
+    course.courseLessons.map((lesson) => lesson.id).sort(),
+  );
   for (const lesson of course.courseLessons) {
     assert.ok(lesson.sources.length >= 2, lesson.id);
     assert.equal(new Set(lesson.sources.map((source) => source.url)).size, lesson.sources.length, lesson.id);
@@ -92,10 +98,47 @@ test("lesson source and dataset attribution is complete and reviewable", () => {
       assert.ok(source.relevance.trim().length > 25);
     }
     assert.ok(lesson.dataset.name.trim());
-    assert.ok(lesson.dataset.source.trim());
-    assert.ok(lesson.dataset.license.trim());
+    assert.match(lesson.dataset.source, /^Course-authored synthetic /, lesson.id);
+    assert.equal(lesson.dataset.license, "Not separately licensed", lesson.id);
     assert.ok(lesson.dataset.size.trim());
+    const record = provenance.getLessonContentProvenance(lesson.id);
+    assert.equal(record.prose, "course-authored", lesson.id);
+    assert.equal(record.diagrams, "course-authored", lesson.id);
+    assert.equal(record.exercises, "course-authored", lesson.id);
+    assert.equal(record.implementation, "independent-course-implementation", lesson.id);
+    assert.equal(record.dataset, "course-authored-synthetic", lesson.id);
+    assert.equal(record.reviewedAt, "2026-07-17", lesson.id);
+    assert.ok(record.note.length > 50, lesson.id);
   }
+});
+
+test("reviewed lessons do not reintroduce the two remediated source patterns", async () => {
+  const root = new URL("../", import.meta.url);
+  const rnnTrainerSources = await Promise.all([
+    "app/lessons/model/character-rnn-training.ts",
+    "packages/model-lab/src/character-rnn.ts",
+  ].map((path) => readFile(new URL(path, root), "utf8")));
+  for (const source of rnnTrainerSources) {
+    assert.doesNotMatch(source, /Adagrad|mWxh|mWhh|mWhy|dhnext|lossFun|smooth_loss/);
+  }
+
+  const bpeSources = await Promise.all([
+    "app/lessons/model/subword-tokenization.ts",
+    "app/lessons/lesson-flair.ts",
+    "app/lessons/exercise-contracts.ts",
+    "app/content/llm-systems/contracts.ts",
+  ].map((path) => readFile(new URL(path, root), "utf8")));
+  for (const source of bpeSources) {
+    assert.doesNotMatch(source, /\blower\b|low\|er/);
+  }
+
+  const [policy, record] = await Promise.all([
+    readFile(new URL("app/sources/page.tsx", root), "utf8"),
+    readFile(new URL("CONTENT_PROVENANCE.md", root), "utf8"),
+  ]);
+  assert.match(policy, /Their prose, figures, tutorial code, and datasets are not republished here/);
+  assert.match(record, /character-RNN trainers had followed the organization/);
+  assert.match(record, /BPE lesson used the paper's recognizable/);
 });
 
 test("model lesson headers describe mechanisms without implying author endorsement", () => {

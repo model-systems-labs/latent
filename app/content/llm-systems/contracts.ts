@@ -343,11 +343,11 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
         id: "overlapping-vocabulary-pairs",
         label: "Counts adjacent pairs across multiple words",
         args: [[[
-          "l", "o", "w",
-        ], ["l", "o"]]],
+          "s", "i", "g",
+        ], ["s", "i"]]],
         assertions: [
-          equal("lo-frequency", "Use json.dumps([left, right], separators=(\",\", \":\")) so the visible key [\"l\",\"o\"] is counted twice", 2, ['["l","o"]']),
-          equal("ow-frequency", "Count every adjacent position in every word, including [\"o\",\"w\"]", 1, ['["o","w"]']),
+          equal("si-frequency", "Use json.dumps([left, right], separators=(\",\", \":\")) so the visible key [\"s\",\"i\"] is counted twice", 2, ['["s","i"]']),
+          equal("ig-frequency", "Count every adjacent position in every word, including [\"i\",\"g\"]", 1, ['["i","g"]']),
         ],
       },
       {
@@ -382,8 +382,8 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       {
         id: "selected-adjacent-pair",
         label: "Merges only the selected adjacent pair",
-        args: [["l", "o", "w", "e", "r"], ["l", "o"]],
-        assertions: [equal("merged-symbols", "Merge the selected neighbors and keep every surrounding symbol in order", ["lo", "w", "e", "r"])],
+        args: [["s", "i", "g", "n", "a", "l"], ["s", "i"]],
+        assertions: [equal("merged-symbols", "Merge the selected neighbors and keep every surrounding symbol in order", ["si", "g", "n", "a", "l"])],
       },
       {
         id: "repeated-selected-pair",
@@ -408,8 +408,8 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
       {
         id: "ordered-merges",
         label: "Replays learned merges in their training order",
-        args: ["lower", [["l", "o"], ["lo", "w"], ["e", "r"]]],
-        assertions: [equal("encoded-tokens", "Apply each learned merge in array order to produce the trained segmentation", ["low", "er"])],
+        args: ["signaling", [["s", "i"], ["si", "g"], ["sig", "n"], ["i", "n"], ["in", "g"]]],
+        assertions: [equal("encoded-tokens", "Apply each learned merge in array order to produce the trained segmentation", ["sign", "a", "l", "ing"])],
       },
       {
         id: "order-sensitive-replay",

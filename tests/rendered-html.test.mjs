@@ -660,13 +660,14 @@ test("sources route lists the research, dataset, model, and runtime boundaries",
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /<h1>Sources<\/h1>/);
-  assert.match(html, /Papers and specifications remain the work of their authors/);
+  assert.match(html, /Their prose, figures, tutorial code, and datasets are not republished here/);
   assert.match(html, /SmolLM2-135M-Instruct/);
   assert.match(html, /Transformers\.js/);
   assert.match(html, /Apache-2\.0/);
   assert.match(html, /Lesson sources/);
   assert.match(html, /Character RNNs/);
   assert.match(html, /Product Quality/);
-  assert.match(html, /Original synthetic course corpus/);
-  assert.match(html, /Original fixed checklist/);
+  assert.match(html, /Course-authored synthetic corpus/);
+  assert.match(html, /Course-authored synthetic checklist/);
+  assert.match(html, /Not separately licensed/);
 });

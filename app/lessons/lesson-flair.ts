@@ -20,7 +20,7 @@ export const lessonFlairRegistry = {
   },
   "subword-tokenization": {
     tone: "plum",
-    notation: "l · o · w → lo · w",
+    notation: "s · i · g · n → si · g · n",
   },
   "additive-attention": {
     tone: "plum",

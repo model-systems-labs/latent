@@ -51,12 +51,14 @@ browser evidence; unit tests alone are not sufficient.
 
 ## 6. Editorial, sources, and licenses
 
-- Existing: curated sources, lesson-specific relevance notes, supplied-dataset
-  provenance, and no copied paper bodies.
-- Missing at audit start: one reviewable source-and-license index and an explicit
-  boundary between course-authored simulations, third-party models, and packages.
-- Completion evidence: source index, model/dataset/package notices, link audit,
-  and a final terminology/repetition review.
+- Existing: curated sources, lesson-specific relevance notes, course-authored
+  synthetic-fixture labels, and an in-product source-and-runtime index.
+- Completed on 2026-07-17: all fourteen lessons were compared with their cited
+  papers, standards, tutorials, and reference repositories. One overly similar
+  trainer structure and one borrowed worked example were replaced.
+- Completion evidence: `CONTENT_PROVENANCE.md`, the machine-readable lesson
+  origin map, source and runtime notices, and regression tests for the remediated
+  RNN and BPE patterns.
 
 ## 7. Naive-user sessions
 

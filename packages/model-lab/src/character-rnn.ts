@@ -11,17 +11,17 @@ const RNN_CORPUS = (
 
 export const CHARACTER_RNN_DATASET = Object.freeze({
   name: "Signal Notes",
-  source: "Original synthetic course corpus",
-  license: "CC0",
+  source: "Course-authored synthetic corpus",
+  license: "Not separately licensed",
   split: "fixed deterministic sequence",
 });
 
 export const CHARACTER_RNN_TRAINING_CONFIG = Object.freeze({
   seed: 19,
   hiddenSize: 18,
-  sequenceLength: 28,
-  optimizer: "Adagrad",
-  learningRate: 0.075,
+  sequenceLength: 32,
+  optimizer: "Adam",
+  learningRate: 0.012,
   gradientClip: 5,
 });
 
@@ -150,6 +150,90 @@ export function sampleCharacterRnn(
   return sample;
 }
 
+type TrainingParameters = {
+  inputToState: number[][];
+  stateToState: number[][];
+  stateToToken: number[][];
+  stateBias: number[];
+  tokenBias: number[];
+};
+
+function emptyTrainingParameters(hiddenSize: number, vocabularySize: number): TrainingParameters {
+  return {
+    inputToState: zeros(hiddenSize, vocabularySize),
+    stateToState: zeros(hiddenSize, hiddenSize),
+    stateToToken: zeros(vocabularySize, hiddenSize),
+    stateBias: Array(hiddenSize).fill(0) as number[],
+    tokenBias: Array(vocabularySize).fill(0) as number[],
+  };
+}
+
+function trainingState(parameters: TrainingParameters, token: number, previous: number[]) {
+  return parameters.stateBias.map((bias, row) => {
+    let activation = bias + parameters.inputToState[row][token];
+    for (let column = 0; column < previous.length; column += 1) {
+      activation += parameters.stateToState[row][column] * previous[column];
+    }
+    return Math.tanh(activation);
+  });
+}
+
+function trainingDistribution(parameters: TrainingParameters, state: number[]) {
+  return softmax(parameters.tokenBias.map((bias, token) => {
+    let logit = bias;
+    for (let feature = 0; feature < state.length; feature += 1) {
+      logit += parameters.stateToToken[token][feature] * state[feature];
+    }
+    return logit;
+  }));
+}
+
+function applyAdamVector(
+  values: number[],
+  gradients: number[],
+  firstMoment: number[],
+  secondMoment: number[],
+  updateNumber: number,
+) {
+  const betaOne = 0.9;
+  const betaTwo = 0.999;
+  const firstCorrection = 1 - betaOne ** updateNumber;
+  const secondCorrection = 1 - betaTwo ** updateNumber;
+  for (let index = 0; index < values.length; index += 1) {
+    const clipped = Math.max(
+      -CHARACTER_RNN_TRAINING_CONFIG.gradientClip,
+      Math.min(CHARACTER_RNN_TRAINING_CONFIG.gradientClip, gradients[index]),
+    );
+    firstMoment[index] = betaOne * firstMoment[index] + (1 - betaOne) * clipped;
+    secondMoment[index] = betaTwo * secondMoment[index] + (1 - betaTwo) * clipped * clipped;
+    const direction = (firstMoment[index] / firstCorrection)
+      / (Math.sqrt(secondMoment[index] / secondCorrection) + 1e-8);
+    values[index] -= CHARACTER_RNN_TRAINING_CONFIG.learningRate * direction;
+  }
+}
+
+function applyAdam(
+  parameters: TrainingParameters,
+  gradients: TrainingParameters,
+  firstMoment: TrainingParameters,
+  secondMoment: TrainingParameters,
+  updateNumber: number,
+) {
+  for (const name of ["inputToState", "stateToState", "stateToToken"] as const) {
+    for (let row = 0; row < parameters[name].length; row += 1) {
+      applyAdamVector(
+        parameters[name][row],
+        gradients[name][row],
+        firstMoment[name][row],
+        secondMoment[name][row],
+        updateNumber,
+      );
+    }
+  }
+  applyAdamVector(parameters.stateBias, gradients.stateBias, firstMoment.stateBias, secondMoment.stateBias, updateNumber);
+  applyAdamVector(parameters.tokenBias, gradients.tokenBias, firstMoment.tokenBias, secondMoment.tokenBias, updateNumber);
+}
+
 export function trainCharacterRnn(steps = 600): RnnResult {
   integerInRange(steps, "steps", 1, 100_000);
   const corpus = RNN_CORPUS;
@@ -158,125 +242,84 @@ export function trainCharacterRnn(steps = 600): RnnResult {
   const vocabularySize = vocabulary.length;
   const { hiddenSize, sequenceLength } = CHARACTER_RNN_TRAINING_CONFIG;
   const random = seededRandom(CHARACTER_RNN_TRAINING_CONFIG.seed);
-
-  const Wxh = randomMatrix(hiddenSize, vocabularySize, random);
-  const Whh = randomMatrix(hiddenSize, hiddenSize, random, 0.05);
-  const Why = randomMatrix(vocabularySize, hiddenSize, random);
-  const bh = Array(hiddenSize).fill(0) as number[];
-  const by = Array(vocabularySize).fill(0) as number[];
-
-  const mWxh = zeros(hiddenSize, vocabularySize);
-  const mWhh = zeros(hiddenSize, hiddenSize);
-  const mWhy = zeros(vocabularySize, hiddenSize);
-  const mbh = Array(hiddenSize).fill(0) as number[];
-  const mby = Array(vocabularySize).fill(0) as number[];
-  const losses: number[] = [];
-  let position = 0;
-  let previousState = Array(hiddenSize).fill(0) as number[];
-
-  const updateMatrix = (values: number[][], gradients: number[][], memory: number[][], rate: number) => {
-    for (let row = 0; row < values.length; row += 1) {
-      for (let column = 0; column < values[row].length; column += 1) {
-        const gradient = Math.max(-CHARACTER_RNN_TRAINING_CONFIG.gradientClip, Math.min(CHARACTER_RNN_TRAINING_CONFIG.gradientClip, gradients[row][column]));
-        memory[row][column] += gradient * gradient;
-        values[row][column] -= rate * gradient / Math.sqrt(memory[row][column] + 1e-8);
-      }
-    }
+  const parameters: TrainingParameters = {
+    inputToState: randomMatrix(hiddenSize, vocabularySize, random, 0.018),
+    stateToState: randomMatrix(hiddenSize, hiddenSize, random, 0.04),
+    stateToToken: randomMatrix(vocabularySize, hiddenSize, random, 0.018),
+    stateBias: Array(hiddenSize).fill(0) as number[],
+    tokenBias: Array(vocabularySize).fill(0) as number[],
   };
+  const firstMoment = emptyTrainingParameters(hiddenSize, vocabularySize);
+  const secondMoment = emptyTrainingParameters(hiddenSize, vocabularySize);
+  const losses: number[] = [];
+  const maximumStart = corpus.length - sequenceLength - 1;
 
-  for (let step = 0; step < steps; step += 1) {
-    if (position + sequenceLength + 1 >= corpus.length) {
-      position = 0;
-      previousState = Array(hiddenSize).fill(0) as number[];
-    }
-
-    const inputs = [...corpus.slice(position, position + sequenceLength)].map((character) => toIndex.get(character) ?? 0);
-    const targets = [...corpus.slice(position + 1, position + sequenceLength + 1)].map((character) => toIndex.get(character) ?? 0);
-    const states: number[][] = [previousState.slice()];
-    const probabilities: number[][] = [];
+  for (let updateNumber = 1; updateNumber <= steps; updateNumber += 1) {
+    const start = ((updateNumber - 1) * 37) % (maximumStart + 1);
+    const inputIds = [...corpus.slice(start, start + sequenceLength)].map((character) => toIndex.get(character) ?? 0);
+    const targetIds = [...corpus.slice(start + 1, start + sequenceLength + 1)].map((character) => toIndex.get(character) ?? 0);
+    const states = [Array(hiddenSize).fill(0) as number[]];
+    const distributions: number[][] = [];
     let loss = 0;
 
     for (let time = 0; time < sequenceLength; time += 1) {
-      const nextState = Array.from({ length: hiddenSize }, (_, row) => {
-        let activation = bh[row] + Wxh[row][inputs[time]];
-        for (let column = 0; column < hiddenSize; column += 1) {
-          activation += Whh[row][column] * states[time][column];
-        }
-        return Math.tanh(activation);
-      });
-      states.push(nextState);
-      const logits = Array.from({ length: vocabularySize }, (_, row) => {
-        let value = by[row];
-        for (let column = 0; column < hiddenSize; column += 1) value += Why[row][column] * nextState[column];
-        return value;
-      });
-      const distribution = softmax(logits);
-      probabilities.push(distribution);
-      loss += -Math.log(Math.max(distribution[targets[time]], 1e-12));
+      const state = trainingState(parameters, inputIds[time], states[time]);
+      const distribution = trainingDistribution(parameters, state);
+      states.push(state);
+      distributions.push(distribution);
+      loss -= Math.log(Math.max(distribution[targetIds[time]], 1e-12));
     }
 
-    const dWxh = zeros(hiddenSize, vocabularySize);
-    const dWhh = zeros(hiddenSize, hiddenSize);
-    const dWhy = zeros(vocabularySize, hiddenSize);
-    const dbh = Array(hiddenSize).fill(0) as number[];
-    const dby = Array(vocabularySize).fill(0) as number[];
-    let nextStateGradient = Array(hiddenSize).fill(0) as number[];
-
+    const gradients = emptyTrainingParameters(hiddenSize, vocabularySize);
+    let stateSignal = Array(hiddenSize).fill(0) as number[];
     for (let time = sequenceLength - 1; time >= 0; time -= 1) {
-      const outputGradient = probabilities[time].slice();
-      outputGradient[targets[time]] -= 1;
-      for (let row = 0; row < vocabularySize; row += 1) {
-        dby[row] += outputGradient[row];
-        for (let column = 0; column < hiddenSize; column += 1) {
-          dWhy[row][column] += outputGradient[row] * states[time + 1][column];
+      const tokenError = distributions[time].slice();
+      tokenError[targetIds[time]] -= 1;
+      for (let token = 0; token < vocabularySize; token += 1) {
+        gradients.tokenBias[token] += tokenError[token];
+        for (let feature = 0; feature < hiddenSize; feature += 1) {
+          gradients.stateToToken[token][feature] += tokenError[token] * states[time + 1][feature];
         }
       }
 
-      const hiddenGradient = Array(hiddenSize).fill(0) as number[];
-      for (let column = 0; column < hiddenSize; column += 1) {
-        hiddenGradient[column] = nextStateGradient[column];
-        for (let row = 0; row < vocabularySize; row += 1) {
-          hiddenGradient[column] += Why[row][column] * outputGradient[row];
+      const transitionSignal = Array.from({ length: hiddenSize }, (_, feature) => {
+        let combined = stateSignal[feature];
+        for (let token = 0; token < vocabularySize; token += 1) {
+          combined += parameters.stateToToken[token][feature] * tokenError[token];
         }
-      }
-      const rawGradient = hiddenGradient.map(
-        (value, column) => value * (1 - states[time + 1][column] ** 2),
-      );
+        return combined * (1 - states[time + 1][feature] ** 2);
+      });
       for (let row = 0; row < hiddenSize; row += 1) {
-        dbh[row] += rawGradient[row];
-        dWxh[row][inputs[time]] += rawGradient[row];
+        gradients.stateBias[row] += transitionSignal[row];
+        gradients.inputToState[row][inputIds[time]] += transitionSignal[row];
         for (let column = 0; column < hiddenSize; column += 1) {
-          dWhh[row][column] += rawGradient[row] * states[time][column];
+          gradients.stateToState[row][column] += transitionSignal[row] * states[time][column];
         }
       }
-      nextStateGradient = Array.from({ length: hiddenSize }, (_, column) => {
-        let value = 0;
-        for (let row = 0; row < hiddenSize; row += 1) value += Whh[row][column] * rawGradient[row];
-        return value;
+      stateSignal = Array.from({ length: hiddenSize }, (_, column) => {
+        let signal = 0;
+        for (let row = 0; row < hiddenSize; row += 1) {
+          signal += parameters.stateToState[row][column] * transitionSignal[row];
+        }
+        return signal;
       });
     }
 
-    const rate = CHARACTER_RNN_TRAINING_CONFIG.learningRate;
-    updateMatrix(Wxh, dWxh, mWxh, rate);
-    updateMatrix(Whh, dWhh, mWhh, rate);
-    updateMatrix(Why, dWhy, mWhy, rate);
-    for (let index = 0; index < hiddenSize; index += 1) {
-      const gradient = Math.max(-CHARACTER_RNN_TRAINING_CONFIG.gradientClip, Math.min(CHARACTER_RNN_TRAINING_CONFIG.gradientClip, dbh[index]));
-      mbh[index] += gradient * gradient;
-      bh[index] -= rate * gradient / Math.sqrt(mbh[index] + 1e-8);
-    }
-    for (let index = 0; index < vocabularySize; index += 1) {
-      const gradient = Math.max(-CHARACTER_RNN_TRAINING_CONFIG.gradientClip, Math.min(CHARACTER_RNN_TRAINING_CONFIG.gradientClip, dby[index]));
-      mby[index] += gradient * gradient;
-      by[index] -= rate * gradient / Math.sqrt(mby[index] + 1e-8);
-    }
-    previousState = states.at(-1)?.slice() ?? previousState;
-    position += sequenceLength;
+    applyAdam(parameters, gradients, firstMoment, secondMoment, updateNumber);
     losses.push(loss / sequenceLength);
   }
 
   const mean = (values: number[]) => values.reduce((sum, value) => sum + value, 0) / values.length;
-  const checkpoint = assertRnnCheckpoint({ version: 1, vocabulary, hiddenSize, Wxh, Whh, Why, bh, by });
+  const checkpoint = assertRnnCheckpoint({
+    version: 1,
+    vocabulary,
+    hiddenSize,
+    Wxh: parameters.inputToState,
+    Whh: parameters.stateToState,
+    Why: parameters.stateToToken,
+    bh: parameters.stateBias,
+    by: parameters.tokenBias,
+  });
   return {
     losses,
     initialLoss: mean(losses.slice(0, 12)),

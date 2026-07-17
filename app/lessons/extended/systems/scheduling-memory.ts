@@ -43,8 +43,8 @@ export const schedulingMemoryLesson = defineExtendedLesson({
     },
     dataset: {
       name: "Serving Workload",
-      source: "Fixed synthetic arrivals",
-      license: "CC0",
+      source: "Course-authored synthetic arrivals",
+      license: "Not separately licensed",
       size: "9 requests · mixed prompt and output lengths",
       preview: "short chat · long document · concurrent follow-up",
     },

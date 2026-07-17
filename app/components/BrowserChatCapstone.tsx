@@ -35,6 +35,8 @@ import {
 import type { CapstoneBackend, PersistedChatMessage } from "../lib/capstone-contract";
 import { CAPSTONE_COMPONENT_PATH as CANONICAL_CAPSTONE_COMPONENT_PATH } from "../content/browser-chat/project-template";
 import { PYTHON_CHARACTER_RNN_PATH } from "../features/python/character-rnn-source";
+import { courseLessons, getLesson } from "../lessons/course";
+import { portfolioReadiness } from "../lib/portfolio-export";
 
 const ALLOWED_METHODS = new Set(["initialize", "load-local", "generate", "cancel", "persist"]);
 
@@ -107,7 +109,7 @@ export type CapstoneRecovery = {
   path: string | null;
   pathLabel: string;
   why: string;
-  action: "workspace" | "retry";
+  action: "lesson" | "project" | "workspace" | "retry";
   actionLabel: string;
   actionPath?: string;
   href: string;
@@ -133,8 +135,24 @@ const CAPABILITY_SOURCE: Readonly<Record<string, { path: string; label: string }
   }]),
 ));
 
+const CAPABILITY_LESSON: Readonly<Record<string, string>> = Object.freeze({
+  "ui.mount": "chat-product-quality",
+  "transport.parse-sse": "streaming-transport",
+  "serving.should-retry": "reliability-observability",
+  "chat.select-context": "chat-actions-context",
+});
+
 function workspaceHref(path: string) {
   return `/workspace?file=${encodeURIComponent(path)}`;
+}
+
+function lessonTargetForPath(path: string) {
+  const source = LLM_LESSON_SOURCES.find((lesson) => lesson.sourcePath === path);
+  const lesson = source ? getLesson(source.lessonId) : undefined;
+  return source ? {
+    href: `/lessons/${source.lessonId}#implementation`,
+    title: lesson?.title ?? source.moduleTitle,
+  } : null;
 }
 
 /** Summarizes only learner-visible evidence; it never treats a partial test run as a passing build. */
@@ -181,6 +199,7 @@ export function summarizeCapstoneProgress(
 export function capstoneMissingBuildRecovery(progress: CapstoneProgress): CapstoneRecovery {
   const sourceComplete = progress.totalLessonFiles > 0 && progress.verifiedLessonFiles === progress.totalLessonFiles;
   if (!sourceComplete) {
+    const lessonTarget = lessonTargetForPath(progress.nextPath);
     return {
       eyebrow: "You need a passing build",
       title: "Finish the next module.",
@@ -189,10 +208,10 @@ export function capstoneMissingBuildRecovery(progress: CapstoneProgress): Capsto
         : "No lesson files are ready yet.",
       path: progress.nextPath,
       pathLabel: `Next source · ${progress.nextPath}`,
-      why: "This is the first unfinished file the capstone still needs for its model, serving layer, and React app.",
-      action: "workspace",
-      actionLabel: `Open ${progress.nextTitle}`,
-      href: workspaceHref(progress.nextPath),
+      why: "This is the first unfinished lesson contribution the capstone still needs. Return to its explanation and implementation before opening the file in the IDE.",
+      action: lessonTarget ? "lesson" : "workspace",
+      actionLabel: lessonTarget ? `Continue ${lessonTarget.title}` : `Open ${progress.nextTitle}`,
+      href: lessonTarget?.href ?? workspaceHref(progress.nextPath),
       blockedStage: "source",
     };
   }
@@ -202,10 +221,10 @@ export function capstoneMissingBuildRecovery(progress: CapstoneProgress): Capsto
     summary: `All ${progress.totalLessonFiles} lesson files are verified. The preview needs one passing build of the current source.`,
     path: CAPSTONE_COMPONENT_PATH,
     pathLabel: `Final integration · ${CAPSTONE_COMPONENT_PATH}`,
-    why: "A passing full build puts every verified Python lesson, its matching browser adapter, and the React app into one snapshot before any project code reaches the preview.",
-    action: "workspace",
-    actionLabel: "Open integration · Test, build & run",
-    href: workspaceHref(CAPSTONE_COMPONENT_PATH),
+    why: "A passing full build puts every verified Python lesson, the tested browser adapters, and the React app into one snapshot before any project code reaches the preview.",
+    action: "project",
+    actionLabel: "Review the project and run the full build",
+    href: "/project",
     blockedStage: "build",
   };
 }
@@ -218,16 +237,52 @@ export function capstoneReadyGateCopy(buildNumber: number) {
   } as const;
 }
 
-export function capstoneTestEvidence(status: HostStatus, buildNumber: number | null, progress: CapstoneProgress) {
-  if (status === "ready" && buildNumber) {
-    return { label: "Build test results", value: `Every test passed for build #${buildNumber}` } as const;
-  }
+export function capstoneStaleBuildRecovery(buildNumber: number, progress: CapstoneProgress): CapstoneRecovery {
   return {
-    label: "Saved test results",
-    value: progress.totalTests
-      ? `${progress.passingTests}/${progress.totalTests} currently passing`
-      : "No saved test results",
-  } as const;
+    eyebrow: `Last passing build ${buildNumber}`,
+    title: "Rebuild your current changes.",
+    summary: `Build #${buildNumber} still passes its saved source, but the project has changed since then.`,
+    path: progress.nextPath,
+    pathLabel: `Current project · ${progress.nextPath}`,
+    why: "Run the full project checks again so the active build and preview use the files that are open now.",
+    action: "project",
+    actionLabel: "Review the project and rebuild",
+    href: "/project",
+    blockedStage: "build",
+  };
+}
+
+export function capstoneMilestoneEvidence(
+  status: HostStatus,
+  verifiedBuildNumber: number | null,
+  lastPassingBuildNumber: number | null,
+  progress: CapstoneProgress,
+  artifact: SavedRnnArtifact | undefined,
+) {
+  const lessonFiles = progress.totalLessonFiles
+    ? `${progress.verifiedLessonFiles}/${progress.totalLessonFiles} ready`
+    : "Restoring project files";
+  const checkpoint = status === "ready"
+    ? "Current source-bound Python checkpoint"
+    : artifact?.origin === "python" && artifact.sourcePath === PYTHON_CHARACTER_RNN_PATH && artifact.sourceHash
+      ? "Source-bound Python checkpoint saved · retrain after model edits"
+      : artifact?.origin === "python"
+        ? "Python checkpoint is not bound to the current source"
+        : artifact
+          ? "JavaScript lesson model only · Python checkpoint required"
+          : "Not trained from Python yet";
+  const appBuild = status === "ready" && verifiedBuildNumber
+    ? `Build #${verifiedBuildNumber} passes the current source`
+    : status === "loading"
+      ? "Checking the current source"
+      : lastPassingBuildNumber
+        ? `Last passing build #${lastPassingBuildNumber} · current changes need rebuild`
+        : "No passing full-project build yet";
+  return [
+    { label: "Lesson files", value: lessonFiles },
+    { label: "Model checkpoint", value: checkpoint },
+    { label: "App build", value: appBuild },
+  ] as const;
 }
 
 function failureRecord(error: unknown): CapstoneFailure {
@@ -251,11 +306,11 @@ export function capstoneRecoveryForFailure(error: unknown, progress: CapstonePro
       summary: `The active build has no checkpoint trained from the current ${PYTHON_CHARACTER_RNN_PATH}.`,
       path: PYTHON_CHARACTER_RNN_PATH,
       pathLabel: `Model source · ${PYTHON_CHARACTER_RNN_PATH}`,
-      why: "Choose Test & train for this exact file, then run the full build. The capstone can’t use imported checkpoints, checkpoints trained in JavaScript, or checkpoints from older source.",
-      action: "workspace",
-      actionLabel: "Open model · Test & train",
+      why: "Return to Character RNNs for the model contract, then open its project file and choose Test & train. The capstone can’t use imported checkpoints, JavaScript demo weights, or checkpoints from older source.",
+      action: "lesson",
+      actionLabel: "Return to Character RNNs",
       actionPath: PYTHON_CHARACTER_RNN_PATH,
-      href: workspaceHref(PYTHON_CHARACTER_RNN_PATH),
+      href: "/lessons/character-rnns#implementation",
       blockedStage: "build",
     };
   }
@@ -264,6 +319,8 @@ export function capstoneRecoveryForFailure(error: unknown, progress: CapstonePro
   if (source || failure.code === "MISSING_CAPSTONE_UI" || failure.code === "UNVERIFIED_CAPSTONE_UI") {
     const target = source ?? CAPABILITY_SOURCE["ui.mount"];
     const isEntrypoint = target.path === CAPSTONE_ENTRY_PATH;
+    const lessonId = capability ? CAPABILITY_LESSON[capability] : CAPABILITY_LESSON["ui.mount"];
+    const lesson = lessonId ? getLesson(lessonId) : undefined;
     return {
       eyebrow: "The build is missing a required piece",
       title: isEntrypoint ? "Rebuild the React entrypoint." : "Rebuild the missing runtime export.",
@@ -273,10 +330,10 @@ export function capstoneRecoveryForFailure(error: unknown, progress: CapstonePro
       why: isEntrypoint
         ? "This provided entrypoint mounts your editable BrowserChat component in the isolated preview. A fresh full build reconnects it; you don’t need to edit the provided file."
         : "The finished chatbot needs this tested export. Rebuilding adds its current source and test result to the active build.",
-      action: "workspace",
-      actionLabel: `Open ${isEntrypoint ? "BrowserChat.tsx" : target.path.split("/").at(-1)} · Test, build & run`,
+      action: lessonId ? "lesson" : "workspace",
+      actionLabel: lessonId ? `Return to ${lesson?.title ?? "the relevant lesson"}` : `Open ${isEntrypoint ? "BrowserChat.tsx" : target.path.split("/").at(-1)} · Test, build & run`,
       actionPath: isEntrypoint ? CAPSTONE_COMPONENT_PATH : target.path,
-      href: workspaceHref(isEntrypoint ? CAPSTONE_COMPONENT_PATH : target.path),
+      href: lessonId ? `/lessons/${lessonId}#implementation` : workspaceHref(isEntrypoint ? CAPSTONE_COMPONENT_PATH : target.path),
       blockedStage: "build",
     };
   }
@@ -297,6 +354,7 @@ export function capstoneRecoveryForFailure(error: unknown, progress: CapstonePro
   if (failure.code === "INCOMPLETE_BUILD_CONTRIBUTIONS") {
     const missingPath = LLM_LESSON_SOURCES.find((lesson) => failure.message.includes(lesson.sourcePath))?.sourcePath
       ?? progress.nextPath;
+    const lessonTarget = lessonTargetForPath(missingPath);
     return {
       eyebrow: "A lesson file is missing",
       title: "Rebuild the whole project.",
@@ -304,13 +362,14 @@ export function capstoneRecoveryForFailure(error: unknown, progress: CapstonePro
       path: missingPath,
       pathLabel: `Missing contribution · ${missingPath}`,
       why: "The capstone keeps track of every lesson file in the build, even when the app doesn’t call a file directly at runtime.",
-      action: "workspace",
-      actionLabel: `Open ${missingPath.split("/").at(-1)} · run the full build`,
+      action: lessonTarget ? "lesson" : "workspace",
+      actionLabel: lessonTarget ? `Return to ${lessonTarget.title}` : `Open ${missingPath.split("/").at(-1)} · run the full build`,
       actionPath: missingPath,
-      href: workspaceHref(missingPath),
+      href: lessonTarget?.href ?? workspaceHref(missingPath),
       blockedStage: "source",
     };
   }
+  const lessonTarget = lessonTargetForPath(progress.nextPath);
   return {
     eyebrow: "Your project changed",
     title: "Build the current code.",
@@ -318,9 +377,9 @@ export function capstoneRecoveryForFailure(error: unknown, progress: CapstonePro
     path: progress.nextPath,
     pathLabel: `Start with · ${progress.nextPath}`,
     why: "A new full build rechecks the source hashes, required exports, and React entrypoint together.",
-    action: "workspace",
-    actionLabel: "Open the IDE · Build current source",
-    href: workspaceHref(progress.nextPath),
+    action: lessonTarget ? "lesson" : "project",
+    actionLabel: lessonTarget ? `Return to ${lessonTarget.title}` : "Review the project and rebuild",
+    href: lessonTarget?.href ?? "/project",
     blockedStage: "build",
   };
 }
@@ -533,13 +592,15 @@ export function capstonePathPresentation(
   status: HostStatus,
   progress: CapstoneProgress,
   blockedStage?: CapstoneRecovery["blockedStage"],
+  activeBuildIsCurrent = true,
 ) {
   const sourceComplete = progress.totalLessonFiles > 0 && progress.verifiedLessonFiles === progress.totalLessonFiles;
+  const currentStatus: HostStatus = status === "ready" && !activeBuildIsCurrent ? "error" : status;
   return {
     sourceState: sourceComplete ? "complete" : blockedStage === "source" ? "current" : "pending",
-    buildState: status === "ready" ? "complete" : status === "loading" || blockedStage === "build" ? "current" : "pending",
-    previewState: status === "ready" || blockedStage === "preview" ? "current" : "pending",
-    previewDetail: status === "ready" ? "ready to run" : blockedStage === "preview" ? "reload the runtime" : "locked until the build passes",
+    buildState: currentStatus === "ready" ? "complete" : currentStatus === "loading" || blockedStage === "build" || !activeBuildIsCurrent ? "current" : "pending",
+    previewState: currentStatus === "ready" || blockedStage === "preview" ? "current" : "pending",
+    previewDetail: currentStatus === "ready" ? "ready to run" : blockedStage === "preview" ? "reload the runtime" : "locked until the build passes",
   } as const;
 }
 
@@ -563,6 +624,8 @@ export function BrowserChatCapstone() {
   const [detail, setDetail] = useState("Loading your last passing project build…");
   const [runRequested, setRunRequested] = useState(false);
   const [failure, setFailure] = useState<CapstoneFailure | null>(null);
+  const activeBuildIsCurrent = portfolioReadiness({ project, learner, lessons: courseLessons }).activeBuildMatchesTests;
+  const presentedStatus: HostStatus = status === "ready" && !activeBuildIsCurrent ? "error" : status;
 
   useEffect(() => {
     let active = true;
@@ -637,7 +700,7 @@ export function BrowserChatCapstone() {
 
   useEffect(() => {
     const iframe = iframeRef.current;
-    if (!iframe || !bundle || !reactRuntime || !descriptor || !buildRuntime || !runRequested) return;
+    if (!activeBuildIsCurrent || !iframe || !bundle || !reactRuntime || !descriptor || !buildRuntime || !runRequested) return;
     let disposed = false;
     const capabilityGate = new CapstoneCapabilityGate();
     const generationRequests = new Map<string, ActiveGenerationResource>();
@@ -861,7 +924,7 @@ export function BrowserChatCapstone() {
       void cancelActiveGenerationResources(generationRequests, (requestId) => localModel?.cancel(requestId));
       capabilityGate.reset();
     };
-  }, [buildRuntime, bundle, conversationWriter, descriptor, reactRuntime, runRequested]);
+  }, [activeBuildIsCurrent, buildRuntime, bundle, conversationWriter, descriptor, reactRuntime, runRequested]);
 
   useEffect(() => () => {
     sessionRef.current?.dispose();
@@ -870,7 +933,7 @@ export function BrowserChatCapstone() {
   }, []);
 
   useEffect(() => {
-    if (status !== "ready") return;
+    if (presentedStatus !== "ready") return;
     const frame = window.requestAnimationFrame(() => {
       if (runRequested) {
         resetPreviewButtonRef.current?.focus();
@@ -880,7 +943,7 @@ export function BrowserChatCapstone() {
       }
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [runRequested, status]);
+  }, [presentedStatus, runRequested]);
 
   const verifiedLessons = Object.fromEntries(canonicalLessonSeeds(learner).map((seed) => [seed.path, {
     content: seed.content,
@@ -888,21 +951,30 @@ export function BrowserChatCapstone() {
     totalCells: seed.totalCells,
   }]));
   const progress = summarizeCapstoneProgress(project, verifiedLessons);
-  const recovery = status === "missing"
-    ? capstoneMissingBuildRecovery(progress)
-    : status === "error"
-      ? capstoneRecoveryForFailure(failure, progress)
-      : null;
-  const gateCopy = status === "loading"
+  const staleBuild = status === "ready" && !activeBuildIsCurrent;
+  const recovery = staleBuild
+    ? capstoneStaleBuildRecovery(project.activeBuild?.buildNumber ?? descriptor?.buildNumber ?? 1, progress)
+    : presentedStatus === "missing"
+      ? capstoneMissingBuildRecovery(progress)
+      : presentedStatus === "error"
+        ? capstoneRecoveryForFailure(failure, progress)
+        : null;
+  const gateCopy = presentedStatus === "loading"
     ? {
         eyebrow: "Checking the build",
         title: "Checking your build",
         summary: "Verifying the current test result and preview bundle.",
       }
-    : status === "ready"
+    : presentedStatus === "ready"
       ? capstoneReadyGateCopy(descriptor?.buildNumber ?? project.activeBuild?.buildNumber ?? 1)
       : recovery ?? capstoneMissingBuildRecovery(progress);
-  const testEvidence = capstoneTestEvidence(status, descriptor?.buildNumber ?? null, progress);
+  const milestones = capstoneMilestoneEvidence(
+    presentedStatus,
+    presentedStatus === "ready" ? descriptor?.buildNumber ?? null : null,
+    project.activeBuild?.buildNumber ?? null,
+    progress,
+    learner.artifacts.characterRnn,
+  );
 
   return (
     <main className="compiled-capstone-shell">
@@ -911,16 +983,16 @@ export function BrowserChatCapstone() {
         <div><strong>Browser Chat</strong></div>
         <nav><Link href="/course">Course</Link><Link href="/project">Project</Link><Link href="/workspace">IDE</Link></nav>
       </header>
-      {status === "ready" && bundle && reactRuntime && buildRuntime && runRequested ? (
+      {presentedStatus === "ready" && bundle && reactRuntime && buildRuntime && runRequested ? (
         <section className="compiled-capstone-runtime">
           <header><strong role="status" aria-live="polite" aria-atomic="true">{detail}</strong><button ref={resetPreviewButtonRef} type="button" onClick={() => { restoreRunFocusRef.current = true; setRunRequested(false); }}>Reset preview</button></header>
           <iframe ref={iframeRef} title="Browser Chat compiled project" sandbox="allow-scripts" />
         </section>
       ) : (
         <section
-          className={`capstone-build-gate ${status}`}
+          className={`capstone-build-gate ${presentedStatus}`}
           aria-labelledby="capstone-gate-title"
-          aria-busy={status === "loading"}
+          aria-busy={presentedStatus === "loading"}
         >
           <div className="capstone-gate-copy" role="status" aria-live="polite" aria-atomic="true">
             <h1 id="capstone-gate-title">{gateCopy.title}</h1>
@@ -933,18 +1005,25 @@ export function BrowserChatCapstone() {
               value={progress.verifiedLessonFiles}
               max={Math.max(1, progress.totalLessonFiles)}
             />
-            <p>{progress.totalLessonFiles ? `${progress.verifiedLessonFiles}/${progress.totalLessonFiles} lesson files` : "Loading lesson files"}<span aria-hidden="true"> · </span>{testEvidence.value}</p>
           </div>
 
+          <dl className="capstone-milestones" aria-label="Capstone build evidence">
+            {milestones.map((milestone) => <div key={milestone.label}><dt>{milestone.label}</dt><dd>{milestone.value}</dd></div>)}
+          </dl>
+
           <div className="capstone-action">
-            {status === "ready" ? (
+            {presentedStatus === "ready" ? (
               <button ref={runPreviewButtonRef} type="button" onClick={() => { setRunRequested(true); void recordLearningEvent("capstone_started", { outcome: "passed" }); }}>
                 Run preview
               </button>
             ) : recovery?.action === "retry" ? (
               <button type="button" onClick={() => window.location.reload()}>{recovery.actionLabel}</button>
             ) : recovery ? (
-              <Link href={recovery.href} aria-label={`${recovery.actionLabel}. Opens ${recovery.actionPath ?? recovery.path ?? "the project"} in the IDE.`}>{recovery.actionLabel} →</Link>
+              <Link href={recovery.href} aria-label={recovery.action === "lesson"
+                ? `${recovery.actionLabel}. Opens the lesson before the IDE.`
+                : recovery.action === "project"
+                  ? `${recovery.actionLabel}. Opens the project overview.`
+                  : `${recovery.actionLabel}. Opens ${recovery.actionPath ?? recovery.path ?? "the project"} in the IDE.`}>{recovery.actionLabel} →</Link>
             ) : (
               <span className="capstone-verifying">Verifying…</span>
             )}

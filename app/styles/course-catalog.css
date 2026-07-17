@@ -87,6 +87,21 @@
   transition: width 220ms ease;
 }
 
+.course-progress-next {
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.8rem 0;
+}
+
+.course-progress-next a,
+.course-progress-next span {
+  color: var(--violet-deep);
+  font-size: max(0.68rem, 11px);
+}
+
+.course-progress-next span { color: var(--muted); }
+
 .curriculum-list {
   border-bottom: 1px solid var(--line);
 }
@@ -221,7 +236,8 @@
 }
 
 .first-run.first-run-minimal > footer {
-  justify-content: flex-end;
+  gap: 1.5rem;
+  justify-content: space-between;
 }
 
 .module-checkpoint-card.module-checkpoint-card-simple {
@@ -251,7 +267,7 @@
 
   .course-hero.home-course-hero h1,
   .course-hero.catalog-track-hero h1 {
-    font-size: clamp(2.4rem, 12vw, 3rem);
+    font-size: clamp(2.2rem, 10vw, 2.55rem);
   }
 
   .course-progress-record {

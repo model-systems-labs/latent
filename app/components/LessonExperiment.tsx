@@ -109,9 +109,12 @@ function RnnExperiment({ onComplete }: ExperimentProps) {
   };
   return (
     <>
+      <p className={styles.runScope}>
+        <strong>Quick browser model.</strong> The course&apos;s small JavaScript RNN runs here. It does not read your IDE code or save the Python checkpoint used by the chatbot.
+      </p>
       <div className="experiment-action">
         <p>18 hidden units · sequence length 28 · 600 updates · fixed seed</p>
-        <button type="button" onClick={run} disabled={running}>{running ? "Training…" : result ? "Train again" : "Train RNN"}</button>
+        <button type="button" onClick={run} disabled={running}>{running ? "Training…" : result ? "Run demo again" : "Train demo RNN"}</button>
       </div>
       {result ? (
         <div className="experiment-results">

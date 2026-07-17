@@ -1448,17 +1448,21 @@ test("lesson completion requires both implementation evidence and the concept pr
   const state = learnerStateModule.emptyLearnerState();
   state.lessons["probe"] = {
     verifiedCells: ["one", "two"],
-    verifiedSources: {},
+    verifiedSources: { one: "one source", two: "two source" },
     verifiedContractVersion: contracts.llmSystemsContractSuite.contractVersion,
     experimentComplete: true,
     hiddenBlocks: [],
-    answers: {},
+    answers: { one: "one source", two: "two source" },
     knowledgeAnswers: {},
     knowledgeVerified: [],
     updatedAt: 0,
   };
-  assert.equal(learnerStateModule.lessonImplementationIsComplete(state, "probe", 2), true);
-  assert.equal(learnerStateModule.lessonIsComplete(state, "probe", 2, "concept-check"), false);
+  const blockIds = ["one", "two"];
+  const contractVersion = contracts.llmSystemsContractSuite.contractVersion;
+  assert.equal(learnerStateModule.lessonImplementationIsComplete(state, "probe", blockIds, contractVersion), true);
+  assert.equal(learnerStateModule.lessonIsComplete(state, "probe", blockIds, contractVersion, "concept-check"), false);
   state.lessons.probe.knowledgeVerified.push("concept-check");
-  assert.equal(learnerStateModule.lessonIsComplete(state, "probe", 2, "concept-check"), true);
+  assert.equal(learnerStateModule.lessonIsComplete(state, "probe", blockIds, contractVersion, "concept-check"), true);
+  state.lessons.probe.answers.one = "edited after verification";
+  assert.equal(learnerStateModule.lessonIsComplete(state, "probe", blockIds, contractVersion, "concept-check"), false);
 });

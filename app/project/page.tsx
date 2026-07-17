@@ -6,7 +6,7 @@ import { LearningDataPanel } from "../components/LearningDataPanel";
 
 export const metadata: Metadata = {
   title: "Project structure · Latent",
-  description: "See the current checks and past snapshots for the browser-chat project.",
+  description: "See which starter files you have completed and what is ready for the browser-chat build.",
 };
 
 export default function ProjectPage() {
@@ -20,7 +20,7 @@ export default function ProjectPage() {
       <article className="project-page">
         <header className="project-page-hero">
           <h1>Project structure</h1>
-          <p>The files you work on across the course become one browser-chat project.</p>
+          <p>See which lesson files are ready for the final browser build.</p>
           <Link className="project-hero-link" href="/workspace">Open in IDE →</Link>
         </header>
         <ProjectStructureMap />

@@ -1,12 +1,13 @@
 "use client";
 
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { CodeEditor } from "../features/ide/CodeEditor";
 import { PythonInspector, PythonRuntimeActions, usePythonExecution } from "../features/ide/PythonExecution";
 import { courseLessons } from "../lessons/course";
 import { llmSystemsCurriculum } from "../lessons/course";
 import { sampleCharacterRnn } from "@latent/model-lab/character-rnn";
-import { flushLearnerPersistence, sourceBoundPythonRnnArtifactFromCheckpoint, useLearnerState } from "../lib/learner-state";
+import { flushLearnerPersistence, lessonIsComplete, loadLearnerState, saveLessonPracticeAndVerification, sourceBoundPythonRnnArtifactFromCheckpoint, useLearnerState } from "../lib/learner-state";
 import { runProjectUnitTests } from "../lib/project-tests";
 import { gateBrowserLabBuild, type BrowserLabTestResult } from "../lib/browser-lab";
 import { createBuildArtifact } from "@latent/browser-lab";
@@ -25,6 +26,8 @@ import { CAPSTONE_COMPONENT_PATH, CAPSTONE_ENTRY_PATH } from "../content/browser
 import { portfolioProjectBlob, portfolioReadiness } from "../lib/portfolio-export";
 import { downloadBrowserBlob } from "../lib/browser-download";
 import { recordLearningEvent } from "../lib/learning-analytics";
+import { lessonLearningOutcome } from "../content/llm-systems/learning";
+import { lessonImplementationBlockSources } from "../lessons/implementation-source";
 import { actionableBuildFailurePath, draftSnapshotIsCurrent, revisionCanRestore, revisionResponseIsCurrent } from "../lib/ide-async-guards";
 import {
   compileProject,
@@ -34,6 +37,7 @@ import {
   loadProjectDraftRecoveryCandidate,
   PROJECT_DRAFT_RECOVERY_KEY,
   saveProjectFile,
+  saveLessonProjectFile,
   saveProjectRuntime,
   saveProjectTestResults,
   selectProjectFile,
@@ -239,7 +243,13 @@ export function ProjectWorkbench() {
       results,
     });
   };
-  const verifiedFiles = filesByGroup.flatMap((group) => group.files).filter((file) => file.lessonId && statusForFile(file).complete).length;
+  const completedLessons = courseLessons.filter((lesson) => lessonIsComplete(
+    learner,
+    lesson.id,
+    lesson.implementation.codeBlocks.map((block) => block.id),
+    llmSystemsContractSuite.contractVersion,
+    lessonLearningOutcome(lesson.id).check.id,
+  )).length;
   const selectedTests = selected
     ? projectResultsForFile(
         trustedResults,
@@ -247,9 +257,17 @@ export function ProjectWorkbench() {
         selected.courseId === "app" && !selected.readOnly ? CAPSTONE_ENTRY_PATH : undefined,
       )
     : [];
+  const selectedLesson = selected?.lessonId
+    ? courseLessons.find((lesson) => lesson.id === selected.lessonId)
+    : undefined;
+  const selectedLessonIndex = selectedLesson
+    ? courseLessons.findIndex((lesson) => lesson.id === selectedLesson.id)
+    : -1;
+  const nextLesson = selectedLessonIndex >= 0 ? courseLessons[selectedLessonIndex + 1] : undefined;
   const allTests = Object.values(trustedResults).flat();
   const passingTests = allTests.filter((test) => test.passed).length;
   const portfolioStatus = portfolioReadiness({ project, learner, lessons: courseLessons });
+  const activeBuildIsCurrent = portfolioStatus.activeBuildMatchesTests;
 
   const refreshRevisions = useCallback(async (path?: string) => {
     if (!path) {
@@ -386,6 +404,63 @@ export function ProjectWorkbench() {
     showPanel: showResults,
   });
   const interfaceWorking = working || pythonExecution.busy;
+  const selectedLessonComplete = Boolean(selectedLesson && lessonIsComplete(
+    learner,
+    selectedLesson.id,
+    selectedLesson.implementation.codeBlocks.map((block) => block.id),
+    llmSystemsContractSuite.contractVersion,
+    lessonLearningOutcome(selectedLesson.id).check.id,
+  ));
+
+  const syncPassingLessonFiles = async (
+    snapshot: typeof project,
+    results: readonly BrowserLabTestResult[],
+    onlyPath?: string,
+  ) => {
+    let synced = 0;
+    const unmapped: string[] = [];
+    const entries = onlyPath
+      ? llmSystemsCurriculum.lessons.filter((entry) => entry.projectPath === onlyPath)
+      : llmSystemsCurriculum.lessons;
+    for (const entry of entries) {
+      const file = snapshot.files[entry.projectPath];
+      const expectedIds = expectedProjectContractIdsForPath(entry.projectPath);
+      const exactChecksPass = Boolean(
+        file
+        && expectedIds.length
+        && expectedIds.every((id) => results.some((result) => result.id === id && result.path === entry.projectPath && result.passed)),
+      );
+      if (!file || !exactChecksPass) continue;
+      const blockSources = lessonImplementationBlockSources(entry.lesson, file.content);
+      if (!blockSources) {
+        unmapped.push(entry.projectPath);
+        continue;
+      }
+      const blockIds = entry.lesson.implementation.codeBlocks.map((block) => block.id);
+      const previous = loadLearnerState().lessons[entry.lesson.id];
+      saveLessonPracticeAndVerification(
+        entry.lesson.id,
+        blockIds,
+        { ...previous?.answers, ...blockSources },
+        blockIds,
+        blockSources,
+        llmSystemsContractSuite.contractVersion,
+      );
+      saveLessonProjectFile({
+        path: entry.projectPath,
+        courseId: entry.lesson.courseId ?? "models",
+        lessonId: entry.lesson.id,
+        title: entry.lesson.title,
+        content: file.content,
+        referenceContent: file.referenceContent,
+        verifiedCells: blockIds.length,
+        totalCells: blockIds.length,
+      });
+      synced += 1;
+    }
+    if (synced) await Promise.all([flushLearnerPersistence(), flushProjectPersistence()]);
+    return { synced, unmapped };
+  };
 
   const build = async () => {
     if (working) return;
@@ -413,6 +488,7 @@ export function ProjectWorkbench() {
         showResults("output");
         return;
       }
+      await syncPassingLessonFiles(saved, run.results);
       const gate = gateBrowserLabBuild(run.results);
       if (!gate.canPromote) {
         setErrors([]);
@@ -503,7 +579,7 @@ export function ProjectWorkbench() {
           totalTests: run.results.length,
         });
         setBuildArtifact(artifact);
-        setMessage(`Build ${promoted.buildNumber} is active. Artifact ${artifact.contentHash.slice(7, 19)} ties ${descriptor.contributions.length} exact passing Python files to browser adapters that passed the same checks.`);
+        setMessage(`Build ${promoted.buildNumber} is active. It records ${descriptor.contributions.length} passing Python lesson files, the tested browser adapters that implement the app-facing behavior, and the React app in one source-bound snapshot.`);
         showResults("output");
       } catch (artifactError) {
         setMessage(`Build ${promoted.buildNumber} is active, but its portable artifact couldn’t be saved: ${artifactError instanceof Error ? artifactError.message : "local storage is unavailable"}`);
@@ -545,7 +621,16 @@ export function ProjectWorkbench() {
       }
       const failed = run.results.filter((test) => !test.passed).length;
       setErrors([]);
-      setMessage(failed ? `${failed} of ${run.results.length} unit tests failed. The active build was not changed.` : `${run.results.length} unit tests pass in the sandbox. No build was created.`);
+      let lessonProgressNote = "";
+      if (!failed && onlyPath) {
+        const sync = await syncPassingLessonFiles(saved, run.results, onlyPath);
+        lessonProgressNote = sync.synced
+          ? " The lesson’s Code step is complete; return to its experiment and check when you’re ready."
+          : sync.unmapped.length
+            ? " The file passes, but its numbered exercise markers changed, so lesson progress was not updated. Restore those marker lines and run the file again."
+            : "";
+      }
+      setMessage(failed ? `${failed} of ${run.results.length} unit tests failed. The active build was not changed.` : `${run.results.length} unit tests pass in the sandbox. No build was created.${lessonProgressNote}`);
       void recordLearningEvent("project_tests_completed", { outcome: failed ? "failed" : "passed", count: run.results.length - failed });
       showResults("tests");
     } catch (error) {
@@ -652,8 +737,8 @@ export function ProjectWorkbench() {
     <section className="project-workbench" aria-label="Editable capstone project">
       <header>
         <div className="project-header-actions">
-          <div className="project-progress" aria-label={`${verifiedFiles} of ${llmSystemsCurriculum.lessonCount} lesson files verified`}>
-            <strong>{verifiedFiles}/{llmSystemsCurriculum.lessonCount} lessons</strong>
+          <div className="project-progress" aria-label={`${completedLessons} of ${llmSystemsCurriculum.lessonCount} lessons complete`}>
+            <strong>{completedLessons}/{llmSystemsCurriculum.lessonCount} lessons complete</strong>
           </div>
           <nav className="project-result-tabs" aria-label="Results panel">
             <button type="button" aria-pressed={inspectorPanel === "tests"} onClick={() => showResults("tests")}>Tests</button>
@@ -710,9 +795,38 @@ export function ProjectWorkbench() {
             setDrafts((current) => ({ ...current, [selected.path]: value }));
             setMessage(recoveryStored ? "Saving…" : "Saving… keep this tab open.");
           }} onSave={save} /></Suspense> : null}
-          <footer><div>{dirty ? <button ref={saveNowRef} type="button" onClick={() => save()} disabled={!projectReady || interfaceWorking || selected?.readOnly}>Save</button> : null}{isPythonFile ? <PythonRuntimeActions session={pythonExecution} disabled={!projectReady || working} /> : <button className="build" type="button" onClick={() => void build()} disabled={!projectReady || working}>{working ? "Running…" : "Test, build & run"}</button>}</div></footer>
+          <footer>
+            {selectedLesson ? (
+              <nav className="project-lesson-handoff" aria-label="Lesson navigation">
+                <Link href={`/lessons/${selectedLesson.id}`}>← Lesson</Link>
+                {selectedLessonComplete ? (
+                  <Link className="continue" href={nextLesson ? `/lessons/${nextLesson.id}` : "/capstone"}>
+                    {nextLesson ? `Next: ${nextLesson.title}` : "Open the capstone"} →
+                  </Link>
+                ) : null}
+              </nav>
+            ) : activeBuildIsCurrent ? (
+              <nav className="project-lesson-handoff" aria-label="Build navigation">
+                <Link href="/project">← Project</Link>
+                <Link className="continue" href="/capstone">Open the capstone →</Link>
+              </nav>
+            ) : null}
+            <div>{dirty ? <button ref={saveNowRef} type="button" onClick={() => save()} disabled={!projectReady || interfaceWorking || selected?.readOnly}>Save</button> : null}{isPythonFile ? <PythonRuntimeActions session={pythonExecution} disabled={!projectReady || working} /> : <button className="build" type="button" onClick={() => void build()} disabled={!projectReady || working}>{working ? "Running…" : "Test, build & run"}</button>}</div>
+          </footer>
         </div>
-        {isPythonFile && selected ? <PythonInspector session={pythonExecution} path={selected.path} persistenceError={persistenceError} /> : <aside className={`project-inspector${persistenceError ? " has-warning" : ""}`} aria-live="polite">
+        {isPythonFile && selected ? <PythonInspector
+          session={pythonExecution}
+          path={selected.path}
+          persistenceError={persistenceError}
+          projectChecks={{
+            results: selectedTests,
+            totalCount: llmSystemsCurriculum.testCount + 6,
+            busy: working,
+            disabled: !projectReady,
+            runFile: () => runTests(selected.path),
+            buildProject: () => build(),
+          }}
+        /> : <aside className={`project-inspector${persistenceError ? " has-warning" : ""}`} aria-live="polite">
           {persistenceError ? <p className="persistence-warning" role="alert">Storage warning: {persistenceError}</p> : null}
           <section className="unit-test-panel">
             <header><div><span>Unit tests</span><strong>{allTests.length ? `${passingTests}/${allTests.length} passing` : "Not run"}</strong></div><button type="button" onClick={() => void runTests()} disabled={!projectReady || working}>Run all {llmSystemsCurriculum.testCount + 6}</button></header>
@@ -722,7 +836,7 @@ export function ProjectWorkbench() {
             </div>
           </section>
           <section className="project-output">
-            <header><span>Build</span><strong>{project.activeBuild ? `#${project.activeBuild.buildNumber}` : "None"}</strong></header>
+            <header><span>{project.activeBuild && !activeBuildIsCurrent ? "Last passing build" : "Build"}</span><strong>{project.activeBuild ? `#${project.activeBuild.buildNumber}` : "None"}</strong></header>
             <p className="project-output-status" role="status">{message}</p>
             {buildFailures.length ? (
               <section className="project-build-failures" aria-label="Failing build tests">
@@ -753,7 +867,9 @@ export function ProjectWorkbench() {
                 </dl>
                 {project.activeBuild || buildArtifact ? <article className="project-build-artifact">
                   <p>{project.activeBuild
-                    ? project.output.current || `Verified build #${project.activeBuild.buildNumber} is ready to run.`
+                    ? activeBuildIsCurrent
+                      ? project.output.current || `Verified build #${project.activeBuild.buildNumber} is ready to run.`
+                      : `Build #${project.activeBuild.buildNumber} still runs, but it does not include the current project changes.`
                     : `${buildArtifact?.links.length ?? 0} lesson artifacts · ${buildArtifact?.contentHash.slice(7, 19) ?? ""}`}</p>
                   {buildArtifact ? <button type="button" onClick={() => void downloadArtifact(buildArtifact)}>Download build + history</button> : null}
                 </article> : null}

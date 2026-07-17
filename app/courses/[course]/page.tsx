@@ -36,7 +36,7 @@ export default async function CoursePage({ params }: { params: Promise<{ course:
         <CourseCurriculum title={track.title} lessons={lessons} />
         {checkpoint ? (
           <Link className="module-checkpoint-card module-checkpoint-card-simple" href={`/checkpoints/${track.id}`}>
-            <div><strong>{checkpoint.title}</strong><p>{checkpoint.objective}</p></div>
+            <div><strong>{checkpoint.title}</strong><p>Optional integration check. {checkpoint.objective}</p></div>
             <span aria-hidden="true">→</span>
           </Link>
         ) : null}

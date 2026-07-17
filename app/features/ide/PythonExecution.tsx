@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PythonLabClient, PythonLabEvent, PythonLabRunResult } from "@latent/python-lab";
+import styles from "./PythonExecution.module.css";
 
 export type PythonExecutionPhase =
   | "off"
@@ -18,6 +19,22 @@ export type PythonExecutionTest = {
   label: string;
   passed: boolean;
   detail: string;
+};
+
+export type PythonProjectCheck = {
+  id: string;
+  label: string;
+  passed: boolean;
+  detail: string;
+};
+
+export type PythonProjectChecks = {
+  results: readonly PythonProjectCheck[];
+  totalCount: number;
+  busy: boolean;
+  disabled?: boolean;
+  runFile: () => void | Promise<void>;
+  buildProject: () => void | Promise<void>;
 };
 
 export type PythonArtifactSummary = {
@@ -115,8 +132,8 @@ export function usePythonExecution({
     setTraceback(null);
     if (phaseRef.current === "ready") {
       setStatus(canTestAndTrain
-        ? "The source changed. Test and train again to replace the last verified checkpoint. Until then, the capstone keeps using the previous one."
-        : "The source changed. Run the file to see its current output.");
+        ? "The source changed. Test and train again to replace the last verified checkpoint. Until then, the app keeps its last matching checkpoint."
+        : "The source changed. Run file executes it; use the separate project checks to verify it.");
     }
   }, [canTestAndTrain, path, saveBeforeRun, showPanel, source]);
 
@@ -218,7 +235,7 @@ export function usePythonExecution({
         return;
       }
       setPhase("ready");
-      setStatus(`${snapshot.path} finished in ${(result.durationMs / 1000).toFixed(2)} s. This run didn’t replace the verified training artifact.`);
+      setStatus(`${snapshot.path} finished in ${(result.durationMs / 1000).toFixed(2)} s. This only ran the file; it did not run project checks or replace the source-bound checkpoint.`);
     } catch (error) {
       failOperation(error, operation, "The Python file couldn’t run.");
     }
@@ -263,7 +280,7 @@ export function usePythonExecution({
       });
       setArtifactSourceIdentity(sourceIdentity(snapshot.path, snapshot.source));
       setPhase("ready");
-      setStatus(`All ${result.tests.length} tests passed. Python trained the checkpoint, and it’s saved for the browser to use.`);
+      setStatus(`All ${result.tests.length} tests passed. Python trained the checkpoint, and it’s saved for the browser to use. The chatbot can load it after the separate app build verifies its JavaScript adapters.`);
     } catch (error) {
       failOperation(error, operation, "The Python tests or training couldn’t finish.");
     }
@@ -372,7 +389,6 @@ export function PythonRuntimeActions({ session, disabled = false }: { session: P
   return (
     <>
       <button type="button" onClick={() => void session.runFile()} disabled={disabled}>Run file</button>
-      {session.canTestAndTrain ? <button className="build" type="button" onClick={() => void session.testAndTrain()} disabled={disabled}>Test &amp; train</button> : null}
       <button type="button" onClick={() => void session.restart()} disabled={disabled}>Restart</button>
     </>
   );
@@ -382,33 +398,65 @@ export function PythonInspector({
   session,
   path,
   persistenceError,
+  projectChecks,
 }: {
   session: PythonExecutionSession;
   path: string;
   persistenceError: string | null;
+  projectChecks?: PythonProjectChecks;
 }) {
   const passing = session.tests.filter((item) => item.passed).length;
+  const projectPassing = projectChecks?.results.filter((item) => item.passed).length ?? 0;
+  const checkpointStatus = session.tests.length
+    ? `${passing}/${session.tests.length} passing`
+    : session.artifactIsCurrent
+      ? "Current"
+      : session.artifact
+        ? "Rebuild required"
+        : "Not built";
   const phaseLabel = session.phase === "off" ? "Off" : session.phase === "ready" ? "Ready" : session.phase;
   return (
     <aside className={`project-inspector python-inspector${persistenceError ? " has-warning" : ""}`} aria-live="polite">
       {persistenceError ? <p className="persistence-warning" role="alert">Storage warning: {persistenceError}</p> : null}
-      <section className="unit-test-panel">
-        <header><div><span>Python tests</span><strong>{session.tests.length ? `${passing}/${session.tests.length} passing` : "Not run"}</strong></div></header>
-        <div className="selected-test-heading"><span>{path}</span>{session.canTestAndTrain ? <button type="button" onClick={() => void session.testAndTrain()} disabled={session.phase !== "ready"}>Test &amp; train</button> : null}</div>
-        <div className="unit-test-list">
-          {session.tests.length ? session.tests.map((item) => (
-            <article className={item.passed ? "passed" : "failed"} key={item.id}>
-              <i>{item.passed ? "✓" : "×"}</i><div><strong>{item.label}</strong><p>{item.detail}</p></div>
-            </article>
-          )) : <p>{session.canTestAndTrain ? "Start Python, then run the course checks. Latent saves a checkpoint only after every test passes." : "You can run this Python file on its own. Verified training is currently available only for models/character-rnn.py."}</p>}
-        </div>
-      </section>
+      {projectChecks || session.canTestAndTrain ? (
+        <section className={`unit-test-panel ${styles.checksPanel}`}>
+          {projectChecks ? <>
+            <header>
+              <div><span>Project checks</span><strong>{projectChecks.results.length ? `${projectPassing}/${projectChecks.results.length} file checks passing` : `${projectChecks.totalCount} checks in full build`}</strong></div>
+              <button className={styles.buildAction} type="button" onClick={() => void projectChecks.buildProject()} disabled={projectChecks.disabled || projectChecks.busy}>{projectChecks.busy ? "Running…" : "Test, build & run"}</button>
+            </header>
+            <div className="selected-test-heading"><span>{path}</span><button type="button" onClick={() => void projectChecks.runFile()} disabled={projectChecks.disabled || projectChecks.busy}>Run file checks</button></div>
+            <div className={`unit-test-list ${styles.projectResults}`}>
+              {projectChecks.results.length ? projectChecks.results.map((item) => (
+                <article className={item.passed ? "passed" : "failed"} key={item.id}>
+                  <i>{item.passed ? "✓" : "×"}</i><div><strong>{item.label}</strong><p>{item.detail}</p></div>
+                </article>
+              )) : <p>Run this file’s checks here, or test the complete app with the primary action above.</p>}
+            </div>
+          </> : null}
+          {session.canTestAndTrain ? (
+            <section className={styles.checkpointPanel} aria-labelledby="python-checkpoint-title">
+              <header>
+                <div><span id="python-checkpoint-title">Model checkpoint</span><strong>{checkpointStatus}</strong></div>
+                <button type="button" onClick={() => void session.testAndTrain()} disabled={session.phase !== "ready"}>Test &amp; train</button>
+              </header>
+              {session.tests.length ? <div className={`unit-test-list ${styles.checkpointResults}`}>
+                {session.tests.map((item) => (
+                  <article className={item.passed ? "passed" : "failed"} key={item.id}>
+                    <i>{item.passed ? "✓" : "×"}</i><div><strong>{item.label}</strong><p>{item.detail}</p></div>
+                  </article>
+                ))}
+              </div> : <p>Checks this model file, trains its weights, and saves them for the app build.</p>}
+            </section>
+          ) : null}
+        </section>
+      ) : null}
       <section className="project-output python-output">
-        <header><span>Python output</span><strong>{phaseLabel}</strong></header>
+        <header><span>Output</span><strong>{phaseLabel}</strong></header>
         <p className="project-output-status" role="status">{session.status}</p>
         {session.traceback ? <pre className="python-traceback" role="alert">{session.traceback}</pre> : null}
         {session.stderr ? <pre className="python-stderr" aria-label="Python standard error">{session.stderr}</pre> : null}
-        {session.stdout ? <pre className="python-stdout" aria-label="Python standard output">{session.stdout}</pre> : <p className="python-empty-output">Printed output will show up here. A Python program can finish successfully without printing anything.</p>}
+        {session.stdout ? <pre className="python-stdout" aria-label="Python standard output">{session.stdout}</pre> : <p className="python-empty-output">Nothing printed yet.</p>}
         {session.artifact ? (
           <dl className="python-artifact-summary">
             <div><dt>checkpoint</dt><dd>{session.artifactIsCurrent ? "Verified for this source" : "Last verified · Python"}</dd></div>
@@ -417,6 +465,7 @@ export function PythonInspector({
             <div><dt>vocabulary</dt><dd>{session.artifact.vocabularySize}</dd></div>
           </dl>
         ) : null}
+        {session.artifact ? <p className={styles.handoffNote}><strong>Chatbot handoff.</strong> This source-bound Python checkpoint supplies the model weights. After the full app build passes, the chatbot loads them through its tested JavaScript adapters.</p> : null}
       </section>
     </aside>
   );

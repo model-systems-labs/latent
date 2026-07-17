@@ -523,6 +523,18 @@ test("save admits a full-pass checkpoint and preserves Python provenance durably
   assert.equal(checkpoint.sourceHash, await persistence.hashText(source.PYTHON_CHARACTER_RNN_SOURCE));
   assert.equal(checkpoint.importedFrom, undefined);
   assert.equal(learner.loadLearnerState().artifacts.characterRnn.checkpointId, checkpoint.id);
+  const pythonArtifact = learner.loadLearnerState().artifacts.characterRnn;
+  learner.saveCharacterRnnArtifact({
+    checkpoint: pythonArtifact.checkpoint,
+    finalLoss: pythonArtifact.finalLoss,
+    parameters: pythonArtifact.parameters,
+    vocabularySize: pythonArtifact.vocabularySize,
+  }, "javascript", pythonArtifact.trainedAt + 1);
+  assert.equal(
+    learner.loadLearnerState().artifacts.characterRnn.checkpointId,
+    checkpoint.id,
+    "rerunning the disposable JavaScript lesson demo must not hide a source-bound Python checkpoint",
+  );
 });
 
 test("the existing student backend visibly identifies and samples the Python checkpoint", async () => {

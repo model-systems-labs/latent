@@ -4,8 +4,17 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { RnnResult } from "@latent/model-lab/character-rnn";
 import { recordLearningEvent } from "../lib/learning-analytics";
+import { courseLessons } from "../lessons/course";
+import { lessonLearningOutcome } from "../content/llm-systems/learning";
+import { initializeLearnerPersistence, lessonIsComplete, useLearnerState } from "../lib/learner-state";
+import { llmSystemsContractSuite } from "../content/llm-systems/contracts";
+import { initializeProjectPersistence, useProjectState } from "../lib/project-workspace";
+import styles from "./FirstRunExperience.module.css";
 
 export function FirstRunExperience() {
+  const learner = useLearnerState();
+  const project = useProjectState();
+  const [hydrated, setHydrated] = useState(false);
   const [prompt, setPrompt] = useState("the system ");
   const [result, setResult] = useState<RnnResult | null>(null);
   const [openOutput, setOpenOutput] = useState("");
@@ -16,6 +25,14 @@ export function FirstRunExperience() {
 
   useEffect(() => {
     return () => abortRef.current?.abort();
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    void Promise.all([initializeLearnerPersistence(), initializeProjectPersistence()]).finally(() => {
+      if (active) setHydrated(true);
+    });
+    return () => { active = false; };
   }, []);
 
   const generate = async (checkpoint: RnnResult) => {
@@ -35,12 +52,8 @@ export function FirstRunExperience() {
       if (!trained) {
         const controller = new AbortController();
         abortRef.current = controller;
-        const [{ trainCharacterRnnInWorker }, { saveCharacterRnnArtifact }] = await Promise.all([
-          import("../runtime/model/train-character-client"),
-          import("../lib/learner-state"),
-        ]);
+        const { trainCharacterRnnInWorker } = await import("../runtime/model/train-character-client");
         trained = await trainCharacterRnnInWorker(100, controller.signal);
-        saveCharacterRnnArtifact(trained);
         setResult(trained);
         abortRef.current = null;
       }
@@ -56,11 +69,69 @@ export function FirstRunExperience() {
     }
   };
 
+  const startedLessons = courseLessons.filter((lesson) => (learner.lessons[lesson.id]?.updatedAt ?? 0) > 0);
+  const nextLesson = courseLessons.find((lesson) => !lessonIsComplete(
+    learner,
+    lesson.id,
+    lesson.implementation.codeBlocks.map((block) => block.id),
+    llmSystemsContractSuite.contractVersion,
+    lessonLearningOutcome(lesson.id).check.id,
+  ));
+  const completedLessons = courseLessons.filter((lesson) => lessonIsComplete(
+    learner,
+    lesson.id,
+    lesson.implementation.codeBlocks.map((block) => block.id),
+    llmSystemsContractSuite.contractVersion,
+    lessonLearningOutcome(lesson.id).check.id,
+  )).length;
+  const lastEditedProjectFile = Object.values(project.files)
+    .filter((file) => file.sourceProvenance === "ide")
+    .sort((left, right) => right.updatedAt - left.updatedAt)[0];
+  const projectStarted = Boolean(lastEditedProjectFile || project.tests.ranAt > 0 || project.activeBuild);
+  const returning = startedLessons.length > 0 || projectStarted;
+
+  if (!hydrated) {
+    return (
+      <section className={`course-resume course-resume-loading ${styles.resume} ${styles.loading}`} id="first-run" aria-busy="true" aria-live="polite">
+        <p>Restoring your place…</p>
+      </section>
+    );
+  }
+
+  if (returning) {
+    const nextPath = startedLessons.length > 0
+      ? nextLesson ? `${nextLesson.courseId ?? "models"}/${nextLesson.implementation.filename}` : "capstone/BrowserChat.tsx"
+      : lastEditedProjectFile?.path ?? project.selectedPath;
+    const nextProgress = nextLesson ? learner.lessons[nextLesson.id] : null;
+    const projectOnly = startedLessons.length === 0 && projectStarted;
+    return (
+      <section className={`course-resume ${styles.resume}`} id="first-run" aria-labelledby="course-resume-title">
+        <header>
+          <span>{projectOnly ? "Saved project work" : nextLesson ? `${completedLessons} of ${courseLessons.length} lessons complete` : "All lessons complete"}</span>
+          <h2 id="course-resume-title">{projectOnly ? "Continue your browser project" : nextLesson ? nextLesson.title : "Build Browser Chat"}</h2>
+          <p>{projectOnly
+            ? `Your latest saved work is in ${nextPath}. You can reopen it or return to the first unfinished lesson.`
+            : nextLesson
+            ? nextProgress?.updatedAt
+              ? "Continue the reading, implementation, experiment, and check where you left off."
+              : "This is the next unfinished lesson in the course sequence."
+            : "Review the assembled project, run its full checks, and open the capstone from the passing build."}</p>
+        </header>
+        <div className={`course-resume-actions ${styles.actions}`}>
+          <Link className="primary" href={projectOnly ? `/workspace?file=${encodeURIComponent(nextPath)}` : nextLesson ? `/lessons/${nextLesson.id}` : "/project"}>{projectOnly ? "Resume project" : nextLesson && nextProgress?.updatedAt ? "Resume lesson" : nextLesson ? "Start lesson" : "Review project"} →</Link>
+          {projectOnly && nextLesson ? <Link href={`/lessons/${nextLesson.id}`}>Return to {nextLesson.title}</Link> : null}
+          {!projectOnly ? <Link href={`/workspace?file=${encodeURIComponent(nextPath)}`}>Open {nextPath}</Link> : null}
+        </div>
+        <p className={`course-resume-storage ${styles.storage}`}>Progress and code are saved on this device. Export a backup from the IDE to move them elsewhere.</p>
+      </section>
+    );
+  }
+
   return (
     <section className="first-run first-run-minimal" id="first-run" aria-labelledby="first-run-title">
       <header>
-        <h2 id="first-run-title">Character-level RNN training</h2>
-        <p>Train 1,267 parameters in a Web Worker, then compare two continuations from the same checkpoint.</p>
+        <h2 id="first-run-title">Introductory JavaScript RNN</h2>
+        <p>Train 1,267 parameters in a Web Worker, then compare two continuations from the same temporary demo model.</p>
       </header>
       <div className="first-run-layout">
         <div className="first-run-controls">
@@ -73,7 +144,7 @@ export function FirstRunExperience() {
           <article><header><span>Top-k sampling</span><code>temperature 0.72 · top-k 5</code></header><p>{constrainedOutput}</p></article>
         </div> : null}
       </div>
-      <footer><Link href="/lessons/character-rnns">Continue to Character RNNs →</Link></footer>
+      <footer><p>This JavaScript model is not a capstone checkpoint. Later, your source-bound Python training run creates that separately.</p><Link href="/lessons/character-rnns">Continue to Character RNNs →</Link></footer>
     </section>
   );
 }

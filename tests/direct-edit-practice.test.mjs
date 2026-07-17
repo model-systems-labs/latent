@@ -219,7 +219,7 @@ test("verification binds to the exact stable working source without a visibility
   );
 });
 
-test("the active exercise exposes a starter-first editor and persists exact edits", async () => {
+test("the active exercise waits for hydration, then exposes the editor and persists exact edits", async () => {
   const source = await readFile(paperLabUrl, "utf8");
 
   assert.match(source, /className="answer-area" data-direct-edit="true"/);
@@ -231,7 +231,8 @@ test("the active exercise exposes a starter-first editor and persists exact edit
   assert.match(source, /const blockRunning = runningBlockIds\.includes\(block\.id\)/);
   assert.match(source, /readOnly=\{blockRunning \|\| projectConflict\}/);
   assert.match(source, /value=\{workingSource\}/);
-  assert.match(source, /<SyntaxCode code=\{starterSource\} label=\{`\$\{block\.label\} starter loading`\}/);
+  assert.match(source, /<div className="lesson-editor-loading" role="status">Restoring saved code…<\/div>/);
+  assert.doesNotMatch(source, /<SyntaxCode code=\{starterSource\}/);
   assert.match(source, /onChange=\{\(value\) => updateAnswer\(block, value\)\}/);
   assert.match(source, /editPracticeBlock\(practiceDraftState\(\), block\.id, value\)/);
   assert.match(source, /saveLessonPracticeAndVerification\(lesson\.id, next\.hiddenBlocks, persistedAnswers/);

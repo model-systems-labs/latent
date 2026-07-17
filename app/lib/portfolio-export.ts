@@ -2,12 +2,13 @@ import { strToU8, zipSync } from "fflate";
 import type { CourseLesson } from "@latent/course-kit";
 import { exposeLessonFunctions } from "@latent/browser-lab/compiler";
 import { llmSystemsContractSuite } from "../content/llm-systems/contracts";
+import { lessonLearningOutcome } from "../content/llm-systems/learning";
 import {
   PYTORCH_HANDOFF_FILES,
   PYTORCH_PORTFOLIO_README,
   PYTORCH_REQUIREMENTS,
 } from "../content/pytorch/handoffs";
-import type { LearnerState } from "./learner-state";
+import { lessonIsComplete, type LearnerState } from "./learner-state";
 import type { ProjectFile, ProjectState, ProjectUnitResult } from "./project-workspace";
 import { trustedProjectResults } from "./project-file-status";
 
@@ -201,10 +202,13 @@ export function portfolioReadiness(input: {
   learner: LearnerState;
   lessons: readonly CourseLesson[];
 }) {
-  const completedLessons = input.lessons.filter((lesson) => {
-    const state = input.learner.lessons[lesson.id];
-    return Boolean(state?.experimentComplete && state.verifiedCells.length >= lesson.implementation.codeBlocks.length);
-  });
+  const completedLessons = input.lessons.filter((lesson) => lessonIsComplete(
+    input.learner,
+    lesson.id,
+    lesson.implementation.codeBlocks.map((block) => block.id),
+    llmSystemsContractSuite.contractVersion,
+    lessonLearningOutcome(lesson.id).check.id,
+  ));
   const results = Object.values(trustedProjectResults(input.project.tests)).flat();
   const requiredTests = llmSystemsContractSuite.contracts.length + PORTFOLIO_HOST_TEST_COUNT;
   const passingTests = results.filter((result) => result.passed).length;

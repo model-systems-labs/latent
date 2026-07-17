@@ -153,15 +153,17 @@ test("portfolio export contains source, evidence, runnable scaffolding, and a po
 function completePortfolioInput() {
   const learner = learnerState.emptyLearnerState();
   for (const lesson of course.courseLessons) {
+    const answers = Object.fromEntries(lesson.implementation.codeBlocks.map((block) => [block.id, block.code]));
+    const checkId = learning.lessonLearningOutcome(lesson.id).check.id;
     learner.lessons[lesson.id] = {
       verifiedCells: lesson.implementation.codeBlocks.map((block) => block.id),
-      verifiedSources: {},
+      verifiedSources: { ...answers },
       verifiedContractVersion: contracts.llmSystemsContractSuite.contractVersion,
       experimentComplete: true,
-      hiddenBlocks: [],
-      answers: {},
+      hiddenBlocks: lesson.implementation.codeBlocks.map((block) => block.id),
+      answers,
       knowledgeAnswers: {},
-      knowledgeVerified: [],
+      knowledgeVerified: [checkId],
       updatedAt: 1,
     };
   }

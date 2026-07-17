@@ -19,6 +19,18 @@
   line-height: 1.5;
 }
 
+.runScope {
+  color: var(--muted);
+  font-size: max(0.68rem, 11px);
+  line-height: 1.55;
+  margin: 0.7rem 0 0;
+}
+
+.runScope strong {
+  color: var(--ink);
+  font-weight: 550;
+}
+
 @media (max-width: 650px) {
   .dataset {
     align-items: start;

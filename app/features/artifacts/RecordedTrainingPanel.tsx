@@ -24,6 +24,7 @@ export function RecordedTrainingPanel({
 
   return (
     <div className="training-replay">
+      <p className="training-replay-intro"><strong>Recorded training replay.</strong> Fixed checkpoints from a repeatable course run; moving between them does not run your code.</p>
       <div className="training-replay-controls" role="group" aria-label={`${replay.scenario.run.title} checkpoints`}>
         {replay.recording.checkpoints.map((checkpoint, index) => (
           <button className={selected === index ? "active" : ""} type="button" key={replay.checkpoints[index].id} onClick={() => setSelected(index)}>
@@ -47,7 +48,7 @@ export function RecordedTrainingPanel({
         {active.output ? <article className="artifact-sample"><span>{active.output.label}</span><p>{active.output.text}</p></article> : null}
         <footer>
           <p>{active.disclosure}</p>
-          <div><button type="button" onClick={() => void onDownload(active.artifact)}>Download checkpoint</button><button type="button" onClick={() => void onDownload(replay.run)}>Download full run</button></div>
+          <div><button type="button" onClick={() => void onDownload(active.artifact)}>Download recorded checkpoint</button><button type="button" onClick={() => void onDownload(replay.run)}>Download recorded run</button></div>
         </footer>
       </div>
     </div>

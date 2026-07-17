@@ -6,7 +6,7 @@ import { consumeSse, createMockServingStream } from "@latent/mock-services/sse";
 import { sampleCharacterRnn } from "@latent/model-lab/character-rnn";
 import { moduleCheckpoint } from "../content/llm-systems/learning";
 import { llmSystemsCurriculum } from "../lessons/course";
-import { lessonImplementationIsComplete, lessonKnowledgeIsComplete, useLearnerState } from "../lib/learner-state";
+import { lessonCodeIsComplete, lessonKnowledgeIsComplete, useLearnerState } from "../lib/learner-state";
 import { reconcileCanonicalProject } from "../lib/canonical-project";
 import { runProjectUnitTests } from "../lib/project-tests";
 import { saveProjectTestResults, useProjectState, type ProjectUnitResult } from "../lib/project-workspace";
@@ -16,6 +16,7 @@ import {
   ModuleCheckpointAttemptCoordinator,
   type ModuleCheckpointAttempt,
 } from "../lib/module-checkpoint-attempt";
+import { llmSystemsContractSuite } from "../content/llm-systems/contracts";
 
 type CheckpointStatus = "idle" | "verifying" | "running" | "passed" | "failed" | "cancelled";
 
@@ -68,7 +69,13 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
     return {
       lesson,
       projectPath,
-      implementation: lessonImplementationIsComplete(learner, lesson.id, lesson.implementation.codeBlocks.length),
+      implementation: lessonCodeIsComplete(
+        learner,
+        lesson.id,
+        lesson.implementation.codeBlocks.map((block) => block.id),
+        llmSystemsContractSuite.contractVersion,
+      ),
+      experiment: learner.lessons[lesson.id]?.experimentComplete ?? false,
       knowledge: lessonKnowledgeIsComplete(learner, lesson.id, check.id),
     };
   }), [learner, curriculumModule.lessons]);
@@ -232,6 +239,7 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
       <header className="module-checkpoint-hero">
         <h1>{definition.title}</h1>
         <p>{definition.objective}</p>
+        <p>This optional integration check reruns the module files together. Each lesson is complete only after its code, experiment, and knowledge check are complete.</p>
       </header>
 
       <section className="checkpoint-console" aria-live="polite" aria-busy={status === "verifying" || status === "running"}>
@@ -270,13 +278,13 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
         <div>{lessonReadiness.map((item) => (
           <Link href={`/workspace?file=${encodeURIComponent(item.projectPath)}`} key={item.lesson.id}>
             <code>{item.projectPath}</code>
-            <span>{item.implementation && item.knowledge
+            <span>{item.implementation && item.experiment && item.knowledge
               ? "Ready"
-              : !item.implementation && !item.knowledge
-                ? "Code and knowledge check incomplete"
-                : item.implementation
-                  ? "Knowledge check incomplete"
-                  : "Code incomplete"}</span>
+              : `Incomplete: ${[
+                  !item.implementation ? "code" : null,
+                  !item.experiment ? "experiment" : null,
+                  !item.knowledge ? "check" : null,
+                ].filter(Boolean).join(", ")}`}</span>
           </Link>
         ))}</div>
       </details>

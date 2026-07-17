@@ -115,9 +115,10 @@ test("an incomplete project follows curriculum order instead of leapfrogging to 
   const recovery = capstone.capstoneMissingBuildRecovery(progress);
   assert.equal(recovery.blockedStage, "source");
   assert.equal(recovery.path, bindings.LLM_LESSON_SOURCES[1].sourcePath);
-  assert.equal(recovery.href, `/workspace?file=${encodeURIComponent(bindings.LLM_LESSON_SOURCES[1].sourcePath)}`);
+  assert.equal(recovery.action, "lesson");
+  assert.equal(recovery.href, "/lessons/neural-language-models#implementation");
   assert.match(recovery.summary, /1 of 14 lesson files are verified/);
-  assert.match(recovery.actionLabel, new RegExp(bindings.LLM_LESSON_SOURCES[1].sourcePath.split("/").at(-1).replaceAll(".", "\\.")));
+  assert.match(recovery.actionLabel, /Neural Language Models/);
 });
 
 test("a trusted failure disqualifies an otherwise verified file and becomes the repair target", () => {
@@ -128,7 +129,8 @@ test("a trusted failure disqualifies an otherwise verified file and becomes the 
   const recovery = capstone.capstoneMissingBuildRecovery(progress);
   assert.equal(recovery.blockedStage, "source");
   assert.equal(recovery.path, failedPath);
-  assert.equal(recovery.href, `/workspace?file=${encodeURIComponent(failedPath)}`);
+  assert.equal(recovery.action, "lesson");
+  assert.equal(recovery.href, "/lessons/chat-actions-context#implementation");
 });
 
 test("all four project surfaces derive their numerator from the same source-bound predicate", async () => {
@@ -170,11 +172,11 @@ test("all four project surfaces derive their numerator from the same source-boun
   assert.match(capstoneSource, /projectLessonBuildStatus/);
   assert.match(capstoneSource, /trustedProjectResults\(project\.tests\)/);
   assert.doesNotMatch(capstoneSource, /verifiedLessonFiles:\s*descriptor\.contributions\.length/);
-  assert.deepEqual(capstone.capstonePathPresentation("ready", capstone.summarizeCapstoneProgress(project, verifiedSources)), {
+  assert.deepEqual(capstone.capstonePathPresentation("ready", capstone.summarizeCapstoneProgress(project, verifiedSources), undefined, false), {
     sourceState: "pending",
-    buildState: "complete",
-    previewState: "current",
-    previewDetail: "ready to run",
+    buildState: "current",
+    previewState: "pending",
+    previewDetail: "locked until the build passes",
   }, "an older active build must not overwrite current workspace drift");
 });
 
@@ -226,9 +228,10 @@ test("verified lesson files lead to the integration file and one explicit full-b
   assert.equal(progress.verifiedLessonFiles, 14);
   assert.equal(recovery.blockedStage, "build");
   assert.equal(recovery.path, "capstone/BrowserChat.tsx");
-  assert.equal(recovery.href, "/workspace?file=capstone%2FBrowserChat.tsx");
+  assert.equal(recovery.action, "project");
+  assert.equal(recovery.href, "/project");
   assert.match(recovery.summary, /All 14 lesson files are verified/);
-  assert.match(recovery.actionLabel, /Test, build & run/);
+  assert.match(recovery.actionLabel, /Review the project/);
 });
 
 test("a complete active build presents verified evidence and one honest run action", () => {
@@ -246,20 +249,45 @@ test("a complete active build presents verified evidence and one honest run acti
   });
 });
 
-test("saved test receipts are not mislabeled as one test run", () => {
-  const progress = {
-    ...summarize(projectFixture()),
-    passingTests: 12,
-    totalTests: 18,
-  };
-  assert.deepEqual(capstone.capstoneTestEvidence("missing", null, progress), {
-    label: "Saved test results",
-    value: "12/18 currently passing",
-  });
-  assert.deepEqual(capstone.capstoneTestEvidence("ready", 9, progress), {
-    label: "Build test results",
-    value: "Every test passed for build #9",
-  });
+test("capstone milestones keep lesson readiness, model checkpoint, and app build separate", () => {
+  const progress = summarize(projectFixture({ complete: true }));
+  assert.deepEqual(capstone.capstoneMilestoneEvidence("error", null, 7, progress, { origin: "javascript" }), [
+    { label: "Lesson files", value: "14/14 ready" },
+    { label: "Model checkpoint", value: "JavaScript lesson model only · Python checkpoint required" },
+    { label: "App build", value: "Last passing build #7 · current changes need rebuild" },
+  ]);
+  assert.deepEqual(capstone.capstoneMilestoneEvidence("ready", 8, 8, progress, {
+    origin: "python",
+    sourcePath: "models/character-rnn.py",
+  }), [
+    { label: "Lesson files", value: "14/14 ready" },
+    { label: "Model checkpoint", value: "Current source-bound Python checkpoint" },
+    { label: "App build", value: "Build #8 passes the current source" },
+  ]);
+  assert.equal(
+    capstone.capstoneMilestoneEvidence("error", null, 8, progress, {
+      origin: "python",
+      sourcePath: "models/character-rnn.py",
+    })[1].value,
+    "Python checkpoint is not bound to the current source",
+  );
+  assert.equal(
+    capstone.capstoneMilestoneEvidence("error", null, 8, progress, {
+      origin: "python",
+      sourcePath: "models/character-rnn.py",
+      sourceHash: "sha256:trained-source",
+    })[1].value,
+    "Source-bound Python checkpoint saved · retrain after model edits",
+  );
+});
+
+test("a validated but stale build is labeled as historical and cannot become the current preview", () => {
+  const progress = summarize(projectFixture({ complete: true }));
+  const recovery = capstone.capstoneStaleBuildRecovery(7, progress);
+  assert.equal(recovery.action, "project");
+  assert.equal(recovery.href, "/project");
+  assert.match(recovery.summary, /Build #7 still passes its saved source/);
+  assert.match(recovery.summary, /project has changed/);
 });
 
 test("a missing UI mount is translated into a safe entrypoint rebuild instead of leaking capability jargon", () => {
@@ -271,18 +299,25 @@ test("a missing UI mount is translated into a safe entrypoint rebuild instead of
   assert.equal(recovery.path, "capstone/main.tsx");
   assert.equal(recovery.blockedStage, "build");
   assert.equal(recovery.actionPath, "capstone/BrowserChat.tsx");
-  assert.equal(recovery.href, "/workspace?file=capstone%2FBrowserChat.tsx");
+  assert.equal(recovery.action, "lesson");
+  assert.equal(recovery.href, "/lessons/chat-product-quality#implementation");
   assert.equal(template.CANONICAL_BROWSER_CHAT_FILES.find((file) => file.path === recovery.path)?.editable, false);
   assert.equal(template.CANONICAL_BROWSER_CHAT_FILES.find((file) => file.path === recovery.actionPath)?.editable, true);
   assert.match(recovery.pathLabel, /React preview entrypoint/);
   assert.match(recovery.why, /provided entrypoint/);
   assert.match(recovery.why, /editable BrowserChat/);
-  assert.match(recovery.actionLabel, /Test, build & run/);
+  assert.match(recovery.actionLabel, /Product Quality/);
   assert.doesNotMatch(`${recovery.title} ${recovery.summary} ${recovery.actionLabel}`, /ui\.mount|missing required capability/i);
 });
 
 test("other required capabilities route to their course-provided read-only adapter", () => {
   const progress = summarize(projectFixture({ complete: true }));
+  const lessonByCapability = {
+    "ui.mount": "chat-product-quality",
+    "transport.parse-sse": "streaming-transport",
+    "serving.should-retry": "reliability-observability",
+    "chat.select-context": "chat-actions-context",
+  };
   for (const definition of bindings.LLM_RUNTIME_CAPABILITIES.filter((candidate) => candidate.required)) {
     const recovery = capstone.capstoneRecoveryForFailure({
       code: "MISSING_REQUIRED_CAPABILITY",
@@ -291,14 +326,14 @@ test("other required capabilities route to their course-provided read-only adapt
     assert.equal(recovery.path, definition.modulePath, definition.capability);
     if (definition.capability === "ui.mount") {
       assert.equal(recovery.actionPath, "capstone/BrowserChat.tsx");
-      assert.equal(recovery.href, "/workspace?file=capstone%2FBrowserChat.tsx");
     } else {
       const adapter = template.CANONICAL_BROWSER_CHAT_FILES.find((file) => file.path === definition.modulePath);
       assert.equal(adapter?.kind, "adapter", definition.capability);
       assert.equal(adapter?.editable, false, definition.capability);
       assert.equal(recovery.actionPath, definition.modulePath, definition.capability);
-      assert.equal(recovery.href, `/workspace?file=${encodeURIComponent(definition.modulePath)}`, definition.capability);
     }
+    assert.equal(recovery.action, "lesson", definition.capability);
+    assert.equal(recovery.href, `/lessons/${lessonByCapability[definition.capability]}#implementation`, definition.capability);
     assert.doesNotMatch(recovery.pathLabel, new RegExp(definition.capability.replaceAll(".", "\\.")), definition.capability);
   }
 });
@@ -312,7 +347,8 @@ test("an incomplete-contribution error routes the exact known lesson path named 
   }, progress);
   assert.equal(recovery.path, missingPath);
   assert.equal(recovery.actionPath, missingPath);
-  assert.equal(recovery.href, `/workspace?file=${encodeURIComponent(missingPath)}`);
+  assert.equal(recovery.action, "lesson");
+  assert.equal(recovery.href, "/lessons/reliability-observability#implementation");
   assert.match(recovery.pathLabel, /Missing contribution/);
 });
 
@@ -359,8 +395,9 @@ test("a missing source-bound Python checkpoint routes directly to the model trai
   }, progress);
   assert.equal(recovery.path, "models/character-rnn.py");
   assert.equal(recovery.actionPath, "models/character-rnn.py");
-  assert.equal(recovery.href, "/workspace?file=models%2Fcharacter-rnn.py");
-  assert.match(recovery.why, /imported checkpoints, checkpoints trained in JavaScript, or checkpoints from older source/);
+  assert.equal(recovery.action, "lesson");
+  assert.equal(recovery.href, "/lessons/character-rnns#implementation");
+  assert.match(recovery.why, /imported checkpoints, JavaScript demo weights, or checkpoints from older source/);
 });
 
 test("the learner-facing component no longer emits the old dead-end or raw capability failure", async () => {
@@ -375,6 +412,12 @@ test("the learner-facing component no longer emits the old dead-end or raw capab
   assert.doesNotMatch(source, /Last test run|passing in the last run/);
   assert.doesNotMatch(source, /Current lesson files|<strong>Active build<\/strong>|capstone-build-path|How it runs|What to fix next/);
   assert.match(source, /className="capstone-action"/);
+  assert.match(source, /className="capstone-milestones"/);
+  assert.doesNotMatch(source, /No saved test results/);
+  assert.match(source, /portfolioReadiness\(\{ project, learner, lessons: courseLessons \}\)\.activeBuildMatchesTests/);
+  assert.match(source, /status === "ready" && !activeBuildIsCurrent/);
+  assert.match(source, /if \(!activeBuildIsCurrent \|\| !iframe/);
+  assert.match(source, /presentedStatus === "ready" && bundle/);
   assert.match(source, /await reconcileCanonicalProject\(\)/);
   assert.match(source, /aria-label="Verified lesson files"/);
   assert.match(source, /role="status" aria-live="polite" aria-atomic="true">\{detail\}/);

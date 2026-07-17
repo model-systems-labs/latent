@@ -134,7 +134,7 @@ def cross_entropy(probabilities, target_index):
         or target_index < 0
         or target_index >= values.size
     ):
-        raise ValueError("nllLoss needs a probability vector and valid target index")
+        raise ValueError("cross_entropy needs a probability vector and valid target index")
     probability = max(float(values[target_index]), 1e-12)
     return float(-np.log(probability))`,
           checkCode: `good = cross_entropy([0.1, 0.8, 0.1], 1)

@@ -180,8 +180,13 @@
 .project-editor-panel .code-editor .cm-editor { height: 100%; }
 .project-editor-panel .code-editor .cm-tooltip { border: 1px solid rgba(255, 255, 255, 0.12); }
 .project-editor-panel .code-editor .cm-panels { background: #28262a; color: #ddd6ce; }
-.project-editor-panel > footer { align-items: center; border-top: 1px solid rgba(255, 255, 255, 0.09); display: flex; gap: 1rem; justify-content: flex-end; padding: 0.75rem 0.9rem; }
+.project-editor-panel > footer { align-items: center; border-top: 1px solid rgba(255, 255, 255, 0.09); display: flex; gap: 1rem; justify-content: space-between; padding: 0.75rem 0.9rem; }
 .project-editor-panel > footer > div { display: flex; gap: 0.45rem; }
+.project-lesson-handoff { align-items: center; display: flex; gap: 0.75rem; min-width: 0; }
+.project-lesson-handoff a { color: #aaa3ad; font-size: max(0.68rem, 11px); text-decoration: none; white-space: nowrap; }
+.project-lesson-handoff a:hover,
+.project-lesson-handoff a:focus-visible { color: #eee8e0; }
+.project-lesson-handoff a.continue { color: #d8c6e5; max-width: 18rem; overflow: hidden; text-overflow: ellipsis; }
 .project-editor-panel > footer button { background: transparent; border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 999px; color: #c6bfb8; cursor: pointer; font-size: max(0.68rem, 11px); min-height: 2.75rem; padding: 0.58rem 0.75rem; text-transform: uppercase; white-space: nowrap; }
 .project-editor-panel > footer button:disabled { opacity: 0.35; }
 .project-editor-panel > footer button.build { background: #eee7df; border-color: #eee7df; color: #252127; }
@@ -429,6 +434,9 @@ details.artifact-runtime-panel[open] > summary::after { content: "−"; }
   padding: 1rem 0;
 }
 
+.artifact-runtime-heading > div { display: grid; gap: 0.25rem; }
+.artifact-runtime-heading p { color: var(--muted); font-size: max(0.68rem, 11px); line-height: 1.45; margin: 0; }
+
 .artifact-identity > span,
 .artifact-frame > span,
 .training-replay-stage header span,
@@ -445,6 +453,8 @@ details.artifact-runtime-panel[open] > summary::after { content: "−"; }
 .artifact-runtime-error { color: var(--red); }
 
 .training-replay { border-top: 1px solid var(--line); display: grid; grid-template-columns: 9rem minmax(0, 1fr); }
+.training-replay-intro { color: var(--muted); font-size: max(0.68rem, 11px); grid-column: 1 / -1; line-height: 1.5; margin: 0; padding: 0.8rem 0; }
+.training-replay-intro strong { color: var(--ink); font-weight: 550; }
 .training-replay-controls { border-right: 1px solid var(--line); display: grid; padding: 0.65rem 0.65rem 0.65rem 0; }
 .training-replay-controls button { background: transparent; border: 0; border-left: 1px solid transparent; border-radius: 0; color: var(--muted); cursor: pointer; display: grid; justify-items: start; padding: 0.72rem; text-align: left; }
 .training-replay-controls button.active { border-left-color: var(--violet); color: var(--ink); }
@@ -469,7 +479,7 @@ details.artifact-runtime-panel[open] > summary::after { content: "−"; }
 .training-replay-stage > footer > div { display: flex; flex: 0 0 auto; gap: 0.45rem; }
 .training-replay-stage button,
 .artifact-download-row button,
-.project-build-artifact button { background: transparent; border: 1px solid var(--line-strong); border-radius: 999px; color: var(--muted); cursor: pointer; font-size: max(0.68rem, 11px); padding: 0.58rem 0.7rem; text-transform: uppercase; }
+.project-build-artifact button { background: transparent; border: 1px solid var(--line-strong); border-radius: 999px; color: var(--muted); cursor: pointer; font-size: max(0.68rem, 11px); min-height: 44px; padding: 0.58rem 0.7rem; text-transform: uppercase; }
 
 .artifact-lineage-grid { border-top: 1px solid var(--line); display: grid; }
 .artifact-identity { align-items: baseline; display: grid; gap: 0.75rem; grid-template-columns: 8rem minmax(0, 1fr) auto; padding: 0.8rem 0; }
@@ -587,12 +597,9 @@ details.artifact-runtime-panel[open] > summary::after { content: "−"; }
 }
 
 .capstone-progress-line {
-  align-items: center;
   border-bottom: 1px solid var(--line);
   border-top: 1px solid var(--line);
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: minmax(10rem, 1fr) auto;
+  display: block;
   padding: 0.95rem 0;
 }
 
@@ -616,6 +623,26 @@ details.artifact-runtime-panel[open] > summary::after { content: "−"; }
 .capstone-progress-line progress::-webkit-progress-bar { background: rgba(64, 53, 73, 0.1); }
 .capstone-progress-line progress::-webkit-progress-value { background: linear-gradient(90deg, #746487, #a28caf); border-radius: 99px; }
 .capstone-progress-line progress::-moz-progress-bar { background: linear-gradient(90deg, #746487, #a28caf); border-radius: 99px; }
+
+.capstone-milestones {
+  display: grid;
+  gap: 1.4rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+}
+
+.capstone-milestones > div { display: grid; gap: 0.35rem; }
+.capstone-milestones dt {
+  color: var(--capstone-small);
+  font-size: max(0.68rem, 11px);
+}
+
+.capstone-milestones dd {
+  color: var(--ink);
+  font-size: 0.76rem;
+  line-height: 1.5;
+  margin: 0;
+}
 
 .capstone-action {
   min-height: 2.75rem;
@@ -647,8 +674,8 @@ details.artifact-runtime-panel[open] > summary::after { content: "−"; }
   .artifact-identity strong { grid-column: 1 / -1; grid-row: 2; }
   .capstone-build-gate { align-content: start; min-height: calc(100vh - 4.8rem); min-height: calc(100dvh - 4.8rem); padding-top: 3rem; }
   .capstone-gate-copy h1 { font-size: clamp(2.35rem, 10.5vw, 3rem); }
-  .capstone-progress-line { align-items: start; grid-template-columns: 1fr; }
-  .capstone-progress-line p { white-space: normal; }
+  .capstone-milestones { gap: 0; grid-template-columns: 1fr; }
+  .capstone-milestones > div { border-bottom: 1px solid var(--line); padding: 0.7rem 0; }
   .compiled-capstone-runtime > header { align-items: flex-start; gap: 0.5rem; padding: 0.6rem 0.85rem; }
 }
 

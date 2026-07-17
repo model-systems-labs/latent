@@ -324,7 +324,9 @@ test("project views expose current completion, repository history, and accessibl
   assert.match(timeline, /projectLessonIsComplete/);
   assert.match(timeline, /Lesson done/);
   assert.match(timeline, /Current code needs another check/);
-  assert.match(timeline, /File added here/);
+  assert.match(timeline, /Scaffolded placeholder/);
+  assert.match(timeline, /Lesson work replaces placeholder/);
+  assert.match(timeline, /href=\{`\/lessons\/\$\{lesson\.id\}#implementation`\}/);
   assert.doesNotMatch(timeline, /My progress/);
   assert.doesNotMatch(timeline, /aria-pressed|Lesson 01|Lesson 07|Lesson 14|files visible|provided application shell/);
   assert.match(timeline, /Return to my progress/);
@@ -342,11 +344,13 @@ test("project views expose current completion, repository history, and accessibl
   assert.match(workbench, /Nothing was imported\. The current project remains open and unchanged\./);
   assert.match(workbench, /await importPersistenceSnapshot[\s\S]*?catch \(error\)/, "malformed or conflicting backups must be handled without an unhandled rejection");
   assert.match(structure, /trustedProjectResults\(project\.tests\)/);
+  assert.match(structure, /portfolioReadiness/);
+  assert.match(structure, /activeBuildIsCurrent/);
   assert.match(structure, /function ProjectGroup[\s\S]*?useState\(false\)/, "project folders must not paint fully expanded before the mobile viewport is known");
   assert.match(timeline, /trustedProjectResults\(project\.tests\)/);
   assert.match(workbench, /trustedProjectResults\(project\.tests\)/);
 
-  assert.match(projectPage, /The files you work on across the course become one browser-chat project/);
+  assert.match(projectPage, /See which lesson files are ready for the final browser build/);
   assert.match(projectPage, /History and privacy/);
   assert.doesNotMatch(projectPage, /When you edit a lesson file|latest full-project test result|Other unchanged lesson results|last active build stays in place/);
 

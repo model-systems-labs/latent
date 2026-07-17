@@ -6,6 +6,7 @@ const executionUrl = new URL("../app/features/ide/PythonExecution.tsx", import.m
 const editorUrl = new URL("../app/features/ide/PythonCodeEditor.tsx", import.meta.url);
 const workbenchUrl = new URL("../app/components/ProjectWorkbench.tsx", import.meta.url);
 const pythonCssUrl = new URL("../app/styles/python-runtime.css", import.meta.url);
+const pythonModuleCssUrl = new URL("../app/features/ide/PythonExecution.module.css", import.meta.url);
 const responsiveCssUrl = new URL("../app/styles/responsive.css", import.meta.url);
 const globalsUrl = new URL("../app/globals.css", import.meta.url);
 const viteConfigUrl = new URL("../vite.config.ts", import.meta.url);
@@ -34,9 +35,12 @@ test("every Python execution saves the current draft before syncing or training"
 
 test("Python controls expose run, verified training, hard stop, restart, and honest evidence", async () => {
   const source = await readFile(executionUrl, "utf8");
+  const runtimeActions = source.slice(source.indexOf("export function PythonRuntimeActions"), source.indexOf("export function PythonInspector"));
+  const inspector = source.slice(source.indexOf("export function PythonInspector"));
   assert.match(source, />Start Python</);
   assert.match(source, />Run file</);
-  assert.match(source, />Test &amp; train</);
+  assert.doesNotMatch(runtimeActions, />Test &amp; train</, "checkpoint verification belongs in the Tests view, not in the editor runtime controls");
+  assert.equal(inspector.match(/>Test &amp; train</g)?.length, 1, "the character RNN exposes one checkpoint action");
   assert.match(source, /session\.phase === "stopping" \? "Stopping…" : "Stop"/);
   assert.match(source, />Restart/);
   assert.match(source, /await client\.stop\(\)/);
@@ -44,7 +48,7 @@ test("Python controls expose run, verified training, hard stop, restart, and hon
   assert.match(source, /clientRef\.current\?\.dispose\(\)/);
   assert.match(source, /className="python-traceback" role="alert"/);
   assert.match(source, /Python trained the checkpoint, and it’s saved for the browser to use/);
-  assert.match(source, /Latent saves a checkpoint only after every test passes/);
+  assert.match(source, /Checks this model file, trains its weights, and saves them for the app build/);
   assert.match(source, /setArtifactSourceIdentity\(null\)/, "a rerun makes the previous artifact explicitly historical");
   assert.match(source, /The source changed\. Test and train again to replace the last verified checkpoint/);
   assert.match(source, /setTraceback\(result\.traceback \?\? null\)/);
@@ -62,7 +66,7 @@ test("the project tree surfaces Python once without changing lesson completion s
   assert.match(source, /const SelectedCodeEditor = isPythonFile \? PythonCodeEditor : CodeEditor/);
   assert.match(source, /<Suspense fallback=\{<div className="python-editor-loading" role="status">[\s\S]*?<SelectedCodeEditor path=\{selected\.path\}/);
   assert.match(source, /isPythonFile && selected \? <PythonInspector/);
-  assert.match(source, /verifiedFiles = filesByGroup[\s\S]*?filter\(\(file\) => file\.lessonId && statusForFile\(file\)\.complete\)/);
+  assert.match(source, /const status = statusForFile\(file\)/);
 });
 
 test("the Python editor has native syntax highlighting and the same keyboard escape hatch", async () => {
@@ -86,14 +90,24 @@ test("the Python editor has native syntax highlighting and the same keyboard esc
 });
 
 test("Python evidence stays readable and uses the existing mobile Tests and Output views", async () => {
-  const [execution, pythonStyles, responsive, globals] = await Promise.all([
+  const [execution, pythonStyles, pythonModuleStyles, responsive, globals] = await Promise.all([
     readFile(executionUrl, "utf8"),
     readFile(pythonCssUrl, "utf8"),
+    readFile(pythonModuleCssUrl, "utf8"),
     readFile(responsiveCssUrl, "utf8"),
     readFile(globalsUrl, "utf8"),
   ]);
-  assert.match(execution, /<section className="unit-test-panel">/);
+  assert.match(execution, /<section className=\{`unit-test-panel \$\{styles\.checksPanel\}`\}>/);
+  assert.match(execution, />Project checks</);
+  assert.match(execution, />Run file checks</);
+  assert.match(execution, /"Test, build & run"/);
+  assert.match(execution, />Model checkpoint</);
+  assert.doesNotMatch(execution, /python-test-panels/);
   assert.match(execution, /<section className="project-output python-output">/);
+  assert.match(pythonStyles, /\.python-output \{\s*min-height: 0;/);
+  assert.doesNotMatch(pythonModuleStyles, /\.checksPanel[^}]*min-height:\s*14rem/);
+  assert.match(pythonModuleStyles, /\.checkpointPanel \{[^}]*flex: 0 0 auto/);
+  assert.match(pythonModuleStyles, /data-mobile-view="tests"\]\) \.checksPanel/);
   assert.match(pythonStyles, /\.python-output pre \{[\s\S]*?font-size: max\(0\.68rem, 11px\)/);
   assert.match(pythonStyles, /\.python-empty-output \{[^}]*font-size: max\(0\.68rem, 11px\)/);
   assert.match(globals, /@import "\.\/styles\/python-runtime\.css"/);

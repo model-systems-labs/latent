@@ -2,18 +2,22 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { courseTracks, getTrackLessons } from "../lessons/course";
-import { CAPSTONE_ENTRY_PATH, CANONICAL_BROWSER_CHAT_FILES } from "../content/browser-chat/project-template";
+import { courseLessons, courseTracks, getTrackLessons } from "../lessons/course";
+import { CAPSTONE_COMPONENT_PATH, CAPSTONE_ENTRY_PATH, CANONICAL_BROWSER_CHAT_FILES } from "../content/browser-chat/project-template";
 import { useLearnerState } from "../lib/learner-state";
 import { RUNTIME_PATHS, useProjectState } from "../lib/project-workspace";
 import { expectedProjectContractIdsForPath, projectFileStatus, projectLessonBuildStatus, projectResultsForFile, projectSourceProgress, projectUsesIntegratedEntryReceipt, trustedProjectResults, type ProjectFileStatus } from "../lib/project-file-status";
 import { canonicalLessonSeeds, reconcileCanonicalProject } from "../lib/canonical-project";
+import { portfolioReadiness } from "../lib/portfolio-export";
+import styles from "./ProjectStructureMap.module.css";
 
 type ProjectRow = {
   path: string;
   filename: string;
   status: ProjectFileStatus;
   href?: string;
+  lessonId?: string;
+  lessonTitle?: string;
 };
 
 const runtimeRows = [
@@ -77,6 +81,8 @@ export function ProjectStructureMap() {
       return {
         path,
         filename: lesson.implementation.filename,
+        lessonId: lesson.id,
+        lessonTitle: lesson.title,
         status: projectLessonBuildStatus({
           projectSource: file?.content,
           verifiedSource: expected?.content,
@@ -131,6 +137,13 @@ export function ProjectStructureMap() {
   ];
   const firstIncompleteGroup = projectGroups.findIndex((group) => group.rows.some((row) => !row.status.complete));
   const mobileOpenGroup = firstIncompleteGroup >= 0 ? firstIncompleteGroup : 0;
+  const nextLesson = groups.flatMap((group) => group.rows).find((row) => !row.status.complete);
+  const activeBuildIsCurrent = portfolioReadiness({ project, learner, lessons: courseLessons }).activeBuildMatchesTests;
+  const nextAction = nextLesson
+    ? { href: `/lessons/${nextLesson.lessonId}#implementation`, label: `Continue ${nextLesson.lessonTitle}` }
+    : activeBuildIsCurrent
+      ? { href: "/capstone", label: "Open Browser Chat" }
+      : { href: `/workspace?file=${encodeURIComponent(CAPSTONE_COMPONENT_PATH)}`, label: "Run the full project build" };
 
   return (
     <section className="project-structure-map" aria-label="browser-chat project file structure">
@@ -140,7 +153,10 @@ export function ProjectStructureMap() {
         </p>
       ) : null}
       <header className="project-structure-root">
-        <strong>browser-chat/</strong>
+        <div className={styles.intro}>
+          <strong>browser-chat/</strong>
+          <p>The full project is scaffolded now. Your verified lesson implementations progressively replace its placeholders.</p>
+        </div>
         <span role="status" aria-label={`${sourceProgress.verified} of ${sourceProgress.total} lesson source files are build-ready; ${sourceProgress.partial} partially verified; ${sourceProgress.needsWork} ${sourceProgress.needsWork === 1 ? "needs" : "need"} work; ${sourceProgress.notStarted} not started`}>{sourceProgress.verified} of {sourceProgress.total} lesson files ready</span>
       </header>
       <div className="project-structure-groups">
@@ -153,6 +169,13 @@ export function ProjectStructureMap() {
           />
         ))}
       </div>
+      <footer className={`project-structure-next ${styles.next}`}>
+        <div>
+          <p>Lesson checks prove one file. The Python checkpoint stores trained weights. A full build ties the checked project to Browser Chat.</p>
+          <span>Saved on this device. Export a backup from the IDE for a portable copy.</span>
+        </div>
+        <Link href={nextAction.href}>{nextAction.label} →</Link>
+      </footer>
     </section>
   );
 }

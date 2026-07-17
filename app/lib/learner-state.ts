@@ -894,22 +894,28 @@ export function saveCharacterRnnArtifact(
     throw new TypeError("Save the character-RNN source path and hash together.");
   }
   const checkpointId = `character-rnn:${origin}:${trainedAt}:${encodeURIComponent(sourceHash ?? "unbound")}`;
-  updateLearnerState((state) => ({
-    ...state,
-    artifacts: {
-      ...state.artifacts,
-      characterRnn: {
-        checkpoint: result.checkpoint,
-        finalLoss: result.finalLoss,
-        parameters: result.parameters,
-        vocabularySize: result.vocabularySize,
-        trainedAt,
-        origin,
-        checkpointId,
-        ...(sourcePath && sourceHash ? { sourcePath, sourceHash } : {}),
+  updateLearnerState((state) => {
+    // The quick JavaScript lesson model is disposable. Once the learner has a
+    // source-bound Python checkpoint, rerunning that demo must not hide the
+    // checkpoint used by the project and capstone.
+    if (origin === "javascript" && state.artifacts.characterRnn?.origin === "python") return state;
+    return {
+      ...state,
+      artifacts: {
+        ...state.artifacts,
+        characterRnn: {
+          checkpoint: result.checkpoint,
+          finalLoss: result.finalLoss,
+          parameters: result.parameters,
+          vocabularySize: result.vocabularySize,
+          trainedAt,
+          origin,
+          checkpointId,
+          ...(sourcePath && sourceHash ? { sourcePath, sourceHash } : {}),
+        },
       },
-    },
-  }));
+    };
+  });
 }
 
 export function useLearnerState() {
@@ -924,6 +930,19 @@ export function useLearnerState() {
     };
   }, []);
   return state;
+}
+
+/** Keeps progress UI neutral until the durable browser record has loaded. */
+export function useLearnerStateHydrated() {
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    let active = true;
+    void initializeLearnerPersistence().finally(() => {
+      if (active) setHydrated(true);
+    });
+    return () => { active = false; };
+  }, []);
+  return hydrated;
 }
 
 export function useLearnerRecoveryCandidates(lessonId: string) {
@@ -955,13 +974,41 @@ export function useLearnerPersistenceError() {
   return error;
 }
 
-export function lessonImplementationIsComplete(state: LearnerState, lessonId: string, totalCells: number) {
+export function lessonCodeIsComplete(
+  state: LearnerState,
+  lessonId: string,
+  expectedBlockIds: readonly string[],
+  expectedContractVersion: string,
+) {
   const lesson = state.lessons[lessonId];
-  return Boolean(lesson?.experimentComplete && lesson.verifiedCells.length >= totalCells);
+  return Boolean(
+    lesson?.verifiedContractVersion === expectedContractVersion
+    && expectedBlockIds.every((id) => (
+      lesson.verifiedCells.includes(id)
+      && typeof lesson.answers[id] === "string"
+      && lesson.verifiedSources[id] === lesson.answers[id]
+    )),
+  );
 }
 
-export function lessonIsComplete(state: LearnerState, lessonId: string, totalCells: number, checkId: string) {
-  return lessonImplementationIsComplete(state, lessonId, totalCells)
+export function lessonImplementationIsComplete(
+  state: LearnerState,
+  lessonId: string,
+  expectedBlockIds: readonly string[],
+  expectedContractVersion: string,
+) {
+  return lessonCodeIsComplete(state, lessonId, expectedBlockIds, expectedContractVersion)
+    && Boolean(state.lessons[lessonId]?.experimentComplete);
+}
+
+export function lessonIsComplete(
+  state: LearnerState,
+  lessonId: string,
+  expectedBlockIds: readonly string[],
+  expectedContractVersion: string,
+  checkId: string,
+) {
+  return lessonImplementationIsComplete(state, lessonId, expectedBlockIds, expectedContractVersion)
     && lessonKnowledgeIsComplete(state, lessonId, checkId);
 }
 

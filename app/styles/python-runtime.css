@@ -21,6 +21,8 @@
   display: block;
 }
 
+.python-output { min-height: 0; }
+
 .python-output pre {
   color: #d8d1da;
   font-family: var(--mono);
@@ -78,4 +80,5 @@
   .python-output pre {
     max-height: 16rem;
   }
+
 }

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { CourseLesson } from "@latent/course-kit";
 import type { ArtifactEnvelope } from "@latent/artifact-runtime";
-import { downloadArtifact, loadLessonArtifactView } from "./lesson-artifacts";
+import { downloadArtifact, lessonHasRecordedTraining, loadLessonArtifactView } from "./lesson-artifacts";
 import { RecordedTrainingPanel } from "./RecordedTrainingPanel";
 
 type ArtifactView = Awaited<ReturnType<typeof loadLessonArtifactView>>;
@@ -39,7 +39,7 @@ function ReplayFrames({ artifact }: { artifact: ArtifactEnvelope }) {
         ))}
       </div>
       <article className="artifact-frame">
-        <span>Recorded frame {active.index + 1} / {frames.length}</span>
+        <span>Result frame {active.index + 1} / {frames.length}</span>
         <strong>{active.label}</strong>
         <pre>{JSON.stringify(active.payload, null, 2)}</pre>
       </article>
@@ -50,6 +50,7 @@ function ReplayFrames({ artifact }: { artifact: ArtifactEnvelope }) {
 export function ArtifactRuntimePanel({ lesson, refreshKey = 0 }: { lesson: CourseLesson; refreshKey?: number }) {
   const [view, setView] = useState<ArtifactView | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const hasRecordedTraining = lessonHasRecordedTraining(lesson.id);
 
   useEffect(() => {
     let active = true;
@@ -64,10 +65,13 @@ export function ArtifactRuntimePanel({ lesson, refreshKey = 0 }: { lesson: Cours
   return (
     <details className="artifact-runtime-panel" id="artifacts">
       <summary className="artifact-runtime-heading">
-        <h3 id="artifact-runtime-title">Saved results</h3>
+        <div>
+          <h3 id="artifact-runtime-title">Saved results</h3>
+          <p>{hasRecordedTraining ? "Recorded training replay · fixed course run, not your code" : "Results created after your saved code passes its checks"}</p>
+        </div>
       </summary>
       <div className="artifact-runtime-body" aria-labelledby="artifact-runtime-title">
-        <p className="artifact-runtime-note">Checks use your saved code. Training replays use recorded lesson data.</p>
+        <p className="artifact-runtime-note">The replay is course data. The validation result is tied to the code you saved and checked.</p>
         {error ? <p className="artifact-runtime-error">{error}</p> : null}
         {!view && !error ? <p className="artifact-runtime-loading">Loading…</p> : null}
         {view ? (
@@ -84,7 +88,7 @@ export function ArtifactRuntimePanel({ lesson, refreshKey = 0 }: { lesson: Cours
                 <ReplayFrames artifact={view.output} key={view.output.id} />
                 <div className="artifact-download-row">
                   <p><strong>{view.output.validation.passedCount}/{view.output.validation.totalCount}</strong> checks passed</p>
-                  <button type="button" onClick={() => void downloadArtifact(view.output!)}>Download with history</button>
+                  <button type="button" onClick={() => void downloadArtifact(view.output!)}>Download verified result</button>
                 </div>
               </>
             ) : null}

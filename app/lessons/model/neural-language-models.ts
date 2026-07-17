@@ -163,7 +163,7 @@ def negative_log_likelihood(probabilities, target_index):
         or target_index < 0
         or target_index >= values.size
     ):
-        raise ValueError("nllLoss needs a probability vector and valid target index")
+        raise ValueError("negative_log_likelihood needs a probability vector and valid target index")
     probability = max(float(values[target_index]), 1e-12)
     return float(-np.log(probability))`,
           checkCode: `certain = negative_log_likelihood([0.05, 0.9, 0.05], 1)

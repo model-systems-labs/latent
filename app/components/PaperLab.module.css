@@ -12,6 +12,100 @@
   margin: 1.5rem 0 0;
 }
 
+.lessonProgress {
+  align-items: center;
+  border-block: 1px solid var(--line);
+  display: grid;
+  gap: 0.85rem 1.5rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-top: 1.4rem;
+  padding: 0.8rem 0;
+}
+
+.lessonProgress > p {
+  align-items: baseline;
+  display: flex;
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.lessonProgress > p span {
+  color: var(--muted);
+  font-size: max(0.68rem, 11px);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.lessonProgress > p strong {
+  font-size: max(0.74rem, 12px);
+  font-weight: 550;
+}
+
+.lessonProgress ol {
+  display: flex;
+  gap: 1rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.lessonProgress li {
+  align-items: baseline;
+  display: flex;
+  font-size: max(0.68rem, 11px);
+  gap: 0.35rem;
+}
+
+.lessonProgress li span { color: var(--ink); }
+.lessonProgress li em { color: var(--muted); font-style: normal; }
+.lessonProgress li[data-complete="true"] em { color: var(--green); }
+
+.exerciseContract {
+  border-block: 1px solid var(--line);
+  margin-bottom: 0.85rem;
+  padding: 0.8rem 0;
+}
+
+.exerciseContract > p {
+  font-size: max(0.78rem, 13px);
+  line-height: 1.55;
+  margin: 0 0 0.65rem;
+}
+
+.exerciseContract dl {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+}
+
+.exerciseContract dl > div {
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+}
+
+.exerciseContract dt {
+  color: var(--muted);
+  font-size: max(0.68rem, 11px);
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.exerciseContract dd {
+  color: var(--ink);
+  font-size: max(0.72rem, 12px);
+  line-height: 1.5;
+  margin: 0;
+  min-width: 0;
+}
+
+.exerciseContract code {
+  background: transparent;
+  font-size: inherit;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
 @media (max-width: 650px), (max-width: 940px) and (max-height: 500px) {
   .lessonShell :global(.lesson-header nav) {
     gap: 0;
@@ -28,6 +122,11 @@
   .lessonShell :global(.source-set) { align-items: flex-start; display: grid; gap: 0.35rem; margin-top: 1.2rem; }
   .lessonShell :global(.source-set .source-list) { gap: 0 0.8rem; }
   .lessonShell :global(.source-set .source-entry > a) { min-height: 2.35rem; }
+
+  .lessonProgress { align-items: start; grid-template-columns: 1fr; }
+  .lessonProgress ol { gap: 0.45rem 1rem; justify-content: space-between; }
+  .lessonProgress li { align-items: start; flex-direction: column; gap: 0.05rem; }
+  .exerciseContract dl > div { gap: 0.45rem; grid-template-columns: 4rem minmax(0, 1fr); }
 
   .lessonShell :global(.paper-section) { padding: 2.1rem 0; }
   .lessonShell :global(.summary-section) { border-top: 0; }

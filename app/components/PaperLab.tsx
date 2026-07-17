@@ -12,6 +12,7 @@ import {
   loadLearnerState,
   recordVerifiedCells,
   saveLessonPracticeAndVerification,
+  useLearnerState,
   useLearnerPersistenceError,
   useLearnerRecoveryCandidates,
 } from "../lib/learner-state";
@@ -37,10 +38,12 @@ import {
 } from "../features/ide/practice-state";
 import { llmSystemsContractSuite } from "../content/llm-systems/contracts";
 import { LessonOutcome } from "./LessonOutcome";
-import { moduleCheckpoint } from "../content/llm-systems/learning";
+import { lessonLearningOutcome, moduleCheckpoint } from "../content/llm-systems/learning";
 import { recordLearningEvent } from "../lib/learning-analytics";
 import { SyntaxCode } from "../features/ide/SyntaxCode";
 import { getLessonFlair } from "../lessons/lesson-flair";
+import { exerciseContractFor } from "../lessons/exercise-contracts";
+import { lessonGateProgress } from "../lessons/lesson-progress";
 import styles from "./PaperLab.module.css";
 
 type CheckResult = { label: string; passed: boolean; detail: string };
@@ -527,6 +530,75 @@ function projectSeedForLesson(lesson: CourseLesson, hidden: string[], currentAns
   };
 }
 
+function ExerciseContract({ lesson, block }: { lesson: CourseLesson; block: CodeBlock }) {
+  const contract = exerciseContractFor(lesson.id, block.id);
+  return (
+    <div className={styles.exerciseContract} aria-label={`${block.label} function contract`}>
+      <p>{block.purpose}</p>
+      <dl>
+        <div>
+          <dt>Signature</dt>
+          <dd><code>{contract.signature}</code></dd>
+        </div>
+        <div>
+          <dt>Inputs</dt>
+          <dd>{contract.inputs}</dd>
+        </div>
+        <div>
+          <dt>Returns</dt>
+          <dd>{contract.output}</dd>
+        </div>
+        <div>
+          <dt>Rule</dt>
+          <dd><code>{contract.rule}</code></dd>
+        </div>
+        <div>
+          <dt>Example</dt>
+          <dd><code>{contract.example}</code></dd>
+        </div>
+      </dl>
+    </div>
+  );
+}
+
+function LessonProgress({ lesson }: { lesson: CourseLesson }) {
+  const learner = useLearnerState();
+  const [ready, setReady] = useState(false);
+  const check = lessonLearningOutcome(lesson.id).check;
+  const state = learner.lessons[lesson.id];
+  useEffect(() => {
+    let active = true;
+    void initializeLearnerPersistence().finally(() => {
+      if (active) setReady(true);
+    });
+    return () => { active = false; };
+  }, []);
+
+  const progress = lessonGateProgress(
+    lesson,
+    state,
+    llmSystemsContractSuite.contractVersion,
+    check.id,
+  );
+
+  return (
+    <section className={styles.lessonProgress} aria-label="Lesson progress" aria-busy={!ready}>
+      <p>
+        <span>Lesson progress</span>
+        <strong role="status" aria-live="polite" aria-atomic="true">{ready ? progress.complete ? "Lesson complete" : `${progress.completed} of ${progress.gates.length} complete` : "Restoring progress…"}</strong>
+      </p>
+      <ol>
+        {progress.gates.map((gate) => (
+          <li data-complete={ready && gate.complete} key={gate.label}>
+            <span>{gate.label}</span>
+            <em>{ready ? gate.complete ? "Complete" : "Pending" : "Restoring"}</em>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
 export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) {
   // RSC payloads can replace an equivalent prop object after learner-state events.
   // Resolve it to the module-owned definition so hydration remains single-shot.
@@ -988,6 +1060,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
                 {active ? (
                   <div className="exercise-body" id={`exercise-${lesson.id}-${block.id}`}>
                     {projectConflict ? <p className="editor-conflict-note" role="status">The full IDE has newer code. Continue there; this lesson is read-only.</p> : null}
+                    <ExerciseContract lesson={lesson} block={block} />
                     <div className="answer-area" data-direct-edit="true" data-edit-state={dirty ? "draft" : "starter"}>
                       {practiceReady ? (
                         <Suspense fallback={<div className="lesson-editor-loading" role="status">Loading syntax-aware editor…</div>}>
@@ -1001,7 +1074,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
                             variant="lesson"
                           />
                         </Suspense>
-                      ) : <SyntaxCode code={starterSource} label={`${block.label} starter loading`} startLine={startLine} />}
+                      ) : <div className="lesson-editor-loading" role="status">Restoring saved code…</div>}
                     </div>
                     {executionOutput?.output.length ? (
                       <div className="cell-output" aria-label={`${block.label} program output`}>
@@ -1131,6 +1204,7 @@ export function PaperLab({ lesson }: { lesson: CourseLesson }) {
       {persistenceError ? <p className="persistence-warning lesson-persistence-warning" role="alert">Storage warning: {persistenceError}</p> : null}
       <article className="paper-page" id="top">
         <HeaderSection lesson={lesson} />
+        <LessonProgress lesson={lesson} />
         <LessonRecoveryCandidates lessonId={lesson.id} onLoaded={() => setRecoveryRevision((revision) => revision + 1)} />
         <CodingSection key={`${lesson.id}:${recoveryRevision}`} lesson={lesson} />
         <ParagraphSection lesson={lesson} />

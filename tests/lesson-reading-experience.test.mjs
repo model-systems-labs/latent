@@ -178,7 +178,8 @@ test("lesson code opens one starter-first syntax-aware Python exercise in a ligh
   assert.match(paperLab, /className="answer-area" data-direct-edit="true"/);
   assert.match(paperLab, /value=\{workingSource\}/);
   assert.match(paperLab, /onChange=\{\(value\) => updateAnswer\(block, value\)\}/);
-  assert.match(paperLab, /<SyntaxCode code=\{starterSource\} label=\{`\$\{block\.label\} starter loading`\}/);
+  assert.match(paperLab, /<div className="lesson-editor-loading" role="status">Restoring saved code…<\/div>/);
+  assert.doesNotMatch(paperLab, /<SyntaxCode code=\{starterSource\}/);
   assert.match(paperLab, /"Running…" : "Run cell"/);
   assert.match(paperLab, /"Running tests…" : "Run all tests"/);
   assert.match(paperLab, /className="reference-comparison"[\s\S]*?<summary>Reference solution<\/summary>[\s\S]*?<SyntaxCode code=\{block\.code\}/);

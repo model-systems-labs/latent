@@ -2605,6 +2605,7 @@ button:disabled {
   cursor: pointer;
   font-size: max(0.68rem, 11px);
   letter-spacing: 0.08em;
+  min-height: 44px;
   padding: 0.78rem 1rem;
   text-transform: uppercase;
 }

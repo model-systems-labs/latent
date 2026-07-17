@@ -18,8 +18,8 @@ export const characterRnnTrainingScenario = {
   },
   run: {
     kind: "training-run",
-    title: "Character RNN training replay",
-    description: "A replay of four real checkpoints. The timing is simulated, but every loss, sample, and downloadable weight tensor comes from a real repeatable run.",
+    title: "Recorded character RNN run",
+    description: "Four checkpoints saved from one fixed, repeatable course run. This replay does not use learner code.",
     labels: ["checkpoint-ladder", "character-rnn"],
     metrics: {
       initialLoss: { checkpoint: "first", metric: "finalLoss" },
@@ -34,7 +34,7 @@ export const characterRnnTrainingScenario = {
 } satisfies RecordedTrainingScenario;
 
 export const characterRnnTrainingPresentation = {
-  checkpointEyebrow: "Real checkpoint weights",
+  checkpointEyebrow: "Recorded checkpoint",
   metrics: [
     { id: "loss", key: "finalLoss", label: "Loss", format: { kind: "decimal", digits: 3 } },
     { id: "change", key: "finalLoss", label: "Change", format: { kind: "decimal", digits: 3 }, comparison: true },
@@ -47,5 +47,5 @@ export const characterRnnTrainingPresentation = {
     key: "sample",
     label: "Sample generated from this checkpoint",
   },
-  disclosure: "The browser replays the training time. The loss, generated text, and downloadable tensors all come from the recorded repeatable run.",
+  disclosure: "These losses, samples, and weights were saved from the fixed course run. No training happens while you step through them.",
 } satisfies TrainingReplayPresentation;

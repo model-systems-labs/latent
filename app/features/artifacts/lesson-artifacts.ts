@@ -9,6 +9,10 @@ import { downloadBrowserBlob } from "../../lib/browser-download";
 
 export type ValidatedLessonResult = { id: string; label: string; passed: boolean; detail: string };
 
+export function lessonHasRecordedTraining(lessonId: string) {
+  return recordedTrainingRegistry.scenarioIdForLesson(lessonId) !== null;
+}
+
 function artifactLink(artifact: ArtifactEnvelope, relation: "input" | "assembled-from" = "input") {
   return { artifactId: artifact.id, contentHash: artifact.contentHash, kind: artifact.kind, relation } as const;
 }
@@ -37,7 +41,7 @@ export async function recordValidatedLessonArtifact(input: {
     kind: blueprint.kind,
     mode: "learner-validated",
     title: blueprint.title,
-    description: `${blueprint.description} This result ties your passing code to example frames made for the course; the frames were not calculated from your code.`,
+    description: `${blueprint.description} Your saved code passed the lesson checks. The attached frames explain the result; they are course examples, not output from your code.`,
     projectId: "browser-chat",
     moduleId: blueprint.moduleId,
     lessonId: blueprint.lessonId,

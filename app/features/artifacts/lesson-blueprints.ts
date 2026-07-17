@@ -22,7 +22,7 @@ const definitions: Record<string, Omit<LessonArtifactBlueprint, "lessonId" | "mo
   "character-rnns": {
     kind: "recurrent-transition",
     title: "Verified recurrent model",
-    description: "Your tested transition, loss, and gradient-stabilization code, tied to the recorded training run.",
+    description: "Your tested transition, loss, and gradient-stabilization code. The adjacent training replay is separate course data.",
     clock: "step", unit: "sequence position",
     payload: { state: "hidden-state transition", objective: "next-character cross-entropy", stabilization: "elementwise clipping" },
     frames: [

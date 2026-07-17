@@ -18,7 +18,6 @@ export default function CourseHome() {
         <header className="course-hero full-course-hero home-course-hero">
           <h1>Build an LLM system right in your browser.</h1>
           <p className="course-thesis">Build the model basics, inference runtime, serving layer, and React app that come together as a working local chatbot.</p>
-          <div className="hero-actions"><a href="#first-run">Run the first model</a></div>
         </header>
         <FirstRunExperience />
         <section className="course-track-grid" id="modules" aria-label="LLM Systems modules">

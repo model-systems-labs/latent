@@ -1,0 +1,24 @@
+.checksPanel { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.checksPanel > header { flex: 0 0 auto; }
+.buildAction { background: #eee7df !important; border-color: #eee7df !important; color: #252127 !important; }
+.projectResults { flex: 1 1 auto; min-height: 5rem; }
+.checkpointPanel { border-top: 1px solid rgba(255, 255, 255, 0.09); flex: 0 0 auto; }
+.checkpointPanel > header { align-items: center; display: flex; gap: 0.75rem; justify-content: space-between; padding: 0.7rem 0.9rem; }
+.checkpointPanel > header > div { display: grid; gap: 0.16rem; }
+.checkpointPanel > header span { color: #d1bde0; font-size: max(0.68rem, 11px); letter-spacing: 0.08em; text-transform: uppercase; }
+.checkpointPanel > header strong,
+.checkpointPanel > p { color: #aaa3ad; font-size: max(0.68rem, 11px); }
+.checkpointPanel > header strong { font-weight: 500; }
+.checkpointPanel > p { line-height: 1.5; margin: -0.2rem 0 0; padding: 0 0.9rem 0.8rem; }
+.checkpointResults { border-top: 1px solid rgba(255, 255, 255, 0.07); max-height: 10rem; padding-block: 0.35rem; }
+.checkpointResults article { padding-block: 0.4rem; }
+.handoffNote { border-top: 1px solid rgba(255, 255, 255, 0.09); color: #aaa3ad; font-size: max(0.68rem, 11px); line-height: 1.55; margin: 0.65rem 0 0; padding-top: 0.65rem; }
+.handoffNote strong { color: #d8d1da; font-weight: 550; }
+
+@media (max-width: 650px), (max-width: 940px) and (max-height: 500px) {
+  :global(.project-workbench-grid[data-mobile-view="tests"]) .checksPanel { display: flex; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+  .checksPanel > header { align-items: stretch; gap: 0.6rem; }
+  .buildAction { flex: 0 0 auto; }
+  .projectResults { min-height: 0; }
+  .checkpointPanel > header { padding-block: 0.6rem; }
+}

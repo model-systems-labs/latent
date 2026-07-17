@@ -76,7 +76,8 @@ test("each module renders its technical lesson sequence", async () => {
     const html = await response.text();
     for (const title of titles) assert.match(html, new RegExp(title));
     assert.match(html, /class="course-progress-record"/);
-    assert.match(html, /aria-label="0 of \d+ lessons complete"/);
+    assert.match(html, /aria-label="Restoring lesson progress"/);
+    assert.match(html, /Restoring progress/);
     assert.doesNotMatch(html, /Your progress|href="\/project"|lesson-build|track-outcome|Module 0[1-4]/);
     assert.doesNotMatch(html, /Project structure|BrowserChat\.tsx/);
   }
@@ -144,7 +145,8 @@ test("all fourteen lessons use the reusable learning flow", async () => {
     assert.doesNotMatch(html, /Complete the TODO below|Your draft|>Editing</);
     assert.match(html, /data-direct-edit="true"/);
     assert.match(html, /data-edit-state="starter"/);
-    assert.match(html, /NotImplementedError/);
+    assert.match(html, /Restoring saved code/);
+    assert.doesNotMatch(html, /NotImplementedError/);
     assert.doesNotMatch(html, /Practice all|Practice cell|Run example|Reset all|Restore all|Restore reference|Restore draft|Run all examples|Run practice checks/);
     assert.match(html, /Run cell/);
     assert.match(html, /Run all tests/);
@@ -171,14 +173,14 @@ test("real PyTorch handoffs are present only in framework-relevant lessons", asy
   }
 });
 
-test("the server-rendered first paint syntax-highlights starter code rather than the completed answer", async () => {
+test("the server-rendered editor stays neutral while the reference remains syntax highlighted", async () => {
   const response = await render("/lessons/streaming-transport");
   assert.equal(response.status, 200);
   const html = await response.text();
+  assert.match(html, /Restoring saved code/);
   assert.match(html, /class="syntax-code"/);
   assert.match(html, /tok-keyword/);
-  assert.match(html, /tok-string2/);
-  assert.match(html, /NotImplementedError/);
+  assert.doesNotMatch(html, /NotImplementedError/);
   assert.match(html, /Reference solution/);
   assert.doesNotMatch(html, /syntax-code-fallback/);
 });
@@ -354,7 +356,7 @@ test("the project IDE is a dedicated tested authoring surface", async () => {
   assert.match(html, /Project IDE/);
   assert.doesNotMatch(html, /<span>Project IDE<\/span>/);
   assert.match(html, /href="\/project"/);
-  assert.match(html, /lesson files verified/);
+  assert.match(html, /aria-label="0 of 14 lessons complete"/);
   assert.match(html, /runtime\/model.config.js/);
   assert.match(html, /character-rnn\.py/);
   assert.match(html, /inference-runtime\.py/);
@@ -606,14 +608,12 @@ test("Product Quality separates executed checks, unexecuted specifications, and 
   assert.doesNotMatch(html, /Automated · 16 contracts|all 16 check-specific results/);
 });
 
-test("course home offers a quiet first model run before the curriculum", async () => {
+test("course home keeps the first-run area neutral until browser progress restores", async () => {
   const response = await render("/course");
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /Character-level RNN training/);
-  assert.match(html, /Train 1,267 parameters in a Web Worker/);
-  assert.match(html, /same checkpoint/);
-  assert.match(html, /Train and generate/);
+  assert.match(html, /Restoring your place/);
+  assert.doesNotMatch(html, /Introductory JavaScript RNN|Train and generate/);
   assert.doesNotMatch(html, /temperature 1\.05 · top-k off|temperature 0\.72 · top-k 5|No output yet/);
   assert.doesNotMatch(html, /environment-readiness|First run · real training|This tiny model|Run the model to generate/);
 });

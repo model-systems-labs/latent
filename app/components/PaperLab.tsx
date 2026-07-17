@@ -159,7 +159,7 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
           </div>
         </div>
       ) : isSubwordTokenization ? (
-        <div className="bpe-worked-example" role="group" aria-label="The tokenizer counts a tiny dataset, merges the most common l-o pair everywhere, and counts again. The second example shows that changing the learned merge order changes how a-b-c is split.">
+        <div className="bpe-worked-example" role="group" aria-label="The tokenizer counts a tiny dataset, merges the most common s-i pair everywhere, and counts again. The second example shows that changing the learned merge order changes how a-b-c is split.">
           <ol className="bpe-rounds">
             {lesson.diagram.nodes.map((node, index) => (
               <li key={node.label}>

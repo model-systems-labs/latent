@@ -129,8 +129,10 @@ test("reviewed lessons do not reintroduce the two remediated source patterns", a
     "app/content/llm-systems/contracts.ts",
   ].map((path) => readFile(new URL(path, root), "utf8")));
   for (const source of bpeSources) {
-    assert.doesNotMatch(source, /\blower\b|low\|er/);
+    assert.doesNotMatch(source, /\blower\b|low\|er|l-o pair|\[\\?"l\\?"\s*,\s*\\?"o\\?"/);
   }
+  const paperLab = await readFile(new URL("app/components/PaperLab.tsx", root), "utf8");
+  assert.doesNotMatch(paperLab, /l-o pair/);
 
   const [policy, record] = await Promise.all([
     readFile(new URL("app/sources/page.tsx", root), "utf8"),

@@ -37,7 +37,7 @@ ${commonQuestionInstruction}`.trim(),
       {
         label: "Keep pairs distinct.",
         body:
-          "A pair is two separate symbols, not just the spelling you get when you join them. If you made keys with plain string concatenation, [a, bc] and [ab, c] would both turn into abc. The code uses JSON array keys like [\"l\",\"o\"] so those pairs stay separate and are easy to see while debugging.",
+          "A pair is two separate symbols, not just the spelling you get when you join them. If you made keys with plain string concatenation, [a, bc] and [ab, c] would both turn into abc. The code uses JSON array keys like [\"s\",\"i\"] so those pairs stay separate and are easy to see while debugging.",
       },
       {
         label: "Replay merges in order.",
@@ -82,7 +82,7 @@ ${commonQuestionInstruction}`.trim(),
     },
     implementation: {
       filename: "bpe-tokenizer.py",
-      intro: "Build the tokenizer in three separate Python cells. Pair counts use a visible key that can't confuse symbol boundaries: json.dumps([\"l\", \"o\"], separators=(\",\", \":\")) returns the string [\"l\",\"o\"]. The merge and encoder cells get each pair as a two-item list.",
+      intro: "Build the tokenizer in three separate Python cells. Pair counts use a visible key that can't confuse symbol boundaries: json.dumps([\"s\", \"i\"], separators=(\",\", \":\")) returns the string [\"s\",\"i\"]. The merge and encoder cells get each pair as a two-item list.",
       codeBlocks: [
         {
           id: "pair-counts",
@@ -90,7 +90,7 @@ ${commonQuestionInstruction}`.trim(),
           purpose: "Count the possible merges across the tokenized vocabulary.",
           concepts: [
             { name: "words", detail: "A list of words, with each word stored as a list of symbols." },
-            { name: "json.dumps([left, right])", detail: "Turns the two-symbol list into a short, visible key like [\"l\",\"o\"]." },
+            { name: "json.dumps([left, right])", detail: "Turns the two-symbol list into a short, visible key like [\"s\",\"i\"]." },
             { name: "counts", detail: "The frequency table used to pick the next merge." },
           ],
           code: `import json

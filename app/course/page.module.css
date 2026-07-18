@@ -2,6 +2,73 @@
 .catalogHero { padding-bottom: clamp(2.5rem, 5vw, 4.5rem); }
 .programGroup + .programGroup { margin-top: clamp(3rem, 6vw, 5rem); }
 
+.reviewCallout {
+  align-items: end;
+  background: radial-gradient(circle at 88% 18%, rgba(118, 104, 137, 0.12), transparent 34%);
+  border-bottom: 1px solid var(--line-strong);
+  border-top: 1px solid var(--line-strong);
+  color: inherit;
+  display: grid;
+  gap: 2rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-bottom: clamp(3rem, 6vw, 5rem);
+  padding: clamp(1.4rem, 3vw, 2.2rem) 0;
+}
+
+.reviewCallout > div {
+  display: grid;
+  gap: 0.45rem;
+  max-width: 40rem;
+}
+
+.reviewCallout span,
+.reviewCallout p {
+  color: var(--muted);
+  font-size: max(0.68rem, 11px);
+}
+
+.reviewCallout > div > span {
+  font-weight: 590;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.reviewCallout h2 {
+  font-family: var(--serif);
+  font-size: clamp(1.65rem, 3vw, 2.35rem);
+  font-weight: 400;
+  letter-spacing: -0.025em;
+  margin: 0;
+}
+
+.reviewCallout p {
+  line-height: 1.55;
+  margin: 0;
+}
+
+.reviewCallout > strong {
+  color: var(--violet-deep);
+  font-size: max(0.72rem, 12px);
+  font-weight: 590;
+  white-space: nowrap;
+}
+
+.reviewCallout > strong span {
+  color: inherit;
+  display: inline-block;
+  transition: transform 160ms ease;
+}
+
+.reviewCallout:hover > strong span,
+.reviewCallout:focus-visible > strong span {
+  transform: translateX(0.22rem);
+}
+
+.reviewCallout:focus-visible {
+  outline: 2px solid var(--violet-deep);
+  outline-offset: 0.35rem;
+}
+
 .programGroup > header {
   align-items: baseline;
   display: flex;
@@ -27,6 +94,12 @@
 .sequenceNote { line-height: 1.55; margin-top: 1.5rem; }
 
 @media (max-width: 650px) {
+  .reviewCallout {
+    align-items: start;
+    gap: 1.25rem;
+    grid-template-columns: 1fr;
+  }
+
   .programGroup > header {
     align-items: flex-start;
     flex-direction: column;
@@ -34,4 +107,8 @@
   }
 
   .programGroup > header p { text-align: left; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reviewCallout > strong span { transition: none; }
 }

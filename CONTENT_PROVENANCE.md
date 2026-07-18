@@ -66,6 +66,28 @@ project. Their separate machine-readable record lives in
 `app/content/foundations/provenance.ts`, leaving the fourteen-lesson LLM Systems
 review inventory unchanged.
 
+### Flash-card review library
+
+On 2026-07-18, the review library was expanded from a short lesson recap into
+an atomic technical vocabulary deck. Concept selection was informed by the
+course-authored lessons and summaries, the bibliography in
+`app/lessons/sources.ts`, and the source lists attached to the two foundation
+courses. The pass also checked the primary paper and standard surfaces for
+established terms that the lesson prose could not assume a new learner already
+understood.
+
+The card definitions, teaching details, and worked examples are original course
+prose. They do not quote paper abstracts, reuse source examples, or restate
+benchmark results as general guarantees. Each new card group carries a short
+`source` trail naming the papers, standards, or official guides that informed
+its terminology. Those trails are displayed in the study UI so a learner can
+connect unfamiliar vocabulary back to its technical context.
+
+The release review replaced a phrase-embedding example that had independently
+repeated a distinctive example from the word2vec paper. The deck now uses the
+course-authored fictional name `Velvet Circuit`, and a regression check keeps
+the paper example out of the library.
+
 ## Contribution rule
 
 Before adding or changing lesson content:

@@ -1,0 +1,21 @@
+.header > a {
+  align-items: center;
+  display: inline-flex;
+  min-height: 2.75rem;
+}
+
+@media (max-width: 650px) {
+  .hero {
+    padding: 1rem 0 0.9rem;
+  }
+
+  .hero h1 {
+    font-size: clamp(2.2rem, 10vw, 2.65rem);
+  }
+
+  .hero p:last-child {
+    font-size: 1rem;
+    line-height: 1.5;
+    margin-top: 0.8rem;
+  }
+}

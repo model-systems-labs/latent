@@ -14,12 +14,20 @@ export default function CourseCatalogPage() {
   return (
     <main>
       <div className="page-atmosphere" aria-hidden="true"><span className="orbit orbit-one" /><span className="node node-one" /><span className="warm-star" /></div>
-      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><Link href="/course">Courses</Link><Link href="/sources">Sources</Link></nav></header>
+      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><Link href="/course">Courses</Link><Link href="/flashcards" aria-label="Flash cards">Cards</Link><Link href="/sources">Sources</Link></nav></header>
       <article className={`course-page ${styles.catalogPage}`}>
         <header className={`course-hero ${styles.catalogHero}`}>
           <h1>Courses</h1>
           <p className="course-thesis">Linear algebra and machine learning are short, independent foundations courses. Building an LLM system is a separate project course that continues through inference, serving, and React.</p>
         </header>
+        <Link className={styles.reviewCallout} href="/flashcards">
+          <div>
+            <span>Review library</span>
+            <h2>Make the ideas stick.</h2>
+            <p>Filter by subject, search any concept, and mark success or failure. Your progress stays on this device.</p>
+          </div>
+          <strong>Study flash cards <span aria-hidden="true">→</span></strong>
+        </Link>
         <section className={styles.programGroup} aria-labelledby="foundations-title">
           <header><strong id="foundations-title">Foundations</strong><p>Two standalone courses with small NumPy exercises.</p></header>
           <div className="course-track-grid">

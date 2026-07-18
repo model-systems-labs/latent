@@ -24,7 +24,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const metadataBase = new URL(`${protocol}://${host}`);
   const title = "Latent · Courses for learning LLM systems";
   const description =
-    "Standalone courses in linear algebra and machine-learning basics, plus a separate project course for building an LLM system in the browser.";
+    "Standalone courses in linear algebra, machine learning, and harness engineering, plus a separate project course for building an LLM system in the browser.";
 
   return {
     metadataBase,
@@ -34,13 +34,13 @@ export async function generateMetadata(): Promise<Metadata> {
       title,
       description,
       type: "website",
-      images: [{ url: new URL("/og-courses.png", metadataBase).toString(), width: 1730, height: 909 }],
+      images: [{ url: new URL("/og.png", metadataBase).toString(), width: 1731, height: 909 }],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [new URL("/og-courses.png", metadataBase).toString()],
+      images: [new URL("/og.png", metadataBase).toString()],
     },
   };
 }

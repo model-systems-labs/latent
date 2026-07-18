@@ -152,20 +152,21 @@ function contractsFor(path) {
   );
 }
 
-test("the catalog has three distinct top-level programs and preserves the advanced program boundary", () => {
+test("the catalog keeps foundations, applied study, and the project course distinct", () => {
   assert.deepEqual(
     course.coursePrograms.map(({ id, kind, href }) => ({ id, kind, href })),
     [
       { id: "linear-algebra", kind: "foundation", href: "/courses/linear-algebra" },
       { id: "machine-learning-basics", kind: "foundation", href: "/courses/machine-learning-basics" },
+      { id: "harness-engineering", kind: "applied", href: "/courses/harness-engineering" },
       { id: "llm-systems", kind: "project", href: "/courses/llm-systems" },
     ],
   );
   assert.equal(course.linearAlgebraCurriculum.lessons.length, 5);
   assert.equal(course.machineLearningBasicsCurriculum.lessons.length, 5);
   assert.equal(course.courseLessons.length, 14, "the Browser Chat build must retain exactly fourteen lessons");
-  assert.equal(course.allRoutedLessons.length, 24);
-  assert.equal(new Set(course.allRoutedLessons.map((lesson) => lesson.id)).size, 24);
+  assert.equal(course.allRoutedLessons.length, 32);
+  assert.equal(new Set(course.allRoutedLessons.map((lesson) => lesson.id)).size, 32);
 
   for (const lesson of course.foundationLessons) {
     assert.equal(lesson.projectScope, "standalone", lesson.id);
@@ -237,7 +238,7 @@ test("foundation manifests own only prerequisite files and do not declare an adv
 test("foundation routes stay independent while legacy advanced aliases redirect to nested module URLs", async () => {
   const standaloneRoute = await readFile(new URL("../app/courses/[course]/page.tsx", import.meta.url), "utf8");
   const advancedRoute = await readFile(new URL("../app/courses/llm-systems/[module]/page.tsx", import.meta.url), "utf8");
-  assert.match(standaloneRoute, /program\.kind === "foundation"/);
+  assert.match(standaloneRoute, /program\.kind !== "project"/);
   assert.match(standaloneRoute, /redirect\(`\/courses\/llm-systems\/\$\{legacyTrack\.id\}`\)/);
   assert.doesNotMatch(standaloneRoute, /href="\/(?:project|workspace|capstone)"/);
   assert.match(advancedRoute, /href="\/project"/);

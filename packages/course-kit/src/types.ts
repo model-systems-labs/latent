@@ -81,7 +81,7 @@ export type CourseLesson = {
     codeBlocks: CodeBlock[];
   };
   experiment: {
-    kind: "rnn" | "neural-lm" | "bpe" | "attention" | "transformer" | "icl" | "systems" | "product" | "fundamentals";
+    kind: "rnn" | "neural-lm" | "bpe" | "attention" | "transformer" | "icl" | "systems" | "product" | "fundamentals" | "harness";
     /** Presentation variant interpreted by the matching experiment kind. */
     variant?: string;
     title: string;

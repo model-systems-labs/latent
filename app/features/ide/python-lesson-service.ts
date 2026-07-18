@@ -40,11 +40,20 @@ type PythonObservationEnvelope = {
   observation: InvocationObservation;
 };
 
-let sharedClientPromise: Promise<PythonLessonClient> | undefined;
+const sharedClientPromises = new Map<string, Promise<PythonLessonClient>>();
 
-async function sharedClient(): Promise<PythonLessonClient> {
-  sharedClientPromise ??= import("@latent/python-lab").then(({ PythonLabClient }) => new PythonLabClient());
-  return sharedClientPromise;
+async function sharedClient(packages: readonly string[]): Promise<PythonLessonClient> {
+  const profile = [...packages].sort().join(",") || "stdlib";
+  let client = sharedClientPromises.get(profile);
+  if (!client) {
+    client = import("@latent/python-lab").then(({ PythonLabClient }) => new PythonLabClient());
+    sharedClientPromises.set(profile, client);
+  }
+  return client;
+}
+
+export function pythonLessonPackages(source: string): Array<"numpy"> {
+  return /(?:^|\n)\s*(?:import\s+numpy\b|from\s+numpy\b)/m.test(source) ? ["numpy"] : [];
 }
 
 function pythonString(value: string): string {
@@ -188,7 +197,8 @@ export async function runPythonLessonContracts(input: {
     throw new Error("That Python lesson check doesn’t belong to this project file.");
   }
   const startedAt = Date.now();
-  const pythonLab = input.pythonLab ?? await sharedClient();
+  const packages = pythonLessonPackages(input.source);
+  const pythonLab = input.pythonLab ?? await sharedClient(packages);
   const operation = { signal: input.signal, onEvent: input.onEvent };
   const output: PythonLessonOutputChunk[] = [];
   const stdout: string[] = [];
@@ -213,7 +223,7 @@ export async function runPythonLessonContracts(input: {
   let sync: PythonLabSyncResult;
   let run: PythonLabRunResult;
   try {
-    initialization = await pythonLab.initialize({ packages: ["numpy"] }, operation);
+    initialization = await pythonLab.initialize({ packages }, operation);
     sync = await pythonLab.sync({ files: [{ path: input.path, contents: input.source }] }, operation);
     run = await pythonLab.run({ code: invocationHarness(input.path, input.contracts) }, runOperation);
   } catch (error) {

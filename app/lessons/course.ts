@@ -11,6 +11,8 @@ import { inContextLearningLesson } from "./model/in-context-learning";
 import { linearAlgebraManifest, machineLearningBasicsManifest } from "../content/foundations/manifests";
 import { linearAlgebraLessons } from "./foundations/linear-algebra";
 import { machineLearningBasicsLessons } from "./foundations/machine-learning-basics";
+import { harnessEngineeringManifest } from "../content/harness-engineering/manifest";
+import { harnessEngineeringLessons } from "./harness-engineering";
 
 const modelLessons: Array<Omit<CourseLesson, "sources">> = [
   characterRnnsLesson,
@@ -53,23 +55,33 @@ export const machineLearningBasicsCurriculum = deriveCurriculum(
   machineLearningBasicsLessons,
 );
 
+export const harnessEngineeringCurriculum = deriveCurriculum(
+  harnessEngineeringManifest,
+  harnessEngineeringLessons,
+);
+
 export const foundationLessons: CourseLesson[] = [
   ...linearAlgebraCurriculum.lessons.map(({ lesson }) => lesson),
   ...machineLearningBasicsCurriculum.lessons.map(({ lesson }) => lesson),
 ];
 
+export const standaloneLessons: CourseLesson[] = [
+  ...foundationLessons,
+  ...harnessEngineeringCurriculum.lessons.map(({ lesson }) => lesson),
+];
+
 /** Every public lesson route. Browser Chat build code must continue to use courseLessons. */
-export const allRoutedLessons: CourseLesson[] = [...foundationLessons, ...courseLessons];
+export const allRoutedLessons: CourseLesson[] = [...standaloneLessons, ...courseLessons];
 
 export type CourseProgram = {
-  id: "linear-algebra" | "machine-learning-basics" | "llm-systems";
+  id: "linear-algebra" | "machine-learning-basics" | "harness-engineering" | "llm-systems";
   order: number;
   title: string;
   shortTitle: string;
   thesis: string;
   outcome: string;
   href: string;
-  kind: "foundation" | "project";
+  kind: "foundation" | "applied" | "project";
   lessons: CourseLesson[];
 };
 
@@ -97,8 +109,19 @@ export const coursePrograms: CourseProgram[] = [
     lessons: machineLearningBasicsCurriculum.lessons.map(({ lesson }) => lesson),
   },
   {
-    id: "llm-systems",
+    id: "harness-engineering",
     order: 3,
+    title: harnessEngineeringCurriculum.title,
+    shortTitle: harnessEngineeringCurriculum.shortTitle,
+    thesis: harnessEngineeringCurriculum.thesis,
+    outcome: harnessEngineeringCurriculum.outcome,
+    href: "/courses/harness-engineering",
+    kind: "applied",
+    lessons: harnessEngineeringCurriculum.lessons.map(({ lesson }) => lesson),
+  },
+  {
+    id: "llm-systems",
+    order: 4,
     title: llmSystemsCurriculum.title,
     shortTitle: "Browser Chat",
     thesis: llmSystemsCurriculum.thesis,

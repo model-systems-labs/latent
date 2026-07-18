@@ -77,12 +77,15 @@ test("learner recovery merges independent lessons and keeps the newest same-less
   assert.equal(merged.lessons.c.answers.cell, "c");
 });
 
-test("foundation progress is stored under its own courses without creating Browser Chat", async () => {
+test("standalone-course progress stays out of the Browser Chat project", async () => {
   learner.saveLessonPractice("arrays-and-shapes", ["describe-array"], {
     "describe-array": "def describe_array(values):\n    return {}",
   });
   learner.saveLessonPractice("ml-training-data", ["features-targets"], {
     "features-targets": "def features_and_targets(rows):\n    return {}",
+  });
+  learner.saveLessonPractice("agent-loop", ["parse-model-response"], {
+    "parse-model-response": "def parse_model_response(response, tool_names):\n    return {}",
   });
   await learner.flushLearnerPersistence();
 
@@ -93,10 +96,15 @@ test("foundation progress is stored under its own courses without creating Brows
   const machineLearning = await repositories.progress.get(
     persistence.lessonProgressId("machine-learning-basics", "ml-training-data"),
   );
+  const harnessEngineering = await repositories.progress.get(
+    persistence.lessonProgressId("harness-engineering", "agent-loop"),
+  );
   assert.equal(linearAlgebra.courseId, "linear-algebra");
   assert.equal(linearAlgebra.moduleId, "linear-algebra-basics");
   assert.equal(machineLearning.courseId, "machine-learning-basics");
   assert.equal(machineLearning.moduleId, "machine-learning-basics");
+  assert.equal(harnessEngineering.courseId, "harness-engineering");
+  assert.equal(harnessEngineering.moduleId, "harness-engineering");
   assert.equal(await repositories.projects.get("browser-chat"), undefined);
 });
 

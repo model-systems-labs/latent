@@ -1,4 +1,5 @@
 import { foundationExerciseContractCopy } from "./foundations/exercise-contracts";
+import { harnessEngineeringExerciseContractCopy } from "./harness-engineering/exercise-contracts";
 
 export type ExerciseContract = {
   signature: string;
@@ -270,7 +271,8 @@ export const exerciseContracts = {
 export function exerciseContractFor(lessonId: string, blockId: string): ExerciseContract {
   const key = `${lessonId}/${blockId}`;
   const contract = (exerciseContracts as Record<string, ExerciseContract | undefined>)[key]
-    ?? foundationExerciseContractCopy[key];
+    ?? foundationExerciseContractCopy[key]
+    ?? harnessEngineeringExerciseContractCopy[key];
   if (!contract) throw new Error(`Missing exercise contract for ${lessonId}/${blockId}`);
   return contract;
 }

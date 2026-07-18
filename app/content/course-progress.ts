@@ -1,5 +1,5 @@
 export type LessonProgressLocation = {
-  courseId: "linear-algebra" | "machine-learning-basics" | "llm-systems";
+  courseId: "linear-algebra" | "machine-learning-basics" | "harness-engineering" | "llm-systems";
   moduleId: string;
 };
 
@@ -27,10 +27,21 @@ const machineLearningLessons = new Set([
   "ml-binary-classification",
   "ml-neural-networks",
 ]);
+const harnessEngineeringLessons = new Set([
+  "agent-loop",
+  "tool-contracts",
+  "context-selection",
+  "permissions-and-sandboxes",
+  "state-and-recovery",
+  "agent-evaluations",
+  "task-orchestration",
+  "integrated-harness",
+]);
 
 export const progressCourseIds = [
   "linear-algebra",
   "machine-learning-basics",
+  "harness-engineering",
   "llm-systems",
 ] as const;
 
@@ -40,6 +51,9 @@ export function lessonProgressLocation(lessonId: string): LessonProgressLocation
   }
   if (machineLearningLessons.has(lessonId)) {
     return { courseId: "machine-learning-basics", moduleId: "machine-learning-basics" };
+  }
+  if (harnessEngineeringLessons.has(lessonId)) {
+    return { courseId: "harness-engineering", moduleId: "harness-engineering" };
   }
   if (modelLessons.has(lessonId)) {
     return { courseId: "llm-systems", moduleId: "model-foundations" };

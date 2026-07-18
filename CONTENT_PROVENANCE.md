@@ -1,6 +1,6 @@
 # Content provenance
 
-Latent's three courses teach published mechanisms without republishing the
+Latent's four courses teach published mechanisms without republishing the
 lessons, figures, datasets, or implementation code that introduced them. Papers,
 standards, and reference repositories are linked as sources. The course
 explanations, diagrams, exercises, reference solutions, tests, and small
@@ -65,6 +65,18 @@ These lessons do not contribute files or requirements to the Browser Chat
 project. Their separate machine-readable record lives in
 `app/content/foundations/provenance.ts`, leaving the fourteen-lesson LLM Systems
 review inventory unchanged.
+
+### Harness Engineering
+
+The eight Harness Engineering lessons form a separate applied course about the
+deterministic execution layer around a language model. Its examples, diagrams,
+exercises, reference solutions, and synthetic traces are course-authored. The
+linked papers, specifications, and engineering articles support the terminology
+and system boundaries discussed in each lesson.
+
+Harness Engineering does not add files, artifacts, checkpoints, or completion
+requirements to Browser Chat. Its machine-readable review record lives in
+`app/content/harness-engineering/provenance.ts`.
 
 ### Flash-card review library
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import type { CourseLesson } from "@latent/course-kit";
 import {
   runCausalAttention,
@@ -26,6 +26,9 @@ import {
   settlePipelineLoadFailure,
 } from "../lib/pipeline-load-lifecycle";
 import styles from "./LessonExperiment.module.css";
+import { isHarnessExperimentVariant } from "../content/harness-engineering/experiments";
+
+const HarnessExperiment = lazy(() => import("./HarnessExperiment"));
 
 type ModelMessage = { role: "system" | "user" | "assistant"; content: string };
 type TextGenerator = {
@@ -1130,6 +1133,11 @@ export function LessonExperiment({ lesson }: { lesson: CourseLesson }) {
       {lesson.experiment.kind === "systems" && lesson.experiment.variant ? <SystemsExperiment variant={lesson.experiment.variant as SystemsVariant} onComplete={complete} /> : null}
       {lesson.experiment.kind === "product" && lesson.experiment.variant ? <ProductExperiment variant={lesson.experiment.variant as ProductVariant} onComplete={complete} /> : null}
       {lesson.experiment.kind === "fundamentals" && lesson.experiment.variant ? <FundamentalsExperiment variant={lesson.experiment.variant} onComplete={complete} /> : null}
+      {lesson.experiment.kind === "harness" && lesson.experiment.variant && isHarnessExperimentVariant(lesson.experiment.variant) ? (
+        <Suspense fallback={<p>Preparing trace…</p>}>
+          <HarnessExperiment variant={lesson.experiment.variant} onComplete={complete} />
+        </Suspense>
+      ) : null}
     </section>
   );
 }

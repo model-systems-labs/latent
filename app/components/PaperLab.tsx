@@ -4,7 +4,6 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { CodeBlock, CourseLesson } from "@latent/course-kit";
 import { allRoutedLessons, getLessonCourseHref } from "../lessons/course";
-import { LessonExperiment } from "./LessonExperiment";
 import {
   discardLearnerRecoveryCandidate,
   initializeLearnerPersistence,
@@ -51,6 +50,10 @@ type CellExecutionOutput = Pick<PracticeContractRun, "output" | "stdout" | "stde
 
 const LessonCodeEditor = lazy(async () => ({
   default: (await import("../features/ide/CodeEditor")).CodeEditor,
+}));
+
+const LessonExperiment = lazy(async () => ({
+  default: (await import("./LessonExperiment")).LessonExperiment,
 }));
 
 function Atmosphere() {
@@ -1112,7 +1115,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
         <div className="editor-footer"><p id={`practice-status-${lesson.id}`} role="status" aria-live="polite" aria-atomic="true">{practiceReady ? practiceMessage : "Loading saved work…"}</p><button type="button" aria-describedby={`practice-status-${lesson.id}`} onClick={() => void runAll()} disabled={!practiceReady || projectConflict || runningBlockIds.length > 0}>{runningBlockIds.length ? "Running tests…" : "Run all tests"}</button></div>
       </div>
       <p className="implementation-intro">{lesson.implementation.intro}</p>
-      <LessonExperiment lesson={lesson} />
+      <Suspense fallback={null}><LessonExperiment lesson={lesson} /></Suspense>
       {contributesToBrowserChat ? <ArtifactRuntimePanel lesson={lesson} refreshKey={artifactRevision} /> : null}
     </section>
   );

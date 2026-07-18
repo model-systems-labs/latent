@@ -1,19 +1,22 @@
 # Latent
 
-Latent contains three executable browser courses:
+Latent contains four executable browser courses:
 
 - Linear Algebra Basics — 5 lessons on arrays, vectors, matrix operations, and
   batching.
 - Machine Learning Basics — 5 lessons on data, loss, gradients, classification,
   and small neural networks.
+- Harness Engineering — 8 lessons on agent loops, tools, context, permissions,
+  durable state, evaluation, task coordination, and a composed harness.
 - Build an LLM System in Your Browser — 14 lessons from model foundations
   through a production-style React chat interface.
 
 The first two courses are stand-alone prerequisites. Their NumPy exercises and
-saved progress do not add files or requirements to Browser Chat. The advanced
-LLM Systems course alone builds that project across four modules: Model
-Foundations, Inference Runtime, LLM Serving, and Chat Integration. In total,
-Latent contains 24 lessons.
+saved progress do not add files or requirements to Browser Chat. Harness
+Engineering is also stand-alone: it studies deterministic agent execution
+around an existing model. The advanced LLM Systems course alone builds Browser
+Chat across four modules: Model Foundations, Inference Runtime, LLM Serving,
+and Chat Integration. In total, Latent contains 32 lessons.
 
 Every lesson links to its curated sources, explains the technical finding, and
 includes implementation cells backed by host-owned tests. In the LLM Systems
@@ -54,6 +57,8 @@ assertions, compiler policy, resource limits, build receipts, and promotion gate
 - `packages/mock-services/` — MSW handlers, SSE transport, cancellation, and failure scenarios
 - `app/content/llm-systems/` — curriculum manifest and typed exercise contracts
 - `app/content/foundations/` — manifests, contracts, learning checks, and provenance for the two prerequisite courses
+- `app/content/harness-engineering/` — manifest, contracts, learning checks, and provenance for the applied agent-systems course
+- `app/lessons/harness-engineering/` — eight standalone lessons on model-agnostic agent execution
 - `app/features/ide/` — authoring experience and Browser Lab orchestration
 - `app/platform/persistence/` — Dexie schema, repositories, migrations, exports
 - `app/runtime/model/` — character training and local Transformer workers

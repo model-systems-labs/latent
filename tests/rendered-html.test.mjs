@@ -22,6 +22,8 @@ test("the landing page frames the course as a personal academic notebook", async
   assert.match(html, /I built this to understand LLM systems/);
   assert.match(html, /Latent is a set of courses, notes, and browser experiments/);
   assert.match(html, /Two short courses cover the mathematical and machine-learning foundations/);
+  assert.match(html, /Harness Engineering/);
+  assert.match(html, /studies the deterministic software around an agent/);
   assert.match(html, /Model, runtime, serving, and interface/);
   assert.match(html, /Browser-native LLM system/);
   assert.match(html, /Prompt \+ messages/);
@@ -44,6 +46,75 @@ test("the landing page frames the course as a personal academic notebook", async
   assert.match(html, /href="\/course"/);
   assert.doesNotMatch(html, /Open the course|Build the system|Token generation is the midpoint|It is free to use/);
   assert.doesNotMatch(html, /Character-level RNN training|course-track-card catalog-track-card|Run the first model/);
+});
+
+test("the course catalog separates foundations, agent systems, and the cumulative LLM project", async () => {
+  const response = await render("/course");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /id="foundations-title">Foundations/);
+  assert.match(html, /id="agent-systems-title">Agent systems/);
+  assert.match(html, /id="project-course-title">LLM systems project/);
+  assert.match(html, /Linear Algebra Basics/);
+  assert.match(html, /Machine Learning Basics/);
+  assert.match(html, /Harness Engineering/);
+  assert.match(html, /Build an LLM System in Your Browser/);
+  assert.match(html, /href="\/courses\/harness-engineering"/);
+  assert.match(html, /Exercises and progress stay separate from Browser Chat/);
+  assert.equal((html.match(/class="course-track-card catalog-program-card"/g) ?? []).length, 4);
+});
+
+test("Harness Engineering renders as an eight-lesson standalone applied course", async () => {
+  const response = await render("/courses/harness-engineering");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Applied(?:<!-- -->)? course/);
+  assert.match(html, /Harness Engineering/);
+  assert.match(html, /Exercises and progress are saved within this course/);
+  for (const title of [
+    "Agent Loop",
+    "Tool Contracts",
+    "Context Selection",
+    "Permissions and Sandboxes",
+    "State and Recovery",
+    "Agent Evaluations",
+    "Task Orchestration",
+    "Integrated Harness",
+  ]) {
+    assert.match(html, new RegExp(title));
+  }
+  assert.equal((html.match(/class="lesson-card lesson-card-simple/g) ?? []).length, 8);
+  assert.doesNotMatch(html, /href="\/(?:project|workspace|capstone)(?:[/?#"])/);
+  assert.doesNotMatch(html, /Open in IDE|BrowserChat\.tsx/);
+});
+
+test("Agent Loop combines technical reading with two isolated runnable cells", async () => {
+  const response = await render("/lessons/agent-loop");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /The model proposes; the harness executes/);
+  assert.match(html, /Each action produces the next observation/);
+  assert.match(html, /Termination is part of the protocol/);
+  assert.match(html, /Parse a model response/);
+  assert.match(html, /Append a tool result/);
+  assert.equal((html.match(/class="exercise-summary"/g) ?? []).length, 2);
+  assert.match(html, /Run cell/);
+  assert.match(html, /Run all tests/);
+  assert.match(html, /id="lesson-sources-title">Sources/);
+  assert.equal((html.match(/class="source-entry"/g) ?? []).length, 3);
+  assert.doesNotMatch(html, /Open in IDE|Saved results|href="#artifacts"/);
+});
+
+test("Integrated Harness renders the composed loop and trace auditor without project coupling", async () => {
+  const response = await render("/lessons/integrated-harness");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Adapters keep the loop model-agnostic/);
+  assert.match(html, /One host transition owns every consequential decision/);
+  assert.match(html, /Run the harness/);
+  assert.match(html, /Audit a harness run/);
+  assert.equal((html.match(/class="exercise-summary"/g) ?? []).length, 2);
+  assert.doesNotMatch(html, /Open in IDE|Saved results|href="#artifacts"/);
 });
 
 test("the LLM Systems home renders one project course with four technical modules", async () => {
@@ -443,7 +514,7 @@ test("the design kit, simulations, model engines, and artifact runtime remain re
   assert.match(paperLab, /lesson\.sources\.map\(\(source\)/);
   assert.doesNotMatch(paperLab, /supporting-sources|source\.role/);
   assert.doesNotMatch(paperLab, /SelectionAsk|selection-ask|data-selection-ask|Highlight a passage/);
-  assert.match(layout, /og-courses\.png/);
+  assert.match(layout, /og\.png/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   await assert.rejects(access(new URL("../app/_sites-preview", templateRoot)));
 });

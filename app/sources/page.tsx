@@ -28,7 +28,7 @@ export default function SourcesPage() {
       <div className="page-atmosphere" aria-hidden="true"><span className="orbit orbit-one" /><span className="node node-one" /><span className="warm-star" /></div>
       <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><Link href="/course">Courses</Link><Link href="/project">Project</Link><Link href="/workspace">IDE</Link></nav></header>
       <article className="sources-page">
-        <header className="sources-hero"><h1>Sources</h1><p>References, datasets, models, and software used across the three courses.</p></header>
+        <header className="sources-hero"><h1>Sources</h1><p>References, datasets, models, and software used across the four courses.</p></header>
 
         <p className="source-policy-note">Sources establish the research, equations, standards, and APIs behind each lesson. Their prose, figures, tutorial code, and datasets are not republished here; Latent&apos;s explanations, diagrams, exercises, implementations, and synthetic fixtures are course-authored.</p>
 

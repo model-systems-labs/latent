@@ -67,6 +67,7 @@ enforceAsset("Transformer WASM", /^ort-wasm-simd-threaded\.jsep-.*\.wasm$/, 22 *
 requireDynamicEntry("app/components/ProjectWorkbench.tsx", "Project IDE loading boundary");
 requireDynamicEntry("app/lib/local-transformer-runtime.ts", "Local Transformer loading boundary");
 requireDynamicEntry("app/features/ide/CodeEditor.tsx", "Lesson editor loading boundary");
+requireDynamicEntry("app/components/LessonExperiment.tsx", "Lesson experiment loading boundary");
 
 console.log(measurements.join("\n"));
 

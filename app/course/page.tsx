@@ -5,11 +5,12 @@ import styles from "./page.module.css";
 
 export const metadata: Metadata = {
   title: "Courses · Latent",
-  description: "Begin with linear algebra or machine-learning basics, then build a complete browser-based LLM system.",
+  description: "Study mathematical foundations, agent harnesses, or the complete browser-based LLM systems project.",
 };
 
 export default function CourseCatalogPage() {
   const foundations = coursePrograms.filter((program) => program.kind === "foundation");
+  const appliedPrograms = coursePrograms.filter((program) => program.kind === "applied");
   const projectCourse = coursePrograms.find((program) => program.kind === "project")!;
   return (
     <main>
@@ -18,7 +19,7 @@ export default function CourseCatalogPage() {
       <article className={`course-page ${styles.catalogPage}`}>
         <header className={`course-hero ${styles.catalogHero}`}>
           <h1>Courses</h1>
-          <p className="course-thesis">Linear algebra and machine learning are short, independent foundations courses. Building an LLM system is a separate project course that continues through inference, serving, and React.</p>
+          <p className="course-thesis">The foundations courses cover the mathematics and training ideas. Harness Engineering studies deterministic agent software. The LLM systems project is a separate cumulative implementation.</p>
         </header>
         <Link className={styles.reviewCallout} href="/flashcards">
           <div>
@@ -41,6 +42,19 @@ export default function CourseCatalogPage() {
             ))}
           </div>
         </section>
+        <section className={styles.programGroup} aria-labelledby="agent-systems-title">
+          <header><strong id="agent-systems-title">Agent systems</strong><p>A standalone course about the execution layer around a language model.</p></header>
+          <div className="course-track-grid">
+            {appliedPrograms.map((program) => (
+              <Link className="course-track-card catalog-program-card" href={program.href} key={program.id}>
+                <header><span>Applied course</span><em>{program.lessons.length} lessons</em></header>
+                <h2>{program.title}</h2>
+                <p>{program.thesis}</p>
+                <footer><span>Exercises and progress stay separate from Browser Chat.</span><strong>Open course →</strong></footer>
+              </Link>
+            ))}
+          </div>
+        </section>
         <section className={styles.programGroup} aria-labelledby="project-course-title">
           <header><strong id="project-course-title">LLM systems project</strong><p>One cumulative course whose lesson files form a working browser chatbot.</p></header>
           <div className="course-track-grid">
@@ -52,7 +66,7 @@ export default function CourseCatalogPage() {
             </Link>
           </div>
         </section>
-        <p className={styles.sequenceNote}>Suggested order: Linear Algebra Basics → Machine Learning Basics → Build an LLM System in Your Browser. You can also open any course directly.</p>
+        <p className={styles.sequenceNote}>Linear algebra and machine learning prepare you for the LLM systems project. Harness Engineering is independent and studies agent execution around an existing model.</p>
       </article>
     </main>
   );

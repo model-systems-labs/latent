@@ -5,7 +5,7 @@ import styles from "./page.module.css";
 export const metadata: Metadata = {
   title: "Latent · Courses on LLM systems",
   description:
-    "Foundations, implementations, and browser experiments for studying machine learning, language models, inference runtimes, serving systems, and chat interfaces.",
+    "Foundations, implementations, and browser experiments for studying machine learning, language models, agent harnesses, inference runtimes, serving systems, and chat interfaces.",
 };
 
 const architectureStages = [
@@ -60,8 +60,9 @@ export default function Home() {
           <h1>I built this to understand LLM systems.</h1>
           <p>
             Latent is a set of courses, notes, and browser experiments for learning the subject. Two
-            short courses cover the mathematical and machine-learning foundations. A separate project
-            course follows an LLM from sequence modeling through inference, serving, and interface design.
+            short courses cover the mathematical and machine-learning foundations. Harness Engineering
+            studies the deterministic software around an agent. A separate project course follows an LLM
+            from sequence modeling through inference, serving, and interface design.
           </p>
           <div className={styles.actions}>
             <Link className={styles.primaryAction} href="/course">Browse the courses <span aria-hidden="true">→</span></Link>

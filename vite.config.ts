@@ -50,9 +50,16 @@ export default defineConfig(async () => {
     optimizeDeps: {
       include: ["@huggingface/transformers", "@codemirror/lang-python"],
     },
-    server: isCodexSeatbeltSandbox
-      ? { watch: { useFsEvents: false, usePolling: true } }
-      : undefined,
+    server: {
+      watch: {
+        // predev builds workspace packages before Vite starts. A later production
+        // build must not hot-reload the app while those generated files are emitted.
+        ignored: ["**/packages/*/dist/**"],
+        ...(isCodexSeatbeltSandbox
+          ? { useFsEvents: false, usePolling: true }
+          : {}),
+      },
+    },
     plugins: [
       vinext(),
       sites(),

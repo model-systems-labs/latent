@@ -8,6 +8,9 @@ import { subwordTokenizationLesson } from "./model/subword-tokenization";
 import { additiveAttentionLesson } from "./model/additive-attention";
 import { transformersLesson } from "./model/transformers";
 import { inContextLearningLesson } from "./model/in-context-learning";
+import { linearAlgebraManifest, machineLearningBasicsManifest } from "../content/foundations/manifests";
+import { linearAlgebraLessons } from "./foundations/linear-algebra";
+import { machineLearningBasicsLessons } from "./foundations/machine-learning-basics";
 
 const modelLessons: Array<Omit<CourseLesson, "sources">> = [
   characterRnnsLesson,
@@ -26,9 +29,11 @@ const sourceLessons: CourseLesson[] = [
     courseTitle: "Model Foundations",
     courseNumber: 1,
     lessonNumber: index + 1,
+    programId: "llm-systems",
+    projectScope: "browser-chat" as const,
   })),
-  ...systemsLessons,
-  ...productLessons,
+  ...systemsLessons.map((lesson) => ({ ...lesson, programId: "llm-systems", projectScope: "browser-chat" as const })),
+  ...productLessons.map((lesson) => ({ ...lesson, programId: "llm-systems", projectScope: "browser-chat" as const })),
 ];
 
 export const llmSystemsCurriculum = deriveCurriculum(llmSystemsManifest, sourceLessons);
@@ -37,6 +42,72 @@ export const llmSystemsCurriculum = deriveCurriculum(llmSystemsManifest, sourceL
 export const courseLessons: CourseLesson[] = llmSystemsCurriculum.lessons.map(
   ({ lesson }) => lesson,
 );
+
+export const linearAlgebraCurriculum = deriveCurriculum(
+  linearAlgebraManifest,
+  linearAlgebraLessons,
+);
+
+export const machineLearningBasicsCurriculum = deriveCurriculum(
+  machineLearningBasicsManifest,
+  machineLearningBasicsLessons,
+);
+
+export const foundationLessons: CourseLesson[] = [
+  ...linearAlgebraCurriculum.lessons.map(({ lesson }) => lesson),
+  ...machineLearningBasicsCurriculum.lessons.map(({ lesson }) => lesson),
+];
+
+/** Every public lesson route. Browser Chat build code must continue to use courseLessons. */
+export const allRoutedLessons: CourseLesson[] = [...foundationLessons, ...courseLessons];
+
+export type CourseProgram = {
+  id: "linear-algebra" | "machine-learning-basics" | "llm-systems";
+  order: number;
+  title: string;
+  shortTitle: string;
+  thesis: string;
+  outcome: string;
+  href: string;
+  kind: "foundation" | "project";
+  lessons: CourseLesson[];
+};
+
+export const coursePrograms: CourseProgram[] = [
+  {
+    id: "linear-algebra",
+    order: 1,
+    title: linearAlgebraCurriculum.title,
+    shortTitle: linearAlgebraCurriculum.shortTitle,
+    thesis: linearAlgebraCurriculum.thesis,
+    outcome: linearAlgebraCurriculum.outcome,
+    href: "/courses/linear-algebra",
+    kind: "foundation",
+    lessons: linearAlgebraCurriculum.lessons.map(({ lesson }) => lesson),
+  },
+  {
+    id: "machine-learning-basics",
+    order: 2,
+    title: machineLearningBasicsCurriculum.title,
+    shortTitle: machineLearningBasicsCurriculum.shortTitle,
+    thesis: machineLearningBasicsCurriculum.thesis,
+    outcome: machineLearningBasicsCurriculum.outcome,
+    href: "/courses/machine-learning-basics",
+    kind: "foundation",
+    lessons: machineLearningBasicsCurriculum.lessons.map(({ lesson }) => lesson),
+  },
+  {
+    id: "llm-systems",
+    order: 3,
+    title: llmSystemsCurriculum.title,
+    shortTitle: "Browser Chat",
+    thesis: llmSystemsCurriculum.thesis,
+    outcome: llmSystemsCurriculum.outcome,
+    href: "/courses/llm-systems",
+    kind: "project",
+    lessons: courseLessons,
+  },
+];
 
 const compatibleTrackIds: readonly CourseTrack["id"][] = [
   "models",
@@ -69,7 +140,7 @@ export const courseTracks: CourseTrack[] = llmSystemsCurriculum.modules.map((mod
 export { modelLessons };
 
 export function getLesson(slug: string) {
-  return llmSystemsCurriculum.lessonById[slug]?.lesson;
+  return allRoutedLessons.find((lesson) => lesson.id === slug);
 }
 
 export function getAdjacentLesson(lesson: CourseLesson, direction: -1 | 1) {
@@ -83,4 +154,18 @@ export function getTrack(courseId: string) {
 
 export function getTrackLessons(courseId: string) {
   return llmSystemsCurriculum.moduleByRouteSlug[courseId]?.lessons.map(({ lesson }) => lesson) ?? [];
+}
+
+export function getCourseProgram(programId: string) {
+  return coursePrograms.find((program) => program.id === programId);
+}
+
+export function getCourseProgramLessons(programId: string) {
+  return getCourseProgram(programId)?.lessons ?? [];
+}
+
+export function getLessonCourseHref(lesson: CourseLesson) {
+  return lesson.projectScope === "standalone"
+    ? `/courses/${lesson.programId ?? lesson.courseId}`
+    : `/courses/llm-systems/${lesson.courseId ?? "models"}`;
 }

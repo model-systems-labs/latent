@@ -1,10 +1,11 @@
 # Content provenance
 
-Latent teaches published mechanisms without republishing the lessons, figures,
-datasets, or implementation code that introduced them. Papers, standards, and
-reference repositories are linked as sources. The course explanations, diagrams,
-exercises, reference solutions, tests, and small synthetic fixtures are written
-for this project unless a local notice says otherwise.
+Latent's three courses teach published mechanisms without republishing the
+lessons, figures, datasets, or implementation code that introduced them. Papers,
+standards, and reference repositories are linked as sources. The course
+explanations, diagrams, exercises, reference solutions, tests, and small
+synthetic fixtures are written for this project unless a local notice says
+otherwise.
 
 ## What the sources contribute
 
@@ -29,6 +30,8 @@ grant on the repository owner's behalf.
 
 ## Review record
 
+### LLM Systems
+
 On 2026-07-17, all fourteen lessons were checked against their cited papers,
 standards, guides, and implementation repositories. The review covered learner
 prose, diagrams, reference solutions, host-owned trainers, tests, experiment
@@ -48,6 +51,20 @@ No other substantive phrase, figure, dataset, or structurally distinctive code
 reuse was found. Matches were limited to bibliographic titles and necessary
 technical vocabulary. The machine-readable lesson-by-lesson record lives in
 `app/lessons/provenance.ts`.
+
+### Linear Algebra and Machine Learning Basics
+
+On 2026-07-18, the ten stand-alone prerequisite lessons were reviewed for the
+origin of their prose, diagrams, exercises, reference solutions, and synthetic
+fixtures. Their numerical examples, diagrams, code structure, validation, and
+small datasets were written for this project. The linked textbooks, guides, and
+NumPy documentation support mathematical definitions and API behavior; their
+prose, figures, worked examples, and source code are not included.
+
+These lessons do not contribute files or requirements to the Browser Chat
+project. Their separate machine-readable record lives in
+`app/content/foundations/provenance.ts`, leaving the fourteen-lesson LLM Systems
+review inventory unchanged.
 
 ## Contribution rule
 

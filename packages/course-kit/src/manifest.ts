@@ -29,7 +29,7 @@ export const curriculumManifestSchema = z.object({
     title: z.string().min(1),
     description: z.string().min(1),
     projectPath: z.string().min(3),
-  }).strict(),
+  }).strict().optional(),
   modules: z.array(curriculumModuleSchema).min(1),
 }).strict();
 
@@ -59,7 +59,7 @@ export type CurriculumManifest = {
   shortTitle: string;
   thesis: string;
   outcome: string;
-  capstone: {
+  capstone?: {
     title: string;
     description: string;
     projectPath: string;

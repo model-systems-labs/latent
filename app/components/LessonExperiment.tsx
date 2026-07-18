@@ -985,6 +985,137 @@ function ProductExperiment({ variant, onComplete }: { variant: ProductVariant } 
   );
 }
 
+type FundamentalsResult = {
+  control: string;
+  minimum: number;
+  maximum: number;
+  step: number;
+  initial: number;
+  metrics: Array<{ label: string; value: string }>;
+  trace: Array<{ label: string; detail: string }>;
+};
+
+function fundamentalsResult(variant: string, value: number): FundamentalsResult {
+  const rounded = Math.round(value);
+  const definitions: Record<string, () => Omit<FundamentalsResult, "control" | "minimum" | "maximum" | "step" | "initial">> = {
+    "array-shapes": () => ({
+      metrics: [
+        { label: "Rank", value: "2" },
+        { label: "Shape", value: `(${rounded}, 3)` },
+        { label: "Values", value: String(rounded * 3) },
+      ],
+      trace: [
+        { label: "Choose rows", detail: `${rounded} rows` },
+        { label: "Keep three columns", detail: "3 values in each row" },
+        { label: "Count entries", detail: `${rounded} × 3 = ${rounded * 3}` },
+      ],
+    }),
+    "vector-operations": () => {
+      const length = Math.hypot(value, 4);
+      return {
+        metrics: [{ label: "Vector", value: `[${value.toFixed(1)}, 4]` }, { label: "Squared sum", value: (value * value + 16).toFixed(2) }, { label: "L2 length", value: length.toFixed(3) }],
+        trace: [{ label: "Square", detail: `${value.toFixed(1)}² + 4²` }, { label: "Add", detail: (value * value + 16).toFixed(2) }, { label: "Square root", detail: length.toFixed(3) }],
+      };
+    },
+    "dot-products": () => {
+      const cosine = value / Math.hypot(value, 1);
+      return {
+        metrics: [{ label: "Left", value: "[1, 0]" }, { label: "Right", value: `[${value.toFixed(1)}, 1]` }, { label: "Cosine", value: cosine.toFixed(3) }],
+        trace: [{ label: "Dot product", detail: `1×${value.toFixed(1)} + 0×1 = ${value.toFixed(1)}` }, { label: "Lengths", detail: `1 and ${Math.hypot(value, 1).toFixed(3)}` }, { label: "Normalize", detail: cosine.toFixed(3) }],
+      };
+    },
+    "matrix-multiplication": () => ({
+      metrics: [{ label: "Input", value: `[${value.toFixed(1)}, 1]` }, { label: "Row 1", value: (value + 2).toFixed(2) }, { label: "Row 2", value: (-value + 1).toFixed(2) }],
+      trace: [{ label: "First row", detail: `1×${value.toFixed(1)} + 2×1` }, { label: "Second row", detail: `−1×${value.toFixed(1)} + 1×1` }, { label: "Output", detail: `[${(value + 2).toFixed(2)}, ${(-value + 1).toFixed(2)}]` }],
+    }),
+    "batches-and-broadcasting": () => ({
+      metrics: [{ label: "Input shape", value: `(${rounded}, 2)` }, { label: "Weight shape", value: "(3, 2)" }, { label: "Output shape", value: `(${rounded}, 3)` }],
+      trace: [{ label: "Batch rows", detail: `${rounded} separate vectors` }, { label: "Shared weights", detail: "the same (3, 2) matrix for every row" }, { label: "Shared bias", detail: "one 3-value bias added to every output row" }],
+    }),
+    "training-data": () => ({
+      metrics: [{ label: "All rows", value: "8" }, { label: "Training", value: String(8 - rounded) }, { label: "Validation", value: String(rounded) }],
+      trace: [{ label: "Start", detail: "8 labeled examples" }, { label: "Hold out", detail: `${rounded} rows are never used for updates` }, { label: "Train", detail: `${8 - rounded} rows can update parameters` }],
+    }),
+    "linear-regression": () => {
+      const prediction = 2 * value + 0.5;
+      const loss = (prediction - 5) ** 2;
+      return {
+        metrics: [{ label: "Weight", value: value.toFixed(2) }, { label: "Prediction", value: prediction.toFixed(2) }, { label: "Squared error", value: loss.toFixed(3) }],
+        trace: [{ label: "Feature", detail: "x = 2" }, { label: "Predict", detail: `2×${value.toFixed(2)} + 0.5 = ${prediction.toFixed(2)}` }, { label: "Compare with target 5", detail: `(${prediction.toFixed(2)} − 5)² = ${loss.toFixed(3)}` }],
+      };
+    },
+    "gradient-descent": () => {
+      let weight = 0;
+      const xs = [1, 2, 3];
+      const targets = [2, 4, 6];
+      let loss = 0;
+      for (let iteration = 0; iteration < rounded; iteration += 1) {
+        const errors = xs.map((x, index) => x * weight - targets[index]);
+        loss = errors.reduce((sum, error) => sum + error * error, 0) / errors.length;
+        const gradient = 2 * errors.reduce((sum, error, index) => sum + error * xs[index], 0) / errors.length;
+        weight -= 0.05 * gradient;
+      }
+      const finalErrors = xs.map((x, index) => x * weight - targets[index]);
+      loss = finalErrors.reduce((sum, error) => sum + error * error, 0) / finalErrors.length;
+      return {
+        metrics: [{ label: "Steps", value: String(rounded) }, { label: "Weight", value: weight.toFixed(3) }, { label: "MSE", value: loss.toFixed(4) }],
+        trace: [{ label: "Predict", detail: "ŷ = weight × x" }, { label: "Measure slope", detail: "average 2 × error × x" }, { label: "Update", detail: `${rounded} steps with learning rate 0.05` }],
+      };
+    },
+    "binary-classification": () => {
+      const probability = value >= 0 ? 1 / (1 + Math.exp(-value)) : Math.exp(value) / (1 + Math.exp(value));
+      const loss = -Math.log(Math.max(probability, 1e-12));
+      return {
+        metrics: [{ label: "Logit", value: value.toFixed(2) }, { label: "p(target = 1)", value: probability.toFixed(3) }, { label: "Loss", value: loss.toFixed(3) }],
+        trace: [{ label: "Raw score", detail: value.toFixed(2) }, { label: "Sigmoid", detail: probability.toFixed(3) }, { label: "Target is 1", detail: `−log(${probability.toFixed(3)}) = ${loss.toFixed(3)}` }],
+      };
+    },
+    "neural-networks": () => {
+      const hidden = [Math.max(0, value), 1];
+      const logit = 0.5 * hidden[0] - hidden[1] + 0.1;
+      return {
+        metrics: [{ label: "Input", value: `[${value.toFixed(1)}, 1]` }, { label: "Hidden after ReLU", value: `[${hidden[0].toFixed(1)}, 1]` }, { label: "Logit", value: logit.toFixed(2) }],
+        trace: [{ label: "Dense", detail: `identity weights → [${value.toFixed(1)}, 1]` }, { label: "ReLU", detail: `negative values become 0 → [${hidden[0].toFixed(1)}, 1]` }, { label: "Output layer", detail: `0.5×${hidden[0].toFixed(1)} − 1 + 0.1 = ${logit.toFixed(2)}` }],
+      };
+    },
+  };
+  const controls: Record<string, Pick<FundamentalsResult, "control" | "minimum" | "maximum" | "step" | "initial">> = {
+    "array-shapes": { control: "Rows", minimum: 1, maximum: 5, step: 1, initial: 2 },
+    "vector-operations": { control: "First coordinate", minimum: -4, maximum: 6, step: 0.5, initial: 3 },
+    "dot-products": { control: "Right vector x", minimum: -4, maximum: 4, step: 0.5, initial: 1 },
+    "matrix-multiplication": { control: "Input x", minimum: -3, maximum: 5, step: 0.5, initial: 2 },
+    "batches-and-broadcasting": { control: "Batch rows", minimum: 1, maximum: 6, step: 1, initial: 3 },
+    "training-data": { control: "Validation rows", minimum: 1, maximum: 4, step: 1, initial: 2 },
+    "linear-regression": { control: "Weight", minimum: -1, maximum: 3, step: 0.1, initial: 1 },
+    "gradient-descent": { control: "Update steps", minimum: 1, maximum: 20, step: 1, initial: 5 },
+    "binary-classification": { control: "Logit", minimum: -6, maximum: 6, step: 0.25, initial: 0 },
+    "neural-networks": { control: "First input", minimum: -3, maximum: 4, step: 0.25, initial: -1 },
+  };
+  const control = controls[variant] ?? controls["array-shapes"];
+  return { ...control, ...(definitions[variant] ?? definitions["array-shapes"])() };
+}
+
+function FundamentalsExperiment({ variant, onComplete }: { variant: string } & ExperimentProps) {
+  const initial = fundamentalsResult(variant, 0);
+  const [value, setValue] = useState(initial.initial);
+  const [ran, setRan] = useState(false);
+  const result = fundamentalsResult(variant, value);
+  return (
+    <>
+      <div className="simulation-controls fundamentals-controls">
+        <label><span>{result.control} · {value}</span><input aria-label={result.control} type="range" min={result.minimum} max={result.maximum} step={result.step} value={value} onChange={(event) => { setValue(Number(event.target.value)); setRan(false); }} /></label>
+      </div>
+      <div className="experiment-action"><p>Small fixed example · change one value, then run it</p><button type="button" onClick={() => { setRan(true); onComplete(); }}>{ran ? "Run example again" : "Run example"}</button></div>
+      {ran ? (
+        <div className="simulation-result fundamentals-result">
+          <div className="metric-grid">{result.metrics.map((metric) => <span key={metric.label}><em>{metric.label}</em><strong>{metric.value}</strong></span>)}</div>
+          <div className="trace-list compact-trace">{result.trace.map((item, index) => <div key={item.label}><span>{index + 1}</span><strong>{item.label}</strong><p>{item.detail}</p></div>)}</div>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
 export function LessonExperiment({ lesson }: { lesson: CourseLesson }) {
   const complete = () => markExperimentComplete(lesson.id);
   return (
@@ -998,6 +1129,7 @@ export function LessonExperiment({ lesson }: { lesson: CourseLesson }) {
       {lesson.experiment.kind === "icl" ? <IclExperiment onComplete={complete} /> : null}
       {lesson.experiment.kind === "systems" && lesson.experiment.variant ? <SystemsExperiment variant={lesson.experiment.variant as SystemsVariant} onComplete={complete} /> : null}
       {lesson.experiment.kind === "product" && lesson.experiment.variant ? <ProductExperiment variant={lesson.experiment.variant as ProductVariant} onComplete={complete} /> : null}
+      {lesson.experiment.kind === "fundamentals" && lesson.experiment.variant ? <FundamentalsExperiment variant={lesson.experiment.variant} onComplete={complete} /> : null}
     </section>
   );
 }

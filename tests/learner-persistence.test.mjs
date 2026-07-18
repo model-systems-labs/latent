@@ -77,6 +77,29 @@ test("learner recovery merges independent lessons and keeps the newest same-less
   assert.equal(merged.lessons.c.answers.cell, "c");
 });
 
+test("foundation progress is stored under its own courses without creating Browser Chat", async () => {
+  learner.saveLessonPractice("arrays-and-shapes", ["describe-array"], {
+    "describe-array": "def describe_array(values):\n    return {}",
+  });
+  learner.saveLessonPractice("ml-training-data", ["features-targets"], {
+    "features-targets": "def features_and_targets(rows):\n    return {}",
+  });
+  await learner.flushLearnerPersistence();
+
+  const { repositories } = await client.getPersistenceContext();
+  const linearAlgebra = await repositories.progress.get(
+    persistence.lessonProgressId("linear-algebra", "arrays-and-shapes"),
+  );
+  const machineLearning = await repositories.progress.get(
+    persistence.lessonProgressId("machine-learning-basics", "ml-training-data"),
+  );
+  assert.equal(linearAlgebra.courseId, "linear-algebra");
+  assert.equal(linearAlgebra.moduleId, "linear-algebra-basics");
+  assert.equal(machineLearning.courseId, "machine-learning-basics");
+  assert.equal(machineLearning.moduleId, "machine-learning-basics");
+  assert.equal(await repositories.projects.get("browser-chat"), undefined);
+});
+
 test("lesson keystrokes create an immediate recovery copy and coalesce to the latest durable row", async () => {
   for (let value = 1; value <= 40; value += 1) {
     learner.saveLessonPractice("coalesced-lesson", ["cell"], { cell: `answer ${value}` });

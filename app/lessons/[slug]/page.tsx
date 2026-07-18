@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PaperLab } from "../../components/PaperLab";
-import { courseLessons, getLesson } from "../course";
+import { allRoutedLessons, getLesson } from "../course";
 
 export function generateStaticParams() {
-  return courseLessons.map((lesson) => ({ slug: lesson.id }));
+  return allRoutedLessons.map((lesson) => ({ slug: lesson.id }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {

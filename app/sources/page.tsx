@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { courseLessons } from "../lessons/course";
+import { coursePrograms } from "../lessons/course";
 
 export const metadata: Metadata = {
   title: "Sources and licenses · Latent",
-  description: "Paper links, where the data came from, model licenses, and open-source notices for the Latent LLM Systems course.",
+  description: "References, datasets, model licenses, and open-source notices for every Latent course.",
 };
 
 const runtimeNotices = [
@@ -26,9 +26,9 @@ export default function SourcesPage() {
   return (
     <main>
       <div className="page-atmosphere" aria-hidden="true"><span className="orbit orbit-one" /><span className="node node-one" /><span className="warm-star" /></div>
-      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><Link href="/course">Course</Link><Link href="/project">Project</Link><Link href="/workspace">IDE</Link></nav></header>
+      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><Link href="/course">Courses</Link><Link href="/project">Project</Link><Link href="/workspace">IDE</Link></nav></header>
       <article className="sources-page">
-        <header className="sources-hero"><h1>Sources</h1><p>Research, datasets, models, and software used by the course.</p></header>
+        <header className="sources-hero"><h1>Sources</h1><p>References, datasets, models, and software used across the three courses.</p></header>
 
         <p className="source-policy-note">Sources establish the research, equations, standards, and APIs behind each lesson. Their prose, figures, tutorial code, and datasets are not republished here; Latent&apos;s explanations, diagrams, exercises, implementations, and synthetic fixtures are course-authored.</p>
 
@@ -41,11 +41,16 @@ export default function SourcesPage() {
 
         <section className="lesson-source-index" aria-labelledby="lesson-source-index-title">
           <header><h2 id="lesson-source-index-title">Lesson sources</h2></header>
-          {courseLessons.map((lesson) => (
-            <article key={lesson.id}>
-              <header><strong>{lesson.title}</strong><code>{lesson.dataset.name} · {lesson.dataset.source} · {lesson.dataset.license} · {lesson.dataset.size}</code></header>
-              <ul>{lesson.sources.map((source) => <li key={source.url}><a href={source.url} target="_blank" rel="noreferrer" aria-label={`${source.title}, ${source.authors}, ${source.year}; opens in a new tab`}><span><strong>{source.title}</strong><em>{source.authors} · {source.year}</em></span><i aria-hidden="true">↗</i></a></li>)}</ul>
-            </article>
+          {coursePrograms.map((program) => (
+            <section className="source-program-group" aria-labelledby={`sources-${program.id}`} key={program.id}>
+              <h3 id={`sources-${program.id}`}>{program.title}</h3>
+              {program.lessons.map((lesson) => (
+                <article key={lesson.id}>
+                  <header><strong>{lesson.title}</strong><code>{lesson.dataset.name} · {lesson.dataset.source} · {lesson.dataset.license} · {lesson.dataset.size}</code></header>
+                  <ul>{lesson.sources.map((source) => <li key={source.url}><a href={source.url} target="_blank" rel="noreferrer" aria-label={`${source.title}, ${source.authors}, ${source.year}; opens in a new tab`}><span><strong>{source.title}</strong><em>{source.authors} · {source.year}</em></span><i aria-hidden="true">↗</i></a></li>)}</ul>
+                </article>
+              ))}
+            </section>
           ))}
         </section>
       </article>

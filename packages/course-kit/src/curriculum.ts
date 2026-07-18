@@ -106,9 +106,11 @@ export function validateCurriculumManifest(
   requireText("shortTitle", manifest.shortTitle);
   requireText("thesis", manifest.thesis);
   requireText("outcome", manifest.outcome);
-  requireText("capstone.title", manifest.capstone.title);
-  requireText("capstone.description", manifest.capstone.description);
-  validateProjectPath("capstone.projectPath", manifest.capstone.projectPath, issues);
+  if (manifest.capstone) {
+    requireText("capstone.title", manifest.capstone.title);
+    requireText("capstone.description", manifest.capstone.description);
+    validateProjectPath("capstone.projectPath", manifest.capstone.projectPath, issues);
+  }
 
   if (manifest.modules.length === 0) {
     issues.push({ path: "modules", message: "must contain at least one module" });

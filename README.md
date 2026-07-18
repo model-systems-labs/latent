@@ -1,22 +1,28 @@
 # Latent
 
-Latent is an executable browser course for building an LLM system from model
-foundations through a production-style React chat interface.
+Latent contains three executable browser courses:
 
-The program contains four modules and fourteen lessons:
+- Linear Algebra Basics — 5 lessons on arrays, vectors, matrix operations, and
+  batching.
+- Machine Learning Basics — 5 lessons on data, loss, gradients, classification,
+  and small neural networks.
+- Build an LLM System in Your Browser — 14 lessons from model foundations
+  through a production-style React chat interface.
 
-1. Model Foundations
-2. Inference Runtime
-3. LLM Serving
-4. Chat Integration
+The first two courses are stand-alone prerequisites. Their NumPy exercises and
+saved progress do not add files or requirements to Browser Chat. The advanced
+LLM Systems course alone builds that project across four modules: Model
+Foundations, Inference Runtime, LLM Serving, and Chat Integration. In total,
+Latent contains 24 lessons.
 
 Every lesson links to its curated sources, explains the technical finding, and
-includes implementation cells backed by host-owned tests. The same project files
-open in a dedicated IDE and produce the validated build used by the capstone.
+includes implementation cells backed by host-owned tests. In the LLM Systems
+course, the same project files open in a dedicated IDE and produce the validated
+build used by the capstone.
 
-Numerical lessons run CPython and NumPy through WebAssembly in the browser.
-Learners edit the same Python files in the lesson and project IDE, run
-host-owned tests, train the course model, and carry the resulting checkpoint
+Numerical lessons run CPython and NumPy through WebAssembly in the browser. In
+LLM Systems, learners edit the same Python files in the lesson and project IDE,
+run host-owned tests, train the course model, and carry the resulting checkpoint
 into the capstone without switching tools or installing a local runtime.
 
 ## What runs in the browser
@@ -47,6 +53,7 @@ assertions, compiler policy, resource limits, build receipts, and promotion gate
 - `packages/course-kit/` — lesson types, curriculum schema, and curriculum compiler
 - `packages/mock-services/` — MSW handlers, SSE transport, cancellation, and failure scenarios
 - `app/content/llm-systems/` — curriculum manifest and typed exercise contracts
+- `app/content/foundations/` — manifests, contracts, learning checks, and provenance for the two prerequisite courses
 - `app/features/ide/` — authoring experience and Browser Lab orchestration
 - `app/platform/persistence/` — Dexie schema, repositories, migrations, exports
 - `app/runtime/model/` — character training and local Transformer workers

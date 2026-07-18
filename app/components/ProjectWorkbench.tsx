@@ -448,7 +448,7 @@ export function ProjectWorkbench() {
       );
       saveLessonProjectFile({
         path: entry.projectPath,
-        courseId: entry.lesson.courseId ?? "models",
+        courseId: (entry.lesson.courseId ?? "models") as ProjectCourse,
         lessonId: entry.lesson.id,
         title: entry.lesson.title,
         content: file.content,

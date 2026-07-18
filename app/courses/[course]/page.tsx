@@ -1,48 +1,50 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { courseTracks, getTrack, getTrackLessons } from "../../lessons/course";
+import { notFound, redirect } from "next/navigation";
+import { coursePrograms, courseTracks, getCourseProgram } from "../../lessons/course";
 import { CourseCurriculum } from "../../components/CourseCurriculum";
-import { moduleCheckpoint } from "../../content/llm-systems/learning";
 
 export function generateStaticParams() {
-  return courseTracks.map((track) => ({ course: track.id }));
+  return [
+    ...coursePrograms.filter((program) => program.kind === "foundation").map((program) => ({ course: program.id })),
+    ...courseTracks.map((track) => ({ course: track.id })),
+  ];
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ course: string }> }): Promise<Metadata> {
   const { course } = await params;
-  const track = getTrack(course);
-  if (!track) return {};
-  return { title: `${track.title} module · Latent`, description: track.thesis };
+  const program = getCourseProgram(course);
+  if (program?.kind === "foundation") {
+    return { title: `${program.title} · Latent`, description: program.thesis };
+  }
+  const track = courseTracks.find((candidate) => candidate.id === course);
+  if (track) return { title: `${track.title} · Latent`, description: track.thesis };
+  return {};
 }
 
-export default async function CoursePage({ params }: { params: Promise<{ course: string }> }) {
+export default async function StandaloneCoursePage({ params }: { params: Promise<{ course: string }> }) {
   const { course } = await params;
-  const track = getTrack(course);
-  if (!track) notFound();
-  const lessons = getTrackLessons(track.id);
-  const previous = courseTracks[track.number - 2];
-  const next = courseTracks[track.number];
-  const checkpoint = moduleCheckpoint(track.id);
+  const legacyTrack = courseTracks.find((track) => track.id === course);
+  if (legacyTrack) redirect(`/courses/llm-systems/${legacyTrack.id}`);
+  const program = getCourseProgram(course);
+  if (!program || program.kind !== "foundation") notFound();
+  const previous = coursePrograms[program.order - 2];
+  const next = coursePrograms[program.order];
   return (
     <main>
       <div className="page-atmosphere" aria-hidden="true"><span className="orbit orbit-one" /><span className="node node-one" /><span className="warm-star" /></div>
-      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><Link href="/course">Course home</Link></header>
-      <article className="course-page track-page">
+      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><Link href="/course">All courses</Link><Link href="/sources">Sources</Link></nav></header>
+      <article className="course-page track-page standalone-course-page">
         <header className="course-hero track-hero catalog-track-hero">
-          <h1>{track.title}</h1>
-          <p className="course-thesis">{track.thesis}</p>
+          <p className="eyebrow">Standalone foundations course · {program.lessons.length} lessons</p>
+          <h1>{program.title}</h1>
+          <p className="course-thesis">{program.thesis}</p>
         </header>
-        <CourseCurriculum title={track.title} lessons={lessons} />
-        {checkpoint ? (
-          <Link className="module-checkpoint-card module-checkpoint-card-simple" href={`/checkpoints/${track.id}`}>
-            <div><strong>{checkpoint.title}</strong><p>Optional integration check. {checkpoint.objective}</p></div>
-            <span aria-hidden="true">→</span>
-          </Link>
-        ) : null}
+        <p className="standalone-course-boundary">Exercises and progress are saved within this course.</p>
+        <CourseCurriculum title={program.title} lessons={program.lessons} completionLabel="Course lessons complete" />
         <footer className="track-navigation">
-          {previous ? <Link href={`/courses/${previous.id}`}>← {previous.title}</Link> : <Link href="/course">← Course home</Link>}
-          {next ? <Link href={`/courses/${next.id}`}>{next.title} →</Link> : <Link href="/capstone">Build the capstone →</Link>}
+          {previous ? <Link href={previous.href}>← {previous.title}</Link> : <Link href="/course">← All courses</Link>}
+          {next ? <Link href={next.href}>{next.title} →</Link> : <Link href="/course">All courses ↑</Link>}
         </footer>
       </article>
     </main>

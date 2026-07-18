@@ -57,6 +57,26 @@
   max-width: 60rem;
 }
 
+.standalone-course-page .eyebrow {
+  color: var(--violet-deep);
+  font-size: max(0.66rem, 11px);
+  letter-spacing: 0.14em;
+  margin: 0 0 1rem;
+  text-transform: uppercase;
+}
+
+.standalone-course-boundary {
+  color: var(--muted);
+  font-size: max(0.7rem, 12px);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.standalone-course-boundary {
+  border-top: 1px solid var(--line);
+  padding: 0.9rem 0;
+}
+
 .course-progress-record {
   align-items: center;
   border-bottom: 1px solid var(--line);
@@ -287,4 +307,5 @@
   .catalog-capstone-link {
     align-items: flex-start;
   }
+
 }

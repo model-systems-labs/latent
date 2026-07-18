@@ -3,17 +3,25 @@
 import Link from "next/link";
 import type { CourseLesson } from "@latent/course-kit";
 import { lessonIsComplete, useLearnerState, useLearnerStateHydrated } from "../lib/learner-state";
-import { lessonLearningOutcome } from "../content/llm-systems/learning";
-import { llmSystemsContractSuite } from "../content/llm-systems/contracts";
+import { lessonLearningOutcome } from "../lessons/learning";
+import { contractSuiteForLesson } from "../lessons/contract-suite";
 
-export function CourseCurriculum({ title, lessons }: { title: string; lessons: CourseLesson[] }) {
+export function CourseCurriculum({
+  title,
+  lessons,
+  completionLabel = "Module lessons complete",
+}: {
+  title: string;
+  lessons: CourseLesson[];
+  completionLabel?: string;
+}) {
   const learnerState = useLearnerState();
   const hydrated = useLearnerStateHydrated();
   const isComplete = (lesson: CourseLesson) => lessonIsComplete(
     learnerState,
     lesson.id,
     lesson.implementation.codeBlocks.map((block) => block.id),
-    llmSystemsContractSuite.contractVersion,
+    contractSuiteForLesson(lesson.id).contractVersion,
     lessonLearningOutcome(lesson.id).check.id,
   );
   const completed = lessons.filter(isComplete).length;
@@ -30,7 +38,7 @@ export function CourseCurriculum({ title, lessons }: { title: string; lessons: C
         <div className="course-progress-next">
           {nextLesson
             ? <Link href={`/lessons/${nextLesson.id}`}>Continue {nextLesson.title} →</Link>
-            : <span>Module lessons complete</span>}
+            : <span>{completionLabel}</span>}
         </div>
       ) : null}
       <section className="curriculum-list" aria-label={`${title} lessons`}>

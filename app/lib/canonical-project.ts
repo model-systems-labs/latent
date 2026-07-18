@@ -9,7 +9,7 @@ import {
   flushProjectPersistence,
   initializeProjectPersistence,
 } from "./project-workspace";
-import type { LessonProjectSeed } from "./project-workspace";
+import type { LessonProjectSeed, ProjectCourse } from "./project-workspace";
 
 export function canonicalProjectSeeds(): LessonProjectSeed[] {
   const application: LessonProjectSeed[] = CANONICAL_BROWSER_CHAT_FILES.map((file) => ({
@@ -59,7 +59,7 @@ export function canonicalLessonSeeds(
     );
     return {
       path: projectPath,
-      courseId: lesson.courseId ?? "models",
+      courseId: (lesson.courseId ?? "models") as ProjectCourse,
       lessonId: lesson.id,
       title: lesson.title,
       content: source(true),

@@ -3,7 +3,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { CodeBlock, CourseLesson } from "@latent/course-kit";
-import { courseLessons } from "../lessons/course";
+import { allRoutedLessons, getLessonCourseHref } from "../lessons/course";
 import { LessonExperiment } from "./LessonExperiment";
 import {
   discardLearnerRecoveryCandidate,
@@ -16,7 +16,7 @@ import {
   useLearnerPersistenceError,
   useLearnerRecoveryCandidates,
 } from "../lib/learner-state";
-import { ensureProjectWorkspace, flushProjectPersistence, initializeProjectPersistence, loadProjectState, projectFileSourceIsCurrent, saveLessonProjectFile, useProjectPersistenceError, type LessonProjectSeed } from "../lib/project-workspace";
+import { ensureProjectWorkspace, flushProjectPersistence, initializeProjectPersistence, loadProjectState, projectFileSourceIsCurrent, saveLessonProjectFile, useProjectPersistenceError, type LessonProjectSeed, type ProjectCourse } from "../lib/project-workspace";
 import { runPracticeContracts, type PracticeContractRun } from "../features/ide/browser-lab-service";
 import { runPythonLessonContracts } from "../features/ide/python-lesson-service";
 import { ArtifactRuntimePanel } from "../features/artifacts/ArtifactRuntimePanel";
@@ -36,9 +36,9 @@ import {
   workingPracticeBlockSource,
   workingPracticeSources,
 } from "../features/ide/practice-state";
-import { llmSystemsContractSuite } from "../content/llm-systems/contracts";
+import { contractSuiteForLesson } from "../lessons/contract-suite";
 import { LessonOutcome } from "./LessonOutcome";
-import { lessonLearningOutcome, moduleCheckpoint } from "../content/llm-systems/learning";
+import { lessonLearningOutcome, moduleCheckpoint } from "../lessons/learning";
 import { recordLearningEvent } from "../lib/learning-analytics";
 import { SyntaxCode } from "../features/ide/SyntaxCode";
 import { getLessonFlair } from "../lessons/lesson-flair";
@@ -508,7 +508,7 @@ function projectSeedForLesson(lesson: CourseLesson, hidden: string[], currentAns
     .map((block, index) => `${lessonBlockComment(lesson, index, block.label)}\n${practice && hidden.includes(block.id) ? currentAnswers[block.id] ?? "" : block.code}`));
   return {
     path: `${lesson.courseId ?? "models"}/${lesson.implementation.filename}`,
-    courseId: lesson.courseId ?? "models",
+    courseId: (lesson.courseId ?? "models") as ProjectCourse,
     lessonId: lesson.id,
     title: lesson.title,
     content: contentFor(true),
@@ -553,6 +553,7 @@ function LessonProgress({ lesson }: { lesson: CourseLesson }) {
   const learner = useLearnerState();
   const [ready, setReady] = useState(false);
   const check = lessonLearningOutcome(lesson.id).check;
+  const contractSuite = contractSuiteForLesson(lesson.id);
   const state = learner.lessons[lesson.id];
   useEffect(() => {
     let active = true;
@@ -565,7 +566,7 @@ function LessonProgress({ lesson }: { lesson: CourseLesson }) {
   const progress = lessonGateProgress(
     lesson,
     state,
-    llmSystemsContractSuite.contractVersion,
+    contractSuite.contractVersion,
     check.id,
   );
 
@@ -590,9 +591,11 @@ function LessonProgress({ lesson }: { lesson: CourseLesson }) {
 export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) {
   // RSC payloads can replace an equivalent prop object after learner-state events.
   // Resolve it to the module-owned definition so hydration remains single-shot.
-  const lesson = courseLessons.find((candidate) => candidate.id === lessonProp.id) ?? lessonProp;
+  const lesson = allRoutedLessons.find((candidate) => candidate.id === lessonProp.id) ?? lessonProp;
   const blocks = lesson.implementation.codeBlocks;
   const projectPath = `${lesson.courseId ?? "models"}/${lesson.implementation.filename}`;
+  const contributesToBrowserChat = lesson.projectScope !== "standalone";
+  const contractSuite = contractSuiteForLesson(lesson.id);
   const pythonLesson = lesson.implementation.filename.endsWith(".py");
   const implementationPrelude = lessonImplementationPrelude(lesson);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -627,7 +630,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
   useEffect(() => {
     let active = true;
     void waitForPracticeHydration(
-      initializeProjectPersistence(),
+      contributesToBrowserChat ? initializeProjectPersistence() : Promise.resolve(),
       initializeLearnerPersistence(),
     ).then(() => {
       if (!active || practiceReadyRef.current) return;
@@ -658,7 +661,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
         saved?.verifiedCells ?? [],
         saved?.verifiedSources ?? {},
         saved?.verifiedContractVersion,
-        llmSystemsContractSuite.contractVersion,
+        contractSuite.contractVersion,
       );
       const savedVerified = restoredVerification.ids;
       const verifiedSources = restoredVerification.sources;
@@ -679,9 +682,10 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
         recordVerifiedCells(lesson.id, savedVerified, verifiedSources, verifiedContractVersion);
       }
       const lessonSeed = projectSeedForLesson(lesson, savedHidden, savedAnswers, savedVerified);
-      ensureProjectWorkspace([lessonSeed, ...canonicalProjectSeeds()]);
       projectContentRef.current = lessonSeed.content;
-      const ideHasNewerSource = loadProjectState().files[projectPath]?.content !== lessonSeed.content;
+      if (contributesToBrowserChat) ensureProjectWorkspace([lessonSeed, ...canonicalProjectSeeds()]);
+      const ideHasNewerSource = contributesToBrowserChat
+        && loadProjectState().files[projectPath]?.content !== lessonSeed.content;
       setProjectConflict(ideHasNewerSource);
       setPracticeMessage(ideHasNewerSource
         ? "This file has newer changes in the full IDE. Continue there so this lesson doesn’t overwrite them."
@@ -691,7 +695,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
       setPracticeReady(true);
     });
     return () => { active = false; };
-  }, [blocks, lesson, projectPath]);
+  }, [blocks, contributesToBrowserChat, contractSuite.contractVersion, lesson, projectPath]);
 
   const sourceFor = (block: CodeBlock) => workingPracticeBlockSource(
     lesson.implementation.filename,
@@ -724,14 +728,26 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     setProjectConflict(true);
     setPracticeMessage("This file changed in the full IDE. Continue there so this lesson doesn’t overwrite the newer code.");
   };
+  const projectAllowsWrite = () => {
+    if (!contributesToBrowserChat) return true;
+    if (!projectSourceIsCurrent()) {
+      reportProjectConflict();
+      return;
+    }
+    return true;
+  };
   const saveCurrentProjectSeed = (seed: LessonProjectSeed) => {
+    if (!contributesToBrowserChat) {
+      projectContentRef.current = seed.content;
+      return;
+    }
     saveLessonProjectFile(seed);
     projectContentRef.current = seed.content;
   };
   const runContracts = async (source: string, contractIds: readonly string[], signal: AbortSignal) => {
     if (!pythonLesson) return runPracticeContracts({ path: projectPath, source, contractIds, signal });
     const wanted = new Set(contractIds);
-    const contracts = llmSystemsContractSuite.contracts.filter((contract) => wanted.has(contract.id));
+    const contracts = contractSuite.contracts.filter((contract) => wanted.has(contract.id));
     if (!contracts.length || contracts.length !== wanted.size) {
       throw new Error("That CPython lesson check isn’t available.");
     }
@@ -756,10 +772,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     },
   });
   const persistBlockState = (block: CodeBlock, next: ReturnType<typeof practiceDraftState>, message: string) => {
-    if (!projectSourceIsCurrent()) {
-      reportProjectConflict();
-      return;
-    }
+    if (!projectAllowsWrite()) return;
     const nextVerified = next.verification.ids;
     const nextVerifiedSources = next.verification.sources;
     const nextQuarantinedAnswers = { ...quarantinedAnswersRef.current };
@@ -791,10 +804,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
   };
   const runCell = async (block: CodeBlock) => {
     if (!practiceReadyRef.current || runningBlockIdsRef.current.length) return;
-    if (!projectSourceIsCurrent()) {
-      reportProjectConflict();
-      return;
-    }
+    if (!projectAllowsWrite()) return;
     const controller = new AbortController();
     runAbortRef.current = controller;
     setPendingResetBlockId(null);
@@ -816,10 +826,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
         setPracticeMessage(`${block.label} changed while its check was running. Run the current source again.`);
         return;
       }
-      if (!projectSourceIsCurrent()) {
-        reportProjectConflict();
-        return;
-      }
+      if (!projectAllowsWrite()) return;
       const currentVerification = { ids: verifiedBlockIdsRef.current, sources: verifiedSourcesRef.current, contractVersion: verifiedContractVersionRef.current };
       const currentHidden = [...hiddenBlocksRef.current];
       const currentAnswers = { ...answersRef.current };
@@ -828,7 +835,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
         block.id,
         sourceSnapshot,
         check.passed,
-        llmSystemsContractSuite.contractVersion,
+        contractSuite.contractVersion,
       );
       const nextVerified = nextVerification.ids;
       const nextVerifiedSources = nextVerification.sources;
@@ -863,10 +870,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
   };
   const runAll = async () => {
     if (!practiceReadyRef.current || runningBlockIdsRef.current.length) return;
-    if (!projectSourceIsCurrent()) {
-      reportProjectConflict();
-      return;
-    }
+    if (!projectAllowsWrite()) return;
     const controller = new AbortController();
     runAbortRef.current = controller;
     setPendingResetBlockId(null);
@@ -913,16 +917,13 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
         setPracticeMessage("The lesson source changed while checks were running. Run the current source again.");
         return;
       }
-      if (!projectSourceIsCurrent()) {
-        reportProjectConflict();
-        return;
-      }
+      if (!projectAllowsWrite()) return;
       const nextVerified = creditableWorkingBlockIds(
         blocks.map((block) => block.id),
         blocks.filter((_, index) => ordered[index].passed).map((block) => block.id),
       );
       const nextVerifiedSources = Object.fromEntries(nextVerified.map((id) => [id, sourceSnapshots[id]]));
-      const nextVerifiedContractVersion = nextVerified.length ? llmSystemsContractSuite.contractVersion : null;
+      const nextVerifiedContractVersion = nextVerified.length ? contractSuite.contractVersion : null;
       applyPracticeState(hiddenSnapshot, answersSnapshot, nextVerified, nextVerifiedSources, nextVerifiedContractVersion);
       recordVerifiedCells(lesson.id, nextVerified, nextVerifiedSources, nextVerifiedContractVersion);
       const validatedProjectSeed = projectSeedForLesson(lesson, hiddenSnapshot, answersSnapshot, nextVerified);
@@ -940,7 +941,9 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
           outcome: "passed",
           count: ordered.length,
         });
-        try {
+        if (!contributesToBrowserChat) {
+          setPracticeMessage(`Every isolated behavior check passes. Your progress is saved in this course.${outputCaptureNote}`);
+        } else try {
           await flushProjectPersistence();
           controller.signal.throwIfAborted();
           const artifact = await recordValidatedLessonArtifact({
@@ -1003,7 +1006,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
         <div className="editor-toolbar">
           <div className="editor-file"><span>{projectPath}</span></div>
           <span className="sr-only">{verifiedCells} of {blocks.length} exercises verified</span>
-          <Link className="open-ide-link" href={`/workspace?file=${encodeURIComponent(`${lesson.courseId ?? "models"}/${lesson.implementation.filename}`)}`}>Open in IDE ↗</Link>
+          {contributesToBrowserChat ? <Link className="open-ide-link" href={`/workspace?file=${encodeURIComponent(`${lesson.courseId ?? "models"}/${lesson.implementation.filename}`)}`}>Open in IDE ↗</Link> : null}
         </div>
         <div className="practice-sequence">
           {implementationPrelude ? (
@@ -1022,7 +1025,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
             const blockRunning = runningBlockIds.includes(block.id);
             const active = activeBlockId === block.id;
             const dirty = workingSource !== starterSource;
-            const verified = verifiedContractVersion === llmSystemsContractSuite.contractVersion
+            const verified = verifiedContractVersion === contractSuite.contractVersion
               && verifiedBlockIds.includes(block.id)
               && verifiedSources[block.id] === workingSource;
             const visibleState = blockRunning ? "Running" : result?.passed || verified ? "Verified" : result ? "Needs a fix" : null;
@@ -1110,7 +1113,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
       </div>
       <p className="implementation-intro">{lesson.implementation.intro}</p>
       <LessonExperiment lesson={lesson} />
-      <ArtifactRuntimePanel lesson={lesson} refreshKey={artifactRevision} />
+      {contributesToBrowserChat ? <ArtifactRuntimePanel lesson={lesson} refreshKey={artifactRevision} /> : null}
     </section>
   );
 }
@@ -1163,13 +1166,14 @@ function LessonRecoveryCandidates({ lessonId, onLoaded }: { lessonId: string; on
 export function PaperLab({ lesson }: { lesson: CourseLesson }) {
   const learnerPersistenceError = useLearnerPersistenceError();
   const projectPersistenceError = useProjectPersistenceError();
-  const persistenceError = learnerPersistenceError ?? projectPersistenceError;
-  const trackLessons = courseLessons.filter((candidate) => candidate.courseId === lesson.courseId);
+  const contributesToBrowserChat = lesson.projectScope !== "standalone";
+  const persistenceError = learnerPersistenceError ?? (contributesToBrowserChat ? projectPersistenceError : null);
+  const trackLessons = allRoutedLessons.filter((candidate) => candidate.programId === lesson.programId && candidate.courseId === lesson.courseId);
   const trackIndex = trackLessons.findIndex((candidate) => candidate.id === lesson.id);
   const previous = trackLessons[trackIndex - 1];
   const next = trackLessons[trackIndex + 1];
-  const courseHref = `/courses/${lesson.courseId ?? "models"}`;
-  const checkpoint = moduleCheckpoint(lesson.courseId ?? "models");
+  const courseHref = getLessonCourseHref(lesson);
+  const checkpoint = contributesToBrowserChat ? moduleCheckpoint(lesson.courseId ?? "models") : undefined;
   const flair = getLessonFlair(lesson.id);
   const [recoveryRevision, setRecoveryRevision] = useState(0);
   return (
@@ -1180,7 +1184,7 @@ export function PaperLab({ lesson }: { lesson: CourseLesson }) {
         <nav aria-label="Lesson navigation">
           <a href="#implementation">Code</a>
           <a href="#summary">Read</a>
-          <a href="#artifacts">Results</a>
+          {contributesToBrowserChat ? <a href="#artifacts">Results</a> : null}
         </nav>
         <span>{lesson.courseTitle ?? "Model Foundations"}</span>
       </header>
@@ -1193,8 +1197,8 @@ export function PaperLab({ lesson }: { lesson: CourseLesson }) {
         <ParagraphSection lesson={lesson} />
         <LessonOutcome lesson={lesson} />
         <footer className="paper-footer lesson-footer">
-          {previous ? <Link href={`/lessons/${previous.id}`}>← {previous.title}</Link> : <Link href={courseHref}>← Module</Link>}
-          {next ? <Link href={`/lessons/${next.id}`}>{next.title} →</Link> : checkpoint ? <Link href={`/checkpoints/${checkpoint.courseId}`}>Module checkpoint →</Link> : <Link href={courseHref}>Module ↑</Link>}
+          {previous ? <Link href={`/lessons/${previous.id}`}>← {previous.title}</Link> : <Link href={courseHref}>← {contributesToBrowserChat ? "Module" : "Course"}</Link>}
+          {next ? <Link href={`/lessons/${next.id}`}>{next.title} →</Link> : checkpoint ? <Link href={`/checkpoints/${checkpoint.courseId}`}>Module checkpoint →</Link> : <Link href={courseHref}>{contributesToBrowserChat ? "Module" : "Course"} ↑</Link>}
         </footer>
       </article>
     </main>

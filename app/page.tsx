@@ -3,9 +3,9 @@ import Link from "next/link";
 import styles from "./page.module.css";
 
 export const metadata: Metadata = {
-  title: "Latent · Notes on LLM systems",
+  title: "Latent · Courses on LLM systems",
   description:
-    "Notes, implementations, and browser experiments for studying language models, inference runtimes, serving systems, and chat interfaces.",
+    "Foundations, implementations, and browser experiments for studying machine learning, language models, inference runtimes, serving systems, and chat interfaces.",
 };
 
 const architectureStages = [
@@ -52,20 +52,20 @@ export default function Home() {
 
       <header className={`site-header course-header ${styles.header}`}>
         <Link className="wordmark" href="/"><i />latent</Link>
-        <Link className={styles.headerLink} href="/course">Course notes</Link>
+        <Link className={styles.headerLink} href="/course">Courses</Link>
       </header>
 
       <article className={styles.shell}>
         <section className={styles.hero}>
           <h1>I built this to understand LLM systems.</h1>
           <p>
-            Latent is a set of notes, implementations, and browser experiments that follows the path
-            from sequence modeling to inference, serving, and interface design. It is how I am
-            learning the subject. You can use it too.
+            Latent is a set of courses, notes, and browser experiments for learning the subject. Two
+            short courses cover the mathematical and machine-learning foundations. A separate project
+            course follows an LLM from sequence modeling through inference, serving, and interface design.
           </p>
           <div className={styles.actions}>
-            <Link className={styles.primaryAction} href="/course">Read the notes <span aria-hidden="true">→</span></Link>
-            <Link className={styles.secondaryAction} href="/project">Browse the project</Link>
+            <Link className={styles.primaryAction} href="/course">Browse the courses <span aria-hidden="true">→</span></Link>
+            <Link className={styles.secondaryAction} href="/courses/llm-systems">Open LLM systems</Link>
           </div>
         </section>
 
@@ -154,14 +154,14 @@ export default function Home() {
 
         <section className={styles.closing}>
           <p>Begin with a character-level recurrent model. Continue until the pieces form a browser chat system.</p>
-          <Link href="/course">Read from the beginning <span aria-hidden="true">→</span></Link>
+          <Link href="/courses/llm-systems">Open the LLM systems course <span aria-hidden="true">→</span></Link>
         </section>
       </article>
 
       <footer className={styles.footer}>
         <span>Latent</span>
         <nav aria-label="Footer navigation">
-          <Link href="/course">Course notes</Link>
+          <Link href="/course">Courses</Link>
           <Link href="/workspace">IDE</Link>
           <Link href="/sources">Sources</Link>
         </nav>

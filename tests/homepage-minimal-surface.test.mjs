@@ -4,7 +4,6 @@ import { test } from "node:test";
 
 const productizationCssUrl = new URL("../app/styles/productization.css", import.meta.url);
 const courseCatalogCssUrl = new URL("../app/styles/course-catalog.css", import.meta.url);
-const codingWorkspaceCssUrl = new URL("../app/styles/coding-workspace.css", import.meta.url);
 const responsiveCssUrl = new URL("../app/styles/responsive.css", import.meta.url);
 const firstRunUrl = new URL("../app/components/FirstRunExperience.tsx", import.meta.url);
 const landingPageUrl = new URL("../app/page.tsx", import.meta.url);
@@ -37,14 +36,14 @@ test("the course training demo stays on the warm editorial surface", async () =>
 });
 
 test("the course CTA and responsive dividers do not reintroduce dark surfaces", async () => {
-  const [codingWorkspaceCss, responsiveCss] = await Promise.all([
-    readFile(codingWorkspaceCssUrl, "utf8"),
+  const [courseCatalogCss, responsiveCss] = await Promise.all([
+    readFile(courseCatalogCssUrl, "utf8"),
     readFile(responsiveCssUrl, "utf8"),
   ]);
 
-  const courseCta = cssRule(codingWorkspaceCss, ".full-course-page .hero-actions a:first-child");
-  assert.match(courseCta, /background:\s*var\(--violet-wash\)/);
-  assert.match(courseCta, /color:\s*var\(--violet-deep\)/);
+  const courseCta = cssRule(courseCatalogCss, ".catalog-capstone-link");
+  assert.doesNotMatch(courseCta, /background:/);
+  assert.match(courseCta, /border-top:\s*1px solid var\(--line-strong\)/);
   assert.match(responsiveCss, /\.first-run-controls\s*\{[^}]*border-bottom:\s*1px solid var\(--line\)/s);
   assert.match(responsiveCss, /\.first-run-output article \+ article\s*\{[^}]*border-top:\s*1px solid var\(--line\)/s);
 });

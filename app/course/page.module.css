@@ -1,0 +1,37 @@
+.catalogPage { max-width: 1080px; }
+.catalogHero { padding-bottom: clamp(2.5rem, 5vw, 4.5rem); }
+.programGroup + .programGroup { margin-top: clamp(3rem, 6vw, 5rem); }
+
+.programGroup > header {
+  align-items: baseline;
+  display: flex;
+  gap: 1.5rem;
+  justify-content: space-between;
+  padding-bottom: 0.9rem;
+}
+
+.programGroup > header strong {
+  font-family: var(--serif);
+  font-size: 1.35rem;
+  font-weight: 400;
+}
+
+.programGroup > header p,
+.sequenceNote {
+  color: var(--muted);
+  font-size: max(0.68rem, 11px);
+  margin: 0;
+}
+
+.programGroup > header p { text-align: right; }
+.sequenceNote { line-height: 1.55; margin-top: 1.5rem; }
+
+@media (max-width: 650px) {
+  .programGroup > header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .programGroup > header p { text-align: left; }
+}

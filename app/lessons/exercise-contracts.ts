@@ -1,3 +1,5 @@
+import { foundationExerciseContractCopy } from "./foundations/exercise-contracts";
+
 export type ExerciseContract = {
   signature: string;
   inputs: string;
@@ -266,7 +268,9 @@ export const exerciseContracts = {
 } satisfies Record<string, ExerciseContract>;
 
 export function exerciseContractFor(lessonId: string, blockId: string): ExerciseContract {
-  const contract = (exerciseContracts as Record<string, ExerciseContract | undefined>)[`${lessonId}/${blockId}`];
+  const key = `${lessonId}/${blockId}`;
+  const contract = (exerciseContracts as Record<string, ExerciseContract | undefined>)[key]
+    ?? foundationExerciseContractCopy[key];
   if (!contract) throw new Error(`Missing exercise contract for ${lessonId}/${blockId}`);
   return contract;
 }

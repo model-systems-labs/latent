@@ -290,11 +290,11 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
       </details>
 
       <footer className="checkpoint-navigation">
-        <Link href={`/courses/${courseId}`}>← Review module</Link>
+        <Link href={`/courses/llm-systems/${courseId}`}>← Review module</Link>
         {courseId === "product" ? <Link href="/workspace?file=capstone%2FBrowserChat.tsx">Build the complete project →</Link> : (() => {
           const index = llmSystemsCurriculum.modules.findIndex((candidate) => candidate.routeSlug === courseId);
           const nextModule = llmSystemsCurriculum.modules[index + 1];
-          return nextModule ? <Link href={`/courses/${nextModule.routeSlug}`}>Continue to {nextModule.title} →</Link> : null;
+          return nextModule ? <Link href={`/courses/llm-systems/${nextModule.routeSlug}`}>Continue to {nextModule.title} →</Link> : null;
         })()}
       </footer>
     </article>

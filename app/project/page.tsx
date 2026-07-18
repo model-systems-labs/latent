@@ -15,7 +15,7 @@ export default function ProjectPage() {
       <div className="page-atmosphere" aria-hidden="true"><span className="orbit orbit-one" /><span className="node node-one" /><span className="warm-star" /></div>
       <header className="site-header course-header">
         <Link className="wordmark" href="/"><i />latent</Link>
-        <nav><Link href="/course">Course</Link><Link href="/workspace">IDE</Link><Link href="/capstone">Capstone</Link></nav>
+        <nav><Link href="/courses/llm-systems">LLM Systems</Link><Link href="/workspace">IDE</Link><Link href="/capstone">Capstone</Link></nav>
       </header>
       <article className="project-page">
         <header className="project-page-hero">

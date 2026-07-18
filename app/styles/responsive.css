@@ -123,14 +123,6 @@
     min-height: 0;
   }
 
-  .system-architecture > div {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .system-architecture > div > i {
-    display: none;
-  }
-
   .capstone-layout {
     grid-template-columns: 1fr;
   }
@@ -686,10 +678,6 @@
     font-size: clamp(2.65rem, 12.5vw, 3.3rem);
   }
 
-  .track-outcome {
-    margin-top: 1rem;
-  }
-
   .course-thesis { margin-top: 1rem; }
 
   .course-header > span {
@@ -864,19 +852,8 @@
     padding-top: 1.5rem;
   }
 
-  .hero-actions {
-    display: grid;
-    width: 100%;
-  }
-
-  .hero-actions a,
-  .capstone-banner > strong {
-    text-align: center;
-  }
-
   .course-track-card footer,
   .capstone-contract,
-  .system-architecture > div,
   .state-inspector,
   .quality-grid {
     grid-template-columns: 1fr;
@@ -902,20 +879,10 @@
     padding-right: 0;
   }
 
-  .system-architecture article {
-    min-height: 0;
-  }
-
-  .capstone-banner,
   .track-navigation,
   .simulation-controls {
     align-items: stretch;
     flex-direction: column;
-  }
-
-  .capstone-banner {
-    display: flex;
-    gap: 1.3rem;
   }
 
   .track-navigation {

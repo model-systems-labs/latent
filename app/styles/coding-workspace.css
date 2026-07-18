@@ -540,39 +540,6 @@
   font-size: clamp(3.5rem, 5vw, 4.25rem);
 }
 
-.hero-actions {
-  display: flex;
-  gap: 0.65rem;
-  margin-top: 2rem;
-}
-
-.hero-actions a {
-  border: 1px solid var(--line-strong);
-  border-radius: 999px;
-  font-size: max(0.68rem, 11px);
-  letter-spacing: 0.08em;
-  padding: 0.85rem 1.05rem;
-  text-transform: uppercase;
-}
-
-.hero-actions a:first-child {
-  background: #272329;
-  border-color: #272329;
-  color: #f7f3ec;
-}
-
-.full-course-page .hero-actions a:first-child {
-  background: var(--violet-wash);
-  border-color: rgba(118, 104, 137, 0.28);
-  color: var(--violet-deep);
-}
-
-.hero-actions a:hover,
-.hero-actions a:focus-visible {
-  border-color: var(--violet);
-  transform: translateY(-1px);
-}
-
 .course-track-grid {
   display: grid;
   gap: 0;
@@ -608,10 +575,7 @@
 }
 
 .course-track-card > header span,
-.course-track-card > header em,
-.capstone-banner span,
-.system-architecture > header span,
-.track-outcome span {
+.course-track-card > header em {
   color: var(--violet);
   font-size: max(0.68rem, 11px);
   font-style: normal;
@@ -680,115 +644,6 @@
   font-weight: 550;
 }
 
-.system-architecture {
-  border-bottom: 1px solid var(--line);
-  border-top: 1px solid var(--line);
-  margin-top: 2.2rem;
-}
-
-.system-architecture > header {
-  border-bottom: 1px solid var(--line);
-  display: grid;
-  gap: 0.4rem;
-  padding: 1.2rem 0;
-}
-
-.system-architecture > header strong {
-  font-family: var(--serif);
-  font-size: 1.2rem;
-  font-weight: 400;
-}
-
-.system-architecture > div {
-  align-items: center;
-  display: grid;
-  gap: 0.8rem;
-  grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
-  padding: 1.4rem 0;
-}
-
-.system-architecture article {
-  border-left: 1px solid var(--line-strong);
-  display: grid;
-  gap: 0.45rem;
-  min-height: 6rem;
-  padding: 0.25rem 0.9rem;
-}
-
-.system-architecture article span {
-  color: var(--violet);
-  font-family: var(--mono);
-  font-size: max(0.68rem, 11px);
-}
-
-.system-architecture article strong {
-  font-family: var(--serif);
-  font-size: 1rem;
-  font-weight: 400;
-}
-
-.system-architecture article code {
-  color: var(--muted);
-  font-size: max(0.68rem, 11px);
-  line-height: 1.5;
-}
-
-.system-architecture > div > i {
-  color: var(--violet);
-  font-style: normal;
-}
-
-.capstone-banner {
-  align-items: center;
-  background: transparent;
-  border-bottom: 1px solid var(--line-strong);
-  border-radius: 0;
-  border-top: 1px solid var(--line-strong);
-  color: var(--ink);
-  display: flex;
-  gap: 3rem;
-  justify-content: space-between;
-  margin-top: 1rem;
-  overflow: visible;
-  padding: 2.25rem 0;
-  position: relative;
-}
-
-.capstone-banner::after {
-  content: none;
-}
-
-.capstone-banner > * {
-  position: relative;
-  z-index: 1;
-}
-
-.capstone-banner h2 {
-  font-family: var(--serif);
-  font-size: 2.4rem;
-  font-weight: 400;
-  letter-spacing: -0.04em;
-  margin: 0.5rem 0;
-}
-
-.capstone-banner p {
-  color: var(--muted);
-  font-family: var(--serif);
-  font-size: 0.9rem;
-  line-height: 1.55;
-  margin: 0;
-  max-width: 56rem;
-}
-
-.capstone-banner > strong {
-  border: 1px solid var(--line-strong);
-  border-radius: 999px;
-  flex: 0 0 auto;
-  font-size: max(0.68rem, 11px);
-  font-weight: 500;
-  padding: 0.8rem 1rem;
-}
-
 .track-hero {
   min-height: 0;
   padding: clamp(2.75rem, 5vw, 4.5rem) 0;
@@ -796,24 +651,6 @@
 
 .track-hero h1 {
   font-size: clamp(3rem, 5vw, 4.8rem);
-}
-
-.track-outcome {
-  border-bottom: 1px solid var(--line-strong);
-  border-top: 1px solid var(--line-strong);
-  display: grid;
-  gap: 0.45rem;
-  margin-top: 2rem;
-  max-width: 44rem;
-  padding: 0.85rem 0;
-  width: 100%;
-}
-
-.track-outcome strong {
-  color: var(--muted);
-  font-family: var(--serif);
-  font-size: 0.9rem;
-  font-weight: 400;
 }
 
 .track-navigation {

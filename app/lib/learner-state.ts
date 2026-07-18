@@ -5,6 +5,7 @@ import { assertRnnCheckpoint, type RnnCheckpoint, type RnnResult } from "@latent
 import { getPersistenceContext } from "../platform/persistence/client";
 import { lessonProgressId } from "../platform/persistence/pure";
 import type { CheckpointRecord, JsonValue } from "../platform/persistence/types";
+import { lessonProgressLocation, progressCourseIds } from "../content/course-progress";
 
 export const LEARNER_STATE_KEY = "latent-learner-v2";
 export const LEARNER_RECOVERY_KEY = "latent-learner-recovery-v3:";
@@ -336,22 +337,16 @@ export function loadLearnerState(): LearnerState {
   return cachedLearner ?? emptyLearnerState();
 }
 
-function moduleForLesson(lessonId: string) {
-  if (["character-rnns", "neural-language-models", "subword-tokenization", "additive-attention", "transformers", "in-context-learning"].includes(lessonId)) return "model-foundations";
-  if (["inference-runtime", "scheduling-memory"].includes(lessonId)) return "inference-runtime";
-  if (["streaming-transport", "reliability-observability"].includes(lessonId)) return "llm-serving";
-  return "chat-integration";
-}
-
 function sameLearnerValue(left: unknown, right: unknown) {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
 function lessonProgressRecord(lessonId: string, lesson: LessonLocalState) {
+  const location = lessonProgressLocation(lessonId);
   return {
-    id: lessonProgressId("llm-systems", lessonId),
-    courseId: "llm-systems",
-    moduleId: moduleForLesson(lessonId),
+    id: lessonProgressId(location.courseId, lessonId),
+    courseId: location.courseId,
+    moduleId: location.moduleId,
     lessonId,
     status: lesson.experimentComplete && lesson.verifiedCells.length ? "completed" as const : "in-progress" as const,
     verifiedCellIds: lesson.verifiedCells,
@@ -579,7 +574,8 @@ export async function loadLearnerRecoveryCandidate(sessionId: string, lessonId: 
     : readRecoveryJournalKey(sourceKey).lessons[lessonId]?.value;
   if (!entry) return false;
   const { repositories } = await getPersistenceContext();
-  const durableRecord = await repositories.progress.get(lessonProgressId("llm-systems", lessonId));
+  const location = lessonProgressLocation(lessonId);
+  const durableRecord = await repositories.progress.get(lessonProgressId(location.courseId, lessonId));
   const durableLesson = durableRecord ? lessonStateFromProgress(durableRecord) : null;
   const current = loadLearnerState();
   const previousLessons = { ...current.lessons };
@@ -612,16 +608,24 @@ export function getLearnerPersistenceError() {
 
 async function persistLearnerState(state: LearnerState, previous: LearnerState | null) {
   const { database, repositories } = await getPersistenceContext();
-  if (!(await repositories.projects.get("browser-chat"))) {
+  const changedLessonIds = Object.keys(state.lessons).filter((lessonId) => (
+    !previous?.lessons[lessonId] || !sameLearnerValue(previous.lessons[lessonId], state.lessons[lessonId])
+  ));
+  const artifact = state.artifacts.characterRnn;
+  const previousArtifact = previous?.artifacts.characterRnn;
+  const browserChatChanged = changedLessonIds.some((lessonId) => lessonProgressLocation(lessonId).courseId === "llm-systems")
+    || Boolean(artifact && (
+      artifact.trainedAt !== previousArtifact?.trainedAt
+      || artifact.checkpointId !== previousArtifact?.checkpointId
+      || artifact.sourceHash !== previousArtifact?.sourceHash
+    ));
+  if (browserChatChanged && !(await repositories.projects.get("browser-chat"))) {
     try {
       await repositories.projects.create({ id: "browser-chat", title: "Browser Chat", courseId: "llm-systems" });
     } catch (error) {
       if (!(await repositories.projects.get("browser-chat"))) throw error;
     }
   }
-  const changedLessonIds = Object.keys(state.lessons).filter((lessonId) => (
-    !previous?.lessons[lessonId] || !sameLearnerValue(previous.lessons[lessonId], state.lessons[lessonId])
-  ));
   for (const lessonId of changedLessonIds) {
     const lesson = state.lessons[lessonId];
     const before = previous?.lessons[lessonId];
@@ -630,8 +634,6 @@ async function persistLearnerState(state: LearnerState, previous: LearnerState |
       before ? lessonProgressRecord(lessonId, before) : null,
     );
   }
-  const artifact = state.artifacts.characterRnn;
-  const previousArtifact = previous?.artifacts.characterRnn;
   if (artifact && (
     artifact.trainedAt !== previousArtifact?.trainedAt
     || artifact.checkpointId !== previousArtifact?.checkpointId
@@ -705,10 +707,11 @@ export function initializeLearnerPersistence() {
   if (typeof window === "undefined") return Promise.resolve();
   learnerHydration ??= (async () => {
     const { database, repositories } = await getPersistenceContext();
-    const [progress, checkpointRecords] = await Promise.all([
-      repositories.progress.forCourse("llm-systems"),
+    const [progressByCourse, checkpointRecords] = await Promise.all([
+      Promise.all(progressCourseIds.map((courseId) => repositories.progress.forCourse(courseId))),
       database.checkpoints.where("projectId").equals("browser-chat").filter((record) => record.kind === "character-rnn").sortBy("createdAt"),
     ]);
+    const progress = progressByCourse.flat();
     const persistedLessons: Record<string, LessonLocalState> = {};
     for (const record of progress) {
       persistedLessons[record.lessonId] = lessonStateFromProgress(record);

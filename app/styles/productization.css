@@ -663,12 +663,26 @@
 .runtime-notices a em { color: var(--faint); font-size: max(0.68rem, 11px); font-style: normal; }
 .runtime-notices a code { color: var(--violet); font-size: max(0.68rem, 11px); }
 
-.lesson-source-index > article {
+.lesson-source-index > article,
+.source-program-group > article {
   border-bottom: 1px solid var(--line);
   display: grid;
   gap: 0.65rem;
   grid-template-columns: 1fr;
   padding: 1.25rem 0;
+}
+
+.source-program-group {
+  margin-top: 2.5rem;
+}
+
+.source-program-group > h3 {
+  border-bottom: 1px solid var(--line-strong);
+  font-family: var(--serif);
+  font-size: 1.35rem;
+  font-weight: 400;
+  margin: 0;
+  padding-bottom: 0.75rem;
 }
 
 .lesson-source-index article > header {

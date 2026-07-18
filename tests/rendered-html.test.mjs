@@ -20,8 +20,8 @@ test("the landing page frames the course as a personal academic notebook", async
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /I built this to understand LLM systems/);
-  assert.match(html, /It is how I am learning the subject/);
-  assert.match(html, /You can use it too/);
+  assert.match(html, /Latent is a set of courses, notes, and browser experiments/);
+  assert.match(html, /Two short courses cover the mathematical and machine-learning foundations/);
   assert.match(html, /Model, runtime, serving, and interface/);
   assert.match(html, /Browser-native LLM system/);
   assert.match(html, /Prompt \+ messages/);
@@ -46,11 +46,11 @@ test("the landing page frames the course as a personal academic notebook", async
   assert.doesNotMatch(html, /Character-level RNN training|course-track-card catalog-track-card|Run the first model/);
 });
 
-test("the course home renders one LLM Systems program with four technical modules", async () => {
-  const response = await render("/course");
+test("the LLM Systems home renders one project course with four technical modules", async () => {
+  const response = await render("/courses/llm-systems");
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /Build an LLM system right in your browser/);
+  assert.match(html, /Build an LLM System in Your Browser/);
   assert.match(html, /Model Foundations/);
   assert.match(html, /Inference Runtime/);
   assert.match(html, /LLM Serving/);
@@ -71,14 +71,14 @@ test("each module renders its technical lesson sequence", async () => {
     ["product", ["Conversation State", "Streaming React", "Actions and Context", "Product Quality"]],
   ];
   for (const [slug, titles] of courses) {
-    const response = await render(`/courses/${slug}`);
+    const response = await render(`/courses/llm-systems/${slug}`);
     assert.equal(response.status, 200, slug);
     const html = await response.text();
     for (const title of titles) assert.match(html, new RegExp(title));
     assert.match(html, /class="course-progress-record"/);
     assert.match(html, /aria-label="Restoring lesson progress"/);
     assert.match(html, /Restoring progress/);
-    assert.doesNotMatch(html, /Your progress|href="\/project"|lesson-build|track-outcome|Module 0[1-4]/);
+    assert.doesNotMatch(html, /Your progress|lesson-build|track-outcome|Module 0[1-4]/);
     assert.doesNotMatch(html, /Project structure|BrowserChat\.tsx/);
   }
 });
@@ -443,7 +443,7 @@ test("the design kit, simulations, model engines, and artifact runtime remain re
   assert.match(paperLab, /lesson\.sources\.map\(\(source\)/);
   assert.doesNotMatch(paperLab, /supporting-sources|source\.role/);
   assert.doesNotMatch(paperLab, /SelectionAsk|selection-ask|data-selection-ask|Highlight a passage/);
-  assert.match(layout, /og-v4\.png/);
+  assert.match(layout, /og-courses\.png/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   await assert.rejects(access(new URL("../app/_sites-preview", templateRoot)));
 });
@@ -604,8 +604,8 @@ test("Product Quality separates executed checks, unexecuted specifications, and 
   assert.doesNotMatch(html, /Automated · 16 contracts|all 16 check-specific results/);
 });
 
-test("course home keeps the first-run area neutral until browser progress restores", async () => {
-  const response = await render("/course");
+test("LLM Systems home keeps the first-run area neutral until browser progress restores", async () => {
+  const response = await render("/courses/llm-systems");
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /Restoring your place/);

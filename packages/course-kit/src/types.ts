@@ -24,7 +24,12 @@ export type LessonSource = {
 export type CourseLesson = {
   id: string;
   number: number;
-  courseId?: "models" | "systems" | "backend" | "product";
+  /** Stable owner used for course navigation and saved lesson progress. */
+  courseId?: string;
+  /** The top-level course this lesson belongs to. */
+  programId?: string;
+  /** Only Browser Chat lessons become files in the capstone workspace. */
+  projectScope?: "standalone" | "browser-chat";
   courseTitle?: string;
   courseNumber?: number;
   lessonNumber?: number;
@@ -76,8 +81,9 @@ export type CourseLesson = {
     codeBlocks: CodeBlock[];
   };
   experiment: {
-    kind: "rnn" | "neural-lm" | "bpe" | "attention" | "transformer" | "icl" | "systems" | "product";
-    variant?: "runtime" | "streaming" | "scheduling" | "reliability" | "state" | "streaming-ui" | "context-actions" | "quality";
+    kind: "rnn" | "neural-lm" | "bpe" | "attention" | "transformer" | "icl" | "systems" | "product" | "fundamentals";
+    /** Presentation variant interpreted by the matching experiment kind. */
+    variant?: string;
     title: string;
     intro: string;
   };

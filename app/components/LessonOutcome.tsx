@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { CourseLesson } from "@latent/course-kit";
-import { lessonLearningOutcome } from "../content/llm-systems/learning";
+import { lessonLearningOutcome } from "../lessons/learning";
 import {
   recordKnowledgeCheck,
   useLearnerState,

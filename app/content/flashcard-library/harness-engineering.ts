@@ -991,7 +991,7 @@ const orchestrationCards = defineFlashcardGroup(
       details: [
         "It checks count, membership, and uniqueness rather than accepting any list of the expected length.",
         "Two records with the same identifier leave another assignment unresolved even when total counts happen to match.",
-        "Cardinality validation occurs before synthesis so partial or contaminated output cannot masquerade as a complete batch.",
+        "Completeness validation occurs before synthesis so partial or contaminated output cannot masquerade as a complete batch.",
       ],
       example: "Expected tasks inspect and research require one matching record each; two inspect records fail even though two records arrived.",
     },

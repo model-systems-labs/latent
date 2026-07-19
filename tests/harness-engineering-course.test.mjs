@@ -326,11 +326,12 @@ test("every cell has one exact typed contract and one learner-facing contract th
   const expected = new Map();
   for (const { lesson, projectPath } of entries()) {
     for (const block of lesson.implementation.codeBlocks) {
-      const functionMatch = block.code.match(/^def\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(/m);
-      assert.ok(functionMatch);
+      const topLevelFunctions = [...block.code.matchAll(/^def\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(/gm)]
+        .map((match) => match[1]);
+      assert.ok(topLevelFunctions.length > 0);
       expected.set(`${lesson.id}/${block.id}`, {
         block,
-        exportName: functionMatch[1],
+        topLevelFunctions,
         lesson,
         projectPath,
       });
@@ -354,7 +355,8 @@ test("every cell has one exact typed contract and one learner-facing contract th
     assert.ok(contract.cases.length >= 3, contract.id);
     for (const exerciseCase of contract.cases) {
       assert.equal(exerciseCase.invoke.modulePath, definition.projectPath, contract.id);
-      assert.equal(exerciseCase.invoke.exportName, definition.exportName, contract.id);
+      assert.equal(exerciseCase.invoke.exportName, contract.cases[0].invoke.exportName, contract.id);
+      assert.ok(definition.topLevelFunctions.includes(exerciseCase.invoke.exportName), contract.id);
       assert.ok(exerciseCase.assertions.length > 0, `${contract.id}/${exerciseCase.id}`);
     }
 
@@ -362,7 +364,7 @@ test("every cell has one exact typed contract and one learner-facing contract th
     for (const field of ["signature", "inputs", "output", "rule", "example"]) {
       assert.ok(copy[field].trim(), `${contract.id}: learner-facing ${field}`);
     }
-    assert.match(copy.signature, new RegExp(`\\b${definition.exportName}\\b`), contract.id);
+    assert.match(copy.signature, new RegExp(`\\b${contract.cases[0].invoke.exportName}\\b`), contract.id);
     assert.deepEqual(
       exerciseRegistry.exerciseContractFor(definition.lesson.id, definition.block.id),
       copy,

@@ -50,8 +50,8 @@ Define harness-specific terms before using them. Distinguish probabilistic model
 `.trim(),
     claims: {
       paper: "The listed sources describe established agent-loop, tool, context, security, evaluation, or orchestration patterns.",
-      lab: "The browser runs a deterministic course-authored simulation of the harness mechanism.",
-      limit: "The lesson does not call a hosted model or grant access to the learner's computer.",
+      lab: "The browser runs your Python exercises against fixed test cases.",
+      limit: "It does not call a hosted LLM, read local files, run shell commands, or use the network.",
     },
     questions: {
       intro: `Ask a question about ${input.title.toLowerCase()}.`,

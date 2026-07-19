@@ -6,7 +6,7 @@ import { starterPracticeSource, workingPracticeBlockSource } from "../../feature
 
 export const HARNESS_PROJECT_ID = "harness-engineering";
 export const HARNESS_PROJECT_TITLE = "Harness Engineering";
-export const HARNESS_PROJECT_CONTRACT_VERSION = "harness-engineering-contracts-v2-cpython";
+export const HARNESS_PROJECT_CONTRACT_VERSION = "harness-engineering-contracts-v4-cpython";
 export const HARNESS_PROJECT_RUNNER_VERSION = "pyodide-harness-project-v1";
 
 export type HarnessProjectSeed = {

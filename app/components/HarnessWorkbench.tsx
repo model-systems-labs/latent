@@ -3,9 +3,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { CodeEditor } from "../features/ide/CodeEditor";
-import { runPythonProjectContracts, runPythonProjectFile } from "../features/ide/python-lesson-service";
+import { runPythonProjectContracts, runPythonProjectFunction } from "../features/ide/python-lesson-service";
 import { harnessEngineeringContractSuite } from "../content/harness-engineering/contracts";
 import { HARNESS_PROJECT_STARTER_FILES } from "../content/harness-engineering/project-template";
+import {
+  HARNESS_SCENARIO_EXPORT,
+  HARNESS_SCENARIO_FIXTURES,
+  HARNESS_SCENARIO_MODULE_PATH,
+  harnessScenarioArguments,
+  harnessScenarioMatchesExpected,
+  harnessScenarioTrace,
+  type HarnessScenarioTrace,
+} from "../content/harness-engineering/scenarios";
 import { initializeLearnerPersistence } from "../lib/learner-state";
 import {
   currentHarnessReceipt,
@@ -24,8 +33,25 @@ import {
 import type { TestResultRecord } from "../platform/persistence/types";
 import styles from "./HarnessWorkbench.module.css";
 
-type MobileView = "files" | "code" | "tests" | "output";
+type MobileView = "files" | "code" | "run" | "checks";
+type InspectorView = "run" | "checks";
+type ResultScope = "file" | "project";
 type CheckResult = Pick<TestResultRecord, "contractId" | "path" | "label" | "passed" | "detail">;
+type ScenarioAttempt = {
+  scenarioId: string;
+  trace: HarnessScenarioTrace | null;
+  error: string | null;
+  pythonOutput: string;
+  matchesExpected: boolean;
+  stale: boolean;
+};
+
+function terminalStatusLabel(status: HarnessScenarioTrace["status"]) {
+  if (status === "completed") return "completed";
+  if (status === "approval_required") return "approval required";
+  if (status === "budget_exceeded") return "turn limit reached";
+  return "fixed replies ended";
+}
 
 function contractsForPath(path: string) {
   return harnessEngineeringContractSuite.contracts.filter((contract) => (
@@ -53,19 +79,25 @@ export function HarnessWorkbench() {
   const workspace = useHarnessWorkspaceState();
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [results, setResults] = useState<CheckResult[]>([]);
-  const [output, setOutput] = useState("");
+  const [resultScope, setResultScope] = useState<ResultScope | null>(null);
   const [status, setStatus] = useState("Restoring your project…");
   const [busy, setBusy] = useState(false);
   const [mobileView, setMobileView] = useState<MobileView>("code");
+  const [inspectorView, setInspectorView] = useState<InspectorView>("run");
+  const [scenarioId, setScenarioId] = useState(HARNESS_SCENARIO_FIXTURES[0]?.id ?? "");
+  const [scenarioAttempt, setScenarioAttempt] = useState<ScenarioAttempt | null>(null);
   const [recovery, setRecovery] = useState<string | null>(null);
   const draftsRef = useRef<Record<string, string>>({});
   const runAbortRef = useRef<AbortController | null>(null);
   const selected = workspace.selectedPath ? workspace.files[workspace.selectedPath] : undefined;
+  const scenario = HARNESS_SCENARIO_FIXTURES.find((candidate) => candidate.id === scenarioId)
+    ?? HARNESS_SCENARIO_FIXTURES[0];
   const draft = selected ? drafts[selected.path] ?? selected.content : "";
   const dirty = Boolean(selected && draft !== selected.content);
   const updateDraft = (path: string, content: string) => {
     draftsRef.current = { ...draftsRef.current, [path]: content };
     setDrafts((current) => ({ ...current, [path]: content }));
+    setScenarioAttempt((current) => current ? { ...current, stale: true } : current);
   };
   const visibleFilesForRun = (path: string) => ({
     ...Object.fromEntries(Object.values(workspace.files).map((file) => [file.path, file.content])),
@@ -82,6 +114,9 @@ export function HarnessWorkbench() {
   const refreshReceipt = useCallback(async () => {
     const current = await currentHarnessReceipt();
     setResults(current?.run.results ?? []);
+    setResultScope(current
+      ? new Set(current.run.results.map((result) => result.path)).size > 1 ? "project" : "file"
+      : null);
     if (current) {
       setStatus(current.receipt.passed
         ? `${current.receipt.passedCount} checks pass for this saved revision.`
@@ -177,7 +212,8 @@ export function HarnessWorkbench() {
   const performTests = async (scope: "file" | "project") => {
     if (!selected || busy) return;
     setBusy(true);
-    setMobileView("tests");
+    setInspectorView("checks");
+    setMobileView("checks");
     const controller = new AbortController();
     runAbortRef.current = controller;
     try {
@@ -205,13 +241,8 @@ export function HarnessWorkbench() {
       }));
       await recordHarnessTestRun(evidence, recorded);
       setResults(recorded);
+      setResultScope(scope);
       const passed = recorded.filter((result) => result.passed).length;
-      setOutput([
-        run.stdout,
-        run.stderr ? `Standard error\n${run.stderr}` : "",
-        `${passed}/${recorded.length} checks passed in ${((run.completedAt - run.startedAt) / 1000).toFixed(2)} s.`,
-        run.stdout || run.stderr ? "" : "No standard output was written by this run.",
-      ].filter(Boolean).join("\n\n"));
       setStatus(passed === recorded.length
         ? `${passed} checks pass for this exact saved source.`
         : `${passed} of ${recorded.length} checks pass. Open the first failure below.`);
@@ -221,8 +252,6 @@ export function HarnessWorkbench() {
       } else {
         const message = error instanceof Error ? error.message : "The Harness checks stopped safely.";
         setStatus(message);
-        setOutput(message);
-        setMobileView("output");
       }
     } finally {
       if (runAbortRef.current === controller) runAbortRef.current = null;
@@ -230,36 +259,77 @@ export function HarnessWorkbench() {
     }
   };
 
-  const runFile = async () => {
-    if (!selected || busy) return;
+  const runScenario = async () => {
+    if (!selected || !scenario || busy) return;
     setBusy(true);
-    setMobileView("output");
+    setInspectorView("run");
+    setMobileView("run");
     const controller = new AbortController();
     runAbortRef.current = controller;
     try {
       if (dirty) await save(false);
       const evidence = await harnessRunEvidence();
       requireCurrentVisibleSource(selected.path, evidence.files);
-      setStatus(`Running ${selected.path}…`);
-      const execution = await runPythonProjectFile({ files: evidence.files, path: selected.path, signal: controller.signal });
-      if (execution.run.status === "failed") {
-        throw new Error(execution.run.exception?.message ?? "Python execution failed.");
+      setStatus(`Running “${scenario.label}”…`);
+      const execution = await runPythonProjectFunction({
+        files: evidence.files,
+        path: HARNESS_SCENARIO_MODULE_PATH,
+        exportName: HARNESS_SCENARIO_EXPORT,
+        args: harnessScenarioArguments(scenario),
+        signal: controller.signal,
+        onEvent: (event) => {
+          if (event.type === "progress") setStatus(event.message);
+        },
+      });
+      controller.signal.throwIfAborted();
+      const pythonOutput = [execution.stdout, execution.stderr].filter(Boolean).join("\n");
+      if (execution.observation.status === "threw") {
+        const error = `${execution.observation.errorName}: ${execution.observation.message}`;
+        setScenarioAttempt({ scenarioId: scenario.id, trace: null, error, pythonOutput, matchesExpected: false, stale: false });
+        setStatus(`“${scenario.label}” stopped in your Python code.`);
+        return;
       }
-      setOutput(execution.stdout || execution.stderr || "File executed successfully. No standard output was written.");
-      setStatus(`${selected.path} finished.`);
+      if (execution.observation.status !== "returned") {
+        const error = execution.observation.message;
+        setScenarioAttempt({ scenarioId: scenario.id, trace: null, error, pythonOutput, matchesExpected: false, stale: false });
+        setStatus(`“${scenario.label}” could not finish in the browser runtime.`);
+        return;
+      }
+      const trace = harnessScenarioTrace(execution.observation.value);
+      const matchesExpected = harnessScenarioMatchesExpected(execution.observation.value, scenario);
+      setScenarioAttempt({ scenarioId: scenario.id, trace, error: null, pythonOutput, matchesExpected, stale: false });
+      setStatus(matchesExpected
+        ? trace.summary
+        : `Your harness returned ${terminalStatusLabel(trace.status)}; this case should end ${terminalStatusLabel(scenario.expected.terminalStatus)}.`);
     } catch (error) {
       if (controller.signal.aborted) {
-        setStatus("Run stopped. Previous output remains visible.");
+        setStatus("Run stopped. The previous scenario result is still shown.");
       } else {
-        const message = error instanceof Error ? error.message : "The Python file stopped safely.";
+        const message = error instanceof Error ? error.message : "The recorded scenario stopped safely.";
         setStatus(message);
-        setOutput(message);
+        setScenarioAttempt({ scenarioId: scenario.id, trace: null, error: message, pythonOutput: "", matchesExpected: false, stale: false });
       }
     } finally {
       if (runAbortRef.current === controller) runAbortRef.current = null;
       setBusy(false);
     }
   };
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && busy) {
+        event.preventDefault();
+        runAbortRef.current?.abort();
+        return;
+      }
+      if (event.key !== "Enter" || (!event.metaKey && !event.ctrlKey)) return;
+      event.preventDefault();
+      if (event.shiftKey) void performTests("file");
+      else void runScenario();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  });
 
   const resultPaths = useMemo(() => new Map(
     results.map((result) => [result.contractId, result.path]),
@@ -286,13 +356,16 @@ export function HarnessWorkbench() {
         <div><strong>{verifiedFiles} of {HARNESS_PROJECT_STARTER_FILES.length} files verified</strong><span>Saved in this browser</span></div>
         <div className={styles.projectActions}>
           {busy ? <button type="button" onClick={() => runAbortRef.current?.abort()}>Stop</button> : null}
-          <button className={styles.primaryAction} type="button" onClick={() => void performTests("project")} disabled={!workspace.ready || busy}>Run all {harnessEngineeringContractSuite.contracts.length}</button>
+          <button className={styles.primaryAction} type="button" onClick={() => void performTests("project")} disabled={!workspace.ready || busy}>Test project</button>
         </div>
       </header>
 
       <nav className={styles.mobileTabs} aria-label="Workspace views">
-        {(["files", "code", "tests", "output"] as const).map((view) => (
-          <button type="button" aria-pressed={mobileView === view} onClick={() => setMobileView(view)} key={view}>{view}</button>
+        {(["files", "code", "run", "checks"] as const).map((view) => (
+          <button type="button" aria-pressed={mobileView === view} onClick={() => {
+            setMobileView(view);
+            if (view === "run" || view === "checks") setInspectorView(view);
+          }} key={view}>{view}</button>
         ))}
       </nav>
 
@@ -333,6 +406,7 @@ export function HarnessWorkbench() {
               onChange={(value) => {
                 updateDraft(selected.path, value);
                 setResults([]);
+                setResultScope(null);
               }}
               onSave={() => void save()}
               path={selected.path}
@@ -344,27 +418,86 @@ export function HarnessWorkbench() {
             <span role="status" aria-live="polite">{workspace.error ?? status}</span>
             <div>
               {dirty ? <button type="button" onClick={() => void save()} disabled={busy}>Save</button> : null}
-              <button type="button" onClick={() => void runFile()} disabled={!selected || busy}>Run file</button>
-              <button className={styles.primaryAction} type="button" onClick={() => void performTests("file")} disabled={!selected || busy}>Test file</button>
+              <button type="button" onClick={() => void performTests("file")} disabled={!selected || busy} aria-keyshortcuts="Control+Shift+Enter Meta+Shift+Enter">Test file</button>
+              <button className={styles.primaryAction} type="button" onClick={() => void runScenario()} disabled={!selected || busy} aria-keyshortcuts="Control+Enter Meta+Enter">Run scenario</button>
             </div>
           </footer>
         </section>
 
-        <aside className={styles.inspector} aria-live="polite">
-          <section className={styles.testsPanel}>
-            <header><div><strong>Tests</strong><span>{results.length ? `${results.filter((result) => result.passed).length}/${results.length} passing` : "Not run"}</span></div>{selected ? <button type="button" onClick={() => void performTests("file")} disabled={busy}>Run current</button> : null}</header>
-            <div className={styles.resultList}>
-              {results.length ? results.map((result) => (
-                <button type="button" className={result.passed ? styles.passed : styles.failed} key={result.contractId} onClick={() => void openFile(resultPaths.get(result.contractId) ?? result.path)}>
-                  <i>{result.passed ? "✓" : "×"}</i><span><strong>{result.label}</strong><small>{result.detail}</small></span>
-                </button>
-              )) : <p>Run this file to check its public behavior, or run all to test the complete project.</p>}
-            </div>
-          </section>
-          <section className={styles.outputPanel}>
-            <header><strong>Output</strong><span>CPython in your browser</span></header>
-            <pre>{output || "Standard output will appear here."}</pre>
-          </section>
+        <aside className={styles.inspector}>
+          <nav className={styles.inspectorTabs} aria-label="Inspector views">
+            <button type="button" aria-pressed={inspectorView === "run"} onClick={() => { setInspectorView("run"); setMobileView("run"); }}>
+              <strong>Scenario</strong><span>Fixed replies</span>
+            </button>
+            <button type="button" aria-pressed={inspectorView === "checks"} onClick={() => { setInspectorView("checks"); setMobileView("checks"); }}>
+              <strong>Checks</strong><span>{results.length ? `${results.filter((result) => result.passed).length}/${results.length}` : "Not run"}</span>
+            </button>
+          </nav>
+
+          {inspectorView === "checks" ? (
+            <section className={styles.testsPanel}>
+              <header><div><strong>{resultScope === "project" ? "Project checks" : selected?.path.replace("harness/", "") ?? "Selected file"}</strong><span>{resultScope === "project" ? "All saved files" : "Checks for saved code"}</span></div>{selected ? <button type="button" onClick={() => void performTests("file")} disabled={busy}>Test file</button> : null}</header>
+              <div className={styles.resultList}>
+                {results.length ? results.map((result) => (
+                  <button type="button" className={result.passed ? styles.passed : styles.failed} key={result.contractId} onClick={() => void openFile(resultPaths.get(result.contractId) ?? result.path)}>
+                    <i>{result.passed ? "✓" : "×"}</i><span><strong>{result.label}</strong><small>{result.detail}</small></span>
+                  </button>
+                )) : <p>Run this file’s checks, or test the whole project.</p>}
+              </div>
+            </section>
+          ) : scenario ? (
+            <section className={styles.scenarioPanel}>
+              <div className={styles.scenarioControls}>
+                <label htmlFor="harness-scenario"><strong>Scenario</strong></label>
+                <select id="harness-scenario" value={scenario.id} onChange={(event) => {
+                  setScenarioId(event.target.value);
+                  setScenarioAttempt(null);
+                }} disabled={busy}>
+                  {HARNESS_SCENARIO_FIXTURES.map((fixture) => <option value={fixture.id} key={fixture.id}>{fixture.label}</option>)}
+                </select>
+                <p>{scenario.description}</p>
+                <p className={styles.adapterNote}>The model replies and tool results are fixed test data. Your Python parses each reply, checks permissions, applies the turn limit, and builds the trace.</p>
+                <button className={styles.scenarioRunButton} type="button" onClick={() => void runScenario()} disabled={!selected || busy}>Run scenario</button>
+              </div>
+
+              <div className={styles.scenarioResult} data-stale={scenarioAttempt?.stale || undefined}>
+                {scenarioAttempt?.stale ? <p className={styles.staleNotice}>Code changed. Run this scenario again.</p> : null}
+                {scenarioAttempt?.error ? (
+                  <div className={styles.scenarioError}><strong>Stopped in your code</strong><p>{scenarioAttempt.error}</p></div>
+                ) : scenarioAttempt?.trace ? (
+                  <>
+                    <p className={styles.runSummary} data-matches={scenarioAttempt.matchesExpected}>
+                      {scenarioAttempt.matchesExpected
+                        ? scenarioAttempt.trace.summary
+                        : `Returned ${terminalStatusLabel(scenarioAttempt.trace.status)}; expected ${terminalStatusLabel(scenario.expected.terminalStatus)}.`}
+                    </p>
+                    <ol className={styles.traceList}>
+                      {scenarioAttempt.trace.rows.map((row, index) => (
+                        <li data-tone={row.tone} key={`${row.actor}-${index}`}>
+                          <em>{String(index + 1).padStart(2, "0")}</em><strong>{row.actor}</strong><span>{row.text}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  </>
+                ) : <p className={styles.emptyScenario}>Run this case against your saved project.</p>}
+
+                <details className={styles.cassette}>
+                  <summary>View fixed model replies</summary>
+                  <div className={styles.cassetteEditor}>
+                    <CodeEditor
+                      ariaLabel={`Recorded replies for ${scenario.label}`}
+                      onChange={() => undefined}
+                      path="recorded-model.json"
+                      readOnly
+                      value={JSON.stringify({ adapter: "recorded", responses: scenario.recordedResponses }, null, 2)}
+                      variant="workbook"
+                    />
+                  </div>
+                </details>
+                {scenarioAttempt?.pythonOutput ? <details className={styles.pythonOutput}><summary>Show Python output</summary><pre>{scenarioAttempt.pythonOutput}</pre></details> : null}
+              </div>
+            </section>
+          ) : null}
         </aside>
       </div>
       </section>

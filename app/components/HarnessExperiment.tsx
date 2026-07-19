@@ -182,11 +182,11 @@ export function harnessExperimentResult(variant: HarnessExperimentVariant, value
       metrics: [
         { label: "Model turns", value: String(Math.min(value, 2)) },
         { label: "Tool calls", value: "1" },
-        { label: "Run status", value: completed ? "complete" : "budget exceeded" },
+        { label: "Run status", value: completed ? "completed" : "turn limit reached" },
       ],
       trace: [
         { label: "Turn 1", detail: "Validate read_file, apply the read policy, and record its observation." },
-        { label: "Turn 2", detail: completed ? "Accept the final response and close the run." : "Blocked by the host-owned turn budget." },
+        { label: "Turn 2", detail: completed ? "Accept the final response and close the run." : "The second saved reply is never read because the turn limit is 1." },
         { label: "Audit", detail: completed ? "Every call has one result and the terminal event is last." : "The partial trace remains inspectable without claiming completion." },
       ],
     };
@@ -264,7 +264,7 @@ export default function HarnessExperiment({ variant, onComplete }: { variant: Ha
         </label>
       </div>
       <div className="experiment-action">
-        <p>Change one condition, then inspect the deterministic result.</p>
+        <p>Set one condition, then run the example.</p>
         <button type="button" onClick={() => { setRan(true); onComplete(); }}>
           {ran ? "Run again" : "Run trace"}
         </button>

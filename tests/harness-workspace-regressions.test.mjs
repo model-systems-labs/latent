@@ -22,9 +22,11 @@ let contracts;
 let persistence;
 let projectTemplate;
 let harnessWorkspace;
+let scenarios;
 let pythonLab;
 let pyodide;
 let runPythonProjectContracts;
+let runPythonProjectFunction;
 let vite;
 const initializationProfiles = [];
 
@@ -37,11 +39,12 @@ before(async () => {
     logLevel: "silent",
   });
 
-  [contracts, persistence, projectTemplate, harnessWorkspace, { runPythonProjectContracts }] = await Promise.all([
+  [contracts, persistence, projectTemplate, harnessWorkspace, scenarios, { runPythonProjectContracts, runPythonProjectFunction }] = await Promise.all([
     vite.ssrLoadModule("/app/content/harness-engineering/contracts.ts"),
     vite.ssrLoadModule("/app/platform/persistence/index.ts"),
     vite.ssrLoadModule("/app/content/harness-engineering/project-template.ts"),
     vite.ssrLoadModule("/app/lib/harness-workspace.ts"),
+    vite.ssrLoadModule("/app/content/harness-engineering/scenarios.ts"),
     vite.ssrLoadModule("/app/features/ide/python-lesson-service.ts"),
   ]);
 
@@ -138,6 +141,13 @@ function referenceFiles() {
   ]));
 }
 
+function starterFiles() {
+  return Object.fromEntries(projectTemplate.HARNESS_PROJECT_STARTER_FILES.map((file) => [
+    file.path,
+    file.content,
+  ]));
+}
+
 function database() {
   return new persistence.BrowserLabDatabase(`harness-workspace-${crypto.randomUUID()}`);
 }
@@ -171,6 +181,9 @@ test("the Harness workbook exposes one complete importable Python scaffold", () 
   assert.match(referenceFiles()["harness/harness.py"], /from harness\.agent_loop import/);
   assert.match(referenceFiles()["harness/harness.py"], /from harness\.permissions import/);
   assert.match(referenceFiles()["harness/harness.py"], /from harness\.tools import/);
+  const harnessStarter = files.find((file) => file.path === "harness/harness.py")?.content ?? "";
+  assert.match(harnessStarter, /def run_harness\(initial_messages, model, tools, rules, max_turns\):\n    raise NotImplementedError/);
+  assert.match(harnessStarter, /# Provided browser adapter\.\ndef run_recorded_harness\(initial_messages, model_config, tool_configs, rules, max_turns\):/);
 });
 
 test("visible Harness source must exactly match durable run evidence", () => {
@@ -194,7 +207,7 @@ test("Harness source and persistence stay outside the Browser Chat project", asy
   assert.doesNotMatch(workbenchSource, /href=["']\/(?:project|workspace)(?:[?"'])/);
   const projectRunSource = workbenchSource.slice(
     workbenchSource.indexOf("const performTests"),
-    workbenchSource.indexOf("const runFile"),
+    workbenchSource.indexOf("const runScenario"),
   );
   assert.doesNotMatch(projectRunSource, /setResults\(\[\]\)/);
   assert.match(projectRunSource, /Previous results remain attached to their saved source/);
@@ -204,6 +217,8 @@ test("Harness source and persistence stay outside the Browser Chat project", asy
   assert.doesNotMatch(workbenchSource, /setDrafts\(\(current\) => \(\{ \.\.\.current, \[selected\.path\]: snapshot \}\)\)/);
   assert.match(workbenchSource, /requireCurrentVisibleSource\(selected\.path, evidence\.files\)/);
   assert.match(workspaceSource, /candidate\.runnerVersion === HARNESS_PROJECT_RUNNER_VERSION/);
+  assert.match(workspaceSource, /current\.sourceProvenance !== "seed"/);
+  assert.match(workspaceSource, /expected: current \? \{ revision: current\.revision, sourceHash: current\.sourceHash \} : null/);
 
   const db = database();
   await db.open();
@@ -293,6 +308,79 @@ test("one project run passes all sixteen contracts against the reference package
   assert.deepEqual(run.results.filter(({ passed }) => !passed), []);
   assert.ok(run.cases.every(({ passed }) => passed));
   assert.deepEqual(initializationProfiles.at(-1), []);
+});
+
+test("every recorded-model scenario runs through the learner project and returns its own trace", { timeout: 60_000 }, async () => {
+  for (const scenario of scenarios.HARNESS_SCENARIO_FIXTURES) {
+    const invocation = await runPythonProjectFunction({
+      files: referenceFiles(),
+      path: scenarios.HARNESS_SCENARIO_MODULE_PATH,
+      exportName: scenarios.HARNESS_SCENARIO_EXPORT,
+      args: scenarios.harnessScenarioArguments(scenario),
+      pythonLab,
+    });
+    assert.equal(invocation.observation.status, "returned", scenario.id);
+    const trace = scenarios.harnessScenarioTrace(invocation.observation.value);
+    assert.equal(trace.status, scenario.expected.terminalStatus, scenario.id);
+    assert.equal(trace.final, scenario.expected.final, scenario.id);
+    assert.equal(trace.toolCalls, scenario.expected.toolCallCount, scenario.id);
+    assert.equal(scenarios.harnessScenarioMatchesExpected(invocation.observation.value, scenario), true, scenario.id);
+    assert.ok(trace.rows.length >= 2, scenario.id);
+  }
+});
+
+test("a fresh scenario reaches the visible learner stub through the provided adapter", { timeout: 60_000 }, async () => {
+  const invocation = await runPythonProjectFunction({
+    files: starterFiles(),
+    path: scenarios.HARNESS_SCENARIO_MODULE_PATH,
+    exportName: scenarios.HARNESS_SCENARIO_EXPORT,
+    args: scenarios.harnessScenarioArguments(scenarios.HARNESS_SCENARIO_FIXTURES[0]),
+    pythonLab,
+  });
+  assert.equal(invocation.observation.status, "threw");
+  assert.equal(invocation.observation.errorName, "NotImplementedError");
+  assert.match(invocation.observation.message, /Implement Run the harness/);
+  assert.doesNotMatch(invocation.observation.message, /not defined|missing/i);
+});
+
+test("scenario invocation reports learner exceptions without confusing them with worker failures", { timeout: 60_000 }, async () => {
+  const files = {
+    ...referenceFiles(),
+    "harness/harness.py": "def run_recorded_harness(*args):\n    raise RuntimeError('learner bug')\n",
+  };
+  const invocation = await runPythonProjectFunction({
+    files,
+    path: scenarios.HARNESS_SCENARIO_MODULE_PATH,
+    exportName: scenarios.HARNESS_SCENARIO_EXPORT,
+    args: scenarios.harnessScenarioArguments(scenarios.HARNESS_SCENARIO_FIXTURES[0]),
+    pythonLab,
+  });
+  assert.equal(invocation.observation.status, "threw");
+  assert.equal(invocation.observation.errorName, "RuntimeError");
+  assert.match(invocation.observation.message, /learner bug/);
+});
+
+test("scenario invocation rejects unsafe paths, names, and unbounded arguments before Python", async () => {
+  const files = referenceFiles();
+  const base = {
+    files,
+    path: scenarios.HARNESS_SCENARIO_MODULE_PATH,
+    exportName: scenarios.HARNESS_SCENARIO_EXPORT,
+    args: scenarios.harnessScenarioArguments(scenarios.HARNESS_SCENARIO_FIXTURES[0]),
+    pythonLab,
+  };
+  await assert.rejects(
+    runPythonProjectFunction({ ...base, files: { ...files, "../escape.py": "pass" }, path: "../escape.py" }),
+    /safe relative \.py path/,
+  );
+  await assert.rejects(runPythonProjectFunction({ ...base, path: "harness/missing.py" }), /missing/);
+  await assert.rejects(runPythonProjectFunction({ ...base, exportName: "run-harness" }), /export name is invalid/);
+  await assert.rejects(runPythonProjectFunction({ ...base, args: [Number.POSITIVE_INFINITY] }), /bounded, finite JSON/);
+
+  let nested = "leaf";
+  for (let depth = 0; depth < 26; depth += 1) nested = [nested];
+  await assert.rejects(runPythonProjectFunction({ ...base, args: [nested] }), /bounded, finite JSON/);
+  await assert.rejects(runPythonProjectFunction({ ...base, args: ["x".repeat(262_145)] }), /too large/);
 });
 
 test("an edited dependency breaks the integrated harness in the same Python worker", { timeout: 60_000 }, async () => {

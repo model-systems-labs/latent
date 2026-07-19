@@ -230,6 +230,86 @@ for _latent_case in _latent_payload["cases"]:
 `;
 }
 
+function projectFunctionHarness(path: string, exportName: string, args: readonly JsonValue[]): string {
+  const payload = JSON.stringify({ path, exportName, args });
+  return `import importlib as _latent_importlib
+import json as _latent_json
+import math as _latent_math
+import runpy as _latent_runpy
+import sys as _latent_sys
+
+_latent_payload = _latent_json.loads(${pythonString(payload)})
+_latent_sys.dont_write_bytecode = True
+if "/workspace" not in _latent_sys.path:
+    _latent_sys.path.insert(0, "/workspace")
+
+def _latent_restore(value):
+    if isinstance(value, list):
+        return [_latent_restore(item) for item in value]
+    if isinstance(value, dict):
+        if value == {"$number": "-Infinity"}:
+            return float("-inf")
+        if value == {"$number": "Infinity"}:
+            return float("inf")
+        if value == {"$number": "NaN"}:
+            return float("nan")
+        return {key: _latent_restore(item) for key, item in value.items()}
+    return value
+
+def _latent_normalize(value, depth=0):
+    if depth > 24:
+        raise ValueError("returned value is nested too deeply")
+    if value is None or isinstance(value, (str, bool)):
+        return value
+    if isinstance(value, int):
+        if abs(value) > 9007199254740991:
+            raise ValueError("returned integer is outside JavaScript's safe range")
+        return value
+    if isinstance(value, float):
+        if _latent_math.isnan(value):
+            return {"$number": "NaN"}
+        if value == float("inf"):
+            return {"$number": "Infinity"}
+        if value == float("-inf"):
+            return {"$number": "-Infinity"}
+        return value
+    if isinstance(value, (list, tuple)):
+        return [_latent_normalize(item, depth + 1) for item in value]
+    if isinstance(value, dict):
+        if not all(isinstance(key, str) for key in value):
+            raise TypeError("returned dictionaries must use string keys")
+        return {key: _latent_normalize(item, depth + 1) for key, item in value.items()}
+    if hasattr(value, "tolist"):
+        return _latent_normalize(value.tolist(), depth + 1)
+    if hasattr(value, "item"):
+        return _latent_normalize(value.item(), depth + 1)
+    raise TypeError(f"function returned unsupported {type(value).__name__}")
+
+for _latent_name, _latent_module in list(_latent_sys.modules.items()):
+    _latent_source = getattr(_latent_module, "__file__", "") or ""
+    if _latent_source.startswith("/workspace/"):
+        del _latent_sys.modules[_latent_name]
+_latent_importlib.invalidate_caches()
+
+try:
+    _latent_module = _latent_runpy.run_path(
+        "/workspace/" + _latent_payload["path"],
+        run_name="latent_project_invocation",
+    )
+    _latent_function = _latent_module.get(_latent_payload["exportName"])
+    if not callable(_latent_function):
+        raise NameError(f"define {_latent_payload['exportName']} as a callable function")
+    _latent_value = _latent_function(*_latent_restore(_latent_payload["args"]))
+    RESULT = {"status": "returned", "value": _latent_normalize(_latent_value)}
+except BaseException as _latent_error:
+    RESULT = {
+        "status": "threw",
+        "errorName": type(_latent_error).__name__,
+        "message": str(_latent_error)[:8192],
+    }
+`;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -240,6 +320,14 @@ function isJsonValue(value: unknown, depth = 0): value is JsonValue {
   if (typeof value === "number") return Number.isFinite(value);
   if (Array.isArray(value)) return value.every((item) => isJsonValue(item, depth + 1));
   return isRecord(value) && Object.values(value).every((item) => isJsonValue(item, depth + 1));
+}
+
+function isInvocationJsonValue(value: unknown, depth = 0): value is JsonValue {
+  if (depth > 24) return false;
+  if (value === null || typeof value === "string" || typeof value === "boolean") return true;
+  if (typeof value === "number") return Number.isFinite(value) && (!Number.isInteger(value) || Number.isSafeInteger(value));
+  if (Array.isArray(value)) return value.every((item) => isInvocationJsonValue(item, depth + 1));
+  return isRecord(value) && Object.values(value).every((item) => isInvocationJsonValue(item, depth + 1));
 }
 
 function parseObservation(value: unknown): InvocationObservation | null {
@@ -449,6 +537,78 @@ export async function runPythonProjectContracts(input: {
     };
   });
   return { cases, results, output, stdout: stdout.join(""), stderr: stderr.join(""), startedAt, completedAt: Date.now() };
+}
+
+export type PythonProjectFunctionRun = {
+  observation: InvocationObservation;
+  output: PythonLessonOutputChunk[];
+  stdout: string;
+  stderr: string;
+  startedAt: number;
+  completedAt: number;
+};
+
+export async function runPythonProjectFunction(input: {
+  files: Readonly<Record<string, string>>;
+  path: string;
+  exportName: string;
+  args: readonly JsonValue[];
+  signal?: AbortSignal;
+  onEvent?: (event: PythonLabEvent) => void;
+  pythonLab?: PythonLessonClient;
+}): Promise<PythonProjectFunctionRun> {
+  if (typeof input.files[input.path] !== "string") throw new Error(`${input.path} is missing from the Harness project.`);
+  if (input.path.startsWith("/") || !input.path.endsWith(".py") || input.path.split("/").some((part) => part === ".." || part === "")) {
+    throw new Error("The Python project path must be a safe relative .py path.");
+  }
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(input.exportName)) throw new Error("The Python export name is invalid.");
+  if (!input.args.every((arg) => isInvocationJsonValue(arg))) {
+    throw new Error("The Python invocation arguments must be bounded, finite JSON values.");
+  }
+  if (new TextEncoder().encode(JSON.stringify(input.args)).byteLength > 262_144) {
+    throw new Error("The Python invocation arguments are too large.");
+  }
+
+  const startedAt = Date.now();
+  const packages = pythonLessonPackages(Object.values(input.files).join("\n"));
+  const pythonLab = input.pythonLab ?? await sharedClient(packages, "harness-project");
+  const output: PythonLessonOutputChunk[] = [];
+  const stdout: string[] = [];
+  const stderr: string[] = [];
+  const onEvent = (event: PythonLabEvent) => {
+    if (event.type === "stdout" || event.type === "stderr") {
+      const previous = output[output.length - 1];
+      if (previous?.stream === event.type) previous.text += event.text;
+      else output.push({ stream: event.type, text: event.text });
+      (event.type === "stdout" ? stdout : stderr).push(event.text);
+    }
+    input.onEvent?.(event);
+  };
+  const operation = { signal: input.signal, onEvent };
+  const initialization = await pythonLab.initialize({ packages }, operation);
+  const sync = await pythonLab.sync({
+    files: Object.entries(input.files).map(([path, contents]) => ({ path, contents })),
+  }, operation);
+  if (initialization.runtime !== "pyodide" || !sync.files.includes(input.path)) {
+    throw new Error("The CPython workspace did not sync the complete Harness project.");
+  }
+  const run = await pythonLab.run(
+    { code: projectFunctionHarness(input.path, input.exportName, input.args) },
+    { signal: input.signal, timeoutMs: 45_000, onEvent },
+  );
+  if (run.status === "failed") {
+    throw new Error(run.exception?.message || "The Harness scenario runner stopped with an error.");
+  }
+  const observation = parseObservation(run.result);
+  if (!observation) throw new Error("CPython returned a scenario result Latent could not read.");
+  return {
+    observation,
+    output,
+    stdout: stdout.join(""),
+    stderr: stderr.join(""),
+    startedAt,
+    completedAt: Date.now(),
+  };
 }
 
 export async function runPythonProjectFile(input: {

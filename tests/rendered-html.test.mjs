@@ -111,8 +111,8 @@ test("Integrated Harness renders the composed loop and links to its cumulative p
   const response = await render("/lessons/integrated-harness");
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /Adapters keep the loop model-agnostic/);
-  assert.match(html, /One host transition owns every consequential decision/);
+  assert.match(html, /The loop does not depend on one model/);
+  assert.match(html, /The host code controls every action/);
   assert.match(html, /Run the harness/);
   assert.match(html, /Audit a harness run/);
   assert.equal((html.match(/class="exercise-summary"/g) ?? []).length, 2);

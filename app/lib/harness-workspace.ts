@@ -96,7 +96,13 @@ async function seedMissingFiles() {
   }
   const existing = new Map((await repositories.projects.listFiles(HARNESS_PROJECT_ID)).map((file) => [file.path, file]));
   for (const seed of HARNESS_PROJECT_STARTER_FILES) {
-    if (existing.has(seed.path)) continue;
+    const current = existing.get(seed.path);
+    if (current && current.sourceProvenance !== "seed") continue;
+    if (current
+      && current.content === seed.content
+      && current.referenceContent === seed.referenceContent
+      && current.lessonId === seed.lessonId
+      && current.totalCells === seed.totalCells) continue;
     await repositories.projects.saveFile({
       projectId: HARNESS_PROJECT_ID,
       path: seed.path,
@@ -109,7 +115,7 @@ async function seedMissingFiles() {
       totalCells: seed.totalCells,
       sourceProvenance: "seed",
       reason: "seed",
-      expected: null,
+      expected: current ? { revision: current.revision, sourceHash: current.sourceHash } : null,
     });
   }
 }

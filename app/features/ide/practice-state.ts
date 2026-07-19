@@ -28,6 +28,8 @@ const JAVASCRIPT_DRAFT_MARKERS = [
   /(?:===|!==)/,
 ];
 
+const PROVIDED_PYTHON_STARTER_POSTLUDE = "# Provided browser adapter.";
+
 export function practiceDraftIsCompatible(filename: string, source: string): boolean {
   return !filename.toLowerCase().endsWith(".py") || !JAVASCRIPT_DRAFT_MARKERS.some((marker) => marker.test(source));
 }
@@ -40,13 +42,16 @@ export function practiceDraftIsCompatible(filename: string, source: string): boo
 export function starterPracticeSource(filename: string, block: Pick<CodeBlock, "code" | "label">): string {
   if (filename.toLowerCase().endsWith(".py")) {
     const lines = block.code.split("\n");
-    const definition = lines.findIndex((line) => line.startsWith("def "));
+    const postludeIndex = lines.findIndex((line) => line === PROVIDED_PYTHON_STARTER_POSTLUDE);
+    const implementation = postludeIndex < 0 ? lines : lines.slice(0, postludeIndex);
+    const definition = implementation.findIndex((line) => line.startsWith("def "));
     if (definition < 0) {
       return `# TODO: implement ${block.label.toLowerCase()}.\nraise NotImplementedError(${JSON.stringify(`Implement ${block.label}.`)})`;
     }
-    const prefix = lines.slice(0, definition).join("\n").trimEnd();
-    const signature = lines[definition];
-    return [prefix, `${signature}\n    raise NotImplementedError(${JSON.stringify(`Implement ${block.label}.`)})`]
+    const prefix = implementation.slice(0, definition).join("\n").trimEnd();
+    const signature = implementation[definition];
+    const postlude = postludeIndex < 0 ? "" : lines.slice(postludeIndex).join("\n").trimEnd();
+    return [prefix, `${signature}\n    raise NotImplementedError(${JSON.stringify(`Implement ${block.label}.`)})`, postlude]
       .filter(Boolean)
       .join("\n\n");
   }

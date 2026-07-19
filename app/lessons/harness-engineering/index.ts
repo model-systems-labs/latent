@@ -1267,25 +1267,25 @@ export const integratedHarnessLesson = defineHarnessLesson({
   lessonNumber: 8,
   eyebrow: "Adapters · Policy · Loop",
   title: "Integrated Harness",
-  thesis: "A complete harness composes model and tool adapters with validation, policy, limits, observations, and an auditable terminal state.",
+  thesis: "A harness reads one model reply at a time, validates tool calls, enforces permissions and limits, records each result, and stops in a state you can inspect.",
   sources: [harnessEngineeringSource, buildingEffectiveAgentsSource, approvalsSecuritySource],
   summary: [
     {
-      label: "Adapters keep the loop model-agnostic.",
-      body: "The loop consumes structured responses and tool results through narrow interfaces. The browser lab uses recorded responses and deterministic tool fixtures; a production adapter can replace either side when it preserves the same interface and semantics.",
+      label: "The loop does not depend on one model.",
+      body: "This lab does not call an LLM or touch your filesystem. It replays fixed model replies and tool results. The harness code is real: it validates each reply, checks permissions, enforces the turn limit, and records the outcome. A live model or tool can later use the same interface.",
     },
     {
-      label: "One host transition owns every consequential decision.",
+      label: "The host code controls every action.",
       body: "Each turn validates exactly one response, checks the tool contract, evaluates permission rules, enforces the remaining budget, and records an observation. A confirmation pauses the run before dispatch, while a denial becomes an error observation the next model turn can inspect.",
     },
     {
-      label: "The trace is a testable product of the run.",
+      label: "The run returns a trace, not just an answer.",
       body: "The final state includes messages and host events rather than only final text. An independent audit can detect orphaned results, duplicate call identifiers, unresolved actions, or events written after completion.",
     },
   ],
   diagram: {
     title: "Composed execution path",
-    caption: "Recorded adapters make the browser exercise deterministic; the same host boundaries apply when live model and tool adapters are substituted.",
+    caption: "The lab fixes the model replies and tool results. Your Python still performs validation, permission checks, turn accounting, and trace construction.",
     nodes: [
       { label: "Model adapter", value: "one final response or tool call" },
       { label: "Host transition", value: "validate · authorize · enforce budget" },
@@ -1302,16 +1302,16 @@ export const integratedHarnessLesson = defineHarnessLesson({
   },
   implementation: {
     filename: "harness.py",
-    intro: "Run a complete deterministic harness trace, then audit the resulting protocol state.",
+    intro: "Replay a saved model interaction through the full harness, then check its messages and events for broken state.",
     tensorOps: ["Python", "copy", "state machine", "policy", "event log"],
     codeBlocks: [
       {
         id: "run-harness",
         label: "Run the harness",
-        purpose: "Compose response validation, typed tool dispatch, permission policy, observations, and a turn budget.",
+        purpose: "Read one reply at a time, validate its tool call, apply permissions and turn limits, append the result, and stop with a named status.",
         concepts: [
-          { name: "responses", detail: "Recorded model-adapter outputs used as deterministic turns in this browser lab." },
-          { name: "tools", detail: "Small typed descriptors whose outputs stand in for production tool adapters." },
+          { name: "model", detail: "The recorded adapter ignores message contents and returns the next fixed reply. It tests the loop, not model reasoning; a live adapter can expose the same generate method." },
+          { name: "tools", detail: "Each lab tool contains a lookup table of fixed results. A production tool would access a filesystem, process, or network behind the same validated boundary." },
           { name: "rules", detail: "Host-owned allow, confirm, and deny decisions evaluated before dispatch." },
         ],
         code: `import copy
@@ -1322,9 +1322,60 @@ from harness.permissions import permission_decision
 from harness.tools import validate_tool_arguments
 
 
-def run_harness(initial_messages, responses, tools, rules, max_turns):
-    if type(initial_messages) is not list or type(responses) is not list:
-        raise ValueError("messages and responses must be lists")
+class ModelExhausted(Exception):
+    pass
+
+
+class RecordedModel:
+    def __init__(self, responses):
+        if type(responses) is not list:
+            raise ValueError("recorded model responses must be a list")
+        self._responses = copy.deepcopy(responses)
+        self._cursor = 0
+
+    def generate(self, messages, tools):
+        if self._cursor >= len(self._responses):
+            raise ModelExhausted()
+        response = copy.deepcopy(self._responses[self._cursor])
+        self._cursor += 1
+        return response
+
+
+class RecordedTool:
+    def __init__(self, config):
+        if type(config) is not dict or type(config.get("name")) is not str:
+            raise ValueError("every recorded tool needs a text name")
+        if type(config.get("required")) is not dict:
+            raise ValueError("every recorded tool needs required field types")
+        if type(config.get("kind")) is not str or type(config.get("target_arg")) is not str:
+            raise ValueError("every recorded tool needs kind and target_arg text")
+        if type(config.get("outputs")) is not dict:
+            raise ValueError("every recorded tool needs fixed outputs")
+        self.name = config["name"]
+        self.kind = config["kind"]
+        self.target_arg = config["target_arg"]
+        self.required = copy.deepcopy(config["required"])
+        self._outputs = copy.deepcopy(config["outputs"])
+
+    def model_schema(self):
+        return {"name": self.name, "required": copy.deepcopy(self.required)}
+
+    def validate(self, arguments):
+        return validate_tool_arguments(arguments, {
+            "required": self.required,
+            "optional": {},
+            "allow_extra": False,
+        })
+
+    def execute(self, call_id, arguments):
+        if call_id not in self._outputs:
+            raise ValueError("the recorded tool has no output for call " + call_id)
+        return copy.deepcopy(self._outputs[call_id])
+
+
+def run_harness(initial_messages, model, tools, rules, max_turns):
+    if type(initial_messages) is not list:
+        raise ValueError("messages must be a list")
     if type(tools) is not list or type(rules) is not list:
         raise ValueError("tools and rules must be lists")
     if type(max_turns) is not int or max_turns < 1:
@@ -1332,18 +1383,18 @@ def run_harness(initial_messages, responses, tools, rules, max_turns):
 
     tool_by_name = {}
     for tool in tools:
-        if type(tool) is not dict or type(tool.get("name")) is not str:
-            raise ValueError("every tool needs a text name")
-        name = tool["name"]
+        if type(getattr(tool, "name", None)) is not str:
+            raise ValueError("every tool adapter needs a text name")
+        if not callable(getattr(tool, "model_schema", None)) or not callable(getattr(tool, "validate", None)) or not callable(getattr(tool, "execute", None)):
+            raise ValueError("every tool adapter must define model_schema, validate, and execute")
+        name = tool.name
         if name in tool_by_name:
             raise ValueError("tool names must be unique")
-        if type(tool.get("required")) is not dict:
-            raise ValueError("every tool needs required field types")
-        if type(tool.get("kind")) is not str or type(tool.get("target_arg")) is not str:
-            raise ValueError("every tool needs kind and target_arg text")
-        if type(tool.get("outputs")) is not dict:
-            raise ValueError("every tool needs deterministic adapter outputs")
         tool_by_name[name] = tool
+
+    if not callable(getattr(model, "generate", None)):
+        raise ValueError("model adapter must define generate(messages, tools)")
+    model_tools = [tool.model_schema() for tool in tools]
 
     history = copy.deepcopy(initial_messages)
     events = []
@@ -1351,11 +1402,13 @@ def run_harness(initial_messages, responses, tools, rules, max_turns):
     dispatched = 0
 
     for turn in range(1, max_turns + 1):
-        if turn > len(responses):
+        try:
+            response = model.generate(copy.deepcopy(history), copy.deepcopy(model_tools))
+        except ModelExhausted:
             events.append({"kind": "model_exhausted", "turn": turn})
             return {"status": "model_exhausted", "final": None, "turns": turn - 1, "tool_calls": dispatched, "messages": history, "events": events}
 
-        action = parse_model_response(responses[turn - 1], list(tool_by_name))
+        action = parse_model_response(response, list(tool_by_name))
         if action["kind"] == "final":
             final = action["text"]
             history.append({"role": "assistant", "content": final})
@@ -1367,15 +1420,11 @@ def run_harness(initial_messages, responses, tools, rules, max_turns):
             raise ValueError("tool call ids must be unique non-empty text")
         seen_call_ids.add(call_id)
         tool = tool_by_name[action["name"]]
-        arguments = validate_tool_arguments(action["arguments"], {
-            "required": tool["required"],
-            "optional": {},
-            "allow_extra": False,
-        })
-        target = arguments.get(tool["target_arg"])
+        arguments = tool.validate(action["arguments"])
+        target = arguments.get(tool.target_arg)
         if type(target) is not str:
             raise ValueError("the tool target must be text")
-        if tool["kind"] in ("read", "write"):
+        if tool.kind in ("read", "write"):
             if not posixpath.isabs(target):
                 raise ValueError("filesystem tool targets must be absolute")
             target = posixpath.normpath(target)
@@ -1389,7 +1438,7 @@ def run_harness(initial_messages, responses, tools, rules, max_turns):
             },
         })
         events.append({"kind": "action_proposed", "turn": turn, "call_id": call_id, "tool": action["name"]})
-        policy = permission_decision({"kind": tool["kind"], "target": target}, rules)
+        policy = permission_decision({"kind": tool.kind, "target": target}, rules)
         events.append({"kind": "policy_decision", "call_id": call_id, **policy})
 
         if policy["decision"] == "confirm":
@@ -1400,21 +1449,31 @@ def run_harness(initial_messages, responses, tools, rules, max_turns):
             content = "permission denied"
             events.append({"kind": "tool_denied", "call_id": call_id})
         else:
-            if call_id not in tool["outputs"]:
-                raise ValueError("the tool adapter has no output for call " + call_id)
-            content = copy.deepcopy(tool["outputs"][call_id])
+            content = tool.execute(call_id, arguments)
             dispatched += 1
             events.append({"kind": "tool_completed", "call_id": call_id})
         history = append_tool_result(history, call_id, content, is_error)
 
     events.append({"kind": "budget_exceeded", "turn": max_turns})
-    return {"status": "budget_exceeded", "final": None, "turns": max_turns, "tool_calls": dispatched, "messages": history, "events": events}`,
-        checkCode: `run = run_harness(
+    return {"status": "budget_exceeded", "final": None, "turns": max_turns, "tool_calls": dispatched, "messages": history, "events": events}
+
+# Provided browser adapter.
+def run_recorded_harness(initial_messages, model_config, tool_configs, rules, max_turns):
+    if type(model_config) is not dict or model_config.get("adapter") != "recorded":
+        raise ValueError("model adapter must be recorded")
+    return run_harness(
+        initial_messages,
+        RecordedModel(model_config.get("responses")),
+        [RecordedTool(config) for config in tool_configs],
+        rules,
+        max_turns,
+    )`,
+        checkCode: `run = run_recorded_harness(
     [{"role": "user", "content": "Read app.py"}],
-    [
+    {"adapter": "recorded", "responses": [
         {"tool_call": {"id": "c1", "name": "read_file", "arguments": {"path": "/workspace/app.py"}}},
         {"final": "The file defines the application."},
-    ],
+    ]},
     [{"name": "read_file", "kind": "read", "target_arg": "path", "required": {"path": "str"}, "outputs": {"c1": "def main(): pass"}}],
     [{"id": "workspace-read", "kind": "read", "target_prefix": "/workspace", "decision": "allow"}],
     4,
@@ -1503,7 +1562,7 @@ RESULT = {
   experiment: {
     variant: "integrated-harness",
     title: "Run the composed loop",
-    intro: "Change the host turn budget and inspect the same tool-then-final trace.",
+    intro: "Replay the same two fixed replies with different turn limits.",
   },
 });
 

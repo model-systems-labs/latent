@@ -98,6 +98,10 @@ const integratedRules: JsonValue[] = [{
   decision: "allow",
 }];
 
+function recordedModel(responses: JsonValue[]): JsonValue {
+  return { adapter: "recorded", responses };
+}
+
 export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = [
   define("agent-loop", "parse-model-response", "Parse a model response", "parse_model_response", [
     {
@@ -880,16 +884,16 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
     },
   ]),
 
-  define("integrated-harness", "run-harness", "Run the harness", "run_harness", [
+  define("integrated-harness", "run-harness", "Run the harness", "run_recorded_harness", [
     {
       id: "tool-then-final",
       label: "Completes after one allowed tool observation",
       args: [
         integratedMessages,
-        [
+        recordedModel([
           { tool_call: { id: "c1", name: "read_file", arguments: { path: "/workspace/app.py" } } },
           { final: "The file defines the application." },
-        ],
+        ]),
         integratedTools,
         integratedRules,
         4,
@@ -907,10 +911,10 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
       label: "Turns a denied action into an error observation",
       args: [
         integratedMessages,
-        [
+        recordedModel([
           { tool_call: { id: "c1", name: "read_file", arguments: { path: "/workspace/.env" } } },
           { final: "I cannot read that file." },
-        ],
+        ]),
         integratedTools,
         [
           ...integratedRules,
@@ -929,10 +933,10 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
       label: "Normalizes a filesystem target before permission matching",
       args: [
         integratedMessages,
-        [
+        recordedModel([
           { tool_call: { id: "c1", name: "read_file", arguments: { path: "/workspace/src/../.env" } } },
           { final: "Access was denied." },
-        ],
+        ]),
         integratedTools,
         [
           ...integratedRules,
@@ -950,7 +954,7 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
       label: "Pauses before a confirmation-gated dispatch",
       args: [
         integratedMessages,
-        [{ tool_call: { id: "c1", name: "read_file", arguments: { path: "/workspace/app.py" } } }],
+        recordedModel([{ tool_call: { id: "c1", name: "read_file", arguments: { path: "/workspace/app.py" } } }]),
         integratedTools,
         [{ id: "confirm-read", kind: "read", target_prefix: "/workspace", decision: "confirm" }],
         2,
@@ -967,10 +971,10 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
       label: "Stops before a response beyond the host turn budget",
       args: [
         integratedMessages,
-        [
+        recordedModel([
           { tool_call: { id: "c1", name: "read_file", arguments: { path: "/workspace/app.py" } } },
           { final: "This response is beyond the budget." },
-        ],
+        ]),
         integratedTools,
         integratedRules,
         1,
@@ -982,11 +986,41 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
       ],
     },
     {
+      id: "recording-exhausted",
+      label: "Stops when the recorded model has no next response",
+      args: [
+        integratedMessages,
+        recordedModel([]),
+        integratedTools,
+        integratedRules,
+        2,
+      ],
+      assertions: [
+        equal("exhausted-status", "Keep model exhaustion distinct from completion", "model_exhausted", ["status"]),
+        equal("no-model-turn", "Do not count a response the adapter never produced", 0, ["turns"]),
+        equal("exhausted-event", "Record why the run stopped", "model_exhausted", ["events", 0, "kind"]),
+      ],
+    },
+    {
+      id: "unsupported-model-adapter",
+      label: "Rejects an unsupported model adapter",
+      args: [
+        integratedMessages,
+        { adapter: "remote", responses: [] },
+        integratedTools,
+        integratedRules,
+        2,
+      ],
+      assertions: [
+        throwsWith("recorded-adapter", "Use the deterministic adapter in this browser lab", "model adapter must be recorded"),
+      ],
+    },
+    {
       id: "unknown-tool",
       label: "Rejects a call outside the adapter registry",
       args: [
         integratedMessages,
-        [{ tool_call: { id: "c9", name: "delete_repo", arguments: {} } }],
+        recordedModel([{ tool_call: { id: "c9", name: "delete_repo", arguments: {} } }]),
         integratedTools,
         integratedRules,
         1,
@@ -1000,10 +1034,10 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
       label: "Rejects a reused tool call identifier",
       args: [
         integratedMessages,
-        [
+        recordedModel([
           { tool_call: { id: "c1", name: "read_file", arguments: { path: "/workspace/app.py" } } },
           { tool_call: { id: "c1", name: "read_file", arguments: { path: "/workspace/app.py" } } },
-        ],
+        ]),
         integratedTools,
         integratedRules,
         2,
@@ -1076,6 +1110,6 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
 ];
 
 export const harnessEngineeringContractSuite: ContractSuite = {
-  contractVersion: "harness-engineering-contracts-v2-cpython",
+  contractVersion: "harness-engineering-contracts-v4-cpython",
   contracts: harnessEngineeringExerciseContracts,
 };

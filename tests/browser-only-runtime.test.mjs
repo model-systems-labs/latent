@@ -44,3 +44,18 @@ test("Python lessons use the browser worker and curated NumPy package", async ()
   assert.match(runtimeTypes, /CURATED_PYTHON_PACKAGES = \["numpy"\]/);
   assert.doesNotMatch(portfolio, /pytorchFiles|PYTORCH_HANDOFF|\.ipynb|Colab/i);
 });
+
+test("Harness scenarios invoke the saved Python project without a server or model API", async () => {
+  const [workbench, service, scenarios] = await Promise.all([
+    readFile(path.join(root, "app/components/HarnessWorkbench.tsx"), "utf8"),
+    readFile(path.join(root, "app/features/ide/python-lesson-service.ts"), "utf8"),
+    readFile(path.join(root, "app/content/harness-engineering/scenarios.ts"), "utf8"),
+  ]);
+  const scenarioRun = workbench.slice(workbench.indexOf("const runScenario"), workbench.indexOf("const resultPaths"));
+  assert.match(scenarioRun, /harnessRunEvidence\(\)[\s\S]*?runPythonProjectFunction/);
+  assert.doesNotMatch(scenarioRun, /fetch\(|\/api\/|OPENAI|ANTHROPIC|OPENROUTER/i);
+  const invocation = service.slice(service.indexOf("export async function runPythonProjectFunction"), service.indexOf("export async function runPythonProjectFile"));
+  assert.match(invocation, /sharedClient\(packages, "harness-project"\)/);
+  assert.doesNotMatch(invocation, /fetch\(|\/api\//);
+  assert.doesNotMatch(scenarios, /api key|openrouter|fetch\(|https?:\/\//i);
+});

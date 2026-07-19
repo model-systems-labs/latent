@@ -110,8 +110,8 @@ export const harnessEngineeringExerciseContractCopy: Record<string, ExerciseCont
     "results [research, inspect] for tasks [inspect, research] → [inspect, research]",
   ),
   "integrated-harness/run-harness": contract(
-    "def run_harness(initial_messages, responses, tools, rules, max_turns):",
-    "initial messages, recorded model responses, typed tool adapters, permission rules, and a host turn budget",
+    "def run_recorded_harness(initial_messages, model_config, tool_configs, rules, max_turns):",
+    "initial messages, a recorded model-adapter configuration, typed tool adapters, permission rules, and a host turn budget",
     "one completed, approval-required, budget-exceeded, or model-exhausted run record",
     "Validate and authorize every transition; only allowed calls dispatch, and every stop condition is explicit.",
     "read_file c1 + allowed fixture + final response → completed run with one observation",

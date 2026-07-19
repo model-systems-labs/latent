@@ -8,12 +8,18 @@ import { createServer } from "vite";
 const templateRoot = new URL("../", import.meta.url);
 const deckSourceUrl = new URL("../app/components/FlashcardDeck.tsx", import.meta.url);
 const deckStylesUrl = new URL("../app/components/FlashcardDeck.module.css", import.meta.url);
+const flashcardPageUrl = new URL("../app/flashcards/page.tsx", import.meta.url);
 const flashcardPageStylesUrl = new URL("../app/flashcards/page.module.css", import.meta.url);
 const progressSourceUrl = new URL("../app/lib/flashcard-progress.ts", import.meta.url);
 const searchSourceUrl = new URL("../app/lib/flashcard-search.ts", import.meta.url);
 const transportSourceUrl = new URL("../app/content/flashcard-transport.ts", import.meta.url);
 const coursePageUrl = new URL("../app/course/page.tsx", import.meta.url);
 const responsiveStylesUrl = new URL("../app/styles/responsive.css", import.meta.url);
+const flashcardLibraryDirectoryUrl = new URL("../app/content/flashcard-library/", import.meta.url);
+const flashcardLibraryUrls = (await readdir(flashcardLibraryDirectoryUrl, { withFileTypes: true }))
+  .filter((entry) => entry.isFile() && entry.name.endsWith(".ts"))
+  .sort((left, right) => left.name.localeCompare(right.name))
+  .map((entry) => new URL(entry.name, flashcardLibraryDirectoryUrl));
 const flashcardContentUrls = [
   deckSourceUrl,
   deckStylesUrl,
@@ -22,15 +28,13 @@ const flashcardContentUrls = [
   transportSourceUrl,
   new URL("../app/content/flashcard-schema.ts", import.meta.url),
   new URL("../app/content/flashcards.ts", import.meta.url),
-  new URL("../app/content/flashcard-library/foundations.ts", import.meta.url),
-  new URL("../app/content/flashcard-library/harness-engineering.ts", import.meta.url),
-  new URL("../app/content/flashcard-library/model-foundations.ts", import.meta.url),
-  new URL("../app/content/flashcard-library/systems-and-product.ts", import.meta.url),
-  new URL("../app/flashcards/page.tsx", import.meta.url),
+  ...flashcardLibraryUrls,
+  flashcardPageUrl,
   flashcardPageStylesUrl,
 ];
 
 let content;
+let course;
 let progress;
 let search;
 let vite;
@@ -61,8 +65,9 @@ before(async () => {
     appType: "custom",
     logLevel: "silent",
   });
-  [content, progress, search] = await Promise.all([
+  [content, course, progress, search] = await Promise.all([
     vite.ssrLoadModule("/app/content/flashcards.ts"),
+    vite.ssrLoadModule("/app/lessons/course.ts"),
     vite.ssrLoadModule("/app/lib/flashcard-progress.ts"),
     vite.ssrLoadModule("/app/lib/flashcard-search.ts"),
   ]);
@@ -72,7 +77,7 @@ after(async () => {
   await vite?.close();
 });
 
-test("the library has 574 unique, concept-keyed cards across all seven subjects", () => {
+test("the library has 638 unique, concept-keyed cards across all seven subjects", () => {
   const { flashcardLibrary, flashcards, flashcardSubjects } = content;
   const expectedSubjects = [
     "linear-algebra",
@@ -89,10 +94,15 @@ test("the library has 574 unique, concept-keyed cards across all seven subjects"
   assert.equal(new Set(flashcardSubjects.map((subject) => subject.id)).size, 7);
   assert.ok(flashcardSubjects.every((subject) => subject.label && subject.shortLabel && subject.description));
 
-  assert.equal(flashcards.length, 574);
-  assert.equal(Object.keys(flashcardLibrary).length, 574);
-  assert.equal(new Set(flashcards.map((card) => card.id)).size, 574);
-  assert.equal(new Set(flashcards.map((card) => card.concept)).size, 574);
+  assert.equal(flashcards.length, 638);
+  assert.equal(Object.keys(flashcardLibrary).length, 638);
+  assert.equal(new Set(flashcards.map((card) => card.id)).size, 638);
+  assert.equal(new Set(flashcards.map((card) => card.concept)).size, 638);
+  assert.equal(
+    new Set(flashcards.map((card) => search.normalizeFlashcardSearchQuery(card.concept))).size,
+    638,
+    "concepts must remain unique under the actual search normalizer",
+  );
   for (const card of flashcards) {
     assert.match(card.id, /^[a-z0-9]+(?:-[a-z0-9]+)*$/, card.concept);
     assert.equal(expectedSubjects.includes(card.subjectId), true, card.concept);
@@ -121,17 +131,17 @@ test("the library has 574 unique, concept-keyed cards across all seven subjects"
     ])),
     {
       "linear-algebra": 80,
-      "machine-learning-basics": 91,
+      "machine-learning-basics": 123,
       "model-foundations": 150,
       "inference-runtime": 36,
       "llm-serving": 39,
       "chat-integration": 58,
-      "harness-engineering": 120,
+      "harness-engineering": 152,
     },
   );
 });
 
-test("Harness Engineering has fifteen source-grounded cards for every new lesson", () => {
+test("Harness Engineering has at least fifteen source-grounded cards for every new lesson", () => {
   const harnessCards = content.flashcards.filter((card) => card.subjectId === "harness-engineering");
   const lessonTitles = [
     "Agent Loop",
@@ -154,16 +164,22 @@ test("Harness Engineering has fifteen source-grounded cards for every new lesson
     "Integrated Harness": ["Harness engineering", "integrated harness"],
   };
 
-  assert.equal(harnessCards.length, 120);
+  assert.equal(harnessCards.length, 152);
   assert.deepEqual([...new Set(harnessCards.map((card) => card.lesson))], lessonTitles);
   for (const lesson of lessonTitles) {
     const lessonCards = harnessCards.filter((card) => card.lesson === lesson);
-    assert.equal(lessonCards.length, 15, lesson);
-    assert.equal(new Set(lessonCards.map((card) => card.source)).size, 1, `${lesson}: one review trail`);
+    assert.ok(lessonCards.length >= 15, `${lesson}: ${lessonCards.length} cards`);
+    const lessonSourceTrail = lessonCards.map((card) => card.source).join("; ");
     for (const signal of sourceSignals[lesson]) {
-      assert.match(lessonCards[0].source, new RegExp(signal.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), `${lesson}: ${signal}`);
+      assert.match(lessonSourceTrail, new RegExp(signal.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), `${lesson}: ${signal}`);
     }
   }
+});
+
+test("every routed course lesson has exact-title flash-card coverage", () => {
+  const coveredLessons = new Set(content.flashcards.map((card) => card.lesson));
+  const routedLessons = course.coursePrograms.flatMap((program) => program.lessons.map((lesson) => lesson.title));
+  assert.deepEqual(routedLessons.filter((lesson) => !coveredLessons.has(lesson)), []);
 });
 
 test("every answer carries a definition, multiple teaching details, and a concrete example", () => {
@@ -183,9 +199,13 @@ test("every answer carries a definition, multiple teaching details, and a concre
     assert.ok(card.example.trim().length >= 20, `${card.concept}: example`);
     assert.equal(examples.has(card.example), false, `${card.concept}: repeated example`);
     examples.add(card.example);
+    const teachingText = [card.definition, ...card.details, card.example].join(" ");
+    assert.ok(teachingText.length <= 850, `${card.concept}: answer is too dense for a flash card`);
+    assert.ok(teachingText.trim().split(/\s+/).length <= 130, `${card.concept}: answer exceeds 130 teaching words`);
     if (card.source) {
       sourcedCards += 1;
       assert.ok(card.source.trim().length >= 10, `${card.concept}: source trail`);
+      assert.ok(card.source.length <= 300, `${card.concept}: source trail is too long`);
     }
   }
   assert.equal(sourcedCards, content.flashcards.length, "every card needs a visible source trail");
@@ -265,6 +285,70 @@ test("the deck includes the essential paper vocabulary as atomic concepts", () =
     "pass^k (all successes)",
     "Orchestrator-worker pattern",
     "Protocol audit",
+    "Random variable",
+    "Probability distribution",
+    "Expected value",
+    "Variance",
+    "Standard deviation",
+    "Joint distribution",
+    "Marginal distribution",
+    "Conditional probability",
+    "Bayes’ rule",
+    "Statistical independence",
+    "Entropy",
+    "Cross-entropy",
+    "KL divergence",
+    "Mutual information",
+    "Total derivative",
+    "Directional derivative",
+    "Jacobian",
+    "Hessian",
+    "L1 regularization",
+    "L2 regularization",
+    "Weight decay",
+    "Dropout",
+    "Early stopping",
+    "Probability calibration",
+    "F1 score",
+    "Specificity",
+    "ROC curve",
+    "Precision-recall curve",
+    "ROC-AUC",
+    "Standard error",
+    "Confidence interval",
+    "Bootstrap resampling",
+    "Wall-clock time budget",
+    "Workflow–agent control distinction",
+    "Augmented LLM",
+    "Tool-call timeout",
+    "MCP structuredContent field",
+    "MCP error-channel distinction",
+    "Tool annotations",
+    "Rate limiting",
+    "Output sanitization",
+    "Agent-computer interface (ACI)",
+    "Poka-yoke",
+    "Agent legibility",
+    "Repository knowledge as system of record",
+    "Doc gardening",
+    "Knowledge drift",
+    "Direct prompt injection (OWASP taxonomy)",
+    "Indirect prompt injection",
+    "Tool-output injection",
+    "Data exfiltration",
+    "Least privilege",
+    "Execution plan",
+    "Structural test",
+    "Feedback-loop design",
+    "Prompt chaining",
+    "Routing workflow",
+    "Sectioning",
+    "Voting",
+    "Evaluator-optimizer",
+    "Human-attention bottleneck",
+    "Mechanically enforced architectural invariant",
+    "Golden principle",
+    "Repository garbage collection",
   ];
   assert.deepEqual(requiredConcepts.filter((concept) => !concepts.has(concept)), []);
   assert.equal(
@@ -290,12 +374,17 @@ test("search ranks concept matches before topic and answer matches", () => {
   assert.equal(search.rankFlashcardSearchResults(content.flashcards, "self bleu")[0].concept, "Self-BLEU");
   assert.equal(search.rankFlashcardSearchResults(content.flashcards, "paged attention")[0].concept, "PagedAttention");
   assert.equal(search.rankFlashcardSearchResults(content.flashcards, "few shot")[0].concept, "Zero-, one-, and few-shot evaluation");
-  assert.equal(search.rankFlashcardSearchResults(content.flashcards, "cross entropy")[0].concept, "Binary cross-entropy");
+  assert.equal(search.rankFlashcardSearchResults(content.flashcards, "cross entropy")[0].concept, "Cross-entropy");
   assert.equal(search.rankFlashcardSearchResults(content.flashcards, "toctou")[0].concept, "TOCTOU race");
   assert.equal(search.rankFlashcardSearchResults(content.flashcards, "pass at k")[0].concept, "pass@k (at least one success)");
   assert.equal(search.rankFlashcardSearchResults(content.flashcards, "pass to the k")[0].concept, "pass^k (all successes)");
   assert.equal(search.rankFlashcardSearchResults(content.flashcards, "all successes")[0].concept, "pass^k (all successes)");
   assert.equal(search.rankFlashcardSearchResults(content.flashcards, "orchestrator worker")[0].concept, "Orchestrator-worker pattern");
+  assert.equal(search.rankFlashcardSearchResults(content.flashcards, "bayes rule")[0].concept, "Bayes’ rule");
+  assert.equal(search.rankFlashcardSearchResults(content.flashcards, "structured content")[0].concept, "MCP structuredContent field");
+  assert.equal(search.rankFlashcardSearchResults(content.flashcards, "direct prompt injection")[0].concept, "Direct prompt injection (OWASP taxonomy)");
+  assert.equal(search.rankFlashcardSearchResults(content.flashcards, "indirect prompt injection")[0].concept, "Indirect prompt injection");
+  assert.equal(search.rankFlashcardSearchResults(content.flashcards, "agent legibility")[0].concept, "Agent legibility");
   assert.ok(search.rankFlashcardSearchResults(content.flashcards, "word2 vec").length > 0);
   assert.deepEqual(search.rankFlashcardSearchResults(content.flashcards, "  "), content.flashcards);
   assert.deepEqual(search.rankFlashcardSearchResults(content.flashcards, "---"), content.flashcards);
@@ -305,8 +394,8 @@ test("compact server transport round-trips every card while removing repeated le
   const transport = await vite.ssrLoadModule("/app/content/flashcard-transport.ts");
   const deck = transport.compactFlashcardDeck(content.flashcards);
   assert.deepEqual(transport.expandFlashcardDeck(deck), content.flashcards);
-  assert.equal(deck[1].length, 574);
-  assert.ok(deck[0].length < 50, `shared contexts: ${deck[0].length}`);
+  assert.equal(deck[1].length, 638);
+  assert.ok(deck[0].length < 65, `shared contexts: ${deck[0].length}`);
 
   const expandedBytes = Buffer.byteLength(JSON.stringify(content.flashcards));
   const compactBytes = Buffer.byteLength(JSON.stringify(deck));
@@ -464,11 +553,12 @@ test("the built flash-card route renders an accessible unrevealed study deck", a
   const html = await response.text();
 
   assert.match(html, /Make the ideas stick/);
-  assert.match(html, /Review library · (?:<!-- -->)?574(?:<!-- -->)? cards/);
+  assert.match(html, /Review library · (?:<!-- -->)?638(?:<!-- -->)? cards/);
   assert.match(html, /href="\/course"[^>]*>Course home/);
   assert.match(html, /aria-label="Study progress"/);
   assert.match(html, /role="progressbar"/);
   assert.match(html, /aria-label="Cards reviewed in selected subjects"/);
+  assert.match(html, /aria-valuetext="0 of 638 cards reviewed; 0 got it, 0 need work\."/);
   assert.match(html, /<legend>Subjects<\/legend>/);
   assert.match(html, /<legend>Results<\/legend>/);
   assert.match(html, /<input[^>]+type="search"[^>]+placeholder="Concept, lesson, or term"/);
@@ -483,39 +573,55 @@ test("the built flash-card route renders an accessible unrevealed study deck", a
   assert.doesNotMatch(html, /Hide answer/);
 });
 
-test("hundreds of rich cards stay inside a mobile-friendly delivery budget", async () => {
+test("hundreds of rich cards use a small HTML shell and a cacheable mobile-friendly library asset", async () => {
   const response = await render("/flashcards");
   assert.equal(response.status, 200);
   const html = await response.text();
   const htmlBytes = Buffer.from(html);
 
-  assert.ok(htmlBytes.byteLength < 380_000, `raw route payload: ${htmlBytes.byteLength} bytes`);
-  assert.ok(gzipSync(htmlBytes).byteLength < 115_000, `compressed route payload: ${gzipSync(htmlBytes).byteLength} bytes`);
+  const compressedHtmlBytes = gzipSync(htmlBytes).byteLength;
+  assert.ok(htmlBytes.byteLength < 25_000, `raw route payload: ${htmlBytes.byteLength} bytes`);
+  assert.ok(compressedHtmlBytes < 7_000, `compressed route payload: ${compressedHtmlBytes} bytes`);
 
   const assetsUrl = new URL("../dist/client/assets/", import.meta.url);
   const assets = await readdir(assetsUrl);
   const deckAsset = assets.find((name) => /^FlashcardDeck-[\w-]+\.js$/.test(name));
   assert.ok(deckAsset, "expected one built FlashcardDeck client asset");
   const deckBytes = await readFile(new URL(deckAsset, assetsUrl));
-  assert.ok(gzipSync(deckBytes).byteLength < 12_000, `compressed deck JavaScript: ${gzipSync(deckBytes).byteLength} bytes`);
+  const compressedDeckBytes = gzipSync(deckBytes).byteLength;
+  assert.ok(compressedDeckBytes < 135_000, `compressed cacheable deck asset: ${compressedDeckBytes} bytes`);
+  assert.ok(
+    compressedHtmlBytes + compressedDeckBytes < 140_000,
+    `compressed first-load flash-card surface: ${compressedHtmlBytes + compressedDeckBytes} bytes`,
+  );
 });
 
 test("subject and result toggles, reveal, live feedback, and rating controls retain their accessible source contract", async () => {
-  const [source, progressSource, searchSource] = await Promise.all([
+  const [source, pageSource, progressSource, searchSource] = await Promise.all([
     readFile(deckSourceUrl, "utf8"),
+    readFile(flashcardPageUrl, "utf8"),
     readFile(progressSourceUrl, "utf8"),
     readFile(searchSourceUrl, "utf8"),
   ]);
   const revealBranch = source.slice(source.indexOf("{!revealed ? ("), source.indexOf("</article>", source.indexOf("{!revealed ? (")));
 
-  assert.match(source, /<legend>Subjects<\/legend>[\s\S]*?aria-pressed=\{activeSubjects\.length === subjects\.length\}/);
+  assert.match(source, /<legend>Subjects<\/legend>[\s\S]*?aria-pressed=\{allSubjectsActive\}/);
+  assert.match(source, /flashcards,[\s\S]*?flashcardSubjects,[\s\S]*?from "\.\.\/content\/flashcards"/);
+  assert.match(pageSource, /<FlashcardDeck \/>/);
+  assert.doesNotMatch(pageSource, /compactFlashcardDeck|deck=\{/);
   assert.match(source, /type="search"[\s\S]*?value=\{query\}[\s\S]*?searchConcepts/);
   assert.match(source, /rankFlashcardSearchResults\(subjectCards, normalizedQuery\)/);
   assert.match(source, /className=\{styles\.filterToggle\}[\s\S]*?aria-expanded=\{filtersOpen\}[\s\S]*?aria-controls="flashcard-filters"/);
   assert.match(source, /subjects\.map[\s\S]*?aria-pressed=\{active\}/);
+  assert.match(source, /const allSubjectsActive = activeSubjects\.length === subjects\.length/);
+  assert.match(source, /const active = !allSubjectsActive && activeSubjectSet\.has\(subject\.id\)/);
+  assert.match(source, /onlyActiveSubject\?\.label \?\? `\$\{activeSubjects\.length\} of \$\{subjects\.length\} subjects`/);
   assert.match(source, /<legend>Results<\/legend>[\s\S]*?statusFilters\.map[\s\S]*?aria-pressed=\{statusFilter === filter\.id\}/);
   assert.match(source, /aria-controls=\{`answer-\$\{currentCard\.id\}`\}/);
   assert.match(source, /id=\{`answer-\$\{currentCard\.id\}`\}/);
+  assert.match(source, /function sourceIndexHref\(subjectId: FlashcardSubjectId\)/);
+  assert.match(source, /<cite>\{currentCard\.source\}<\/cite>/);
+  assert.match(source, /Browse sources/);
   assert.match(source, /ref=\{cardFrontRef\}[\s\S]*?className=\{styles\.cardFront\}/);
   assert.match(source, /ref=\{answerHeadingRef\} tabIndex=\{-1\}/);
   assert.match(source, /ref=\{emptyHeadingRef\} tabIndex=\{-1\}/);
@@ -529,6 +635,7 @@ test("subject and result toggles, reveal, live feedback, and rating controls ret
   assert.match(source, /useState<CardStatusFilter>\("new"\)/);
   assert.match(source, /startingSearch && statusFilter === "new"[\s\S]*?setStatusFilter\("all"\)/);
   assert.match(source, /subjectCards\.length > 0[\s\S]*?role: "progressbar"[\s\S]*?"aria-hidden": true/);
+  assert.match(source, /"aria-valuetext": `\$\{reviewedCount\} of \$\{subjectCards\.length\} cards reviewed/);
   assert.match(source, /subscribeFlashcardProgress\(/);
   assert.match(source, /chooseNewestFlashcardProgress\([\s\S]*?outcome\.value\.progress,[\s\S]*?progressRef\.current/);
   assert.match(source, /flashcardResultRecordMatches\([\s\S]*?outcomeReceipt\.written/);
@@ -584,7 +691,13 @@ test("flash-card controls keep 44px targets and mobile, safe-area, and reduced-m
   assert.match(deckStyles, /@media \(max-width: 760px\)[\s\S]*?overflow-x:\s*auto/);
   assert.match(deckStyles, /@media \(max-width: 650px\)[\s\S]*?env\(safe-area-inset-bottom\)/);
   assert.match(deckStyles, /@media \(max-width: 650px\)[\s\S]*?\.ratingActions\s*\{[^}]*position:\s*sticky/);
-  assert.match(deckStyles, /@media \(max-width: 650px\)[\s\S]*?\.subjectScroller\s*\{[^}]*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/);
+  assert.match(deckStyles, /@media \(max-width: 650px\)[\s\S]*?\.subjectScroller\s*\{[^}]*grid-template-columns:\s*repeat\(auto-fit, minmax\(min\(100%, 8\.5rem\), 1fr\)\)/);
+  assert.match(deckStyles, /@media \(max-width: 650px\)[\s\S]*?\.subjectScroller button\s*\{[^}]*white-space:\s*normal/);
+  assert.match(cssRule(deckStyles, ".cardBack > header"), /flex-wrap:\s*wrap/);
+  assert.match(cssRule(deckStyles, ".cardBack li"), /overflow-wrap:\s*anywhere/);
+  assert.match(cssRule(deckStyles, ".ratingActions"), /repeat\(auto-fit, minmax\(min\(100%, 7\.5rem\), 1fr\)\)/);
+  assert.match(cssRule(deckStyles, ".ratingActions button"), /min-width:\s*0/);
+  assert.match(cssRule(deckStyles, ".sourceTrail a"), /min-height:\s*2\.75rem/);
   assert.match(deckStyles, /@media \(max-width: 650px\)[\s\S]*?\.cardNavigation > span\s*\{[^}]*display:\s*none/);
   assert.match(deckStyles, /@media \(max-width: 650px\)[\s\S]*?\.cardNavigation button:last-child\s*\{[^}]*grid-column:\s*2/);
   assert.match(deckStyles, /@media \(max-width: 940px\) and \(max-height: 500px\)/);

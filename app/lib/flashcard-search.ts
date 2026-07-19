@@ -29,8 +29,11 @@ function startsWith(field: SearchForms, query: SearchForms) {
 }
 
 function includes(field: SearchForms, query: SearchForms) {
-  return field.words.includes(query.words)
-    || (query.compact.length >= 3 && field.compact.includes(query.compact));
+  const fieldWords = field.words.split(" ");
+  const queryWords = query.words.split(" ");
+  return fieldWords.some((_, start) => queryWords.every(
+    (word, offset) => fieldWords[start + offset]?.startsWith(word),
+  )) || (query.compact.length >= 3 && fieldWords.some((word) => word.startsWith(query.compact)));
 }
 
 function searchScore(card: Flashcard, query: SearchForms) {

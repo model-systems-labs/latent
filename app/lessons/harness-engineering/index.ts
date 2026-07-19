@@ -27,6 +27,15 @@ const reactSource = {
   relevance: "Studies the interleaving of model reasoning, actions, and observations.",
 };
 
+const highResolutionTimeSource = {
+  role: "Specification" as const,
+  title: "High Resolution Time",
+  authors: "W3C",
+  year: "2026 Working Draft",
+  url: "https://www.w3.org/TR/hr-time-3/",
+  relevance: "Defines monotonic high-resolution time measurements suitable for elapsed-time budgets that must not change with the system clock.",
+};
+
 const mcpToolsSource = {
   role: "Specification" as const,
   title: "Model Context Protocol: Tools",
@@ -52,6 +61,24 @@ const sandboxingSource = {
   year: "Current",
   url: "https://learn.chatgpt.com/docs/sandboxing",
   relevance: "Distinguishes the technical sandbox boundary from approval policy and documents filesystem and network isolation.",
+};
+
+const promptInjectionSource = {
+  role: "Guide" as const,
+  title: "Understanding prompt injections",
+  authors: "OpenAI",
+  year: "Current",
+  url: "https://openai.com/safety/prompt-injections/",
+  relevance: "Explains how untrusted third-party content can inject instructions and why constrained access limits the resulting risk.",
+};
+
+const owaspPromptInjectionSource = {
+  role: "Guide" as const,
+  title: "LLM01:2025 Prompt Injection",
+  authors: "OWASP GenAI Security Project",
+  year: "2025",
+  url: "https://genai.owasp.org/llmrisk/llm01-prompt-injection/",
+  relevance: "Defines direct and indirect prompt injection in OWASP's LLM01 taxonomy and lists least-privilege controls that reduce impact.",
 };
 
 const agentsMdSource = {
@@ -150,7 +177,7 @@ export const agentLoopLesson = defineHarnessLesson({
   eyebrow: "Responses · Actions · Observations",
   title: "Agent Loop",
   thesis: "An agent loop turns model responses into validated actions and observations until an explicit stop condition is reached.",
-  sources: [buildingEffectiveAgentsSource, reactSource, harnessEngineeringSource],
+  sources: [buildingEffectiveAgentsSource, reactSource, harnessEngineeringSource, highResolutionTimeSource],
   summary: [
     {
       label: "The model proposes; the harness executes.",
@@ -615,7 +642,7 @@ export const permissionsAndSandboxesLesson = defineHarnessLesson({
   eyebrow: "Paths · Policy · Containment",
   title: "Permissions and Sandboxes",
   thesis: "Permissions and sandbox boundaries restrict what an agent can do independently of what the model says.",
-  sources: [approvalsSecuritySource, sandboxingSource, agentsMdSource, pathTraversalSource, toctouSource],
+  sources: [approvalsSecuritySource, sandboxingSource, promptInjectionSource, owaspPromptInjectionSource, agentsMdSource, pathTraversalSource, toctouSource],
   summary: [
     {
       label: "Instructions are not access control.",

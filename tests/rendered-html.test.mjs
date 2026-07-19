@@ -101,7 +101,7 @@ test("Agent Loop combines technical reading with two isolated runnable cells", a
   assert.match(html, /Run cell/);
   assert.match(html, /Run all tests/);
   assert.match(html, /id="lesson-sources-title">Sources/);
-  assert.equal((html.match(/class="source-entry"/g) ?? []).length, 3);
+  assert.equal((html.match(/class="source-entry"/g) ?? []).length, 4);
   assert.doesNotMatch(html, /Open in IDE|Saved results|href="#artifacts"/);
 });
 
@@ -736,6 +736,9 @@ test("sources route lists the research, dataset, model, and runtime boundaries",
   assert.match(html, /Transformers\.js/);
   assert.match(html, /Apache-2\.0/);
   assert.match(html, /Lesson sources/);
+  assert.match(html, /Flash-card reference shelf/);
+  assert.match(html, /Mathematics for Machine Learning/);
+  assert.match(html, /Decoupled Weight Decay Regularization/);
   assert.match(html, /Character RNNs/);
   assert.match(html, /Product Quality/);
   assert.match(html, /Course-authored synthetic corpus/);

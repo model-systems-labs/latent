@@ -1,15 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type {
-  Flashcard,
-  FlashcardSubject,
-  FlashcardSubjectId,
-} from "../content/flashcards";
 import {
-  expandFlashcardDeck,
-  type CompactFlashcardDeck,
-} from "../content/flashcard-transport";
+  flashcards,
+  flashcardSubjects,
+  type Flashcard,
+  type FlashcardSubject,
+  type FlashcardSubjectId,
+} from "../content/flashcards";
+/*
+ * Keep the full library in this hash-named client asset instead of serializing
+ * it into every HTML response. Repeat study visits can then reuse the browser
+ * cache while the server still renders the first card immediately.
+ */
 import {
   applyFlashcardClearMutation,
   chooseNewestFlashcardProgress,
@@ -67,6 +70,13 @@ function resultLabel(result?: FlashcardResult) {
   return "New";
 }
 
+function sourceIndexHref(subjectId: FlashcardSubjectId) {
+  if (subjectId === "linear-algebra") return "/sources#sources-linear-algebra";
+  if (subjectId === "machine-learning-basics") return "/sources#sources-machine-learning-basics";
+  if (subjectId === "harness-engineering") return "/sources#sources-harness-engineering";
+  return "/sources#sources-llm-systems";
+}
+
 function cardMixScore(cardId: string, seed: number) {
   let score = 2166136261 ^ seed;
   for (let index = 0; index < cardId.length; index += 1) {
@@ -98,14 +108,9 @@ function restoreFlashcardResult(
   };
 }
 
-export function FlashcardDeck({
-  deck,
-  subjects,
-}: {
-  deck: CompactFlashcardDeck;
-  subjects: readonly FlashcardSubject[];
-}) {
-  const cards = useMemo(() => expandFlashcardDeck(deck), [deck]);
+export function FlashcardDeck() {
+  const cards: readonly Flashcard[] = flashcards;
+  const subjects: readonly FlashcardSubject[] = flashcardSubjects;
   const allSubjectIds = useMemo(() => subjects.map((subject) => subject.id), [subjects]);
   const validCardIds = useMemo(() => new Set(cards.map((card) => card.id)), [cards]);
   const [activeSubjects, setActiveSubjects] = useState<FlashcardSubjectId[]>(allSubjectIds);
@@ -556,9 +561,13 @@ export function FlashcardDeck({
 
   const reviewedCount = selectedStats.success + selectedStats.failure;
   const totalReviewedCount = Object.keys(progress.results).length;
-  const selectedSubjectLabel = activeSubjects.length === subjects.length
+  const allSubjectsActive = activeSubjects.length === subjects.length;
+  const onlyActiveSubject = activeSubjects.length === 1
+    ? subjects.find((subject) => subject.id === activeSubjects[0])
+    : undefined;
+  const selectedSubjectLabel = allSubjectsActive
     ? "All subjects"
-    : `${activeSubjects.length} of ${subjects.length} subjects`;
+    : onlyActiveSubject?.label ?? `${activeSubjects.length} of ${subjects.length} subjects`;
   const selectedResultLabel = statusFilters.find((filter) => filter.id === statusFilter)?.label ?? "Cards";
   const filterSummary = normalizedQuery
     ? `“${query.trim()}” · ${selectedSubjectLabel} · ${selectedResultLabel} · ${visibleCards.length}`
@@ -593,6 +602,7 @@ export function FlashcardDeck({
               "aria-valuemin": 0,
               "aria-valuemax": subjectCards.length,
               "aria-valuenow": reviewedCount,
+              "aria-valuetext": `${reviewedCount} of ${subjectCards.length} cards reviewed; ${selectedStats.success} got it, ${selectedStats.failure} ${selectedStats.failure === 1 ? "needs" : "need"} work.`,
             } : { "aria-hidden": true })}
           >
             <i
@@ -648,14 +658,14 @@ export function FlashcardDeck({
               <button
                 type="button"
                 disabled={mutationPending}
-                aria-pressed={activeSubjects.length === subjects.length}
-                className={activeSubjects.length === subjects.length ? styles.activeFilter : undefined}
+                aria-pressed={allSubjectsActive}
+                className={allSubjectsActive ? styles.activeFilter : undefined}
                 onClick={() => chooseSubjects(allSubjectIds)}
               >
                 All <span>{cards.length}</span>
               </button>
               {subjects.map((subject) => {
-                const active = activeSubjectSet.has(subject.id);
+                const active = !allSubjectsActive && activeSubjectSet.has(subject.id);
                 const count = cards.filter((card) => card.subjectId === subject.id).length;
                 return (
                   <button
@@ -763,7 +773,10 @@ export function FlashcardDeck({
                 {currentCard.source ? (
                   <p className={styles.sourceTrail}>
                     <span>Source trail</span>
-                    {currentCard.source}
+                    <cite>{currentCard.source}</cite>
+                    <a href={sourceIndexHref(currentCard.subjectId)}>
+                      Browse sources <span aria-hidden="true">↗</span>
+                    </a>
                   </p>
                 ) : null}
                 <footer className={styles.ratingActions} aria-label={`Rate ${currentCard.concept}`}>

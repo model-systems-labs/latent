@@ -102,12 +102,21 @@ benchmark results as general guarantees. Each new card group carries a short
 its terminology. Those trails are displayed in the study UI so a learner can
 connect unfamiliar vocabulary back to its technical context.
 
-The Harness Engineering release added 120 cards: fifteen for each of the eight
-lessons. Its review separates standards from course teaching policies, including
+The initial Harness Engineering release added 120 cards: fifteen for each of the
+eight lessons. Its review separates standards from course teaching policies, including
 closed-schema validation, context compaction, permission precedence, event-log
 replay, finite-sample pass metrics, static dependency batching, and the limits
-of the integrated teaching harness. The full library now contains 574 cards
-across seven filterable subjects.
+of the integrated teaching harness. At that point, the library contained 574
+cards across seven filterable subjects.
+
+A second audit on 2026-07-18 added 64 atomic cards. Thirty-two fill probability,
+information-theory, multivariable-calculus, regularization, evaluation, and
+uncertainty prerequisites for machine learning. Thirty-two more cover named
+concepts in the Harness Engineering sources, including injection attacks, MCP
+error and result semantics, agent workflow patterns, repository legibility, and
+feedback-loop maintenance. The current library contains 638 cards, including
+123 Machine Learning Basics cards and 152 Harness Engineering cards. Source
+trails now also link learners to the relevant lesson bibliography.
 
 The release review replaced a phrase-embedding example that had independently
 repeated a distinctive example from the word2vec paper. The deck now uses the

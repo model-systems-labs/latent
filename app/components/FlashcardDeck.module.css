@@ -425,6 +425,33 @@
   padding: 1rem 0 0;
 }
 
+.sourceTrail cite {
+  font-style: normal;
+  overflow-wrap: anywhere;
+}
+
+.sourceTrail a {
+  align-items: center;
+  color: var(--violet-deep);
+  display: inline-flex;
+  font-weight: 590;
+  gap: 0.35rem;
+  justify-self: start;
+  min-height: 2.75rem;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+
+.sourceTrail a:hover,
+.sourceTrail a:focus-visible {
+  color: var(--ink);
+}
+
+.sourceTrail a:focus-visible {
+  outline: 2px solid var(--violet-deep);
+  outline-offset: 3px;
+}
+
 .cardBack {
   padding: clamp(1.35rem, 4.5vw, 3rem);
 }
@@ -433,12 +460,14 @@
   align-items: start;
   border-bottom: 1px solid var(--line);
   display: flex;
+  flex-wrap: wrap;
   gap: 1.5rem;
   justify-content: space-between;
   padding-bottom: 1.15rem;
 }
 
 .cardBack > header > div {
+  flex: 1 1 7rem;
   min-width: 0;
 }
 
@@ -456,6 +485,7 @@
 .cardFront > span,
 .cardBack header span {
   color: var(--card-accent);
+  overflow-wrap: anywhere;
 }
 
 .cardBack header button,
@@ -488,6 +518,7 @@
   line-height: 1.55;
   margin: 1.5rem 0 0;
   max-width: 38ch;
+  overflow-wrap: anywhere;
 }
 
 .keyPointsLabel {
@@ -513,6 +544,7 @@
   display: grid;
   gap: 0.65rem;
   grid-template-columns: 1.55rem minmax(0, 1fr);
+  overflow-wrap: anywhere;
   padding: 0.78rem 0;
 }
 
@@ -541,7 +573,7 @@
 .ratingActions {
   display: grid;
   gap: 0.75rem;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 7.5rem), 1fr));
   margin-top: 1.6rem;
 }
 
@@ -551,6 +583,8 @@
   cursor: pointer;
   font-size: max(0.78rem, 13px);
   min-height: 3.25rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
   padding: 0.65rem 1rem;
 }
 
@@ -834,7 +868,7 @@
   .subjectScroller {
     display: grid;
     gap: 0.42rem;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr));
     margin-inline: 0;
     mask-image: none;
     overflow: visible;
@@ -845,7 +879,13 @@
   .subjectScroller button {
     justify-content: space-between;
     min-width: 0;
+    overflow-wrap: anywhere;
+    white-space: normal;
     width: 100%;
+  }
+
+  .subjectScroller button span {
+    flex: 0 0 auto;
   }
 
   .cardFront {

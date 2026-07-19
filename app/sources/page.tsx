@@ -22,6 +22,22 @@ const runtimeNotices = [
   { name: "Mock Service Worker", version: "2.15.0", license: "MIT", url: "https://github.com/mswjs/msw", use: "Provides predictable mock services and requests." },
 ] as const;
 
+const flashcardReferenceShelves = {
+  "machine-learning-basics": [
+    { title: "Mathematics for Machine Learning", authors: "Marc Peter Deisenroth · A. Aldo Faisal · Cheng Soon Ong", year: "2020", url: "https://mml-book.github.io/" },
+    { title: "Elements of Information Theory", authors: "Thomas M. Cover · Joy A. Thomas", year: "2006", url: "https://onlinelibrary.wiley.com/doi/book/10.1002/047174882X" },
+    { title: "18.02SC Multivariable Calculus", authors: "MIT OpenCourseWare", year: "2010", url: "https://ocw.mit.edu/courses/18-02sc-multivariable-calculus-fall-2010/" },
+    { title: "Convex Optimization", authors: "Stephen Boyd · Lieven Vandenberghe", year: "2004", url: "https://web.stanford.edu/~boyd/cvxbook/" },
+    { title: "Deep Learning: Regularization for Deep Learning", authors: "Ian Goodfellow · Yoshua Bengio · Aaron Courville", year: "2016", url: "https://www.deeplearningbook.org/contents/regularization.html" },
+    { title: "Dropout: A Simple Way to Prevent Neural Networks from Overfitting", authors: "Nitish Srivastava et al.", year: "2014", url: "https://www.jmlr.org/papers/v15/srivastava14a.html" },
+    { title: "Decoupled Weight Decay Regularization", authors: "Ilya Loshchilov · Frank Hutter", year: "2019", url: "https://openreview.net/forum?id=Bkg6RiCqY7" },
+    { title: "Model evaluation", authors: "scikit-learn developers", year: "Current", url: "https://scikit-learn.org/stable/modules/model_evaluation.html" },
+    { title: "Probability calibration", authors: "scikit-learn developers", year: "Current", url: "https://scikit-learn.org/stable/modules/calibration.html" },
+    { title: "NIST/SEMATECH e-Handbook of Statistical Methods", authors: "NIST · SEMATECH", year: "2012", url: "https://www.itl.nist.gov/div898/handbook/" },
+    { title: "An Introduction to the Bootstrap", authors: "Bradley Efron · Robert J. Tibshirani", year: "1993", url: "https://doi.org/10.1201/9780429246593" },
+  ],
+} as const;
+
 export default function SourcesPage() {
   return (
     <main>
@@ -50,6 +66,12 @@ export default function SourcesPage() {
                   <ul>{lesson.sources.map((source) => <li key={source.url}><a href={source.url} target="_blank" rel="noreferrer" aria-label={`${source.title}, ${source.authors}, ${source.year}; opens in a new tab`}><span><strong>{source.title}</strong><em>{source.authors} · {source.year}</em></span><i aria-hidden="true">↗</i></a></li>)}</ul>
                 </article>
               ))}
+              {program.id in flashcardReferenceShelves ? (
+                <article>
+                  <header><strong>Flash-card reference shelf</strong><code>Probability · calculus · regularization · evaluation</code></header>
+                  <ul>{flashcardReferenceShelves[program.id as keyof typeof flashcardReferenceShelves].map((source) => <li key={source.url}><a href={source.url} target="_blank" rel="noreferrer" aria-label={`${source.title}, ${source.authors}, ${source.year}; opens in a new tab`}><span><strong>{source.title}</strong><em>{source.authors} · {source.year}</em></span><i aria-hidden="true">↗</i></a></li>)}</ul>
+                </article>
+              ) : null}
             </section>
           ))}
         </section>

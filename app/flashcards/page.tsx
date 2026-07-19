@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { FlashcardDeck } from "../components/FlashcardDeck";
-import { compactFlashcardDeck } from "../content/flashcard-transport";
-import { flashcards, flashcardSubjects } from "../content/flashcards";
+import { flashcards } from "../content/flashcards";
 import styles from "./page.module.css";
-
-const deck = compactFlashcardDeck(flashcards);
 
 export const metadata: Metadata = {
   title: "Flash cards · Latent",
@@ -36,7 +33,7 @@ export default function FlashcardsPage() {
           </p>
         </header>
 
-        <FlashcardDeck deck={deck} subjects={flashcardSubjects} />
+        <FlashcardDeck />
       </article>
     </main>
   );

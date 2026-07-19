@@ -88,7 +88,7 @@ const agentLoopCards = defineFlashcardGroup(
       details: [
         "Separate budgets matter because one model response can propose an action while another may return final text.",
         "The limit can contain expense, latency, or risk for capabilities such as web search or code execution.",
-        "The counter should advance only according to a documented rule, such as immediately before successful dispatch.",
+        "The contract must say whether attempted dispatches count; charging immediately before invocation also counts tools that return an error.",
       ],
       example: "A research run with five allowed searches refuses the sixth search call and records tool_limit as its terminal status.",
     },
@@ -108,7 +108,7 @@ const agentLoopCards = defineFlashcardGroup(
         "Appending a second result to an already resolved call violates the one-call-one-result protocol.",
         "Recovery logic uses unresolved calls to decide whether to resume, reconcile, or wait for approval.",
       ],
-      example: "A write request recorded before a process crash stays unresolved until a receipt proves completion or reconciliation reruns it safely.",
+      example: "A write request recorded before a process crash stays unresolved until a receipt proves completion or reconciliation shows that a retry is appropriate.",
     },
     "Immutable message history": {
       definition: "Immutable message history means each agent transition creates a new history value rather than modifying previously recorded messages in place.",

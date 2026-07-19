@@ -5,6 +5,8 @@ import {
 } from "./flashcard-schema";
 import { foundationExpansionLibrary } from "./flashcard-library/foundations";
 import { harnessEngineeringFlashcardLibrary } from "./flashcard-library/harness-engineering";
+import { harnessEngineeringSupplementFlashcardLibrary } from "./flashcard-library/harness-engineering-supplement";
+import { mlPrerequisiteFlashcardLibrary } from "./flashcard-library/ml-prerequisites";
 import { modelFoundationsExpansionLibrary } from "./flashcard-library/model-foundations";
 import { systemsAndProductExpansionLibrary } from "./flashcard-library/systems-and-product";
 
@@ -16,13 +18,13 @@ export type {
 } from "./flashcard-schema";
 
 const coreFlashcardLibrary = defineFlashcardLibrary({
-  "Rank and shape": {
+  "Array rank and shape": {
     subjectId: "linear-algebra",
     module: "Linear Algebra Basics",
     lesson: "Arrays and Shapes",
-    definition: "Rank is the number of axes in an array; shape gives the length of each axis in order.",
+    definition: "Array rank is the number of axes in an array; shape gives the length of each axis in order.",
     details: [
-      "A scalar has rank 0, a vector rank 1, and a matrix rank 2.",
+      "A scalar has array rank 0, a vector rank 1, and a matrix array rank 2; matrix rank is a different algebraic concept.",
       "The product of the shape dimensions is the total number of stored values.",
       "Code and data conventions give each axis its meaning, such as batch, token, or feature.",
     ],
@@ -228,7 +230,7 @@ const coreFlashcardLibrary = defineFlashcardLibrary({
     details: [
       "For target 1, loss is -log(p); for target 0, it is -log(1 - p).",
       "A confident correct prediction has low loss; a confident wrong one has high loss.",
-      "Clipping boundary probabilities avoids log(0).",
+      "When logits are available, a fused logits-based BCE calculation is more stable; clamp probabilities only when an API truly accepts probabilities.",
     ],
     example: "For y = 1 and p = 0.881, the loss is -log(0.881) ≈ 0.127.",
   },
@@ -632,9 +634,11 @@ const sourcedCoreFlashcardLibrary = defineFlashcardLibrary(Object.fromEntries(
 export const flashcardLibrary = combineFlashcardLibraries(
   sourcedCoreFlashcardLibrary,
   foundationExpansionLibrary,
+  mlPrerequisiteFlashcardLibrary,
   modelFoundationsExpansionLibrary,
   systemsAndProductExpansionLibrary,
   harnessEngineeringFlashcardLibrary,
+  harnessEngineeringSupplementFlashcardLibrary,
 );
 export type FlashcardConcept = keyof typeof flashcardLibrary;
 export const flashcards = buildFlashcards(flashcardLibrary);

@@ -25,8 +25,8 @@ type HarnessLessonInput = Pick<
 };
 
 /**
- * Harness lessons use the shared reader and Python runner, but remain separate
- * from the Browser Chat workspace and its cumulative capstone.
+ * Harness lessons use the shared reader and Python runner while saving into a
+ * course-owned workbook that is independent from Browser Chat.
  */
 export function defineHarnessLesson(input: HarnessLessonInput): CourseLesson {
   const primary = input.sources[0];
@@ -36,7 +36,7 @@ export function defineHarnessLesson(input: HarnessLessonInput): CourseLesson {
 
   return {
     ...input,
-    projectScope: "standalone",
+    projectScope: "harness-engineering",
     mode: "core-mechanism",
     modeLabel: "Runnable Python",
     paperUrl: primary.url,

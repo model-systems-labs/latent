@@ -210,7 +210,7 @@ export const agentLoopLesson = defineHarnessLesson({
     preview: "final response · valid call · unknown tool · duplicate result",
   },
   implementation: {
-    filename: "agent-loop.py",
+    filename: "agent_loop.py",
     intro: "Parse one model response, then attach a tool observation to the call that requested it.",
     tensorOps: ["Python", "dict", "list", "copy.deepcopy"],
     codeBlocks: [
@@ -365,7 +365,7 @@ export const toolContractsLesson = defineHarnessLesson({
     preview: "valid call · missing field · wrong type · paginated matches",
   },
   implementation: {
-    filename: "tool-contracts.py",
+    filename: "tools.py",
     intro: "Validate a small model-facing schema, then return a bounded page of tool results.",
     tensorOps: ["Python", "dict", "type", "slicing"],
     codeBlocks: [
@@ -509,7 +509,7 @@ export const contextSelectionLesson = defineHarnessLesson({
     preview: "required rules · current failure · schema · stale log",
   },
   implementation: {
-    filename: "context-selection.py",
+    filename: "context.py",
     intro: "Select context under a fixed budget, then compact old tool output without breaking call identity.",
     tensorOps: ["Python", "sorting", "copy.deepcopy", "string slicing"],
     codeBlocks: [
@@ -675,7 +675,7 @@ export const permissionsAndSandboxesLesson = defineHarnessLesson({
     preview: "workspace read · traversal · symlink caveat · credential access",
   },
   implementation: {
-    filename: "permissions-and-sandboxes.py",
+    filename: "permissions.py",
     intro: "Normalize a requested workspace path, then make an explicit policy decision for an action.",
     tensorOps: ["Python", "posixpath", "prefix rules", "deny by default"],
     codeBlocks: [
@@ -812,7 +812,7 @@ export const stateAndRecoveryLesson = defineHarnessLesson({
     preview: "completed call · duplicate event · checkpoint · expired sandbox",
   },
   implementation: {
-    filename: "state-and-recovery.py",
+    filename: "state.py",
     intro: "Reduce one durable event into run state, then replay a log to identify pending work.",
     tensorOps: ["Python", "copy.deepcopy", "event reduction", "idempotency"],
     codeBlocks: [
@@ -995,7 +995,7 @@ export const agentEvaluationsLesson = defineHarnessLesson({
     preview: "passing tests · false completion claim · repeated successes",
   },
   implementation: {
-    filename: "agent-evaluations.py",
+    filename: "evaluations.py",
     intro: "Grade a final environment state, then summarize success across repeated trials.",
     tensorOps: ["Python", "comparisons", "membership", "probability"],
     codeBlocks: [
@@ -1142,7 +1142,7 @@ export const taskOrchestrationLesson = defineHarnessLesson({
     preview: "parallel inspection · dependent implementation · missing result",
   },
   implementation: {
-    filename: "task-orchestration.py",
+    filename: "orchestration.py",
     intro: "Build dependency-safe execution batches, then collect asynchronous worker results in task order.",
     tensorOps: ["Python", "sets", "topological ordering", "dictionary indexing"],
     codeBlocks: [
@@ -1301,7 +1301,7 @@ export const integratedHarnessLesson = defineHarnessLesson({
     preview: "read then answer · denied secret · approval pause · exhausted budget",
   },
   implementation: {
-    filename: "integrated-harness.py",
+    filename: "harness.py",
     intro: "Run a complete deterministic harness trace, then audit the resulting protocol state.",
     tensorOps: ["Python", "copy", "state machine", "policy", "event log"],
     codeBlocks: [
@@ -1317,6 +1317,11 @@ export const integratedHarnessLesson = defineHarnessLesson({
         code: `import copy
 import posixpath
 
+from harness.agent_loop import append_tool_result, parse_model_response
+from harness.permissions import permission_decision
+from harness.tools import validate_tool_arguments
+
+
 def run_harness(initial_messages, responses, tools, rules, max_turns):
     if type(initial_messages) is not list or type(responses) is not list:
         raise ValueError("messages and responses must be lists")
@@ -1325,13 +1330,6 @@ def run_harness(initial_messages, responses, tools, rules, max_turns):
     if type(max_turns) is not int or max_turns < 1:
         raise ValueError("max_turns must be a positive integer")
 
-    type_checks = {
-        "str": lambda value: type(value) is str,
-        "int": lambda value: type(value) is int,
-        "bool": lambda value: type(value) is bool,
-        "list": lambda value: type(value) is list,
-        "dict": lambda value: type(value) is dict,
-    }
     tool_by_name = {}
     for tool in tools:
         if type(tool) is not dict or type(tool.get("name")) is not str:
@@ -1339,34 +1337,13 @@ def run_harness(initial_messages, responses, tools, rules, max_turns):
         name = tool["name"]
         if name in tool_by_name:
             raise ValueError("tool names must be unique")
-        required = tool.get("required")
-        if type(required) is not dict or any(kind not in type_checks for kind in required.values()):
-            raise ValueError("every tool needs supported required field types")
+        if type(tool.get("required")) is not dict:
+            raise ValueError("every tool needs required field types")
         if type(tool.get("kind")) is not str or type(tool.get("target_arg")) is not str:
             raise ValueError("every tool needs kind and target_arg text")
         if type(tool.get("outputs")) is not dict:
             raise ValueError("every tool needs deterministic adapter outputs")
         tool_by_name[name] = tool
-
-    precedence = {"allow": 0, "confirm": 1, "deny": 2}
-
-    def policy_decision(kind, target):
-        matches = []
-        for index, rule in enumerate(rules):
-            if type(rule) is not dict or rule.get("decision") not in precedence:
-                raise ValueError("every rule needs an allow, confirm, or deny decision")
-            prefix = rule.get("target_prefix")
-            rule_kind = rule.get("kind")
-            if type(rule.get("id")) is not str or type(prefix) is not str or not prefix or type(rule_kind) is not str:
-                raise ValueError("every rule needs id, kind, and non-empty target_prefix text")
-            boundary = prefix.rstrip("/") or "/"
-            target_matches = target.startswith("/") if boundary == "/" else target == boundary or target.startswith(boundary + "/")
-            if rule_kind in (kind, "*") and target_matches:
-                matches.append((precedence[rule["decision"]], len(prefix), -index, rule))
-        if not matches:
-            return {"decision": "deny", "rule_id": None}
-        selected = max(matches, key=lambda item: item[:3])[3]
-        return {"decision": selected["decision"], "rule_id": selected["id"]}
 
     history = copy.deepcopy(initial_messages)
     events = []
@@ -1378,42 +1355,23 @@ def run_harness(initial_messages, responses, tools, rules, max_turns):
             events.append({"kind": "model_exhausted", "turn": turn})
             return {"status": "model_exhausted", "final": None, "turns": turn - 1, "tool_calls": dispatched, "messages": history, "events": events}
 
-        response = responses[turn - 1]
-        if type(response) is not dict:
-            raise ValueError("every response must be a dictionary")
-        has_final = "final" in response
-        has_call = "tool_call" in response
-        if has_final == has_call:
-            raise ValueError("each response needs exactly one final or tool_call")
-
-        if has_final:
-            final = response["final"]
-            if type(final) is not str or not final.strip():
-                raise ValueError("final must be non-empty text")
+        action = parse_model_response(responses[turn - 1], list(tool_by_name))
+        if action["kind"] == "final":
+            final = action["text"]
             history.append({"role": "assistant", "content": final})
             events.append({"kind": "run_completed", "turn": turn})
             return {"status": "completed", "final": final, "turns": turn, "tool_calls": dispatched, "messages": history, "events": events}
 
-        call = response["tool_call"]
-        if type(call) is not dict:
-            raise ValueError("tool_call must be a dictionary")
-        call_id = call.get("id")
-        name = call.get("name")
-        arguments = call.get("arguments")
-        if type(call_id) is not str or not call_id or call_id in seen_call_ids:
+        call_id = action["call_id"]
+        if call_id in seen_call_ids:
             raise ValueError("tool call ids must be unique non-empty text")
-        if type(name) is not str or name not in tool_by_name:
-            raise ValueError("unknown tool")
-        if type(arguments) is not dict:
-            raise ValueError("tool arguments must be a dictionary")
-
-        tool = tool_by_name[name]
-        required = tool["required"]
-        if set(arguments) != set(required):
-            raise ValueError("tool arguments must exactly match required fields")
-        for field, expected in required.items():
-            if not type_checks[expected](arguments[field]):
-                raise ValueError(field + " must have type " + expected)
+        seen_call_ids.add(call_id)
+        tool = tool_by_name[action["name"]]
+        arguments = validate_tool_arguments(action["arguments"], {
+            "required": tool["required"],
+            "optional": {},
+            "allow_extra": False,
+        })
         target = arguments.get(tool["target_arg"])
         if type(target) is not str:
             raise ValueError("the tool target must be text")
@@ -1422,10 +1380,16 @@ def run_harness(initial_messages, responses, tools, rules, max_turns):
                 raise ValueError("filesystem tool targets must be absolute")
             target = posixpath.normpath(target)
 
-        seen_call_ids.add(call_id)
-        history.append({"role": "assistant", "tool_call": copy.deepcopy(call)})
-        events.append({"kind": "action_proposed", "turn": turn, "call_id": call_id, "tool": name})
-        policy = policy_decision(tool["kind"], target)
+        history.append({
+            "role": "assistant",
+            "tool_call": {
+                "id": call_id,
+                "name": action["name"],
+                "arguments": copy.deepcopy(arguments),
+            },
+        })
+        events.append({"kind": "action_proposed", "turn": turn, "call_id": call_id, "tool": action["name"]})
+        policy = permission_decision({"kind": tool["kind"], "target": target}, rules)
         events.append({"kind": "policy_decision", "call_id": call_id, **policy})
 
         if policy["decision"] == "confirm":
@@ -1441,7 +1405,7 @@ def run_harness(initial_messages, responses, tools, rules, max_turns):
             content = copy.deepcopy(tool["outputs"][call_id])
             dispatched += 1
             events.append({"kind": "tool_completed", "call_id": call_id})
-        history.append({"role": "tool", "call_id": call_id, "content": content, "is_error": is_error})
+        history = append_tool_result(history, call_id, content, is_error)
 
     events.append({"kind": "budget_exceeded", "turn": max_turns})
     return {"status": "budget_exceeded", "final": None, "turns": max_turns, "tool_calls": dispatched, "messages": history, "events": events}`,

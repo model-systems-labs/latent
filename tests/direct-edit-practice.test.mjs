@@ -279,11 +279,13 @@ test("lesson writes preserve quarantined legacy bytes and never overwrite newer 
   assert.match(source, /const persistedAnswers = \{ \.\.\.next\.answers, \.\.\.nextQuarantinedAnswers \}/);
   assert.match(source, /saveLessonPracticeAndVerification\(lesson\.id, next\.hiddenBlocks, persistedAnswers/);
 
-  assert.match(source, /const projectSourceIsCurrent = \(\) => loadProjectState\(\)\.files\[projectPath\]\?\.content === projectContentRef\.current/);
+  assert.match(source, /const projectSourceIsCurrent = \(\) => contributesToBrowserChat/);
+  assert.match(source, /loadProjectState\(\)\.files\[projectPath\]\?\.content === projectContentRef\.current/);
+  assert.match(source, /harnessFileSourceIsCurrent\(projectPath, projectContentRef\.current\)/);
   assert.match(source, /if \(!projectSourceIsCurrent\(\)\) \{\s*reportProjectConflict\(\);\s*return;\s*\}/);
   assert.match(source, /data-project-conflict=\{projectConflict\}/);
   assert.match(source, /readOnly=\{blockRunning \|\| projectConflict\}/);
-  assert.match(source, /This file changed in the full IDE\. Continue there so this lesson doesn.t overwrite the newer code\./);
+  assert.match(source, /This file changed in the project workspace\. Continue there so this lesson doesn.t overwrite the newer code\./);
 });
 
 test("lesson checks abort on unmount and cannot commit a superseded project snapshot", async () => {

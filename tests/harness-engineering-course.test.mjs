@@ -50,6 +50,7 @@ let initializationProfiles;
 let learning;
 let learningRegistry;
 let manifestModule;
+let harnessProjectTemplate;
 let pyodide;
 let pythonLab;
 let runPythonLessonContracts;
@@ -78,6 +79,7 @@ before(async () => {
     learning,
     learningRegistry,
     manifestModule,
+    harnessProjectTemplate,
     { runPythonLessonContracts },
   ] = await Promise.all([
     vite.ssrLoadModule("/app/content/browser-chat/project-template.ts"),
@@ -93,6 +95,7 @@ before(async () => {
     vite.ssrLoadModule("/app/content/harness-engineering/learning.ts"),
     vite.ssrLoadModule("/app/lessons/learning.ts"),
     vite.ssrLoadModule("/app/content/harness-engineering/manifest.ts"),
+    vite.ssrLoadModule("/app/content/harness-engineering/project-template.ts"),
     vite.ssrLoadModule("/app/features/ide/python-lesson-service.ts"),
   ]);
 
@@ -194,6 +197,16 @@ function contractsFor(path) {
   );
 }
 
+function referenceProjectFiles() {
+  return Object.fromEntries(entries().map(({ lesson, projectPath }) => [
+    projectPath,
+    implementationSource.lessonImplementationSource(
+      lesson,
+      lesson.implementation.codeBlocks.map((block) => block.code),
+    ),
+  ]));
+}
+
 function replaceOnce(source, search, replacement) {
   assert.ok(source.includes(search), `reference source contains ${search}`);
   const changed = source.replace(search, replacement);
@@ -201,7 +214,7 @@ function replaceOnce(source, search, replacement) {
   return changed;
 }
 
-test("the applied course owns eight standalone lessons and no Browser Chat files", () => {
+test("the applied course owns eight lessons in an isolated Harness workspace and no Browser Chat files", () => {
   const manifest = manifestModule.harnessEngineeringManifest;
   const curriculumEntries = entries();
   assert.equal(manifest.id, "harness-engineering");
@@ -215,11 +228,12 @@ test("the applied course owns eight standalone lessons and no Browser Chat files
   const manifestPaths = manifest.modules[0].lessons.map(({ projectPath }) => projectPath);
   assert.equal(new Set(manifestPaths).size, 8);
   for (const { lesson, projectPath } of curriculumEntries) {
-    assert.equal(lesson.projectScope, "standalone", lesson.id);
+    assert.equal(lesson.projectScope, "harness-engineering", lesson.id);
     assert.equal(lesson.programId, "harness-engineering", lesson.id);
     assert.equal(lesson.courseId, "harness-engineering", lesson.id);
     assert.equal(course.getLessonCourseHref(lesson), "/courses/harness-engineering", lesson.id);
-    assert.match(projectPath, /^harness-engineering\/.+\.py$/, lesson.id);
+    assert.match(projectPath, /^harness\/[a-z_]+\.py$/, lesson.id);
+    assert.doesNotMatch(projectPath, /-/, `${lesson.id}: Python module paths remain importable`);
     assert.equal(projectPath.endsWith(lesson.implementation.filename), true, lesson.id);
     assert.doesNotMatch(projectPath, /^(models|systems|backend|product|capstone)\//, lesson.id);
   }
@@ -227,8 +241,9 @@ test("the applied course owns eight standalone lessons and no Browser Chat files
   assert.equal(course.courseLessons.length, 14, "Browser Chat keeps its existing fourteen lessons");
   assert.equal(course.courseLessons.some(({ id }) => expectedLessonIds.includes(id)), false);
   const browserChatPaths = browserChatProject.CANONICAL_BROWSER_CHAT_FILES.map(({ path }) => path);
-  assert.equal(browserChatPaths.some((path) => path.startsWith("harness-engineering/")), false);
+  assert.equal(browserChatPaths.some((path) => path.startsWith("harness/")), false);
   assert.equal(manifestPaths.some((path) => browserChatProject.browserChatProjectFileByPath.has(path)), false);
+  assert.deepEqual(harnessProjectTemplate.HARNESS_PROJECT_PATHS, manifestPaths);
 });
 
 test("all eight lessons have technical reading, sources, learning checks, diagrams, experiments, and sixteen unique cells", () => {
@@ -377,6 +392,7 @@ test("all sixteen independent reference cells pass every host contract in real P
         path: projectPath,
         source,
         contracts: [contract],
+        supportFiles: referenceProjectFiles(),
         pythonLab,
       });
       contractCount += 1;
@@ -485,6 +501,7 @@ test("plausible harness mistakes fail with specific learner-facing directions", 
       path: attempt.projectPath,
       source: attempt.source,
       contracts: [attempt.contract],
+      supportFiles: referenceProjectFiles(),
       pythonLab,
     });
     assert.equal(run.results.length, 1, attempt.label);

@@ -16,7 +16,7 @@ type CodeEditorProps = {
   onChange: (value: string) => void;
   onSave?: () => void;
   readOnly?: boolean;
-  variant?: "lesson" | "project";
+  variant?: "lesson" | "project" | "workbook";
   ariaLabel?: string;
   lineNumberStart?: number;
 };
@@ -183,6 +183,7 @@ const readOnlyEditorInstruction = "Read-only code example. Use the arrow keys to
 
 export function CodeEditor({ value, path, onChange, onSave, readOnly = false, variant = "project", ariaLabel, lineNumberStart = 1 }: CodeEditorProps) {
   const isPython = path.toLowerCase().endsWith(".py");
+  const lightEditor = variant !== "project";
   const instructionId = useId();
   const hostRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -217,11 +218,11 @@ export function CodeEditor({ value, path, onChange, onSave, readOnly = false, va
         doc: valueRef.current,
         extensions: [
           basicSetup,
-          variant === "lesson" ? lineNumbers({ formatNumber: (line) => String(line + lineNumberStart - 1) }) : [],
+          lightEditor ? lineNumbers({ formatNumber: (line) => String(line + lineNumberStart - 1) }) : [],
           isPython ? python() : javascript({ jsx: /\.[jt]sx$/.test(path), typescript: /\.tsx?$/.test(path) }),
           saveKeymap,
-          variant === "lesson" ? lessonTheme : latentTheme,
-          syntaxHighlighting(variant === "lesson" ? lessonSyntaxTheme : syntaxTheme),
+          lightEditor ? lessonTheme : latentTheme,
+          syntaxHighlighting(lightEditor ? lessonSyntaxTheme : syntaxTheme),
           EditorState.tabSize.of(isPython ? 4 : 2),
           EditorState.readOnly.of(readOnly),
           EditorView.editable.of(!readOnly),
@@ -246,7 +247,7 @@ export function CodeEditor({ value, path, onChange, onSave, readOnly = false, va
       viewRef.current = null;
     };
     // Recreate the language mode when the selected path changes.
-  }, [ariaLabel, instructionId, isPython, lineNumberStart, path, readOnly, variant]);
+  }, [ariaLabel, instructionId, isPython, lightEditor, lineNumberStart, path, readOnly, variant]);
 
   useEffect(() => {
     const view = viewRef.current;
@@ -264,7 +265,7 @@ export function CodeEditor({ value, path, onChange, onSave, readOnly = false, va
   return (
     <>
       <div
-        className={variant === "lesson" ? "code-editor lesson-code-editor" : "code-editor"}
+        className={variant === "lesson" ? "code-editor lesson-code-editor" : variant === "workbook" ? "code-editor workbook-code-editor" : "code-editor"}
         ref={hostRef}
         style={variant === "lesson" ? { height: `${Math.max(7.25, Math.min(23, value.split("\n").length * 1.5 + 2.5))}rem` } : undefined}
       />

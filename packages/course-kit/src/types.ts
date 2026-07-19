@@ -28,8 +28,8 @@ export type CourseLesson = {
   courseId?: string;
   /** The top-level course this lesson belongs to. */
   programId?: string;
-  /** Only Browser Chat lessons become files in the capstone workspace. */
-  projectScope?: "standalone" | "browser-chat";
+  /** Identifies the independent saved workspace, when this lesson owns a file. */
+  projectScope?: "standalone" | "browser-chat" | "harness-engineering";
   courseTitle?: string;
   courseNumber?: number;
   lessonNumber?: number;

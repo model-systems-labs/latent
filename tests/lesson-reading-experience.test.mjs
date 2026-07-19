@@ -185,8 +185,9 @@ test("lesson code opens one starter-first syntax-aware Python exercise in a ligh
   assert.match(paperLab, />Output<\/span>/);
   assert.match(paperLab, />Standard error<\/span>/);
   assert.match(paperLab, />Tests<\/span>/);
-  assert.match(codeEditor, /variant === "lesson" \? lessonTheme : latentTheme/);
-  assert.match(codeEditor, /syntaxHighlighting\(variant === "lesson" \? lessonSyntaxTheme : syntaxTheme\)/);
+  assert.match(codeEditor, /const lightEditor = variant !== "project"/);
+  assert.match(codeEditor, /lightEditor \? lessonTheme : latentTheme/);
+  assert.match(codeEditor, /syntaxHighlighting\(lightEditor \? lessonSyntaxTheme : syntaxTheme\)/);
   assert.match(codeEditor, /\}, \{ dark: false \}\);/);
   assert.match(codeEditor, /lineNumbers\(\{ formatNumber: \(line\) => String\(line \+ lineNumberStart - 1\) \}\)/);
   for (const token of ["keyword", "string", "number", "comment", "variableName", "propertyName", "operator", "punctuation", "invalid"]) {

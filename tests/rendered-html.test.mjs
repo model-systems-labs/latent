@@ -64,13 +64,15 @@ test("the course catalog separates foundations, agent systems, and the cumulativ
   assert.equal((html.match(/class="course-track-card catalog-program-card"/g) ?? []).length, 4);
 });
 
-test("Harness Engineering renders as an eight-lesson standalone applied course", async () => {
+test("Harness Engineering renders as an eight-lesson applied course with its own project", async () => {
   const response = await render("/courses/harness-engineering");
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /Applied(?:<!-- -->)? course/);
   assert.match(html, /Harness Engineering/);
-  assert.match(html, /Exercises and progress are saved within this course/);
+  assert.match(html, /Each lesson adds tested Python to a separate project saved in this browser/);
+  assert.match(html, /href="\/lessons\/agent-loop"/);
+  assert.match(html, /href="\/courses\/harness-engineering\/workspace"/);
   for (const title of [
     "Agent Loop",
     "Tool Contracts",
@@ -84,7 +86,7 @@ test("Harness Engineering renders as an eight-lesson standalone applied course",
     assert.match(html, new RegExp(title));
   }
   assert.equal((html.match(/class="lesson-card lesson-card-simple/g) ?? []).length, 8);
-  assert.doesNotMatch(html, /href="\/(?:project|workspace|capstone)(?:[/?#"])/);
+  assert.doesNotMatch(html, /href="\/(?:project|capstone)(?:[/?#"])/);
   assert.doesNotMatch(html, /Open in IDE|BrowserChat\.tsx/);
 });
 
@@ -105,7 +107,7 @@ test("Agent Loop combines technical reading with two isolated runnable cells", a
   assert.doesNotMatch(html, /Open in IDE|Saved results|href="#artifacts"/);
 });
 
-test("Integrated Harness renders the composed loop and trace auditor without project coupling", async () => {
+test("Integrated Harness renders the composed loop and links to its cumulative project", async () => {
   const response = await render("/lessons/integrated-harness");
   assert.equal(response.status, 200);
   const html = await response.text();
@@ -114,6 +116,8 @@ test("Integrated Harness renders the composed loop and trace auditor without pro
   assert.match(html, /Run the harness/);
   assert.match(html, /Audit a harness run/);
   assert.equal((html.match(/class="exercise-summary"/g) ?? []).length, 2);
+  assert.match(html, /Open project/);
+  assert.match(html, /\/courses\/harness-engineering\/workspace\?file=harness%2Fharness\.py/);
   assert.doesNotMatch(html, /Open in IDE|Saved results|href="#artifacts"/);
 });
 

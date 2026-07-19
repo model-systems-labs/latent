@@ -15,14 +15,14 @@ type Case = {
 };
 
 const paths: Record<string, string> = {
-  "agent-loop": "harness-engineering/agent-loop.py",
-  "tool-contracts": "harness-engineering/tool-contracts.py",
-  "context-selection": "harness-engineering/context-selection.py",
-  "permissions-and-sandboxes": "harness-engineering/permissions-and-sandboxes.py",
-  "state-and-recovery": "harness-engineering/state-and-recovery.py",
-  "agent-evaluations": "harness-engineering/agent-evaluations.py",
-  "task-orchestration": "harness-engineering/task-orchestration.py",
-  "integrated-harness": "harness-engineering/integrated-harness.py",
+  "agent-loop": "harness/agent_loop.py",
+  "tool-contracts": "harness/tools.py",
+  "context-selection": "harness/context.py",
+  "permissions-and-sandboxes": "harness/permissions.py",
+  "state-and-recovery": "harness/state.py",
+  "agent-evaluations": "harness/evaluations.py",
+  "task-orchestration": "harness/orchestration.py",
+  "integrated-harness": "harness/harness.py",
 };
 
 function define(

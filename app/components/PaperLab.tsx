@@ -3,7 +3,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { CodeBlock, CourseLesson } from "@latent/course-kit";
-import { allRoutedLessons, getLessonCourseHref } from "../lessons/course";
+import { allRoutedLessons, getLessonCourseHref, getLessonProjectPath } from "../lessons/course";
 import {
   discardLearnerRecoveryCandidate,
   initializeLearnerPersistence,
@@ -16,6 +16,15 @@ import {
   useLearnerRecoveryCandidates,
 } from "../lib/learner-state";
 import { ensureProjectWorkspace, flushProjectPersistence, initializeProjectPersistence, loadProjectState, projectFileSourceIsCurrent, saveLessonProjectFile, useProjectPersistenceError, type LessonProjectSeed, type ProjectCourse } from "../lib/project-workspace";
+import {
+  flushHarnessWorkspacePersistence,
+  harnessFileSourceIsCurrent,
+  initializeHarnessWorkspace,
+  loadHarnessWorkspaceState,
+  stageHarnessLessonFile,
+  useHarnessWorkspaceState,
+} from "../lib/harness-workspace";
+import { harnessLessonProjectSeed, type HarnessProjectSeed } from "../content/harness-engineering/project-template";
 import { runPracticeContracts, type PracticeContractRun } from "../features/ide/browser-lab-service";
 import { runPythonLessonContracts } from "../features/ide/python-lesson-service";
 import { ArtifactRuntimePanel } from "../features/artifacts/ArtifactRuntimePanel";
@@ -505,12 +514,17 @@ export function ParagraphSection({ lesson }: { lesson: CourseLesson }) {
   );
 }
 
-function projectSeedForLesson(lesson: CourseLesson, hidden: string[], currentAnswers: Record<string, string>, verified: string[]): LessonProjectSeed {
+type PracticeProjectSeed = LessonProjectSeed | HarnessProjectSeed;
+
+function projectSeedForLesson(lesson: CourseLesson, hidden: string[], currentAnswers: Record<string, string>, verified: string[]): PracticeProjectSeed {
+  if (lesson.projectScope === "harness-engineering") {
+    return harnessLessonProjectSeed(lesson, currentAnswers, verified);
+  }
   const blocks = lesson.implementation.codeBlocks;
   const contentFor = (practice: boolean) => lessonImplementationSource(lesson, blocks
     .map((block, index) => `${lessonBlockComment(lesson, index, block.label)}\n${practice && hidden.includes(block.id) ? currentAnswers[block.id] ?? "" : block.code}`));
   return {
-    path: `${lesson.courseId ?? "models"}/${lesson.implementation.filename}`,
+    path: getLessonProjectPath(lesson),
     courseId: (lesson.courseId ?? "models") as ProjectCourse,
     lessonId: lesson.id,
     title: lesson.title,
@@ -596,8 +610,10 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
   // Resolve it to the module-owned definition so hydration remains single-shot.
   const lesson = allRoutedLessons.find((candidate) => candidate.id === lessonProp.id) ?? lessonProp;
   const blocks = lesson.implementation.codeBlocks;
-  const projectPath = `${lesson.courseId ?? "models"}/${lesson.implementation.filename}`;
-  const contributesToBrowserChat = lesson.projectScope !== "standalone";
+  const projectPath = getLessonProjectPath(lesson);
+  const contributesToBrowserChat = lesson.projectScope === "browser-chat";
+  const contributesToHarness = lesson.projectScope === "harness-engineering";
+  const contributesToProject = contributesToBrowserChat || contributesToHarness;
   const contractSuite = contractSuiteForLesson(lesson.id);
   const pythonLesson = lesson.implementation.filename.endsWith(".py");
   const implementationPrelude = lessonImplementationPrelude(lesson);
@@ -633,9 +649,13 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
   useEffect(() => {
     let active = true;
     void waitForPracticeHydration(
-      contributesToBrowserChat ? initializeProjectPersistence() : Promise.resolve(),
+      contributesToBrowserChat
+        ? initializeProjectPersistence()
+        : contributesToHarness
+          ? initializeHarnessWorkspace()
+          : Promise.resolve(),
       initializeLearnerPersistence(),
-    ).then(() => {
+    ).then(async () => {
       if (!active || practiceReadyRef.current) return;
       const saved = loadLearnerState().lessons[lesson.id];
       const compatible = compatiblePracticeDrafts(
@@ -686,19 +706,22 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
       }
       const lessonSeed = projectSeedForLesson(lesson, savedHidden, savedAnswers, savedVerified);
       projectContentRef.current = lessonSeed.content;
-      if (contributesToBrowserChat) ensureProjectWorkspace([lessonSeed, ...canonicalProjectSeeds()]);
+      if (contributesToBrowserChat) ensureProjectWorkspace([lessonSeed as LessonProjectSeed, ...canonicalProjectSeeds()]);
       const ideHasNewerSource = contributesToBrowserChat
-        && loadProjectState().files[projectPath]?.content !== lessonSeed.content;
+        ? loadProjectState().files[projectPath]?.content !== lessonSeed.content
+        : contributesToHarness
+          ? loadHarnessWorkspaceState().files[projectPath]?.content !== lessonSeed.content
+          : false;
       setProjectConflict(ideHasNewerSource);
       setPracticeMessage(ideHasNewerSource
-        ? "This file has newer changes in the full IDE. Continue there so this lesson doesn’t overwrite them."
+        ? "This file has newer changes in the project workspace. Continue there so this lesson doesn’t overwrite them."
         : compatible.ignoredLegacyLanguage
           ? "This lesson now runs in CPython. Your older JavaScript draft is still saved on this device, but we loaded the Python starter so incompatible code never runs."
           : "");
       setPracticeReady(true);
     });
     return () => { active = false; };
-  }, [blocks, contributesToBrowserChat, contractSuite.contractVersion, lesson, projectPath]);
+  }, [blocks, contributesToBrowserChat, contributesToHarness, contractSuite.contractVersion, lesson, projectPath]);
 
   const sourceFor = (block: CodeBlock) => workingPracticeBlockSource(
     lesson.implementation.filename,
@@ -726,25 +749,30 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     runningBlockIdsRef.current = ids;
     setRunningBlockIds(ids);
   };
-  const projectSourceIsCurrent = () => loadProjectState().files[projectPath]?.content === projectContentRef.current;
+  const projectSourceIsCurrent = () => contributesToBrowserChat
+    ? loadProjectState().files[projectPath]?.content === projectContentRef.current
+    : contributesToHarness
+      ? harnessFileSourceIsCurrent(projectPath, projectContentRef.current)
+      : true;
   const reportProjectConflict = () => {
     setProjectConflict(true);
-    setPracticeMessage("This file changed in the full IDE. Continue there so this lesson doesn’t overwrite the newer code.");
+    setPracticeMessage("This file changed in the project workspace. Continue there so this lesson doesn’t overwrite the newer code.");
   };
   const projectAllowsWrite = () => {
-    if (!contributesToBrowserChat) return true;
+    if (!contributesToProject) return true;
     if (!projectSourceIsCurrent()) {
       reportProjectConflict();
       return;
     }
     return true;
   };
-  const saveCurrentProjectSeed = (seed: LessonProjectSeed) => {
-    if (!contributesToBrowserChat) {
+  const saveCurrentProjectSeed = (seed: PracticeProjectSeed) => {
+    if (!contributesToProject) {
       projectContentRef.current = seed.content;
       return;
     }
-    saveLessonProjectFile(seed);
+    if (contributesToBrowserChat) saveLessonProjectFile(seed as LessonProjectSeed);
+    else stageHarnessLessonFile(seed as unknown as HarnessProjectSeed);
     projectContentRef.current = seed.content;
   };
   const runContracts = async (source: string, contractIds: readonly string[], signal: AbortSignal) => {
@@ -758,6 +786,9 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
       path: projectPath,
       source,
       contracts,
+      supportFiles: contributesToHarness
+        ? Object.fromEntries(Object.values(loadHarnessWorkspaceState().files).map((file) => [file.path, file.content]))
+        : undefined,
       signal,
       onEvent: (event) => {
         if (!signal.aborted && event.type === "progress") setPracticeMessage(event.message);
@@ -945,6 +976,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
           count: ordered.length,
         });
         if (!contributesToBrowserChat) {
+          if (contributesToHarness) await flushHarnessWorkspacePersistence();
           setPracticeMessage(`Every isolated behavior check passes. Your progress is saved in this course.${outputCaptureNote}`);
         } else try {
           await flushProjectPersistence();
@@ -1009,7 +1041,8 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
         <div className="editor-toolbar">
           <div className="editor-file"><span>{projectPath}</span></div>
           <span className="sr-only">{verifiedCells} of {blocks.length} exercises verified</span>
-          {contributesToBrowserChat ? <Link className="open-ide-link" href={`/workspace?file=${encodeURIComponent(`${lesson.courseId ?? "models"}/${lesson.implementation.filename}`)}`}>Open in IDE ↗</Link> : null}
+          {contributesToBrowserChat ? <Link className="open-ide-link" href={`/workspace?file=${encodeURIComponent(projectPath)}`}>Open in IDE ↗</Link> : null}
+          {contributesToHarness ? <Link className="open-ide-link" href={`/courses/harness-engineering/workspace?file=${encodeURIComponent(projectPath)}`}>Open project ↗</Link> : null}
         </div>
         <div className="practice-sequence">
           {implementationPrelude ? (
@@ -1053,7 +1086,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
                 </button>
                 {active ? (
                   <div className="exercise-body" id={`exercise-${lesson.id}-${block.id}`}>
-                    {projectConflict ? <p className="editor-conflict-note" role="status">The full IDE has newer code. Continue there; this lesson is read-only.</p> : null}
+                    {projectConflict ? <p className="editor-conflict-note" role="status">The project workspace has newer code. Continue there; this lesson is read-only.</p> : null}
                     <ExerciseContract lesson={lesson} block={block} />
                     <div className="answer-area" data-direct-edit="true" data-edit-state={dirty ? "draft" : "starter"}>
                       {practiceReady ? (
@@ -1169,8 +1202,11 @@ function LessonRecoveryCandidates({ lessonId, onLoaded }: { lessonId: string; on
 export function PaperLab({ lesson }: { lesson: CourseLesson }) {
   const learnerPersistenceError = useLearnerPersistenceError();
   const projectPersistenceError = useProjectPersistenceError();
-  const contributesToBrowserChat = lesson.projectScope !== "standalone";
-  const persistenceError = learnerPersistenceError ?? (contributesToBrowserChat ? projectPersistenceError : null);
+  const harnessWorkspace = useHarnessWorkspaceState();
+  const contributesToBrowserChat = lesson.projectScope === "browser-chat";
+  const contributesToHarness = lesson.projectScope === "harness-engineering";
+  const persistenceError = learnerPersistenceError
+    ?? (contributesToBrowserChat ? projectPersistenceError : contributesToHarness ? harnessWorkspace.error : null);
   const trackLessons = allRoutedLessons.filter((candidate) => candidate.programId === lesson.programId && candidate.courseId === lesson.courseId);
   const trackIndex = trackLessons.findIndex((candidate) => candidate.id === lesson.id);
   const previous = trackLessons[trackIndex - 1];

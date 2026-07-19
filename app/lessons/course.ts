@@ -188,7 +188,17 @@ export function getCourseProgramLessons(programId: string) {
 }
 
 export function getLessonCourseHref(lesson: CourseLesson) {
-  return lesson.projectScope === "standalone"
+  return lesson.projectScope !== "browser-chat"
     ? `/courses/${lesson.programId ?? lesson.courseId}`
     : `/courses/llm-systems/${lesson.courseId ?? "models"}`;
+}
+
+/** Manifest-owned path used by lesson practice and its matching workspace. */
+export function getLessonProjectPath(lesson: CourseLesson) {
+  if (lesson.projectScope === "harness-engineering") {
+    return harnessEngineeringCurriculum.lessonById[lesson.id]?.projectPath
+      ?? `harness/${lesson.implementation.filename}`;
+  }
+  return llmSystemsCurriculum.lessonById[lesson.id]?.projectPath
+    ?? `${lesson.courseId ?? "models"}/${lesson.implementation.filename}`;
 }

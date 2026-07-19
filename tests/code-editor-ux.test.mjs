@@ -42,8 +42,9 @@ function compositeOnHexBackground(red, green, blue, alpha, background) {
 test("the IDE installs a real CodeMirror syntax highlighter and keeps long lines horizontally scrollable", async () => {
   const source = await readFile(codeEditorUrl, "utf8");
   assert.match(source, /HighlightStyle\.define\s*\(/);
-  assert.match(source, /syntaxHighlighting\s*\(\s*variant === "lesson" \? lessonSyntaxTheme : syntaxTheme\s*\)/);
-  assert.match(source, /variant === "lesson" \? lessonTheme : latentTheme/);
+  assert.match(source, /syntaxHighlighting\s*\(\s*lightEditor \? lessonSyntaxTheme : syntaxTheme\s*\)/);
+  assert.match(source, /lightEditor \? lessonTheme : latentTheme/);
+  assert.match(source, /variant\?: "lesson" \| "project" \| "workbook"/);
   assert.match(source, /tags\.keyword/);
   assert.match(source, /tags\.comment/);
   assert.doesNotMatch(source, /EditorView\.baseTheme\s*\(/);
@@ -156,7 +157,7 @@ test("the mobile IDE source contract preserves readable type, bounded scrolling,
   );
   assert.doesNotMatch(readOnlyInstruction, /Tab indents/);
   assert.match(source, /\{readOnly \? readOnlyEditorInstruction : editableEditorInstruction\}/);
-  assert.match(source, /className=\{variant === "lesson" \? "code-editor lesson-code-editor" : "code-editor"\}[\s\S]*?ref=\{hostRef\}[\s\S]*?\/>\s*<span className="sr-only" id=\{instructionId\}>/);
+  assert.match(source, /className=\{variant === "lesson" \? "code-editor lesson-code-editor" : variant === "workbook" \? "code-editor workbook-code-editor" : "code-editor"\}[\s\S]*?ref=\{hostRef\}[\s\S]*?\/>\s*<span className="sr-only" id=\{instructionId\}>/);
   assert.doesNotMatch(source, /<div className="code-editor" ref=\{hostRef\}>\s*<span/);
   assert.match(responsiveCss, /\.project-workbench-grid\[data-mobile-view="code"\][\s\S]*?\.cm-editor\s*\{[\s\S]*?font-size:\s*16px/);
   assert.match(responsiveCss, /\.project-workbench-grid\[data-mobile-view="code"\][\s\S]*?\.cm-scroller\s*\{[\s\S]*?overflow-x:\s*auto/);

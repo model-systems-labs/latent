@@ -1,0 +1,282 @@
+.shell { background: #f3f1ed; min-height: 100vh; min-height: 100dvh; overflow: hidden; }
+
+.topbar {
+  align-items: center;
+  background: rgba(251, 250, 248, 0.97);
+  border-bottom: 1px solid #ddd9d2;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  min-height: 4rem;
+  padding: 0 1rem;
+}
+
+.topbar > div { justify-self: center; }
+.topbar strong { color: #4c4844; font-family: var(--mono); font-size: max(0.7rem, 11px); font-weight: 500; }
+.topbar nav { display: flex; gap: 1.1rem; justify-self: end; }
+.topbar nav a { color: #716b65; font-size: max(0.7rem, 11px); }
+
+.workbench {
+  --workbook-bg: #f3f1ed;
+  --workbook-panel: #fbfaf8;
+  --workbook-line: #ddd9d2;
+  --workbook-line-soft: #e9e5df;
+  --workbook-ink: #2b2825;
+  --workbook-muted: #716b65;
+  background: var(--workbook-bg);
+  color: var(--workbook-ink);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: calc(100vh - 4rem);
+  height: calc(100dvh - 4rem);
+  min-height: 34rem;
+  overflow: hidden;
+}
+
+.projectBar {
+  align-items: center;
+  background: rgba(251, 250, 248, 0.96);
+  border-bottom: 1px solid var(--workbook-line);
+  display: flex;
+  justify-content: space-between;
+  min-height: 3.6rem;
+  padding: 0.55rem 1rem;
+}
+
+.projectBar > div:first-child { display: grid; gap: 0.12rem; }
+.projectBar strong { font-size: 0.78rem; font-weight: 620; }
+.projectBar span { color: var(--workbook-muted); font-size: max(0.68rem, 11px); }
+.projectActions { align-items: center; display: flex; gap: 0.45rem; }
+
+.projectActions button,
+.editorPanel footer button,
+.testsPanel header button,
+.recoveryNotice button {
+  background: transparent;
+  border: 1px solid #cfc9c1;
+  border-radius: 0.45rem;
+  color: var(--workbook-ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: max(0.7rem, 11px);
+  min-height: 2.75rem;
+  padding: 0.55rem 0.75rem;
+}
+
+.projectActions button:disabled,
+.editorPanel footer button:disabled,
+.testsPanel header button:disabled { cursor: not-allowed; opacity: 0.5; }
+
+.projectActions .primaryAction,
+.editorPanel footer .primaryAction {
+  background: #594b63;
+  border-color: #594b63;
+  color: #fbfaf8;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 14.5rem minmax(28rem, 1fr) minmax(19rem, 23rem);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.fileTree {
+  background: #f7f5f2;
+  border-right: 1px solid var(--workbook-line);
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.9rem 0.65rem;
+}
+
+.fileTree > header {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.35rem 0.55rem 0.75rem;
+}
+
+.fileTree > header strong { font-family: var(--mono); font-size: 0.76rem; font-weight: 600; }
+.fileTree > header span { color: var(--workbook-muted); font-size: max(0.68rem, 11px); }
+.fileTree ol { display: grid; list-style: none; margin: 0; padding: 0; }
+.fileTree li { min-width: 0; }
+
+.fileTree button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 0.35rem;
+  color: #4c4844;
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  font-size: 0.74rem;
+  gap: 0.55rem;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-height: 2.65rem;
+  padding: 0.45rem 0.55rem;
+  text-align: left;
+  width: 100%;
+}
+
+.fileTree button:hover,
+.fileTree button:focus-visible { background: #ece8e2; }
+.fileTree button.activeFile { background: #e4dee7; color: #332b38; }
+.fileTree button > i { border: 1px solid #aaa39b; border-radius: 50%; height: 0.46rem; width: 0.46rem; }
+.fileTree button > i[data-complete="true"] { background: #657967; border-color: #657967; }
+.fileTree button > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fileTree button > em { color: #9a938c; font-size: max(0.66rem, 10px); font-style: normal; }
+
+.editorPanel {
+  background: var(--workbook-panel);
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.editorPanel > header {
+  align-items: center;
+  border-bottom: 1px solid var(--workbook-line);
+  display: flex;
+  justify-content: space-between;
+  min-height: 3.45rem;
+  padding: 0.55rem 0.9rem;
+}
+
+.editorPanel > header > div { display: grid; gap: 0.12rem; min-width: 0; }
+.editorPanel > header code { font-family: var(--mono); font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.editorPanel > header span,
+.editorPanel > header a { color: var(--workbook-muted); font-size: max(0.68rem, 11px); }
+.editorPanel > header a { flex: 0 0 auto; margin-left: 1rem; }
+
+.editorHost { min-height: 0; min-width: 0; overflow: hidden; }
+.editorHost :global(.workbook-code-editor),
+.editorHost :global(.cm-editor) { height: 100%; min-height: 0; }
+.editorHost :global(.cm-scroller) { height: 100%; overflow: auto; }
+.editorHost > p { color: var(--workbook-muted); margin: 1rem; }
+
+.recoveryNotice {
+  align-items: center;
+  background: #f2eaf4;
+  border-bottom: 1px solid #d9cddd;
+  display: flex;
+  font-size: 0.74rem;
+  justify-content: space-between;
+  padding: 0.45rem 0.8rem;
+}
+.recoveryNotice > div { display: flex; gap: 0.35rem; }
+.recoveryNotice button { min-height: 2.25rem; padding-block: 0.35rem; }
+
+.editorPanel > footer {
+  align-items: center;
+  border-top: 1px solid var(--workbook-line);
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  min-height: 3.8rem;
+  padding: 0.5rem 0.75rem;
+}
+.editorPanel > footer > span { color: var(--workbook-muted); font-size: max(0.68rem, 11px); line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.editorPanel > footer > div { display: flex; flex: 0 0 auto; gap: 0.4rem; }
+
+.inspector {
+  background: #f7f5f2;
+  border-left: 1px solid var(--workbook-line);
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) minmax(10rem, 0.42fr);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.testsPanel,
+.outputPanel { display: grid; min-height: 0; }
+.testsPanel { grid-template-rows: auto minmax(0, 1fr); }
+.outputPanel { border-top: 1px solid var(--workbook-line); grid-template-rows: auto minmax(0, 1fr); }
+.testsPanel > header,
+.outputPanel > header { align-items: center; border-bottom: 1px solid var(--workbook-line-soft); display: flex; justify-content: space-between; min-height: 3.45rem; padding: 0.55rem 0.75rem; }
+.testsPanel > header > div { display: grid; gap: 0.1rem; }
+.testsPanel header strong,
+.outputPanel header strong { font-size: 0.75rem; }
+.testsPanel header span,
+.outputPanel header span { color: var(--workbook-muted); font-size: max(0.68rem, 11px); }
+
+.resultList { min-height: 0; overflow-y: auto; padding: 0.45rem 0.65rem; }
+.resultList > p { color: var(--workbook-muted); font-size: 0.72rem; line-height: 1.55; margin: 0.55rem 0; }
+.resultList > button {
+  align-items: start;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--workbook-line-soft);
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 3.5rem;
+  padding: 0.7rem 0.15rem;
+  text-align: left;
+  width: 100%;
+}
+.resultList > button > i { align-items: center; border: 1px solid currentColor; border-radius: 50%; display: flex; font-size: 0.68rem; font-style: normal; height: 1.25rem; justify-content: center; width: 1.25rem; }
+.resultList > button.passed > i { color: #657967; }
+.resultList > button.failed > i { color: #9c4d48; }
+.resultList > button span { display: grid; gap: 0.25rem; min-width: 0; }
+.resultList > button strong { font-size: 0.72rem; font-weight: 600; }
+.resultList > button small { color: var(--workbook-muted); font-size: max(0.68rem, 11px); line-height: 1.45; }
+
+.outputPanel pre {
+  color: #4c4844;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  line-height: 1.55;
+  margin: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 0.75rem;
+  white-space: pre-wrap;
+}
+
+.mobileTabs { display: none; }
+
+@media (max-width: 980px) {
+  .workbench { grid-template-rows: auto auto minmax(0, 1fr); height: calc(100vh - 3.75rem); height: calc(100dvh - 3.75rem); }
+  .projectBar { min-height: 3.25rem; padding: 0.35rem 0.65rem; }
+  .projectBar > div:first-child span { display: none; }
+  .projectActions .primaryAction { padding-inline: 0.6rem; }
+  .mobileTabs { background: #f7f5f2; border-bottom: 1px solid var(--workbook-line); display: grid; grid-template-columns: repeat(4, 1fr); }
+  .mobileTabs button { background: transparent; border: 0; border-bottom: 2px solid transparent; color: var(--workbook-muted); font: inherit; font-size: max(0.68rem, 11px); min-height: 2.75rem; text-transform: capitalize; }
+  .mobileTabs button[aria-pressed="true"] { border-bottom-color: #65526f; color: var(--workbook-ink); }
+  .layout { display: block; height: 100%; min-height: 0; }
+  .layout > * { display: none; }
+  .layout[data-mobile-view="files"] > .fileTree { border: 0; display: block; height: 100%; }
+  .layout[data-mobile-view="code"] > .editorPanel { display: grid; height: 100%; }
+  .layout[data-mobile-view="tests"] > .inspector,
+  .layout[data-mobile-view="output"] > .inspector { border: 0; display: grid; height: 100%; }
+  .layout[data-mobile-view="tests"] > .inspector { grid-template-rows: minmax(0, 1fr); }
+  .layout[data-mobile-view="tests"] .outputPanel { display: none; }
+  .layout[data-mobile-view="output"] > .inspector { grid-template-rows: minmax(0, 1fr); }
+  .layout[data-mobile-view="output"] .testsPanel { display: none; }
+  .editorPanel > footer { gap: 0.5rem; }
+  .editorPanel > footer > span { max-width: 34vw; }
+  .editorHost :global(.cm-editor) { font-size: 16px; }
+  .editorHost :global(.cm-scroller) { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-x pan-y pinch-zoom; }
+}
+
+@media (max-width: 520px) {
+  .projectBar strong { font-size: 0.72rem; }
+  .projectActions button { min-height: 2.5rem; padding-inline: 0.55rem; }
+  .editorPanel > header { padding-inline: 0.65rem; }
+  .editorPanel > header a { font-size: 0.7rem; }
+  .editorPanel > footer { align-items: stretch; display: grid; }
+  .editorPanel > footer > span { max-width: none; min-height: 1rem; white-space: normal; }
+  .editorPanel > footer > div { display: grid; grid-template-columns: 1fr 1fr; }
+  .editorPanel > footer > div button { width: 100%; }
+  .editorPanel > footer > div button:first-child:nth-last-child(3) { display: none; }
+}
+
+@media (max-width: 620px) {
+  .topbar { grid-template-columns: auto minmax(0, 1fr) auto; min-height: 3.75rem; padding: 0 0.7rem; }
+  .topbar > div { min-width: 0; }
+  .topbar strong { display: block; max-width: 42vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .topbar nav a:first-child { display: none; }
+}

@@ -36,13 +36,22 @@ const mcpToolsSource = {
   relevance: "Specifies named tools, input schemas, discovery, calls, and results at a model-facing protocol boundary.",
 };
 
-const codexSecuritySource = {
+const approvalsSecuritySource = {
   role: "Guide" as const,
-  title: "Codex security",
+  title: "Agent approvals & security",
   authors: "OpenAI",
   year: "Current",
-  url: "https://developers.openai.com/codex/security",
+  url: "https://learn.chatgpt.com/docs/agent-approvals-security",
   relevance: "Documents sandboxing, approvals, network access, and the boundary between model behavior and enforced permissions.",
+};
+
+const sandboxingSource = {
+  role: "Guide" as const,
+  title: "Sandboxing",
+  authors: "OpenAI",
+  year: "Current",
+  url: "https://learn.chatgpt.com/docs/sandboxing",
+  relevance: "Distinguishes the technical sandbox boundary from approval policy and documents filesystem and network isolation.",
 };
 
 const agentsMdSource = {
@@ -50,8 +59,26 @@ const agentsMdSource = {
   title: "Custom instructions with AGENTS.md",
   authors: "OpenAI",
   year: "Current",
-  url: "https://developers.openai.com/codex/guides/agents-md",
+  url: "https://learn.chatgpt.com/docs/agent-configuration/agents-md",
   relevance: "Explains how repository-local instructions are discovered and scoped for an agent run.",
+};
+
+const pathTraversalSource = {
+  role: "Guide" as const,
+  title: "CWE-22: Improper Limitation of a Pathname to a Restricted Directory",
+  authors: "MITRE",
+  year: "Current",
+  url: "https://cwe.mitre.org/data/definitions/22.html",
+  relevance: "Defines path traversal weaknesses and the need to constrain pathname resolution to an intended directory.",
+};
+
+const toctouSource = {
+  role: "Guide" as const,
+  title: "CWE-367: Time-of-check Time-of-use Race Condition",
+  authors: "MITRE",
+  year: "Current",
+  url: "https://cwe.mitre.org/data/definitions/367.html",
+  relevance: "Defines the race that can occur when a resource changes between an authorization check and its use.",
 };
 
 const sweBenchSource = {
@@ -79,6 +106,33 @@ const inspectMetricsSource = {
   year: "Current",
   url: "https://inspect.aisi.org.uk/metrics.html",
   relevance: "Documents repeated-epoch reducers, including finite-sample pass@k and pass^k estimators.",
+};
+
+const inspectCheckpointingSource = {
+  role: "Guide" as const,
+  title: "Checkpointing",
+  authors: "UK AI Security Institute",
+  year: "Current",
+  url: "https://inspect.aisi.org.uk/checkpointing.html",
+  relevance: "Documents committed checkpoints, recovery boundaries, restored state, and the limits of captured external effects.",
+};
+
+const humanEvalSource = {
+  role: "Paper" as const,
+  title: "Evaluating Large Language Models Trained on Code",
+  authors: "Mark Chen et al.",
+  year: "2021",
+  url: "https://arxiv.org/abs/2107.03374",
+  relevance: "Introduces the pass@k functional-correctness estimator for repeated code-generation attempts.",
+};
+
+const tauBenchSource = {
+  role: "Paper" as const,
+  title: "tau-bench: A Benchmark for Tool-Agent-User Interaction in Real-World Domains",
+  authors: "Shunyu Yao et al.",
+  year: "2024",
+  url: "https://arxiv.org/abs/2406.12045",
+  relevance: "Introduces pass^k as a measure of consistent success across repeated agent trials.",
 };
 
 const harnessIdentity = {
@@ -259,7 +313,7 @@ export const toolContractsLesson = defineHarnessLesson({
     },
     {
       label: "Validation happens before dispatch.",
-      body: "Model-generated arguments cross a trust boundary. Deterministic code checks required fields, rejects unknown fields, and verifies types before an internal function, network client, or process receives the request.",
+      body: "Model-generated arguments cross a trust boundary. This course's closed schema checks required fields, rejects undeclared fields, and verifies types before an internal function, network client, or process receives the request.",
     },
     {
       label: "Results need a context budget.",
@@ -403,7 +457,7 @@ export const contextSelectionLesson = defineHarnessLesson({
     },
     {
       label: "Selection is different from accumulation.",
-      body: "Required instructions stay present, while optional evidence competes for the remaining budget. Current test failures or relevant schemas usually matter more than old logs and files that have already changed.",
+      body: "The course selector prioritizes declared required instructions, while optional evidence competes for the remaining budget. Current test failures or relevant schemas usually matter more than old logs and files that have already changed.",
     },
     {
       label: "Compaction preserves protocol structure.",
@@ -561,7 +615,7 @@ export const permissionsAndSandboxesLesson = defineHarnessLesson({
   eyebrow: "Paths · Policy · Containment",
   title: "Permissions and Sandboxes",
   thesis: "Permissions and sandbox boundaries restrict what an agent can do independently of what the model says.",
-  sources: [codexSecuritySource, agentsMdSource, mcpToolsSource],
+  sources: [approvalsSecuritySource, sandboxingSource, agentsMdSource, pathTraversalSource, toctouSource],
   summary: [
     {
       label: "Instructions are not access control.",
@@ -698,7 +752,7 @@ export const stateAndRecoveryLesson = defineHarnessLesson({
   eyebrow: "Events · Checkpoints · Replay",
   title: "State and Recovery",
   thesis: "Durable run state records completed work outside the model context and disposable execution environment.",
-  sources: [inspectAgentsSource, harnessEngineeringSource, agentsMdSource],
+  sources: [inspectCheckpointingSource, inspectAgentsSource, harnessEngineeringSource],
   summary: [
     {
       label: "A transcript is not the whole run state.",
@@ -881,7 +935,7 @@ export const agentEvaluationsLesson = defineHarnessLesson({
   eyebrow: "Tasks · Graders · Trials",
   title: "Agent Evaluations",
   thesis: "Agent evaluations grade observable outcomes across repeated trials instead of requiring one exact trajectory.",
-  sources: [sweBenchSource, inspectMetricsSource, buildingEffectiveAgentsSource],
+  sources: [sweBenchSource, inspectMetricsSource, humanEvalSource, tauBenchSource],
   summary: [
     {
       label: "A task is evaluated through one or more trials.",
@@ -893,7 +947,7 @@ export const agentEvaluationsLesson = defineHarnessLesson({
     },
     {
       label: "Capability and consistency are different measurements.",
-      body: "pass@k asks whether at least one of k attempts succeeds, while pass^k asks whether every attempt succeeds. With a finite set of observed trials, standard benchmark reducers estimate these quantities by drawing k results without replacement rather than treating the empirical rate as a known IID probability.",
+      body: "pass@k asks whether at least one of k attempts succeeds, while pass^k asks whether every attempt succeeds. With a finite set of observed trials, standard benchmark reducers estimate these quantities by enumerating k-sized subsets of the observed results without replacement rather than treating the empirical rate as a known IID probability.",
     },
   ],
   diagram: {
@@ -1187,11 +1241,11 @@ export const integratedHarnessLesson = defineHarnessLesson({
   eyebrow: "Adapters · Policy · Loop",
   title: "Integrated Harness",
   thesis: "A complete harness composes model and tool adapters with validation, policy, limits, observations, and an auditable terminal state.",
-  sources: [harnessEngineeringSource, buildingEffectiveAgentsSource, codexSecuritySource],
+  sources: [harnessEngineeringSource, buildingEffectiveAgentsSource, approvalsSecuritySource],
   summary: [
     {
       label: "Adapters keep the loop model-agnostic.",
-      body: "The loop consumes structured responses and tool results through narrow interfaces. The browser lab uses recorded responses and deterministic tool fixtures; a production adapter can replace either side without changing the state machine.",
+      body: "The loop consumes structured responses and tool results through narrow interfaces. The browser lab uses recorded responses and deterministic tool fixtures; a production adapter can replace either side when it preserves the same interface and semantics.",
     },
     {
       label: "One host transition owns every consequential decision.",

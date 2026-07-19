@@ -4,6 +4,7 @@ import {
   defineFlashcardLibrary,
 } from "./flashcard-schema";
 import { foundationExpansionLibrary } from "./flashcard-library/foundations";
+import { harnessEngineeringFlashcardLibrary } from "./flashcard-library/harness-engineering";
 import { modelFoundationsExpansionLibrary } from "./flashcard-library/model-foundations";
 import { systemsAndProductExpansionLibrary } from "./flashcard-library/systems-and-product";
 
@@ -633,6 +634,7 @@ export const flashcardLibrary = combineFlashcardLibraries(
   foundationExpansionLibrary,
   modelFoundationsExpansionLibrary,
   systemsAndProductExpansionLibrary,
+  harnessEngineeringFlashcardLibrary,
 );
 export type FlashcardConcept = keyof typeof flashcardLibrary;
 export const flashcards = buildFlashcards(flashcardLibrary);

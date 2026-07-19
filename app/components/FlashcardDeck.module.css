@@ -330,6 +330,7 @@
 .card[data-subject="inference-runtime"] { --card-accent: #4c6279; }
 .card[data-subject="llm-serving"] { --card-accent: #7a513e; }
 .card[data-subject="chat-integration"] { --card-accent: #486750; }
+.card[data-subject="harness-engineering"] { --card-accent: #85643c; }
 
 .card[data-revealed="true"] .cardBack {
   animation: reveal-card 180ms ease-out;
@@ -828,6 +829,23 @@
 
   .deck {
     margin-top: 0.65rem;
+  }
+
+  .subjectScroller {
+    display: grid;
+    gap: 0.42rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-inline: 0;
+    mask-image: none;
+    overflow: visible;
+    padding: 0;
+    scroll-snap-type: none;
+  }
+
+  .subjectScroller button {
+    justify-content: space-between;
+    min-width: 0;
+    width: 100%;
   }
 
   .cardFront {

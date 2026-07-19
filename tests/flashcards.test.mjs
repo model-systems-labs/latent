@@ -11,6 +11,7 @@ const deckStylesUrl = new URL("../app/components/FlashcardDeck.module.css", impo
 const flashcardPageStylesUrl = new URL("../app/flashcards/page.module.css", import.meta.url);
 const progressSourceUrl = new URL("../app/lib/flashcard-progress.ts", import.meta.url);
 const searchSourceUrl = new URL("../app/lib/flashcard-search.ts", import.meta.url);
+const transportSourceUrl = new URL("../app/content/flashcard-transport.ts", import.meta.url);
 const coursePageUrl = new URL("../app/course/page.tsx", import.meta.url);
 const responsiveStylesUrl = new URL("../app/styles/responsive.css", import.meta.url);
 const flashcardContentUrls = [
@@ -18,9 +19,11 @@ const flashcardContentUrls = [
   deckStylesUrl,
   progressSourceUrl,
   searchSourceUrl,
+  transportSourceUrl,
   new URL("../app/content/flashcard-schema.ts", import.meta.url),
   new URL("../app/content/flashcards.ts", import.meta.url),
   new URL("../app/content/flashcard-library/foundations.ts", import.meta.url),
+  new URL("../app/content/flashcard-library/harness-engineering.ts", import.meta.url),
   new URL("../app/content/flashcard-library/model-foundations.ts", import.meta.url),
   new URL("../app/content/flashcard-library/systems-and-product.ts", import.meta.url),
   new URL("../app/flashcards/page.tsx", import.meta.url),
@@ -69,7 +72,7 @@ after(async () => {
   await vite?.close();
 });
 
-test("the library has 454 unique, concept-keyed cards across all six subjects", () => {
+test("the library has 574 unique, concept-keyed cards across all seven subjects", () => {
   const { flashcardLibrary, flashcards, flashcardSubjects } = content;
   const expectedSubjects = [
     "linear-algebra",
@@ -78,17 +81,18 @@ test("the library has 454 unique, concept-keyed cards across all six subjects", 
     "inference-runtime",
     "llm-serving",
     "chat-integration",
+    "harness-engineering",
   ];
 
-  assert.equal(flashcardSubjects.length, 6);
+  assert.equal(flashcardSubjects.length, 7);
   assert.deepEqual(flashcardSubjects.map((subject) => subject.id), expectedSubjects);
-  assert.equal(new Set(flashcardSubjects.map((subject) => subject.id)).size, 6);
+  assert.equal(new Set(flashcardSubjects.map((subject) => subject.id)).size, 7);
   assert.ok(flashcardSubjects.every((subject) => subject.label && subject.shortLabel && subject.description));
 
-  assert.equal(flashcards.length, 454);
-  assert.equal(Object.keys(flashcardLibrary).length, 454);
-  assert.equal(new Set(flashcards.map((card) => card.id)).size, 454);
-  assert.equal(new Set(flashcards.map((card) => card.concept)).size, 454);
+  assert.equal(flashcards.length, 574);
+  assert.equal(Object.keys(flashcardLibrary).length, 574);
+  assert.equal(new Set(flashcards.map((card) => card.id)).size, 574);
+  assert.equal(new Set(flashcards.map((card) => card.concept)).size, 574);
   for (const card of flashcards) {
     assert.match(card.id, /^[a-z0-9]+(?:-[a-z0-9]+)*$/, card.concept);
     assert.equal(expectedSubjects.includes(card.subjectId), true, card.concept);
@@ -122,8 +126,44 @@ test("the library has 454 unique, concept-keyed cards across all six subjects", 
       "inference-runtime": 36,
       "llm-serving": 39,
       "chat-integration": 58,
+      "harness-engineering": 120,
     },
   );
+});
+
+test("Harness Engineering has fifteen source-grounded cards for every new lesson", () => {
+  const harnessCards = content.flashcards.filter((card) => card.subjectId === "harness-engineering");
+  const lessonTitles = [
+    "Agent Loop",
+    "Tool Contracts",
+    "Context Selection",
+    "Permissions and Sandboxes",
+    "State and Recovery",
+    "Agent Evaluations",
+    "Task Orchestration",
+    "Integrated Harness",
+  ];
+  const sourceSignals = {
+    "Agent Loop": ["ReAct", "Harness engineering"],
+    "Tool Contracts": ["Model Context Protocol", "Tools specification"],
+    "Context Selection": ["AGENTS.md", "Context Selection"],
+    "Permissions and Sandboxes": ["Sandboxing", "CWE-367"],
+    "State and Recovery": ["Checkpointing", "synthetic event logs"],
+    "Agent Evaluations": ["SWE-bench", "Inspect metrics"],
+    "Task Orchestration": ["Building effective agents", "orchestration fixtures"],
+    "Integrated Harness": ["Harness engineering", "integrated harness"],
+  };
+
+  assert.equal(harnessCards.length, 120);
+  assert.deepEqual([...new Set(harnessCards.map((card) => card.lesson))], lessonTitles);
+  for (const lesson of lessonTitles) {
+    const lessonCards = harnessCards.filter((card) => card.lesson === lesson);
+    assert.equal(lessonCards.length, 15, lesson);
+    assert.equal(new Set(lessonCards.map((card) => card.source)).size, 1, `${lesson}: one review trail`);
+    for (const signal of sourceSignals[lesson]) {
+      assert.match(lessonCards[0].source, new RegExp(signal.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), `${lesson}: ${signal}`);
+    }
+  }
 });
 
 test("every answer carries a definition, multiple teaching details, and a concrete example", () => {
@@ -215,6 +255,16 @@ test("the deck includes the essential paper vocabulary as atomic concepts", () =
     "Atomic turn",
     "Fail-closed validation",
     "Interaction to Next Paint (INP)",
+    "Agent loop",
+    "Response-form invariant",
+    "Tool output schema",
+    "Protocol identity under compaction",
+    "TOCTOU race",
+    "External side-effect ambiguity",
+    "pass@k (at least one success)",
+    "pass^k (all successes)",
+    "Orchestrator-worker pattern",
+    "Protocol audit",
   ];
   assert.deepEqual(requiredConcepts.filter((concept) => !concepts.has(concept)), []);
   assert.equal(
@@ -241,9 +291,26 @@ test("search ranks concept matches before topic and answer matches", () => {
   assert.equal(search.rankFlashcardSearchResults(content.flashcards, "paged attention")[0].concept, "PagedAttention");
   assert.equal(search.rankFlashcardSearchResults(content.flashcards, "few shot")[0].concept, "Zero-, one-, and few-shot evaluation");
   assert.equal(search.rankFlashcardSearchResults(content.flashcards, "cross entropy")[0].concept, "Binary cross-entropy");
+  assert.equal(search.rankFlashcardSearchResults(content.flashcards, "toctou")[0].concept, "TOCTOU race");
+  assert.equal(search.rankFlashcardSearchResults(content.flashcards, "pass at k")[0].concept, "pass@k (at least one success)");
+  assert.equal(search.rankFlashcardSearchResults(content.flashcards, "pass to the k")[0].concept, "pass^k (all successes)");
+  assert.equal(search.rankFlashcardSearchResults(content.flashcards, "all successes")[0].concept, "pass^k (all successes)");
+  assert.equal(search.rankFlashcardSearchResults(content.flashcards, "orchestrator worker")[0].concept, "Orchestrator-worker pattern");
   assert.ok(search.rankFlashcardSearchResults(content.flashcards, "word2 vec").length > 0);
   assert.deepEqual(search.rankFlashcardSearchResults(content.flashcards, "  "), content.flashcards);
   assert.deepEqual(search.rankFlashcardSearchResults(content.flashcards, "---"), content.flashcards);
+});
+
+test("compact server transport round-trips every card while removing repeated lesson context", async () => {
+  const transport = await vite.ssrLoadModule("/app/content/flashcard-transport.ts");
+  const deck = transport.compactFlashcardDeck(content.flashcards);
+  assert.deepEqual(transport.expandFlashcardDeck(deck), content.flashcards);
+  assert.equal(deck[1].length, 574);
+  assert.ok(deck[0].length < 50, `shared contexts: ${deck[0].length}`);
+
+  const expandedBytes = Buffer.byteLength(JSON.stringify(content.flashcards));
+  const compactBytes = Buffer.byteLength(JSON.stringify(deck));
+  assert.ok(compactBytes < expandedBytes * 0.75, `${compactBytes} compact bytes vs ${expandedBytes} expanded bytes`);
 });
 
 test("progress is revisioned, migrates safely, and applies concurrent mutations without stale snapshots", () => {
@@ -397,7 +464,7 @@ test("the built flash-card route renders an accessible unrevealed study deck", a
   const html = await response.text();
 
   assert.match(html, /Make the ideas stick/);
-  assert.match(html, /Review library · (?:<!-- -->)?454(?:<!-- -->)? cards/);
+  assert.match(html, /Review library · (?:<!-- -->)?574(?:<!-- -->)? cards/);
   assert.match(html, /href="\/course"[^>]*>Course home/);
   assert.match(html, /aria-label="Study progress"/);
   assert.match(html, /role="progressbar"/);
@@ -422,8 +489,8 @@ test("hundreds of rich cards stay inside a mobile-friendly delivery budget", asy
   const html = await response.text();
   const htmlBytes = Buffer.from(html);
 
-  assert.ok(htmlBytes.byteLength < 420_000, `raw route payload: ${htmlBytes.byteLength} bytes`);
-  assert.ok(gzipSync(htmlBytes).byteLength < 110_000, `compressed route payload: ${gzipSync(htmlBytes).byteLength} bytes`);
+  assert.ok(htmlBytes.byteLength < 380_000, `raw route payload: ${htmlBytes.byteLength} bytes`);
+  assert.ok(gzipSync(htmlBytes).byteLength < 115_000, `compressed route payload: ${gzipSync(htmlBytes).byteLength} bytes`);
 
   const assetsUrl = new URL("../dist/client/assets/", import.meta.url);
   const assets = await readdir(assetsUrl);
@@ -517,12 +584,14 @@ test("flash-card controls keep 44px targets and mobile, safe-area, and reduced-m
   assert.match(deckStyles, /@media \(max-width: 760px\)[\s\S]*?overflow-x:\s*auto/);
   assert.match(deckStyles, /@media \(max-width: 650px\)[\s\S]*?env\(safe-area-inset-bottom\)/);
   assert.match(deckStyles, /@media \(max-width: 650px\)[\s\S]*?\.ratingActions\s*\{[^}]*position:\s*sticky/);
+  assert.match(deckStyles, /@media \(max-width: 650px\)[\s\S]*?\.subjectScroller\s*\{[^}]*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/);
   assert.match(deckStyles, /@media \(max-width: 650px\)[\s\S]*?\.cardNavigation > span\s*\{[^}]*display:\s*none/);
   assert.match(deckStyles, /@media \(max-width: 650px\)[\s\S]*?\.cardNavigation button:last-child\s*\{[^}]*grid-column:\s*2/);
   assert.match(deckStyles, /@media \(max-width: 940px\) and \(max-height: 500px\)/);
   assert.match(deckStyles, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?transition:\s*none/);
   assert.match(deckStyles, /@media \(min-width: 960px\)[\s\S]*?grid-template-columns:\s*minmax\(17rem, 0\.72fr\) minmax\(0, 1\.55fr\)/);
   assert.match(deckStyles, /\.card\[data-subject="chat-integration"\][^{]*\{[^}]*--card-accent:\s*#486750/);
+  assert.match(deckStyles, /\.card\[data-subject="harness-engineering"\][^{]*\{[^}]*--card-accent:\s*#85643c/);
   assert.match(pageStyles, /@media \(max-width: 650px\)[\s\S]*?padding:\s*1rem 0 0\.9rem/);
   assert.match(cssRule(pageStyles, ".header > a"), /min-height:\s*2\.75rem/);
   assert.doesNotMatch(responsiveStyles, /\.site-header nav\.course-primary-nav\s*\{[^}]*grid-template-columns:\s*repeat\(6, minmax\(0, 1fr\)\)/);

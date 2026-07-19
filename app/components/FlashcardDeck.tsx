@@ -7,6 +7,10 @@ import type {
   FlashcardSubjectId,
 } from "../content/flashcards";
 import {
+  expandFlashcardDeck,
+  type CompactFlashcardDeck,
+} from "../content/flashcard-transport";
+import {
   applyFlashcardClearMutation,
   chooseNewestFlashcardProgress,
   clearFlashcardProgress,
@@ -95,12 +99,13 @@ function restoreFlashcardResult(
 }
 
 export function FlashcardDeck({
-  cards,
+  deck,
   subjects,
 }: {
-  cards: readonly Flashcard[];
+  deck: CompactFlashcardDeck;
   subjects: readonly FlashcardSubject[];
 }) {
+  const cards = useMemo(() => expandFlashcardDeck(deck), [deck]);
   const allSubjectIds = useMemo(() => subjects.map((subject) => subject.id), [subjects]);
   const validCardIds = useMemo(() => new Set(cards.map((card) => card.id)), [cards]);
   const [activeSubjects, setActiveSubjects] = useState<FlashcardSubjectId[]>(allSubjectIds);
@@ -639,7 +644,7 @@ export function FlashcardDeck({
           </label>
           <fieldset>
             <legend>Subjects</legend>
-            <div className={styles.filterScroller}>
+            <div className={`${styles.filterScroller} ${styles.subjectScroller}`}>
               <button
                 type="button"
                 disabled={mutationPending}

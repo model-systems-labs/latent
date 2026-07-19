@@ -20,10 +20,16 @@ const allowedSourceUrls = new Set([
   "https://www.anthropic.com/engineering/building-effective-agents",
   "https://arxiv.org/abs/2210.03629",
   "https://modelcontextprotocol.io/specification/2025-06-18/server/tools",
-  "https://developers.openai.com/codex/security",
-  "https://developers.openai.com/codex/guides/agents-md",
+  "https://learn.chatgpt.com/docs/agent-approvals-security",
+  "https://learn.chatgpt.com/docs/sandboxing",
+  "https://learn.chatgpt.com/docs/agent-configuration/agents-md",
+  "https://cwe.mitre.org/data/definitions/22.html",
+  "https://cwe.mitre.org/data/definitions/367.html",
   "https://arxiv.org/abs/2310.06770",
+  "https://arxiv.org/abs/2107.03374",
+  "https://arxiv.org/abs/2406.12045",
   "https://inspect.aisi.org.uk/agents.html",
+  "https://inspect.aisi.org.uk/checkpointing.html",
   "https://inspect.aisi.org.uk/metrics.html",
 ]);
 

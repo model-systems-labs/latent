@@ -11,6 +11,8 @@ function searchForms(value: string): SearchForms {
     .replace(/\p{M}+/gu, "")
     .replace(/([\p{Ll}\d])(\p{Lu})/gu, "$1 $2")
     .toLowerCase()
+    .replace(/@/g, " at ")
+    .replace(/\^/g, " to the ")
     .replace(/[^\p{L}\p{N}]+/gu, " ")
     .trim()
     .replace(/\s+/g, " ");

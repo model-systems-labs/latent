@@ -74,6 +74,13 @@ exercises, reference solutions, and synthetic traces are course-authored. The
 linked papers, specifications, and engineering articles support the terminology
 and system boundaries discussed in each lesson.
 
+During the flash-card integration review on 2026-07-18, the former Codex
+security link was found to have moved to an unrelated scanning product. The
+lesson now links the current OpenAI sandboxing and approval documentation. The
+review also added direct sources for path traversal, time-of-check/time-of-use
+races, evaluation checkpointing, pass@k, and pass^k, and tightened language
+around course-specific schemas, context priority, and adapter interchangeability.
+
 Harness Engineering does not add files, artifacts, checkpoints, or completion
 requirements to Browser Chat. Its machine-readable review record lives in
 `app/content/harness-engineering/provenance.ts`.
@@ -94,6 +101,13 @@ benchmark results as general guarantees. Each new card group carries a short
 `source` trail naming the papers, standards, or official guides that informed
 its terminology. Those trails are displayed in the study UI so a learner can
 connect unfamiliar vocabulary back to its technical context.
+
+The Harness Engineering release added 120 cards: fifteen for each of the eight
+lessons. Its review separates standards from course teaching policies, including
+closed-schema validation, context compaction, permission precedence, event-log
+replay, finite-sample pass metrics, static dependency batching, and the limits
+of the integrated teaching harness. The full library now contains 574 cards
+across seven filterable subjects.
 
 The release review replaced a phrase-embedding example that had independently
 repeated a distinctive example from the word2vec paper. The deck now uses the

@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { FlashcardDeck } from "../components/FlashcardDeck";
+import { compactFlashcardDeck } from "../content/flashcard-transport";
 import { flashcards, flashcardSubjects } from "../content/flashcards";
 import styles from "./page.module.css";
+
+const deck = compactFlashcardDeck(flashcards);
 
 export const metadata: Metadata = {
   title: "Flash cards · Latent",
   description:
-    "Review linear algebra, machine learning, model foundations, inference, serving, and chat product concepts.",
+    "Review linear algebra, machine learning, model foundations, inference, serving, chat product, and harness engineering concepts.",
 };
 
 export default function FlashcardsPage() {
@@ -33,7 +36,7 @@ export default function FlashcardsPage() {
           </p>
         </header>
 
-        <FlashcardDeck cards={flashcards} subjects={flashcardSubjects} />
+        <FlashcardDeck deck={deck} subjects={flashcardSubjects} />
       </article>
     </main>
   );

@@ -35,6 +35,12 @@ export const flashcardSubjects = [
     shortLabel: "Chat",
     description: "Conversation state, streaming UI, context, and product quality.",
   },
+  {
+    id: "harness-engineering",
+    label: "Harness Engineering",
+    shortLabel: "Harnesses",
+    description: "Agent loops, tool contracts, permissions, recovery, evaluations, and orchestration.",
+  },
 ] as const;
 
 export type FlashcardSubject = (typeof flashcardSubjects)[number];

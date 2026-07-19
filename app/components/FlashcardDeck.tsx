@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   flashcards,
   flashcardSubjects,
@@ -48,7 +48,7 @@ type PendingFocus = "answer" | "front" | "empty" | "clear-confirmation" | "clear
 
 const statusFilters: ReadonlyArray<{ id: CardStatusFilter; label: string }> = [
   { id: "all", label: "All cards" },
-  { id: "new", label: "New" },
+  { id: "new", label: "Unreviewed" },
   { id: "success", label: "Got it" },
   { id: "failure", label: "Needs work" },
 ];
@@ -67,7 +67,7 @@ function cardMatchesStatus(
 function resultLabel(result?: FlashcardResult) {
   if (result === "success") return "Got it";
   if (result === "failure") return "Needs work";
-  return "New";
+  return "Unreviewed";
 }
 
 function sourceIndexHref(subjectId: FlashcardSubjectId) {
@@ -121,14 +121,14 @@ export function FlashcardDeck() {
   const [cursor, setCursor] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const [lastMark, setLastMark] = useState<LastMark | null>(null);
-  const [announcement, setAnnouncement] = useState("Loading saved card results.");
+  const [announcement, setAnnouncement] = useState("Loading saved progress.");
   const [confirmingClear, setConfirmingClear] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [mixSeed, setMixSeed] = useState(0);
   const answerHeadingRef = useRef<HTMLHeadingElement>(null);
   const cardFrontRef = useRef<HTMLButtonElement>(null);
-  const cardRef = useRef<HTMLElement>(null);
+  const deckRef = useRef<HTMLDivElement>(null);
   const clearConfirmationRef = useRef<HTMLButtonElement>(null);
   const clearTriggerRef = useRef<HTMLButtonElement>(null);
   const clearSectionRef = useRef<HTMLElement>(null);
@@ -136,6 +136,9 @@ export function FlashcardDeck() {
   const pendingFocusRef = useRef<PendingFocus>(null);
   const lastAnnouncedQueryRef = useRef("");
   const progressRef = useRef<FlashcardProgress>(EMPTY_FLASHCARD_PROGRESS);
+  const currentCardIdRef = useRef<string | null>(null);
+  const currentPositionRef = useRef(0);
+  const externalProgressPendingRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -148,6 +151,7 @@ export function FlashcardDeck() {
         const initial = observedRevision < 0;
         observedRevision = stored.revision;
         if (!initial && stored.revision <= progressRef.current.revision) return;
+        externalProgressPendingRef.current = !initial;
         progressRef.current = stored;
         setProgress(stored);
         setLastMark((current) => {
@@ -160,13 +164,13 @@ export function FlashcardDeck() {
         });
         setStorageStatus("ready");
         setAnnouncement(initial
-          ? "Saved card results loaded."
-          : "Saved card results updated from another tab.");
+          ? "Saved progress loaded."
+          : "Saved progress updated from another tab.");
       },
       () => {
         if (cancelled) return;
         setStorageStatus("unavailable");
-        setAnnouncement("Card results will stay in this tab because device storage is unavailable.");
+        setAnnouncement("Card progress will stay in this tab because device storage is unavailable.");
       },
     )
       .then((stop) => {
@@ -176,7 +180,7 @@ export function FlashcardDeck() {
       .catch(() => {
         if (cancelled) return;
         setStorageStatus("unavailable");
-        setAnnouncement("Card results will stay in this tab because device storage is unavailable.");
+        setAnnouncement("Card progress will stay in this tab because device storage is unavailable.");
       });
     return () => {
       cancelled = true;
@@ -201,22 +205,55 @@ export function FlashcardDeck() {
   const currentPosition = visibleCards.length ? ((cursor % visibleCards.length) + visibleCards.length) % visibleCards.length : 0;
   const currentCard = visibleCards[currentPosition];
 
+  useLayoutEffect(() => {
+    if (!externalProgressPendingRef.current) {
+      currentCardIdRef.current = currentCard?.id ?? null;
+      currentPositionRef.current = currentPosition;
+      return;
+    }
+
+    externalProgressPendingRef.current = false;
+    const previousCardId = currentCardIdRef.current;
+    const preservedIndex = previousCardId
+      ? visibleCards.findIndex((card) => card.id === previousCardId)
+      : -1;
+    if (preservedIndex >= 0) {
+      currentCardIdRef.current = previousCardId;
+      currentPositionRef.current = preservedIndex;
+      if (preservedIndex !== currentPosition) setCursor(preservedIndex);
+      return;
+    }
+
+    const fallbackPosition = visibleCards.length
+      ? currentPositionRef.current % visibleCards.length
+      : 0;
+    currentCardIdRef.current = visibleCards[fallbackPosition]?.id ?? null;
+    currentPositionRef.current = fallbackPosition;
+    setCursor(fallbackPosition);
+    setRevealed(false);
+    setLastMark(null);
+    pendingFocusRef.current = visibleCards.length ? "front" : "empty";
+    setAnnouncement(visibleCards.length
+      ? "The current card changed in another tab. Moved to the next available card."
+      : "The current filters have no cards after progress changed in another tab.");
+  }, [currentCard?.id, currentPosition, visibleCards]);
+
   useEffect(() => {
     const pending = pendingFocusRef.current;
-    const bringCardIntoView = () => {
-      if (!window.matchMedia("(max-width: 760px)").matches) return;
+    const bringDeckIntoView = () => {
+      if (!window.matchMedia("(max-width: 959px)").matches) return;
       const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      cardRef.current?.scrollIntoView({
+      deckRef.current?.scrollIntoView({
         behavior: reducedMotion ? "auto" : "smooth",
         block: "start",
       });
     };
     if (pending === "answer" && revealed) {
       answerHeadingRef.current?.focus();
-      bringCardIntoView();
+      bringDeckIntoView();
     } else if (pending === "front" && !revealed && currentCard) {
       cardFrontRef.current?.focus();
-      bringCardIntoView();
+      bringDeckIntoView();
     } else if (pending === "empty" && !currentCard) emptyHeadingRef.current?.focus();
     else if (pending === "clear-confirmation" && confirmingClear) clearConfirmationRef.current?.focus();
     else if (pending === "clear-trigger" && !confirmingClear) clearTriggerRef.current?.focus();
@@ -282,7 +319,7 @@ export function FlashcardDeck() {
     if (!next.trim() && query.trim()) setAnnouncement("Card search cleared.");
     if (startingSearch && statusFilter === "new") {
       setStatusFilter("all");
-      setAnnouncement("Searching all card results.");
+      setAnnouncement("Searching all card statuses.");
     }
     setQuery(next);
     setMixSeed(0);
@@ -407,7 +444,7 @@ export function FlashcardDeck() {
       ? 0
       : currentRemains
         ? (nextVisibleCards.findIndex((card) => card.id === markedCard.id) + 1) % nextVisibleCards.length
-        : Math.min(currentPosition, nextVisibleCards.length - 1);
+        : currentPosition % nextVisibleCards.length;
 
     progressRef.current = nextProgress;
     setProgress(nextProgress);
@@ -506,8 +543,8 @@ export function FlashcardDeck() {
     pendingFocusRef.current = "answer";
     setRevealed(true);
     setAnnouncement(persistenceFailed
-      ? `Undid the result for ${mark.concept} in this tab, but device storage could not save the change.`
-      : `Undid the result for ${mark.concept}.`);
+      ? `Undid the mark for ${mark.concept} in this tab, but device storage could not save the change.`
+      : `Undid the mark for ${mark.concept}.`);
     setLastMark(null);
     setMutationPending(false);
   };
@@ -552,10 +589,10 @@ export function FlashcardDeck() {
     pendingFocusRef.current = "clear-section";
     setConfirmingClear(false);
     setAnnouncement(persistenceFailed
-      ? "Results cleared in this tab, but device storage could not save the change."
+      ? "Progress reset in this tab, but device storage could not save the change."
       : newerProgressWasKept
-        ? "Results were cleared; newer progress from another tab was kept."
-        : "All flash card results cleared.");
+        ? "Progress was reset; newer progress from another tab was kept."
+        : "All flash card progress reset.");
     setMutationPending(false);
   };
 
@@ -570,11 +607,15 @@ export function FlashcardDeck() {
     : onlyActiveSubject?.label ?? `${activeSubjects.length} of ${subjects.length} subjects`;
   const selectedResultLabel = statusFilters.find((filter) => filter.id === statusFilter)?.label ?? "Cards";
   const filterSummary = normalizedQuery
-    ? `“${query.trim()}” · ${selectedSubjectLabel} · ${selectedResultLabel} · ${visibleCards.length}`
+    ? `“${query.trim()}” · ${selectedSubjectLabel} · ${selectedResultLabel} · ${visibleCards.length} ${visibleCards.length === 1 ? "card" : "cards"}`
     : `${selectedSubjectLabel} · ${selectedResultLabel}`;
 
   return (
-    <section className={styles.study} aria-labelledby="flashcard-study-title" aria-busy={mutationPending}>
+    <section
+      className={styles.study}
+      aria-labelledby="flashcard-study-title"
+      aria-busy={mutationPending || storageStatus === "loading"}
+    >
       <h2 className={styles.srOnly} id="flashcard-study-title">Flash card study deck</h2>
 
       <div className={styles.studyControls}>
@@ -584,14 +625,17 @@ export function FlashcardDeck() {
               <span>{selectedSubjectLabel}</span>
               <strong>{reviewedCount} of {subjectCards.length} reviewed</strong>
             </div>
-            <p className={storageStatus === "unavailable" ? styles.storageWarning : undefined}>
+            <p
+              className={storageStatus === "ready" ? undefined : styles.storageNotice}
+              data-state={storageStatus}
+            >
               {mutationPending
-                ? "Saving card results…"
+                ? "Saving progress…"
                 : storageStatus === "loading"
-                ? "Loading saved results…"
+                ? "Loading saved progress…"
                 : storageStatus === "ready"
-                  ? "Results save on this device."
-                  : "Results are not saving on this device."}
+                  ? "Progress saves on this device."
+                  : "Progress is not saving on this device."}
             </p>
           </div>
           <div
@@ -615,7 +659,7 @@ export function FlashcardDeck() {
             />
           </div>
           <dl className={styles.stats}>
-            <div><dt>New</dt><dd>{selectedStats.new}</dd></div>
+            <div><dt>Unreviewed</dt><dd>{selectedStats.new}</dd></div>
             <div><dt>Got it</dt><dd>{selectedStats.success}</dd></div>
             <div><dt>Needs work</dt><dd>{selectedStats.failure}</dd></div>
           </dl>
@@ -658,6 +702,7 @@ export function FlashcardDeck() {
               <button
                 type="button"
                 disabled={mutationPending}
+                aria-label={`All subjects, ${cards.length} cards`}
                 aria-pressed={allSubjectsActive}
                 className={allSubjectsActive ? styles.activeFilter : undefined}
                 onClick={() => chooseSubjects(allSubjectIds)}
@@ -671,12 +716,13 @@ export function FlashcardDeck() {
                   <button
                     type="button"
                     disabled={mutationPending}
+                    aria-label={`${subject.label}, ${count} cards`}
                     aria-pressed={active}
                     className={active ? styles.activeFilter : undefined}
                     key={subject.id}
                     onClick={() => toggleSubject(subject.id)}
                   >
-                    {subject.shortLabel} <span>{count}</span>
+                    {subject.label} <span>{count}</span>
                   </button>
                 );
               })}
@@ -684,7 +730,7 @@ export function FlashcardDeck() {
           </fieldset>
 
           <fieldset>
-            <legend>Results</legend>
+            <legend>Card status</legend>
             <div className={styles.filterScroller}>
               {statusFilters.map((filter) => (
                 <button
@@ -707,7 +753,7 @@ export function FlashcardDeck() {
       <p className={styles.srOnly} aria-live="polite" aria-atomic="true">{announcement}</p>
 
       {currentCard ? (
-        <div className={styles.deck}>
+        <div ref={deckRef} className={styles.deck}>
           <header className={styles.deckHeader}>
             <div>
               <p>Card {currentPosition + 1} of {visibleCards.length}</p>
@@ -720,80 +766,92 @@ export function FlashcardDeck() {
             </span>
           </header>
 
+          {lastMark ? (
+            <div className={styles.markReceipt} data-result={lastMark.written.lastResult}>
+              <p>
+                <span aria-hidden="true">{lastMark.written.lastResult === "success" ? "✓" : "↺"}</span>
+                Marked <strong>{lastMark.concept}</strong> · {resultLabel(lastMark.written.lastResult)}
+              </p>
+              <button type="button" disabled={mutationPending} onClick={() => void undoLastMark()}>
+                Undo
+              </button>
+            </div>
+          ) : null}
+
           <article
-            ref={cardRef}
+            key={currentCard.id}
             className={styles.card}
             data-revealed={revealed}
             data-subject={currentCard.subjectId}
           >
-            {!revealed ? (
-              <button
-                ref={cardFrontRef}
-                type="button"
-                className={styles.cardFront}
-                disabled={mutationPending || storageStatus === "loading"}
-                aria-expanded="false"
-                aria-controls={`answer-${currentCard.id}`}
-                onClick={() => {
-                  pendingFocusRef.current = "answer";
-                  setRevealed(true);
-                  setLastMark(null);
-                  setAnnouncement(`Answer shown for ${currentCard.concept}.`);
-                }}
-              >
-                <span>{currentCard.module}</span>
-                <h3>{currentCard.concept}</h3>
-                <p>{currentCard.lesson}</p>
-                <strong>Show answer <i aria-hidden="true">↓</i></strong>
-              </button>
-            ) : (
-              <section className={styles.cardBack} id={`answer-${currentCard.id}`}>
-                <header>
-                  <div>
-                    <span>{currentCard.module}</span>
-                    <h3 ref={answerHeadingRef} tabIndex={-1}>{currentCard.concept}</h3>
-                  </div>
-                  <button
-                    type="button"
-                    disabled={mutationPending}
-                    aria-expanded="true"
-                    aria-controls={`answer-${currentCard.id}`}
-                    onClick={() => {
-                      pendingFocusRef.current = "front";
-                      setRevealed(false);
-                    }}
-                  >Hide answer</button>
-                </header>
-                <p className={styles.definition}>{currentCard.definition}</p>
-                <p className={styles.keyPointsLabel}>Three things to remember</p>
-                <ol>
-                  {currentCard.details.map((detail) => <li key={detail}>{detail}</li>)}
-                </ol>
-                <p className={styles.example}><span>Example</span>{currentCard.example}</p>
-                {currentCard.source ? (
-                  <p className={styles.sourceTrail}>
-                    <span>Source trail</span>
-                    <cite>{currentCard.source}</cite>
-                    <a href={sourceIndexHref(currentCard.subjectId)}>
-                      Browse sources <span aria-hidden="true">↗</span>
-                    </a>
-                  </p>
-                ) : null}
-                <footer className={styles.ratingActions} aria-label={`Rate ${currentCard.concept}`}>
-                  <button type="button" className={styles.failureAction} disabled={mutationPending || storageStatus === "loading"} onClick={() => void markCard("failure")}>
-                    <span aria-hidden="true">↺</span> Needs work
-                  </button>
-                  <button type="button" className={styles.successAction} disabled={mutationPending || storageStatus === "loading"} onClick={() => void markCard("success")}>
-                    <span aria-hidden="true">✓</span> Got it
-                  </button>
-                </footer>
-              </section>
-            )}
+            <section className={styles.cardFront} hidden={revealed}>
+              <span>{currentCard.module}</span>
+              <h3>{currentCard.concept}</h3>
+              <p>{currentCard.lesson}</p>
+            </section>
+            <section className={styles.cardBack} id={`answer-${currentCard.id}`} hidden={!revealed}>
+              {revealed ? (
+                <>
+                  <header>
+                    <div>
+                      <span>{currentCard.module}</span>
+                      <h3 ref={answerHeadingRef} tabIndex={-1}>{currentCard.concept}</h3>
+                      <p className={styles.lessonContext}>{currentCard.lesson}</p>
+                    </div>
+                  </header>
+                  <p className={styles.definition}>{currentCard.definition}</p>
+                  <p className={styles.keyPointsLabel}>Key points</p>
+                  <ol>
+                    {currentCard.details.map((detail) => <li key={detail}>{detail}</li>)}
+                  </ol>
+                  <p className={styles.example}><span>Example</span>{currentCard.example}</p>
+                  {currentCard.source ? (
+                    <p className={styles.sourceTrail}>
+                      <span>Sources</span>
+                      <cite>{currentCard.source}</cite>
+                      <a href={sourceIndexHref(currentCard.subjectId)}>
+                        Browse source notes <span aria-hidden="true">→</span>
+                      </a>
+                    </p>
+                  ) : null}
+                  <footer className={styles.ratingActions} aria-label={`Rate ${currentCard.concept}`}>
+                    <button type="button" className={styles.failureAction} disabled={mutationPending || storageStatus === "loading"} onClick={() => void markCard("failure")}>
+                      <span aria-hidden="true">↺</span> Needs work
+                    </button>
+                    <button type="button" className={styles.successAction} disabled={mutationPending || storageStatus === "loading"} onClick={() => void markCard("success")}>
+                      <span aria-hidden="true">✓</span> Got it
+                    </button>
+                  </footer>
+                </>
+              ) : null}
+            </section>
+            <button
+              ref={cardFrontRef}
+              type="button"
+              className={styles.answerToggle}
+              data-revealed={revealed}
+              disabled={mutationPending || storageStatus === "loading"}
+              aria-expanded={revealed}
+              aria-controls={`answer-${currentCard.id}`}
+              onClick={() => {
+                if (revealed) {
+                  pendingFocusRef.current = "front";
+                  setRevealed(false);
+                  setAnnouncement(`Answer hidden for ${currentCard.concept}.`);
+                  return;
+                }
+                pendingFocusRef.current = "answer";
+                setRevealed(true);
+                setAnnouncement(`Answer shown for ${currentCard.concept}.`);
+              }}
+            >
+              <span>{revealed ? "Hide answer" : "Show answer"}{!revealed ? <i aria-hidden="true">↓</i> : null}</span>
+            </button>
           </article>
 
           <nav className={styles.cardNavigation} aria-label="Move through filtered cards">
             <button type="button" disabled={mutationPending || visibleCards.length < 2} onClick={() => move(-1)}>← Previous</button>
-            {lastMark ? <button type="button" className={styles.undoAction} disabled={mutationPending} onClick={() => void undoLastMark()}>Undo last result</button> : <span />}
+            <span />
             <button type="button" disabled={mutationPending || visibleCards.length < 2} onClick={() => move(1)}>Next →</button>
           </nav>
         </div>
@@ -806,16 +864,17 @@ export function FlashcardDeck() {
               ? "Choose at least one subject to build a deck."
               : normalizedQuery
                 ? searchedCards.length > 0
-                  ? `Matching cards exist, but none are in the ${selectedResultLabel.toLowerCase()} result filter.`
+                  ? `Matching cards exist, but none are in the ${selectedResultLabel.toLowerCase()} card status.`
                   : `No card in these subjects matches “${query.trim()}.”`
               : statusFilter === "new"
                 ? "You have reviewed every card in these subjects. Review the ones that need work or study the full deck again."
-                : "Try another result filter or add more subjects."}
+                : "Try another card status or add more subjects."}
           </p>
           <button type="button" disabled={mutationPending} onClick={() => {
             pendingFocusRef.current = "front";
-            if (normalizedQuery && searchedCards.length > 0) {
-              chooseStatus("all");
+            if (normalizedQuery) {
+              if (searchedCards.length > 0) chooseStatus("all");
+              else searchConcepts("");
               return;
             }
             chooseSubjects(allSubjectIds);
@@ -825,17 +884,17 @@ export function FlashcardDeck() {
             {normalizedQuery && searchedCards.length > 0
               ? "Show all matching cards"
               : normalizedQuery
-                ? "Clear search and filters"
+                ? "Clear search"
                 : "Show all cards"}
           </button>
-          {lastMark ? <button type="button" disabled={mutationPending} onClick={() => void undoLastMark()}>Undo last result</button> : null}
+          {lastMark ? <button type="button" disabled={mutationPending} onClick={() => void undoLastMark()}>Undo last mark</button> : null}
         </section>
       )}
 
       <section
         ref={clearSectionRef}
         className={styles.clearSection}
-        aria-label="Clear flash card results"
+        aria-label="Reset flash card progress"
         tabIndex={-1}
       >
         {!confirmingClear ? (
@@ -847,10 +906,10 @@ export function FlashcardDeck() {
               setConfirmingClear(true);
             }}
             disabled={mutationPending || totalReviewedCount === 0}
-          >Clear results</button>
+          >Reset progress</button>
         ) : (
-          <div role="group" aria-label="Confirm clearing flash card results">
-            <p>Clear every saved card result?</p>
+          <div role="group" aria-label="Confirm resetting flash card progress">
+            <p>Reset every saved card status?</p>
             <button
               ref={clearConfirmationRef}
               type="button"
@@ -859,8 +918,8 @@ export function FlashcardDeck() {
                 pendingFocusRef.current = "clear-trigger";
                 setConfirmingClear(false);
               }}
-            >Keep results</button>
-            <button type="button" className={styles.confirmClear} disabled={mutationPending} onClick={() => void clearResults()}>Clear all</button>
+            >Keep progress</button>
+            <button type="button" className={styles.confirmClear} disabled={mutationPending} onClick={() => void clearResults()}>Reset all</button>
           </div>
         )}
       </section>

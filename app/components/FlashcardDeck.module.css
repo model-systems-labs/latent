@@ -43,7 +43,7 @@
 .example > span,
 .filters legend {
   color: var(--muted);
-  font-size: max(0.7rem, 11px);
+  font-size: max(0.7rem, 12px);
 }
 
 .progressHeading span,
@@ -68,7 +68,7 @@
   margin: 0;
 }
 
-.progressHeading .storageWarning {
+.progressHeading .storageNotice[data-state="unavailable"] {
   color: var(--red);
 }
 
@@ -115,7 +115,7 @@
 
 .stats dt {
   color: var(--muted);
-  font-size: max(0.7rem, 11px);
+  font-size: max(0.7rem, 12px);
 }
 
 .stats dd {
@@ -165,7 +165,7 @@
 .conceptSearch > span,
 .sourceTrail > span {
   color: var(--muted);
-  font-size: max(0.7rem, 11px);
+  font-size: max(0.7rem, 12px);
 }
 
 .conceptSearch input {
@@ -204,7 +204,7 @@
   color: var(--muted);
   cursor: pointer;
   display: inline-flex;
-  font-size: max(0.7rem, 11px);
+  font-size: max(0.7rem, 12px);
   gap: 0.45rem;
   min-height: 2.75rem;
   padding: 0.5rem 0.76rem;
@@ -212,7 +212,7 @@
 }
 
 .filterScroller button span {
-  color: var(--faint);
+  color: var(--muted);
   font-family: var(--mono);
 }
 
@@ -303,8 +303,78 @@
   background: var(--red);
 }
 
+.markReceipt {
+  --receipt-accent: var(--violet);
+  align-items: center;
+  animation: receipt-in 180ms ease-out;
+  background: linear-gradient(90deg, rgba(116, 100, 135, 0.1), rgba(251, 250, 247, 0.55));
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--receipt-accent);
+  display: flex;
+  gap: 0.8rem;
+  justify-content: space-between;
+  margin: 0 0 0.75rem;
+  min-height: 3rem;
+  padding: 0.35rem 0.45rem 0.35rem 0.75rem;
+}
+
+.markReceipt[data-result="success"] {
+  --receipt-accent: var(--green);
+  background: linear-gradient(90deg, rgba(84, 115, 93, 0.11), rgba(251, 250, 247, 0.55));
+}
+
+.markReceipt[data-result="failure"] {
+  --receipt-accent: var(--red);
+  background: linear-gradient(90deg, rgba(141, 90, 84, 0.1), rgba(251, 250, 247, 0.55));
+}
+
+.markReceipt p {
+  align-items: baseline;
+  color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: max(0.72rem, 12px);
+  gap: 0.25rem;
+  line-height: 1.45;
+  margin: 0;
+  min-width: 0;
+}
+
+.markReceipt p > span {
+  color: var(--receipt-accent);
+  font-size: 0.9rem;
+  margin-right: 0.2rem;
+}
+
+.markReceipt strong {
+  color: var(--ink);
+  font-weight: 590;
+  overflow-wrap: anywhere;
+}
+
+.markReceipt button {
+  background: transparent;
+  border: 0;
+  color: var(--violet-deep);
+  cursor: pointer;
+  flex: 0 0 auto;
+  font: inherit;
+  font-size: max(0.72rem, 12px);
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  padding: 0.45rem 0.55rem;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.markReceipt button:disabled {
+  cursor: wait;
+  opacity: 0.58;
+}
+
 .card {
   --card-accent: var(--violet);
+  animation: card-enter 180ms ease-out;
   background: rgba(251, 250, 247, 0.82);
   border: 1px solid var(--line-strong);
   box-shadow: inset 0 2px 0 var(--card-accent), 0 1.3rem 4rem rgba(59, 47, 70, 0.07);
@@ -340,12 +410,12 @@
   align-items: center;
   background: radial-gradient(circle at 82% 16%, rgba(116, 100, 135, 0.09), transparent 31%);
   border: 0;
-  cursor: pointer;
   display: flex;
   flex-direction: column;
   justify-content: center;
   min-height: clamp(20rem, 44vh, 25rem);
   padding: clamp(2rem, 6vw, 4.5rem);
+  pointer-events: none;
   text-align: center;
   width: 100%;
 }
@@ -376,33 +446,65 @@
   margin: 1rem 0 0;
 }
 
-.cardFront > strong {
+.answerToggle {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  position: absolute;
+  z-index: 3;
+}
+
+.answerToggle[data-revealed="false"] {
+  align-items: flex-end;
+  color: var(--ink);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: clamp(2.2rem, 6vw, 4rem);
+}
+
+.answerToggle[data-revealed="false"] > span {
   border-bottom: 1px solid var(--line-strong);
   font-size: max(0.78rem, 13px);
   font-weight: 520;
-  margin-top: clamp(2.2rem, 6vw, 4rem);
   min-height: 2.75rem;
   padding: 0.75rem 0;
 }
 
-.cardFront > strong i {
+.answerToggle[data-revealed="false"] i {
   color: var(--violet);
   font-style: normal;
   margin-left: 0.55rem;
 }
 
-.cardFront:hover,
-.cardFront:focus-visible {
-  background-color: rgba(255, 255, 255, 0.35);
+.answerToggle[data-revealed="false"]:hover {
+  background: rgba(255, 255, 255, 0.28);
 }
 
-.cardFront:disabled {
+.answerToggle[data-revealed="true"] {
+  color: var(--muted);
+  font-size: max(0.7rem, 12px);
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  padding: 0.45rem 0;
+  right: clamp(1.35rem, 4.5vw, 3rem);
+  top: clamp(1.35rem, 4.5vw, 3rem);
+}
+
+.answerToggle[data-revealed="true"]:hover {
+  color: var(--ink);
+}
+
+.answerToggle:disabled {
   cursor: wait;
+  opacity: 0.58;
 }
 
-.cardFront:focus-visible,
+.answerToggle:focus-visible,
 .cardBack button:focus-visible,
 .deckHeader button:focus-visible,
+.markReceipt button:focus-visible,
 .cardNavigation button:focus-visible,
 .ratingActions button:focus-visible,
 .filterScroller button:focus-visible,
@@ -414,14 +516,19 @@
   outline-offset: 3px;
 }
 
+.answerToggle[data-revealed="false"]:focus-visible {
+  outline-offset: -4px;
+}
+
 .sourceTrail {
   border-top: 1px solid var(--line);
   color: var(--muted);
   display: grid;
-  font-size: max(0.7rem, 11px);
+  font-size: max(0.7rem, 12px);
   gap: 0.32rem;
   line-height: 1.5;
   margin: 1rem 0 0;
+  max-width: 42rem;
   padding: 1rem 0 0;
 }
 
@@ -463,6 +570,7 @@
   flex-wrap: wrap;
   gap: 1.5rem;
   justify-content: space-between;
+  padding-right: 5.25rem;
   padding-bottom: 1.15rem;
 }
 
@@ -482,6 +590,14 @@
   outline-offset: 0.2rem;
 }
 
+.lessonContext {
+  color: var(--muted);
+  font-size: max(0.76rem, 13px);
+  line-height: 1.45;
+  margin: 0.55rem 0 0;
+  overflow-wrap: anywhere;
+}
+
 .cardFront > span,
 .cardBack header span {
   color: var(--card-accent);
@@ -496,7 +612,7 @@
   border: 0;
   color: var(--muted);
   cursor: pointer;
-  font-size: max(0.7rem, 11px);
+  font-size: max(0.7rem, 12px);
   min-height: 2.75rem;
   min-width: 2.75rem;
   padding: 0.45rem 0;
@@ -523,7 +639,7 @@
 
 .keyPointsLabel {
   color: var(--muted);
-  font-size: max(0.7rem, 11px);
+  font-size: max(0.7rem, 12px);
   font-weight: 590;
   letter-spacing: 0.11em;
   margin: 1.5rem 0 0.35rem;
@@ -536,6 +652,7 @@
   line-height: 1.58;
   margin: 0;
   padding: 0;
+  max-width: 42rem;
 }
 
 .cardBack li {
@@ -552,7 +669,7 @@
   color: var(--card-accent);
   content: "0" counter(card-point);
   font-family: var(--mono);
-  font-size: max(0.68rem, 11px);
+  font-size: max(0.68rem, 12px);
 }
 
 .example {
@@ -562,6 +679,7 @@
   gap: 0.45rem;
   line-height: 1.58;
   margin: 1.5rem 0 0;
+  max-width: 42rem;
   overflow-wrap: anywhere;
   padding: 1rem 1.1rem;
 }
@@ -639,12 +757,6 @@
   opacity: 0.42;
 }
 
-.cardNavigation .undoAction {
-  color: var(--violet-deep);
-  padding-left: 0.8rem;
-  padding-right: 0.8rem;
-}
-
 .emptyState {
   border-bottom: 1px solid var(--line-strong);
   border-top: 1px solid var(--line-strong);
@@ -705,7 +817,7 @@
 
 .clearSection p {
   color: var(--muted);
-  font-size: max(0.7rem, 11px);
+  font-size: max(0.7rem, 12px);
   margin: 0;
 }
 
@@ -752,7 +864,7 @@
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 959px) {
   .filterDisclosure {
     border-bottom: 1px solid var(--line);
   }
@@ -783,7 +895,7 @@
 
   .filterToggle span {
     color: var(--muted);
-    font-size: max(0.7rem, 11px);
+    font-size: max(0.7rem, 12px);
     font-weight: 590;
     letter-spacing: 0.11em;
     text-transform: uppercase;
@@ -792,7 +904,7 @@
   .filterToggle strong {
     color: var(--muted);
     flex: 1;
-    font-size: max(0.7rem, 11px);
+    font-size: max(0.7rem, 12px);
     font-weight: 450;
     margin-left: 0.9rem;
     overflow: hidden;
@@ -833,20 +945,20 @@
 
 @media (max-width: 650px) {
   .overview {
-    padding-top: 0.65rem;
+    padding-top: 0.55rem;
   }
 
   .progressHeading {
     align-items: start;
     flex-direction: column;
-    gap: 0.55rem;
+    gap: 0.4rem;
   }
 
   .progressHeading p {
     display: none;
   }
 
-  .progressHeading .storageWarning {
+  .progressHeading .storageNotice {
     display: block;
   }
 
@@ -854,7 +966,7 @@
     align-items: start;
     flex-direction: column-reverse;
     gap: 0.2rem;
-    padding: 0.65rem 0;
+    padding: 0.55rem 0;
   }
 
   .stats > div + div {
@@ -862,7 +974,7 @@
   }
 
   .deck {
-    margin-top: 0.65rem;
+    margin-top: 0.4rem;
   }
 
   .subjectScroller {
@@ -903,10 +1015,16 @@
 
   .cardBack > header {
     gap: 0.75rem;
+    padding-right: 4.7rem;
   }
 
   .cardBack h3 {
     font-size: clamp(1.8rem, 8vw, 2.3rem);
+  }
+
+  .answerToggle[data-revealed="true"] {
+    right: 1.15rem;
+    top: 1.15rem;
   }
 
   .ratingActions {
@@ -934,12 +1052,6 @@
     grid-row: 1;
   }
 
-  .cardNavigation .undoAction {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    justify-self: center;
-  }
-
   .clearSection > div {
     flex-wrap: wrap;
   }
@@ -957,6 +1069,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .progressTrack i,
+  .card,
+  .markReceipt,
   .card[data-revealed="true"] .cardBack {
     animation: none;
     transition: none;
@@ -965,5 +1079,15 @@
 
 @keyframes reveal-card {
   from { opacity: 0; transform: translateY(0.25rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes card-enter {
+  from { opacity: 0; transform: translateY(0.2rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes receipt-in {
+  from { opacity: 0; transform: translateY(-0.2rem); }
   to { opacity: 1; transform: translateY(0); }
 }

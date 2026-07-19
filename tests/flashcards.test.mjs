@@ -560,7 +560,7 @@ test("the built flash-card route renders an accessible unrevealed study deck", a
   assert.match(html, /aria-label="Cards reviewed in selected subjects"/);
   assert.match(html, /aria-valuetext="0 of 638 cards reviewed; 0 got it, 0 need work\."/);
   assert.match(html, /<legend>Subjects<\/legend>/);
-  assert.match(html, /<legend>Results<\/legend>/);
+  assert.match(html, /<legend>Card status<\/legend>/);
   assert.match(html, /<input[^>]+type="search"[^>]+placeholder="Concept, lesson, or term"/);
   assert.match(html, /aria-pressed="true"/);
   assert.match(html, /aria-live="polite"/);
@@ -596,15 +596,17 @@ test("hundreds of rich cards use a small HTML shell and a cacheable mobile-frien
   );
 });
 
-test("subject and result toggles, reveal, live feedback, and rating controls retain their accessible source contract", async () => {
+test("subject and status toggles, reveal, live feedback, and rating controls retain their accessible source contract", async () => {
   const [source, pageSource, progressSource, searchSource] = await Promise.all([
     readFile(deckSourceUrl, "utf8"),
     readFile(flashcardPageUrl, "utf8"),
     readFile(progressSourceUrl, "utf8"),
     readFile(searchSourceUrl, "utf8"),
   ]);
-  const revealBranch = source.slice(source.indexOf("{!revealed ? ("), source.indexOf("</article>", source.indexOf("{!revealed ? (")));
-
+  const answerToggleSource = source.slice(
+    source.indexOf("className={styles.answerToggle}"),
+    source.indexOf("</button>", source.indexOf("className={styles.answerToggle}")),
+  );
   assert.match(source, /<legend>Subjects<\/legend>[\s\S]*?aria-pressed=\{allSubjectsActive\}/);
   assert.match(source, /flashcards,[\s\S]*?flashcardSubjects,[\s\S]*?from "\.\.\/content\/flashcards"/);
   assert.match(pageSource, /<FlashcardDeck \/>/);
@@ -616,20 +618,20 @@ test("subject and result toggles, reveal, live feedback, and rating controls ret
   assert.match(source, /const allSubjectsActive = activeSubjects\.length === subjects\.length/);
   assert.match(source, /const active = !allSubjectsActive && activeSubjectSet\.has\(subject\.id\)/);
   assert.match(source, /onlyActiveSubject\?\.label \?\? `\$\{activeSubjects\.length\} of \$\{subjects\.length\} subjects`/);
-  assert.match(source, /<legend>Results<\/legend>[\s\S]*?statusFilters\.map[\s\S]*?aria-pressed=\{statusFilter === filter\.id\}/);
+  assert.match(source, /<legend>Card status<\/legend>[\s\S]*?statusFilters\.map[\s\S]*?aria-pressed=\{statusFilter === filter\.id\}/);
   assert.match(source, /aria-controls=\{`answer-\$\{currentCard\.id\}`\}/);
   assert.match(source, /id=\{`answer-\$\{currentCard\.id\}`\}/);
   assert.match(source, /function sourceIndexHref\(subjectId: FlashcardSubjectId\)/);
   assert.match(source, /<cite>\{currentCard\.source\}<\/cite>/);
-  assert.match(source, /Browse sources/);
-  assert.match(source, /ref=\{cardFrontRef\}[\s\S]*?className=\{styles\.cardFront\}/);
+  assert.match(source, /Browse source notes/);
+  assert.match(source, /ref=\{cardFrontRef\}[\s\S]*?className=\{styles\.answerToggle\}/);
+  assert.match(source, /className=\{styles\.cardBack\}[\s\S]*?id=\{`answer-\$\{currentCard\.id\}`\}[\s\S]*?hidden=\{!revealed\}/);
+  assert.match(source, /className=\{styles\.answerToggle\}[\s\S]*?aria-expanded=\{revealed\}[\s\S]*?aria-controls=\{`answer-\$\{currentCard\.id\}`\}/);
   assert.match(source, /ref=\{answerHeadingRef\} tabIndex=\{-1\}/);
   assert.match(source, /ref=\{emptyHeadingRef\} tabIndex=\{-1\}/);
   assert.match(source, /ref=\{clearSectionRef\}[\s\S]*?tabIndex=\{-1\}/);
-  assert.match(source, /aria-expanded="true"/);
   assert.match(source, /aria-live="polite" aria-atomic="true"/);
-  assert.match(revealBranch, /\{!revealed \? \([\s\S]*?\) : \([\s\S]*?className=\{styles\.ratingActions\}/);
-  assert.ok(revealBranch.indexOf("styles.ratingActions") > revealBranch.indexOf(") : ("));
+  assert.match(source, /\{revealed \? \([\s\S]*?className=\{styles\.ratingActions\}/);
   assert.match(source, /markCard\("failure"\)/);
   assert.match(source, /markCard\("success"\)/);
   assert.match(source, /useState<CardStatusFilter>\("new"\)/);
@@ -643,18 +645,24 @@ test("subject and result toggles, reveal, live feedback, and rating controls ret
   assert.match(source, /newerProgressWasKept = nextProgress\.revision > outcome\.value\.progress\.revision/);
   assert.match(source, /expectedEpoch: progress\.epoch/);
   assert.match(source, /crypto\.randomUUID\(\)/);
-  assert.match(source, /aria-busy=\{mutationPending\}/);
+  assert.match(source, /aria-busy=\{mutationPending \|\| storageStatus === "loading"\}/);
+  assert.match(source, /externalProgressPendingRef\.current = !initial/);
+  assert.match(source, /visibleCards\.findIndex\(\(card\) => card\.id === previousCardId\)/);
+  assert.match(source, /currentPositionRef\.current % visibleCards\.length/);
   assert.match(source, /const nextVisibleCards = orderCards\([\s\S]*?cardMatchesStatus/);
+  assert.match(source, /currentPosition % nextVisibleCards\.length/);
   assert.match(source, /const mixCards = \(\) =>[\s\S]*?setMixSeed[\s\S]*?cards mixed into a new order/);
   assert.match(source, />\s*<span aria-hidden="true">↝<\/span> Mix deck\s*<\/button>/);
-  assert.match(source, /prefers-reduced-motion[\s\S]*?cardRef\.current\?\.scrollIntoView/);
+  assert.match(source, /prefers-reduced-motion[\s\S]*?deckRef\.current\?\.scrollIntoView/);
   assert.match(source, /className=\{styles\.definition\}[\s\S]*?className=\{styles\.keyPointsLabel\}[\s\S]*?<ol>[\s\S]*?className=\{styles\.example\}[\s\S]*?className=\{styles\.sourceTrail\}/);
   assert.match(source, /disabled=\{mutationPending \|\| storageStatus === "loading"\}/);
   assert.match(source, /disabled=\{mutationPending \|\| \(storageStatus === "loading" && filter\.id !== "all"\)\}/);
   assert.match(source, /lastAnnouncedQueryRef\.current === normalizedQuery/);
   assert.doesNotMatch(source, /interactedBeforeLoad/);
-  assert.match(source, /Undo last result/);
-  assert.match(source, /role="group" aria-label="Confirm clearing flash card results"/);
+  assert.match(source, /className=\{styles\.markReceipt\}[\s\S]*?Undo/);
+  assert.match(source, /Undo last mark/);
+  assert.doesNotMatch(answerToggleSource, /setLastMark/);
+  assert.match(source, /role="group" aria-label="Confirm resetting flash card progress"/);
   assert.match(source, /disabled=\{mutationPending \|\| totalReviewedCount === 0\}/);
   assert.match(source, /pendingFocusRef\.current = "clear-section"/);
   assert.match(progressSource, /await writeTail;[\s\S]*?getPersistenceContext/);
@@ -688,8 +696,9 @@ test("flash-card controls keep 44px targets and mobile, safe-area, and reduced-m
   assert.match(cssRule(deckStyles, ".cardBack header button,\n.deckHeader button,\n.cardNavigation button,\n.clearSection button"), /min-height:\s*2\.75rem/);
   assert.match(cssRule(deckStyles, ".emptyState button"), /min-height:\s*2\.75rem/);
 
-  assert.match(deckStyles, /@media \(max-width: 760px\)[\s\S]*?overflow-x:\s*auto/);
+  assert.match(deckStyles, /@media \(max-width: 959px\)[\s\S]*?overflow-x:\s*auto/);
   assert.match(deckStyles, /@media \(max-width: 650px\)[\s\S]*?env\(safe-area-inset-bottom\)/);
+  assert.match(deckStyles, /@media \(max-width: 650px\)[\s\S]*?\.storageNotice\s*\{[^}]*display:\s*block/);
   assert.match(deckStyles, /@media \(max-width: 650px\)[\s\S]*?\.ratingActions\s*\{[^}]*position:\s*sticky/);
   assert.match(deckStyles, /@media \(max-width: 650px\)[\s\S]*?\.subjectScroller\s*\{[^}]*grid-template-columns:\s*repeat\(auto-fit, minmax\(min\(100%, 8\.5rem\), 1fr\)\)/);
   assert.match(deckStyles, /@media \(max-width: 650px\)[\s\S]*?\.subjectScroller button\s*\{[^}]*white-space:\s*normal/);
@@ -702,10 +711,15 @@ test("flash-card controls keep 44px targets and mobile, safe-area, and reduced-m
   assert.match(deckStyles, /@media \(max-width: 650px\)[\s\S]*?\.cardNavigation button:last-child\s*\{[^}]*grid-column:\s*2/);
   assert.match(deckStyles, /@media \(max-width: 940px\) and \(max-height: 500px\)/);
   assert.match(deckStyles, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?transition:\s*none/);
+  assert.match(deckStyles, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.markReceipt/);
   assert.match(deckStyles, /@media \(min-width: 960px\)[\s\S]*?grid-template-columns:\s*minmax\(17rem, 0\.72fr\) minmax\(0, 1\.55fr\)/);
+  assert.match(cssRule(deckStyles, ".answerToggle[data-revealed=\"false\"]"), /inset:\s*0/);
+  assert.match(cssRule(deckStyles, ".markReceipt button"), /min-height:\s*2\.75rem/);
+  assert.match(cssRule(deckStyles, ".stats dt"), /12px/);
   assert.match(deckStyles, /\.card\[data-subject="chat-integration"\][^{]*\{[^}]*--card-accent:\s*#486750/);
   assert.match(deckStyles, /\.card\[data-subject="harness-engineering"\][^{]*\{[^}]*--card-accent:\s*#85643c/);
-  assert.match(pageStyles, /@media \(max-width: 650px\)[\s\S]*?padding:\s*1rem 0 0\.9rem/);
+  assert.match(pageStyles, /@media \(max-width: 650px\)[\s\S]*?padding:\s*0\.7rem 0 0\.65rem/);
+  assert.match(pageStyles, /@media \(max-width: 430px\) and \(max-height: 700px\)[\s\S]*?clip-path:\s*inset\(50%\)/);
   assert.match(cssRule(pageStyles, ".header > a"), /min-height:\s*2\.75rem/);
   assert.doesNotMatch(responsiveStyles, /\.site-header nav\.course-primary-nav\s*\{[^}]*grid-template-columns:\s*repeat\(6, minmax\(0, 1fr\)\)/);
 });

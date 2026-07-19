@@ -25,7 +25,7 @@ export default function CourseCatalogPage() {
           <div>
             <span>Review library</span>
             <h2>Make the ideas stick.</h2>
-            <p>Filter by subject, search any concept, and mark success or failure. Your progress stays on this device.</p>
+            <p>Filter by subject, search any concept, then mark each card Got it or Needs work. Your progress stays on this device.</p>
           </div>
           <strong>Study flash cards <span aria-hidden="true">→</span></strong>
         </Link>

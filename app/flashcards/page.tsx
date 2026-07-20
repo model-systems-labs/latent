@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { FlashcardDeck } from "../components/FlashcardDeck";
 import { flashcards } from "../content/flashcards";
+import { PageAtmosphere } from "../components/PageAtmosphere";
 import styles from "./page.module.css";
 
 export const metadata: Metadata = {
@@ -13,11 +14,7 @@ export const metadata: Metadata = {
 export default function FlashcardsPage() {
   return (
     <main>
-      <div className="page-atmosphere" aria-hidden="true">
-        <span className="orbit orbit-one" />
-        <span className="node node-one" />
-        <span className="warm-star" />
-      </div>
+      <PageAtmosphere />
 
       <header className={`site-header course-header ${styles.header}`}>
         <Link className="wordmark" href="/"><i />latent</Link>

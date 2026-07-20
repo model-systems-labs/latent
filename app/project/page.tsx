@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ProjectStructureMap } from "../components/ProjectStructureMap";
 import { ProjectTimeline } from "../components/ProjectTimeline";
 import { LearningDataPanel } from "../components/LearningDataPanel";
+import { PageAtmosphere } from "../components/PageAtmosphere";
 
 export const metadata: Metadata = {
   title: "Project structure · Latent",
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
 export default function ProjectPage() {
   return (
     <main>
-      <div className="page-atmosphere" aria-hidden="true"><span className="orbit orbit-one" /><span className="node node-one" /><span className="warm-star" /></div>
+      <PageAtmosphere />
       <header className="site-header course-header">
         <Link className="wordmark" href="/"><i />latent</Link>
         <nav><Link href="/courses/llm-systems">LLM Systems</Link><Link href="/workspace">IDE</Link><Link href="/capstone">Capstone</Link></nav>

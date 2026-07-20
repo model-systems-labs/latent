@@ -53,6 +53,7 @@ import { SyntaxCode } from "../features/ide/SyntaxCode";
 import { getLessonFlair } from "../lessons/lesson-flair";
 import { exerciseContractFor } from "../lessons/exercise-contracts";
 import { lessonGateProgress } from "../lessons/lesson-progress";
+import { PageAtmosphere } from "./PageAtmosphere";
 import styles from "./PaperLab.module.css";
 
 type CheckResult = { label: string; passed: boolean; detail: string; cases: readonly ExerciseCaseResult[] };
@@ -136,16 +137,6 @@ const LessonCodeEditor = lazy(async () => ({
 const LessonExperiment = lazy(async () => ({
   default: (await import("./LessonExperiment")).LessonExperiment,
 }));
-
-function Atmosphere() {
-  return (
-    <div className="page-atmosphere" aria-hidden="true">
-      <span className="orbit orbit-one" />
-      <span className="node node-one" />
-      <span className="warm-star" />
-    </div>
-  );
-}
 
 function SourceSet({ lesson }: { lesson: CourseLesson }) {
   return (
@@ -1307,7 +1298,7 @@ export function PaperLab({ lesson }: { lesson: CourseLesson }) {
   const [recoveryRevision, setRecoveryRevision] = useState(0);
   return (
     <main className={styles.lessonShell} data-flair-tone={flair?.tone}>
-      <Atmosphere />
+      <PageAtmosphere />
       <header className="site-header lesson-header">
         <Link className="wordmark" href="/" aria-label="Latent home"><i />latent</Link>
         <nav aria-label="Lesson navigation">

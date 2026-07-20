@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { coursePrograms, courseTracks, getCourseProgram } from "../../lessons/course";
 import { CourseCurriculum } from "../../components/CourseCurriculum";
+import { PageAtmosphere } from "../../components/PageAtmosphere";
 
 export function generateStaticParams() {
   return [
@@ -35,7 +36,7 @@ export default async function StandaloneCoursePage({ params }: { params: Promise
   const courseKind = program.kind === "foundation" ? "Foundation" : "Applied";
   return (
     <main>
-      <div className="page-atmosphere" aria-hidden="true"><span className="orbit orbit-one" /><span className="node node-one" /><span className="warm-star" /></div>
+      <PageAtmosphere />
       <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><Link href="/course">All courses</Link><Link href="/sources">Sources</Link></nav></header>
       <article className="course-page track-page standalone-course-page">
         <header className="course-hero track-hero catalog-track-hero">

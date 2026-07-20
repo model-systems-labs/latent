@@ -4,6 +4,7 @@ import test from "node:test";
 
 const root = new URL("../", import.meta.url);
 const paperLabUrl = new URL("app/components/PaperLab.tsx", root);
+const pageAtmosphereUrl = new URL("app/components/PageAtmosphere.tsx", root);
 const syntaxCodeUrl = new URL("app/features/ide/SyntaxCode.tsx", root);
 const codeEditorUrl = new URL("app/features/ide/CodeEditor.tsx", root);
 const learningFlowUrl = new URL("app/styles/learning-flow.css", root);
@@ -42,6 +43,15 @@ test("lessons use an editorial hierarchy instead of landing-page scale", async (
   assert.match(lessonMobile, /\.lessonShell :global\(\.answer-area\),[\s\S]*?\.lessonShell :global\(\.syntax-code\) \{ max-width:\s*100%; min-width:\s*0; \}/);
   assert.doesNotMatch(responsive.slice(0, responsive.indexOf("@media (max-width: 650px)")), /\.summary-copy\s*\{[^}]*columns:\s*2/);
   assert.doesNotMatch(paperLab, /className=\{`summary-layout/);
+});
+
+test("the fixed orbit fades out as the reader scrolls", async () => {
+  const atmosphere = await readFile(pageAtmosphereUrl, "utf8");
+  assert.match(atmosphere, /const fadeDistance = Math\.max\(window\.innerHeight \* 0\.7, 1\)/);
+  assert.match(atmosphere, /Math\.max\(0, 1 - \(window\.scrollY \/ fadeDistance\)\)/);
+  assert.match(atmosphere, /window\.requestAnimationFrame\(update\)/);
+  assert.match(atmosphere, /addEventListener\("scroll", schedule, \{ passive: true \}\)/);
+  assert.match(atmosphere, /prefers-reduced-motion: reduce[\s\S]*?reducedMotion\.matches \? 0/);
 });
 
 test("selection prompts and project history stay out of the primary reading path", async () => {

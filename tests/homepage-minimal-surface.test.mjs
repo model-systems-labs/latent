@@ -7,6 +7,7 @@ const courseCatalogCssUrl = new URL("../app/styles/course-catalog.css", import.m
 const responsiveCssUrl = new URL("../app/styles/responsive.css", import.meta.url);
 const firstRunUrl = new URL("../app/components/FirstRunExperience.tsx", import.meta.url);
 const landingPageUrl = new URL("../app/page.tsx", import.meta.url);
+const pageAtmosphereUrl = new URL("../app/components/PageAtmosphere.tsx", import.meta.url);
 const landingCssUrl = new URL("../app/page.module.css", import.meta.url);
 
 function cssRule(source, selector) {
@@ -49,15 +50,17 @@ test("the course CTA and responsive dividers do not reintroduce dark surfaces", 
 });
 
 test("the academic landing stays unboxed and reuses the established atmosphere", async () => {
-  const [page, css] = await Promise.all([
+  const [page, atmosphere, css] = await Promise.all([
     readFile(landingPageUrl, "utf8"),
+    readFile(pageAtmosphereUrl, "utf8"),
     readFile(landingCssUrl, "utf8"),
   ]);
 
-  assert.match(page, /page-atmosphere/);
-  assert.match(page, /orbit orbit-one/);
-  assert.match(page, /node node-one/);
-  assert.match(page, /warm-star/);
+  assert.match(page, /<PageAtmosphere \/>/);
+  assert.match(atmosphere, /page-atmosphere/);
+  assert.match(atmosphere, /orbit orbit-one/);
+  assert.match(atmosphere, /node node-one/);
+  assert.match(atmosphere, /warm-star/);
   assert.match(page, /href="\/course"/);
   assert.match(page, /Browser-native LLM system/);
   assert.match(page, /aria-label="System boundaries"/);

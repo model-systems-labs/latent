@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { coursePrograms } from "../lessons/course";
+import { PageAtmosphere } from "../components/PageAtmosphere";
 import styles from "./page.module.css";
 
 export const metadata: Metadata = {
@@ -14,7 +15,7 @@ export default function CourseCatalogPage() {
   const projectCourse = coursePrograms.find((program) => program.kind === "project")!;
   return (
     <main>
-      <div className="page-atmosphere" aria-hidden="true"><span className="orbit orbit-one" /><span className="node node-one" /><span className="warm-star" /></div>
+      <PageAtmosphere />
       <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><Link href="/course">Courses</Link><Link href="/flashcards" aria-label="Flash cards">Cards</Link><Link href="/sources">Sources</Link></nav></header>
       <article className={`course-page ${styles.catalogPage}`}>
         <header className={`course-hero ${styles.catalogHero}`}>

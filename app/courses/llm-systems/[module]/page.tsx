@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { courseTracks, getTrack, getTrackLessons } from "../../../lessons/course";
 import { CourseCurriculum } from "../../../components/CourseCurriculum";
 import { moduleCheckpoint } from "../../../content/llm-systems/learning";
+import { PageAtmosphere } from "../../../components/PageAtmosphere";
 
 export function generateStaticParams() {
   return courseTracks.map((track) => ({ module: track.id }));
@@ -26,7 +27,7 @@ export default async function LlmSystemsModulePage({ params }: { params: Promise
   const checkpoint = moduleCheckpoint(track.id);
   return (
     <main>
-      <div className="page-atmosphere" aria-hidden="true"><span className="orbit orbit-one" /><span className="node node-one" /><span className="warm-star" /></div>
+      <PageAtmosphere />
       <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><Link href="/courses/llm-systems">LLM Systems</Link><Link href="/project">Project</Link><Link href="/workspace">IDE</Link></nav></header>
       <article className="course-page track-page">
         <header className="course-hero track-hero catalog-track-hero">

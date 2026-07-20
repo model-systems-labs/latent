@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { courseTracks, llmSystemsCurriculum } from "../../lessons/course";
 import { FirstRunExperience } from "../../components/FirstRunExperience";
+import { PageAtmosphere } from "../../components/PageAtmosphere";
 
 export const metadata: Metadata = {
   title: "Build an LLM System in Your Browser · Latent",
@@ -11,7 +12,7 @@ export const metadata: Metadata = {
 export default function LlmSystemsCoursePage() {
   return (
     <main>
-      <div className="page-atmosphere" aria-hidden="true"><span className="orbit orbit-one" /><span className="node node-one" /><span className="warm-star" /></div>
+      <PageAtmosphere />
       <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><Link href="/course">All courses</Link><Link href="/project">Project</Link><Link href="/workspace">IDE</Link><Link href="/capstone">Capstone</Link><Link href="/sources">Sources</Link></nav></header>
       <article className="course-page full-course-page">
         <header className="course-hero full-course-hero home-course-hero">

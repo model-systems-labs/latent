@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { coursePrograms } from "../lessons/course";
+import { PageAtmosphere } from "../components/PageAtmosphere";
 
 export const metadata: Metadata = {
   title: "Sources and licenses · Latent",
@@ -41,7 +42,7 @@ const flashcardReferenceShelves = {
 export default function SourcesPage() {
   return (
     <main>
-      <div className="page-atmosphere" aria-hidden="true"><span className="orbit orbit-one" /><span className="node node-one" /><span className="warm-star" /></div>
+      <PageAtmosphere />
       <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><Link href="/course">Courses</Link><Link href="/project">Project</Link><Link href="/workspace">IDE</Link></nav></header>
       <article className="sources-page">
         <header className="sources-hero"><h1>Sources</h1><p>References, datasets, models, and software used across the four courses.</p></header>

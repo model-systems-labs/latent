@@ -73,6 +73,7 @@ function compileFailureResults(contracts: readonly ExerciseContract[], detail: s
 }
 
 export type PracticeContractRun = {
+  cases: ExerciseCaseResult[];
   results: ProjectUnitResult[];
   output: PracticeOutputChunk[];
   stdout: string;
@@ -85,7 +86,7 @@ export type PracticeOutputChunk = {
 };
 
 function failedPracticeRun(contracts: readonly ExerciseContract[], detail: string): PracticeContractRun {
-  return { results: compileFailureResults(contracts, detail), output: [], stdout: "", stderr: "" };
+  return { cases: [], results: compileFailureResults(contracts, detail), output: [], stdout: "", stderr: "" };
 }
 
 export function practiceOutput(receipt: TestReceipt): Pick<PracticeContractRun, "output" | "stdout" | "stderr"> {
@@ -193,7 +194,7 @@ export async function runPracticeContracts(input: {
     suite,
     limits: { ...DEFAULT_SANDBOX_LIMITS },
   }, { signal: input.signal });
-  return { results: aggregateReceipt(receipt, contracts), ...practiceOutput(receipt) };
+  return { cases: [...receipt.results], results: aggregateReceipt(receipt, contracts), ...practiceOutput(receipt) };
 }
 
 export async function runLessonContracts(

@@ -85,7 +85,7 @@ export type HostAssertion =
   | { id: string; label: string; kind: "length"; expected: number; path?: ValuePath }
   | { id: string; label: string; kind: "includes"; expected: JsonValue; path?: ValuePath }
   | { id: string; label: string; kind: "matches"; pattern: string; flags?: "" | "i" | "m" | "im"; path?: ValuePath }
-  | { id: string; label: string; kind: "throws"; messageIncludes?: string };
+  | { id: string; label: string; kind: "throws"; errorName?: string };
 
 export type ExerciseCase = {
   id: string;
@@ -129,6 +129,8 @@ export type ExerciseCaseResult = {
   passed: boolean;
   detail: string;
   assertions: readonly AssertionResult[];
+  /** Present on new runs; optional so older persisted receipts remain readable. */
+  observation?: InvocationObservation;
 };
 
 export type SandboxLogLevel = "debug" | "info" | "warn" | "error";

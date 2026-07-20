@@ -87,6 +87,28 @@ test("course-authored assertions cannot be forged by a learner return value", ()
   assert.equal(result.passed, false);
 });
 
+test("throws assertions accept any exception message and preserve the actual error", () => {
+  const contract = {
+    id: "throws",
+    label: "Throws",
+    cases: [{
+      id: "invalid-input",
+      label: "Rejects invalid input",
+      invoke: { modulePath: "src/main.js", exportName: "answer", args: [-1] },
+      assertions: [{ id: "raises", label: "Raise an error", kind: "throws", errorName: "ValueError" }],
+    }],
+  };
+  const observation = { status: "threw", errorName: "ValueError", message: "Any clear learner-authored explanation" };
+  const result = browserLab.evaluateExerciseCase(contract, contract.cases[0], observation);
+  assert.equal(result.passed, true);
+  assert.deepEqual(result.observation, observation);
+  assert.equal(browserLab.evaluateExerciseCase(contract, contract.cases[0], {
+    status: "threw",
+    errorName: "TypeError",
+    message: observation.message,
+  }).passed, false);
+});
+
 test("QuickJS is deterministic and has no host capabilities", async () => {
   const code = `var __browserLab_probe = (() => ({ probe: () => ({
     random: Math.random(),

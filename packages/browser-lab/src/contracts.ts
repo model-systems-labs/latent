@@ -84,10 +84,10 @@ export function validateExerciseContract(contract: ExerciseContract): void {
 export function evaluateHostAssertion(assertion: HostAssertion, observation: InvocationObservation): AssertionResult {
   if (assertion.kind === "throws") {
     if (observation.status !== "threw") return fail(assertion, `Expected the invocation to throw, but it ${observation.status}.`);
-    const passed = !assertion.messageIncludes || observation.message.includes(assertion.messageIncludes);
-    return passed
-      ? pass(assertion, assertion.messageIncludes ? `The error contained “${assertion.messageIncludes}”.` : "The invocation threw as expected.")
-      : fail(assertion, `The error did not contain “${assertion.messageIncludes}”.`);
+    if (assertion.errorName && observation.errorName !== assertion.errorName) {
+      return fail(assertion, `Expected ${assertion.errorName}, but the invocation raised ${observation.errorName}.`);
+    }
+    return pass(assertion, assertion.errorName ? `The invocation raised ${assertion.errorName}.` : "The invocation threw as expected.");
   }
   if (observation.status !== "returned") {
     const exception = observation.status === "threw" && observation.message
@@ -150,5 +150,6 @@ export function evaluateExerciseCase(contract: ExerciseContract, exerciseCase: E
     passed,
     detail: passed ? "All host-owned assertions passed." : `${assertions.filter((assertion) => !assertion.passed).length} host-owned assertion${assertions.filter((assertion) => !assertion.passed).length === 1 ? "" : "s"} failed.`,
     assertions,
+    observation,
   };
 }

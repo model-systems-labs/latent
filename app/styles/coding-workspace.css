@@ -285,6 +285,11 @@
   overscroll-behavior: contain;
 }
 
+.test-case-list {
+  display: grid;
+  gap: 0.5rem;
+}
+
 .cell-output-chunk {
   display: grid;
   gap: 0.2rem;

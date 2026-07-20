@@ -98,8 +98,8 @@ function matches(id: string, label: string, pattern: string, path?: ValuePath): 
   return { id, label, kind: "matches", pattern, path };
 }
 
-function throwsWith(id: string, label: string, messageIncludes: string): HostAssertion {
-  return { id, label, kind: "throws", messageIncludes };
+function throws(id: string, label: string): HostAssertion {
+  return { id, label, kind: "throws" };
 }
 
 const negativeInfinity = { $number: "-Infinity" } as const;
@@ -890,7 +890,7 @@ export const llmSystemsExerciseContracts: readonly ExerciseContract[] = [
         id: "injected-event-name",
         label: "Rejects an event name that could inject another field",
         args: ["token\ndata: {\"forged\":true}", { delta: "safe" }],
-        assertions: [throwsWith("unsafe-event-name", "Reject event names containing CR or LF before serializing", "event name")],
+        assertions: [throws("unsafe-event-name", "Reject event names containing CR or LF before serializing")],
       },
     ],
   }),

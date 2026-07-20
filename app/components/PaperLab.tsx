@@ -3,6 +3,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { CodeBlock, CourseLesson } from "@latent/course-kit";
+import type { ExerciseCase, ExerciseCaseResult, ExerciseContract, HostAssertion, JsonValue } from "@latent/browser-lab";
 import { allRoutedLessons, getLessonCourseHref, getLessonProjectPath } from "../lessons/course";
 import {
   discardLearnerRecoveryCandidate,
@@ -54,8 +55,79 @@ import { exerciseContractFor } from "../lessons/exercise-contracts";
 import { lessonGateProgress } from "../lessons/lesson-progress";
 import styles from "./PaperLab.module.css";
 
-type CheckResult = { label: string; passed: boolean; detail: string };
+type CheckResult = { label: string; passed: boolean; detail: string; cases: readonly ExerciseCaseResult[] };
 type CellExecutionOutput = Pick<PracticeContractRun, "output" | "stdout" | "stderr">;
+
+function formatPracticeValue(value: JsonValue): string {
+  if (value && !Array.isArray(value) && typeof value === "object" && Object.keys(value).length === 1 && "$number" in value) {
+    return String(value.$number);
+  }
+  return JSON.stringify(value);
+}
+
+function formatPracticePath(assertion: HostAssertion): string {
+  if (!("path" in assertion) || !assertion.path?.length) return "return value";
+  return `return value${assertion.path.map((part) => typeof part === "number" ? `[${part}]` : `.${part}`).join("")}`;
+}
+
+function formatPracticeExpectation(assertion: HostAssertion): string {
+  const path = formatPracticePath(assertion);
+  switch (assertion.kind) {
+    case "deep-equal": return `${path} = ${formatPracticeValue(assertion.expected)}`;
+    case "type": return `${path} is ${assertion.expected}`;
+    case "truthy": return `${path} is truthy`;
+    case "finite": return `${path} is a finite number`;
+    case "range": return `${path} is from ${assertion.minimum} to ${assertion.maximum}`;
+    case "length": return `${path} has length ${assertion.expected}`;
+    case "includes": return `${path} includes ${formatPracticeValue(assertion.expected)}`;
+    case "matches": return `${path} matches /${assertion.pattern}/${assertion.flags ?? ""}`;
+    case "throws": return `${assertion.errorName ?? "an error"} is raised`;
+  }
+}
+
+function formatPracticeCall(exerciseCase: ExerciseCase): string {
+  return `${exerciseCase.invoke.exportName}(${exerciseCase.invoke.args.map(formatPracticeValue).join(", ")})`;
+}
+
+function practiceObservation(result: ExerciseCaseResult, exerciseCase: ExerciseCase | undefined) {
+  const observation = result.observation;
+  if (!observation) return { label: "Actual", value: result.detail };
+  if (observation.status === "returned") return { label: "Actual", value: formatPracticeValue(observation.value) };
+  if (observation.status === "threw") {
+    const expected = exerciseCase?.assertions.some((assertion) => assertion.kind === "throws");
+    return {
+      label: expected && result.passed ? "Raised" : "Error",
+      value: `${observation.errorName}${observation.message ? `: ${observation.message}` : ""}`,
+    };
+  }
+  return { label: "Error", value: observation.message };
+}
+
+function TestCaseResults({ contract, results }: { contract: ExerciseContract | undefined; results: readonly ExerciseCaseResult[] }) {
+  if (!results.length) return null;
+  return (
+    <section className="cell-output test-case-results" aria-label={`${contract?.label ?? "Exercise"} test cases`}>
+      <span>Test cases</span>
+      <div className="cell-output-streams test-case-list">
+        {results.map((result) => {
+          const exerciseCase = contract?.cases.find((candidate) => candidate.id === result.caseId);
+          const actual = practiceObservation(result, exerciseCase);
+          return (
+            <output className={`cell-result ${result.passed ? "passed" : "failed"}`} key={result.caseId}>
+              <i aria-hidden="true">{result.passed ? "✓" : "!"}</i>
+              <span>
+                <strong>{result.caseLabel}</strong>
+                {exerciseCase ? <small><b>Test</b> <code>{formatPracticeCall(exerciseCase)}</code></small> : null}
+                {exerciseCase ? <small><b>Expected</b> <code>{exerciseCase.assertions.map(formatPracticeExpectation).join("; ")}</code></small> : null}
+                <small><b>{actual.label}</b> <code>{actual.value}</code></small>
+              </span>
+            </output>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
 
 const LessonCodeEditor = lazy(async () => ({
   default: (await import("../features/ide/CodeEditor")).CodeEditor,
@@ -794,7 +866,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
         if (!signal.aborted && event.type === "progress") setPracticeMessage(event.message);
       },
     });
-    return { results: run.results, output: run.output, stdout: run.stdout, stderr: run.stderr };
+    return { cases: run.cases, results: run.results, output: run.output, stdout: run.stdout, stderr: run.stderr };
   };
   const practiceDraftState = () => ({
     hiddenBlocks: [...hiddenBlocksRef.current],
@@ -853,7 +925,10 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
       );
       const [result] = execution.results;
       controller.signal.throwIfAborted();
-      const check = result ?? { label: block.label, passed: false, detail: "The isolated test didn’t return a result." };
+      const contractId = `${lesson.id}/${block.id}`;
+      const check: CheckResult = result
+        ? { ...result, cases: execution.cases.filter((exerciseCase) => exerciseCase.contractId === contractId) }
+        : { label: block.label, passed: false, detail: "The isolated test didn’t return a result.", cases: [] };
       if (sourceFor(block) !== sourceSnapshot) {
         setCellResults((current) => ({ ...current, [block.id]: undefined }));
         setCellOutputs((current) => ({ ...current, [block.id]: undefined }));
@@ -891,7 +966,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
       });
     } catch (error) {
       if (controller.signal.aborted) return;
-      const check = { label: block.label, passed: false, detail: error instanceof Error ? error.message : "The isolated test failed." };
+      const check: CheckResult = { label: block.label, passed: false, detail: error instanceof Error ? error.message : "The isolated test failed.", cases: [] };
       setCellResults((current) => ({ ...current, [block.id]: check }));
       setCellOutputs((current) => ({ ...current, [block.id]: { output: [], stdout: "", stderr: "" } }));
       setPracticeMessage(`${block.label} stopped safely.`);
@@ -944,7 +1019,11 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
       }
       const results = combinedExecution.results;
       const resultById = new Map(results.map((result) => [result.id, result]));
-      const ordered = blocks.map((block) => resultById.get(`${lesson.id}/${block.id}`) ?? { id: `${lesson.id}/${block.id}`, path: projectPath, label: block.label, passed: false, detail: "The isolated test didn’t return a result." });
+      const ordered = blocks.map((block) => {
+        const contractId = `${lesson.id}/${block.id}`;
+        const result = resultById.get(contractId) ?? { id: contractId, path: projectPath, label: block.label, passed: false, detail: "The isolated test didn’t return a result." };
+        return { ...result, cases: combinedExecution.cases.filter((exerciseCase) => exerciseCase.contractId === contractId) };
+      });
       if (blocks.some((block) => sourceFor(block) !== sourceSnapshots[block.id])) {
         setCellResults({});
         setCellOutputs({});
@@ -1014,6 +1093,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
         label: block.label,
         passed: false,
         detail: `Run all did not finish: ${detail}`,
+        cases: [],
       }])));
       setCellOutputs({});
       setPracticeMessage(detail);
@@ -1056,6 +1136,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
               return line + previousSource.split("\n").length + 1;
             }, implementationPrelude ? 3 : 1);
             const result = cellResults[block.id];
+            const contract = contractSuite.contracts.find((candidate) => candidate.id === `${lesson.id}/${block.id}`);
             const executionOutput = cellOutputs[block.id];
             const resetArmed = pendingResetBlockId === block.id;
             const blockRunning = runningBlockIds.includes(block.id);
@@ -1118,6 +1199,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
                         </div>
                       </div>
                     ) : null}
+                    {result?.cases.length ? <TestCaseResults contract={contract} results={result.cases} /> : null}
                     <div className="exercise-feedback">
                       <div className={`cell-footer cell-feedback ${result || verified ? "" : "is-idle"}`} role="status" aria-label={`${block.label} check status`} aria-live="polite" aria-atomic="true">
                         {result ? (

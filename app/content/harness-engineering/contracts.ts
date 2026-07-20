@@ -74,8 +74,8 @@ function range(
   return { id, label, kind: "range", minimum, maximum, path };
 }
 
-function throwsWith(id: string, label: string, messageIncludes: string): HostAssertion {
-  return { id, label, kind: "throws", messageIncludes };
+function throws(id: string, label: string): HostAssertion {
+  return { id, label, kind: "throws", errorName: "ValueError" };
 }
 
 const readFileCall = {
@@ -142,11 +142,7 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
         ["read_file"],
       ],
       assertions: [
-        throwsWith(
-          "one-action",
-          "Require exactly one final response or tool call",
-          "exactly one final or tool_call",
-        ),
+        throws("one-action", "Require exactly one final response or tool call"),
       ],
     },
     {
@@ -157,7 +153,7 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
         ["read_file", "run_tests"],
       ],
       assertions: [
-        throwsWith("known-tool-only", "Do not dispatch an unavailable tool", "unknown tool"),
+        throws("known-tool-only", "Do not dispatch an unavailable tool"),
       ],
     },
   ]),
@@ -190,7 +186,7 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
       label: "Rejects an observation without a matching call",
       args: [[readFileCall], "c9", "orphaned", false],
       assertions: [
-        throwsWith("matching-call", "Require one matching assistant tool call", "one matching call"),
+        throws("matching-call", "Require one matching assistant tool call"),
       ],
     },
     {
@@ -201,7 +197,7 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
         { role: "tool", call_id: "c1", content: "first", is_error: false },
       ], "c1", "second", false],
       assertions: [
-        throwsWith("one-result", "Do not resolve the same call twice", "already has a result"),
+        throws("one-result", "Do not resolve the same call twice"),
       ],
     },
   ]),
@@ -226,7 +222,7 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
         { required: { path: "str" }, optional: { line: "int" }, allow_extra: false },
       ],
       assertions: [
-        throwsWith("required-path", "Name the missing required argument", "missing required argument: path"),
+        throws("required-path", "Name the missing required argument"),
       ],
     },
     {
@@ -237,7 +233,7 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
         { required: { line: "int" }, optional: {}, allow_extra: false },
       ],
       assertions: [
-        throwsWith("exact-type", "Apply the declared type exactly", "line must have type int"),
+        throws("exact-type", "Apply the declared type exactly"),
       ],
     },
     {
@@ -248,7 +244,7 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
         { required: { path: "str" }, optional: {}, allow_extra: false },
       ],
       assertions: [
-        throwsWith("closed-schema", "Keep undeclared fields outside the tool boundary", "unexpected argument: recursive"),
+        throws("closed-schema", "Keep undeclared fields outside the tool boundary"),
       ],
     },
     {
@@ -259,7 +255,7 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
         { required: { path: "str" }, optional: { mode: "enum" }, allow_extra: false },
       ],
       assertions: [
-        throwsWith("validate-whole-schema", "Validate the entire tool schema before accepting arguments", "unsupported schema type for mode"),
+        throws("validate-whole-schema", "Validate the entire tool schema before accepting arguments"),
       ],
     },
     {
@@ -270,7 +266,7 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
         { required: { path: "str" }, optional: { path: "int" }, allow_extra: false },
       ],
       assertions: [
-        throwsWith("one-field-role", "Give each declared field one unambiguous role", "both required and optional"),
+        throws("one-field-role", "Give each declared field one unambiguous role"),
       ],
     },
   ]),
@@ -310,7 +306,7 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
       label: "Rejects a page that exceeds the tool boundary",
       args: [["a", "b"], 0, 51],
       assertions: [
-        throwsWith("bounded-limit", "Keep the limit between one and fifty", "between 1 and 50"),
+        throws("bounded-limit", "Keep the limit between one and fifty"),
       ],
     },
   ]),
@@ -360,7 +356,7 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
       label: "Rejects a budget smaller than required context",
       args: [[{ id: "rules", tokens: 10, priority: 100 }], 9, ["rules"]],
       assertions: [
-        throwsWith("required-fits", "Do not silently drop required context", "required context exceeds budget"),
+        throws("required-fits", "Do not silently drop required context"),
       ],
     },
   ]),
@@ -405,7 +401,7 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
       label: "Rejects a negative recent-result count",
       args: [[], -1, 4],
       assertions: [
-        throwsWith("nonnegative-recent", "Require a non-negative keep_recent value", "keep_recent must be non-negative"),
+        throws("nonnegative-recent", "Require a non-negative keep_recent value"),
       ],
     },
   ]),
@@ -432,7 +428,7 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
       label: "Rejects an absolute requested path",
       args: ["/workspace", "/etc/passwd"],
       assertions: [
-        throwsWith("relative-request", "Require requested paths to be relative", "requested path must be relative"),
+        throws("relative-request", "Require requested paths to be relative"),
       ],
     },
     {
@@ -440,7 +436,7 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
       label: "Rejects traversal beyond the workspace",
       args: ["/workspace", "../workspace-old/secret.txt"],
       assertions: [
-        throwsWith("workspace-containment", "Do not confuse a shared prefix with workspace containment", "outside the workspace"),
+        throws("workspace-containment", "Do not confuse a shared prefix with workspace containment"),
       ],
     },
     {
@@ -448,7 +444,7 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
       label: "Rejects a relative workspace root",
       args: ["workspace", "src/app.py"],
       assertions: [
-        throwsWith("absolute-root", "Require an absolute host-owned workspace root", "root must be an absolute path"),
+        throws("absolute-root", "Require an absolute host-owned workspace root"),
       ],
     },
   ]),
@@ -525,7 +521,7 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
         [{ id: "empty-read", kind: "read", target_prefix: "", decision: "allow" }],
       ],
       assertions: [
-        throwsWith("explicit-prefix", "Do not turn an empty prefix into a root-wide rule", "target_prefix must be non-empty"),
+        throws("explicit-prefix", "Do not turn an empty prefix into a root-wide rule"),
       ],
     },
   ]),
@@ -589,7 +585,7 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
         { id: "e10", kind: "checkpoint", summary: "too late" },
       ],
       assertions: [
-        throwsWith("terminal-boundary", "Do not change a completed run with a new event", "after terminal status"),
+        throws("terminal-boundary", "Do not change a completed run with a new event"),
       ],
     },
   ]),
@@ -641,7 +637,7 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
       label: "Rejects completion for an unplanned call",
       args: [[{ id: "e1", kind: "tool_completed", call_id: "c9" }], ["c1"]],
       assertions: [
-        throwsWith("planned-call", "Do not accept side effects outside the run plan", "not in the plan"),
+        throws("planned-call", "Do not accept side effects outside the run plan"),
       ],
     },
     {
@@ -652,7 +648,7 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
         { id: "e2", kind: "checkpoint", summary: "late" },
       ], []],
       assertions: [
-        throwsWith("terminal-log", "Require terminal events to end the durable log", "continues after terminal status"),
+        throws("terminal-log", "Require terminal events to end the durable log"),
       ],
     },
   ]),
@@ -724,7 +720,7 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
       label: "Rejects a grader operation it does not implement",
       args: [{ score: 1 }, [{ field: "score", op: "approximately", value: 1 }]],
       assertions: [
-        throwsWith("known-grader", "Require a supported deterministic operation", "supported operation"),
+        throws("known-grader", "Require a supported deterministic operation"),
       ],
     },
   ]),
@@ -773,7 +769,7 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
       label: "Rejects an empty trial set",
       args: [[], 2],
       assertions: [
-        throwsWith("observed-trial", "Require at least one observed trial", "non-empty list"),
+        throws("observed-trial", "Require at least one observed trial"),
       ],
     },
     {
@@ -781,7 +777,7 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
       label: "Rejects k larger than the observed trial set",
       args: [[true, false], 3],
       assertions: [
-        throwsWith("finite-sample", "Keep the draw inside the finite trial set", "cannot exceed"),
+        throws("finite-sample", "Keep the draw inside the finite trial set"),
       ],
     },
   ]),
@@ -819,7 +815,7 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
       label: "Rejects a task whose dependency is absent",
       args: [[{ id: "verify", depends_on: ["implement"] }]],
       assertions: [
-        throwsWith("complete-graph", "Require every dependency to be declared", "missing dependency"),
+        throws("complete-graph", "Require every dependency to be declared"),
       ],
     },
     {
@@ -830,7 +826,7 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
         { id: "b", depends_on: ["a"] },
       ]],
       assertions: [
-        throwsWith("acyclic-graph", "Do not schedule a graph with no ready task", "contains a cycle"),
+        throws("acyclic-graph", "Do not schedule a graph with no ready task"),
       ],
     },
   ]),
@@ -857,7 +853,7 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
       label: "Rejects an incomplete worker result set",
       args: [["inspect", "research"], [{ task_id: "inspect", status: "ok" }]],
       assertions: [
-        throwsWith("one-per-task", "Name the task whose worker result is missing", "missing worker result: research"),
+        throws("one-per-task", "Name the task whose worker result is missing"),
       ],
     },
     {
@@ -868,7 +864,7 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
         { task_id: "inspect", status: "error" },
       ]],
       assertions: [
-        throwsWith("unique-result", "Accept exactly one result per task", "duplicate worker result"),
+        throws("unique-result", "Accept exactly one result per task"),
       ],
     },
     {
@@ -879,7 +875,7 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
         { task_id: "extra", status: "ok" },
       ]],
       assertions: [
-        throwsWith("declared-results", "Do not collect output outside the assignment set", "unexpected worker result"),
+        throws("declared-results", "Do not collect output outside the assignment set"),
       ],
     },
   ]),
@@ -1012,7 +1008,7 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
         2,
       ],
       assertions: [
-        throwsWith("recorded-adapter", "Use the deterministic adapter in this browser lab", "model adapter must be recorded"),
+        throws("recorded-adapter", "Use the deterministic adapter in this browser lab"),
       ],
     },
     {
@@ -1026,7 +1022,7 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
         1,
       ],
       assertions: [
-        throwsWith("registered-tool", "Dispatch only a registered tool adapter", "unknown tool"),
+        throws("registered-tool", "Dispatch only a registered tool adapter"),
       ],
     },
     {
@@ -1043,7 +1039,7 @@ export const harnessEngineeringExerciseContracts: readonly ExerciseContract[] = 
         2,
       ],
       assertions: [
-        throwsWith("unique-call-id", "Keep call-result pairing unambiguous", "unique non-empty text"),
+        throws("unique-call-id", "Keep call-result pairing unambiguous"),
       ],
     },
   ]),

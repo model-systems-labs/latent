@@ -18,7 +18,7 @@ export type CompatiblePracticeDrafts = {
   ignoredLegacyLanguage: boolean;
 };
 
-type PracticeSourceBlock = Pick<CodeBlock, "id" | "code" | "label">;
+type PracticeSourceBlock = Pick<CodeBlock, "id" | "code" | "label" | "starterCode">;
 
 const JAVASCRIPT_DRAFT_MARKERS = [
   /\bfunction\s+[A-Za-z_$]/,
@@ -39,7 +39,8 @@ export function practiceDraftIsCompatible(filename: string, source: string): boo
  * saved draft. This is shared state policy, not presentation: lesson pages and
  * the canonical project must resolve an untouched cell to the same bytes.
  */
-export function starterPracticeSource(filename: string, block: Pick<CodeBlock, "code" | "label">): string {
+export function starterPracticeSource(filename: string, block: Pick<CodeBlock, "code" | "label" | "starterCode">): string {
+  if (block.starterCode) return block.starterCode;
   if (filename.toLowerCase().endsWith(".py")) {
     const lines = block.code.split("\n");
     const postludeIndex = lines.findIndex((line) => line === PROVIDED_PYTHON_STARTER_POSTLUDE);
@@ -61,7 +62,7 @@ export function starterPracticeSource(filename: string, block: Pick<CodeBlock, "
 
 /** Compatibility-shaped entrypoint for lesson components. */
 export function starterCodeFor(
-  block: Pick<CodeBlock, "code" | "label">,
+  block: Pick<CodeBlock, "code" | "label" | "starterCode">,
   lesson: { implementation: { filename: string } },
 ) {
   return starterPracticeSource(lesson.implementation.filename, block);

@@ -64,7 +64,7 @@ export const arraysAndShapesLesson = defineFoundationLesson({
   summary: [
     {
       label: "Arrays store numbers.",
-      body: "A scalar holds one number. A vector is one ordered row of numbers. A matrix arranges numbers in rows and columns. NumPy represents all three with arrays.",
+      body: "A scalar holds one number. A vector is one ordered list of numbers. A matrix is a list of equal-length rows. Array libraries can store all three, but their structure can be understood with ordinary Python first.",
     },
     {
       label: "Shape names the axes.",
@@ -98,27 +98,47 @@ export const arraysAndShapesLesson = defineFoundationLesson({
   },
   implementation: {
     filename: "arrays-and-shapes.py",
-    intro: "Describe an array, then reshape a flat list without changing its values.",
-    tensorOps: ["numpy", "np.asarray", "ndim", "shape", "size", "reshape", "tolist"],
+    intro: "Build shape information from nested lists, then rearrange values by calculating row boundaries yourself.",
+    tensorOps: ["Python", "lists", "isinstance", "slicing"],
     codeBlocks: [
       {
         id: "describe-array",
         label: "Describe an array",
         purpose: "Return the rank, shape, and total number of values in an array.",
         concepts: [
-          { name: "ndim", detail: "The number of axes in the array." },
-          { name: "shape", detail: "The length of each axis, in order." },
-          { name: "size", detail: "The total number of stored values." },
+          { name: "classify", detail: "A number has no axes, a flat list has one, and a list of equal-length rows has two." },
+          { name: "shape", detail: "For a matrix, count the outer rows first and the values in one row second." },
+          { name: "size", detail: "Multiply the axis lengths; a scalar is the special one-value case." },
         ],
-        code: `import numpy as np
+        starterCode: `def describe_array(values):
+    # First decide whether values is a scalar, vector, or matrix.
+    if not isinstance(values, (list, tuple)):
+        shape = []
+    elif not values or not isinstance(values[0], (list, tuple)):
+        shape = [len(values)]
+    else:
+        row_width = len(values[0])
+        if any(not isinstance(row, (list, tuple)) or len(row) != row_width for row in values):
+            raise ValueError("matrix rows must have the same length")
+        shape = [len(values), row_width]
 
-def describe_array(values):
-    array = np.asarray(values)
-    return {
-        "rank": int(array.ndim),
-        "shape": [int(length) for length in array.shape],
-        "size": int(array.size),
-    }`,
+    # TODO: derive rank and size from shape, then return all three fields.
+    raise NotImplementedError("Return rank, shape, and size")`,
+        code: `def describe_array(values):
+    if not isinstance(values, (list, tuple)):
+        shape = []
+    elif not values or not isinstance(values[0], (list, tuple)):
+        shape = [len(values)]
+    else:
+        row_width = len(values[0])
+        if any(not isinstance(row, (list, tuple)) or len(row) != row_width for row in values):
+            raise ValueError("matrix rows must have the same length")
+        shape = [len(values), row_width]
+
+    size = 1
+    for axis_length in shape:
+        size *= axis_length
+    return {"rank": len(shape), "shape": shape, "size": size}`,
         checkCode: `description = describe_array([[1, 2, 3], [4, 5, 6]])
 RESULT = {
     "passed": description == {"rank": 2, "shape": [2, 3], "size": 6},
@@ -130,29 +150,39 @@ RESULT = {
         label: "Reshape an array",
         purpose: "Arrange the same values into a new valid shape.",
         concepts: [
-          { name: "requested shape", detail: "A list containing the length of each new axis." },
-          { name: "value count", detail: "The old and new shapes must contain the same number of entries." },
-          { name: "tolist", detail: "Turns the NumPy result back into regular nested Python lists." },
+          { name: "rows × columns", detail: "The requested two-dimensional shape says how many rows to make and how many values go in each row." },
+          { name: "value count", detail: "rows multiplied by columns must equal the number of input values." },
+          { name: "slicing", detail: "Row r starts at r × columns and stops columns positions later." },
         ],
-        code: `import numpy as np
-
-def reshape_array(values, shape):
-    array = np.asarray(values)
-    if (
-        not isinstance(shape, (list, tuple))
-        or not shape
-        or any(type(length) is not int or length <= 0 for length in shape)
-    ):
-        raise ValueError("shape must contain positive integers")
-    requested = tuple(shape)
-    requested_size = int(np.prod(requested))
-    if requested_size != int(array.size):
+        starterCode: `def reshape_array(values, shape):
+    if len(shape) != 2 or any(type(length) is not int or length <= 0 for length in shape):
+        raise ValueError("shape must be [positive rows, positive columns]")
+    rows, columns = shape
+    if rows * columns != len(values):
         raise ValueError("shape must preserve the number of values")
-    return array.reshape(requested).tolist()`,
+
+    reshaped = []
+    for row_index in range(rows):
+        start = row_index * columns
+        # TODO: append the columns values beginning at start.
+        raise NotImplementedError("Build each row from the flat input")
+    return reshaped`,
+        code: `def reshape_array(values, shape):
+    if len(shape) != 2 or any(type(length) is not int or length <= 0 for length in shape):
+        raise ValueError("shape must be [positive rows, positive columns]")
+    rows, columns = shape
+    if rows * columns != len(values):
+        raise ValueError("shape must preserve the number of values")
+
+    reshaped = []
+    for row_index in range(rows):
+        start = row_index * columns
+        reshaped.append(list(values[start:start + columns]))
+    return reshaped`,
         checkCode: `reshaped = reshape_array([1, 2, 3, 4, 5, 6], [2, 3])
 RESULT = {
     "passed": reshaped == [[1, 2, 3], [4, 5, 6]],
-    "detail": f"shape = {np.asarray(reshaped).shape}",
+    "detail": f"shape = ({len(reshaped)}, {len(reshaped[0])})",
 }`,
       },
     ],
@@ -210,28 +240,35 @@ export const vectorOperationsLesson = defineFoundationLesson({
   },
   implementation: {
     filename: "vector-operations.py",
-    intro: "Add equal-length vectors and compute the L2 length of a vector.",
-    tensorOps: ["numpy", "np.asarray", "np.sum", "np.sqrt", "tolist"],
+    intro: "Use an index to combine matching coordinates, then use an accumulator to measure vector length.",
+    tensorOps: ["Python", "lists", "loops", "math.sqrt"],
     codeBlocks: [
       {
         id: "add-vectors",
         label: "Add vectors",
         purpose: "Add two vectors one coordinate at a time.",
         concepts: [
-          { name: "left and right", detail: "Two one-dimensional arrays with the same length." },
-          { name: "shape check", detail: "Stops the operation when coordinates do not line up." },
-          { name: "result", detail: "One sum for every matching pair of coordinates." },
+          { name: "same index", detail: "Coordinate i in the result comes from left[i] + right[i]." },
+          { name: "length check", detail: "Equal lengths guarantee every coordinate has a matching partner." },
+          { name: "result list", detail: "Append one sum during each pass through the loop." },
         ],
-        code: `import numpy as np
+        starterCode: `def add_vectors(left, right):
+    if len(left) != len(right):
+        raise ValueError("vectors must have the same length")
 
-def add_vectors(left, right):
-    left_values = np.asarray(left, dtype=float)
-    right_values = np.asarray(right, dtype=float)
-    if left_values.ndim != 1 or right_values.ndim != 1:
-        raise ValueError("add_vectors needs two vectors")
-    if left_values.shape != right_values.shape:
-        raise ValueError("vectors must have the same shape")
-    return (left_values + right_values).tolist()`,
+    result = []
+    for index in range(len(left)):
+        # TODO: add the two coordinates at index and append the sum.
+        raise NotImplementedError("Add one pair of coordinates")
+    return result`,
+        code: `def add_vectors(left, right):
+    if len(left) != len(right):
+        raise ValueError("vectors must have the same length")
+
+    result = []
+    for index in range(len(left)):
+        result.append(float(left[index]) + float(right[index]))
+    return result`,
         checkCode: `total = add_vectors([1, 2, 3], [4, -2, 0])
 RESULT = {
     "passed": total == [5, 0, 3],
@@ -243,17 +280,25 @@ RESULT = {
         label: "Vector length",
         purpose: "Compute a vector's L2 norm from the sum of its squared coordinates.",
         concepts: [
+          { name: "accumulator", detail: "Start at zero and add coordinate × coordinate on every pass." },
           { name: "squares", detail: "Negative and positive coordinates both contribute positive amounts." },
-          { name: "sum", detail: "Combines every squared coordinate into one value." },
-          { name: "square root", detail: "Turns the sum of squares into the vector's length." },
+          { name: "square root", detail: "Apply sqrt only after every squared coordinate has been added." },
         ],
-        code: `import numpy as np
+        starterCode: `from math import sqrt
 
 def l2_norm(vector):
-    values = np.asarray(vector, dtype=float)
-    if values.ndim != 1:
-        raise ValueError("l2_norm needs a vector")
-    return float(np.sqrt(np.sum(values * values)))`,
+    squared_total = 0.0
+    for coordinate in vector:
+        # TODO: add this coordinate's square to squared_total.
+        raise NotImplementedError("Accumulate squared coordinates")
+    return sqrt(squared_total)`,
+        code: `from math import sqrt
+
+def l2_norm(vector):
+    squared_total = 0.0
+    for coordinate in vector:
+        squared_total += float(coordinate) * float(coordinate)
+    return sqrt(squared_total)`,
         checkCode: `length = l2_norm([3, 4])
 RESULT = {
     "passed": abs(length - 5) < 1e-9,
@@ -315,28 +360,35 @@ export const dotProductsLesson = defineFoundationLesson({
   },
   implementation: {
     filename: "dot-products.py",
-    intro: "Compute a dot product, then normalize it into cosine similarity.",
-    tensorOps: ["numpy", "np.asarray", "np.sum", "np.sqrt"],
+    intro: "Write the multiply-then-add loop directly, then reuse the same three accumulators to compare direction.",
+    tensorOps: ["Python", "lists", "loops", "math.sqrt"],
     codeBlocks: [
       {
         id: "dot-product",
         label: "Dot product",
         purpose: "Multiply matching coordinates and add them into one number.",
         concepts: [
-          { name: "matching coordinates", detail: "Both vectors need the same one-dimensional shape." },
-          { name: "elementwise product", detail: "Multiplies each coordinate by the coordinate in the same position." },
-          { name: "sum", detail: "Combines those products into one scalar." },
+          { name: "index", detail: "Use one index to read the matching coordinate from both vectors." },
+          { name: "product", detail: "At index i, calculate left[i] × right[i]." },
+          { name: "running total", detail: "Add each product to one accumulator; after the loop, that scalar is the dot product." },
         ],
-        code: `import numpy as np
+        starterCode: `def dot_product(left, right):
+    if len(left) != len(right):
+        raise ValueError("vectors must have the same length")
 
-def dot_product(left, right):
-    left_values = np.asarray(left, dtype=float)
-    right_values = np.asarray(right, dtype=float)
-    if left_values.ndim != 1 or right_values.ndim != 1:
-        raise ValueError("dot_product needs two vectors")
-    if left_values.shape != right_values.shape:
-        raise ValueError("vectors must have the same shape")
-    return float(np.sum(left_values * right_values))`,
+    total = 0.0
+    for index in range(len(left)):
+        # TODO: multiply the matching coordinates and add the product to total.
+        raise NotImplementedError("Accumulate one coordinate product")
+    return total`,
+        code: `def dot_product(left, right):
+    if len(left) != len(right):
+        raise ValueError("vectors must have the same length")
+
+    total = 0.0
+    for index in range(len(left)):
+        total += float(left[index]) * float(right[index])
+    return total`,
         checkCode: `value = dot_product([1, 2, 3], [4, -1, 2])
 RESULT = {
     "passed": abs(value - 8) < 1e-9,
@@ -348,24 +400,48 @@ RESULT = {
         label: "Cosine similarity",
         purpose: "Compare vector direction after dividing out both vector lengths.",
         concepts: [
-          { name: "numerator", detail: "The dot product of the two vectors." },
-          { name: "denominator", detail: "The first length multiplied by the second length." },
+          { name: "one pass", detail: "Each coordinate pair contributes to the dot product and to both squared lengths." },
+          { name: "denominator", detail: "Take both square roots, then multiply the two lengths." },
           { name: "zero vector", detail: "A vector with no length has no direction, so cosine is undefined." },
         ],
-        code: `import numpy as np
+        starterCode: `from math import sqrt
 
 def cosine_similarity(left, right):
-    left_values = np.asarray(left, dtype=float)
-    right_values = np.asarray(right, dtype=float)
-    if left_values.ndim != 1 or right_values.ndim != 1:
-        raise ValueError("cosine_similarity needs two vectors")
-    if left_values.shape != right_values.shape:
-        raise ValueError("vectors must have the same shape")
-    left_length = float(np.sqrt(np.sum(left_values * left_values)))
-    right_length = float(np.sqrt(np.sum(right_values * right_values)))
+    if len(left) != len(right):
+        raise ValueError("vectors must have the same length")
+
+    dot = 0.0
+    left_squared = 0.0
+    right_squared = 0.0
+    for index in range(len(left)):
+        # TODO: update all three accumulators from this coordinate pair.
+        raise NotImplementedError("Accumulate dot product and squared lengths")
+
+    left_length = sqrt(left_squared)
+    right_length = sqrt(right_squared)
     if left_length == 0 or right_length == 0:
         raise ValueError("cosine similarity needs nonzero vectors")
-    dot = float(np.sum(left_values * right_values))
+    return dot / (left_length * right_length)`,
+        code: `from math import sqrt
+
+def cosine_similarity(left, right):
+    if len(left) != len(right):
+        raise ValueError("vectors must have the same length")
+
+    dot = 0.0
+    left_squared = 0.0
+    right_squared = 0.0
+    for index in range(len(left)):
+        left_coordinate = float(left[index])
+        right_coordinate = float(right[index])
+        dot += left_coordinate * right_coordinate
+        left_squared += left_coordinate * left_coordinate
+        right_squared += right_coordinate * right_coordinate
+
+    left_length = sqrt(left_squared)
+    right_length = sqrt(right_squared)
+    if left_length == 0 or right_length == 0:
+        raise ValueError("cosine similarity needs nonzero vectors")
     return dot / (left_length * right_length)`,
         checkCode: `similarity = cosine_similarity([1, 2], [2, 4])
 RESULT = {
@@ -390,7 +466,7 @@ export const matrixMultiplicationLesson = defineFoundationLesson({
   eyebrow: "Matrices · Rows · Linear Layers",
   title: "Matrix Multiplication",
   thesis: "A matrix transforms a vector by taking one dot product for each matrix row.",
-  sources: [d2lLinearAlgebraSource, numpyMatmulSource],
+  sources: [d2lLinearAlgebraSource, mathematicsForMlSource, numpyMatmulSource],
   summary: [
     {
       label: "Each row makes one output.",
@@ -428,28 +504,41 @@ export const matrixMultiplicationLesson = defineFoundationLesson({
   },
   implementation: {
     filename: "matrix-multiplication.py",
-    intro: "Apply a matrix to one vector, then add the bias used by a linear layer.",
-    tensorOps: ["numpy", "np.asarray", "np.matmul", "tolist"],
+    intro: "Treat each matrix row as a vector: multiply matching coordinates, add them, and emit one result per row.",
+    tensorOps: ["Python", "nested lists", "nested loops", "accumulators"],
     codeBlocks: [
       {
         id: "matrix-vector-product",
         label: "Matrix-vector product",
         purpose: "Produce one output value from each row of a matrix.",
         concepts: [
-          { name: "matrix", detail: "A two-dimensional array whose rows each match the vector width." },
-          { name: "vector", detail: "The one-dimensional input shared by every matrix row." },
-          { name: "output", detail: "One dot product for each matrix row." },
+          { name: "outer loop", detail: "Visit one matrix row at a time; each row creates one output coordinate." },
+          { name: "inner loop", detail: "Multiply row[column] by vector[column] and add it to that row's total." },
+          { name: "output", detail: "Append the completed row total before moving to the next row." },
         ],
-        code: `import numpy as np
-
-def matrix_vector_product(matrix, vector):
-    matrix_values = np.asarray(matrix, dtype=float)
-    vector_values = np.asarray(vector, dtype=float)
-    if matrix_values.ndim != 2 or vector_values.ndim != 1:
-        raise ValueError("matrix_vector_product needs a matrix and a vector")
-    if matrix_values.shape[1] != vector_values.shape[0]:
+        starterCode: `def matrix_vector_product(matrix, vector):
+    if any(len(row) != len(vector) for row in matrix):
         raise ValueError("matrix columns must match vector length")
-    return np.matmul(matrix_values, vector_values).tolist()`,
+
+    output = []
+    for row in matrix:
+        row_total = 0.0
+        for column in range(len(vector)):
+            # TODO: add row[column] * vector[column] to row_total.
+            raise NotImplementedError("Accumulate one row's dot product")
+        output.append(row_total)
+    return output`,
+        code: `def matrix_vector_product(matrix, vector):
+    if any(len(row) != len(vector) for row in matrix):
+        raise ValueError("matrix columns must match vector length")
+
+    output = []
+    for row in matrix:
+        row_total = 0.0
+        for column in range(len(vector)):
+            row_total += float(row[column]) * float(vector[column])
+        output.append(row_total)
+    return output`,
         checkCode: `output = matrix_vector_product([[1, 2], [3, 4], [5, 6]], [2, -1])
 RESULT = {
     "passed": output == [0, 2, 4],
@@ -461,23 +550,37 @@ RESULT = {
         label: "Linear layer",
         purpose: "Apply a weight matrix and add one bias value to every output coordinate.",
         concepts: [
-          { name: "weights", detail: "An output-by-input matrix that mixes the input coordinates." },
-          { name: "bias", detail: "One offset for each output row." },
-          { name: "Wx + b", detail: "The basic numerical operation inside a neural-network layer." },
+          { name: "weight row", detail: "Each row contains all weights used to calculate one output coordinate." },
+          { name: "bias", detail: "After finishing a row's dot product, add the bias at the same output index." },
+          { name: "Wx + b", detail: "The nested loops calculate Wx explicitly; the final addition supplies b." },
         ],
-        code: `import numpy as np
+        starterCode: `def linear_layer(vector, weights, bias):
+    if len(weights) != len(bias):
+        raise ValueError("bias length must match the number of outputs")
+    if any(len(row) != len(vector) for row in weights):
+        raise ValueError("weight rows must match vector length")
 
-def linear_layer(vector, weights, bias):
-    vector_values = np.asarray(vector, dtype=float)
-    weight_values = np.asarray(weights, dtype=float)
-    bias_values = np.asarray(bias, dtype=float)
-    if vector_values.ndim != 1 or weight_values.ndim != 2 or bias_values.ndim != 1:
-        raise ValueError("linear_layer needs a vector, weight matrix, and bias vector")
-    if weight_values.shape[1] != vector_values.shape[0]:
-        raise ValueError("weight input width must match vector length")
-    if weight_values.shape[0] != bias_values.shape[0]:
-        raise ValueError("bias length must match weight output width")
-    return (np.matmul(weight_values, vector_values) + bias_values).tolist()`,
+    output = []
+    for output_index, weight_row in enumerate(weights):
+        weighted_sum = 0.0
+        for input_index in range(len(vector)):
+            # TODO: add this input times its weight to weighted_sum.
+            raise NotImplementedError("Accumulate the weighted inputs")
+        output.append(weighted_sum + float(bias[output_index]))
+    return output`,
+        code: `def linear_layer(vector, weights, bias):
+    if len(weights) != len(bias):
+        raise ValueError("bias length must match the number of outputs")
+    if any(len(row) != len(vector) for row in weights):
+        raise ValueError("weight rows must match vector length")
+
+    output = []
+    for output_index, weight_row in enumerate(weights):
+        weighted_sum = 0.0
+        for input_index in range(len(vector)):
+            weighted_sum += float(weight_row[input_index]) * float(vector[input_index])
+        output.append(weighted_sum + float(bias[output_index]))
+    return output`,
         checkCode: `output = linear_layer([2, -1], [[1, 2], [-3, 0.5]], [0.5, 1])
 RESULT = {
     "passed": output == [0.5, -5.5],
@@ -501,7 +604,7 @@ export const batchesAndBroadcastingLesson = defineFoundationLesson({
   eyebrow: "Batches · Shared Weights · Broadcasting",
   title: "Batches and Broadcasting",
   thesis: "A batch stores several vectors as rows so the same operation can run on all of them at once.",
-  sources: [numpyBroadcastingSource, numpyMatmulSource, d2lLinearAlgebraSource],
+  sources: [d2lLinearAlgebraSource, numpyBroadcastingSource, numpyMatmulSource],
   summary: [
     {
       label: "Rows can hold separate vectors.",
@@ -509,11 +612,11 @@ export const batchesAndBroadcastingLesson = defineFoundationLesson({
     },
     {
       label: "Weights are shared across the batch.",
-      body: "A batched linear layer applies the same weight matrix to every input row. The operation is faster and clearer than writing a separate Python loop for each vector.",
+      body: "A batched linear layer applies the same weight matrix to every input row. Writing the row loop yourself makes that sharing visible; numerical libraries later run the same calculation in optimized code.",
     },
     {
       label: "Broadcasting reuses a smaller array.",
-      body: "Adding a bias with shape (3,) to a result with shape (5, 3) adds the same three bias values to every row. NumPy performs that repeated addition without making you copy the bias five times.",
+      body: "Adding a bias with shape (3,) to a result with shape (5, 3) means adding the same three bias values to every row. That repeated coordinate rule is what array libraries call broadcasting.",
     },
     {
       label: "Track the output shape.",
@@ -539,28 +642,41 @@ export const batchesAndBroadcastingLesson = defineFoundationLesson({
   },
   implementation: {
     filename: "batches-and-broadcasting.py",
-    intro: "Add one bias to every row, then run a complete batched linear layer.",
-    tensorOps: ["numpy", "np.asarray", "np.matmul", "transpose", "tolist"],
+    intro: "Write out the repeated row calculation so broadcasting, shared weights, and the transposed weight view are concrete operations.",
+    tensorOps: ["Python", "nested lists", "nested loops", "shared parameters"],
     codeBlocks: [
       {
         id: "add-row-bias",
         label: "Broadcast a row bias",
         purpose: "Add the same bias vector to every row in a matrix.",
         concepts: [
-          { name: "rows", detail: "A two-dimensional array with one vector per row." },
-          { name: "bias", detail: "A one-dimensional array matching the number of columns." },
-          { name: "broadcast", detail: "NumPy reuses the bias for every row without changing its stored shape." },
+          { name: "outer loop", detail: "Visit each row without changing the bias vector." },
+          { name: "same column", detail: "Add bias[column] to row[column]." },
+          { name: "broadcast", detail: "Reusing that same bias for every row is the operation libraries perform automatically." },
         ],
-        code: `import numpy as np
+        starterCode: `def add_row_bias(rows, bias):
+    if any(len(row) != len(bias) for row in rows):
+        raise ValueError("bias length must match every row")
 
-def add_row_bias(rows, bias):
-    row_values = np.asarray(rows, dtype=float)
-    bias_values = np.asarray(bias, dtype=float)
-    if row_values.ndim != 2 or bias_values.ndim != 1:
-        raise ValueError("add_row_bias needs a matrix and a vector")
-    if row_values.shape[1] != bias_values.shape[0]:
-        raise ValueError("bias length must match row width")
-    return (row_values + bias_values).tolist()`,
+    shifted_rows = []
+    for row in rows:
+        shifted_row = []
+        for column in range(len(bias)):
+            # TODO: add the bias at this column to the row value.
+            raise NotImplementedError("Shift one coordinate")
+        shifted_rows.append(shifted_row)
+    return shifted_rows`,
+        code: `def add_row_bias(rows, bias):
+    if any(len(row) != len(bias) for row in rows):
+        raise ValueError("bias length must match every row")
+
+    shifted_rows = []
+    for row in rows:
+        shifted_row = []
+        for column in range(len(bias)):
+            shifted_row.append(float(row[column]) + float(bias[column]))
+        shifted_rows.append(shifted_row)
+    return shifted_rows`,
         checkCode: `shifted = add_row_bias([[1, 2], [3, 4]], [10, -1])
 RESULT = {
     "passed": shifted == [[11, 1], [13, 3]],
@@ -573,23 +689,46 @@ RESULT = {
         purpose: "Apply one weight matrix and one bias vector to every input row.",
         concepts: [
           { name: "inputs", detail: "A batch-by-input-width matrix." },
-          { name: "weights.T", detail: "Turns output-by-input weights so the inner dimensions line up." },
-          { name: "output", detail: "A batch-by-output-width matrix with one transformed row per input." },
+          { name: "transpose view", detail: "Stored weight rows become output columns in X @ Wᵀ; the loop reads one full weight row per output." },
+          { name: "three loops", detail: "Choose an input row, choose an output weight row, then combine their matching coordinates." },
+          { name: "output", detail: "Append one transformed row per input while reusing the exact same weights and bias." },
         ],
-        code: `import numpy as np
+        starterCode: `def batch_linear(inputs, weights, bias):
+    if len(weights) != len(bias):
+        raise ValueError("bias length must match the number of outputs")
+    if any(len(row) != len(weights[0]) for row in inputs):
+        raise ValueError("input rows must match the weight input width")
 
-def batch_linear(inputs, weights, bias):
-    input_values = np.asarray(inputs, dtype=float)
-    weight_values = np.asarray(weights, dtype=float)
-    bias_values = np.asarray(bias, dtype=float)
-    if input_values.ndim != 2 or weight_values.ndim != 2 or bias_values.ndim != 1:
-        raise ValueError("batch_linear needs input and weight matrices plus a bias vector")
-    if input_values.shape[1] != weight_values.shape[1]:
-        raise ValueError("input width must match weight input width")
-    if weight_values.shape[0] != bias_values.shape[0]:
-        raise ValueError("bias length must match weight output width")
-    projected = np.matmul(input_values, weight_values.T)
-    return (projected + bias_values).tolist()`,
+    outputs = []
+    for input_row in inputs:
+        output_row = []
+        for output_index, weight_row in enumerate(weights):
+            weighted_sum = 0.0
+            for column in range(len(input_row)):
+                # TODO: add input_row[column] * weight_row[column].
+                raise NotImplementedError("Accumulate one output coordinate")
+            output_row.append(weighted_sum + float(bias[output_index]))
+        outputs.append(output_row)
+    return outputs`,
+        code: `def batch_linear(inputs, weights, bias):
+    if len(weights) != len(bias):
+        raise ValueError("bias length must match the number of outputs")
+    input_width = len(weights[0])
+    if any(len(row) != input_width for row in inputs):
+        raise ValueError("input rows must match the weight input width")
+    if any(len(row) != input_width for row in weights):
+        raise ValueError("weight rows must have the same input width")
+
+    outputs = []
+    for input_row in inputs:
+        output_row = []
+        for output_index, weight_row in enumerate(weights):
+            weighted_sum = 0.0
+            for column in range(input_width):
+                weighted_sum += float(input_row[column]) * float(weight_row[column])
+            output_row.append(weighted_sum + float(bias[output_index]))
+        outputs.append(output_row)
+    return outputs`,
         checkCode: `output = batch_linear(
     [[1, 0], [0, 1]],
     [[1, 2], [3, 4]],
@@ -597,7 +736,7 @@ def batch_linear(inputs, weights, bias):
 )
 RESULT = {
     "passed": output == [[11, 23], [12, 24]],
-    "detail": f"output shape = {np.asarray(output).shape}",
+    "detail": f"output shape = ({len(output)}, {len(output[0])})",
 }`,
       },
     ],

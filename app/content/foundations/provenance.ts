@@ -26,11 +26,11 @@ function authored(note: string): FoundationLessonContentProvenance {
  * source prose, figures, datasets, or implementation code is incorporated.
  */
 export const foundationLessonContentProvenance = Object.freeze({
-  "arrays-and-shapes": authored("Original small-array examples, shape diagram, and NumPy implementation with independently written validation for reshape requests."),
-  "vector-operations": authored("Original coordinate examples and diagrams with independently written NumPy implementations of vector addition and the L2 norm."),
-  "dot-products": authored("Original alignment examples and visual explanation with independently written dot-product and cosine-similarity implementations."),
-  "matrix-multiplication": authored("Original matrix fixtures and layer example with independently written matrix-vector and dense-layer shape validation."),
-  "batches-and-broadcasting": authored("Original batched-array fixtures and diagrams with independently written bias-broadcasting and batched-linear implementations."),
+  "arrays-and-shapes": authored("Original small-array examples, shape diagram, and plain-Python implementations that count axes and construct rows directly."),
+  "vector-operations": authored("Original coordinate examples and diagrams with plain-Python loops for vector addition and the L2 norm."),
+  "dot-products": authored("Original alignment examples and visual explanation with explicit multiply-accumulate implementations for dot product and cosine similarity."),
+  "matrix-multiplication": authored("Original matrix fixtures and layer example with explicit nested-loop matrix-vector and dense-layer implementations."),
+  "batches-and-broadcasting": authored("Original batched-array fixtures and diagrams with explicit loops demonstrating bias reuse and shared linear-layer parameters."),
   "ml-training-data": authored("Original labeled-table fixture and split diagram with independently written feature extraction and disjoint holdout logic."),
   "ml-linear-regression": authored("Original regression examples and prediction diagram with independently written linear-prediction and mean-squared-error implementations."),
   "ml-gradient-descent": authored("Original regression fixture and update trace with independently derived gradient and parameter-update implementations."),

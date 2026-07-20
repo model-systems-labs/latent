@@ -20,9 +20,9 @@ export const foundationExerciseContractCopy: Record<string, ExerciseContract> = 
   ),
   "arrays-and-shapes/reshape-array": contract(
     "def reshape_array(values, shape):",
-    "values: numerical array; shape: list of positive axis lengths",
-    "nested list with the requested shape",
-    "The requested shape must contain exactly the original number of values.",
+    "values: flat numerical vector; shape: [positive rows, positive columns]",
+    "matrix with the requested rows and columns",
+    "rows × columns must equal the original number of values.",
     "[1,2,3,4,5,6], [2,3] → [[1,2,3],[4,5,6]]",
   ),
   "vector-operations/add-vectors": contract(

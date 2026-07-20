@@ -6,6 +6,8 @@ export type CodeBlock = {
     name: string;
     detail: string;
   }>;
+  /** Optional guided scaffold shown before the learner writes a solution. */
+  starterCode?: string;
   code: string;
   checkCode?: string;
 };

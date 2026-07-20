@@ -80,6 +80,22 @@ def stable_softmax(logits):
   );
 });
 
+test("an authored scaffold takes precedence over the generated Python starter", () => {
+  const scaffold = `def dot_product(left, right):
+    total = 0.0
+    # TODO: accumulate matching coordinate products.
+    raise NotImplementedError("Accumulate products")`;
+  const block = {
+    id: "dot",
+    label: "Dot product",
+    starterCode: scaffold,
+    code: "def dot_product(left, right):\n    return sum(a * b for a, b in zip(left, right))",
+  };
+
+  assert.equal(practiceState.starterPracticeSource("dot-products.py", block), scaffold);
+  assert.equal(practiceState.workingPracticeBlockSource("dot-products.py", block, {}), scaffold);
+});
+
 test("active and formerly archived legacy drafts both reopen as the exact working source", () => {
   const typedSource = "def stable_softmax(logits):\n    return logits";
   const answers = { softmax: typedSource };

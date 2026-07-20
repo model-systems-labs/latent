@@ -221,6 +221,20 @@ test("every foundation code block has one aligned typed contract and one learner
   }
 });
 
+test("linear algebra teaches the operations with guided plain-Python algorithms", () => {
+  for (const { lesson } of course.linearAlgebraCurriculum.lessons) {
+    assert.doesNotMatch(lesson.implementation.tensorOps.join(" "), /numpy|np\./i, lesson.id);
+    for (const block of lesson.implementation.codeBlocks) {
+      assert.ok(block.starterCode, `${lesson.id}/${block.id} has a guided starter`);
+      assert.match(block.starterCode, /TODO:/, `${lesson.id}/${block.id} identifies the learner step`);
+      assert.match(block.starterCode, /NotImplementedError/, `${lesson.id}/${block.id} starts incomplete`);
+      assert.doesNotMatch(block.starterCode, /numpy|np\./i, `${lesson.id}/${block.id} starter`);
+      assert.doesNotMatch(block.code, /numpy|np\./i, `${lesson.id}/${block.id} reference`);
+      assert.notEqual(block.starterCode, block.code, `${lesson.id}/${block.id} does not reveal the answer`);
+    }
+  }
+});
+
 test("foundation manifests own only prerequisite files and do not declare an advanced capstone", () => {
   const definitions = [manifests.linearAlgebraManifest, manifests.machineLearningBasicsManifest];
   assert.deepEqual(definitions.map((manifest) => manifest.id), ["linear-algebra", "machine-learning-basics"]);
@@ -250,7 +264,7 @@ test("foundation routes stay independent while legacy advanced aliases redirect 
   }
 });
 
-test("all twenty foundation references pass their host contracts in real Pyodide and NumPy", { timeout: 60_000 }, async () => {
+test("all twenty foundation references pass their host contracts in real Pyodide", { timeout: 60_000 }, async () => {
   let contractCount = 0;
   const failures = [];
   for (const { lesson, projectPath } of foundationEntries()) {

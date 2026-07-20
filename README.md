@@ -46,6 +46,21 @@ into the capstone without switching tools or installing a local runtime.
 Learner code never executes in the application realm. The host owns the test
 assertions, compiler policy, resource limits, build receipts, and promotion gate.
 
+## Harness Engineering workspace
+
+The [Harness Engineering workspace](https://latent-llm-learning.cswansondeveloper.chatgpt.site/courses/harness-engineering/workspace)
+uses fixed model replies and tool results so the exercises are fast, repeatable,
+and do not require an API key or a large model download. The learner still writes
+and runs the real Python harness in browser-hosted CPython: it validates tool
+calls, applies permission rules, dispatches tools, records the message and event
+trace, and stops on completion, approval, denial, or the turn limit.
+
+Four scenarios exercise the same saved project: a successful file read, a denied
+private-file read, a write that pauses for approval, and a run that exhausts its
+turn budget. Host-owned checks compare the resulting messages and events rather
+than accepting a matching status alone. The recorded model is an interchangeable
+test adapter; a live model provider can implement the same harness boundary later.
+
 ## Project map
 
 - `packages/tensor/` — typed tensor/autograd runtime plus generated Browser Lab source

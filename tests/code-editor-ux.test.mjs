@@ -146,10 +146,11 @@ test("the mobile IDE source contract preserves readable type, bounded scrolling,
   ]);
   assert.match(source, /&\.cm-focused[\s\S]*?outline:\s*"2px solid/);
   assert.match(source, /overscrollBehaviorX:\s*"contain"[\s\S]*?overscrollBehaviorY:\s*"auto"/);
+  assert.match(source, /import \{ acceptCompletion \} from "@codemirror\/autocomplete"/);
   assert.match(source, /import \{ indentWithTab, temporarilySetTabFocusMode \} from "@codemirror\/commands"/);
-  assert.match(source, /Prec\.high\(keymap\.of\(\[\s*\{ key: "Escape", run: temporarilySetTabFocusMode \},\s*indentWithTab/);
+  assert.match(source, /Prec\.high\(keymap\.of\(\[\s*\{ key: "Escape", run: temporarilySetTabFocusMode \},\s*\{ key: "Tab", run: acceptCompletion \},\s*indentWithTab/);
   assert.match(source, /"aria-describedby":\s*instructionId/);
-  assert.match(source, /const editableEditorInstruction = "Code editor\. Tab indents\. Press Escape, then Tab, to leave the editor\."/);
+  assert.match(source, /const editableEditorInstruction = "Code editor\. Tab accepts an open suggestion; otherwise it indents\. Press Escape, then Tab, to leave the editor\."/);
   const readOnlyInstruction = source.match(/const readOnlyEditorInstruction = "([^"]+)"/)?.[1];
   assert.equal(
     readOnlyInstruction,

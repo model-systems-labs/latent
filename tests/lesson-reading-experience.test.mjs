@@ -69,7 +69,7 @@ test("summary prose owns the reading flow and the mechanism follows the concepts
   assert.match(paperLab, /const diagramAfter = Math\.max\(1, lesson\.summary\.length - 1\)/);
 });
 
-test("every shared lesson opens with editable code before its explanation", async () => {
+test("every shared lesson teaches and checks the concept before its coding practice", async () => {
   const paperLab = await readFile(paperLabUrl, "utf8");
   const lessonShell = paperLab.slice(paperLab.indexOf("export function PaperLab"));
   const header = lessonShell.indexOf("<HeaderSection");
@@ -83,8 +83,8 @@ test("every shared lesson opens with editable code before its explanation", asyn
     paperLab.indexOf("function LessonRecoveryCandidates"),
   );
 
-  assert.ok(header >= 0 && header < implementation && implementation < summary && summary < outcome);
-  assert.ok(codeNav >= 0 && codeNav < readNav);
+  assert.ok(header >= 0 && header < summary && summary < outcome && outcome < implementation);
+  assert.ok(readNav >= 0 && readNav < codeNav);
   assert.ok(codingSection.indexOf('className="practice-editor"') < codingSection.indexOf('className="implementation-intro"'));
 });
 
@@ -184,7 +184,8 @@ test("lesson code opens one starter-first syntax-aware Python exercise in a ligh
   assert.match(paperLab, /chunk\.stream === "stderr" \? "standard error" : "standard output"/);
   assert.match(paperLab, />Output<\/span>/);
   assert.match(paperLab, />Standard error<\/span>/);
-  assert.match(paperLab, />Tests<\/span>/);
+  assert.match(paperLab, /<strong>\{result\.passed \? "Passed" : "Not passed"\}<\/strong>/);
+  assert.match(paperLab, /<span className="exercise-state">\{visibleState\}<\/span>/);
   assert.match(codeEditor, /const lightEditor = variant !== "project"/);
   assert.match(codeEditor, /lightEditor \? lessonTheme : latentTheme/);
   assert.match(codeEditor, /syntaxHighlighting\(lightEditor \? lessonSyntaxTheme : syntaxTheme\)/);
@@ -199,6 +200,9 @@ test("lesson code opens one starter-first syntax-aware Python exercise in a ligh
   assert.match(rule(codingWorkspace, ".lesson-code-editor"), /background:\s*#fbfaf8/);
   assert.match(rule(codingWorkspace, ".lesson-editor-loading"), /background:\s*#fbfaf8/);
   assert.match(rule(codingWorkspace, ".cell-output"), /background:\s*#f4f2ee/);
+  assert.match(rule(codingWorkspace, ".cell-result"), /border-left:\s*4px solid/);
+  assert.match(rule(codingWorkspace, ".cell-result.passed"), /background:\s*#edf4ee[\s\S]*color:\s*#315d40/);
+  assert.match(rule(codingWorkspace, ".cell-result.failed"), /background:\s*#faece9[\s\S]*color:\s*#843c36/);
   assert.match(rule(codingWorkspace, ".editor-footer"), /background:\s*transparent/);
   assert.match(rule(codingWorkspace, ".cell-output-streams"), /max-height:\s*16rem/);
 });

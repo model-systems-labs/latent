@@ -125,7 +125,6 @@
   color: var(--faint);
   font-size: max(0.68rem, 11px);
   justify-self: end;
-  letter-spacing: 0.06em;
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -135,7 +134,11 @@
 }
 
 .practice-block.is-passed .exercise-state {
-  color: var(--green);
+  color: #315d40;
+}
+
+.practice-block.is-failed .exercise-state {
+  color: #843c36;
 }
 
 .exercise-body {
@@ -342,40 +345,37 @@
 }
 
 .cell-result {
-  align-items: center;
-  display: inline-flex;
+  align-items: flex-start;
+  border-left: 4px solid;
+  display: flex;
   font-size: max(0.72rem, 12px);
-  gap: 0.45rem;
-  justify-content: flex-start;
-  line-height: 1.45;
-  margin: 0;
+  gap: 0.65rem;
+  padding: 0.7rem 0.8rem;
 }
 
 .cell-result i {
-  align-items: center;
-  border-radius: 999px;
-  display: inline-flex;
   flex: 0 0 auto;
+  font-weight: 750;
   font-style: normal;
-  height: 1.2rem;
-  justify-content: center;
-  width: 1.2rem;
+}
+
+.cell-result > span {
+  display: grid;
+}
+
+.cell-result strong {
+  font-size: max(0.8rem, 13px);
+  font-weight: 700;
 }
 
 .cell-result.passed {
-  color: var(--green);
-}
-
-.cell-result.passed i {
-  background: rgba(84, 115, 93, 0.12);
+  background: #edf4ee;
+  color: #315d40;
 }
 
 .cell-result.failed {
-  color: var(--red);
-}
-
-.cell-result.failed i {
-  background: rgba(141, 90, 84, 0.12);
+  background: #faece9;
+  color: #843c36;
 }
 
 .exercise-actions,

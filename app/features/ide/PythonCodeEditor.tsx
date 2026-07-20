@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef } from "react";
 import { basicSetup } from "codemirror";
+import { acceptCompletion } from "@codemirror/autocomplete";
 import { indentWithTab, temporarilySetTabFocusMode } from "@codemirror/commands";
 import { python } from "@codemirror/lang-python";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
@@ -108,6 +109,7 @@ export function PythonCodeEditor({ value, path, onChange, onSave, readOnly = fal
     if (!hostRef.current) return;
     const saveKeymap: Extension = Prec.high(keymap.of([
       { key: "Escape", run: temporarilySetTabFocusMode },
+      { key: "Tab", run: acceptCompletion },
       indentWithTab,
       {
         key: "Mod-s",
@@ -169,7 +171,7 @@ export function PythonCodeEditor({ value, path, onChange, onSave, readOnly = fal
   return (
     <>
       <div className="code-editor python-code-editor" ref={hostRef} />
-      <span className="sr-only" id={instructionId}>Python code editor. Tab indents four spaces. Press Escape, then Tab, to leave the editor.</span>
+      <span className="sr-only" id={instructionId}>Python code editor. Tab accepts an open suggestion; otherwise it indents four spaces. Press Escape, then Tab, to leave the editor.</span>
     </>
   );
 }

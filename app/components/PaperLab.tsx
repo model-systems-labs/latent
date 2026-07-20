@@ -1064,10 +1064,12 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
             const verified = verifiedContractVersion === contractSuite.contractVersion
               && verifiedBlockIds.includes(block.id)
               && verifiedSources[block.id] === workingSource;
-            const visibleState = blockRunning ? "Running" : result?.passed || verified ? "Verified" : result ? "Needs a fix" : null;
+            const passed = Boolean(result?.passed || verified);
+            const failed = Boolean(result && !result.passed);
+            const visibleState = blockRunning ? "Running" : passed ? "Passed" : failed ? "Not passed" : null;
             return (
               <article
-                className={`practice-block${active ? " is-active" : ""}${dirty ? " is-dirty" : ""}${result?.passed || verified ? " is-passed" : ""}`}
+                className={`practice-block${active ? " is-active" : ""}${dirty ? " is-dirty" : ""}${passed ? " is-passed" : ""}${failed ? " is-failed" : ""}`}
                 aria-busy={blockRunning}
                 key={block.id}
               >
@@ -1119,9 +1121,15 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
                     <div className="exercise-feedback">
                       <div className={`cell-footer cell-feedback ${result || verified ? "" : "is-idle"}`} role="status" aria-label={`${block.label} check status`} aria-live="polite" aria-atomic="true">
                         {result ? (
-                          <><span aria-hidden="true">Tests</span><output className={result.passed ? "cell-result passed" : "cell-result failed"}>{result.detail}</output></>
+                          <output className={result.passed ? "cell-result passed" : "cell-result failed"}>
+                            <i aria-hidden="true">{result.passed ? "✓" : "!"}</i>
+                            <span><strong>{result.passed ? "Passed" : "Not passed"}</strong><small>{result.detail}</small></span>
+                          </output>
                         ) : verified ? (
-                          <><span aria-hidden="true">Tests</span><output className="cell-result passed">Verified previously on this device</output></>
+                          <output className="cell-result passed">
+                            <i aria-hidden="true">✓</i>
+                            <span><strong>Passed</strong><small>This exact code passed the course checks earlier on this device.</small></span>
+                          </output>
                         ) : <span className="sr-only">{practiceReady ? "Tests not run." : "Restoring saved progress…"}</span>}
                       </div>
                       <div className="exercise-actions">
@@ -1221,8 +1229,8 @@ export function PaperLab({ lesson }: { lesson: CourseLesson }) {
       <header className="site-header lesson-header">
         <Link className="wordmark" href="/" aria-label="Latent home"><i />latent</Link>
         <nav aria-label="Lesson navigation">
-          <a href="#implementation">Code</a>
           <a href="#summary">Read</a>
+          <a href="#implementation">Code</a>
           {contributesToBrowserChat ? <a href="#artifacts">Results</a> : null}
         </nav>
         <span>{lesson.courseTitle ?? "Model Foundations"}</span>
@@ -1231,10 +1239,10 @@ export function PaperLab({ lesson }: { lesson: CourseLesson }) {
       <article className="paper-page" id="top">
         <HeaderSection lesson={lesson} />
         <LessonProgress lesson={lesson} />
-        <LessonRecoveryCandidates lessonId={lesson.id} onLoaded={() => setRecoveryRevision((revision) => revision + 1)} />
-        <CodingSection key={`${lesson.id}:${recoveryRevision}`} lesson={lesson} />
         <ParagraphSection lesson={lesson} />
         <LessonOutcome lesson={lesson} />
+        <LessonRecoveryCandidates lessonId={lesson.id} onLoaded={() => setRecoveryRevision((revision) => revision + 1)} />
+        <CodingSection key={`${lesson.id}:${recoveryRevision}`} lesson={lesson} />
         <footer className="paper-footer lesson-footer">
           {previous ? <Link href={`/lessons/${previous.id}`}>← {previous.title}</Link> : <Link href={courseHref}>← {contributesToBrowserChat ? "Module" : "Course"}</Link>}
           {next ? <Link href={`/lessons/${next.id}`}>{next.title} →</Link> : checkpoint ? <Link href={`/checkpoints/${checkpoint.courseId}`}>Module checkpoint →</Link> : <Link href={courseHref}>{contributesToBrowserChat ? "Module" : "Course"} ↑</Link>}

@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef } from "react";
 import { basicSetup } from "codemirror";
+import { acceptCompletion } from "@codemirror/autocomplete";
 import { javascript } from "@codemirror/lang-javascript";
 import { python } from "@codemirror/lang-python";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
@@ -178,7 +179,7 @@ const lessonSyntaxTheme = HighlightStyle.define([
   { tag: tags.invalid, color: lessonEditorPalette.invalid, textDecoration: "underline wavy" },
 ]);
 
-const editableEditorInstruction = "Code editor. Tab indents. Press Escape, then Tab, to leave the editor.";
+const editableEditorInstruction = "Code editor. Tab accepts an open suggestion; otherwise it indents. Press Escape, then Tab, to leave the editor.";
 const readOnlyEditorInstruction = "Read-only code example. Use the arrow keys to navigate the code. Press Escape, then Tab, to leave the code example.";
 
 export function CodeEditor({ value, path, onChange, onSave, readOnly = false, variant = "project", ariaLabel, lineNumberStart = 1 }: CodeEditorProps) {
@@ -202,6 +203,7 @@ export function CodeEditor({ value, path, onChange, onSave, readOnly = false, va
     if (!hostRef.current) return;
     const saveKeymap: Extension = Prec.high(keymap.of([
       { key: "Escape", run: temporarilySetTabFocusMode },
+      { key: "Tab", run: acceptCompletion },
       indentWithTab,
       {
         key: "Mod-s",

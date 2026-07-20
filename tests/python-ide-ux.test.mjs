@@ -81,7 +81,8 @@ test("the Python editor has native syntax highlighting and the same keyboard esc
   assert.match(source, /\}, \{ dark: true \}\);/);
   assert.match(source, /EditorState\.tabSize\.of\(4\)/);
   assert.match(source, /\{ key: "Escape", run: temporarilySetTabFocusMode \}/);
-  assert.match(source, /Python code editor\. Tab indents four spaces\. Press Escape, then Tab, to leave the editor\./);
+  assert.match(source, /\{ key: "Tab", run: acceptCompletion \},\s*indentWithTab/);
+  assert.match(source, /Python code editor\. Tab accepts an open suggestion; otherwise it indents four spaces\. Press Escape, then Tab, to leave the editor\./);
   assert.match(
     viteConfig,
     /optimizeDeps:[\s\S]*?include: \[[\s\S]*?"@codemirror\/lang-python"/,

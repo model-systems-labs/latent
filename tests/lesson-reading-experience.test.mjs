@@ -45,13 +45,19 @@ test("lessons use an editorial hierarchy instead of landing-page scale", async (
   assert.doesNotMatch(paperLab, /className=\{`summary-layout/);
 });
 
-test("the fixed orbit fades out as the reader scrolls", async () => {
+test("decorative lines crossfade through the reading flow", async () => {
   const atmosphere = await readFile(pageAtmosphereUrl, "utf8");
-  assert.match(atmosphere, /const fadeDistance = Math\.max\(window\.innerHeight \* 0\.7, 1\)/);
+  assert.match(atmosphere, /const TRACE_INTERVAL = 1\.45/);
+  assert.match(atmosphere, /const TRACE_FADE_WIDTH = 0\.92/);
+  assert.match(atmosphere, /const fadeDistance = viewportHeight \* 0\.7/);
   assert.match(atmosphere, /Math\.max\(0, 1 - \(window\.scrollY \/ fadeDistance\)\)/);
+  assert.match(atmosphere, /function traceOpacity[\s\S]*?Math\.cos/);
+  assert.match(atmosphere, /const traceIntroduction = Math\.min\(1, traceScroll \/ \(viewportHeight \* 0\.45\)\)/);
+  assert.match(atmosphere, /traceOpacity\(tracePhase, index, traces\.length\)/);
+  assert.match(atmosphere, /traceStyles\.map/);
   assert.match(atmosphere, /window\.requestAnimationFrame\(update\)/);
   assert.match(atmosphere, /addEventListener\("scroll", schedule, \{ passive: true \}\)/);
-  assert.match(atmosphere, /prefers-reduced-motion: reduce[\s\S]*?reducedMotion\.matches \? 0/);
+  assert.match(atmosphere, /prefers-reduced-motion: reduce[\s\S]*?reducedMotion\.matches \? 0[\s\S]*?const opacity = reducedMotion\.matches\s*\? 0/);
 });
 
 test("selection prompts and project history stay out of the primary reading path", async () => {

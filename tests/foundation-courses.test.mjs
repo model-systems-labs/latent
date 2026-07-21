@@ -235,6 +235,28 @@ test("linear algebra teaches the operations with guided plain-Python algorithms"
   }
 });
 
+test("batching explains why one output bias is shared before asking learners to broadcast it", async () => {
+  const lesson = course.linearAlgebraCurriculum.lessons
+    .find((entry) => entry.lesson.id === "batches-and-broadcasting")?.lesson;
+  assert.ok(lesson);
+
+  const reading = lesson.summary.map(({ label, body }) => `${label} ${body}`).join(" ");
+  assert.match(reading, /Bias sets the output baseline/);
+  assert.match(reading, /input row is all zeros[\s\S]*layer returns b/);
+  assert.match(reading, /not five separately learned layers/);
+  assert.match(reading, /same three output baselines/);
+
+  const biasExercise = lesson.implementation.codeBlocks.find(({ id }) => id === "add-row-bias");
+  assert.ok(biasExercise);
+  assert.match(biasExercise.purpose, /learned baseline/);
+  assert.match(biasExercise.concepts.map(({ detail }) => detail).join(" "), /does not learn a different bias for each example/);
+  assert.match(biasExercise.checkCode, /\[\[0, 0\], \[3, 4\]\]/);
+
+  const learning = await readFile(new URL("../app/content/foundations/learning.ts", import.meta.url), "utf8");
+  assert.match(learning, /id: "shared-bias-purpose"/);
+  assert.match(learning, /The bias belongs to the layer's output coordinates, not to an individual example/);
+});
+
 test("foundation manifests own only prerequisite files and do not declare an advanced capstone", () => {
   const definitions = [manifests.linearAlgebraManifest, manifests.machineLearningBasicsManifest];
   assert.deepEqual(definitions.map((manifest) => manifest.id), ["linear-algebra", "machine-learning-basics"]);

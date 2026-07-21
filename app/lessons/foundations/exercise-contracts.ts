@@ -71,8 +71,8 @@ export const foundationExerciseContractCopy: Record<string, ExerciseContract> = 
     "def add_row_bias(rows, bias):",
     "rows [batch × width], bias [width]",
     "nested list with the same shape as rows",
-    "Add the same bias vector to every row.",
-    "[[1,2],[3,4]] + [10,-1] → [[11,1],[13,3]]",
+    "Add one output-baseline vector to every row; do not create a different bias per row.",
+    "[[0,0],[3,4]] + [10,-1] → [[10,-1],[13,3]]",
   ),
   "batches-and-broadcasting/batch-linear": contract(
     "def batch_linear(inputs, weights, bias):",

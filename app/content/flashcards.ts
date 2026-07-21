@@ -118,11 +118,11 @@ const coreFlashcardLibrary = defineFlashcardLibrary({
     subjectId: "linear-algebra",
     module: "Linear Algebra Basics",
     lesson: "Batches and Broadcasting",
-    definition: "A batched linear layer applies the same learned weights to every input row at once.",
+    definition: "A batched linear layer applies the same learned weights and output bias to every input row at once.",
     details: [
       "Inputs use shape (batch, input width).",
       "Weights use shape (output width, input width).",
-      "X @ Wᵀ keeps the batch size and changes the feature width.",
+      "X @ Wᵀ keeps the batch size and changes the feature width; one bias value then sets the baseline for each output coordinate.",
     ],
     example: "Inputs (5, 4) and weights (3, 4) produce outputs with shape (5, 3).",
   },
@@ -133,7 +133,7 @@ const coreFlashcardLibrary = defineFlashcardLibrary({
     definition: "Broadcasting reuses a smaller compatible array across a larger array without manually copying it.",
     details: [
       "Dimensions align from the end and must match or have size 1.",
-      "A one-row bias can be added to every row in a batch.",
+      "A bias has one learned baseline per output coordinate and can be added to every row in a batch.",
       "The repeated values are shared by rule, not learned separately for each example.",
     ],
     example: "Adding bias shape (3,) to activations shape (5, 3) adds the same three values to all five rows.",

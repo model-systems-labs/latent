@@ -603,7 +603,7 @@ export const batchesAndBroadcastingLesson = defineFoundationLesson({
   lessonNumber: 5,
   eyebrow: "Batches · Shared Weights · Broadcasting",
   title: "Batches and Broadcasting",
-  thesis: "A batch stores several vectors as rows so the same operation can run on all of them at once.",
+  thesis: "A batch applies one learned rule, y = W x + b, to several vectors; broadcasting adds the same output bias to every row.",
   sources: [d2lLinearAlgebraSource, numpyBroadcastingSource, numpyMatmulSource],
   summary: [
     {
@@ -611,12 +611,16 @@ export const batchesAndBroadcastingLesson = defineFoundationLesson({
       body: "A matrix with shape (5, 4) can represent five vectors with four features each. In an LLM, those five rows might represent five token positions.",
     },
     {
-      label: "Weights are shared across the batch.",
-      body: "A batched linear layer applies the same weight matrix to every input row. Writing the row loop yourself makes that sharing visible; numerical libraries later run the same calculation in optimized code.",
+      label: "Bias sets the output baseline.",
+      body: "Weights determine how the input values change each output. Bias determines where each output starts. If an input row is all zeros, W x is zero and the layer returns b, so a layer with three outputs needs three learned bias values.",
     },
     {
-      label: "Broadcasting reuses a smaller array.",
-      body: "Adding a bias with shape (3,) to a result with shape (5, 3) means adding the same three bias values to every row. That repeated coordinate rule is what array libraries call broadcasting.",
+      label: "The whole layer is shared across the batch.",
+      body: "Every row uses the same weight matrix and the same bias vector. A batch of five rows is not five separately learned layers; it is one layer evaluated five times so every example or token follows the same learned rule.",
+    },
+    {
+      label: "Broadcasting reuses that shared bias.",
+      body: "After X @ Wᵀ produces a result with shape (5, 3), bias shape (3,) lines up with the three output columns. Adding it to all five rows applies the same three output baselines. Broadcasting is shorthand for that repeated column-by-column addition.",
     },
     {
       label: "Track the output shape.",
@@ -624,13 +628,13 @@ export const batchesAndBroadcastingLesson = defineFoundationLesson({
     },
   ],
   diagram: {
-    title: "One transformation across a batch",
-    caption: "The input width lines up with the weight width. The bias lines up with the output width.",
+    title: "One shared layer, five input rows",
+    caption: "Weights decide how inputs affect each output. Bias sets the three output baselines, and broadcasting reuses those baselines for every row.",
     nodes: [
       { label: "Input rows", value: "X shape (5, 4)" },
-      { label: "Shared weights", value: "W shape (3, 4)" },
-      { label: "Matrix product", value: "X @ Wᵀ → shape (5, 3)" },
-      { label: "Broadcast bias", value: "+ b shape (3,) → output shape (5, 3)" },
+      { label: "Shared rule", value: "each row uses y = W x + b" },
+      { label: "Weighted result", value: "X @ Wᵀ → five rows × three outputs" },
+      { label: "Bias purpose", value: "the same b shape (3,) shifts every output row" },
     ],
   },
   dataset: {
@@ -638,21 +642,21 @@ export const batchesAndBroadcastingLesson = defineFoundationLesson({
     source: "Course-authored synthetic examples",
     license: "Not separately licensed",
     size: "7 fixed batch and bias examples",
-    preview: "two vectors · shared weights · one repeated bias",
+    preview: "zero-input baseline · shared weights · one repeated bias",
   },
   implementation: {
     filename: "batches-and-broadcasting.py",
-    intro: "Write out the repeated row calculation so broadcasting, shared weights, and the transposed weight view are concrete operations.",
+    intro: "First isolate what bias does by adding it to completed output rows. Then rebuild the full layer and reuse the same weights and output baselines across the batch.",
     tensorOps: ["Python", "nested lists", "nested loops", "shared parameters"],
     codeBlocks: [
       {
         id: "add-row-bias",
-        label: "Broadcast a row bias",
-        purpose: "Add the same bias vector to every row in a matrix.",
+        label: "Add one shared bias",
+        purpose: "Give every output coordinate its learned baseline by adding the same bias vector to every row.",
         concepts: [
-          { name: "outer loop", detail: "Visit each row without changing the bias vector." },
-          { name: "same column", detail: "Add bias[column] to row[column]." },
-          { name: "broadcast", detail: "Reusing that same bias for every row is the operation libraries perform automatically." },
+          { name: "baseline", detail: "When a weighted row is all zeros, adding bias makes the output equal to the bias vector." },
+          { name: "output coordinate", detail: "Add bias[column] to row[column] because each bias value belongs to one output feature." },
+          { name: "shared parameter", detail: "Reuse the same bias for every row; the layer does not learn a different bias for each example." },
         ],
         starterCode: `def add_row_bias(rows, bias):
     if any(len(row) != len(bias) for row in rows):
@@ -677,9 +681,9 @@ export const batchesAndBroadcastingLesson = defineFoundationLesson({
             shifted_row.append(float(row[column]) + float(bias[column]))
         shifted_rows.append(shifted_row)
     return shifted_rows`,
-        checkCode: `shifted = add_row_bias([[1, 2], [3, 4]], [10, -1])
+        checkCode: `shifted = add_row_bias([[0, 0], [3, 4]], [10, -1])
 RESULT = {
-    "passed": shifted == [[11, 1], [13, 3]],
+    "passed": shifted == [[10, -1], [13, 3]],
     "detail": f"shifted rows = {shifted}",
 }`,
       },

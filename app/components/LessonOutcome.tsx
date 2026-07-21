@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { CourseLesson } from "@latent/course-kit";
+import type { LessonLearningOutcome } from "../content/llm-systems/learning";
 import { lessonLearningOutcome } from "../lessons/learning";
 import {
   recordKnowledgeCheck,
@@ -10,9 +11,15 @@ import {
 import { recordLearningEvent } from "../lib/learning-analytics";
 import styles from "./LessonOutcome.module.css";
 
-export function LessonOutcome({ lesson }: { lesson: CourseLesson }) {
+export function LessonOutcome({
+  lesson,
+  outcome: outcomeProp,
+}: {
+  lesson: CourseLesson;
+  outcome?: LessonLearningOutcome;
+}) {
   const learner = useLearnerState();
-  const outcome = lessonLearningOutcome(lesson.id);
+  const outcome = outcomeProp ?? lessonLearningOutcome(lesson.id);
   const check = outcome.check;
   const lessonState = learner.lessons[lesson.id];
   const storedChoice = lessonState?.knowledgeAnswers[check.id] ?? "";

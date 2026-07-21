@@ -3,6 +3,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { CodeBlock, CourseLesson } from "@latent/course-kit";
+import type { LessonLearningOutcome } from "../content/llm-systems/learning";
 import type { ExerciseCase, ExerciseCaseResult, ExerciseContract, HostAssertion, JsonValue } from "@latent/browser-lab";
 import { allRoutedLessons, getLessonCourseHref, getLessonProjectPath } from "../lessons/course";
 import {
@@ -673,6 +674,9 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
   // Resolve it to the module-owned definition so hydration remains single-shot.
   const lesson = allRoutedLessons.find((candidate) => candidate.id === lessonProp.id) ?? lessonProp;
   const blocks = lesson.implementation.codeBlocks;
+  const copiedBlockById = new Map(lessonProp.implementation.codeBlocks.map((block) => [block.id, block]));
+  const copiedBlock = (block: CodeBlock) => copiedBlockById.get(block.id) ?? block;
+  const copiedBlockLabel = (block: CodeBlock) => copiedBlock(block).label;
   const projectPath = getLessonProjectPath(lesson);
   const contributesToBrowserChat = lesson.projectScope === "browser-chat";
   const contributesToHarness = lesson.projectScope === "harness-engineering";
@@ -888,16 +892,16 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     persistBlockState(
       block,
       resetPracticeBlock(practiceDraftState(), block.id, starterCodeFor(block, lesson)),
-      `${block.label} is back to its starter code. Complete it, then run the cell.`,
+      `${copiedBlockLabel(block)} is back to its starter code. Complete it, then run the cell.`,
     );
   };
   const armBlockReset = (block: CodeBlock) => {
     setPendingResetBlockId(block.id);
-    setPracticeMessage(`${block.label} is ready to start over. Confirm to replace this draft with starter code, or cancel to keep your code.`);
+    setPracticeMessage(`${copiedBlockLabel(block)} is ready to start over. Confirm to replace this draft with starter code, or cancel to keep your code.`);
   };
   const cancelBlockReset = (block: CodeBlock) => {
     setPendingResetBlockId(null);
-    setPracticeMessage(`${block.label} was left unchanged. Your code is still here.`);
+    setPracticeMessage(`${copiedBlockLabel(block)} was left unchanged. Your code is still here.`);
   };
   const runCell = async (block: CodeBlock) => {
     if (!practiceReadyRef.current || runningBlockIdsRef.current.length) return;
@@ -907,7 +911,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     setPendingResetBlockId(null);
     const sourceSnapshot = sourceFor(block);
     setRunning([block.id]);
-    setPracticeMessage(`Running ${block.label.toLowerCase()}…`);
+    setPracticeMessage(`Running ${copiedBlockLabel(block).toLowerCase()}…`);
     try {
       const execution = await runContracts(
         lessonImplementationSource(lesson, [sourceSnapshot]),
@@ -919,11 +923,11 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
       const contractId = `${lesson.id}/${block.id}`;
       const check: CheckResult = result
         ? { ...result, cases: execution.cases.filter((exerciseCase) => exerciseCase.contractId === contractId) }
-        : { label: block.label, passed: false, detail: "The isolated test didn’t return a result.", cases: [] };
+        : { label: copiedBlockLabel(block), passed: false, detail: "The isolated test didn’t return a result.", cases: [] };
       if (sourceFor(block) !== sourceSnapshot) {
         setCellResults((current) => ({ ...current, [block.id]: undefined }));
         setCellOutputs((current) => ({ ...current, [block.id]: undefined }));
-        setPracticeMessage(`${block.label} changed while its check was running. Run the current source again.`);
+        setPracticeMessage(`${copiedBlockLabel(block)} changed while its check was running. Run the current source again.`);
         return;
       }
       if (!projectAllowsWrite()) return;
@@ -948,8 +952,8 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
         [block.id]: { output: execution.output, stdout: execution.stdout, stderr: execution.stderr },
       }));
       setPracticeMessage(check.passed
-        ? `${block.label} passed the course checks and is now verified.`
-        : `${block.label} needs a fix. Check the failure below; your other cells didn’t change.`);
+        ? `${copiedBlockLabel(block)} passed the course checks and is now verified.`
+        : `${copiedBlockLabel(block)} needs a fix. Check the failure below; your other cells didn’t change.`);
       void recordLearningEvent("cell_check_completed", {
         lessonId: lesson.id,
         moduleId: lesson.courseId,
@@ -957,10 +961,10 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
       });
     } catch (error) {
       if (controller.signal.aborted) return;
-      const check: CheckResult = { label: block.label, passed: false, detail: error instanceof Error ? error.message : "The isolated test failed.", cases: [] };
+      const check: CheckResult = { label: copiedBlockLabel(block), passed: false, detail: error instanceof Error ? error.message : "The isolated test failed.", cases: [] };
       setCellResults((current) => ({ ...current, [block.id]: check }));
       setCellOutputs((current) => ({ ...current, [block.id]: { output: [], stdout: "", stderr: "" } }));
-      setPracticeMessage(`${block.label} stopped safely.`);
+      setPracticeMessage(`${copiedBlockLabel(block)} stopped safely.`);
     } finally {
       if (runAbortRef.current === controller) {
         runAbortRef.current = null;
@@ -993,7 +997,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
       const executions: Array<CellExecutionOutput | undefined> = [];
       let outputCaptureIncomplete = false;
       for (const [index, block] of blocks.entries()) {
-        setPracticeMessage(`Running ${index + 1} of ${blocks.length}: ${block.label}…`);
+        setPracticeMessage(`Running ${index + 1} of ${blocks.length}: ${copiedBlockLabel(block)}…`);
         try {
           const execution = await runContracts(
             lessonImplementationSource(lesson, [sourceSnapshots[block.id]]),
@@ -1012,7 +1016,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
       const resultById = new Map(results.map((result) => [result.id, result]));
       const ordered = blocks.map((block) => {
         const contractId = `${lesson.id}/${block.id}`;
-        const result = resultById.get(contractId) ?? { id: contractId, path: projectPath, label: block.label, passed: false, detail: "The isolated test didn’t return a result." };
+        const result = resultById.get(contractId) ?? { id: contractId, path: projectPath, label: copiedBlockLabel(block), passed: false, detail: "The isolated test didn’t return a result." };
         return { ...result, cases: combinedExecution.cases.filter((exerciseCase) => exerciseCase.contractId === contractId) };
       });
       if (blocks.some((block) => sourceFor(block) !== sourceSnapshots[block.id])) {
@@ -1081,7 +1085,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
       if (controller.signal.aborted) return;
       const detail = error instanceof Error ? error.message : "The isolated lesson test failed safely.";
       setCellResults(Object.fromEntries(blocks.map((block) => [block.id, {
-        label: block.label,
+        label: copiedBlockLabel(block),
         passed: false,
         detail: `Run all did not finish: ${detail}`,
         cases: [],
@@ -1120,6 +1124,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
             <div className="tensor-import-line"><code>{implementationPrelude}</code></div>
           ) : null}
           {blocks.map((block, blockIndex) => {
+            const displayBlock = copiedBlock(block);
             const starterSource = starterCodeFor(block, lesson);
             const workingSource = practiceReady ? answers[block.id] ?? starterSource : starterSource;
             const startLine = blocks.slice(0, blockIndex).reduce((line, previous) => {
@@ -1155,13 +1160,13 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
                     setPendingResetBlockId(null);
                   }}
                 >
-                  <strong>{block.label}</strong>
+                  <strong>{displayBlock.label}</strong>
                   {visibleState ? <span className="exercise-state">{visibleState}</span> : null}
                 </button>
                 {active ? (
                   <div className="exercise-body" id={`exercise-${lesson.id}-${block.id}`}>
                     {projectConflict ? <p className="editor-conflict-note" role="status">The project workspace has newer code. Continue there; this lesson is read-only.</p> : null}
-                    <ExerciseContract lesson={lesson} block={block} />
+                    <ExerciseContract lesson={lesson} block={displayBlock} />
                     <div className="answer-area" data-direct-edit="true" data-edit-state={dirty ? "draft" : "starter"}>
                       {practiceReady ? (
                         <Suspense fallback={<div className="lesson-editor-loading" role="status">Loading syntax-aware editor…</div>}>
@@ -1228,8 +1233,12 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
         </div>
         <div className="editor-footer"><p id={`practice-status-${lesson.id}`} role="status" aria-live="polite" aria-atomic="true">{practiceReady ? practiceMessage : "Loading saved work…"}</p><button type="button" aria-describedby={`practice-status-${lesson.id}`} onClick={() => void runAll()} disabled={!practiceReady || projectConflict || runningBlockIds.length > 0}>{runningBlockIds.length ? "Running tests…" : "Run all tests"}</button></div>
       </div>
-      <p className="implementation-intro">{lesson.implementation.intro}</p>
-      <Suspense fallback={null}><LessonExperiment lesson={lesson} /></Suspense>
+      <p className="implementation-intro">{lessonProp.implementation.intro}</p>
+      <Suspense fallback={null}><LessonExperiment lesson={{
+        ...lesson,
+        dataset: lessonProp.dataset,
+        experiment: lessonProp.experiment,
+      }} /></Suspense>
       {contributesToBrowserChat ? <ArtifactRuntimePanel lesson={lesson} refreshKey={artifactRevision} /> : null}
     </section>
   );
@@ -1280,7 +1289,13 @@ function LessonRecoveryCandidates({ lessonId, onLoaded }: { lessonId: string; on
   );
 }
 
-export function PaperLab({ lesson }: { lesson: CourseLesson }) {
+export function PaperLab({
+  lesson,
+  outcome,
+}: {
+  lesson: CourseLesson;
+  outcome?: LessonLearningOutcome;
+}) {
   const learnerPersistenceError = useLearnerPersistenceError();
   const projectPersistenceError = useProjectPersistenceError();
   const harnessWorkspace = useHarnessWorkspaceState();
@@ -1313,7 +1328,7 @@ export function PaperLab({ lesson }: { lesson: CourseLesson }) {
         <HeaderSection lesson={lesson} />
         <LessonProgress lesson={lesson} />
         <ParagraphSection lesson={lesson} />
-        <LessonOutcome lesson={lesson} />
+        <LessonOutcome lesson={lesson} outcome={outcome} />
         <LessonRecoveryCandidates lessonId={lesson.id} onLoaded={() => setRecoveryRevision((revision) => revision + 1)} />
         <CodingSection key={`${lesson.id}:${recoveryRevision}`} lesson={lesson} />
         <footer className="paper-footer lesson-footer">

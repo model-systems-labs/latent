@@ -101,6 +101,77 @@
   color: var(--ink);
 }
 
+.copyToolbar {
+  align-items: center;
+  backdrop-filter: blur(14px);
+  background: rgba(252, 250, 244, 0.92);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  bottom: 1rem;
+  color: var(--muted);
+  display: flex;
+  font-size: max(0.72rem, 12px);
+  gap: 0.75rem;
+  padding: 0.55rem;
+  position: fixed;
+  right: 1rem;
+  z-index: 20;
+}
+
+.copyToolbar button {
+  background: var(--paper);
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  min-height: 2.15rem;
+  padding: 0 0.75rem;
+}
+
+.copyToolbar button:hover,
+.copyToolbar button:focus-visible,
+.copyToolbar button[aria-pressed="true"] {
+  border-color: var(--ink);
+}
+
+.copyToolbar span {
+  min-width: 4.8rem;
+}
+
+.copyInput {
+  appearance: none;
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid var(--violet);
+  border-radius: 6px;
+  color: inherit;
+  display: block;
+  font: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  margin: -0.25rem 0;
+  overflow: hidden;
+  padding: 0.25rem 0.35rem;
+  resize: none;
+  width: 100%;
+}
+
+.copyInput:focus {
+  border-color: var(--ink);
+  outline: 2px solid var(--violet-wash);
+  outline-offset: 2px;
+}
+
+[data-site-copy-editing="true"] {
+  display: block;
+  max-width: inherit;
+}
+
+[data-site-copy-inline="true"] .copyInput {
+  min-height: 2.1rem;
+  width: min(18rem, 100%);
+}
+
 .argument {
   border-top: 1px solid var(--line-strong);
   padding: clamp(4.5rem, 8vw, 7rem) 0;
@@ -471,7 +542,8 @@
   font-family: var(--serif);
 }
 
-.closing > a {
+.closing > a,
+.closingAction {
   align-items: center;
   border-bottom: 1px solid var(--line-strong);
   display: inline-flex;
@@ -482,7 +554,9 @@
 }
 
 .closing > a:hover,
-.closing > a:focus-visible {
+.closing > a:focus-visible,
+.closingAction:hover,
+.closingAction:focus-visible {
   border-color: var(--ink);
 }
 
@@ -542,6 +616,12 @@
     align-items: flex-start;
     flex-direction: column;
     margin-top: 1.8rem;
+  }
+
+  .copyToolbar {
+    bottom: 0.7rem;
+    left: 0.7rem;
+    right: 0.7rem;
   }
 
   .argument {

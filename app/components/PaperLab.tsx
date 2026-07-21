@@ -1,6 +1,6 @@
 "use client";
 
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import type { CodeBlock, CourseLesson } from "@latent/course-kit";
 import { allRoutedLessons, getLessonCourseHref, getLessonProjectPath } from "../lessons/course";
@@ -50,12 +50,46 @@ import { lessonLearningOutcome, moduleCheckpoint } from "../lessons/learning";
 import { recordLearningEvent } from "../lib/learning-analytics";
 import { SyntaxCode } from "../features/ide/SyntaxCode";
 import { getLessonFlair } from "../lessons/lesson-flair";
+import { getLessonIllustration } from "../lessons/lesson-illustrations";
 import { exerciseContractFor } from "../lessons/exercise-contracts";
 import { lessonGateProgress } from "../lessons/lesson-progress";
 import styles from "./PaperLab.module.css";
 
 type CheckResult = { label: string; passed: boolean; detail: string };
 type CellExecutionOutput = Pick<PracticeContractRun, "output" | "stdout" | "stderr">;
+
+const editorialIllustrationStyles = {
+  figure: {
+    borderBlock: "1px solid var(--line)",
+    margin: "clamp(1.6rem, 3vw, 2.4rem) 0 0",
+    padding: "clamp(0.8rem, 1.7vw, 1.15rem) 0 0.9rem",
+  },
+  image: {
+    background: "#eee8dd",
+    border: "1px solid var(--line)",
+    borderRadius: "0.35rem",
+    display: "block",
+    height: "auto",
+    width: "100%",
+  },
+  caption: {
+    display: "grid",
+    gap: "0.3rem",
+    paddingTop: "0.8rem",
+  },
+  title: {
+    color: "var(--ink)",
+    fontFamily: "var(--serif)",
+    fontSize: "clamp(1rem, 1.7vw, 1.18rem)",
+    fontWeight: 500,
+  },
+  copy: {
+    color: "var(--muted)",
+    fontFamily: "var(--serif)",
+    fontSize: "max(0.78rem, 12px)",
+    lineHeight: 1.55,
+  },
+} satisfies Record<string, CSSProperties>;
 
 const LessonCodeEditor = lazy(async () => ({
   default: (await import("../features/ide/CodeEditor")).CodeEditor,
@@ -103,6 +137,30 @@ export function HeaderSection({ lesson }: { lesson: CourseLesson }) {
       <p className="paper-thesis">{lesson.thesis}</p>
       <SourceSet lesson={lesson} />
     </header>
+  );
+}
+
+function EditorialLessonIllustration({ lesson }: { lesson: CourseLesson }) {
+  const illustration = getLessonIllustration(lesson.id);
+  if (!illustration) return null;
+  return (
+    <figure style={editorialIllustrationStyles.figure} data-editorial-illustration={lesson.id}>
+      {/* Static lesson art ships with the site, so an optimizer would only add runtime work. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={illustration.src}
+        alt={illustration.alt}
+        width={1672}
+        height={941}
+        loading="lazy"
+        decoding="async"
+        style={editorialIllustrationStyles.image}
+      />
+      <figcaption style={editorialIllustrationStyles.caption}>
+        <strong style={editorialIllustrationStyles.title}>{illustration.title}</strong>
+        <span style={editorialIllustrationStyles.copy}>{illustration.caption}</span>
+      </figcaption>
+    </figure>
   );
 }
 
@@ -1287,6 +1345,7 @@ export function PaperLab({ lesson }: { lesson: CourseLesson }) {
       {persistenceError ? <p className="persistence-warning lesson-persistence-warning" role="alert">Storage warning: {persistenceError}</p> : null}
       <article className="paper-page" id="top">
         <HeaderSection lesson={lesson} />
+        <EditorialLessonIllustration lesson={lesson} />
         <EvidenceAndLimits lesson={lesson} />
         <LessonProgress lesson={lesson} />
         <LessonRecoveryCandidates lessonId={lesson.id} onLoaded={() => setRecoveryRevision((revision) => revision + 1)} />

@@ -144,10 +144,6 @@
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.32), transparent);
 }
 
-.lesson-card.lesson-card-simple > div {
-  grid-column: auto;
-}
-
 .lesson-card.lesson-card-simple h2 {
   font-family: var(--serif);
   font-size: 1.45rem;

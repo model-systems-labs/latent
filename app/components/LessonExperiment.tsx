@@ -1122,7 +1122,14 @@ function FundamentalsExperiment({ variant, onComplete }: { variant: string } & E
 export function LessonExperiment({ lesson }: { lesson: CourseLesson }) {
   const complete = () => markExperimentComplete(lesson.id);
   return (
-    <section className="experiment-lab" aria-label={lesson.experiment.title}>
+    <section className="experiment-lab" id="experiment" aria-labelledby={`experiment-title-${lesson.id}`}>
+      <header className="experiment-header">
+        <div>
+          <span>Experiment</span>
+          <h3 id={`experiment-title-${lesson.id}`}>{lesson.experiment.title}</h3>
+          <p>{lesson.experiment.intro}</p>
+        </div>
+      </header>
       <DatasetRecord lesson={lesson} />
       {lesson.experiment.kind === "rnn" ? <RnnExperiment onComplete={complete} /> : null}
       {lesson.experiment.kind === "neural-lm" ? <NeuralLmExperiment onComplete={complete} /> : null}

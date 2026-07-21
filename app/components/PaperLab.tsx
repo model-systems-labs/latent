@@ -106,6 +106,60 @@ export function HeaderSection({ lesson }: { lesson: CourseLesson }) {
   );
 }
 
+function EvidenceAndLimits({ lesson }: { lesson: CourseLesson }) {
+  return (
+    <details className={styles.evidencePanel}>
+      <summary>Evidence &amp; limits</summary>
+      <div className={styles.evidenceBody}>
+        <dl className={styles.claims}>
+          <div>
+            <dt>What the sources establish</dt>
+            <dd>{lesson.claims.paper}</dd>
+          </div>
+          <div>
+            <dt>What this lab runs</dt>
+            <dd>{lesson.claims.lab}</dd>
+          </div>
+          <div>
+            <dt>What it does not prove</dt>
+            <dd>{lesson.claims.limit}</dd>
+          </div>
+        </dl>
+
+        <section className={styles.datasetEvidence} aria-labelledby={`dataset-evidence-${lesson.id}`}>
+          <h2 id={`dataset-evidence-${lesson.id}`}>Dataset</h2>
+          <p><strong>{lesson.dataset.name}</strong></p>
+          <dl>
+            <div><dt>Source</dt><dd>{lesson.dataset.source}</dd></div>
+            <div><dt>License</dt><dd>{lesson.dataset.license}</dd></div>
+            <div><dt>Size</dt><dd>{lesson.dataset.size}</dd></div>
+          </dl>
+        </section>
+
+        <section className={styles.sourceEvidence} aria-labelledby={`source-evidence-${lesson.id}`}>
+          <h2 id={`source-evidence-${lesson.id}`}>Source notes</h2>
+          <ul>
+            {lesson.sources.map((source) => (
+              <li key={source.url}>
+                <a
+                  href={source.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={`${source.title}, ${source.role}, ${source.authors}, ${source.year}; opens in a new tab`}
+                >
+                  <strong>{source.title}</strong><span aria-hidden="true"> ↗</span>
+                </a>
+                <p>{source.role} · {source.authors} · {source.year}</p>
+                <p>{source.relevance}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
+    </details>
+  );
+}
+
 export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
   const isRecurrent = lesson.id === "character-rnns";
   const isNeuralLanguageModel = lesson.id === "neural-language-models";
@@ -1037,6 +1091,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
   return (
     <section className="paper-section implementation-section" id="implementation">
       <div className="section-title"><h2>Implementation</h2></div>
+      <p className="implementation-intro">{lesson.implementation.intro}</p>
       <div className="practice-editor" data-project-conflict={projectConflict} aria-busy={!practiceReady || runningBlockIds.length > 0}>
         <div className="editor-toolbar">
           <div className="editor-file"><span>{projectPath}</span></div>
@@ -1147,7 +1202,6 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
         </div>
         <div className="editor-footer"><p id={`practice-status-${lesson.id}`} role="status" aria-live="polite" aria-atomic="true">{practiceReady ? practiceMessage : "Loading saved work…"}</p><button type="button" aria-describedby={`practice-status-${lesson.id}`} onClick={() => void runAll()} disabled={!practiceReady || projectConflict || runningBlockIds.length > 0}>{runningBlockIds.length ? "Running tests…" : "Run all tests"}</button></div>
       </div>
-      <p className="implementation-intro">{lesson.implementation.intro}</p>
       <Suspense fallback={null}><LessonExperiment lesson={lesson} /></Suspense>
       {contributesToBrowserChat ? <ArtifactRuntimePanel lesson={lesson} refreshKey={artifactRevision} /> : null}
     </section>
@@ -1221,8 +1275,11 @@ export function PaperLab({ lesson }: { lesson: CourseLesson }) {
       <header className="site-header lesson-header">
         <Link className="wordmark" href="/" aria-label="Latent home"><i />latent</Link>
         <nav aria-label="Lesson navigation">
-          <a href="#implementation">Code</a>
-          <a href="#summary">Read</a>
+          {lesson.projectScope === "standalone" ? (
+            <><a href="#summary">Read</a><a href="#implementation">Code</a></>
+          ) : (
+            <><a href="#implementation">Code</a><a href="#summary">Read</a></>
+          )}
           {contributesToBrowserChat ? <a href="#artifacts">Results</a> : null}
         </nav>
         <span>{lesson.courseTitle ?? "Model Foundations"}</span>
@@ -1230,10 +1287,20 @@ export function PaperLab({ lesson }: { lesson: CourseLesson }) {
       {persistenceError ? <p className="persistence-warning lesson-persistence-warning" role="alert">Storage warning: {persistenceError}</p> : null}
       <article className="paper-page" id="top">
         <HeaderSection lesson={lesson} />
+        <EvidenceAndLimits lesson={lesson} />
         <LessonProgress lesson={lesson} />
         <LessonRecoveryCandidates lessonId={lesson.id} onLoaded={() => setRecoveryRevision((revision) => revision + 1)} />
-        <CodingSection key={`${lesson.id}:${recoveryRevision}`} lesson={lesson} />
-        <ParagraphSection lesson={lesson} />
+        {lesson.projectScope === "standalone" ? (
+          <>
+            <ParagraphSection lesson={lesson} />
+            <CodingSection key={`${lesson.id}:${recoveryRevision}`} lesson={lesson} />
+          </>
+        ) : (
+          <>
+            <CodingSection key={`${lesson.id}:${recoveryRevision}`} lesson={lesson} />
+            <ParagraphSection lesson={lesson} />
+          </>
+        )}
         <LessonOutcome lesson={lesson} />
         <footer className="paper-footer lesson-footer">
           {previous ? <Link href={`/lessons/${previous.id}`}>← {previous.title}</Link> : <Link href={courseHref}>← {contributesToBrowserChat ? "Module" : "Course"}</Link>}

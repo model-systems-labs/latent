@@ -69,23 +69,22 @@ test("summary prose owns the reading flow and the mechanism follows the concepts
   assert.match(paperLab, /const diagramAfter = Math\.max\(1, lesson\.summary\.length - 1\)/);
 });
 
-test("every shared lesson opens with editable code before its explanation", async () => {
+test("foundation lessons read before code while project lessons keep code first", async () => {
   const paperLab = await readFile(paperLabUrl, "utf8");
   const lessonShell = paperLab.slice(paperLab.indexOf("export function PaperLab"));
   const header = lessonShell.indexOf("<HeaderSection");
-  const implementation = lessonShell.indexOf("<CodingSection");
-  const summary = lessonShell.indexOf("<ParagraphSection");
+  const evidence = lessonShell.indexOf("<EvidenceAndLimits");
+  const progress = lessonShell.indexOf("<LessonProgress");
   const outcome = lessonShell.indexOf("<LessonOutcome");
-  const codeNav = lessonShell.indexOf('<a href="#implementation">Code</a>');
-  const readNav = lessonShell.indexOf('<a href="#summary">Read</a>');
   const codingSection = paperLab.slice(
     paperLab.indexOf("export function CodingSection"),
     paperLab.indexOf("function LessonRecoveryCandidates"),
   );
 
-  assert.ok(header >= 0 && header < implementation && implementation < summary && summary < outcome);
-  assert.ok(codeNav >= 0 && codeNav < readNav);
-  assert.ok(codingSection.indexOf('className="practice-editor"') < codingSection.indexOf('className="implementation-intro"'));
+  assert.ok(header >= 0 && header < evidence && evidence < progress && progress < outcome);
+  assert.match(lessonShell, /lesson\.projectScope === "standalone" \? \([\s\S]*?<a href="#summary">Read<\/a><a href="#implementation">Code<\/a>[\s\S]*?<a href="#implementation">Code<\/a><a href="#summary">Read<\/a>/);
+  assert.match(lessonShell, /lesson\.projectScope === "standalone" \? \([\s\S]*?<ParagraphSection lesson=\{lesson\} \/>[\s\S]*?<CodingSection[\s\S]*?\) : \([\s\S]*?<CodingSection[\s\S]*?<ParagraphSection lesson=\{lesson\} \/>/);
+  assert.ok(codingSection.indexOf('className="implementation-intro"') < codingSection.indexOf('className="practice-editor"'));
 });
 
 test("lesson prose, diagrams, code, and outcomes share one editorial rail", async () => {
@@ -103,15 +102,15 @@ test("lesson prose, diagrams, code, and outcomes share one editorial rail", asyn
   assert.match(rule(lessonOutcome, ".check"), /border:\s*0/);
 });
 
-test("interactive experiments begin with one compact dataset sample instead of repeated framing", async () => {
+test("interactive experiments introduce their purpose before one compact dataset sample", async () => {
   const source = await readFile(lessonExperimentUrl, "utf8");
   const dataset = source.slice(source.indexOf("function DatasetRecord"), source.indexOf("type ExperimentProps"));
   const surface = source.slice(source.indexOf("export function LessonExperiment"));
   assert.match(dataset, /aria-label=\{`Dataset sample: \$\{lesson\.dataset\.name\}`\}/);
   assert.match(dataset, /<strong>\{lesson\.dataset\.name\}<\/strong>[\s\S]*?<span>\{lesson\.dataset\.preview\}<\/span>/);
   assert.doesNotMatch(dataset, /lesson\.dataset\.(?:source|license|size)/);
-  assert.match(surface, /<section className="experiment-lab" aria-label=\{lesson\.experiment\.title\}>/);
-  assert.doesNotMatch(surface, /<header|lesson\.experiment\.intro/);
+  assert.match(surface, /<section className="experiment-lab" id="experiment" aria-labelledby=\{`experiment-title-\$\{lesson\.id\}`\}>/);
+  assert.match(surface, /<header className="experiment-header">[\s\S]*?<h3 id=\{`experiment-title-\$\{lesson\.id\}`\}>\{lesson\.experiment\.title\}<\/h3>[\s\S]*?<p>\{lesson\.experiment\.intro\}<\/p>/);
 });
 
 test("saved results render only artifacts that exist", async () => {
@@ -133,7 +132,16 @@ test("lesson sources use one compact inline list with assistive metadata", async
   assert.doesNotMatch(paperLab, /<details className="source-set"|matchMedia\("\(max-width: 650px\)/);
   assert.equal(paperLab.match(/<ul className="source-list">/g)?.length, 1, "references must have one semantic copy");
   assert.match(paperLab, /aria-label=\{`\$\{source\.title\}, \$\{source\.authors\}, \$\{source\.year\}; opens in a new tab`\}/);
-  assert.doesNotMatch(paperLab, /<p>\{source\.relevance\}<\/p>/);
+  assert.match(paperLab, /<details className=\{styles\.evidencePanel\}>[\s\S]*?<summary>Evidence &amp; limits<\/summary>/);
+  assert.doesNotMatch(paperLab, /<details className=\{styles\.evidencePanel\} open/);
+  assert.match(paperLab, /<dt>What the sources establish<\/dt>[\s\S]*?\{lesson\.claims\.paper\}/);
+  assert.match(paperLab, /<dt>What this lab runs<\/dt>[\s\S]*?\{lesson\.claims\.lab\}/);
+  assert.match(paperLab, /<dt>What it does not prove<\/dt>[\s\S]*?\{lesson\.claims\.limit\}/);
+  assert.match(paperLab, /<div><dt>Source<\/dt><dd>\{lesson\.dataset\.source\}<\/dd><\/div>/);
+  assert.match(paperLab, /<div><dt>License<\/dt><dd>\{lesson\.dataset\.license\}<\/dd><\/div>/);
+  assert.match(paperLab, /<div><dt>Size<\/dt><dd>\{lesson\.dataset\.size\}<\/dd><\/div>/);
+  assert.match(paperLab, /<p>\{source\.role\} · \{source\.authors\} · \{source\.year\}<\/p>[\s\S]*?<p>\{source\.relevance\}<\/p>/);
+  assert.match(paperLab, /aria-label=\{`\$\{source\.title\}, \$\{source\.role\}, \$\{source\.authors\}, \$\{source\.year\}; opens in a new tab`\}/);
   assert.match(rule(learningFlow, ".source-list"), /display:\s*flex/);
   assert.match(rule(learningFlow, ".source-entry > a"), /min-height:\s*2\.25rem/);
   assert.match(lessonMobile, /\.lessonShell :global\(\.source-set\)\s*\{[^}]*display:\s*grid/);

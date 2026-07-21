@@ -12,7 +12,10 @@ test("the course restores a returning learner before choosing first-run or resum
   assert.match(firstRun, /Promise\.all\(\[initializeLearnerPersistence\(\), initializeProjectPersistence\(\)\]\)\.finally/);
   assert.match(firstRun, /if \(!hydrated\)/);
   assert.match(firstRun, /course-resume-loading/);
-  assert.match(firstRun, /courseLessons\.find/);
+  assert.match(firstRun, /latestStartedLesson/);
+  assert.match(firstRun, /sort\(\(left, right\) => \(learner\.lessons\[right\.id\]\?\.updatedAt \?\? 0\) - \(learner\.lessons\[left\.id\]\?\.updatedAt \?\? 0\)\)/);
+  assert.match(firstRun, /!isComplete\(latestStartedLesson\)[\s\S]*?latestStartedLesson/);
+  assert.match(firstRun, /slice\(courseLessons\.indexOf\(latestStartedLesson\) \+ 1\)[\s\S]*?firstIncompleteLesson/);
   assert.match(firstRun, /Resume lesson/);
   assert.match(firstRun, /workspace\?file=/);
   assert.match(firstRun, /projectStarted/);

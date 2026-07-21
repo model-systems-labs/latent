@@ -40,7 +40,7 @@ const trainingDataLesson = defineFoundationLesson({
     {
       label: "Examples, features, and targets.",
       body:
-        "One row is one example. The input measurements in that row are its features, usually written as x. The value the model should predict is its target, written as y. A dataset with n examples and d features becomes a feature matrix X with shape [n, d] and a target vector y with shape [n].",
+        "Imagine one row describing a house. Its square footage and number of bedrooms are the features the model uses, and its sale price is the target it should learn to predict. In machine learning, one row like this is one example. The features for one example are usually written as x, and its target is written as y. Put n examples with d features together and you get a feature matrix X with shape [n, d] and a target vector y with shape [n].",
     },
     {
       label: "Training and validation sets.",

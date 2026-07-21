@@ -3,9 +3,9 @@ import Link from "next/link";
 import styles from "./page.module.css";
 
 export const metadata: Metadata = {
-  title: "Latent · Courses on LLM systems",
+  title: "Latent · Hands-on courses on LLM systems",
   description:
-    "Foundations, implementations, and browser experiments for studying machine learning, language models, agent harnesses, inference runtimes, serving systems, and chat interfaces.",
+    "Learn machine learning and LLM systems with clear explanations, runnable browser exercises, and a cumulative local chatbot project.",
 };
 
 const architectureStages = [
@@ -57,15 +57,15 @@ export default function Home() {
 
       <article className={styles.shell}>
         <section className={styles.hero}>
-          <h1>I built this to understand LLM systems.</h1>
+          <span className="eyebrow">Hands-on courses · runs locally in your browser</span>
+          <h1>Learn how LLM systems actually work.</h1>
           <p>
-            Latent is a set of courses, notes, and browser experiments for learning the subject. Two
-            short courses cover the mathematical and machine-learning foundations. Harness Engineering
-            studies the deterministic software around an agent. A separate project course follows an LLM
-            from sequence modeling through inference, serving, and interface design.
+            Start with the math if you need it, or jump straight into models, inference, serving, and
+            chat product code. Every lesson pairs a clear explanation with code you can run in your
+            browser. The LLM Systems course builds those pieces into a working local chatbot.
           </p>
           <div className={styles.actions}>
-            <Link className={styles.primaryAction} href="/course">Browse the courses <span aria-hidden="true">→</span></Link>
+            <Link className={styles.primaryAction} href="/course#starting-point">Find your starting point <span aria-hidden="true">→</span></Link>
             <Link className={styles.secondaryAction} href="/courses/llm-systems">Open LLM systems</Link>
           </div>
         </section>

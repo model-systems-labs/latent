@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { coursePrograms, courseTracks, getCourseProgram } from "../../lessons/course";
+import { CourseGuide } from "../../components/CourseGuide";
 import { CourseCurriculum } from "../../components/CourseCurriculum";
 
 export function generateStaticParams() {
@@ -43,15 +44,13 @@ export default async function StandaloneCoursePage({ params }: { params: Promise
           <h1>{program.title}</h1>
           <p className="course-thesis">{program.thesis}</p>
         </header>
-        <p className="standalone-course-boundary">{program.id === "harness-engineering"
-          ? "Each lesson adds tested Python to a separate project saved in this browser."
-          : "Exercises and progress are saved within this course."}</p>
-        {program.id === "harness-engineering" ? (
-          <nav aria-label="Harness Engineering actions" style={{ display: "flex", flexWrap: "wrap", gap: "1.25rem", paddingBottom: "1rem" }}>
-            <Link href="/lessons/agent-loop" style={{ color: "var(--violet-deep)", fontSize: "max(0.7rem, 12px)" }}>Start with Agent Loop →</Link>
-            <Link href="/courses/harness-engineering/workspace" style={{ color: "var(--muted)", fontSize: "max(0.7rem, 12px)" }}>Open project ↗</Link>
-          </nav>
-        ) : null}
+        <CourseGuide
+          program={program}
+          title={program.kind === "foundation" ? "Take the refresher you need" : "Build the software around the model"}
+          secondaryLink={program.id === "harness-engineering"
+            ? { href: "/courses/harness-engineering/workspace", label: "Open the harness project" }
+            : undefined}
+        />
         <CourseCurriculum title={program.title} lessons={program.lessons} completionLabel="Course lessons complete" />
         <footer className="track-navigation">
           {previous ? <Link href={previous.href}>← {previous.title}</Link> : <Link href="/course">← All courses</Link>}

@@ -34,13 +34,13 @@ export async function generateMetadata(): Promise<Metadata> {
       title,
       description,
       type: "website",
-      images: [{ url: new URL("/og.png", metadataBase).toString(), width: 1731, height: 909 }],
+      images: [{ url: new URL("/og-learning-paths.png", metadataBase).toString(), width: 1731, height: 909 }],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [new URL("/og.png", metadataBase).toString()],
+      images: [new URL("/og-learning-paths.png", metadataBase).toString()],
     },
   };
 }

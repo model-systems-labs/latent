@@ -73,6 +73,23 @@ export const standaloneLessons: CourseLesson[] = [
 /** Every public lesson route. Browser Chat build code must continue to use courseLessons. */
 export const allRoutedLessons: CourseLesson[] = [...standaloneLessons, ...courseLessons];
 
+export type CourseAudience = {
+  level: "beginner" | "intermediate" | "advanced";
+  description: string;
+};
+
+export type CoursePrerequisite = {
+  required: boolean;
+  description: string;
+};
+
+export type CourseRuntime = {
+  language: string;
+  environment: "Runs locally in your browser";
+  persistence: string;
+  boundary: string;
+};
+
 export type CourseProgram = {
   id: "linear-algebra" | "machine-learning-basics" | "harness-engineering" | "llm-systems";
   order: number;
@@ -83,6 +100,9 @@ export type CourseProgram = {
   href: string;
   kind: "foundation" | "applied" | "project";
   lessons: CourseLesson[];
+  audience: CourseAudience;
+  prerequisite: CoursePrerequisite;
+  runtime: CourseRuntime;
 };
 
 export const coursePrograms: CourseProgram[] = [
@@ -96,6 +116,20 @@ export const coursePrograms: CourseProgram[] = [
     href: "/courses/linear-algebra",
     kind: "foundation",
     lessons: linearAlgebraCurriculum.lessons.map(({ lesson }) => lesson),
+    audience: {
+      level: "beginner",
+      description: "People who want the array math behind neural networks to stop feeling abstract.",
+    },
+    prerequisite: {
+      required: false,
+      description: "Basic Python helps. You do not need prior linear algebra.",
+    },
+    runtime: {
+      language: "Python + NumPy",
+      environment: "Runs locally in your browser",
+      persistence: "Exercises and progress stay in this course.",
+      boundary: "A browser-hosted Python runtime checks small course-authored examples. No install or API key is required.",
+    },
   },
   {
     id: "machine-learning-basics",
@@ -107,6 +141,20 @@ export const coursePrograms: CourseProgram[] = [
     href: "/courses/machine-learning-basics",
     kind: "foundation",
     lessons: machineLearningBasicsCurriculum.lessons.map(({ lesson }) => lesson),
+    audience: {
+      level: "beginner",
+      description: "New ML learners and developers who want a clean training-loop refresher.",
+    },
+    prerequisite: {
+      required: false,
+      description: "Basic Python helps. NumPy experience is not required.",
+    },
+    runtime: {
+      language: "Python + NumPy",
+      environment: "Runs locally in your browser",
+      persistence: "Exercises and progress stay in this course.",
+      boundary: "A browser-hosted Python runtime checks small course-authored examples. No install or API key is required.",
+    },
   },
   {
     id: "harness-engineering",
@@ -118,6 +166,20 @@ export const coursePrograms: CourseProgram[] = [
     href: "/courses/harness-engineering",
     kind: "applied",
     lessons: harnessEngineeringCurriculum.lessons.map(({ lesson }) => lesson),
+    audience: {
+      level: "advanced",
+      description: "Engineers building reliable agents around an existing language model.",
+    },
+    prerequisite: {
+      required: true,
+      description: "You should be comfortable reading Python and thinking in tests and state machines.",
+    },
+    runtime: {
+      language: "Python",
+      environment: "Runs locally in your browser",
+      persistence: "Lessons build a separate saved harness project.",
+      boundary: "Your Python runs against fixed model replies and tool results. It does not call a hosted LLM, local files, a shell, or the network.",
+    },
   },
   {
     id: "llm-systems",
@@ -129,6 +191,20 @@ export const coursePrograms: CourseProgram[] = [
     href: "/courses/llm-systems",
     kind: "project",
     lessons: courseLessons,
+    audience: {
+      level: "intermediate",
+      description: "Python developers who know NumPy, loss, and gradients and want to see the whole LLM path.",
+    },
+    prerequisite: {
+      required: true,
+      description: "Know basic linear algebra and ML, or use the two foundation courses as refreshers.",
+    },
+    runtime: {
+      language: "Python + NumPy + React",
+      environment: "Runs locally in your browser",
+      persistence: "Lesson files accumulate in the saved Browser Chat project.",
+      boundary: "Python lessons are checked separately; the capstone runs tested browser adapters and an optional local model download. No API key is required.",
+    },
   },
 ];
 

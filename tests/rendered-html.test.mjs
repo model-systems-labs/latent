@@ -15,15 +15,14 @@ async function render(path = "/") {
   );
 }
 
-test("the landing page frames the course as a personal academic notebook", async () => {
+test("the landing page gives learners a plainspoken route into the courses", async () => {
   const response = await render("/");
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /I built this to understand LLM systems/);
-  assert.match(html, /Latent is a set of courses, notes, and browser experiments/);
-  assert.match(html, /Two short courses cover the mathematical and machine-learning foundations/);
-  assert.match(html, /Harness Engineering/);
-  assert.match(html, /studies the deterministic software around an agent/);
+  assert.match(html, /Learn how LLM systems actually work/);
+  assert.match(html, /Start with the math if you need it, or jump straight into models/);
+  assert.match(html, /Every lesson pairs a clear explanation with code you can run in your browser/);
+  assert.match(html, /Find your starting point/);
   assert.match(html, /Model, runtime, serving, and interface/);
   assert.match(html, /Browser-native LLM system/);
   assert.match(html, /Prompt \+ messages/);
@@ -43,7 +42,7 @@ test("the landing page frames the course as a personal academic notebook", async
   assert.match(html, /This is not a production-scale model or serving stack/);
   assert.match(html, /models\/character-rnn\.py/);
   assert.match(html, /capstone\/BrowserChat\.tsx/);
-  assert.match(html, /href="\/course"/);
+  assert.match(html, /href="\/course#starting-point"/);
   assert.doesNotMatch(html, /Open the course|Build the system|Token generation is the midpoint|It is free to use/);
   assert.doesNotMatch(html, /Character-level RNN training|course-track-card catalog-track-card|Run the first model/);
 });
@@ -60,7 +59,16 @@ test("the course catalog separates foundations, agent systems, and the cumulativ
   assert.match(html, /Harness Engineering/);
   assert.match(html, /Build an LLM System in Your Browser/);
   assert.match(html, /href="\/courses\/harness-engineering"/);
-  assert.match(html, /Exercises and progress stay separate from Browser Chat/);
+  assert.match(html, /id="starting-point"/);
+  assert.match(html, /I’m new to machine learning/);
+  assert.match(html, /I know Python and ML basics/);
+  assert.match(html, /I already build with LLMs/);
+  assert.match(html, /href="\/lessons\/character-rnns"/);
+  assert.match(html, /href="\/courses\/llm-systems#fast-tracks"/);
+  assert.equal((html.match(/<dt[^>]*>Best for<\/dt>/g) ?? []).length, 4);
+  assert.equal((html.match(/<dt[^>]*>Before you start<\/dt>/g) ?? []).length, 4);
+  assert.equal((html.match(/<dt[^>]*>Outcome<\/dt>/g) ?? []).length, 4);
+  assert.ok(html.indexOf("project-course-title") < html.indexOf("Review library"));
   assert.equal((html.match(/class="course-track-card catalog-program-card"/g) ?? []).length, 4);
 });
 
@@ -70,7 +78,11 @@ test("Harness Engineering renders as an eight-lesson applied course with its own
   const html = await response.text();
   assert.match(html, /Applied(?:<!-- -->)? course/);
   assert.match(html, /Harness Engineering/);
-  assert.match(html, /Each lesson adds tested Python to a separate project saved in this browser/);
+  assert.match(html, /Course guide/);
+  assert.match(html, /Engineers building reliable agents around an existing language model/);
+  assert.match(html, /Lessons build a separate saved harness project/);
+  assert.match(html, /fixed model replies and tool results/);
+  assert.match(html, /does not call a hosted LLM/);
   assert.match(html, /href="\/lessons\/agent-loop"/);
   assert.match(html, /href="\/courses\/harness-engineering\/workspace"/);
   for (const title of [
@@ -131,9 +143,17 @@ test("the LLM Systems home renders one project course with four technical module
   assert.match(html, /LLM Serving/);
   assert.match(html, /Chat Integration/);
   assert.match(html, /Browser Chat/);
+  assert.match(html, /Already comfortable with the model basics/);
+  assert.match(html, /The complete Browser Chat build still requires the full project/);
+  assert.match(html, /href="\/lessons\/transformers"/);
+  assert.match(html, /href="\/lessons\/inference-runtime"/);
+  assert.match(html, /href="\/lessons\/reliability-observability"/);
+  assert.match(html, /Module (?:<!-- -->)?01/);
+  assert.match(html, />6(?:(?:<!-- -->)|\s)*lessons</);
+  assert.equal((html.match(/class="catalog-track-outcome"/g) ?? []).length, 4);
   assert.match(html, /href="\/project"/);
-  assert.equal((html.match(/class="course-track-card catalog-track-card"/g) ?? []).length, 4);
-  assert.doesNotMatch(html, /environment-readiness|Capstone setup|Final project|Module 0[1-4]/);
+  assert.equal((html.match(/href="\/courses\/llm-systems\/(?:models|systems|backend|product)"/g) ?? []).length, 4);
+  assert.doesNotMatch(html, /environment-readiness|Capstone setup|Final project/);
   assert.doesNotMatch(html, /Mock Backend Systems/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/i);
 });
@@ -516,9 +536,10 @@ test("the design kit, simulations, model engines, and artifact runtime remain re
   assert.equal((sourceSets.match(/role: /g) ?? []).length, 42);
   assert.equal((sourceSets.match(/^  (?:"[^"]+"|[a-z-]+): \[$/gm) ?? []).length, 14);
   assert.match(paperLab, /lesson\.sources\.map\(\(source\)/);
-  assert.doesNotMatch(paperLab, /supporting-sources|source\.role/);
+  assert.doesNotMatch(paperLab, /supporting-sources/);
+  assert.match(paperLab, /source\.role/);
   assert.doesNotMatch(paperLab, /SelectionAsk|selection-ask|data-selection-ask|Highlight a passage/);
-  assert.match(layout, /og\.png/);
+  assert.match(layout, /og-learning-paths\.png/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   await assert.rejects(access(new URL("../app/_sites-preview", templateRoot)));
 });

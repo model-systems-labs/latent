@@ -69,21 +69,26 @@ export function FirstRunExperience() {
     }
   };
 
-  const startedLessons = courseLessons.filter((lesson) => (learner.lessons[lesson.id]?.updatedAt ?? 0) > 0);
-  const nextLesson = courseLessons.find((lesson) => !lessonIsComplete(
+  const isComplete = (lesson: (typeof courseLessons)[number]) => lessonIsComplete(
     learner,
     lesson.id,
     lesson.implementation.codeBlocks.map((block) => block.id),
     llmSystemsContractSuite.contractVersion,
     lessonLearningOutcome(lesson.id).check.id,
-  ));
-  const completedLessons = courseLessons.filter((lesson) => lessonIsComplete(
-    learner,
-    lesson.id,
-    lesson.implementation.codeBlocks.map((block) => block.id),
-    llmSystemsContractSuite.contractVersion,
-    lessonLearningOutcome(lesson.id).check.id,
-  )).length;
+  );
+  const startedLessons = courseLessons
+    .filter((lesson) => (learner.lessons[lesson.id]?.updatedAt ?? 0) > 0)
+    .sort((left, right) => (learner.lessons[right.id]?.updatedAt ?? 0) - (learner.lessons[left.id]?.updatedAt ?? 0));
+  const latestStartedLesson = startedLessons[0];
+  const firstIncompleteLesson = courseLessons.find((lesson) => !isComplete(lesson));
+  const nextLesson = latestStartedLesson
+    ? !isComplete(latestStartedLesson)
+      ? latestStartedLesson
+      : courseLessons
+        .slice(courseLessons.indexOf(latestStartedLesson) + 1)
+        .find((lesson) => !isComplete(lesson)) ?? firstIncompleteLesson
+    : firstIncompleteLesson;
+  const completedLessons = courseLessons.filter(isComplete).length;
   const lastEditedProjectFile = Object.values(project.files)
     .filter((file) => file.sourceProvenance === "ide")
     .sort((left, right) => right.updatedAt - left.updatedAt)[0];

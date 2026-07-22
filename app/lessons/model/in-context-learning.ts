@@ -1,7 +1,8 @@
 import type { CourseLesson } from "@latent/course-kit";
+import { withGuidedExercises } from "../guided-exercises";
 import { commonQuestionInstruction } from "./shared";
 
-export const inContextLearningLesson = {
+export const inContextLearningLesson = withGuidedExercises({
     id: "in-context-learning",
     number: 6,
     mode: "local-inference",
@@ -182,4 +183,4 @@ RESULT = {
       title: "Evaluate a frozen local model",
       intro: "Download the quantized model once, then compare zero-, one-, and four-example prompts on the same two held-out items.",
     },
-  } satisfies Omit<CourseLesson, "sources">;
+  } satisfies Omit<CourseLesson, "sources">);

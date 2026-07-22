@@ -1,4 +1,5 @@
 import type { CourseLesson, LessonSource } from "@latent/course-kit";
+import { withGuidedExercises } from "../guided-exercises";
 
 type FoundationLessonInput = Pick<
   CourseLesson,
@@ -30,7 +31,7 @@ export function defineFoundationLesson(input: FoundationLessonInput): CourseLess
   const context = input.summary
     .map((paragraph) => `- ${paragraph.label} ${paragraph.body}`)
     .join("\n");
-  return {
+  return withGuidedExercises({
     ...input,
     projectScope: "standalone",
     mode: "core-mechanism",
@@ -57,5 +58,5 @@ Use small numerical examples. Define any technical term before using it. Don't a
       kind: "fundamentals",
       ...input.experiment,
     },
-  };
+  });
 }

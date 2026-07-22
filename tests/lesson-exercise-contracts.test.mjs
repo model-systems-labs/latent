@@ -7,6 +7,7 @@ import { createServer } from "vite";
 const root = new URL("../", import.meta.url);
 let course;
 let contracts;
+let guidedExercises;
 let progress;
 let vite;
 
@@ -18,9 +19,10 @@ before(async () => {
     appType: "custom",
     logLevel: "silent",
   });
-  [course, contracts, progress] = await Promise.all([
+  [course, contracts, guidedExercises, progress] = await Promise.all([
     vite.ssrLoadModule("/app/lessons/course.ts"),
     vite.ssrLoadModule("/app/lessons/exercise-contracts.ts"),
+    vite.ssrLoadModule("/app/lessons/guided-exercises.ts"),
     vite.ssrLoadModule("/app/lessons/lesson-progress.ts"),
   ]);
 });
@@ -49,6 +51,34 @@ test("every practice cell has a complete contract with its exact Python signatur
   }
   assert.equal(expectedKeys.length, 34);
   assert.deepEqual(Object.keys(contracts.exerciseContracts).sort(), expectedKeys.sort());
+});
+
+test("every course after Linear Algebra asks for one guided core implementation", () => {
+  const exercises = [];
+  for (const program of course.coursePrograms.filter(({ order }) => order >= 2)) {
+    for (const lesson of program.lessons) {
+      for (const block of lesson.implementation.codeBlocks) {
+        const exerciseId = `${lesson.id}/${block.id}`;
+        exercises.push(exerciseId);
+        assert.ok(block.starterCode, `${exerciseId} has an authored guided starter`);
+        assert.equal((block.starterCode.match(/# TODO:/g) ?? []).length, 1, `${exerciseId} has one learner task`);
+        assert.equal(
+          (block.starterCode.match(/raise NotImplementedError\(/g) ?? []).length,
+          1,
+          `${exerciseId} has one incomplete core region`,
+        );
+        assert.notEqual(block.starterCode, block.code, `${exerciseId} does not reveal the reference answer`);
+        assert.doesNotMatch(block.code, /# TODO:|NotImplementedError/, `${exerciseId} keeps a complete reference`);
+
+        const signature = block.code.match(/^def\s+[A-Za-z_][A-Za-z0-9_]*\s*\([^\n]*\):/m)?.[0];
+        assert.ok(signature, `${exerciseId} has a reference signature`);
+        assert.match(block.starterCode, new RegExp(signature.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+      }
+    }
+  }
+
+  assert.equal(exercises.length, 60);
+  assert.deepEqual([...guidedExercises.guidedExerciseIds].sort(), exercises.sort());
 });
 
 test("lesson completion requires current code, the experiment, and the knowledge check", () => {

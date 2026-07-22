@@ -1,7 +1,8 @@
 import type { CourseLesson } from "@latent/course-kit";
+import { withGuidedExercises } from "../guided-exercises";
 import { commonQuestionInstruction } from "./shared";
 
-export const transformersLesson = {
+export const transformersLesson = withGuidedExercises({
     id: "transformers",
     number: 5,
     mode: "core-mechanism",
@@ -162,4 +163,4 @@ RESULT = {
       title: "Run causal self-attention",
       intro: "Run the masked-attention forward pass with identity Q/K/V projections, then inspect the full probability matrix.",
     },
-  } satisfies Omit<CourseLesson, "sources">;
+  } satisfies Omit<CourseLesson, "sources">);

@@ -1,7 +1,8 @@
 import type { CourseLesson } from "@latent/course-kit";
+import { withGuidedExercises } from "../guided-exercises";
 import { commonQuestionInstruction } from "./shared";
 
-export const additiveAttentionLesson = {
+export const additiveAttentionLesson = withGuidedExercises({
     id: "additive-attention",
     number: 4,
     mode: "live-training",
@@ -170,4 +171,4 @@ RESULT = {
       title: "Learn the alignment function",
       intro: "Run the additive-attention trainer on three fixed cases, then compare what it learned with a uniform baseline.",
     },
-  } satisfies Omit<CourseLesson, "sources">;
+  } satisfies Omit<CourseLesson, "sources">);

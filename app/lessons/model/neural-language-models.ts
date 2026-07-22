@@ -1,7 +1,8 @@
 import type { CourseLesson } from "@latent/course-kit";
+import { withGuidedExercises } from "../guided-exercises";
 import { commonQuestionInstruction } from "./shared";
 
-export const neuralLanguageModelsLesson = {
+export const neuralLanguageModelsLesson = withGuidedExercises({
     id: "neural-language-models",
     number: 2,
     mode: "live-training",
@@ -180,4 +181,4 @@ RESULT = {
       title: "Train the embedding model",
       intro: "Run the two-word trainer, then inspect its validation loss, next-word probabilities, and nearest embedding neighbors.",
     },
-  } satisfies Omit<CourseLesson, "sources">;
+  } satisfies Omit<CourseLesson, "sources">);

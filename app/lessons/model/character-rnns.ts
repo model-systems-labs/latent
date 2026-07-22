@@ -1,8 +1,9 @@
 import type { CourseLesson } from "@latent/course-kit";
+import { withGuidedExercises } from "../guided-exercises";
 import { commonQuestionInstruction } from "./shared";
 import { characterRnnTrainingPostlude } from "./character-rnn-training";
 
-export const characterRnnsLesson = {
+export const characterRnnsLesson = withGuidedExercises({
     id: "character-rnns",
     number: 1,
     mode: "live-training",
@@ -172,4 +173,4 @@ RESULT = {
       title: "Train the recurrent model",
       intro: "Run the character RNN for 600 truncated-BPTT updates, then inspect its loss curve and sample.",
     },
-  } satisfies Omit<CourseLesson, "sources">;
+  } satisfies Omit<CourseLesson, "sources">);

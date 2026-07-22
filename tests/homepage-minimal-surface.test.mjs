@@ -2,10 +2,9 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
-const productizationCssUrl = new URL("../app/styles/productization.css", import.meta.url);
 const courseCatalogCssUrl = new URL("../app/styles/course-catalog.css", import.meta.url);
 const responsiveCssUrl = new URL("../app/styles/responsive.css", import.meta.url);
-const firstRunUrl = new URL("../app/components/FirstRunExperience.tsx", import.meta.url);
+const projectCourseUrl = new URL("../app/courses/llm-systems/page.tsx", import.meta.url);
 const landingPageUrl = new URL("../app/page.tsx", import.meta.url);
 const pageAtmosphereUrl = new URL("../app/components/PageAtmosphere.tsx", import.meta.url);
 const landingCssUrl = new URL("../app/page.module.css", import.meta.url);
@@ -17,26 +16,15 @@ function cssRule(source, selector) {
   return match[1];
 }
 
-test("the course training demo stays on the warm editorial surface", async () => {
-  const [source, catalog, component] = await Promise.all([
-    readFile(productizationCssUrl, "utf8"),
-    readFile(courseCatalogCssUrl, "utf8"),
-    readFile(firstRunUrl, "utf8"),
-  ]);
-  const firstRunSource = source.slice(source.indexOf(".first-run {"), source.indexOf(".mobile-ide-tabs"));
+test("the project course leads directly from its introduction to the modules", async () => {
+  const page = await readFile(projectCourseUrl, "utf8");
 
-  assert.match(cssRule(source, ".first-run-layout"), /background:\s*transparent/);
-  assert.match(cssRule(source, ".first-run-layout"), /color:\s*var\(--ink\)/);
-  assert.match(cssRule(source, ".first-run-controls"), /border-bottom:\s*1px solid var\(--line\)/);
-  assert.match(cssRule(source, ".first-run-controls textarea"), /background:\s*rgba\(255,\s*255,\s*255,\s*0\.48\)/);
-  assert.match(cssRule(source, ".first-run-controls textarea"), /color:\s*var\(--ink\)/);
-  assert.match(cssRule(source, ".first-run-output article p"), /color:\s*var\(--ink\)/);
-  assert.match(cssRule(catalog, ".first-run.first-run-minimal .first-run-output article p"), /min-height:\s*6\.5rem/);
-  assert.doesNotMatch(component, /environment-readiness|Browser environment readiness|First run · real training|This tiny model/);
-  assert.doesNotMatch(firstRunSource, /#211f23|#211f22|#272329|rgba\(255,\s*255,\s*255,\s*0\.0[468]\)/);
+  assert.match(page, /<CourseResume \/>/);
+  assert.match(page, /<section className="course-track-grid"/);
+  assert.doesNotMatch(page, /FirstRunExperience|Introductory JavaScript RNN|Train and generate/);
 });
 
-test("the course CTA and responsive dividers do not reintroduce dark surfaces", async () => {
+test("the course CTA does not reintroduce a dark surface", async () => {
   const [courseCatalogCss, responsiveCss] = await Promise.all([
     readFile(courseCatalogCssUrl, "utf8"),
     readFile(responsiveCssUrl, "utf8"),
@@ -45,8 +33,8 @@ test("the course CTA and responsive dividers do not reintroduce dark surfaces", 
   const courseCta = cssRule(courseCatalogCss, ".catalog-capstone-link");
   assert.doesNotMatch(courseCta, /background:/);
   assert.match(courseCta, /border-top:\s*1px solid var\(--line-strong\)/);
-  assert.match(responsiveCss, /\.first-run-controls\s*\{[^}]*border-bottom:\s*1px solid var\(--line\)/s);
-  assert.match(responsiveCss, /\.first-run-output article \+ article\s*\{[^}]*border-top:\s*1px solid var\(--line\)/s);
+  assert.doesNotMatch(courseCatalogCss, /\.first-run/);
+  assert.doesNotMatch(responsiveCss, /\.first-run/);
 });
 
 test("the academic landing stays unboxed and reuses the established atmosphere", async () => {

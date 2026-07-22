@@ -1,5 +1,6 @@
 import type { CourseLesson, LessonSource } from "@latent/course-kit";
 import type { HarnessExperimentVariant } from "../../content/harness-engineering/experiments";
+import { withGuidedExercises } from "../guided-exercises";
 
 type HarnessLessonInput = Pick<
   CourseLesson,
@@ -34,7 +35,7 @@ export function defineHarnessLesson(input: HarnessLessonInput): CourseLesson {
     .map((paragraph) => `- ${paragraph.label} ${paragraph.body}`)
     .join("\n");
 
-  return {
+  return withGuidedExercises({
     ...input,
     projectScope: "harness-engineering",
     mode: "core-mechanism",
@@ -61,5 +62,5 @@ Define harness-specific terms before using them. Distinguish probabilistic model
       kind: "harness",
       ...input.experiment,
     },
-  };
+  });
 }

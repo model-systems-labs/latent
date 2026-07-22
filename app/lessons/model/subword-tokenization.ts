@@ -1,7 +1,8 @@
 import type { CourseLesson } from "@latent/course-kit";
+import { withGuidedExercises } from "../guided-exercises";
 import { commonQuestionInstruction } from "./shared";
 
-export const subwordTokenizationLesson = {
+export const subwordTokenizationLesson = withGuidedExercises({
     id: "subword-tokenization",
     number: 3,
     mode: "core-mechanism",
@@ -170,4 +171,4 @@ RESULT = {
       title: "Train the tokenizer",
       intro: "Run the BPE trainer with the merge budget you choose, then inspect its merge list, learned vocabulary, and encoded length.",
     },
-  } satisfies Omit<CourseLesson, "sources">;
+  } satisfies Omit<CourseLesson, "sources">);

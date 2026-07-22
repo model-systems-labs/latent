@@ -221,7 +221,7 @@ test("all fourteen lessons use the reusable learning flow", async () => {
     assert.match(html, /data-direct-edit="true"/);
     assert.match(html, /data-edit-state="starter"/);
     assert.match(html, /Restoring saved code/);
-    assert.doesNotMatch(html, /NotImplementedError/);
+    assert.match(html, /NotImplementedError/);
     assert.doesNotMatch(html, /Practice all|Practice cell|Run example|Reset all|Restore all|Restore reference|Restore draft|Run all examples|Run practice checks/);
     assert.match(html, /Run cell/);
     assert.match(html, /Run all tests/);
@@ -244,14 +244,14 @@ test("every lesson keeps its executable work inside the browser", async () => {
   }
 });
 
-test("the server-rendered editor stays neutral while the reference remains syntax highlighted", async () => {
+test("the server-rendered editor includes the guided starter while the reference remains syntax highlighted", async () => {
   const response = await render("/lessons/streaming-transport");
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /Restoring saved code/);
   assert.match(html, /class="syntax-code"/);
   assert.match(html, /tok-keyword/);
-  assert.doesNotMatch(html, /NotImplementedError/);
+  assert.match(html, /NotImplementedError/);
   assert.match(html, /Reference solution/);
   assert.doesNotMatch(html, /syntax-code-fallback/);
 });
@@ -679,10 +679,11 @@ test("Product Quality separates executed checks, unexecuted specifications, and 
   assert.doesNotMatch(html, /Automated · 16 contracts|all 16 check-specific results/);
 });
 
-test("LLM Systems home keeps the first-run area neutral until browser progress restores", async () => {
+test("LLM Systems home renders the course modules without an introductory demo", async () => {
   const response = await render("/courses/llm-systems");
   assert.equal(response.status, 200);
   const html = await response.text();
+  assert.match(html, /aria-label="LLM Systems modules"/);
   assert.match(html, /Restoring your place/);
   assert.doesNotMatch(html, /Introductory JavaScript RNN|Train and generate/);
   assert.doesNotMatch(html, /temperature 1\.05 · top-k off|temperature 0\.72 · top-k 5|No output yet/);

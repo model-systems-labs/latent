@@ -182,7 +182,9 @@ test("the Harness workbook exposes one complete importable Python scaffold", () 
   assert.match(referenceFiles()["harness/harness.py"], /from harness\.permissions import/);
   assert.match(referenceFiles()["harness/harness.py"], /from harness\.tools import/);
   const harnessStarter = files.find((file) => file.path === "harness/harness.py")?.content ?? "";
-  assert.match(harnessStarter, /def run_harness\(initial_messages, model, tools, rules, max_turns\):\n    raise NotImplementedError/);
+  assert.match(harnessStarter, /def run_harness\(initial_messages, model, tools, rules, max_turns\):/);
+  assert.match(harnessStarter, /# TODO: enforce the permission decision, dispatch allowed tools, and record the resulting observation\./);
+  assert.match(harnessStarter, /raise NotImplementedError\("Implement Run the harness\."\)/);
   assert.match(harnessStarter, /# Provided browser adapter\.\ndef run_recorded_harness\(initial_messages, model_config, tool_configs, rules, max_turns\):/);
 });
 
@@ -329,7 +331,7 @@ test("every recorded-model scenario runs through the learner project and returns
   }
 });
 
-test("a fresh scenario reaches the visible learner stub through the provided adapter", { timeout: 60_000 }, async () => {
+test("a fresh scenario reaches a visible guided learner stub through the provided adapter", { timeout: 60_000 }, async () => {
   const invocation = await runPythonProjectFunction({
     files: starterFiles(),
     path: scenarios.HARNESS_SCENARIO_MODULE_PATH,
@@ -339,7 +341,7 @@ test("a fresh scenario reaches the visible learner stub through the provided ada
   });
   assert.equal(invocation.observation.status, "threw");
   assert.equal(invocation.observation.errorName, "NotImplementedError");
-  assert.match(invocation.observation.message, /Implement Run the harness/);
+  assert.match(invocation.observation.message, /Implement Parse a model response/);
   assert.doesNotMatch(invocation.observation.message, /not defined|missing/i);
 });
 

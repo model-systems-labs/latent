@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { courseTracks, llmSystemsCurriculum } from "../../lessons/course";
-import { FirstRunExperience } from "../../components/FirstRunExperience";
+import { CourseResume } from "../../components/CourseResume";
 import { PageAtmosphere } from "../../components/PageAtmosphere";
 
 export const metadata: Metadata = {
@@ -20,7 +20,7 @@ export default function LlmSystemsCoursePage() {
           <h1>{llmSystemsCurriculum.title}</h1>
           <p className="course-thesis">Build the model, runtime, serving layer, and React application that come together as one working local chatbot.</p>
         </header>
-        <FirstRunExperience />
+        <CourseResume />
         <section className="course-track-grid" id="modules" aria-label="LLM Systems modules">
           {courseTracks.map((track) => (
             <Link className="course-track-card catalog-track-card" href={`/courses/llm-systems/${track.id}`} key={track.id}>

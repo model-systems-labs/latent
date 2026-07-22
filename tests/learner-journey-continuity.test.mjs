@@ -2,26 +2,24 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-test("the course restores a returning learner before choosing first-run or resume", async () => {
-  const [course, firstRun, curriculum] = await Promise.all([
+test("the project course resumes returning learners without an introductory demo", async () => {
+  const [course, projectCourse, courseResume, curriculum] = await Promise.all([
     readFile(new URL("../app/course/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/components/FirstRunExperience.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/courses/llm-systems/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/CourseResume.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/CourseCurriculum.tsx", import.meta.url), "utf8"),
   ]);
 
-  assert.match(firstRun, /Promise\.all\(\[initializeLearnerPersistence\(\), initializeProjectPersistence\(\)\]\)\.finally/);
-  assert.match(firstRun, /if \(!hydrated\)/);
-  assert.match(firstRun, /course-resume-loading/);
-  assert.match(firstRun, /courseLessons\.find/);
-  assert.match(firstRun, /Resume lesson/);
-  assert.match(firstRun, /workspace\?file=/);
-  assert.match(firstRun, /projectStarted/);
-  assert.match(firstRun, /Resume project/);
-  assert.match(firstRun, /Progress and code are saved in this browser/);
-  assert.match(firstRun, /optional backup from the IDE/);
-  assert.match(firstRun, /Introductory JavaScript RNN/);
-  assert.match(firstRun, /not a capstone checkpoint/);
-  assert.doesNotMatch(firstRun, /saveCharacterRnnArtifact/);
+  assert.match(projectCourse, /<CourseResume \/>/);
+  assert.match(projectCourse, /<section className="course-track-grid"/);
+  assert.doesNotMatch(projectCourse, /FirstRunExperience|Introductory JavaScript RNN|Train and generate/);
+  assert.match(courseResume, /Promise\.all\(\[initializeLearnerPersistence\(\), initializeProjectPersistence\(\)\]\)\.finally/);
+  assert.match(courseResume, /if \(!hydrated\)/);
+  assert.match(courseResume, /if \(startedLessons\.length === 0 && !projectStarted\) return null/);
+  assert.match(courseResume, /Resume lesson/);
+  assert.match(courseResume, /Resume project/);
+  assert.match(courseResume, /Progress and code are saved in this browser/);
+  assert.doesNotMatch(courseResume, /Introductory JavaScript RNN|Train and generate|saveCharacterRnnArtifact/);
   assert.doesNotMatch(course, /Run the first model/);
   assert.match(curriculum, /useLearnerStateHydrated/);
   assert.match(curriculum, /Restoring progress…/);

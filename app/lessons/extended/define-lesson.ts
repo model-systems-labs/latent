@@ -1,5 +1,6 @@
 import type { CourseLesson } from "@latent/course-kit";
 import { getLessonSources } from "../sources";
+import { withGuidedExercises } from "../guided-exercises";
 
 export type ExtendedLessonInput = Pick<
   CourseLesson,
@@ -11,7 +12,7 @@ export type ExtendedLessonInput = Pick<
 
 export function defineExtendedLesson(input: ExtendedLessonInput): CourseLesson {
   const compactContext = input.summary.map((paragraph) => `- ${paragraph.label} ${paragraph.body}`).join("\n");
-  return {
+  return withGuidedExercises({
     ...input,
     sources: getLessonSources(input.id),
     paperContext: `
@@ -22,5 +23,5 @@ ${compactContext}
 - Be clear about what applies to production distributed systems and what only applies to the controlled single-browser simulation.
 Be accurate and technically clear. Keep the main source separate from conventions that came later. Don't make up benchmark results, quotes, or production guarantees. Stay under 240 words unless they ask for more detail.
 `.trim(),
-  };
+  });
 }

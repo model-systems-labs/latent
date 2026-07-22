@@ -178,15 +178,6 @@
     padding-left: 0;
   }
 
-  .first-run > header,
-  .first-run-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .first-run-controls {
-    border-bottom: 1px solid var(--line);
-    border-right: 0;
-  }
 }
 
 @media (max-width: 650px), (max-width: 940px) and (max-height: 500px) {
@@ -1237,44 +1228,6 @@
   .checkpoint-navigation {
     display: flex;
     gap: 1rem;
-  }
-
-  .first-run {
-    margin-bottom: 4rem;
-  }
-
-  .first-run > header,
-  .first-run-output {
-    grid-template-columns: 1fr;
-  }
-
-  .first-run > header {
-    align-items: start;
-    gap: 1.2rem;
-  }
-
-  .first-run-output article + article {
-    border-left: 0;
-    border-top: 1px solid var(--line);
-  }
-
-  .first-run-output article + article header,
-  .first-run-output article + article p {
-    padding-left: 0;
-  }
-
-  .first-run-output article p {
-    min-height: 7rem;
-  }
-
-  .environment-readiness {
-    grid-template-columns: 1fr;
-  }
-
-  .first-run > footer {
-    align-items: start;
-    flex-direction: column;
-    gap: 0.8rem;
   }
 
   .project-timeline > header,

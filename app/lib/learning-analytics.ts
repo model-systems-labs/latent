@@ -7,8 +7,6 @@ const ANALYTICS_KEY = "learning.analytics.v1";
 const MAX_EVENTS = 500;
 
 export type LearningEventName =
-  | "first_run_started"
-  | "first_run_completed"
   | "lesson_opened"
   | "cell_check_completed"
   | "lesson_checks_completed"

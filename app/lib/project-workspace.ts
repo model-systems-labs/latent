@@ -834,8 +834,11 @@ export function ensureProjectWorkspace(seeds: LessonProjectSeed[]) {
         }
       } else if (files[seed.path].referenceContent !== seed.referenceContent) {
         const current = files[seed.path];
-        const untouched = (current.sourceProvenance === undefined || current.sourceProvenance === "seed")
-          && current.content === current.referenceContent;
+        // Seed-owned source is always safe to refresh when lesson authors revise
+        // a starter. Legacy records without provenance still need the stricter
+        // authored-baseline check so learner edits remain authoritative.
+        const untouched = current.sourceProvenance === "seed"
+          || (current.sourceProvenance === undefined && current.content === current.referenceContent);
         const nextContent = untouched
           ? seed.content
           : seed.content.startsWith("import {") && !current.content.startsWith("import {")
@@ -853,12 +856,14 @@ export function ensureProjectWorkspace(seeds: LessonProjectSeed[]) {
       } else {
         const current = files[seed.path];
         // Challenge-first lessons use an incomplete starter as their canonical
-        // working file. Migrate only the old untouched authored baseline; a
-        // learner-edited IDE file remains authoritative.
-        const migrateAuthoredBaseline = (current.sourceProvenance === undefined || current.sourceProvenance === "seed")
+        // working file. Refresh seed-owned source or an old untouched authored
+        // baseline; a learner-edited IDE file remains authoritative.
+        const migrateSeedContent = current.sourceProvenance === "seed" && current.content !== seed.content;
+        const migrateAuthoredBaseline = current.sourceProvenance === undefined
           && current.content === seed.referenceContent
           && seed.content !== seed.referenceContent;
-        const nextContent = migrateAuthoredBaseline ? seed.content : current.content;
+        const migrateUntouchedSource = migrateSeedContent || migrateAuthoredBaseline;
+        const nextContent = migrateUntouchedSource ? seed.content : current.content;
         const nextReadOnly = seed.readOnly ?? current.readOnly;
         const nextVerifiedCells = nextContent === seed.content ? seed.verifiedCells : 0;
         if (
@@ -880,7 +885,7 @@ export function ensureProjectWorkspace(seeds: LessonProjectSeed[]) {
             totalCells: seed.totalCells,
             readOnly: nextReadOnly,
             updatedAt: current.content === nextContent ? current.updatedAt : Date.now(),
-            sourceProvenance: migrateAuthoredBaseline ? "seed" : current.sourceProvenance,
+            sourceProvenance: migrateUntouchedSource ? "seed" : current.sourceProvenance,
           };
           if (current.content !== nextContent) sourceTreeChanged = true;
         }

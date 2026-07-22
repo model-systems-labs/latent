@@ -10,9 +10,9 @@ import type { SiteCopyKey, SiteCopyValues } from "./content/site-copy";
 import styles from "./page.module.css";
 
 export const metadata: Metadata = {
-  title: "Latent · Courses on LLM systems",
+  title: "Latent · Hands-on courses on LLM systems",
   description:
-    "Foundations, implementations, and browser experiments for studying machine learning, language models, agent harnesses, inference runtimes, serving systems, and chat interfaces.",
+    "Learn machine learning and LLM systems with clear explanations, runnable browser exercises, and a cumulative local chatbot project.",
 };
 
 const architectureStages = [
@@ -49,9 +49,9 @@ const projectFiles = [
 ] as const;
 
 const homepageCopyDefaults = {
-  "hero.title": "I built this to understand LLM systems.",
-  "hero.body": "Latent is a set of courses, notes, and browser experiments for learning the subject. Two short courses cover the mathematical and machine-learning foundations. Harness Engineering studies the deterministic software around an agent. A separate project course follows an LLM from sequence modeling through inference, serving, and interface design.",
-  "hero.primaryAction": "Browse the courses",
+  "hero.title": "Learn how LLM systems actually work.",
+  "hero.body": "Start with the math if you need it, or jump straight into models, inference, serving, and chat product code. Every lesson pairs a clear explanation with code you can run in your browser. The LLM Systems course builds those pieces into a working local chatbot.",
+  "hero.primaryAction": "Find your starting point",
   "hero.secondaryAction": "Open LLM systems",
   "system.title": "Model, runtime, serving, and interface.",
   "system.body": "A paper can explain one mechanism clearly while leaving the surrounding system implicit. These lessons begin with recurrence, tokenization, attention, and causal masking, then continue into prefill and decoding, KV-cache accounting, continuous batching, SSE framing, cancellation, retries, and conversation state. Each example is small enough to inspect and run in a browser.",
@@ -79,6 +79,7 @@ export default function Home() {
 
         <article className={styles.shell}>
           <section className={styles.hero}>
+            <span className="eyebrow">Hands-on courses · runs locally in your browser</span>
             <EditableText as="h1" copyKey="hero.title" fallback={copy("hero.title")} />
             <EditableText as="p" copyKey="hero.body" fallback={copy("hero.body")} />
             <div className={styles.actions}>
@@ -87,7 +88,7 @@ export default function Home() {
                 className={styles.primaryAction}
                 copyKey="hero.primaryAction"
                 fallback={copy("hero.primaryAction")}
-                href="/course"
+                href="/course#starting-point"
               />
               <EditableHomepageLink
                 className={styles.secondaryAction}

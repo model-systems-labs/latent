@@ -9,7 +9,127 @@
 }
 
 .lessonShell :global(.implementation-section .implementation-intro) {
-  margin: 1.5rem 0 0;
+  margin: -0.35rem 0 1.5rem;
+}
+
+.evidencePanel {
+  border-block: 1px solid var(--line);
+  margin-top: 1.4rem;
+}
+
+.evidencePanel > summary {
+  align-items: center;
+  color: var(--ink);
+  cursor: pointer;
+  display: flex;
+  font-size: max(0.7rem, 12px);
+  font-weight: 590;
+  justify-content: space-between;
+  letter-spacing: 0.07em;
+  list-style: none;
+  min-height: 2.75rem;
+  text-transform: uppercase;
+}
+
+.evidencePanel > summary::-webkit-details-marker { display: none; }
+
+.evidencePanel > summary::after {
+  color: var(--muted);
+  content: "+";
+  font-family: var(--mono);
+  font-size: 1rem;
+  font-weight: 400;
+}
+
+.evidencePanel[open] > summary::after { content: "−"; }
+
+.evidenceBody {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: minmax(0, 1.3fr) minmax(12rem, 0.7fr);
+  padding: 1.35rem 0 1.6rem;
+}
+
+.claims {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+}
+
+.claims > div,
+.datasetEvidence dl > div {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.claims dt,
+.datasetEvidence dt,
+.datasetEvidence h2,
+.sourceEvidence h2 {
+  color: var(--muted);
+  font-size: max(0.68rem, 11px);
+  font-weight: 590;
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.claims dd,
+.datasetEvidence dd {
+  font-size: max(0.76rem, 12px);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.datasetEvidence {
+  border-left: 1px solid var(--line);
+  padding-left: 1.5rem;
+}
+
+.datasetEvidence > p {
+  font-family: var(--serif);
+  font-size: 1rem;
+  margin: 0.5rem 0 0.9rem;
+}
+
+.datasetEvidence dl {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.sourceEvidence { grid-column: 1 / -1; }
+
+.sourceEvidence ul {
+  border-top: 1px solid var(--line);
+  list-style: none;
+  margin: 0.65rem 0 0;
+  padding: 0;
+}
+
+.sourceEvidence li {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.75rem 0;
+}
+
+.sourceEvidence li + li { border-top: 1px solid var(--line); }
+
+.sourceEvidence a {
+  color: var(--ink);
+  font-size: max(0.76rem, 12px);
+  text-decoration: none;
+}
+
+.sourceEvidence a:hover,
+.sourceEvidence a:focus-visible { color: var(--violet-deep); }
+
+.sourceEvidence p {
+  color: var(--muted);
+  font-size: max(0.7rem, 11px);
+  line-height: 1.5;
+  margin: 0;
 }
 
 .lessonProgress {
@@ -127,6 +247,10 @@
   .lessonProgress ol { gap: 0.45rem 1rem; justify-content: space-between; }
   .lessonProgress li { align-items: start; flex-direction: column; gap: 0.05rem; }
   .exerciseContract dl > div { gap: 0.45rem; grid-template-columns: 4rem minmax(0, 1fr); }
+
+  .evidenceBody { grid-template-columns: 1fr; }
+  .datasetEvidence { border-left: 0; border-top: 1px solid var(--line); padding: 1.2rem 0 0; }
+  .sourceEvidence { grid-column: 1; }
 
   .lessonShell :global(.paper-section) { padding: 2.1rem 0; }
   .lessonShell :global(.summary-section) { border-top: 0; }

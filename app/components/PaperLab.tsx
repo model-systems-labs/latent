@@ -1,6 +1,6 @@
 "use client";
 
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import type { CodeBlock, CourseLesson } from "@latent/course-kit";
 import type { LessonLearningOutcome } from "../content/llm-systems/learning";
@@ -52,6 +52,7 @@ import { lessonLearningOutcome, moduleCheckpoint } from "../lessons/learning";
 import { recordLearningEvent } from "../lib/learning-analytics";
 import { SyntaxCode } from "../features/ide/SyntaxCode";
 import { getLessonFlair } from "../lessons/lesson-flair";
+import { getLessonIllustration } from "../lessons/lesson-illustrations";
 import { exerciseContractFor } from "../lessons/exercise-contracts";
 import { lessonGateProgress } from "../lessons/lesson-progress";
 import { PageAtmosphere } from "./PageAtmosphere";
@@ -131,6 +132,39 @@ function TestCaseResults({ contract, results }: { contract: ExerciseContract | u
   );
 }
 
+const editorialIllustrationStyles = {
+  figure: {
+    borderBlock: "1px solid var(--line)",
+    margin: "clamp(1.6rem, 3vw, 2.4rem) 0 0",
+    padding: "clamp(0.8rem, 1.7vw, 1.15rem) 0 0.9rem",
+  },
+  image: {
+    background: "#eee8dd",
+    border: "1px solid var(--line)",
+    borderRadius: "0.35rem",
+    display: "block",
+    height: "auto",
+    width: "100%",
+  },
+  caption: {
+    display: "grid",
+    gap: "0.3rem",
+    paddingTop: "0.8rem",
+  },
+  title: {
+    color: "var(--ink)",
+    fontFamily: "var(--serif)",
+    fontSize: "clamp(1rem, 1.7vw, 1.18rem)",
+    fontWeight: 500,
+  },
+  copy: {
+    color: "var(--muted)",
+    fontFamily: "var(--serif)",
+    fontSize: "max(0.78rem, 12px)",
+    lineHeight: 1.55,
+  },
+} satisfies Record<string, CSSProperties>;
+
 const LessonCodeEditor = lazy(async () => ({
   default: (await import("../features/ide/CodeEditor")).CodeEditor,
 }));
@@ -167,6 +201,84 @@ export function HeaderSection({ lesson }: { lesson: CourseLesson }) {
       <p className="paper-thesis">{lesson.thesis}</p>
       <SourceSet lesson={lesson} />
     </header>
+  );
+}
+
+function EditorialLessonIllustration({ lesson }: { lesson: CourseLesson }) {
+  const illustration = getLessonIllustration(lesson.id);
+  if (!illustration) return null;
+  return (
+    <figure style={editorialIllustrationStyles.figure} data-editorial-illustration={lesson.id}>
+      {/* Static lesson art ships with the site, so an optimizer would only add runtime work. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={illustration.src}
+        alt={illustration.alt}
+        width={1672}
+        height={941}
+        loading="lazy"
+        decoding="async"
+        style={editorialIllustrationStyles.image}
+      />
+      <figcaption style={editorialIllustrationStyles.caption}>
+        <strong style={editorialIllustrationStyles.title}>{illustration.title}</strong>
+        <span style={editorialIllustrationStyles.copy}>{illustration.caption}</span>
+      </figcaption>
+    </figure>
+  );
+}
+
+function EvidenceAndLimits({ lesson }: { lesson: CourseLesson }) {
+  return (
+    <details className={styles.evidencePanel}>
+      <summary>Evidence &amp; limits</summary>
+      <div className={styles.evidenceBody}>
+        <dl className={styles.claims}>
+          <div>
+            <dt>What the sources establish</dt>
+            <dd>{lesson.claims.paper}</dd>
+          </div>
+          <div>
+            <dt>What this lab runs</dt>
+            <dd>{lesson.claims.lab}</dd>
+          </div>
+          <div>
+            <dt>What it does not prove</dt>
+            <dd>{lesson.claims.limit}</dd>
+          </div>
+        </dl>
+
+        <section className={styles.datasetEvidence} aria-labelledby={`dataset-evidence-${lesson.id}`}>
+          <h2 id={`dataset-evidence-${lesson.id}`}>Dataset</h2>
+          <p><strong>{lesson.dataset.name}</strong></p>
+          <dl>
+            <div><dt>Source</dt><dd>{lesson.dataset.source}</dd></div>
+            <div><dt>License</dt><dd>{lesson.dataset.license}</dd></div>
+            <div><dt>Size</dt><dd>{lesson.dataset.size}</dd></div>
+          </dl>
+        </section>
+
+        <section className={styles.sourceEvidence} aria-labelledby={`source-evidence-${lesson.id}`}>
+          <h2 id={`source-evidence-${lesson.id}`}>Source notes</h2>
+          <ul>
+            {lesson.sources.map((source) => (
+              <li key={source.url}>
+                <a
+                  href={source.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={`${source.title}, ${source.role}, ${source.authors}, ${source.year}; opens in a new tab`}
+                >
+                  <strong>{source.title}</strong><span aria-hidden="true"> ↗</span>
+                </a>
+                <p>{source.role} · {source.authors} · {source.year}</p>
+                <p>{source.relevance}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
+    </details>
   );
 }
 
@@ -1326,6 +1438,8 @@ export function PaperLab({
       {persistenceError ? <p className="persistence-warning lesson-persistence-warning" role="alert">Storage warning: {persistenceError}</p> : null}
       <article className="paper-page" id="top">
         <HeaderSection lesson={lesson} />
+        <EditorialLessonIllustration lesson={lesson} />
+        <EvidenceAndLimits lesson={lesson} />
         <LessonProgress lesson={lesson} />
         <ParagraphSection lesson={lesson} />
         <LessonOutcome lesson={lesson} outcome={outcome} />

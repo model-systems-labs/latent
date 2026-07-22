@@ -119,15 +119,15 @@ test("lesson prose, diagrams, code, and outcomes share one editorial rail", asyn
   assert.match(rule(lessonOutcome, ".check"), /border:\s*0/);
 });
 
-test("interactive experiments begin with one compact dataset sample instead of repeated framing", async () => {
+test("interactive experiments introduce their purpose before one compact dataset sample", async () => {
   const source = await readFile(lessonExperimentUrl, "utf8");
   const dataset = source.slice(source.indexOf("function DatasetRecord"), source.indexOf("type ExperimentProps"));
   const surface = source.slice(source.indexOf("export function LessonExperiment"));
   assert.match(dataset, /aria-label=\{`Dataset sample: \$\{lesson\.dataset\.name\}`\}/);
   assert.match(dataset, /<strong>\{lesson\.dataset\.name\}<\/strong>[\s\S]*?<span>\{lesson\.dataset\.preview\}<\/span>/);
   assert.doesNotMatch(dataset, /lesson\.dataset\.(?:source|license|size)/);
-  assert.match(surface, /<section className="experiment-lab" aria-label=\{lesson\.experiment\.title\}>/);
-  assert.doesNotMatch(surface, /<header|lesson\.experiment\.intro/);
+  assert.match(surface, /<section className="experiment-lab" id="experiment" aria-labelledby=\{`experiment-title-\$\{lesson\.id\}`\}>/);
+  assert.match(surface, /<header className="experiment-header">[\s\S]*?<h3 id=\{`experiment-title-\$\{lesson\.id\}`\}>\{lesson\.experiment\.title\}<\/h3>[\s\S]*?<p>\{lesson\.experiment\.intro\}<\/p>/);
 });
 
 test("saved results render only artifacts that exist", async () => {
@@ -149,7 +149,16 @@ test("lesson sources use one compact inline list with assistive metadata", async
   assert.doesNotMatch(paperLab, /<details className="source-set"|matchMedia\("\(max-width: 650px\)/);
   assert.equal(paperLab.match(/<ul className="source-list">/g)?.length, 1, "references must have one semantic copy");
   assert.match(paperLab, /aria-label=\{`\$\{source\.title\}, \$\{source\.authors\}, \$\{source\.year\}; opens in a new tab`\}/);
-  assert.doesNotMatch(paperLab, /<p>\{source\.relevance\}<\/p>/);
+  assert.match(paperLab, /<details className=\{styles\.evidencePanel\}>[\s\S]*?<summary>Evidence &amp; limits<\/summary>/);
+  assert.doesNotMatch(paperLab, /<details className=\{styles\.evidencePanel\} open/);
+  assert.match(paperLab, /<dt>What the sources establish<\/dt>[\s\S]*?\{lesson\.claims\.paper\}/);
+  assert.match(paperLab, /<dt>What this lab runs<\/dt>[\s\S]*?\{lesson\.claims\.lab\}/);
+  assert.match(paperLab, /<dt>What it does not prove<\/dt>[\s\S]*?\{lesson\.claims\.limit\}/);
+  assert.match(paperLab, /<div><dt>Source<\/dt><dd>\{lesson\.dataset\.source\}<\/dd><\/div>/);
+  assert.match(paperLab, /<div><dt>License<\/dt><dd>\{lesson\.dataset\.license\}<\/dd><\/div>/);
+  assert.match(paperLab, /<div><dt>Size<\/dt><dd>\{lesson\.dataset\.size\}<\/dd><\/div>/);
+  assert.match(paperLab, /<p>\{source\.role\} · \{source\.authors\} · \{source\.year\}<\/p>[\s\S]*?<p>\{source\.relevance\}<\/p>/);
+  assert.match(paperLab, /aria-label=\{`\$\{source\.title\}, \$\{source\.role\}, \$\{source\.authors\}, \$\{source\.year\}; opens in a new tab`\}/);
   assert.match(rule(learningFlow, ".source-list"), /display:\s*flex/);
   assert.match(rule(learningFlow, ".source-entry > a"), /min-height:\s*2\.25rem/);
   assert.match(lessonMobile, /\.lessonShell :global\(\.source-set\)\s*\{[^}]*display:\s*grid/);

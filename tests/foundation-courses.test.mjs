@@ -168,6 +168,17 @@ test("the catalog keeps foundations, applied study, and the project course disti
   assert.equal(course.allRoutedLessons.length, 32);
   assert.equal(new Set(course.allRoutedLessons.map((lesson) => lesson.id)).size, 32);
 
+  for (const program of course.coursePrograms) {
+    assert.match(program.audience.description, /\S/);
+    assert.ok(["beginner", "intermediate", "advanced"].includes(program.audience.level));
+    assert.match(program.prerequisite.description, /\S/);
+    assert.equal(typeof program.prerequisite.required, "boolean");
+    assert.match(program.runtime.language, /\S/);
+    assert.equal(program.runtime.environment, "Runs locally in your browser");
+    assert.match(program.runtime.persistence, /\S/);
+    assert.match(program.runtime.boundary, /\S/);
+  }
+
   for (const lesson of course.foundationLessons) {
     assert.equal(lesson.projectScope, "standalone", lesson.id);
     assert.notEqual(lesson.programId, "llm-systems", lesson.id);

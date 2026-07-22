@@ -11,6 +11,7 @@ test("the project course resumes returning learners without an introductory demo
   ]);
 
   assert.match(projectCourse, /<CourseResume \/>/);
+  assert.match(projectCourse, /<CourseGuide/);
   assert.match(projectCourse, /<section className="course-track-grid"/);
   assert.doesNotMatch(projectCourse, /FirstRunExperience|Introductory JavaScript RNN|Train and generate/);
   assert.match(courseResume, /Promise\.all\(\[initializeLearnerPersistence\(\), initializeProjectPersistence\(\)\]\)\.finally/);

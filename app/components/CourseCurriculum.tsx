@@ -34,21 +34,24 @@ export function CourseCurriculum({
         <span>{hydrated ? `${completed} of ${lessons.length} complete` : "Restoring progress…"}</span>
         <i aria-hidden="true"><b style={{ width: hydrated ? `${completionPercentage}%` : "0%" }} /></i>
       </div>
-      {hasProgress ? (
+      {hydrated ? (
         <div className="course-progress-next">
           {nextLesson
-            ? <Link href={`/lessons/${nextLesson.id}`}>Continue {nextLesson.title} →</Link>
+            ? <Link href={`/lessons/${nextLesson.id}`}>{hasProgress ? "Continue" : "Start"} {nextLesson.title} →</Link>
             : <span>{completionLabel}</span>}
         </div>
       ) : null}
       <section className="curriculum-list" aria-label={`${title} lessons`}>
-        {lessons.map((lesson) => {
+        {lessons.map((lesson, index) => {
           const progress = learnerState.lessons[lesson.id];
           const complete = isComplete(lesson);
           const status = hydrated ? complete ? "Complete" : progress?.updatedAt ? "In progress" : null : null;
           return (
             <Link className={`lesson-card lesson-card-simple ${complete ? "completed" : ""}`} href={`/lessons/${lesson.id}`} key={lesson.id}>
-              <div><h2>{lesson.title}</h2><p>{lesson.thesis}</p></div>
+              <div style={{ alignItems: "start", display: "grid", gap: "1.1rem", gridTemplateColumns: "2.25rem minmax(0, 1fr)" }}>
+                <span style={{ color: "var(--violet)", fontFamily: "var(--mono)", fontSize: "max(0.68rem, 11px)", letterSpacing: "0.08em", paddingTop: "0.2rem" }}><span className="sr-only">Lesson </span>{String(index + 1).padStart(2, "0")}</span>
+                <div><h2>{lesson.title}</h2><p>{lesson.thesis}</p></div>
+              </div>
               {status ? <span className="lesson-card-status">{status}</span> : null}
             </Link>
           );

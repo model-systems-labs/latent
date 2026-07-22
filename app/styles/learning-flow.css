@@ -2514,10 +2514,11 @@ button:disabled {
   gap: 0.35rem;
 }
 
-.experiment-header strong {
+.experiment-header h3 {
   font-family: var(--serif);
   font-size: 1.42rem;
   font-weight: 400;
+  margin: 0;
 }
 
 .experiment-header p {

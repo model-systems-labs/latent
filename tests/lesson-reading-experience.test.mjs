@@ -36,7 +36,7 @@ test("lessons use an editorial hierarchy instead of landing-page scale", async (
   assert.match(learningFlow, /\.paper-hero h1\s*\{[^}]*font-size:\s*clamp\(2\.65rem,\s*4vw,\s*4rem\)/);
   assert.match(learningFlow, /\.paper-hero h1\s*\{[^}]*white-space:\s*nowrap/);
   assert.match(learningFlow, /\.section-title h2\s*\{[^}]*font-size:\s*clamp\(1\.65rem,\s*2\.3vw,\s*2\.15rem\)/);
-  assert.match(learningFlow, /\.paper-section\s*\{[^}]*padding:\s*clamp\(2\.25rem,\s*4vw,\s*3\.25rem\)/);
+  assert.match(learningFlow, /\.paper-section\s*\{[^}]*padding:\s*clamp\(1\.6rem,\s*2\.8vw,\s*2\.3rem\)/);
   assert.match(lessonMobile, /\.lessonShell :global\(\.paper-hero h1\)\s*\{[^}]*font-size:\s*clamp\(2\.15rem,\s*9vw,\s*2\.65rem\)[^}]*white-space:\s*normal/);
   assert.match(lessonMobile, /\.lessonShell :global\(\.exercise-body\) \{ padding:\s*0\.15rem 0 1\.7rem; \}/);
   assert.match(lessonMobile, /\.lessonShell :global\(\.exercise-feedback\) \{[^}]*flex-direction:\s*column/);

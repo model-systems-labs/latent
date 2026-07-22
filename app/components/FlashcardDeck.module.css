@@ -9,7 +9,7 @@
 }
 
 .study {
-  padding-bottom: clamp(4rem, 8vw, 7rem);
+  padding-bottom: clamp(2.8rem, 5.6vw, 4.9rem);
 }
 
 .studyControls {
@@ -24,7 +24,7 @@
 .progressHeading {
   align-items: end;
   display: flex;
-  gap: 2rem;
+  gap: 1.4rem;
   justify-content: space-between;
 }
 
@@ -248,7 +248,7 @@
 }
 
 .deck {
-  margin: clamp(1.65rem, 3vw, 2.6rem) auto 0;
+  margin: clamp(1.15rem, 2.1vw, 1.8rem) auto 0;
   max-width: 52rem;
 }
 
@@ -795,7 +795,7 @@
 
 .clearSection {
   border-top: 1px solid var(--line);
-  margin-top: 2rem;
+  margin-top: 1.4rem;
   padding-top: 0.75rem;
   text-align: center;
 }
@@ -829,7 +829,7 @@
 @media (min-width: 960px) {
   .study {
     align-items: start;
-    column-gap: clamp(2rem, 5vw, 4.5rem);
+    column-gap: clamp(1.4rem, 3.5vw, 3.15rem);
     display: grid;
     grid-template-columns: minmax(17rem, 0.72fr) minmax(0, 1.55fr);
   }

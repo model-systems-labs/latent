@@ -13,7 +13,7 @@
 .course-page {
   margin: 0 auto;
   max-width: 1120px;
-  padding: 2rem 0 5rem;
+  padding: 1.4rem 0 3.5rem;
   position: relative;
   width: calc(100% - 5rem);
   z-index: 1;
@@ -25,7 +25,7 @@
   flex-direction: column;
   justify-content: center;
   min-height: 0;
-  padding: clamp(2.5rem, 4vw, 3.75rem) 0 clamp(2rem, 3vw, 3rem);
+  padding: clamp(1.75rem, 2.8vw, 2.65rem) 0 clamp(1.4rem, 2.1vw, 2.1rem);
   text-align: left;
 }
 
@@ -45,7 +45,7 @@
 }
 
 .track-hero.catalog-track-hero {
-  padding: clamp(2.5rem, 4vw, 3.75rem) 0 clamp(2rem, 3vw, 3rem);
+  padding: clamp(1.75rem, 2.8vw, 2.65rem) 0 clamp(1.4rem, 2.1vw, 2.1rem);
 }
 
 .course-thesis {
@@ -131,7 +131,7 @@
   gap: 1.5rem;
   grid-template-columns: minmax(0, 1fr) auto;
   min-height: 0;
-  padding: 1.35rem 0;
+  padding: 1rem 0;
 }
 
 .lesson-card.lesson-card-simple + .lesson-card.lesson-card-simple {
@@ -180,7 +180,7 @@
 }
 
 .course-track-card.catalog-track-card {
-  padding: 1.65rem 0;
+  padding: 1.15rem 0;
 }
 
 .course-track-card.catalog-track-card h2 {
@@ -199,8 +199,8 @@
   display: flex;
   gap: 2rem;
   justify-content: space-between;
-  margin-top: clamp(3.5rem, 7vw, 5.5rem);
-  padding: 1.75rem 0;
+  margin-top: clamp(2.45rem, 4.9vw, 3.85rem);
+  padding: 1.25rem 0;
 }
 
 .catalog-capstone-link h2 {

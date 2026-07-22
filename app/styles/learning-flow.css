@@ -205,7 +205,7 @@ main {
 .calm-disclosure > summary:focus-visible { outline: 2px solid var(--violet-deep); outline-offset: 3px; }
 
 .paper-page {
-  padding: 1.25rem 0 4rem;
+  padding: 0.9rem 0 2.8rem;
 }
 
 .paper-hero,
@@ -225,7 +225,7 @@ main {
   max-width: none;
   min-height: 0;
   overflow: visible;
-  padding: clamp(2.5rem, 5vw, 4rem) 0 clamp(2.25rem, 4vw, 3.5rem);
+  padding: var(--rhythm-intro) 0 clamp(1.6rem, 2.8vw, 2.45rem);
   position: relative;
   text-align: left;
 }
@@ -340,12 +340,12 @@ main {
 
 .paper-section {
   border-top: 1px solid var(--line);
-  padding: clamp(2.25rem, 4vw, 3.25rem) 0;
+  padding: clamp(1.6rem, 2.8vw, 2.3rem) 0;
   scroll-margin-top: 1rem;
 }
 
 .section-title {
-  margin-bottom: 2.25rem;
+  margin-bottom: 1.6rem;
   max-width: none;
   padding-bottom: 0;
 }
@@ -382,7 +382,7 @@ main {
 }
 
 .summary-interlude {
-  margin: 3rem 0;
+  margin: 2.1rem 0;
   padding: 0;
 }
 
@@ -525,7 +525,7 @@ button:disabled {
   font-family: var(--serif);
   font-size: 1.16rem;
   line-height: 1.65;
-  margin: -0.35rem 0 2rem;
+  margin: -0.35rem 0 1.4rem;
   max-width: none;
 }
 
@@ -534,7 +534,7 @@ button:disabled {
 .paper-page .summary-reading { max-width: 47rem; }
 .paper-page .summary-copy { max-width: 43rem; }
 .paper-page .implementation-intro { max-width: 44rem; }
-.paper-page .paper-section { padding: clamp(3rem, 6vw, 5rem) 0; }
+.paper-page .paper-section { padding: var(--rhythm-section) 0; }
 
 
 /* Lesson practice owns its complete visual system in coding-workspace.css. */
@@ -820,9 +820,9 @@ button:disabled {
   align-items: center;
   border-top: 1px solid var(--line);
   display: grid;
-  gap: 2rem;
+  gap: 1.4rem;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  padding: 2.6rem 0 1rem;
+  padding: 1.8rem 0 0.7rem;
 }
 
 .paper-footer > span {
@@ -2532,16 +2532,16 @@ button:disabled {
   border: 0;
   border-top: 1px solid var(--line);
   border-radius: 0;
-  margin-top: 4.5rem;
+  margin-top: 3.15rem;
   overflow: visible;
 }
 
 .experiment-header {
   align-items: start;
   display: flex;
-  gap: 2rem;
+  gap: 1.4rem;
   justify-content: space-between;
-  padding: 2rem 0 1.25rem;
+  padding: 1.4rem 0 0.9rem;
 }
 
 .experiment-header > div {
@@ -3473,10 +3473,10 @@ button:disabled {
   border-bottom: 1px solid var(--line);
   border-top: 1px solid var(--line);
   display: grid;
-  gap: 1.5rem;
+  gap: 1.05rem;
   grid-template-columns: minmax(13rem, 0.75fr) minmax(0, 1.25fr);
-  margin: 0 auto 4.5rem;
-  padding: 1.5rem 0;
+  margin: 0 auto 3.15rem;
+  padding: 1.05rem 0;
   width: min(72rem, calc(100% - 2rem));
 }
 

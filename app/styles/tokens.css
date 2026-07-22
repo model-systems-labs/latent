@@ -16,6 +16,12 @@
   --green: #54735d;
   --red: #8d5a54;
   --code: #211f22;
+  /* Macro rhythm at roughly 70% of the original spacing. Type and controls stay full-size. */
+  --rhythm-landing: clamp(3.85rem, 7vw, 5.6rem);
+  --rhythm-major: clamp(3.15rem, 5.6vw, 4.9rem);
+  --rhythm-section: clamp(2.1rem, 4.2vw, 3.5rem);
+  --rhythm-group: clamp(2.8rem, 5.6vw, 4.55rem);
+  --rhythm-intro: clamp(1.75rem, 3.5vw, 2.8rem);
   --serif: "Iowan Old Style", "Baskerville", "Times New Roman", serif;
   --sans: var(--font-geist-sans), "Helvetica Neue", sans-serif;
   --mono: var(--font-geist-mono), "SFMono-Regular", monospace;

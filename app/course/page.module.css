@@ -1,10 +1,10 @@
 .catalogPage { max-width: 1080px; }
-.catalogHero { padding-bottom: clamp(2.5rem, 5vw, 4.5rem); }
-.programGroup + .programGroup { margin-top: clamp(4rem, 8vw, 6.5rem); }
+.catalogHero { padding-bottom: clamp(1.75rem, 3.5vw, 3.15rem); }
+.programGroup + .programGroup { margin-top: var(--rhythm-group); }
 
 .startingPoint {
   border-top: 1px solid var(--line-strong);
-  padding: clamp(2.5rem, 5vw, 4rem) 0 clamp(4rem, 8vw, 6rem);
+  padding: var(--rhythm-intro) 0 clamp(2.8rem, 5.6vw, 4.2rem);
   scroll-margin-top: 1.5rem;
 }
 
@@ -20,7 +20,7 @@
 .startingRoutes {
   border-bottom: 1px solid var(--line);
   list-style: none;
-  margin: clamp(2rem, 4vw, 3rem) 0 0;
+  margin: clamp(1.4rem, 2.8vw, 2.1rem) 0 0;
   padding: 0;
 }
 
@@ -79,7 +79,7 @@
 }
 
 :global(.catalog-program-card) {
-  padding: clamp(2rem, 4vw, 3rem) 0;
+  padding: clamp(1.4rem, 2.8vw, 2.1rem) 0;
 }
 
 .programDetails {
@@ -116,8 +116,8 @@
   display: grid;
   gap: 2rem;
   grid-template-columns: minmax(0, 1fr) auto;
-  margin: clamp(4rem, 8vw, 6.5rem) 0 0;
-  padding: 1.75rem 0;
+  margin: var(--rhythm-group) 0 0;
+  padding: 1.25rem 0;
 }
 
 .reviewCallout > div {

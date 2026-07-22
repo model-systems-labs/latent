@@ -40,7 +40,7 @@
   align-content: center;
   display: grid;
   min-height: 0;
-  padding: clamp(5.5rem, 10vw, 8rem) 0;
+  padding: var(--rhythm-landing) 0;
 }
 
 .hero h1 {
@@ -59,7 +59,7 @@
   font-family: var(--serif);
   font-size: clamp(1.15rem, 1.7vw, 1.42rem);
   line-height: 1.58;
-  margin: 2rem 0 0;
+  margin: 1.4rem 0 0;
   max-width: 53rem;
 }
 
@@ -67,8 +67,8 @@
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem 1.5rem;
-  margin-top: 2.4rem;
+  gap: 0.7rem 1.05rem;
+  margin-top: 1.7rem;
 }
 
 .primaryAction,
@@ -174,7 +174,7 @@
 
 .argument {
   border-top: 1px solid var(--line-strong);
-  padding: clamp(4.5rem, 8vw, 7rem) 0;
+  padding: var(--rhythm-major) 0;
 }
 
 .argument h2 {
@@ -191,15 +191,15 @@
   font-family: var(--serif);
   font-size: clamp(1.08rem, 1.55vw, 1.28rem);
   line-height: 1.7;
-  margin: 1.6rem 0 0;
+  margin: 1.1rem 0 0;
   max-width: 53rem;
 }
 
 .architecture {
   border-bottom: 1px solid var(--line);
   border-top: 1px solid var(--line);
-  margin: clamp(3.5rem, 6vw, 5rem) 0 0;
-  padding: 1.5rem 0 1.25rem;
+  margin: clamp(2.45rem, 4.2vw, 3.5rem) 0 0;
+  padding: 1.05rem 0 0.9rem;
 }
 
 .architectureCaption {
@@ -243,7 +243,7 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   list-style: none;
-  margin: clamp(3rem, 6vw, 4.75rem) 0 clamp(2.5rem, 5vw, 4rem);
+  margin: clamp(2.1rem, 4.2vw, 3.3rem) 0 clamp(1.75rem, 3.5vw, 2.8rem);
   padding: 0;
 }
 
@@ -427,7 +427,7 @@
 
 .projectDetails {
   border-bottom: 1px solid var(--line);
-  margin-top: clamp(3rem, 6vw, 4.5rem);
+  margin-top: clamp(2.1rem, 4.2vw, 3.15rem);
 }
 
 .footer {
@@ -437,7 +437,7 @@
   display: flex;
   font-size: max(0.7rem, 11px);
   justify-content: space-between;
-  min-height: 6.5rem;
+  min-height: 4.55rem;
 }
 
 .footer nav {
@@ -468,7 +468,7 @@
   }
 
   .hero {
-    padding: 4.5rem 0 5rem;
+    padding: 3.15rem 0 3.5rem;
   }
 
   .hero h1 {
@@ -495,7 +495,7 @@
   }
 
   .argument {
-    padding: 4.5rem 0;
+    padding: 3.15rem 0;
   }
 
   .argument h2 {
@@ -517,7 +517,7 @@
 
   .architectureOverview {
     grid-template-columns: 1fr;
-    margin: 2.75rem 0 2rem;
+    margin: 1.9rem 0 1.4rem;
   }
 
   .architectureOverview li,
@@ -581,7 +581,7 @@
   }
 
   .footer {
-    min-height: 5.5rem;
+    min-height: 3.85rem;
   }
 }
 

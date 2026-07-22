@@ -163,6 +163,12 @@ main {
   text-transform: uppercase;
 }
 
+.site-header nav a {
+  align-items: center;
+  display: inline-flex;
+  min-height: 2.75rem;
+}
+
 .site-header nav a:hover,
 .site-header nav a:focus-visible {
   color: var(--ink);

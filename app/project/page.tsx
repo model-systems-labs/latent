@@ -22,7 +22,7 @@ export default function ProjectPage() {
         <header className="project-page-hero">
           <h1>Project structure</h1>
           <p>See which lesson files are ready for the final browser build.</p>
-          <Link className="project-hero-link" href="/workspace">Open in IDE →</Link>
+          <Link className="project-hero-link" href="/workspace">Open coding workspace →</Link>
         </header>
         <ProjectStructureMap />
         <details className="project-history-disclosure">

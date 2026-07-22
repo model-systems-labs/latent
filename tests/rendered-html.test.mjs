@@ -247,7 +247,7 @@ test("all fourteen lessons use the reusable learning flow", async () => {
     assert.match(html, /Run all tests/);
     assert.match(html, /Reference solution/);
     assert.doesNotMatch(html, /Compare with reference|Your draft stays unchanged/);
-    assert.match(html, /Open in IDE/);
+    assert.match(html, /Open coding workspace/);
     assert.match(html, /Saved results/);
     assert.doesNotMatch(html, /Proof tied to the exact code you ran|Take a look|Course-provided runtime|Fixed worked example|Dataset included with the lesson/);
   }
@@ -259,7 +259,7 @@ test("every lesson keeps its executable work inside the browser", async () => {
     assert.equal(response.status, 200, slug);
     const html = await response.text();
     assert.match(html, /Run cell/);
-    assert.match(html, /Open in IDE/);
+    assert.match(html, /Open coding workspace/);
     assert.doesNotMatch(html, /Colab|Download notebook|Open notebook|native Python|native runtime|PyTorch version/i);
   }
 });

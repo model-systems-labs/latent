@@ -15,7 +15,7 @@ export default function LlmSystemsCoursePage() {
   return (
     <main>
       <PageAtmosphere />
-      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><Link href="/course">Courses</Link><Link href="/project">Project</Link><Link href="/sources">Further reading</Link></nav></header>
+      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><Link href="/course">Courses</Link><Link href="/workspace" aria-label="Open coding workspace">Code</Link><Link href="/project">Project</Link><Link href="/sources">Further reading</Link></nav></header>
       <article className="course-page full-course-page">
         <header className="course-hero full-course-hero home-course-hero">
           <p className="eyebrow">Project course · {llmSystemsCurriculum.lessonCount} lessons · 4 modules</p>
@@ -27,6 +27,7 @@ export default function LlmSystemsCoursePage() {
           program={program}
           title="Build the whole path, or jump to the part you need"
           primaryLink={{ href: "/lessons/character-rnns", label: "Start with Character RNNs" }}
+          secondaryLink={{ href: "/workspace", label: "Open coding workspace" }}
           quickLinks={{
             id: "fast-tracks",
             label: "Already comfortable with the model basics?",

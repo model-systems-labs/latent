@@ -80,7 +80,10 @@ export default function Home() {
 
         <header className={`site-header course-header ${styles.header}`}>
           <Link className="wordmark" href="/"><i />latent</Link>
-          <Link className={styles.headerLink} href="/course">Courses</Link>
+          <nav aria-label="Primary navigation">
+            <Link className={styles.headerLink} href="/course">Courses</Link>
+            <Link className={styles.headerLink} href="/workspace" aria-label="Open coding workspace">Code</Link>
+          </nav>
         </header>
 
         <article className={styles.shell}>

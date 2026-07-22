@@ -28,10 +28,34 @@
 
 .actions a,
 .quickLinks a {
-  border-bottom: 1px solid var(--line-strong);
   color: var(--violet-deep);
   font-size: max(0.7rem, 12px);
   min-height: 2.75rem;
+}
+
+.actions a {
+  align-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  display: inline-flex;
+  padding: 0.65rem 1rem;
+}
+
+.actions a:first-child {
+  background: var(--violet-deep);
+  border-color: var(--violet-deep);
+  color: var(--paper-bright);
+}
+
+.actions a:hover,
+.actions a:focus-visible {
+  background: var(--violet-wash);
+  border-color: var(--violet);
+  color: var(--ink);
+}
+
+.quickLinks a {
+  border-bottom: 1px solid var(--line-strong);
   padding: 0.75rem 0 0.3rem;
 }
 

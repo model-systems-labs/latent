@@ -34,9 +34,22 @@
 }
 
 .project-hero-link {
+  align-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
   color: var(--violet-deep);
-  font-size: max(0.68rem, 11px);
+  display: inline-flex;
+  font-size: max(0.74rem, 12px);
   margin-top: 1rem;
+  min-height: 2.75rem;
+  padding: 0.55rem 0.95rem;
+}
+
+.project-hero-link:hover,
+.project-hero-link:focus-visible {
+  background: var(--violet-wash);
+  border-color: var(--violet);
+  color: var(--ink);
 }
 
 .project-history-disclosure {
@@ -162,7 +175,7 @@
   display: grid;
   gap: 1rem;
   grid-template-columns: minmax(0, 1fr) auto;
-  min-height: 2.65rem;
+  min-height: 2.75rem;
   padding-right: 0.1rem;
 }
 

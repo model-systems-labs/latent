@@ -52,6 +52,7 @@ export function LessonCopyEditor({
   const [values, setValues] = useState<LessonCopyValues>(defaults);
   const [savedValues, setSavedValues] = useState<LessonCopyValues>(defaults);
   const [status, setStatus] = useState("Loading saved text");
+  const [codingVisible, setCodingVisible] = useState(false);
   const touchedPathsRef = useRef(new Set<string>());
   const valuesRef = useRef(values);
   const savedValuesRef = useRef(savedValues);
@@ -86,6 +87,17 @@ export function LessonCopyEditor({
 
     return () => controller.abort();
   }, [defaults, lesson.id]);
+
+  useEffect(() => {
+    const codingSection = globalThis.document.getElementById("implementation");
+    if (!codingSection || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setCodingVisible(entry.isIntersecting),
+      { threshold: 0.05 },
+    );
+    observer.observe(codingSection);
+    return () => observer.disconnect();
+  }, [lesson.id]);
 
   const persistLatest = useCallback(async () => {
     if (saveRunningRef.current) {
@@ -158,7 +170,7 @@ export function LessonCopyEditor({
   return (
     <>
       <PaperLab lesson={editedDocument.lesson} outcome={editedDocument.outcome} />
-      {!open ? (
+      {!open && !codingVisible ? (
         <div className={styles.toolbar}>
           <button type="button" aria-expanded="false" aria-controls="lesson-copy-panel" onClick={() => setOpen(true)}>
             Edit lesson

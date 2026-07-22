@@ -1228,7 +1228,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
         <div className="editor-toolbar">
           <div className="editor-file"><span>{projectPath}</span></div>
           <span className="sr-only">{verifiedCells} of {blocks.length} exercises verified</span>
-          {contributesToBrowserChat ? <Link className="open-ide-link" href={`/workspace?file=${encodeURIComponent(projectPath)}`}>Open in IDE ↗</Link> : null}
+          {contributesToBrowserChat ? <Link className="open-ide-link" href={`/workspace?file=${encodeURIComponent(projectPath)}`}>Open coding workspace ↗</Link> : null}
           {contributesToHarness ? <Link className="open-ide-link" href={`/courses/harness-engineering/workspace?file=${encodeURIComponent(projectPath)}`}>Open project ↗</Link> : null}
         </div>
         <div className="practice-sequence">
@@ -1255,7 +1255,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
               && verifiedSources[block.id] === workingSource;
             const passed = Boolean(result?.passed || verified);
             const failed = Boolean(result && !result.passed);
-            const visibleState = blockRunning ? "Running" : passed ? "Passed" : failed ? "Not passed" : null;
+            const visibleState = blockRunning ? "Running" : passed ? "Passed" : failed ? "Not passed" : active ? "Editor open" : "Open editor";
             return (
               <article
                 className={`practice-block${active ? " is-active" : ""}${dirty ? " is-dirty" : ""}${passed ? " is-passed" : ""}${failed ? " is-failed" : ""}`}

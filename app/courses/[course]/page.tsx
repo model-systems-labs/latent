@@ -38,7 +38,7 @@ export default async function StandaloneCoursePage({ params }: { params: Promise
   return (
     <main>
       <PageAtmosphere />
-      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><Link href="/course">All courses</Link><Link href="/sources">Sources</Link></nav></header>
+      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><Link href="/course">All courses</Link><Link href="/sources">Further reading</Link></nav></header>
       <article className="course-page track-page standalone-course-page">
         <header className="course-hero track-hero catalog-track-hero">
           <p className="eyebrow">{courseKind} course · {program.lessons.length} lessons</p>

@@ -114,7 +114,7 @@ test("Agent Loop combines technical reading with two isolated runnable cells", a
   assert.equal((html.match(/class="exercise-summary"/g) ?? []).length, 2);
   assert.match(html, /Run cell/);
   assert.match(html, /Run all tests/);
-  assert.match(html, /id="lesson-sources-title">Sources/);
+  assert.match(html, /id="lesson-sources-title">Further reading/);
   assert.equal((html.match(/class="source-entry"/g) ?? []).length, 4);
   assert.doesNotMatch(html, /Open in IDE|Saved results|href="#artifacts"/);
 });
@@ -217,7 +217,7 @@ test("all fourteen lessons use the reusable learning flow", async () => {
     assert.equal(response.status, 200, slug);
     const html = await response.text();
     assert.match(html, new RegExp(title));
-    assert.match(html, /id="lesson-sources-title">Sources/);
+    assert.match(html, /id="lesson-sources-title">Further reading/);
     assert.match(html, /aria-labelledby="lesson-sources-title"/);
     assert.equal((html.match(/class="source-entry"/g) ?? []).length, 3);
     assert.doesNotMatch(html, /primary and supporting references|supporting sources/);
@@ -752,16 +752,16 @@ test("project route exposes the timeline, local learning data, and recovery lang
   assert.match(html, /It does not include code, prompts, messages, API keys, or written answers/);
 });
 
-test("sources route lists the research, dataset, model, and runtime boundaries", async () => {
+test("further-reading route lists the research, dataset, model, and runtime boundaries", async () => {
   const response = await render("/sources");
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /<h1>Sources<\/h1>/);
-  assert.match(html, /Their prose, figures, tutorial code, and datasets are not republished here/);
+  assert.match(html, /<h1>Further reading<\/h1>/);
+  assert.match(html, /Its prose, figures, tutorial code, and datasets are not republished here/);
   assert.match(html, /SmolLM2-135M-Instruct/);
   assert.match(html, /Transformers\.js/);
   assert.match(html, /Apache-2\.0/);
-  assert.match(html, /Lesson sources/);
+  assert.match(html, /Further reading by lesson/);
   assert.match(html, /Flash-card reference shelf/);
   assert.match(html, /Mathematics for Machine Learning/);
   assert.match(html, /Decoupled Weight Decay Regularization/);

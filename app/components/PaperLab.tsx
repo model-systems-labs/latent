@@ -176,7 +176,7 @@ const LessonExperiment = lazy(async () => ({
 function SourceSet({ lesson }: { lesson: CourseLesson }) {
   return (
     <div className="source-set" aria-labelledby="lesson-sources-title">
-      <span className="source-set-title" id="lesson-sources-title">Sources</span>
+      <span className="source-set-title" id="lesson-sources-title">Further reading</span>
       <ul className="source-list">
         {lesson.sources.map((source) => (
           <li className="source-entry" key={source.url}>
@@ -235,7 +235,7 @@ function EvidenceAndLimits({ lesson }: { lesson: CourseLesson }) {
       <div className={styles.evidenceBody}>
         <dl className={styles.claims}>
           <div>
-            <dt>What the sources establish</dt>
+            <dt>What the further reading establishes</dt>
             <dd>{lesson.claims.paper}</dd>
           </div>
           <div>
@@ -259,7 +259,7 @@ function EvidenceAndLimits({ lesson }: { lesson: CourseLesson }) {
         </section>
 
         <section className={styles.sourceEvidence} aria-labelledby={`source-evidence-${lesson.id}`}>
-          <h2 id={`source-evidence-${lesson.id}`}>Source notes</h2>
+          <h2 id={`source-evidence-${lesson.id}`}>Further reading</h2>
           <ul>
             {lesson.sources.map((source) => (
               <li key={source.url}>

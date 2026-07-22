@@ -15,7 +15,7 @@ export default function LlmSystemsCoursePage() {
   return (
     <main>
       <PageAtmosphere />
-      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><Link href="/course">All courses</Link><Link href="/project">Project</Link><Link href="/workspace">IDE</Link><Link href="/capstone">Capstone</Link><Link href="/sources">Sources</Link></nav></header>
+      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><Link href="/course">All courses</Link><Link href="/project">Project</Link><Link href="/workspace">IDE</Link><Link href="/capstone">Capstone</Link><Link href="/sources">Further reading</Link></nav></header>
       <article className="course-page full-course-page">
         <header className="course-hero full-course-hero home-course-hero">
           <p className="eyebrow">Project course · {llmSystemsCurriculum.lessonCount} lessons · 4 modules</p>

@@ -46,7 +46,7 @@ ${context}
 Use small numerical examples. Define any technical term before using it. Don't assume calculus or prior machine-learning experience, and don't invent quotes or source claims.
 `.trim(),
     claims: {
-      paper: `The listed sources define the standard terminology and operations used in this lesson.`,
+      paper: `The listed further reading defines the standard terminology and operations used in this lesson.`,
       lab: `The browser checks small course-authored examples of the operation.`,
       limit: `The lesson covers only the beginner case needed for later machine-learning work.`,
     },

@@ -67,7 +67,7 @@ export default function CourseCatalogPage() {
   return (
     <main>
       <PageAtmosphere />
-      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><Link href="/course">Courses</Link><Link href="/flashcards" aria-label="Flash cards">Cards</Link><Link href="/sources">Sources</Link></nav></header>
+      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><Link href="/course">Courses</Link><Link href="/flashcards" aria-label="Flash cards">Cards</Link><Link href="/sources">Further reading</Link></nav></header>
       <article className={`course-page ${styles.catalogPage}`}>
         <header className={`course-hero ${styles.catalogHero}`}>
           <h1>Courses</h1>

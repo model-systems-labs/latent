@@ -195,7 +195,7 @@ export default function Home() {
           <nav aria-label="Footer navigation">
             <Link href="/course">Courses</Link>
             <Link href="/workspace">IDE</Link>
-            <Link href="/sources">Sources</Link>
+            <Link href="/sources">Further reading</Link>
           </nav>
         </footer>
       </main>

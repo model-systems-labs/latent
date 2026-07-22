@@ -138,7 +138,7 @@ test("reviewed lessons do not reintroduce the two remediated source patterns", a
     readFile(new URL("app/sources/page.tsx", root), "utf8"),
     readFile(new URL("CONTENT_PROVENANCE.md", root), "utf8"),
   ]);
-  assert.match(policy, /Their prose, figures, tutorial code, and datasets are not republished here/);
+  assert.match(policy, /Its prose, figures, tutorial code, and datasets are not republished here/);
   assert.match(record, /character-RNN trainers had followed the organization/);
   assert.match(record, /BPE lesson used the paper's recognizable/);
 });

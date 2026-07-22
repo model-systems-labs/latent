@@ -807,10 +807,10 @@ export function FlashcardDeck() {
                   <p className={styles.example}><span>Example</span>{currentCard.example}</p>
                   {currentCard.source ? (
                     <p className={styles.sourceTrail}>
-                      <span>Sources</span>
+                      <span>Further reading</span>
                       <cite>{currentCard.source}</cite>
                       <a href={sourceIndexHref(currentCard.subjectId)}>
-                        Browse source notes <span aria-hidden="true">→</span>
+                        Browse further reading <span aria-hidden="true">→</span>
                       </a>
                     </p>
                   ) : null}

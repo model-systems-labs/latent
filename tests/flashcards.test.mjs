@@ -623,7 +623,7 @@ test("subject and status toggles, reveal, live feedback, and rating controls ret
   assert.match(source, /id=\{`answer-\$\{currentCard\.id\}`\}/);
   assert.match(source, /function sourceIndexHref\(subjectId: FlashcardSubjectId\)/);
   assert.match(source, /<cite>\{currentCard\.source\}<\/cite>/);
-  assert.match(source, /Browse source notes/);
+  assert.match(source, /Browse further reading/);
   assert.match(source, /ref=\{cardFrontRef\}[\s\S]*?className=\{styles\.answerToggle\}/);
   assert.match(source, /className=\{styles\.cardBack\}[\s\S]*?id=\{`answer-\$\{currentCard\.id\}`\}[\s\S]*?hidden=\{!revealed\}/);
   assert.match(source, /className=\{styles\.answerToggle\}[\s\S]*?aria-expanded=\{revealed\}[\s\S]*?aria-controls=\{`answer-\$\{currentCard\.id\}`\}/);

@@ -50,7 +50,7 @@ ${context}
 Define harness-specific terms before using them. Distinguish probabilistic model behavior from deterministic host behavior. Use small concrete traces, and do not invent source claims.
 `.trim(),
     claims: {
-      paper: "The listed sources describe established agent-loop, tool, context, security, evaluation, or orchestration patterns.",
+      paper: "The listed further reading describes established agent-loop, tool, context, security, evaluation, or orchestration patterns.",
       lab: "The browser runs your Python exercises against fixed test cases.",
       limit: "It does not call a hosted LLM, read local files, run shell commands, or use the network.",
     },

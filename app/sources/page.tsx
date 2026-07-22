@@ -4,7 +4,7 @@ import { coursePrograms } from "../lessons/course";
 import { PageAtmosphere } from "../components/PageAtmosphere";
 
 export const metadata: Metadata = {
-  title: "Sources and licenses · Latent",
+  title: "Further reading and licenses · Latent",
   description: "References, datasets, model licenses, and open-source notices for every Latent course.",
 };
 
@@ -45,9 +45,9 @@ export default function SourcesPage() {
       <PageAtmosphere />
       <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><Link href="/course">Courses</Link><Link href="/project">Project</Link><Link href="/workspace">IDE</Link></nav></header>
       <article className="sources-page">
-        <header className="sources-hero"><h1>Sources</h1><p>References, datasets, models, and software used across the four courses.</p></header>
+        <header className="sources-hero"><h1>Further reading</h1><p>References, datasets, models, and software used across the four courses.</p></header>
 
-        <p className="source-policy-note">Sources establish the research, equations, standards, and APIs behind each lesson. Their prose, figures, tutorial code, and datasets are not republished here; Latent&apos;s explanations, diagrams, exercises, implementations, and synthetic fixtures are course-authored.</p>
+        <p className="source-policy-note">Further reading establishes the research, equations, standards, and APIs behind each lesson. Its prose, figures, tutorial code, and datasets are not republished here; Latent&apos;s explanations, diagrams, exercises, implementations, and synthetic fixtures are course-authored.</p>
 
         <details className="runtime-notices">
           <summary id="runtime-notices-title">Models and open-source software</summary>
@@ -57,7 +57,7 @@ export default function SourcesPage() {
         </details>
 
         <section className="lesson-source-index" aria-labelledby="lesson-source-index-title">
-          <header><h2 id="lesson-source-index-title">Lesson sources</h2></header>
+          <header><h2 id="lesson-source-index-title">Further reading by lesson</h2></header>
           {coursePrograms.map((program) => (
             <section className="source-program-group" aria-labelledby={`sources-${program.id}`} key={program.id}>
               <h3 id={`sources-${program.id}`}>{program.title}</h3>

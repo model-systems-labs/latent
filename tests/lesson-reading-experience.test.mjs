@@ -139,19 +139,19 @@ test("saved results render only artifacts that exist", async () => {
   assert.match(source, /No saved results yet\./);
 });
 
-test("lesson sources use one compact inline list with assistive metadata", async () => {
+test("lesson further reading uses one compact inline list with assistive metadata", async () => {
   const [paperLab, learningFlow, lessonMobile] = await Promise.all([
     readFile(paperLabUrl, "utf8"),
     readFile(learningFlowUrl, "utf8"),
     readFile(paperLabMobileUrl, "utf8"),
   ]);
-  assert.match(paperLab, /<div className="source-set" aria-labelledby="lesson-sources-title">[\s\S]*?<span className="source-set-title" id="lesson-sources-title">Sources<\/span>/);
+  assert.match(paperLab, /<div className="source-set" aria-labelledby="lesson-sources-title">[\s\S]*?<span className="source-set-title" id="lesson-sources-title">Further reading<\/span>/);
   assert.doesNotMatch(paperLab, /<details className="source-set"|matchMedia\("\(max-width: 650px\)/);
   assert.equal(paperLab.match(/<ul className="source-list">/g)?.length, 1, "references must have one semantic copy");
   assert.match(paperLab, /aria-label=\{`\$\{source\.title\}, \$\{source\.authors\}, \$\{source\.year\}; opens in a new tab`\}/);
   assert.match(paperLab, /<details className=\{styles\.evidencePanel\}>[\s\S]*?<summary>Evidence &amp; limits<\/summary>/);
   assert.doesNotMatch(paperLab, /<details className=\{styles\.evidencePanel\} open/);
-  assert.match(paperLab, /<dt>What the sources establish<\/dt>[\s\S]*?\{lesson\.claims\.paper\}/);
+  assert.match(paperLab, /<dt>What the further reading establishes<\/dt>[\s\S]*?\{lesson\.claims\.paper\}/);
   assert.match(paperLab, /<dt>What this lab runs<\/dt>[\s\S]*?\{lesson\.claims\.lab\}/);
   assert.match(paperLab, /<dt>What it does not prove<\/dt>[\s\S]*?\{lesson\.claims\.limit\}/);
   assert.match(paperLab, /<div><dt>Source<\/dt><dd>\{lesson\.dataset\.source\}<\/dd><\/div>/);

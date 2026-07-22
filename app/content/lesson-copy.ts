@@ -56,9 +56,9 @@ export function lessonCopyFields({ lesson, outcome }: EditableLessonDocument) {
 
   lesson.sources.forEach((source, index) => {
     fields.push(
-      field(`lesson.sources.${index}.title`, `Source ${index + 1} title`, "Sources", source.title, 500, true),
-      field(`lesson.sources.${index}.authors`, `Source ${index + 1} authors`, "Sources", source.authors, 500, true),
-      field(`lesson.sources.${index}.year`, `Source ${index + 1} year`, "Sources", source.year, 80),
+      field(`lesson.sources.${index}.title`, `Further reading ${index + 1} title`, "Further reading", source.title, 500, true),
+      field(`lesson.sources.${index}.authors`, `Further reading ${index + 1} authors`, "Further reading", source.authors, 500, true),
+      field(`lesson.sources.${index}.year`, `Further reading ${index + 1} year`, "Further reading", source.year, 80),
     );
   });
 

@@ -9,10 +9,9 @@ html {
 
 body {
   background:
-    radial-gradient(circle at 86% 7%, rgba(202, 191, 221, 0.5), transparent 31rem),
-    radial-gradient(circle at 73% 17%, rgba(238, 204, 168, 0.25), transparent 20rem),
-    radial-gradient(circle at 12% 54%, rgba(219, 211, 225, 0.18), transparent 36rem),
-    linear-gradient(142deg, #f8f6f0 0%, #f1eee8 45%, #ede9f0 100%);
+    radial-gradient(circle at 88% 4%, rgba(203, 188, 210, 0.2), transparent 32rem),
+    radial-gradient(circle at 73% 18%, rgba(230, 183, 139, 0.11), transparent 22rem),
+    var(--paper);
   background-attachment: fixed;
   color: var(--ink);
   font-family: var(--sans);
@@ -66,7 +65,7 @@ main {
 }
 
 .orbit {
-  border: 1px solid rgba(107, 91, 133, 0.13);
+  border: 1px solid rgba(107, 91, 133, 0.08);
   border-radius: 50%;
   position: absolute;
   right: -13rem;
@@ -86,8 +85,8 @@ main {
 }
 
 .node {
-  background: #8d7ba8;
-  box-shadow: 0 0 0 5px rgba(141, 123, 168, 0.08);
+  background: #8d7ba0;
+  box-shadow: 0 0 0 5px rgba(141, 123, 160, 0.05);
   height: 5px;
   width: 5px;
 }
@@ -98,8 +97,8 @@ main {
 }
 
 .warm-star {
-  background: rgba(244, 190, 135, 0.9);
-  box-shadow: 0 0 13px 5px rgba(221, 163, 104, 0.27), 0 0 48px 22px rgba(224, 185, 145, 0.12);
+  background: rgba(224, 158, 101, 0.72);
+  box-shadow: 0 0 20px 8px rgba(224, 185, 145, 0.1);
   height: 6px;
   right: 16%;
   top: 13rem;
@@ -124,7 +123,7 @@ main {
   border-bottom: 1px solid var(--line);
   display: grid;
   grid-template-columns: 1fr auto 1fr;
-  height: 5.4rem;
+  height: 4.9rem;
 }
 
 .wordmark {
@@ -139,7 +138,7 @@ main {
 .wordmark i {
   background: var(--amber);
   border-radius: 999px;
-  box-shadow: 0 0 0 5px rgba(184, 135, 94, 0.09);
+  box-shadow: 0 0 0 5px rgba(185, 121, 82, 0.06);
   height: 5px;
   margin-right: 0.6rem;
   width: 5px;
@@ -147,7 +146,7 @@ main {
 
 .site-header nav {
   display: flex;
-  gap: 2.25rem;
+  gap: 1.75rem;
 }
 
 .site-header nav a,
@@ -177,6 +176,28 @@ main {
   justify-self: end;
 }
 
+.calm-disclosure {
+  border-top: 1px solid var(--line);
+}
+
+.calm-disclosure > summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  font-family: var(--serif);
+  font-size: 1.05rem;
+  justify-content: space-between;
+  list-style: none;
+  min-height: 3.75rem;
+  padding: 0.75rem 0;
+}
+
+.calm-disclosure > summary::-webkit-details-marker { display: none; }
+.calm-disclosure > summary::after { color: var(--violet); content: "+"; font-family: var(--mono); margin-left: 1rem; }
+.calm-disclosure[open] > summary::after { content: "−"; }
+.calm-disclosure > summary > small { color: var(--muted); font-family: var(--sans); font-size: max(0.68rem, 11px); margin-left: auto; }
+.calm-disclosure > summary:focus-visible { outline: 2px solid var(--violet-deep); outline-offset: 3px; }
+
 .paper-page {
   padding: 1.25rem 0 4rem;
 }
@@ -198,7 +219,7 @@ main {
   max-width: none;
   min-height: 0;
   overflow: visible;
-  padding: clamp(1.75rem, 3vw, 2.5rem) 0 1.75rem;
+  padding: clamp(2.5rem, 5vw, 4rem) 0 clamp(2.25rem, 4vw, 3.5rem);
   position: relative;
   text-align: left;
 }
@@ -312,13 +333,13 @@ main {
 }
 
 .paper-section {
-  border-top: 1px solid var(--line-strong);
+  border-top: 1px solid var(--line);
   padding: clamp(2.25rem, 4vw, 3.25rem) 0;
   scroll-margin-top: 1rem;
 }
 
 .section-title {
-  margin-bottom: 1.8rem;
+  margin-bottom: 2.25rem;
   max-width: none;
   padding-bottom: 0;
 }
@@ -355,7 +376,7 @@ main {
 }
 
 .summary-interlude {
-  margin: 2.25rem 0;
+  margin: 3rem 0;
   padding: 0;
 }
 
@@ -501,6 +522,13 @@ button:disabled {
   margin: -0.35rem 0 2rem;
   max-width: none;
 }
+
+.paper-page .paper-hero h1 { max-width: 15ch; white-space: normal; }
+.paper-page .paper-thesis,
+.paper-page .summary-reading { max-width: 47rem; }
+.paper-page .summary-copy { max-width: 43rem; }
+.paper-page .implementation-intro { max-width: 44rem; }
+.paper-page .paper-section { padding: clamp(3rem, 6vw, 5rem) 0; }
 
 
 /* Lesson practice owns its complete visual system in coding-workspace.css. */
@@ -2467,6 +2495,7 @@ button:disabled {
   border: 0;
   display: grid;
   gap: 0.35rem;
+  max-width: 42rem;
   padding: 0 0 1.15rem;
 }
 
@@ -2495,7 +2524,7 @@ button:disabled {
 .experiment-lab {
   background: transparent;
   border: 0;
-  border-top: 1px solid var(--line-strong);
+  border-top: 1px solid var(--line);
   border-radius: 0;
   margin-top: 4.5rem;
   overflow: visible;
@@ -2538,12 +2567,11 @@ button:disabled {
 }
 
 .dataset-record {
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
+  background: rgba(255, 253, 248, 0.36);
   display: grid;
   gap: 2rem;
   grid-template-columns: 1fr;
-  padding: 1.1rem 0;
+  padding: 1.1rem 1.2rem;
 }
 
 .dataset-record > div {
@@ -2583,7 +2611,6 @@ button:disabled {
 
 .experiment-action {
   align-items: center;
-  border-bottom: 1px solid var(--line);
   display: flex;
   gap: 1rem;
   justify-content: space-between;
@@ -2599,16 +2626,16 @@ button:disabled {
 
 .experiment-action button,
 .model-loader button {
-  background: #272329;
+  background: var(--violet-deep);
   border: 0;
-  border-radius: 999px;
+  border-radius: 0;
   color: #f6f2eb;
   cursor: pointer;
   font-size: max(0.68rem, 11px);
-  letter-spacing: 0.08em;
+  letter-spacing: 0;
   min-height: 44px;
   padding: 0.78rem 1rem;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .experiment-action button:hover:not(:disabled),
@@ -2649,10 +2676,10 @@ button:disabled {
 
 .metric-grid {
   border: 0;
-  border-bottom: 1px solid var(--line);
   border-radius: 0;
   border-top: 1px solid var(--line);
   display: grid;
+  gap: 1.5rem;
   grid-template-columns: repeat(4, 1fr);
   overflow: hidden;
 }
@@ -2660,11 +2687,7 @@ button:disabled {
 .metric-grid > span {
   display: grid;
   gap: 0.35rem;
-  padding: 0.9rem;
-}
-
-.metric-grid > span + span {
-  border-left: 1px solid var(--line);
+  padding: 1rem 0;
 }
 
 .metric-grid em {

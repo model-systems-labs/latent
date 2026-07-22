@@ -13,7 +13,7 @@
 }
 
 .evidencePanel {
-  border-block: 1px solid var(--line);
+  border-top: 1px solid var(--line);
   margin-top: 1.4rem;
 }
 
@@ -25,10 +25,9 @@
   font-size: max(0.7rem, 12px);
   font-weight: 590;
   justify-content: space-between;
-  letter-spacing: 0.07em;
+  letter-spacing: 0;
   list-style: none;
   min-height: 2.75rem;
-  text-transform: uppercase;
 }
 
 .evidencePanel > summary::-webkit-details-marker { display: none; }
@@ -134,12 +133,12 @@
 
 .lessonProgress {
   align-items: center;
-  border-block: 1px solid var(--line);
+  background: rgba(255, 253, 248, 0.32);
   display: grid;
   gap: 0.85rem 1.5rem;
   grid-template-columns: minmax(0, 1fr) auto;
   margin-top: 1.4rem;
-  padding: 0.8rem 0;
+  padding: 0.9rem 1rem;
 }
 
 .lessonProgress > p {
@@ -181,9 +180,9 @@
 .lessonProgress li[data-complete="true"] em { color: var(--green); }
 
 .exerciseContract {
-  border-block: 1px solid var(--line);
+  border-left: 2px solid var(--line-strong);
   margin-bottom: 0.85rem;
-  padding: 0.8rem 0;
+  padding: 0.7rem 0 0.7rem 1rem;
 }
 
 .exerciseContract > p {

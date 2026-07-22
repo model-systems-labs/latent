@@ -107,7 +107,7 @@
 }
 
 .project-structure-group {
-  border-bottom: 1px solid var(--line);
+  border-bottom: 0;
 }
 
 .project-structure-group:last-child {
@@ -123,7 +123,7 @@
   font-size: max(0.68rem, 11px);
   justify-content: space-between;
   list-style: none;
-  min-height: 2.9rem;
+  min-height: 3.25rem;
   padding: 0.7rem 0;
 }
 

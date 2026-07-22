@@ -137,7 +137,8 @@ test("the editable capstone exposes branch-aware, frame-batched, bounded streami
 test("the capstone keeps the conversation primary on narrow screens", () => {
   const source = template.BROWSER_CHAT_COMPONENT_SOURCE;
   const styles = template.CAPSTONE_STYLES_SOURCE;
-  assert.match(source, /useState\([\s\S]*window\.matchMedia\("\(max-width: 520px\)"\)\.matches/);
+  assert.match(source, /const \[controlsOpen, setControlsOpen\] = useState\(false\)/);
+  assert.match(source, /className="metrics-panel"[\s\S]*?<details>[\s\S]*?<summary><span className="section-label">Last request/);
   assert.match(source, /const \[mobileControlsOpen, setMobileControlsOpen\] = useState\(false\)/);
   assert.match(source, /className=\{"control-panel" \+ \(mobileControlsOpen \? " mobile-open" : ""\)\}/);
   assert.match(source, /className="mobile-control-toggle"[\s\S]*aria-expanded=\{mobileControlsOpen\}/);

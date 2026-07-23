@@ -72,6 +72,21 @@ test("the course catalog separates foundations, agent systems, and the cumulativ
   assert.equal((html.match(/class="course-track-card catalog-program-card"/g) ?? []).length, 4);
 });
 
+test("open learning exposes self-hosted feeds and local package authoring", async () => {
+  const response = await render("/open-learning");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Anyone can publish a lesson/);
+  assert.match(html, /Open a hosted lesson feed/);
+  assert.match(html, /Make your own lesson or flash-card site/);
+  assert.match(html, /learning-feed-url/);
+  assert.match(html, /learning-pack-source/);
+  assert.match(html, /Download host-ready site/);
+  assert.match(html, /Portable content\. Constrained runtime/);
+  assert.match(html, /Remote JavaScript, HTML, Python, React, iframes, workers/);
+  assert.doesNotMatch(html, /Submit for approval|Upload to Latent|central repository/i);
+});
+
 test("Harness Engineering renders as an eight-lesson applied course with its own project", async () => {
   const response = await render("/courses/harness-engineering");
   assert.equal(response.status, 200);
@@ -539,7 +554,7 @@ test("the design kit, simulations, model engines, and artifact runtime remain re
   assert.doesNotMatch(paperLab, /supporting-sources/);
   assert.match(paperLab, /source\.role/);
   assert.doesNotMatch(paperLab, /SelectionAsk|selection-ask|data-selection-ask|Highlight a passage/);
-  assert.match(layout, /og-learning-paths\.png/);
+  assert.match(layout, /og-open-learning\.png/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   await assert.rejects(access(new URL("../app/_sites-preview", templateRoot)));
 });

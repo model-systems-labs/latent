@@ -82,6 +82,7 @@ export default function Home() {
           <Link className="wordmark" href="/"><i />latent</Link>
           <nav aria-label="Primary navigation">
             <Link className={styles.headerLink} href="/course">Courses</Link>
+            <Link className={styles.headerLink} href="/open-learning">Open learning</Link>
             <Link className={styles.headerLink} href="/workspace" aria-label="Open coding workspace">Code</Link>
           </nav>
         </header>
@@ -213,6 +214,7 @@ export default function Home() {
           <span>Latent</span>
           <nav aria-label="Footer navigation">
             <Link href="/course">Courses</Link>
+            <Link href="/open-learning">Open learning</Link>
             <Link href="/workspace">IDE</Link>
             <Link href="/sources">Further reading</Link>
           </nav>

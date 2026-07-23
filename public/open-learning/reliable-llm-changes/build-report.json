@@ -1,0 +1,20 @@
+{
+  "format": "latent-learning-build-report",
+  "schemaVersion": 1,
+  "playerVersion": 1,
+  "packageId": "latent/reliable-llm-changes",
+  "version": "1.0.0",
+  "sha256": "7dba8a87e69ec66fc2fa777b62603492ca0521ccfa1a8285d0ef7e631c511ced",
+  "packageBytes": 13981,
+  "files": [
+    ".latent-build",
+    "README.txt",
+    "_headers",
+    "assets/player.css",
+    "assets/player.js",
+    "build-report.json",
+    "index.html",
+    "learning-feed.json",
+    "learning-pack.json"
+  ]
+}

@@ -1,0 +1,378 @@
+{
+  "extensions": {
+    "org.latent/reading-order": {
+      "recommendation": "Complete both lessons before the review deck."
+    }
+  },
+  "flashcardDecks": [
+    {
+      "cards": [
+        {
+          "back": "It names the expected behavior, the situation in which it matters, and evidence that would count as failure.",
+          "explanation": "An observable claim can be challenged by a concrete case instead of defended through a vague impression.",
+          "front": "What makes a release claim observable?",
+          "id": "observable-claim",
+          "objectiveIds": [
+            "state-claim"
+          ],
+          "sourceIds": [
+            "nist-ai-rmf",
+            "openai-evals"
+          ],
+          "tags": [
+            "claims",
+            "evaluation"
+          ]
+        },
+        {
+          "back": "The metric samples evidence about a desired behavior; it is not the behavior itself.",
+          "explanation": "Keeping this distinction visible prevents teams from optimizing a score while missing important real failures.",
+          "front": "Why is an evaluation metric a proxy rather than the goal?",
+          "id": "metric-proxy",
+          "objectiveIds": [
+            "state-claim"
+          ],
+          "sourceIds": [
+            "openai-evals"
+          ],
+          "tags": [
+            "metrics",
+            "evaluation"
+          ]
+        },
+        {
+          "back": "Ordinary cases, boundary cases, and high-cost failure cases.",
+          "explanation": "Together they test common behavior, limits, and the failures that matter most to the release decision.",
+          "front": "What three kinds of cases belong in a first representative test set?",
+          "id": "representative-set",
+          "objectiveIds": [
+            "design-evidence"
+          ],
+          "sourceIds": [
+            "openai-evals",
+            "nist-ai-rmf"
+          ],
+          "tags": [
+            "test-set",
+            "risk"
+          ]
+        },
+        {
+          "back": "It should be inspected and resolved or explicitly bounded before release; it must not disappear into the average.",
+          "explanation": "Severity and affected slice are part of the evidence, so an average alone cannot determine readiness.",
+          "front": "How should a critical failure affect an improved aggregate score?",
+          "id": "critical-failure",
+          "objectiveIds": [
+            "read-release"
+          ],
+          "sourceIds": [
+            "nist-ai-rmf"
+          ],
+          "tags": [
+            "release",
+            "risk"
+          ]
+        },
+        {
+          "back": "A stable average can hide regressions concentrated in a particular task, user situation, or input shape.",
+          "explanation": "Slices help locate where a change works and where its release scope should remain limited.",
+          "front": "Why compare evaluation slices?",
+          "id": "slice-reading",
+          "objectiveIds": [
+            "design-evidence",
+            "read-release"
+          ],
+          "sourceIds": [
+            "openai-evals"
+          ],
+          "tags": [
+            "slices",
+            "diagnosis"
+          ]
+        },
+        {
+          "back": "The exact change, tested cases, results, known limits, and the release decision.",
+          "explanation": "Those fields let another person understand what evidence supported the decision and what remains uncertain.",
+          "front": "What belongs in a minimal release record?",
+          "id": "release-record",
+          "objectiveIds": [
+            "read-release"
+          ],
+          "sourceIds": [
+            "nist-ai-rmf"
+          ],
+          "tags": [
+            "release",
+            "documentation"
+          ]
+        },
+        {
+          "back": "When it catches or explains a meaningful failure that the simpler workflow cannot.",
+          "explanation": "Complexity is justified by better decisions, not by the appearance of rigor.",
+          "front": "When should you add more evaluation machinery?",
+          "id": "complexity-test",
+          "objectiveIds": [
+            "design-evidence"
+          ],
+          "sourceIds": [
+            "anthropic-agents"
+          ],
+          "tags": [
+            "simplicity",
+            "workflow"
+          ]
+        },
+        {
+          "back": "They turn an observed blind spot into a durable regression check for later changes.",
+          "explanation": "The test set becomes more representative as real evidence reveals new failure modes.",
+          "front": "Why add production failures back into the test set?",
+          "id": "continuous-evaluation",
+          "objectiveIds": [
+            "design-evidence",
+            "read-release"
+          ],
+          "sourceIds": [
+            "openai-evals",
+            "nist-ai-rmf"
+          ],
+          "tags": [
+            "regression",
+            "continuous-evaluation"
+          ]
+        }
+      ],
+      "description": "Recall the decisions that connect an LLM application change to evidence and a bounded release.",
+      "id": "reliable-change-review",
+      "objectiveIds": [
+        "state-claim",
+        "design-evidence",
+        "read-release"
+      ],
+      "order": 1,
+      "sourceIds": [
+        "nist-ai-rmf",
+        "openai-evals",
+        "anthropic-agents"
+      ],
+      "title": "Reliable change review"
+    }
+  ],
+  "format": "latent-learning-pack",
+  "lessons": [
+    {
+      "blocks": [
+        {
+          "text": "An evaluation is useful when it can change a decision. Start by naming the behavior you expect, the situation in which it matters, and the evidence that would make you withhold a release. This keeps a convenient metric from quietly becoming the goal.",
+          "type": "paragraph"
+        },
+        {
+          "level": 2,
+          "text": "Separate the claim from its proxy",
+          "type": "heading"
+        },
+        {
+          "items": [
+            "Claim: the assistant keeps a user's stated constraint while revising a plan.",
+            "Failure condition: a revised plan drops or contradicts any explicit constraint.",
+            "Proxy: the share of representative revision cases in which every constraint is preserved.",
+            "Release rule: investigate every failed case and do not release if a critical constraint is lost."
+          ],
+          "style": "ordered",
+          "type": "list"
+        },
+        {
+          "text": "A high average can hide a severe failure in a small but important slice. Keep the individual cases available for inspection.",
+          "title": "A score is not the behavior",
+          "tone": "warning",
+          "type": "callout"
+        },
+        {
+          "choices": [
+            {
+              "id": "latency",
+              "text": "Median response latency stays under two seconds."
+            },
+            {
+              "id": "constraint",
+              "text": "When asked to revise a plan, the assistant preserves every explicit user constraint in the representative test set."
+            },
+            {
+              "id": "preference",
+              "text": "Most reviewers say the new answers feel better."
+            }
+          ],
+          "correctChoiceId": "constraint",
+          "explanation": "The constraint statement names the behavior, the situation, and observable evidence. Latency measures a different property, while an unstructured preference does not define the failure that matters.",
+          "id": "claim-check",
+          "objectiveIds": [
+            "state-claim"
+          ],
+          "prompt": "Which statement is the strongest release claim for a plan-revision assistant?",
+          "sourceIds": [
+            "nist-ai-rmf",
+            "openai-evals"
+          ],
+          "type": "quiz"
+        }
+      ],
+      "durationMinutes": 12,
+      "id": "claim-before-metric",
+      "objectiveIds": [
+        "state-claim"
+      ],
+      "order": 1,
+      "sourceIds": [
+        "nist-ai-rmf",
+        "openai-evals"
+      ],
+      "summary": "Begin with the behavior that must remain true, then select a check that could reveal a meaningful failure.",
+      "title": "Write the claim before the metric"
+    },
+    {
+      "blocks": [
+        {
+          "text": "A useful test set represents how the feature will actually be used, including ordinary cases, boundary cases, and the failures that would carry the greatest cost. Keep the set small enough to inspect at first. Add cases when production evidence reveals a new failure mode.",
+          "type": "paragraph"
+        },
+        {
+          "level": 2,
+          "text": "Read the shape of the failures",
+          "type": "heading"
+        },
+        {
+          "items": [
+            "Check the aggregate result for broad regression.",
+            "Read every critical failure rather than treating it as a rounding error.",
+            "Compare important slices, such as short and long conversations or familiar and unfamiliar topics.",
+            "Record the tested version, the cases, the result, and the person or process that made the release decision."
+          ],
+          "style": "unordered",
+          "type": "list"
+        },
+        {
+          "caption": "A small release record keeps the decision inspectable.",
+          "code": "{\n  \"change\": \"preserve_constraints_v2\",\n  \"cases\": 24,\n  \"critical_failures\": 0,\n  \"known_limits\": [\"mixed-language constraints need more coverage\"],\n  \"decision\": \"release to a small cohort\"\n}",
+          "language": "json",
+          "type": "code"
+        },
+        {
+          "text": "A simple test that catches the failure you care about is more valuable than a complicated evaluation system that produces a number nobody can interpret.",
+          "title": "Prefer evidence over machinery",
+          "tone": "tip",
+          "type": "callout"
+        },
+        {
+          "choices": [
+            {
+              "id": "ship",
+              "text": "Ship because the aggregate result improved."
+            },
+            {
+              "id": "average",
+              "text": "Add more easy cases until the overall score is high enough."
+            },
+            {
+              "id": "withhold",
+              "text": "Withhold the release, inspect the two regressions, and revise the change or the release scope."
+            }
+          ],
+          "correctChoiceId": "withhold",
+          "explanation": "The aggregate improvement does not cancel a known critical regression. The release decision should reflect the severity and location of failures as well as the overall score.",
+          "id": "release-check",
+          "objectiveIds": [
+            "design-evidence",
+            "read-release"
+          ],
+          "prompt": "A new prompt improves the overall pass rate from 88% to 94%, but two high-cost safety cases now fail. What is the strongest next step?",
+          "sourceIds": [
+            "nist-ai-rmf",
+            "openai-evals"
+          ],
+          "type": "quiz"
+        }
+      ],
+      "durationMinutes": 15,
+      "id": "evidence-before-release",
+      "objectiveIds": [
+        "design-evidence",
+        "read-release"
+      ],
+      "order": 2,
+      "prerequisiteLessonIds": [
+        "claim-before-metric"
+      ],
+      "sourceIds": [
+        "nist-ai-rmf",
+        "openai-evals",
+        "anthropic-agents"
+      ],
+      "summary": "Use representative cases, inspect failures, and record a decision that another person can reproduce.",
+      "title": "Build evidence that can say no"
+    }
+  ],
+  "objectives": [
+    {
+      "description": "Turn a broad quality goal into an observable claim with a clear failure condition.",
+      "id": "state-claim"
+    },
+    {
+      "description": "Choose a small set of representative checks that can disprove the claim before release.",
+      "id": "design-evidence"
+    },
+    {
+      "description": "Read aggregate and per-case evidence together and make an explicit release decision.",
+      "id": "read-release"
+    }
+  ],
+  "package": {
+    "authors": [
+      {
+        "name": "Latent Project Contributors",
+        "url": "https://latent-llm-learning.cswansondeveloper.chatgpt.site"
+      }
+    ],
+    "description": "A compact lesson and review pack for turning a proposed LLM application change into explicit claims, representative checks, and an inspectable release decision.",
+    "homepage": "https://latent-llm-learning.cswansondeveloper.chatgpt.site/open-learning",
+    "id": "latent/reliable-llm-changes",
+    "language": "en-US",
+    "license": "CC-BY-4.0",
+    "publishedAt": "2026-07-23T12:00:00Z",
+    "title": "Make reliable changes to an LLM application",
+    "version": "1.0.0"
+  },
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "authors": [
+        "National Institute of Standards and Technology"
+      ],
+      "id": "nist-ai-rmf",
+      "kind": "specification",
+      "note": "The framework motivates documented measurement and management of risks across an AI system's lifecycle.",
+      "publishedYear": 2023,
+      "title": "NIST AI Risk Management Framework",
+      "url": "https://www.nist.gov/itl/ai-risk-management-framework"
+    },
+    {
+      "authors": [
+        "OpenAI"
+      ],
+      "id": "openai-evals",
+      "kind": "guide",
+      "note": "The guide explains task-specific evaluation design, representative test data, and continuous evaluation.",
+      "title": "OpenAI evaluation best practices",
+      "url": "https://platform.openai.com/docs/guides/evals"
+    },
+    {
+      "authors": [
+        "Anthropic"
+      ],
+      "id": "anthropic-agents",
+      "kind": "implementation",
+      "note": "The article emphasizes simple, inspectable patterns and careful measurement before adding system complexity.",
+      "publishedYear": 2024,
+      "title": "Building effective agents",
+      "url": "https://www.anthropic.com/engineering/building-effective-agents"
+    }
+  ]
+}

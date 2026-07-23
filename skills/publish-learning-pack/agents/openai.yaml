@@ -1,0 +1,4 @@
+interface:
+  display_name: "Publish Learning Pack"
+  short_description: "Validate, build, and publish a pack on any static host"
+  default_prompt: "Use $publish-learning-pack to validate and publish a Latent learning pack."

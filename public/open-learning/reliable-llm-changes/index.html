@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A compact lesson and review pack for turning a proposed LLM application change into explicit claims, representative checks, and an inspectable release decision.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'">
+  <title>Make reliable changes to an LLM application</title>
+  <link rel="stylesheet" href="./assets/player.css">
+</head>
+<body data-storage-key="latent.learning.v1:latent/reliable-llm-changes@1.0.0:7dba8a87e69ec66fc2fa777b62603492ca0521ccfa1a8285d0ef7e631c511ced">
+  <a class="skip-link" href="#content">Skip to learning content</a>
+  <header class="site-header">
+    <a class="wordmark" href="./" aria-label="Make reliable changes to an LLM application home"><i></i>latent open learning</a>
+    <span>Self-hosted · 1.0.0</span>
+  </header>
+  <div class="layout">
+    <aside class="sidebar">
+      <p class="eyebrow">Published by Latent Project Contributors</p>
+      <h2>Make reliable changes to an LLM application</h2>
+      <p>A compact lesson and review pack for turning a proposed LLM application change into explicit claims, representative checks, and an inspectable release decision.</p>
+      <nav aria-label="Learning pack contents">
+        <button type="button" data-open-view="lesson-claim-before-metric" aria-current="page"><small>12 min lesson</small><span>Write the claim before the metric</span></button><button type="button" data-open-view="lesson-evidence-before-release" aria-current="false"><small>15 min lesson</small><span>Build evidence that can say no</span></button><button type="button" data-open-view="deck-reliable-change-review" aria-current="false"><small>8 flash cards</small><span>Reliable change review</span></button>
+      </nav>
+      <footer>
+        <span>CC-BY-4.0</span>
+        <a href="./learning-pack.json">View source JSON</a>
+      </footer>
+    </aside>
+    <main id="content">
+    <section class="learning-view" id="lesson-claim-before-metric" data-view="lesson-claim-before-metric" >
+      <header class="view-header">
+        <span class="eyebrow">12 minute lesson</span>
+        <h1 tabindex="-1">Write the claim before the metric</h1>
+        <p>Begin with the behavior that must remain true, then select a check that could reveal a meaningful failure.</p>
+      </header>
+      <div class="lesson-body">
+        <p>An evaluation is useful when it can change a decision. Start by naming the behavior you expect, the situation in which it matters, and the evidence that would make you withhold a release. This keeps a convenient metric from quietly becoming the goal.</p><h2>Separate the claim from its proxy</h2><ol><li>Claim: the assistant keeps a user&#039;s stated constraint while revising a plan.</li><li>Failure condition: a revised plan drops or contradicts any explicit constraint.</li><li>Proxy: the share of representative revision cases in which every constraint is preserved.</li><li>Release rule: investigate every failed case and do not release if a critical constraint is lost.</li></ol><aside class="callout callout-warning"><strong>A score is not the behavior</strong><p>A high average can hide a severe failure in a small but important slice. Keep the individual cases available for inspection.</p></aside><form class="quiz" data-answer="constraint"><fieldset><legend>Which statement is the strongest release claim for a plan-revision assistant?</legend><label><input type="radio" name="claim-before-metric-claim-check" value="latency"> <span>Median response latency stays under two seconds.</span></label><label><input type="radio" name="claim-before-metric-claim-check" value="constraint"> <span>When asked to revise a plan, the assistant preserves every explicit user constraint in the representative test set.</span></label><label><input type="radio" name="claim-before-metric-claim-check" value="preference"> <span>Most reviewers say the new answers feel better.</span></label></fieldset><button type="submit">Check answer</button><p class="quiz-result" role="status" aria-live="polite"></p><p class="quiz-explanation" hidden>The constraint statement names the behavior, the situation, and observable evidence. Latency measures a different property, while an unstructured preference does not define the failure that matters.</p></form>
+      </div>
+      <section class="sources" aria-labelledby="claim-before-metric-sources">
+        <h2 id="claim-before-metric-sources">Sources used here</h2>
+        <ul><li><a href="https://www.nist.gov/itl/ai-risk-management-framework" rel="noreferrer" target="_blank">NIST AI Risk Management Framework</a><span>The framework motivates documented measurement and management of risks across an AI system&#039;s lifecycle.</span></li><li><a href="https://platform.openai.com/docs/guides/evals" rel="noreferrer" target="_blank">OpenAI evaluation best practices</a><span>The guide explains task-specific evaluation design, representative test data, and continuous evaluation.</span></li></ul>
+      </section>
+      <button class="complete-button" type="button" data-complete="claim-before-metric">Mark lesson complete</button>
+    </section>
+
+    <section class="learning-view" id="lesson-evidence-before-release" data-view="lesson-evidence-before-release" hidden>
+      <header class="view-header">
+        <span class="eyebrow">15 minute lesson</span>
+        <h1 tabindex="-1">Build evidence that can say no</h1>
+        <p>Use representative cases, inspect failures, and record a decision that another person can reproduce.</p>
+      </header>
+      <div class="lesson-body">
+        <p>A useful test set represents how the feature will actually be used, including ordinary cases, boundary cases, and the failures that would carry the greatest cost. Keep the set small enough to inspect at first. Add cases when production evidence reveals a new failure mode.</p><h2>Read the shape of the failures</h2><ul><li>Check the aggregate result for broad regression.</li><li>Read every critical failure rather than treating it as a rounding error.</li><li>Compare important slices, such as short and long conversations or familiar and unfamiliar topics.</li><li>Record the tested version, the cases, the result, and the person or process that made the release decision.</li></ul><figure class="code-block"><figcaption>A small release record keeps the decision inspectable.</figcaption><pre><code data-language="json">{
+  &quot;change&quot;: &quot;preserve_constraints_v2&quot;,
+  &quot;cases&quot;: 24,
+  &quot;critical_failures&quot;: 0,
+  &quot;known_limits&quot;: [&quot;mixed-language constraints need more coverage&quot;],
+  &quot;decision&quot;: &quot;release to a small cohort&quot;
+}</code></pre></figure><aside class="callout callout-tip"><strong>Prefer evidence over machinery</strong><p>A simple test that catches the failure you care about is more valuable than a complicated evaluation system that produces a number nobody can interpret.</p></aside><form class="quiz" data-answer="withhold"><fieldset><legend>A new prompt improves the overall pass rate from 88% to 94%, but two high-cost safety cases now fail. What is the strongest next step?</legend><label><input type="radio" name="evidence-before-release-release-check" value="ship"> <span>Ship because the aggregate result improved.</span></label><label><input type="radio" name="evidence-before-release-release-check" value="average"> <span>Add more easy cases until the overall score is high enough.</span></label><label><input type="radio" name="evidence-before-release-release-check" value="withhold"> <span>Withhold the release, inspect the two regressions, and revise the change or the release scope.</span></label></fieldset><button type="submit">Check answer</button><p class="quiz-result" role="status" aria-live="polite"></p><p class="quiz-explanation" hidden>The aggregate improvement does not cancel a known critical regression. The release decision should reflect the severity and location of failures as well as the overall score.</p></form>
+      </div>
+      <section class="sources" aria-labelledby="evidence-before-release-sources">
+        <h2 id="evidence-before-release-sources">Sources used here</h2>
+        <ul><li><a href="https://www.nist.gov/itl/ai-risk-management-framework" rel="noreferrer" target="_blank">NIST AI Risk Management Framework</a><span>The framework motivates documented measurement and management of risks across an AI system&#039;s lifecycle.</span></li><li><a href="https://platform.openai.com/docs/guides/evals" rel="noreferrer" target="_blank">OpenAI evaluation best practices</a><span>The guide explains task-specific evaluation design, representative test data, and continuous evaluation.</span></li><li><a href="https://www.anthropic.com/engineering/building-effective-agents" rel="noreferrer" target="_blank">Building effective agents</a><span>The article emphasizes simple, inspectable patterns and careful measurement before adding system complexity.</span></li></ul>
+      </section>
+      <button class="complete-button" type="button" data-complete="evidence-before-release">Mark lesson complete</button>
+    </section>
+
+    <section class="learning-view" id="deck-reliable-change-review" data-view="deck-reliable-change-review" hidden>
+      <header class="view-header">
+        <span class="eyebrow">8 flash cards</span>
+        <h1 tabindex="-1">Reliable change review</h1>
+        <p>Recall the decisions that connect an LLM application change to evidence and a bounded release.</p>
+      </header>
+      <div class="deck-status" role="status" aria-live="polite"></div>
+      <ol class="cards">
+
+          <li class="card" data-card="observable-claim">
+            <span class="card-count">Card 1 of 8</span>
+            <button class="card-face" type="button" aria-expanded="false">
+              <span class="card-prompt">What makes a release claim observable?</span>
+              <span class="card-answer" hidden><strong>It names the expected behavior, the situation in which it matters, and evidence that would count as failure.</strong><small>An observable claim can be challenged by a concrete case instead of defended through a vague impression.</small></span>
+              <em>Reveal answer</em>
+            </button>
+            <div class="card-actions" hidden>
+              <button type="button" data-rating="review">Needs review</button>
+              <button type="button" data-rating="know">Know it</button>
+            </div>
+          </li>
+
+          <li class="card" data-card="metric-proxy">
+            <span class="card-count">Card 2 of 8</span>
+            <button class="card-face" type="button" aria-expanded="false">
+              <span class="card-prompt">Why is an evaluation metric a proxy rather than the goal?</span>
+              <span class="card-answer" hidden><strong>The metric samples evidence about a desired behavior; it is not the behavior itself.</strong><small>Keeping this distinction visible prevents teams from optimizing a score while missing important real failures.</small></span>
+              <em>Reveal answer</em>
+            </button>
+            <div class="card-actions" hidden>
+              <button type="button" data-rating="review">Needs review</button>
+              <button type="button" data-rating="know">Know it</button>
+            </div>
+          </li>
+
+          <li class="card" data-card="representative-set">
+            <span class="card-count">Card 3 of 8</span>
+            <button class="card-face" type="button" aria-expanded="false">
+              <span class="card-prompt">What three kinds of cases belong in a first representative test set?</span>
+              <span class="card-answer" hidden><strong>Ordinary cases, boundary cases, and high-cost failure cases.</strong><small>Together they test common behavior, limits, and the failures that matter most to the release decision.</small></span>
+              <em>Reveal answer</em>
+            </button>
+            <div class="card-actions" hidden>
+              <button type="button" data-rating="review">Needs review</button>
+              <button type="button" data-rating="know">Know it</button>
+            </div>
+          </li>
+
+          <li class="card" data-card="critical-failure">
+            <span class="card-count">Card 4 of 8</span>
+            <button class="card-face" type="button" aria-expanded="false">
+              <span class="card-prompt">How should a critical failure affect an improved aggregate score?</span>
+              <span class="card-answer" hidden><strong>It should be inspected and resolved or explicitly bounded before release; it must not disappear into the average.</strong><small>Severity and affected slice are part of the evidence, so an average alone cannot determine readiness.</small></span>
+              <em>Reveal answer</em>
+            </button>
+            <div class="card-actions" hidden>
+              <button type="button" data-rating="review">Needs review</button>
+              <button type="button" data-rating="know">Know it</button>
+            </div>
+          </li>
+
+          <li class="card" data-card="slice-reading">
+            <span class="card-count">Card 5 of 8</span>
+            <button class="card-face" type="button" aria-expanded="false">
+              <span class="card-prompt">Why compare evaluation slices?</span>
+              <span class="card-answer" hidden><strong>A stable average can hide regressions concentrated in a particular task, user situation, or input shape.</strong><small>Slices help locate where a change works and where its release scope should remain limited.</small></span>
+              <em>Reveal answer</em>
+            </button>
+            <div class="card-actions" hidden>
+              <button type="button" data-rating="review">Needs review</button>
+              <button type="button" data-rating="know">Know it</button>
+            </div>
+          </li>
+
+          <li class="card" data-card="release-record">
+            <span class="card-count">Card 6 of 8</span>
+            <button class="card-face" type="button" aria-expanded="false">
+              <span class="card-prompt">What belongs in a minimal release record?</span>
+              <span class="card-answer" hidden><strong>The exact change, tested cases, results, known limits, and the release decision.</strong><small>Those fields let another person understand what evidence supported the decision and what remains uncertain.</small></span>
+              <em>Reveal answer</em>
+            </button>
+            <div class="card-actions" hidden>
+              <button type="button" data-rating="review">Needs review</button>
+              <button type="button" data-rating="know">Know it</button>
+            </div>
+          </li>
+
+          <li class="card" data-card="complexity-test">
+            <span class="card-count">Card 7 of 8</span>
+            <button class="card-face" type="button" aria-expanded="false">
+              <span class="card-prompt">When should you add more evaluation machinery?</span>
+              <span class="card-answer" hidden><strong>When it catches or explains a meaningful failure that the simpler workflow cannot.</strong><small>Complexity is justified by better decisions, not by the appearance of rigor.</small></span>
+              <em>Reveal answer</em>
+            </button>
+            <div class="card-actions" hidden>
+              <button type="button" data-rating="review">Needs review</button>
+              <button type="button" data-rating="know">Know it</button>
+            </div>
+          </li>
+
+          <li class="card" data-card="continuous-evaluation">
+            <span class="card-count">Card 8 of 8</span>
+            <button class="card-face" type="button" aria-expanded="false">
+              <span class="card-prompt">Why add production failures back into the test set?</span>
+              <span class="card-answer" hidden><strong>They turn an observed blind spot into a durable regression check for later changes.</strong><small>The test set becomes more representative as real evidence reveals new failure modes.</small></span>
+              <em>Reveal answer</em>
+            </button>
+            <div class="card-actions" hidden>
+              <button type="button" data-rating="review">Needs review</button>
+              <button type="button" data-rating="know">Know it</button>
+            </div>
+          </li>
+
+      </ol>
+      <section class="sources" aria-labelledby="reliable-change-review-sources">
+        <h2 id="reliable-change-review-sources">Sources used here</h2>
+        <ul><li><a href="https://www.nist.gov/itl/ai-risk-management-framework" rel="noreferrer" target="_blank">NIST AI Risk Management Framework</a><span>The framework motivates documented measurement and management of risks across an AI system&#039;s lifecycle.</span></li><li><a href="https://platform.openai.com/docs/guides/evals" rel="noreferrer" target="_blank">OpenAI evaluation best practices</a><span>The guide explains task-specific evaluation design, representative test data, and continuous evaluation.</span></li><li><a href="https://www.anthropic.com/engineering/building-effective-agents" rel="noreferrer" target="_blank">Building effective agents</a><span>The article emphasizes simple, inspectable patterns and careful measurement before adding system complexity.</span></li></ul>
+      </section>
+    </section>
+  </main>
+  </div>
+  <script src="./assets/player.js" defer></script>
+</body>
+</html>

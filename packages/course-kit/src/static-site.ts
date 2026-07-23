@@ -1,0 +1,423 @@
+import {
+  canonicalLearningPackJson,
+  createLearningFeed,
+  type LearningBlock,
+  type LearningPack,
+  validateLearningPack,
+} from "./learning-pack.js";
+
+export const STANDALONE_PLAYER_VERSION = 1 as const;
+
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function renderBlock(block: LearningBlock, lessonId: string) {
+  if (block.type === "paragraph") return `<p>${escapeHtml(block.text)}</p>`;
+  if (block.type === "heading") {
+    const Tag = block.level === 2 ? "h2" : "h3";
+    return `<${Tag}>${escapeHtml(block.text)}</${Tag}>`;
+  }
+  if (block.type === "list") {
+    const Tag = block.style === "ordered" ? "ol" : "ul";
+    return `<${Tag}>${block.items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</${Tag}>`;
+  }
+  if (block.type === "callout") {
+    return `<aside class="callout callout-${block.tone}"><strong>${escapeHtml(block.title)}</strong><p>${escapeHtml(block.text)}</p></aside>`;
+  }
+  if (block.type === "code") {
+    return `<figure class="code-block">${block.caption ? `<figcaption>${escapeHtml(block.caption)}</figcaption>` : ""}<pre><code data-language="${escapeHtml(block.language)}">${escapeHtml(block.code)}</code></pre></figure>`;
+  }
+  const fieldName = `${lessonId}-${block.id}`;
+  return [
+    `<form class="quiz" data-answer="${escapeHtml(block.correctChoiceId)}">`,
+    `<fieldset><legend>${escapeHtml(block.prompt)}</legend>`,
+    block.choices.map((choice) => (
+      `<label><input type="radio" name="${escapeHtml(fieldName)}" value="${escapeHtml(choice.id)}"> <span>${escapeHtml(choice.text)}</span></label>`
+    )).join(""),
+    `</fieldset>`,
+    `<button type="submit">Check answer</button>`,
+    `<p class="quiz-result" role="status" aria-live="polite"></p>`,
+    `<p class="quiz-explanation" hidden>${escapeHtml(block.explanation)}</p>`,
+    `</form>`,
+  ].join("");
+}
+
+function sourceLinks(pack: LearningPack, sourceIds: readonly string[]) {
+  const sourceById = new Map(pack.sources.map((source) => [source.id, source]));
+  return [...new Set(sourceIds)]
+    .map((id) => sourceById.get(id))
+    .filter((source) => source !== undefined)
+    .map((source) => `<li><a href="${escapeHtml(source.url)}" rel="noreferrer" target="_blank">${escapeHtml(source.title)}</a><span>${escapeHtml(source.note)}</span></li>`)
+    .join("");
+}
+
+function renderIndex(pack: LearningPack, sha256: string) {
+  const lessons = [...pack.lessons].sort((left, right) => left.order - right.order);
+  const decks = [...pack.flashcardDecks].sort((left, right) => left.order - right.order);
+  const firstView = lessons[0] ? `lesson-${lessons[0].id}` : `deck-${decks[0]?.id ?? ""}`;
+  const storageKey = `latent.learning.v1:${pack.package.id}@${pack.package.version}:${sha256}`;
+  const navigation = [
+    ...lessons.map((lesson) => ({
+      id: `lesson-${lesson.id}`,
+      eyebrow: `${lesson.durationMinutes} min lesson`,
+      title: lesson.title,
+    })),
+    ...decks.map((deck) => ({
+      id: `deck-${deck.id}`,
+      eyebrow: `${deck.cards.length} flash cards`,
+      title: deck.title,
+    })),
+  ];
+
+  const lessonSections = lessons.map((lesson) => `
+    <section class="learning-view" id="lesson-${escapeHtml(lesson.id)}" data-view="lesson-${escapeHtml(lesson.id)}" ${`lesson-${lesson.id}` === firstView ? "" : "hidden"}>
+      <header class="view-header">
+        <span class="eyebrow">${lesson.durationMinutes} minute lesson</span>
+        <h1 tabindex="-1">${escapeHtml(lesson.title)}</h1>
+        <p>${escapeHtml(lesson.summary)}</p>
+      </header>
+      <div class="lesson-body">
+        ${lesson.blocks.map((block) => renderBlock(block, lesson.id)).join("")}
+      </div>
+      <section class="sources" aria-labelledby="${escapeHtml(lesson.id)}-sources">
+        <h2 id="${escapeHtml(lesson.id)}-sources">Sources used here</h2>
+        <ul>${sourceLinks(pack, [
+          ...lesson.sourceIds,
+          ...lesson.blocks.flatMap((block) => block.type === "quiz" ? block.sourceIds : []),
+        ])}</ul>
+      </section>
+      <button class="complete-button" type="button" data-complete="${escapeHtml(lesson.id)}">Mark lesson complete</button>
+    </section>
+  `).join("");
+
+  const deckSections = decks.map((deck) => `
+    <section class="learning-view" id="deck-${escapeHtml(deck.id)}" data-view="deck-${escapeHtml(deck.id)}" ${`deck-${deck.id}` === firstView ? "" : "hidden"}>
+      <header class="view-header">
+        <span class="eyebrow">${deck.cards.length} flash cards</span>
+        <h1 tabindex="-1">${escapeHtml(deck.title)}</h1>
+        <p>${escapeHtml(deck.description)}</p>
+      </header>
+      <div class="deck-status" role="status" aria-live="polite"></div>
+      <ol class="cards">
+        ${deck.cards.map((card, index) => `
+          <li class="card" data-card="${escapeHtml(card.id)}">
+            <span class="card-count">Card ${index + 1} of ${deck.cards.length}</span>
+            <button class="card-face" type="button" aria-expanded="false">
+              <span class="card-prompt">${escapeHtml(card.front)}</span>
+              <span class="card-answer" hidden><strong>${escapeHtml(card.back)}</strong><small>${escapeHtml(card.explanation)}</small></span>
+              <em>Reveal answer</em>
+            </button>
+            <div class="card-actions" hidden>
+              <button type="button" data-rating="review">Needs review</button>
+              <button type="button" data-rating="know">Know it</button>
+            </div>
+          </li>
+        `).join("")}
+      </ol>
+      <section class="sources" aria-labelledby="${escapeHtml(deck.id)}-sources">
+        <h2 id="${escapeHtml(deck.id)}-sources">Sources used here</h2>
+        <ul>${sourceLinks(pack, [
+          ...deck.sourceIds,
+          ...deck.cards.flatMap((card) => card.sourceIds),
+        ])}</ul>
+      </section>
+    </section>
+  `).join("");
+
+  return `<!doctype html>
+<html lang="${escapeHtml(pack.package.language)}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="${escapeHtml(pack.package.description)}">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'">
+  <title>${escapeHtml(pack.package.title)}</title>
+  <link rel="stylesheet" href="./assets/player.css">
+</head>
+<body data-storage-key="${escapeHtml(storageKey)}">
+  <a class="skip-link" href="#content">Skip to learning content</a>
+  <header class="site-header">
+    <a class="wordmark" href="./" aria-label="${escapeHtml(pack.package.title)} home"><i></i>latent open learning</a>
+    <span>Self-hosted · ${escapeHtml(pack.package.version)}</span>
+  </header>
+  <div class="layout">
+    <aside class="sidebar">
+      <p class="eyebrow">Published by ${escapeHtml(pack.package.authors[0]?.name ?? "Independent publisher")}</p>
+      <h2>${escapeHtml(pack.package.title)}</h2>
+      <p>${escapeHtml(pack.package.description)}</p>
+      <nav aria-label="Learning pack contents">
+        ${navigation.map((entry) => `<button type="button" data-open-view="${escapeHtml(entry.id)}" aria-current="${entry.id === firstView ? "page" : "false"}"><small>${escapeHtml(entry.eyebrow)}</small><span>${escapeHtml(entry.title)}</span></button>`).join("")}
+      </nav>
+      <footer>
+        <span>${escapeHtml(pack.package.license)}</span>
+        <a href="./learning-pack.json">View source JSON</a>
+      </footer>
+    </aside>
+    <main id="content">${lessonSections}${deckSections}</main>
+  </div>
+  <script src="./assets/player.js" defer></script>
+</body>
+</html>
+`;
+}
+
+export const standalonePlayerJavaScript = `(() => {
+  "use strict";
+  const storageKey = document.body.dataset.storageKey;
+  const blankState = { completedLessons: [], cards: {} };
+  const readState = () => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(storageKey) || "null");
+      if (!stored || !Array.isArray(stored.completedLessons) || !stored.cards || typeof stored.cards !== "object" || Array.isArray(stored.cards)) return structuredClone(blankState);
+      return stored;
+    } catch {
+      return structuredClone(blankState);
+    }
+  };
+  let state = readState();
+  const save = () => {
+    try { localStorage.setItem(storageKey, JSON.stringify(state)); } catch {}
+  };
+  const updateCompleteButtons = () => {
+    document.querySelectorAll("[data-complete]").forEach((button) => {
+      const complete = state.completedLessons.includes(button.dataset.complete);
+      button.textContent = complete ? "Lesson complete" : "Mark lesson complete";
+      button.setAttribute("aria-pressed", String(complete));
+    });
+  };
+  const updateDeckStatus = () => {
+    document.querySelectorAll("[data-view^='deck-']").forEach((deck) => {
+      const cards = Array.from(deck.querySelectorAll("[data-card]"));
+      const known = cards.filter((card) => state.cards[card.dataset.card] === "know").length;
+      const status = deck.querySelector(".deck-status");
+      if (status) status.textContent = known + " of " + cards.length + " marked as known on this device.";
+      deck.querySelectorAll("[data-rating]").forEach((button) => {
+        const card = button.closest("[data-card]");
+        button.setAttribute("aria-pressed", String(state.cards[card.dataset.card] === button.dataset.rating));
+      });
+    });
+  };
+  document.querySelectorAll("[data-open-view]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const view = button.dataset.openView;
+      document.querySelectorAll("[data-view]").forEach((section) => { section.hidden = section.dataset.view !== view; });
+      document.querySelectorAll("[data-open-view]").forEach((entry) => entry.setAttribute("aria-current", entry === button ? "page" : "false"));
+      const target = document.getElementById(view);
+      if (target) {
+        history.replaceState(null, "", "#" + view);
+        target.querySelector("h1")?.focus({ preventScroll: true });
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    });
+  });
+  document.querySelectorAll(".quiz").forEach((quiz) => {
+    quiz.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const selected = quiz.querySelector("input:checked");
+      const result = quiz.querySelector(".quiz-result");
+      const explanation = quiz.querySelector(".quiz-explanation");
+      if (!selected) {
+        result.textContent = "Choose an answer first.";
+        return;
+      }
+      const correct = selected.value === quiz.dataset.answer;
+      result.textContent = correct ? "Correct." : "Not yet. Read the explanation and try again.";
+      result.className = "quiz-result " + (correct ? "correct" : "incorrect");
+      explanation.hidden = false;
+    });
+    quiz.querySelectorAll("input[type='radio']").forEach((input) => {
+      input.addEventListener("change", () => {
+        quiz.querySelector(".quiz-result").textContent = "";
+        quiz.querySelector(".quiz-explanation").hidden = true;
+      });
+    });
+  });
+  document.querySelectorAll(".card-face").forEach((button) => {
+    button.addEventListener("click", () => {
+      const expanded = button.getAttribute("aria-expanded") === "true";
+      const answer = button.querySelector(".card-answer");
+      const label = button.querySelector("em");
+      const actions = button.parentElement.querySelector(".card-actions");
+      button.setAttribute("aria-expanded", String(!expanded));
+      answer.hidden = expanded;
+      actions.hidden = expanded;
+      label.textContent = expanded ? "Reveal answer" : "Hide answer";
+    });
+  });
+  document.querySelectorAll("[data-rating]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const card = button.closest("[data-card]");
+      state.cards[card.dataset.card] = button.dataset.rating;
+      save();
+      updateDeckStatus();
+    });
+  });
+  document.querySelectorAll("[data-complete]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const id = button.dataset.complete;
+      state.completedLessons = state.completedLessons.includes(id)
+        ? state.completedLessons.filter((entry) => entry !== id)
+        : [...state.completedLessons, id];
+      save();
+      updateCompleteButtons();
+    });
+  });
+  const initial = location.hash.slice(1);
+  if (initial) document.querySelector('[data-open-view="' + CSS.escape(initial) + '"]')?.click();
+  updateCompleteButtons();
+  updateDeckStatus();
+})();\n`;
+
+export const standalonePlayerCss = `:root {
+  color-scheme: light;
+  --paper: #f4f0e8;
+  --bright: #fffdf8;
+  --ink: #282322;
+  --muted: #665e59;
+  --line: rgba(73,55,66,.16);
+  --violet: #695a78;
+  --wash: rgba(204,188,204,.24);
+  --green: #486750;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html { background: var(--paper); color: var(--ink); }
+body { margin: 0; min-height: 100vh; }
+button, input { font: inherit; }
+button, a { -webkit-tap-highlight-color: transparent; }
+a { color: inherit; }
+.skip-link { background: var(--ink); color: white; left: 1rem; padding: .75rem 1rem; position: fixed; top: -5rem; z-index: 10; }
+.skip-link:focus { top: 1rem; }
+.site-header { align-items: center; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; min-height: 4.5rem; padding: 0 clamp(1.25rem,4vw,4rem); }
+.site-header span { color: var(--muted); font-size: .75rem; }
+.wordmark { align-items: center; display: flex; font-size: .78rem; font-weight: 650; gap: .7rem; letter-spacing: .08em; text-decoration: none; text-transform: uppercase; }
+.wordmark i { background: var(--violet); border-radius: 50%; height: .7rem; width: .7rem; }
+.layout { display: grid; grid-template-columns: minmax(17rem, 24rem) minmax(0, 1fr); margin: 0 auto; max-width: 1200px; min-height: calc(100vh - 4.5rem); }
+.sidebar { border-right: 1px solid var(--line); padding: clamp(2rem,5vw,4.5rem) clamp(1.25rem,3vw,2.5rem); }
+.eyebrow { color: var(--violet); font-size: .7rem; font-weight: 650; letter-spacing: .09em; text-transform: uppercase; }
+.sidebar h2 { font-family: Georgia,serif; font-size: clamp(1.8rem,3vw,2.5rem); font-weight: 400; letter-spacing: -.04em; line-height: 1.05; margin: .8rem 0 1rem; }
+.sidebar > p:not(.eyebrow), .view-header p { color: var(--muted); line-height: 1.65; }
+.sidebar nav { border-top: 1px solid var(--line); margin-top: 2.5rem; }
+.sidebar nav button { background: transparent; border: 0; border-bottom: 1px solid var(--line); color: var(--muted); cursor: pointer; display: grid; gap: .25rem; padding: 1rem 0; text-align: left; width: 100%; }
+.sidebar nav button[aria-current="page"] { color: var(--ink); }
+.sidebar nav button[aria-current="page"] span::after { color: var(--violet); content: " →"; }
+.sidebar nav small { font-size: .68rem; text-transform: uppercase; }
+.sidebar footer { color: var(--muted); display: flex; flex-wrap: wrap; font-size: .7rem; gap: .75rem; justify-content: space-between; margin-top: 2rem; }
+main { padding: clamp(2.5rem,7vw,6.5rem) clamp(1.25rem,7vw,6rem); }
+.learning-view { margin: 0 auto; max-width: 760px; }
+.view-header { border-bottom: 1px solid var(--line); padding-bottom: 2rem; }
+.view-header h1 { font-family: Georgia,serif; font-size: clamp(2.6rem,6vw,4.8rem); font-weight: 400; letter-spacing: -.06em; line-height: .98; margin: .75rem 0 1.2rem; }
+.view-header p { font-family: Georgia,serif; font-size: 1.2rem; margin: 0; }
+.lesson-body { padding: 2rem 0; }
+.lesson-body > p, .lesson-body li { font-family: Georgia,serif; font-size: 1.08rem; line-height: 1.75; }
+.lesson-body h2, .lesson-body h3, .sources h2 { font-family: Georgia,serif; font-weight: 400; letter-spacing: -.03em; margin-top: 2.5rem; }
+.callout { background: var(--wash); border-left: 3px solid var(--violet); margin: 2rem 0; padding: 1.25rem 1.4rem; }
+.callout p { line-height: 1.6; margin-bottom: 0; }
+.code-block { margin: 2rem 0; }
+.code-block figcaption { color: var(--muted); font-size: .75rem; margin-bottom: .5rem; }
+pre { background: #211f22; border-radius: .35rem; color: #f8f3ed; overflow-x: auto; padding: 1.25rem; }
+code { font-family: ui-monospace,SFMono-Regular,monospace; font-size: .86rem; line-height: 1.6; }
+.quiz { border-bottom: 1px solid var(--line); border-top: 1px solid var(--line); margin: 2.5rem 0; padding: 1.5rem 0; }
+.quiz fieldset { border: 0; display: grid; gap: .75rem; margin: 0; padding: 0; }
+.quiz legend { font-family: Georgia,serif; font-size: 1.25rem; margin-bottom: 1rem; }
+.quiz label { align-items: start; background: rgba(255,255,255,.35); border: 1px solid var(--line); cursor: pointer; display: flex; gap: .75rem; padding: .9rem; }
+.quiz button, .complete-button, .card-actions button { background: var(--ink); border: 1px solid var(--ink); color: white; cursor: pointer; margin-top: 1rem; min-height: 2.75rem; padding: .65rem 1rem; }
+.quiz-result { font-weight: 650; }
+.quiz-result.correct { color: var(--green); }
+.quiz-explanation { color: var(--muted); line-height: 1.6; }
+.sources { border-top: 1px solid var(--line); margin-top: 3rem; padding-top: 1rem; }
+.sources h2 { font-size: 1.35rem; margin-top: 0; }
+.sources ul { list-style: none; padding: 0; }
+.sources li { display: grid; gap: .3rem; padding: .7rem 0; }
+.sources li span { color: var(--muted); font-size: .75rem; line-height: 1.5; }
+.cards { display: grid; gap: 1rem; list-style: none; padding: 1.5rem 0; }
+.card { border: 1px solid var(--line); padding: 1rem; }
+.card-count, .deck-status { color: var(--muted); font-size: .72rem; }
+.deck-status { margin-top: 1.5rem; }
+.card-face { background: var(--bright); border: 0; cursor: pointer; display: grid; gap: 1rem; margin-top: .6rem; min-height: 12rem; padding: 1.5rem; text-align: left; width: 100%; }
+.card-prompt, .card-answer strong { font-family: Georgia,serif; font-size: 1.35rem; font-weight: 400; line-height: 1.35; }
+.card-answer { display: grid; gap: .7rem; }
+.card-answer small { color: var(--muted); line-height: 1.5; }
+.card-face em { align-self: end; color: var(--violet); font-size: .72rem; font-style: normal; }
+.card-actions { display: flex; gap: .5rem; }
+.card-actions button:first-child { background: transparent; color: var(--ink); }
+:focus-visible { outline: 3px solid var(--violet); outline-offset: 3px; }
+[hidden] { display: none !important; }
+@media (max-width: 760px) {
+  .site-header { align-items: flex-start; flex-direction: column; gap: .3rem; justify-content: center; }
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { border-bottom: 1px solid var(--line); border-right: 0; padding-bottom: 1.5rem; }
+  .sidebar nav { display: flex; gap: .5rem; overflow-x: auto; }
+  .sidebar nav button { border: 1px solid var(--line); flex: 0 0 12rem; padding: .75rem; }
+  main { padding-top: 3rem; }
+}\n`;
+
+export type StandaloneSiteFiles = Record<string, string>;
+
+async function sha256Hex(bytes: Uint8Array) {
+  const cryptoApi = (globalThis as unknown as {
+    crypto?: {
+      subtle?: {
+        digest(algorithm: string, data: Uint8Array): Promise<ArrayBuffer>;
+      };
+    };
+  }).crypto;
+  if (!cryptoApi?.subtle) {
+    throw new Error("This runtime does not provide Web Crypto SHA-256 support.");
+  }
+  const digest = await cryptoApi.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest))
+    .map((value) => value.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+export async function buildStandaloneLearningSite(
+  input: LearningPack,
+  options: {
+    packageUrl?: string;
+    siteUrl?: string;
+  } = {},
+): Promise<StandaloneSiteFiles> {
+  const validation = validateLearningPack(input);
+  if (!validation.valid) {
+    throw new Error(`Cannot build an invalid learning pack: ${validation.errors[0]?.message ?? "unknown error"}`);
+  }
+  const pack = validation.pack;
+  const packageJson = canonicalLearningPackJson(pack);
+  const packageBytes = new TextEncoder().encode(packageJson);
+  const sha256 = await sha256Hex(packageBytes);
+  const feed = createLearningFeed(pack, sha256, {
+    bytes: packageBytes.byteLength,
+    packageUrl: options.packageUrl,
+    siteUrl: options.siteUrl,
+  });
+  const files: StandaloneSiteFiles = {
+    ".latent-build": `${LEARNING_BUILD_MARKER}\n`,
+    "index.html": renderIndex(pack, sha256).replace(/[ \t]+$/gm, ""),
+    "learning-pack.json": packageJson,
+    "learning-feed.json": `${JSON.stringify(feed, null, 2)}\n`,
+    "assets/player.js": standalonePlayerJavaScript,
+    "assets/player.css": standalonePlayerCss,
+    "_headers": `/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: no-referrer\n  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()\n  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'\n\n/learning-feed.json\n  Access-Control-Allow-Origin: *\n  Cache-Control: no-cache\n\n/learning-pack.json\n  Access-Control-Allow-Origin: *\n  Cache-Control: no-cache\n`,
+    "README.txt": `This is a Latent Open Learning static site.\n\nPublish this entire directory on any static web host. Share learning-feed.json with learners who want to verify or install the pack. Progress stays in each learner's browser and is namespaced to ${pack.package.id}@${pack.package.version}.\n`,
+  };
+  files["build-report.json"] = `${JSON.stringify({
+    format: "latent-learning-build-report",
+    schemaVersion: 1,
+    playerVersion: STANDALONE_PLAYER_VERSION,
+    packageId: pack.package.id,
+    version: pack.package.version,
+    sha256,
+    packageBytes: packageBytes.byteLength,
+    files: [...Object.keys(files), "build-report.json"].sort(),
+  }, null, 2)}\n`;
+  return files;
+}
+
+export const LEARNING_BUILD_MARKER = "latent-open-learning-static-build-v1";

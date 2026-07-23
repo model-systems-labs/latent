@@ -1,0 +1,22 @@
+{
+  "format": "latent-learning-feed",
+  "schemaVersion": 1,
+  "publisher": {
+    "id": "latent",
+    "name": "Latent Project Contributors",
+    "url": "https://latent-llm-learning.cswansondeveloper.chatgpt.site"
+  },
+  "packages": [
+    {
+      "packageId": "latent/reliable-llm-changes",
+      "version": "1.0.0",
+      "title": "Make reliable changes to an LLM application",
+      "description": "A compact lesson and review pack for turning a proposed LLM application change into explicit claims, representative checks, and an inspectable release decision.",
+      "packageUrl": "./learning-pack.json",
+      "siteUrl": "./",
+      "sha256": "7dba8a87e69ec66fc2fa777b62603492ca0521ccfa1a8285d0ef7e631c511ced",
+      "bytes": 13981,
+      "publishedAt": "2026-07-23T12:00:00Z"
+    }
+  ]
+}

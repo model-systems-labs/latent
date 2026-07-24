@@ -117,11 +117,11 @@ The immutable version 1 schema identifiers are:
 - [`learning-pack.schema.json`](https://model-systems-labs.github.io/latent/open-learning/v1/learning-pack.schema.json)
 - [`learning-feed.schema.json`](https://model-systems-labs.github.io/latent/open-learning/v1/learning-feed.schema.json)
 
-Repository convenience copies live at
-[`docs/learning-pack.schema.json`](./learning-pack.schema.json) and
-[`docs/learning-feed.schema.json`](./learning-feed.schema.json). A complete
+Packaged convenience copies live at
+[`schema/learning-pack.schema.json`](../schema/learning-pack.schema.json) and
+[`schema/learning-feed.schema.json`](../schema/learning-feed.schema.json). A complete
 example lives at
-[`examples/open-learning/reliable-llm-changes/learning-pack.json`](./reliable-llm-changes/learning-pack.json).
+[`examples/open-learning/reliable-llm-changes/learning-pack.json`](https://github.com/model-systems-labs/latent/blob/main/examples/open-learning/reliable-llm-changes/learning-pack.json).
 Once published, files under `/open-learning/v1/` are immutable. A future
 incompatible schema receives a new versioned path rather than replacing these
 bytes.

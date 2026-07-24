@@ -683,7 +683,7 @@
     "flashcardDecks"
   ],
   "additionalProperties": false,
-  "$id": "https://latent-llm-learning.cswansondeveloper.chatgpt.site/open-learning/learning-pack.schema.json",
+  "$id": "https://model-systems-labs.github.io/latent/open-learning/v1/learning-pack.schema.json",
   "title": "Latent Learning Pack v1",
   "description": "Portable, declarative lessons and flash cards that can be authored by people or arbitrary LLMs and hosted on any static site."
 }

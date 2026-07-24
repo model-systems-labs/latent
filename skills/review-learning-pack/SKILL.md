@@ -22,12 +22,16 @@ Do not rely on the authoring agent's summary. Read the package and its cited sou
 ### 1. Run the automated gate
 
 ```bash
-npm run build --workspace @latent/course-kit
-node packages/course-kit/bin/latent-learning.mjs validate \
+npm exec --yes --package @latent/course-kit@0.1.0 -- \
+  latent-learning validate \
   <path>/learning-pack.json \
   --strict \
   --json
 ```
+
+When intentionally reviewing from the Latent monorepo, build the workspace and
+use `node packages/course-kit/bin/latent-learning.mjs` as the equivalent local
+fallback.
 
 Record the complete structured result. Schema errors and strict warnings block publication, but a clean result does not prove accuracy or teaching quality.
 
@@ -79,12 +83,14 @@ Review any high-stakes domain claim under an appropriately strict expert standar
 Build twice into separate empty temporary directories:
 
 ```bash
-node packages/course-kit/bin/latent-learning.mjs build \
+npm exec --yes --package @latent/course-kit@0.1.0 -- \
+  latent-learning build \
   <path>/learning-pack.json \
   --out-dir <first-directory> \
   --json
 
-node packages/course-kit/bin/latent-learning.mjs build \
+npm exec --yes --package @latent/course-kit@0.1.0 -- \
+  latent-learning build \
   <path>/learning-pack.json \
   --out-dir <second-directory> \
   --json
@@ -95,7 +101,8 @@ diff -r <first-directory> <second-directory>
 If reviewing a deployment, run:
 
 ```bash
-node packages/course-kit/bin/latent-learning.mjs verify-url \
+npm exec --yes --package @latent/course-kit@0.1.0 -- \
+  latent-learning verify-url \
   <https-feed-url> \
   --json
 ```

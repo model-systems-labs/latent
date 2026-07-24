@@ -1,0 +1,81 @@
+name: Bug report
+description: Report reproducible behavior that differs from the documented contract.
+title: "bug: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Latent. Do not include credentials, private learner data, or unpublished course material. Report security issues through the private link under **Security** below.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Course Kit CLI
+        - Learning Pack or feed format
+        - Static learning site
+        - Browser authoring studio
+        - Hosted-feed reader
+        - First-party course
+        - Learner persistence
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: Package version, release tag, or commit SHA where you observed the problem.
+      placeholder: "@latent/course-kit 0.1.0 or commit abc1234"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Provide the smallest safe example and exact commands or interactions.
+      placeholder: |
+        1. Run ...
+        2. Open ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What documented behavior did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include the complete error text after removing secrets and personal data.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system, Node version, browser, hosting provider, and relevant assistive technology.
+      placeholder: macOS 15, Node 22.13.0, Firefox 140
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Add links, screenshots, or a minimal public repository if useful.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Submission checks
+      options:
+        - label: I searched existing issues and pull requests.
+          required: true
+        - label: This report contains no secrets, private learner data, or unlicensed content.
+          required: true
+        - label: This is not a security vulnerability.
+          required: true

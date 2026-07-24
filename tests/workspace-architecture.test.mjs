@@ -25,11 +25,71 @@ test("the root application orchestrates eight explicit workspace packages", asyn
   assert.deepEqual(packageDirectories, ["artifact-runtime", "browser-lab", "course-kit", "mock-services", "model-lab", "python-lab", "tensor", "training-replay"]);
   for (const directory of packageDirectories) {
     const packageManifest = JSON.parse(await readFile(new URL(`../packages/${directory}/package.json`, import.meta.url), "utf8"));
-    assert.equal(packageManifest.private, true);
+    if (directory === "course-kit") {
+      assert.notEqual(packageManifest.private, true);
+    } else {
+      assert.equal(packageManifest.private, true);
+    }
     assert.match(packageManifest.version, /^\d+\.\d+\.\d+$/);
     assert.ok(packageManifest.exports);
     assert.ok(packageManifest.scripts.test);
     assert.ok(packageManifest.scripts.typecheck);
+  }
+});
+
+test("Course Kit is independently licensed, packable, and guarded for public releases", async () => {
+  const [manifestSource, license, readme, ci, release] = await Promise.all([
+    readFile(new URL("../packages/course-kit/package.json", import.meta.url), "utf8"),
+    readFile(new URL("../packages/course-kit/LICENSE", import.meta.url), "utf8"),
+    readFile(new URL("../packages/course-kit/README.md", import.meta.url), "utf8"),
+    readFile(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8"),
+    readFile(new URL("../.github/workflows/release-course-kit.yml", import.meta.url), "utf8"),
+  ]);
+  const manifest = JSON.parse(manifestSource);
+  assert.equal(manifest.license, "Apache-2.0");
+  assert.equal(manifest.publishConfig.access, "public");
+  assert.equal(manifest.bin["latent-learning"], "bin/latent-learning.mjs");
+  assert.deepEqual(
+    ["LICENSE", "README.md", "bin", "dist", "docs", "schema"].filter((entry) => manifest.files.includes(entry)),
+    ["LICENSE", "README.md", "bin", "dist", "docs", "schema"],
+  );
+  assert.match(manifest.scripts.prepack, /clean.*build.*prepare:package.*test:built/);
+  assert.match(license, /Apache License[\s\S]*Version 2\.0/);
+  assert.match(readme, /npm exec --yes --package @latent\/course-kit@0\.1\.0 --/);
+  assert.match(ci, /permissions:\s*\n\s*contents: read/);
+  assert.doesNotMatch(ci, /uses: [^@\n]+@v\d/);
+  assert.match(ci, /npm run smoke:package --workspace @latent\/course-kit/);
+  assert.match(release, /course-kit-v\*/);
+  assert.match(release, /npm install --global npm@11\.5\.1/);
+  assert.doesNotMatch(release, /NPM_TOKEN/);
+  assert.doesNotMatch(release, /uses: [^@\n]+@v\d/);
+  assert.match(release, /release:check --workspace @latent\/course-kit/);
+  assert.match(release, /actions\/upload-artifact@[0-9a-f]{40} # v4/);
+  assert.match(release, /actions\/download-artifact@[0-9a-f]{40} # v4/);
+  assert.match(release, /npm publish course-kit-release\/\*\.tgz --access public --provenance/);
+  assert.match(release, /_schema-site\/open-learning\/v1/);
+  assert.match(release, /actions\/deploy-pages@[0-9a-f]{40} # v4/);
+});
+
+test("Course Kit schema ids use immutable versioned Pages paths with exact convenience copies", async () => {
+  for (const [name, expectedId] of [
+    [
+      "learning-pack.schema.json",
+      "https://model-systems-labs.github.io/latent/open-learning/v1/learning-pack.schema.json",
+    ],
+    [
+      "learning-feed.schema.json",
+      "https://model-systems-labs.github.io/latent/open-learning/v1/learning-feed.schema.json",
+    ],
+  ]) {
+    const copies = await Promise.all([
+      readFile(new URL(`../packages/course-kit/schema/${name}`, import.meta.url), "utf8"),
+      readFile(new URL(`../docs/${name}`, import.meta.url), "utf8"),
+      readFile(new URL(`../public/open-learning/${name}`, import.meta.url), "utf8"),
+      readFile(new URL(`../public/open-learning/v1/${name}`, import.meta.url), "utf8"),
+    ]);
+    assert.equal(new Set(copies).size, 1, `${name} copies must be byte-identical`);
+    assert.equal(JSON.parse(copies[0]).$id, expectedId);
   }
 });
 

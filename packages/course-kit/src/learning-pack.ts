@@ -322,7 +322,7 @@ export const learningFeedJsonSchema = {
     target: "draft-07",
     unrepresentable: "any",
   }),
-  $id: "https://latent-llm-learning.cswansondeveloper.chatgpt.site/open-learning/learning-feed.schema.json",
+  $id: "https://model-systems-labs.github.io/latent/open-learning/v1/learning-feed.schema.json",
   title: "Latent Learning Feed v1",
   description: "A publisher-controlled list of immutable Latent learning-pack versions with same-origin paths and SHA-256 integrity.",
 };
@@ -684,7 +684,7 @@ export const learningPackJsonSchema = {
     target: "draft-07",
     unrepresentable: "any",
   }),
-  $id: "https://latent-llm-learning.cswansondeveloper.chatgpt.site/open-learning/learning-pack.schema.json",
+  $id: "https://model-systems-labs.github.io/latent/open-learning/v1/learning-pack.schema.json",
   title: "Latent Learning Pack v1",
   description: "Portable, declarative lessons and flash cards that can be authored by people or arbitrary LLMs and hosted on any static site.",
 };

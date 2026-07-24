@@ -243,8 +243,14 @@ test("JSON parsing enforces the two-megabyte package limit", () => {
 test("the exported schema describes the public versioned format", () => {
   assert.equal(learningPackJsonSchema.$schema, "http://json-schema.org/draft-07/schema#");
   assert.ok(JSON.stringify(learningPackJsonSchema).includes("latent-learning-pack"));
-  assert.match(learningPackJsonSchema.$id, /chatgpt\.site\/open-learning\/learning-pack\.schema\.json$/);
+  assert.equal(
+    learningPackJsonSchema.$id,
+    "https://model-systems-labs.github.io/latent/open-learning/v1/learning-pack.schema.json",
+  );
   assert.equal(learningFeedJsonSchema.$schema, "http://json-schema.org/draft-07/schema#");
   assert.ok(JSON.stringify(learningFeedJsonSchema).includes("latent-learning-feed"));
-  assert.match(learningFeedJsonSchema.$id, /chatgpt\.site\/open-learning\/learning-feed\.schema\.json$/);
+  assert.equal(
+    learningFeedJsonSchema.$id,
+    "https://model-systems-labs.github.io/latent/open-learning/v1/learning-feed.schema.json",
+  );
 });

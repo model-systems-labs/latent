@@ -19,12 +19,11 @@ Version 1 intentionally does not execute community JavaScript, HTML, CSS, Python
 
 ## Quick start
 
-From this repository:
+Use the pinned public CLI from any directory:
 
 ```bash
-npm ci
-npm run build --workspace @latent/course-kit
-node packages/course-kit/bin/latent-learning.mjs init my-learning-pack
+npm exec --yes --package @latent/course-kit@0.1.0 -- \
+  latent-learning init my-learning-pack --json
 ```
 
 `init` deliberately writes an incomplete scaffold. Replace every example
@@ -32,21 +31,39 @@ identity, source, and content field in `my-learning-pack/learning-pack.json`;
 the release validator rejects the starter placeholders. Then run:
 
 ```bash
-node packages/course-kit/bin/latent-learning.mjs validate \
+npm exec --yes --package @latent/course-kit@0.1.0 -- \
+  latent-learning validate \
   my-learning-pack/learning-pack.json \
-  --strict
+  --strict \
+  --json
 
-node packages/course-kit/bin/latent-learning.mjs build \
+npm exec --yes --package @latent/course-kit@0.1.0 -- \
+  latent-learning build \
   my-learning-pack/learning-pack.json \
-  --out-dir my-learning-pack/site
+  --out-dir my-learning-pack/site \
+  --json
 
-node packages/course-kit/bin/latent-learning.mjs serve \
+npm exec --yes --package @latent/course-kit@0.1.0 -- \
+  latent-learning serve \
   my-learning-pack/site
 ```
 
 Open `http://127.0.0.1:4173`. The built directory is the deployable artifact.
 
 The browser workflow is simpler: open `/open-learning`, edit or import `learning-pack.json`, and choose **Download host-ready site**.
+
+When contributing inside the Latent monorepo, the equivalent fallback is:
+
+```bash
+npm ci
+npm run build --workspace @latent/course-kit
+node packages/course-kit/bin/latent-learning.mjs --help
+```
+
+Use the `node packages/course-kit/bin/latent-learning.mjs` form only from a
+checkout. Published automation should keep the explicit
+`@latent/course-kit@0.1.0` pin so a future CLI release cannot silently change a
+build.
 
 ## Generated directory
 
@@ -85,7 +102,8 @@ The standalone site does not need CORS. CORS is needed only when a reader on ano
 Verify a deployed feed:
 
 ```bash
-node packages/course-kit/bin/latent-learning.mjs verify-url \
+npm exec --yes --package @latent/course-kit@0.1.0 -- \
+  latent-learning verify-url \
   https://publisher.example/course/learning-feed.json \
   --json
 ```
@@ -94,7 +112,19 @@ Plain HTTP is accepted only for `localhost`, `127.0.0.1`, or `::1`.
 
 ## Authoring contract
 
-The authoritative machine-readable schemas are [`learning-pack.schema.json`](./learning-pack.schema.json) and [`learning-feed.schema.json`](./learning-feed.schema.json). A complete example lives at [`examples/open-learning/reliable-llm-changes/learning-pack.json`](../examples/open-learning/reliable-llm-changes/learning-pack.json).
+The immutable version 1 schema identifiers are:
+
+- [`learning-pack.schema.json`](https://model-systems-labs.github.io/latent/open-learning/v1/learning-pack.schema.json)
+- [`learning-feed.schema.json`](https://model-systems-labs.github.io/latent/open-learning/v1/learning-feed.schema.json)
+
+Repository convenience copies live at
+[`docs/learning-pack.schema.json`](./learning-pack.schema.json) and
+[`docs/learning-feed.schema.json`](./learning-feed.schema.json). A complete
+example lives at
+[`examples/open-learning/reliable-llm-changes/learning-pack.json`](../examples/open-learning/reliable-llm-changes/learning-pack.json).
+Once published, files under `/open-learning/v1/` are immutable. A future
+incompatible schema receives a new versioned path rather than replacing these
+bytes.
 
 Every package has:
 

@@ -33,12 +33,16 @@ Do not infer ownership of a hostname, bucket, repository, or site. Use only the 
 ### 2. Run the strict gate
 
 ```bash
-npm run build --workspace @latent/course-kit
-node packages/course-kit/bin/latent-learning.mjs validate \
+npm exec --yes --package @latent/course-kit@0.1.0 -- \
+  latent-learning validate \
   <path>/learning-pack.json \
   --strict \
   --json
 ```
+
+When intentionally publishing from the Latent monorepo, build the workspace and
+use `node packages/course-kit/bin/latent-learning.mjs` as the equivalent local
+fallback.
 
 Stop on any error or warning. A user may explicitly accept a quality warning, but document that exception in the release handoff.
 
@@ -47,7 +51,8 @@ An independent `$review-learning-pack` verdict is recommended for public or paid
 ### 3. Build into a dedicated directory
 
 ```bash
-node packages/course-kit/bin/latent-learning.mjs build \
+npm exec --yes --package @latent/course-kit@0.1.0 -- \
+  latent-learning build \
   <path>/learning-pack.json \
   --out-dir <dedicated-output-directory> \
   --json
@@ -64,7 +69,8 @@ complete trees:
 
 ```bash
 second_build="$(mktemp -d)"
-node packages/course-kit/bin/latent-learning.mjs build \
+npm exec --yes --package @latent/course-kit@0.1.0 -- \
+  latent-learning build \
   <path>/learning-pack.json \
   --out-dir "$second_build" \
   --json
@@ -77,7 +83,8 @@ temporary directory you created after recording the result.
 ### 4. Preview the exact build
 
 ```bash
-node packages/course-kit/bin/latent-learning.mjs serve \
+npm exec --yes --package @latent/course-kit@0.1.0 -- \
+  latent-learning serve \
   <dedicated-output-directory>
 ```
 
@@ -106,7 +113,8 @@ For cross-origin readers, configure `Access-Control-Allow-Origin` for the reader
 ### 6. Verify the deployed feed
 
 ```bash
-node packages/course-kit/bin/latent-learning.mjs verify-url \
+npm exec --yes --package @latent/course-kit@0.1.0 -- \
+  latent-learning verify-url \
   https://publisher.example/path/learning-feed.json \
   --json
 ```

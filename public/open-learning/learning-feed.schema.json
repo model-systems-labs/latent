@@ -119,7 +119,7 @@
     "packages"
   ],
   "additionalProperties": false,
-  "$id": "https://latent-llm-learning.cswansondeveloper.chatgpt.site/open-learning/learning-feed.schema.json",
+  "$id": "https://model-systems-labs.github.io/latent/open-learning/v1/learning-feed.schema.json",
   "title": "Latent Learning Feed v1",
   "description": "A publisher-controlled list of immutable Latent learning-pack versions with same-origin paths and SHA-256 integrity."
 }

@@ -1,0 +1,80 @@
+name: Feature or format proposal
+description: Propose an improvement to the framework, courses, interoperability, or hosted workflow.
+title: "proposal: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Strong proposals start with a concrete learner or publisher problem. A central service must remain optional for authoring, reading, export, and self-hosting.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Learning Pack or feed format
+        - Course Kit CLI or library
+        - Static learning site
+        - Browser authoring studio
+        - Hosted-feed reader
+        - Import or export interoperability
+        - First-party course
+        - Optional managed platform
+        - Documentation or contributor experience
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Who encounters the problem, and what are they unable to do today?
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+      description: Describe observable success without prescribing an implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Smallest viable proposal
+      description: Explain the minimum change that would produce the outcome.
+    validations:
+      required: true
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility and migration
+      description: Address existing packs, schema versions, saved state, exports, and self-hosting.
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: Security and trust boundary
+      description: Explain any effect on remote content, runtime capability, privacy, integrity, identity, review, or certification.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Include workarounds or simpler approaches you evaluated.
+  - type: checkboxes
+    id: principles
+    attributes:
+      label: Product principles
+      options:
+        - label: The proposal preserves local creation and export.
+          required: true
+        - label: The proposal preserves independent self-hosting.
+          required: true
+        - label: The proposal does not require one model provider.
+          required: true
+        - label: I searched existing issues and pull requests.
+          required: true

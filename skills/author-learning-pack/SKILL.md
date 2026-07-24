@@ -48,15 +48,18 @@ Never invent a citation. Do not make a paywalled or inaccessible item the only s
 
 ### 3. Initialize the source file
 
-Build Course Kit first if needed:
+Use the pinned public CLI:
+
+```bash
+npm exec --yes --package @latent/course-kit@0.1.0 -- \
+  latent-learning init <directory> --json
+```
+
+When intentionally working inside the Latent monorepo, the equivalent fallback
+is:
 
 ```bash
 npm run build --workspace @latent/course-kit
-```
-
-Create a new directory:
-
-```bash
 node packages/course-kit/bin/latent-learning.mjs init <directory> --json
 ```
 
@@ -84,7 +87,8 @@ Each flash card should test one useful retrieval. The back should be concise; th
 Run:
 
 ```bash
-node packages/course-kit/bin/latent-learning.mjs validate \
+npm exec --yes --package @latent/course-kit@0.1.0 -- \
+  latent-learning validate \
   <directory>/learning-pack.json \
   --strict \
   --json
@@ -97,12 +101,14 @@ The authoring task is not finished until `ok` is `true`, with zero errors and ze
 ### 6. Build and inspect
 
 ```bash
-node packages/course-kit/bin/latent-learning.mjs build \
+npm exec --yes --package @latent/course-kit@0.1.0 -- \
+  latent-learning build \
   <directory>/learning-pack.json \
   --out-dir <directory>/site \
   --json
 
-node packages/course-kit/bin/latent-learning.mjs serve \
+npm exec --yes --package @latent/course-kit@0.1.0 -- \
+  latent-learning serve \
   <directory>/site
 ```
 

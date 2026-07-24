@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { questionGroupLibraryJsonSchema } from "@latent/course-kit";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const copies = [
@@ -16,6 +17,7 @@ const copies = [
   ["skills/author-learning-pack/SKILL.md", "public/open-learning/skills/author-learning-pack.md"],
   ["skills/review-learning-pack/SKILL.md", "public/open-learning/skills/review-learning-pack.md"],
   ["skills/publish-learning-pack/SKILL.md", "public/open-learning/skills/publish-learning-pack.md"],
+  ["docs/question-groups.md", "public/question-groups/guide.md"],
 ];
 
 for (const [sourcePath, outputPath, transform = (source) => source] of copies) {
@@ -25,4 +27,15 @@ for (const [sourcePath, outputPath, transform = (source) => source] of copies) {
   await writeFile(output, source, "utf8");
 }
 
-process.stdout.write(`${copies.length} public Open Learning documents generated.\n`);
+const questionSchemaOutput = resolve(
+  root,
+  "public/question-groups/v1/question-group-library.schema.json",
+);
+await mkdir(dirname(questionSchemaOutput), { recursive: true });
+await writeFile(
+  questionSchemaOutput,
+  `${JSON.stringify(questionGroupLibraryJsonSchema, null, 2)}\n`,
+  "utf8",
+);
+
+process.stdout.write(`${copies.length} public learning documents and the question-group schema generated.\n`);

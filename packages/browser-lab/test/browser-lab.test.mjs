@@ -109,6 +109,26 @@ test("throws assertions accept any exception message and preserve the actual err
   }).passed, false);
 });
 
+test("throws assertions can require an exception-message pattern", () => {
+  const assertion = {
+    id: "message",
+    label: "Explains the invalid input",
+    kind: "throws",
+    errorName: "TypeError",
+    messagePattern: "positive integer",
+  };
+  assert.equal(browserLab.evaluateHostAssertion(assertion, {
+    status: "threw",
+    errorName: "TypeError",
+    message: "Expected a positive integer.",
+  }).passed, true);
+  assert.equal(browserLab.evaluateHostAssertion(assertion, {
+    status: "threw",
+    errorName: "TypeError",
+    message: "Invalid value.",
+  }).passed, false);
+});
+
 test("QuickJS is deterministic and has no host capabilities", async () => {
   const code = `var __browserLab_probe = (() => ({ probe: () => ({
     random: Math.random(),

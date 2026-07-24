@@ -75,11 +75,15 @@ try {
     "README.md",
     "docs/open-learning.md",
     "docs/learning-pack-quality-rubric.md",
+    "docs/question-groups.md",
     "schema/learning-pack.schema.json",
     "schema/learning-feed.schema.json",
+    "schema/question-group-library.schema.json",
     "bin/latent-learning.mjs",
     "dist/index.js",
     "dist/index.d.ts",
+    "dist/question-group.js",
+    "dist/question-group.d.ts",
   ]) {
     await access(join(installed, relativePath));
   }
@@ -88,7 +92,12 @@ try {
   await run(process.execPath, [
     "--input-type=module",
     "--eval",
-    "import { LEARNING_PACK_FORMAT } from '@latent/course-kit'; if (LEARNING_PACK_FORMAT !== 'latent-learning-pack') process.exit(1);",
+    "import { LEARNING_PACK_FORMAT, QUESTION_GROUP_LIBRARY_FORMAT, validateQuestionGroupLibrary } from '@latent/course-kit'; if (LEARNING_PACK_FORMAT !== 'latent-learning-pack' || QUESTION_GROUP_LIBRARY_FORMAT !== 'latent-question-group-library' || typeof validateQuestionGroupLibrary !== 'function') process.exit(1);",
+  ], { cwd: consumer });
+  await run(process.execPath, [
+    "--input-type=module",
+    "--eval",
+    "import { QUESTION_GROUP_LIBRARY_SCHEMA_VERSION, questionGroupLibraryJsonSchema } from '@latent/course-kit/question-group'; if (QUESTION_GROUP_LIBRARY_SCHEMA_VERSION !== 1 || !questionGroupLibraryJsonSchema?.properties?.groups) process.exit(1);",
   ], { cwd: consumer });
 
   const cli = join(installed, "bin", "latent-learning.mjs");

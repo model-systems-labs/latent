@@ -35,6 +35,7 @@ export default function OpenLearningPage() {
         <Link className="wordmark" href="/"><i />latent</Link>
         <nav aria-label="Primary navigation">
           <Link href="/course">Courses</Link>
+          <Link href="/practice">Practice</Link>
           <Link aria-current="page" href="/open-learning">Open learning</Link>
           <Link href="/workspace" aria-label="Open coding workspace">Code</Link>
         </nav>
@@ -101,6 +102,7 @@ export default function OpenLearningPage() {
         <span>Latent</span>
         <nav aria-label="Footer navigation">
           <Link href="/course">Courses</Link>
+          <Link href="/practice">Practice</Link>
           <Link href="/open-learning">Open learning</Link>
           <Link href="/flashcards">Cards</Link>
           <Link href="/sources">Further reading</Link>

@@ -16,6 +16,7 @@ type CodeEditorProps = {
   path: string;
   onChange: (value: string) => void;
   onSave?: () => void;
+  onRun?: () => void;
   readOnly?: boolean;
   variant?: "lesson" | "project" | "workbook";
   ariaLabel?: string;
@@ -182,22 +183,25 @@ const lessonSyntaxTheme = HighlightStyle.define([
 const editableEditorInstruction = "Code editor. Tab accepts an open suggestion; otherwise it indents. Press Escape, then Tab, to leave the editor.";
 const readOnlyEditorInstruction = "Read-only code example. Use the arrow keys to navigate the code. Press Escape, then Tab, to leave the code example.";
 
-export function CodeEditor({ value, path, onChange, onSave, readOnly = false, variant = "project", ariaLabel, lineNumberStart = 1 }: CodeEditorProps) {
+export function CodeEditor({ value, path, onChange, onSave, onRun, readOnly = false, variant = "project", ariaLabel, lineNumberStart = 1 }: CodeEditorProps) {
   const isPython = path.toLowerCase().endsWith(".py");
   const lightEditor = variant !== "project";
+  const hasRunHandler = Boolean(onRun);
   const instructionId = useId();
   const hostRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<EditorView | null>(null);
   const changeRef = useRef(onChange);
   const saveRef = useRef(onSave);
+  const runRef = useRef(onRun);
   const valueRef = useRef(value);
   const applyingExternalValueRef = useRef(false);
 
   useEffect(() => {
     changeRef.current = onChange;
     saveRef.current = onSave;
+    runRef.current = onRun;
     valueRef.current = value;
-  }, [onChange, onSave, value]);
+  }, [onChange, onRun, onSave, value]);
 
   useEffect(() => {
     if (!hostRef.current) return;
@@ -213,6 +217,14 @@ export function CodeEditor({ value, path, onChange, onSave, readOnly = false, va
           return true;
         },
       },
+      ...(hasRunHandler ? [{
+        key: "Mod-Enter",
+        preventDefault: true,
+        run: () => {
+          runRef.current?.();
+          return true;
+        },
+      }] : []),
     ]));
     const view = new EditorView({
       parent: hostRef.current,
@@ -249,7 +261,7 @@ export function CodeEditor({ value, path, onChange, onSave, readOnly = false, va
       viewRef.current = null;
     };
     // Recreate the language mode when the selected path changes.
-  }, [ariaLabel, instructionId, isPython, lightEditor, lineNumberStart, path, readOnly, variant]);
+  }, [ariaLabel, hasRunHandler, instructionId, isPython, lightEditor, lineNumberStart, path, readOnly, variant]);
 
   useEffect(() => {
     const view = viewRef.current;
@@ -273,6 +285,7 @@ export function CodeEditor({ value, path, onChange, onSave, readOnly = false, va
       />
       <span className="sr-only" id={instructionId}>
         {readOnly ? readOnlyEditorInstruction : editableEditorInstruction}
+        {!readOnly && onRun ? " Press Command or Control plus Enter to check your solution." : ""}
       </span>
     </>
   );

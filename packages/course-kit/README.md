@@ -5,11 +5,12 @@ lessons, flash cards, and programming question groups. It validates learning
 content, builds deterministic lesson sites, emits integrity-bound feeds, and
 verifies published feeds without requiring Latent hosting.
 
-Use the exact v0.2.0 GitHub release from any directory. The tarball remains
-available even before or independently of npm scope setup:
+The source tree is now Course Kit v0.2.0 and includes question groups. The
+latest published tarball is still v0.1.0; it supports Learning Packs and flash
+cards. Use that exact release for the published CLI until v0.2.0 is tagged:
 
 ```bash
-COURSE_KIT_RELEASE=https://github.com/model-systems-labs/latent/releases/download/course-kit-v0.2.0/latent-course-kit-0.2.0.tgz
+COURSE_KIT_RELEASE=https://github.com/model-systems-labs/latent/releases/download/course-kit-v0.1.0/latent-course-kit-0.1.0.tgz
 
 npm exec --yes --package "$COURSE_KIT_RELEASE" -- \
   latent-learning init my-learning-pack --json
@@ -19,7 +20,7 @@ npm exec --yes --package "$COURSE_KIT_RELEASE" -- \
 ```
 
 Once `@latent/course-kit` has been bootstrapped on npm, the equivalent registry
-pin is `@latent/course-kit@0.2.0`.
+pin is `@latent/course-kit@0.1.0`.
 
 The generated starter is intentionally incomplete. Replace its example content
 before strict validation.
@@ -51,6 +52,8 @@ for the independent review standard.
 
 Question groups are a separate versioned primitive so Learning Pack v1 remains
 immutable. They contain declarative cases and assertions, never executable
-publisher-authored tests. Read
+publisher-authored tests. Until the v0.2.0 package is published, use the
+checked-out workspace or the public JSON Schema rather than a nonexistent
+release artifact. Read
 [`docs/question-groups.md`](./docs/question-groups.md) for the layering and
 runtime trust boundary.

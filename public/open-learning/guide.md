@@ -19,17 +19,17 @@ Version 1 intentionally does not execute community JavaScript, HTML, CSS, Python
 
 ## Quick start
 
-Use the exact v0.2.0 release from any directory:
+Use the exact v0.1.0 release from any directory:
 
 ```bash
-COURSE_KIT_RELEASE=https://github.com/model-systems-labs/latent/releases/download/course-kit-v0.2.0/latent-course-kit-0.2.0.tgz
+COURSE_KIT_RELEASE=https://github.com/model-systems-labs/latent/releases/download/course-kit-v0.1.0/latent-course-kit-0.1.0.tgz
 
 npm exec --yes --package "$COURSE_KIT_RELEASE" -- \
   latent-learning init my-learning-pack --json
 ```
 
 The GitHub tarball is the permanent registry-independent install path. After
-the `@latent` npm scope is bootstrapped, `@latent/course-kit@0.2.0` is an
+the `@latent` npm scope is bootstrapped, `@latent/course-kit@0.1.0` is an
 equivalent shorter pin.
 
 `init` deliberately writes an incomplete scaffold. Replace every example

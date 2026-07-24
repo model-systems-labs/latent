@@ -4,8 +4,8 @@
   "playerVersion": 1,
   "packageId": "latent/reliable-llm-changes",
   "version": "1.0.0",
-  "sha256": "7dba8a87e69ec66fc2fa777b62603492ca0521ccfa1a8285d0ef7e631c511ced",
-  "packageBytes": 13981,
+  "sha256": "acd7a92d2858a55d4b18f723ea8bc1d0643b57d19b33975ca4b4c7b6d581623e",
+  "packageBytes": 13993,
   "files": [
     ".latent-build",
     "README.txt",

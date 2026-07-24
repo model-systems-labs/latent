@@ -214,4 +214,5 @@ work, and [CHANGELOG.md](./CHANGELOG.md) records released behavior.
 Software is available under Apache-2.0. Original educational material is also
 available under CC BY 4.0 where defined in
 [CONTENT_LICENSE.md](./CONTENT_LICENSE.md). Third-party works retain their own
-licenses and attribution; see [CONTENT_PROVENANCE.md](./CONTENT_PROVENANCE.md).
+licenses and attribution; see [CONTENT_PROVENANCE.md](./CONTENT_PROVENANCE.md)
+and [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).

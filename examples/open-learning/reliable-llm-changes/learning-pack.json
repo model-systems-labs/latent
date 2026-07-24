@@ -11,10 +11,10 @@
     "authors": [
       {
         "name": "Latent Project Contributors",
-        "url": "https://latent-llm-learning.cswansondeveloper.chatgpt.site"
+        "url": "https://github.com/model-systems-labs/latent"
       }
     ],
-    "homepage": "https://latent-llm-learning.cswansondeveloper.chatgpt.site/open-learning",
+    "homepage": "https://github.com/model-systems-labs/latent/tree/main/examples/open-learning/reliable-llm-changes",
     "publishedAt": "2026-07-23T12:00:00Z"
   },
   "objectives": [

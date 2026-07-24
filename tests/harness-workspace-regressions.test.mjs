@@ -183,12 +183,13 @@ test("the Harness workbook exposes one complete importable Python scaffold", () 
     assert.equal(file.track, "harness");
     assert.equal(file.verifiedCells, 0);
     assert.equal(file.totalCells, 2);
-    const guidedGapCount = (file.content.match(/\.\.\./g) ?? []).length;
-    const authoredGapCount = (file.referenceContent.match(/\.\.\./g) ?? []).length;
-    assert.ok(guidedGapCount >= authoredGapCount + file.totalCells, file.path);
+    const starterTodoCount = (file.content.match(/# TODO:/g) ?? []).length;
+    const starterStubCount = (file.content.match(/raise NotImplementedError/g) ?? []).length;
+    assert.ok(starterTodoCount >= file.totalCells, file.path);
+    assert.ok(starterStubCount >= file.totalCells, file.path);
     assert.equal((file.content.match(/^# \d{2} · /gm) ?? []).length, file.totalCells, file.path);
     assert.doesNotMatch(file.referenceContent, /NotImplementedError|# TODO:/, file.path);
-    assert.doesNotMatch(file.content, /NotImplementedError|# TODO:/, file.path);
+    assert.match(file.content, /NotImplementedError|# TODO:/, file.path);
     assert.notEqual(file.content, file.referenceContent, file.path);
     assertPythonParses(file.content, `${file.path} guided scaffold`);
     assertPythonParses(file.referenceContent, `${file.path} authored reference`);

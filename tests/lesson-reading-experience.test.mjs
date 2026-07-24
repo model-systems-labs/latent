@@ -188,7 +188,7 @@ test("lesson code opens progressive starter-first syntax-aware Python practice i
   assert.match(paperLab, /const active = activeBlockId === block\.id/);
   assert.match(paperLab, /className="exercise-summary"[\s\S]*?aria-expanded=\{active\}[\s\S]*?aria-controls=\{`exercise-\$\{lesson\.id\}-\$\{block\.id\}`\}/);
   assert.match(paperLab, /\{active \? \([\s\S]*?className="exercise-body" id=\{`exercise-\$\{lesson\.id\}-\$\{block\.id\}`\}/);
-  assert.match(paperLab, /const starterSource = practiceRepetitionSource\(lesson\.implementation\.filename, block, round\)/);
+  assert.match(paperLab, /const starterSource = round === 1[\s\S]*?\? starterCodeFor\(block, lesson\)[\s\S]*?: practiceRepetitionSource\(lesson\.implementation\.filename, block, round\)/);
   assert.match(paperLab, /<fieldset className="practice-rounds"[^>]*>[\s\S]*?<legend className="sr-only">\{block\.label\} progressive practice rounds<\/legend>/);
   assert.match(paperLab, /\{PRACTICE_ROUNDS\.map\(\(option\) => \{/);
   assert.match(paperLab, /const unlocked = option\.id === 1[\s\S]*?option\.id === 2 && baselineVerified[\s\S]*?option\.id === 3 && baselineVerified && roundTwoVerified/);

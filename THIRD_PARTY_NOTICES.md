@@ -62,7 +62,7 @@ SOFTWARE.
 
 QuickJS Javascript Engine
 
-Copyright (c) 2017-2021 Fabrice Bellard  
+Copyright (c) 2017-2021 Fabrice Bellard
 Copyright (c) 2017-2021 Charlie Gordon
 
 Permission is hereby granted, free of charge, to any person obtaining a copy

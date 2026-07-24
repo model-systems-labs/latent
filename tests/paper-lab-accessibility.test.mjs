@@ -54,13 +54,19 @@ test("starter-first practice states expose stable accessible semantics", async (
   const source = await readFile(paperLabUrl, "utf8");
   assert.doesNotMatch(source, /SelectionAsk|selection-ask|data-selection-ask|Highlight a passage|paper-chat|OpenRouter|paper-question-status/);
   assert.match(source, /className="practice-editor" data-project-conflict=\{projectConflict\} aria-busy=\{!practiceReady \|\| runningBlockIds\.length > 0\}/);
-  assert.match(source, /readOnly=\{blockRunning \|\| projectConflict\}/);
+  assert.match(source, /readOnly=\{blockRunning \|\| \(projectConflict && round === 1\)\}/);
   assert.match(source, /className=\{`practice-block[\s\S]*?aria-busy=\{blockRunning\}/);
   assert.match(source, /className="exercise-summary"[\s\S]*?aria-expanded=\{active\}[\s\S]*?aria-controls=\{`exercise-\$\{lesson\.id\}-\$\{block\.id\}`\}/);
   assert.match(source, /\{active \? \([\s\S]*?className="exercise-body" id=\{`exercise-\$\{lesson\.id\}-\$\{block\.id\}`\}/);
+  assert.match(source, /<fieldset className="practice-rounds"[^>]*>[\s\S]*?<legend className="sr-only">\{block\.label\} progressive practice rounds<\/legend>/);
+  assert.match(source, /aria-label=\{`\$\{block\.label\}: round \$\{option\.id\}, \$\{option\.label\}, \$\{status\.toLowerCase\(\)\}`\}/);
+  assert.match(source, /aria-pressed=\{round === option\.id\}/);
+  assert.match(source, /disabled=\{!practiceReady \|\| !unlocked \|\| blockRunning\}/);
+  assert.match(source, /className=\{`practice-round-option[\s\S]*?style=\{\{ minHeight: "2\.75rem" \}\}/);
+  assert.match(source, /const status = complete \? "Complete" : option\.required \? "Required" : unlocked \? "Optional" : "Locked"/);
   assert.match(source, /className=\{`cell-footer cell-feedback[^`]*`\} role="status"[^>]*aria-live="polite" aria-atomic="true"/);
-  assert.match(source, /\{result \? \([\s\S]*?: verified \? \([\s\S]*?: <span className="sr-only">/, "untouched exercises must expose only screen-reader test status");
-  assert.match(source, /className="reset-confirmation"[\s\S]*?aria-label=\{`Confirm start over for \$\{block\.label\}`\}[\s\S]*?aria-label=\{`Cancel start over for \$\{block\.label\}`\}/);
+  assert.match(source, /\{result \? \([\s\S]*?: roundVerified \? \([\s\S]*?: <span className="sr-only">/, "untouched exercises must expose only screen-reader test status");
+  assert.match(source, /className="reset-confirmation"[\s\S]*?aria-label=\{`Confirm start over for \$\{block\.label\}, round \$\{round\}`\}[\s\S]*?aria-label=\{`Cancel start over for \$\{block\.label\}, round \$\{round\}`\}/);
   assert.match(source, /<details className="reference-comparison">[\s\S]*?<summary>Reference solution<\/summary>/);
   assert.match(source, /className=\{`cell-footer[^`]*`\} role="status"[^>]*aria-live="polite" aria-atomic="true"/);
   assert.match(source, /id=\{`practice-status-\$\{lesson\.id\}`\} role="status" aria-live="polite" aria-atomic="true"/);
@@ -103,6 +109,16 @@ test("server-rendered lessons retain the async status relationships before hydra
   assert.match(html, new RegExp(`id="${activeControl}"`));
   assert.equal((html.match(/class="exercise-body"/g) ?? []).length, 1, "only the active exercise body belongs in the first paint");
   assert.match(html, /class="cell-footer cell-feedback is-idle" role="status"[^>]*aria-live="polite" aria-atomic="true"/);
+  assert.match(html, /<fieldset class="practice-rounds"[^>]*>[\s\S]*?<legend class="sr-only">[^<]+(?:<!-- -->)? progressive practice rounds<\/legend>/);
+  const roundControls = [...html.matchAll(/<button class="practice-round-option(?: active)?(?: complete)?"[\s\S]*?<\/button>/g)];
+  assert.equal(roundControls.length, 3, "the open exercise must expose all three progressive rounds");
+  for (const [index, control] of roundControls.entries()) {
+    const round = index + 1;
+    const status = round === 1 ? "required" : "locked";
+    assert.match(control[0], new RegExp(`aria-label="[^"]+: round ${round}, [^,]+, ${status}"`));
+    assert.match(control[0], new RegExp(`aria-pressed="${round === 1 ? "true" : "false"}"`));
+    assert.match(control[0], /disabled=""/, "round choices remain inert until saved practice state restores");
+  }
   assert.match(html, /class="reference-comparison"/);
   assert.match(html, /Reference solution/);
   assert.doesNotMatch(html, /Compare with reference|Your draft stays unchanged/);

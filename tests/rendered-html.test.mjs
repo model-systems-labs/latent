@@ -127,7 +127,10 @@ test("Agent Loop combines technical reading with two isolated runnable cells", a
   assert.match(html, /Parse a model response/);
   assert.match(html, /Append a tool result/);
   assert.equal((html.match(/class="exercise-summary"/g) ?? []).length, 2);
-  assert.match(html, /Run cell/);
+  assert.match(html, /Run round 1/);
+  assert.match(html, /Guided/);
+  assert.match(html, /Less help/);
+  assert.match(html, /From scratch/);
   assert.match(html, /Run all tests/);
   assert.match(html, /id="lesson-sources-title">Further reading/);
   assert.equal((html.match(/class="source-entry"/g) ?? []).length, 4);
@@ -258,7 +261,8 @@ test("all fourteen lessons use the reusable learning flow", async () => {
     assert.match(html, /Restoring saved code/);
     assert.match(html, /NotImplementedError/);
     assert.doesNotMatch(html, /Practice all|Practice cell|Run example|Reset all|Restore all|Restore reference|Restore draft|Run all examples|Run practice checks/);
-    assert.match(html, /Run cell/);
+    assert.match(html, /Run round 1/);
+    assert.match(html, /Pass this guided round to complete the exercise\. The harder rounds stay optional\./);
     assert.match(html, /Run all tests/);
     assert.match(html, /Reference solution/);
     assert.doesNotMatch(html, /Compare with reference|Your draft stays unchanged/);
@@ -273,7 +277,7 @@ test("every lesson keeps its executable work inside the browser", async () => {
     const response = await render(`/lessons/${slug}`);
     assert.equal(response.status, 200, slug);
     const html = await response.text();
-    assert.match(html, /Run cell/);
+    assert.match(html, /Run round 1/);
     assert.match(html, /Open coding workspace/);
     assert.doesNotMatch(html, /Colab|Download notebook|Open notebook|native Python|native runtime|PyTorch version/i);
   }

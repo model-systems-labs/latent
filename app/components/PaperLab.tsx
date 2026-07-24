@@ -8,14 +8,17 @@ import type { ExerciseCase, ExerciseCaseResult, ExerciseContract, HostAssertion,
 import { allRoutedLessons, getLessonCourseHref, getLessonProjectPath } from "../lessons/course";
 import {
   discardLearnerRecoveryCandidate,
+  emptyPracticeRepetitions,
   initializeLearnerPersistence,
   loadLearnerRecoveryCandidate,
   loadLearnerState,
   recordVerifiedCells,
   saveLessonPracticeAndVerification,
+  saveLessonPracticeRepetitions,
   useLearnerState,
   useLearnerPersistenceError,
   useLearnerRecoveryCandidates,
+  type PracticeRepetitionProgress,
 } from "../lib/learner-state";
 import { ensureProjectWorkspace, flushProjectPersistence, initializeProjectPersistence, loadProjectState, projectFileSourceIsCurrent, saveLessonProjectFile, useProjectPersistenceError, type LessonProjectSeed, type ProjectCourse } from "../lib/project-workspace";
 import {
@@ -36,15 +39,24 @@ import { canonicalProjectSeeds } from "../lib/canonical-project";
 import {
   compatiblePracticeDrafts,
   creditableWorkingBlockIds,
+  editPracticeRepetition,
   editPracticeBlock,
+  PRACTICE_ROUNDS,
+  practiceRepetitionIsVerified,
+  practiceRepetitionKey,
+  practiceRepetitionSource,
   preservedPracticeAnswers,
   resetPracticeBlock,
   restoreWorkingSourceVerification,
+  restorePracticeRepetitionVerification,
   starterCodeFor,
   verificationAfterWorkingSourceRun,
+  verificationAfterPracticeRepetitionRun,
   waitForPracticeHydration,
   workingPracticeBlockSource,
+  workingPracticeRepetitionSource,
   workingPracticeSources,
+  type PracticeRound,
 } from "../features/ide/practice-state";
 import { contractSuiteForLesson } from "../lessons/contract-suite";
 import { LessonOutcome } from "./LessonOutcome";
@@ -800,6 +812,8 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
   const [verifiedBlockIds, setVerifiedBlockIds] = useState<string[]>([]);
   const [verifiedSources, setVerifiedSources] = useState<Record<string, string>>({});
   const [verifiedContractVersion, setVerifiedContractVersion] = useState<string | null>(null);
+  const [practiceRepetitions, setPracticeRepetitions] = useState<PracticeRepetitionProgress>(() => emptyPracticeRepetitions());
+  const [activePracticeRounds, setActivePracticeRounds] = useState<Record<string, PracticeRound>>({});
   const [cellResults, setCellResults] = useState<Record<string, CheckResult | undefined>>({});
   const [cellOutputs, setCellOutputs] = useState<Record<string, CellExecutionOutput | undefined>>({});
   const [practiceMessage, setPracticeMessage] = useState("");
@@ -817,6 +831,8 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
   const verifiedBlockIdsRef = useRef<string[]>([]);
   const verifiedSourcesRef = useRef<Record<string, string>>({});
   const verifiedContractVersionRef = useRef<string | null>(null);
+  const practiceRepetitionsRef = useRef<PracticeRepetitionProgress>(emptyPracticeRepetitions());
+  const activePracticeRoundsRef = useRef<Record<string, PracticeRound>>({});
   const runningBlockIdsRef = useRef<string[]>([]);
   const practiceReadyRef = useRef(false);
 
@@ -868,20 +884,30 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
       const savedVerified = restoredVerification.ids;
       const verifiedSources = restoredVerification.sources;
       const verifiedContractVersion = restoredVerification.contractVersion;
+      const savedRepetitions = saved?.practiceRepetitions ?? emptyPracticeRepetitions();
+      const restoredRepetitions = restorePracticeRepetitionVerification(
+        savedRepetitions,
+        contractSuite.contractVersion,
+      );
       hiddenBlocksRef.current = savedHidden;
       answersRef.current = savedAnswers;
       quarantinedAnswersRef.current = quarantinedAnswers;
       verifiedBlockIdsRef.current = savedVerified;
       verifiedSourcesRef.current = verifiedSources;
       verifiedContractVersionRef.current = verifiedContractVersion;
+      practiceRepetitionsRef.current = restoredRepetitions;
       practiceReadyRef.current = true;
       setAnswers(savedAnswers);
       setVerifiedBlockIds(savedVerified);
       setVerifiedSources(verifiedSources);
       setVerifiedContractVersion(verifiedContractVersion);
+      setPracticeRepetitions(restoredRepetitions);
       setActiveBlockId(blocks.find((block) => !savedVerified.includes(block.id))?.id ?? blocks[0]?.id ?? "");
       if ((saved?.verifiedCells.length ?? 0) !== savedVerified.length || (saved?.verifiedContractVersion ?? null) !== verifiedContractVersion) {
         recordVerifiedCells(lesson.id, savedVerified, verifiedSources, verifiedContractVersion);
+      }
+      if (JSON.stringify(savedRepetitions) !== JSON.stringify(restoredRepetitions)) {
+        saveLessonPracticeRepetitions(lesson.id, restoredRepetitions);
       }
       const lessonSeed = projectSeedForLesson(lesson, savedHidden, savedAnswers, savedVerified);
       projectContentRef.current = lessonSeed.content;
@@ -902,11 +928,20 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     return () => { active = false; };
   }, [blocks, contributesToBrowserChat, contributesToHarness, contractSuite.contractVersion, lesson, projectPath]);
 
-  const sourceFor = (block: CodeBlock) => workingPracticeBlockSource(
+  const baselineSourceFor = (block: CodeBlock) => workingPracticeBlockSource(
     lesson.implementation.filename,
     block,
     answersRef.current,
   );
+  const activeRoundFor = (block: CodeBlock): PracticeRound => activePracticeRoundsRef.current[block.id] ?? 1;
+  const sourceForRound = (block: CodeBlock, round: PracticeRound) => round === 1
+    ? baselineSourceFor(block)
+    : workingPracticeRepetitionSource(
+      lesson.implementation.filename,
+      block,
+      round,
+      practiceRepetitionsRef.current.answers,
+    );
   const applyPracticeState = (
     nextHidden: string[],
     nextAnswers: Record<string, string>,
@@ -923,6 +958,45 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     setVerifiedBlockIds(nextVerified);
     setVerifiedSources(nextVerifiedSources);
     setVerifiedContractVersion(nextVerifiedContractVersion);
+  };
+  const applyPracticeRepetitions = (next: PracticeRepetitionProgress) => {
+    practiceRepetitionsRef.current = next;
+    setPracticeRepetitions(next);
+  };
+  const persistPracticeRepetitions = (next: PracticeRepetitionProgress, message = "") => {
+    applyPracticeRepetitions(next);
+    saveLessonPracticeRepetitions(lesson.id, next);
+    setPracticeMessage(message);
+  };
+  const baselineIsVerified = (block: CodeBlock) => {
+    const source = baselineSourceFor(block);
+    return verifiedContractVersionRef.current === contractSuite.contractVersion
+      && verifiedBlockIdsRef.current.includes(block.id)
+      && verifiedSourcesRef.current[block.id] === source;
+  };
+  const optionalRoundIsVerified = (block: CodeBlock, round: Exclude<PracticeRound, 1>) => {
+    const source = sourceForRound(block, round);
+    return practiceRepetitionIsVerified(
+      practiceRepetitionsRef.current,
+      practiceRepetitionKey(block.id, round),
+      source,
+      contractSuite.contractVersion,
+    );
+  };
+  const roundIsUnlocked = (block: CodeBlock, round: PracticeRound) => round === 1
+    || (round === 2 && baselineIsVerified(block))
+    || (round === 3 && baselineIsVerified(block) && optionalRoundIsVerified(block, 2));
+  const selectPracticeRound = (block: CodeBlock, round: PracticeRound) => {
+    if (runningBlockIdsRef.current.length || !roundIsUnlocked(block, round)) return;
+    const next = { ...activePracticeRoundsRef.current, [block.id]: round };
+    activePracticeRoundsRef.current = next;
+    setActivePracticeRounds(next);
+    setPendingResetBlockId(null);
+    setCellResults((current) => ({ ...current, [practiceRepetitionKey(block.id, round)]: undefined }));
+    setCellOutputs((current) => ({ ...current, [practiceRepetitionKey(block.id, round)]: undefined }));
+    setPracticeMessage(round === 1
+      ? `${block.label} is showing the required guided round.`
+      : `${block.label} round ${round} is optional. Your completed code and lesson progress stay saved.`);
   };
   const setRunning = (ids: string[]) => {
     runningBlockIdsRef.current = ids;
@@ -1000,30 +1074,47 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     setPracticeMessage(message);
   };
   const resetBlock = (block: CodeBlock) => {
+    const round = activeRoundFor(block);
+    const attemptKey = practiceRepetitionKey(block.id, round);
     setPendingResetBlockId(null);
+    if (round !== 1) {
+      const next = editPracticeRepetition(
+        practiceRepetitionsRef.current,
+        attemptKey,
+        practiceRepetitionSource(lesson.implementation.filename, block, round),
+      );
+      setCellResults((current) => ({ ...current, [attemptKey]: undefined }));
+      setCellOutputs((current) => ({ ...current, [attemptKey]: undefined }));
+      persistPracticeRepetitions(next, `${block.label} round ${round} is back to its starter code. Your required completion is unchanged.`);
+      return;
+    }
     persistBlockState(
       block,
       resetPracticeBlock(practiceDraftState(), block.id, starterCodeFor(block, lesson)),
-      `${copiedBlockLabel(block)} is back to its starter code. Complete it, then run the cell.`,
+      `${copiedBlockLabel(block)} round 1 is back to its guided starter. Complete it, then run the cell.`,
     );
   };
   const armBlockReset = (block: CodeBlock) => {
-    setPendingResetBlockId(block.id);
-    setPracticeMessage(`${copiedBlockLabel(block)} is ready to start over. Confirm to replace this draft with starter code, or cancel to keep your code.`);
+    const round = activeRoundFor(block);
+    setPendingResetBlockId(practiceRepetitionKey(block.id, round));
+    setPracticeMessage(`${copiedBlockLabel(block)} round ${round} is ready to start over. Confirm to replace this round with its starter code, or cancel to keep your code.`);
   };
   const cancelBlockReset = (block: CodeBlock) => {
+    const round = activeRoundFor(block);
     setPendingResetBlockId(null);
-    setPracticeMessage(`${copiedBlockLabel(block)} was left unchanged. Your code is still here.`);
+    setPracticeMessage(`${copiedBlockLabel(block)} round ${round} was left unchanged. Your code is still here.`);
   };
   const runCell = async (block: CodeBlock) => {
     if (!practiceReadyRef.current || runningBlockIdsRef.current.length) return;
-    if (!projectAllowsWrite()) return;
+    const roundSnapshot = activeRoundFor(block);
+    if (roundSnapshot === 1 && !projectAllowsWrite()) return;
+    const attemptKey = practiceRepetitionKey(block.id, roundSnapshot);
     const controller = new AbortController();
     runAbortRef.current = controller;
     setPendingResetBlockId(null);
-    const sourceSnapshot = sourceFor(block);
+    const sourceSnapshot = sourceForRound(block, roundSnapshot);
     setRunning([block.id]);
-    setPracticeMessage(`Running ${copiedBlockLabel(block).toLowerCase()}…`);
+    setPracticeMessage(`Running ${copiedBlockLabel(block).toLowerCase()}, round ${roundSnapshot}…`);
     try {
       const execution = await runContracts(
         lessonImplementationSource(lesson, [sourceSnapshot]),
@@ -1036,47 +1127,63 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
       const check: CheckResult = result
         ? { ...result, cases: execution.cases.filter((exerciseCase) => exerciseCase.contractId === contractId) }
         : { label: copiedBlockLabel(block), passed: false, detail: "The isolated test didn’t return a result.", cases: [] };
-      if (sourceFor(block) !== sourceSnapshot) {
-        setCellResults((current) => ({ ...current, [block.id]: undefined }));
-        setCellOutputs((current) => ({ ...current, [block.id]: undefined }));
-        setPracticeMessage(`${copiedBlockLabel(block)} changed while its check was running. Run the current source again.`);
+      if (activeRoundFor(block) !== roundSnapshot || sourceForRound(block, roundSnapshot) !== sourceSnapshot) {
+        setCellResults((current) => ({ ...current, [attemptKey]: undefined }));
+        setCellOutputs((current) => ({ ...current, [attemptKey]: undefined }));
+        setPracticeMessage(`${copiedBlockLabel(block)} round ${roundSnapshot} changed while its check was running. Run that round again.`);
         return;
       }
-      if (!projectAllowsWrite()) return;
-      const currentVerification = { ids: verifiedBlockIdsRef.current, sources: verifiedSourcesRef.current, contractVersion: verifiedContractVersionRef.current };
-      const currentHidden = [...hiddenBlocksRef.current];
-      const currentAnswers = { ...answersRef.current };
-      const nextVerification = verificationAfterWorkingSourceRun(
-        currentVerification,
-        block.id,
-        sourceSnapshot,
-        check.passed,
-        contractSuite.contractVersion,
-      );
-      const nextVerified = nextVerification.ids;
-      const nextVerifiedSources = nextVerification.sources;
-      applyPracticeState(currentHidden, currentAnswers, nextVerified, nextVerifiedSources, nextVerification.contractVersion);
-      recordVerifiedCells(lesson.id, nextVerified, nextVerifiedSources, nextVerification.contractVersion);
-      saveCurrentProjectSeed(projectSeedForLesson(lesson, currentHidden, currentAnswers, nextVerified));
-      setCellResults((current) => ({ ...current, [block.id]: check }));
+      if (roundSnapshot === 1) {
+        if (!projectAllowsWrite()) return;
+        const currentVerification = { ids: verifiedBlockIdsRef.current, sources: verifiedSourcesRef.current, contractVersion: verifiedContractVersionRef.current };
+        const currentHidden = [...hiddenBlocksRef.current];
+        const currentAnswers = { ...answersRef.current };
+        const nextVerification = verificationAfterWorkingSourceRun(
+          currentVerification,
+          block.id,
+          sourceSnapshot,
+          check.passed,
+          contractSuite.contractVersion,
+        );
+        const nextVerified = nextVerification.ids;
+        const nextVerifiedSources = nextVerification.sources;
+        applyPracticeState(currentHidden, currentAnswers, nextVerified, nextVerifiedSources, nextVerification.contractVersion);
+        recordVerifiedCells(lesson.id, nextVerified, nextVerifiedSources, nextVerification.contractVersion);
+        saveCurrentProjectSeed(projectSeedForLesson(lesson, currentHidden, currentAnswers, nextVerified));
+      } else {
+        const nextRepetitions = verificationAfterPracticeRepetitionRun(
+          practiceRepetitionsRef.current,
+          attemptKey,
+          sourceSnapshot,
+          check.passed,
+          contractSuite.contractVersion,
+        );
+        persistPracticeRepetitions(nextRepetitions);
+      }
+      setCellResults((current) => ({ ...current, [attemptKey]: check }));
       setCellOutputs((current) => ({
         ...current,
-        [block.id]: { output: execution.output, stdout: execution.stdout, stderr: execution.stderr },
+        [attemptKey]: { output: execution.output, stdout: execution.stdout, stderr: execution.stderr },
       }));
-      setPracticeMessage(check.passed
-        ? `${copiedBlockLabel(block)} passed the course checks and is now verified.`
-        : `${copiedBlockLabel(block)} needs a fix. Check the failure below; your other cells didn’t change.`);
+      setPracticeMessage(roundSnapshot === 1
+        ? check.passed
+          ? `${copiedBlockLabel(block)} round 1 passed. This exercise is complete; rounds 2 and 3 are optional.`
+          : `${copiedBlockLabel(block)} round 1 needs a fix. Check the failure below; your other cells didn’t change.`
+        : check.passed
+          ? `${copiedBlockLabel(block)} round ${roundSnapshot} passed. Your required completion and project code stayed saved.${roundSnapshot === 2 ? " Round 3 is now available." : ""}`
+          : `${copiedBlockLabel(block)} round ${roundSnapshot} needs a fix. Your required completion and project code are still saved.`);
       void recordLearningEvent("cell_check_completed", {
         lessonId: lesson.id,
         moduleId: lesson.courseId,
         outcome: check.passed ? "passed" : "failed",
+        count: roundSnapshot,
       });
     } catch (error) {
       if (controller.signal.aborted) return;
       const check: CheckResult = { label: copiedBlockLabel(block), passed: false, detail: error instanceof Error ? error.message : "The isolated test failed.", cases: [] };
-      setCellResults((current) => ({ ...current, [block.id]: check }));
-      setCellOutputs((current) => ({ ...current, [block.id]: { output: [], stdout: "", stderr: "" } }));
-      setPracticeMessage(`${copiedBlockLabel(block)} stopped safely.`);
+      setCellResults((current) => ({ ...current, [attemptKey]: check }));
+      setCellOutputs((current) => ({ ...current, [attemptKey]: { output: [], stdout: "", stderr: "" } }));
+      setPracticeMessage(`${copiedBlockLabel(block)} round ${roundSnapshot} stopped safely.${roundSnapshot === 1 ? "" : " Your required completion is unchanged."}`);
     } finally {
       if (runAbortRef.current === controller) {
         runAbortRef.current = null;
@@ -1092,7 +1199,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     setPendingResetBlockId(null);
     const hiddenSnapshot = [...hiddenBlocksRef.current];
     const answersSnapshot = { ...answersRef.current };
-    const sourceSnapshots = Object.fromEntries(blocks.map((block) => [block.id, sourceFor(block)]));
+    const sourceSnapshots = Object.fromEntries(blocks.map((block) => [block.id, baselineSourceFor(block)]));
     setRunning(blocks.map((block) => block.id));
     setCellResults({});
     setCellOutputs({});
@@ -1131,7 +1238,7 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
         const result = resultById.get(contractId) ?? { id: contractId, path: projectPath, label: copiedBlockLabel(block), passed: false, detail: "The isolated test didn’t return a result." };
         return { ...result, cases: combinedExecution.cases.filter((exerciseCase) => exerciseCase.contractId === contractId) };
       });
-      if (blocks.some((block) => sourceFor(block) !== sourceSnapshots[block.id])) {
+      if (blocks.some((block) => baselineSourceFor(block) !== sourceSnapshots[block.id])) {
         setCellResults({});
         setCellOutputs({});
         setPracticeMessage("The lesson source changed while checks were running. Run the current source again.");
@@ -1212,7 +1319,16 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
     }
   };
   const updateAnswer = (block: CodeBlock, value: string) => {
+    const round = activeRoundFor(block);
+    const attemptKey = practiceRepetitionKey(block.id, round);
     setPendingResetBlockId(null);
+    if (round !== 1) {
+      const next = editPracticeRepetition(practiceRepetitionsRef.current, attemptKey, value);
+      setCellResults((current) => ({ ...current, [attemptKey]: undefined }));
+      setCellOutputs((current) => ({ ...current, [attemptKey]: undefined }));
+      persistPracticeRepetitions(next);
+      return;
+    }
     persistBlockState(
       block,
       editPracticeBlock(practiceDraftState(), block.id, value),
@@ -1237,28 +1353,68 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
           ) : null}
           {blocks.map((block, blockIndex) => {
             const displayBlock = copiedBlock(block);
-            const starterSource = starterCodeFor(block, lesson);
-            const workingSource = practiceReady ? answers[block.id] ?? starterSource : starterSource;
+            const round = activePracticeRounds[block.id] ?? 1;
+            const attemptKey = practiceRepetitionKey(block.id, round);
+            const starterSource = round === 1
+              ? starterCodeFor(block, lesson)
+              : practiceRepetitionSource(lesson.implementation.filename, block, round);
+            const workingSource = practiceReady
+              ? round === 1
+                ? workingPracticeBlockSource(lesson.implementation.filename, block, answers)
+                : workingPracticeRepetitionSource(lesson.implementation.filename, block, round, practiceRepetitions.answers)
+              : starterSource;
+            const baselineSource = practiceReady
+              ? answers[block.id] ?? starterCodeFor(block, lesson)
+              : starterCodeFor(block, lesson);
             const startLine = blocks.slice(0, blockIndex).reduce((line, previous) => {
               const previousSource = practiceReady ? answers[previous.id] ?? starterCodeFor(previous, lesson) : starterCodeFor(previous, lesson);
               return line + previousSource.split("\n").length + 1;
             }, implementationPrelude ? 3 : 1);
-            const result = cellResults[block.id];
+            const result = cellResults[attemptKey];
             const contract = contractSuite.contracts.find((candidate) => candidate.id === `${lesson.id}/${block.id}`);
-            const executionOutput = cellOutputs[block.id];
-            const resetArmed = pendingResetBlockId === block.id;
+            const executionOutput = cellOutputs[attemptKey];
+            const resetArmed = pendingResetBlockId === attemptKey;
             const blockRunning = runningBlockIds.includes(block.id);
             const active = activeBlockId === block.id;
             const dirty = workingSource !== starterSource;
-            const verified = verifiedContractVersion === contractSuite.contractVersion
+            const baselineVerified = verifiedContractVersion === contractSuite.contractVersion
               && verifiedBlockIds.includes(block.id)
-              && verifiedSources[block.id] === workingSource;
-            const passed = Boolean(result?.passed || verified);
+              && verifiedSources[block.id] === baselineSource;
+            const roundTwoSource = workingPracticeRepetitionSource(
+              lesson.implementation.filename,
+              block,
+              2,
+              practiceRepetitions.answers,
+            );
+            const roundThreeSource = workingPracticeRepetitionSource(
+              lesson.implementation.filename,
+              block,
+              3,
+              practiceRepetitions.answers,
+            );
+            const roundTwoVerified = practiceRepetitionIsVerified(
+              practiceRepetitions,
+              practiceRepetitionKey(block.id, 2),
+              roundTwoSource,
+              contractSuite.contractVersion,
+            );
+            const roundThreeVerified = practiceRepetitionIsVerified(
+              practiceRepetitions,
+              practiceRepetitionKey(block.id, 3),
+              roundThreeSource,
+              contractSuite.contractVersion,
+            );
+            const roundVerified = round === 1 ? baselineVerified : round === 2 ? roundTwoVerified : roundThreeVerified;
+            const completedRounds = baselineVerified ? 1 + Number(roundTwoVerified) + Number(roundThreeVerified) : 0;
             const failed = Boolean(result && !result.passed);
-            const visibleState = blockRunning ? "Running" : passed ? "Passed" : failed ? "Not passed" : active ? "Editor open" : "Open editor";
+            const visibleState = blockRunning
+              ? `Running round ${round}`
+              : baselineVerified
+                ? `Complete · ${completedRounds}/3 rounds`
+                : result ? result.passed ? "Complete · 1/3 rounds" : "Needs a fix" : "Round 1 of 3";
             return (
               <article
-                className={`practice-block${active ? " is-active" : ""}${dirty ? " is-dirty" : ""}${passed ? " is-passed" : ""}${failed ? " is-failed" : ""}`}
+                className={`practice-block${active ? " is-active" : ""}${dirty ? " is-dirty" : ""}${baselineVerified ? " is-passed" : ""}${failed ? " is-failed" : ""}`}
                 aria-busy={blockRunning}
                 key={block.id}
               >
@@ -1277,17 +1433,56 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
                 </button>
                 {active ? (
                   <div className="exercise-body" id={`exercise-${lesson.id}-${block.id}`}>
-                    {projectConflict ? <p className="editor-conflict-note" role="status">The project workspace has newer code. Continue there; this lesson is read-only.</p> : null}
+                    {projectConflict && round === 1 ? <p className="editor-conflict-note" role="status">The project workspace has newer code, so the required round is read-only here. Optional rounds stay available and never overwrite the project.</p> : null}
                     <ExerciseContract lesson={lesson} block={displayBlock} />
+                    <fieldset className="practice-rounds" style={{ border: 0, margin: "0 0 0.85rem", padding: 0 }}>
+                      <legend className="sr-only">{block.label} progressive practice rounds</legend>
+                      <div className="practice-round-options compact-trace" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
+                        {PRACTICE_ROUNDS.map((option) => {
+                          const unlocked = option.id === 1
+                            || (option.id === 2 && baselineVerified)
+                            || (option.id === 3 && baselineVerified && roundTwoVerified);
+                          const complete = option.id === 1
+                            ? baselineVerified
+                            : option.id === 2 ? roundTwoVerified : roundThreeVerified;
+                          const status = complete ? "Complete" : option.required ? "Required" : unlocked ? "Optional" : "Locked";
+                          return (
+                            <button
+                              className={`practice-round-option${round === option.id ? " active" : ""}${complete ? " complete" : ""}`}
+                              type="button"
+                              aria-label={`${block.label}: round ${option.id}, ${option.label}, ${status.toLowerCase()}`}
+                              aria-pressed={round === option.id}
+                              data-active={round === option.id}
+                              data-complete={complete}
+                              disabled={!practiceReady || !unlocked || blockRunning}
+                              style={{ minHeight: "2.75rem" }}
+                              onClick={() => selectPracticeRound(block, option.id)}
+                              key={option.id}
+                            >
+                              <span>Round {option.id}</span>
+                              <strong>{option.label}</strong>
+                              <span>{status}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <p className="practice-round-note cell-feedback cell-result">
+                        {round === 1
+                          ? baselineVerified
+                            ? "Required work complete. Keep practicing with less help whenever you want."
+                            : "Pass this guided round to complete the exercise. The harder rounds stay optional."
+                          : `${PRACTICE_ROUNDS[round - 1].description} This round is optional; your completed code and project progress stay saved.`}
+                      </p>
+                    </fieldset>
                     <div className="answer-area" data-direct-edit="true" data-edit-state={dirty ? "draft" : "starter"}>
                       {practiceReady ? (
                         <Suspense fallback={<div className="lesson-editor-loading" role="status">Loading syntax-aware editor…</div>}>
                           <LessonCodeEditor
-                            ariaLabel={`Edit ${block.label}`}
+                            ariaLabel={`Edit ${block.label}, round ${round} of ${PRACTICE_ROUNDS.length}`}
                             lineNumberStart={startLine}
                             onChange={(value) => updateAnswer(block, value)}
                             path={lesson.implementation.filename}
-                            readOnly={blockRunning || projectConflict}
+                            readOnly={blockRunning || (projectConflict && round === 1)}
                             value={workingSource}
                             variant="lesson"
                           />
@@ -1309,28 +1504,28 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
                     ) : null}
                     {result?.cases.length ? <TestCaseResults contract={contract} results={result.cases} /> : null}
                     <div className="exercise-feedback">
-                      <div className={`cell-footer cell-feedback ${result || verified ? "" : "is-idle"}`} role="status" aria-label={`${block.label} check status`} aria-live="polite" aria-atomic="true">
+                      <div className={`cell-footer cell-feedback ${result || roundVerified ? "" : "is-idle"}`} role="status" aria-label={`${block.label} round ${round} check status`} aria-live="polite" aria-atomic="true">
                         {result ? (
                           <output className={result.passed ? "cell-result passed" : "cell-result failed"}>
                             <i aria-hidden="true">{result.passed ? "✓" : "!"}</i>
                             <span><strong>{result.passed ? "Passed" : "Not passed"}</strong><small>{result.detail}</small></span>
                           </output>
-                        ) : verified ? (
+                        ) : roundVerified ? (
                           <output className="cell-result passed">
                             <i aria-hidden="true">✓</i>
-                            <span><strong>Passed</strong><small>This exact code passed the course checks earlier on this device.</small></span>
+                            <span><strong>Passed</strong><small>Round {round} passed the course checks earlier on this device.</small></span>
                           </output>
                         ) : <span className="sr-only">{practiceReady ? "Tests not run." : "Restoring saved progress…"}</span>}
                       </div>
                       <div className="exercise-actions">
-                        <button className="run-cell-button" type="button" onClick={() => void runCell(block)} disabled={!practiceReady || projectConflict || runningBlockIds.length > 0}>{blockRunning ? "Running…" : "Run cell"}</button>
+                        <button className="run-cell-button" type="button" onClick={() => void runCell(block)} disabled={!practiceReady || (projectConflict && round === 1) || runningBlockIds.length > 0}>{blockRunning ? "Running…" : `Run round ${round}`}</button>
                         {resetArmed ? (
                           <span className="reset-confirmation">
-                            <span>Replace this draft with starter code?</span>
-                            <button type="button" aria-label={`Confirm start over for ${block.label}`} aria-describedby={`practice-status-${lesson.id}`} onClick={() => resetBlock(block)} disabled={!practiceReady || projectConflict || blockRunning}>Confirm</button>
-                            <button type="button" aria-label={`Cancel start over for ${block.label}`} aria-describedby={`practice-status-${lesson.id}`} onClick={() => cancelBlockReset(block)} disabled={projectConflict || blockRunning}>Cancel</button>
+                            <span>Replace round {round} with its starter code?</span>
+                            <button type="button" aria-label={`Confirm start over for ${block.label}, round ${round}`} aria-describedby={`practice-status-${lesson.id}`} onClick={() => resetBlock(block)} disabled={!practiceReady || (projectConflict && round === 1) || blockRunning}>Confirm</button>
+                            <button type="button" aria-label={`Cancel start over for ${block.label}, round ${round}`} aria-describedby={`practice-status-${lesson.id}`} onClick={() => cancelBlockReset(block)} disabled={(projectConflict && round === 1) || blockRunning}>Cancel</button>
                           </span>
-                        ) : dirty ? <button className="start-over-button" type="button" aria-label={`Start ${block.label} over from starter code`} aria-describedby={`practice-status-${lesson.id}`} onClick={() => armBlockReset(block)} disabled={!practiceReady || projectConflict || blockRunning}>Start over</button> : null}
+                        ) : dirty ? <button className="start-over-button" type="button" aria-label={`Start ${block.label}, round ${round} over from starter code`} aria-describedby={`practice-status-${lesson.id}`} onClick={() => armBlockReset(block)} disabled={!practiceReady || (projectConflict && round === 1) || blockRunning}>Start over</button> : null}
                       </div>
                     </div>
                     <details className="reference-comparison">

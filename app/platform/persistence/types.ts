@@ -137,6 +137,17 @@ export type CheckpointRecord = {
 
 export type LessonProgressStatus = "not-started" | "in-progress" | "completed";
 
+/**
+ * Optional practice rounds are deliberately separate from the required lesson
+ * answer. A learner can therefore make (or fail) a harder draft without
+ * replacing the verified source used by the project and completion gates.
+ */
+export type PracticeRepetitionProgress = {
+  answers: Record<string, string>;
+  verifiedSources: Record<string, string>;
+  verifiedContractVersion: string | null;
+};
+
 export type LessonProgressRecord = {
   id: string;
   courseId: string;
@@ -151,6 +162,8 @@ export type LessonProgressRecord = {
   experimentComplete: boolean;
   hiddenBlockIds: string[];
   answers: Record<string, string>;
+  /** Sparse drafts and receipts for optional practice rounds after the required first pass. */
+  practiceRepetitions?: PracticeRepetitionProgress;
   /** Prediction-check choices contain ids only; prompts and free-form text are never stored here. */
   knowledgeAnswers?: Record<string, string>;
   knowledgeVerifiedIds?: string[];

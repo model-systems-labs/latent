@@ -89,13 +89,31 @@ test("canonical lesson seeds use starter-first working source and source-bound v
   assert.match(savedSeed.content, /learner-owned draft/);
   assert.match(savedSeed.referenceContent, new RegExp(block.code.split("\n")[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 
+  const optionalDraft = "# optional harder repetition must stay out of the project";
+  const repeatedSeed = seedFor({
+    ...lessonState,
+    practiceRepetitions: {
+      answers: { [`${block.id}::round-2`]: optionalDraft },
+      verifiedSources: {},
+      verifiedContractVersion: null,
+    },
+  });
+  assert.match(repeatedSeed.content, /learner-owned draft/);
+  assert.doesNotMatch(repeatedSeed.content, /optional harder repetition/);
+  assert.equal(repeatedSeed.verifiedCells, 1, "optional practice cannot revoke required project verification");
+
   const freshSeed = seedFor({
     ...lessonState,
     hiddenBlocks: [],
     answers: {},
   });
   assert.equal(freshSeed.verifiedCells, 0, "an authored-solution receipt cannot validate the starter working file");
-  assert.match(freshSeed.content, /NotImplementedError/);
+  assert.ok(block.starterCode, "the course authors an explicit guided starter for this block");
+  assert.match(
+    freshSeed.content,
+    new RegExp(block.starterCode.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
+    "the composed canonical file includes the authored guided round exactly",
+  );
   assert.notEqual(freshSeed.content, freshSeed.referenceContent);
   assert.equal(seedFor({
     ...lessonState,
@@ -615,6 +633,9 @@ test("an old untouched authored file migrates to the starter while IDE edits rem
   workspace.ensureProjectWorkspace([{ ...base, path: untouchedPath, content: referenceContent }]);
   workspace.ensureProjectWorkspace([{ ...base, path: untouchedPath, content: starterContent }]);
   assert.equal(workspace.loadProjectState().files[untouchedPath].content, starterContent);
+  const guidedContent = "def value():\n    return ...";
+  workspace.ensureProjectWorkspace([{ ...base, path: untouchedPath, content: guidedContent }]);
+  assert.equal(workspace.loadProjectState().files[untouchedPath].content, guidedContent, "an untouched seed adopts the newer guided scaffold");
 
   workspace.ensureProjectWorkspace([{ ...base, lessonId: `${base.lessonId}-revised`, path: revisedSeedPath, content: starterContent }]);
   workspace.ensureProjectWorkspace([{ ...base, lessonId: `${base.lessonId}-revised`, path: revisedSeedPath, content: revisedStarterContent }]);

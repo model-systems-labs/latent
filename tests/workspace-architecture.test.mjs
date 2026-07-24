@@ -55,7 +55,8 @@ test("Course Kit is independently licensed, packable, and guarded for public rel
   );
   assert.match(manifest.scripts.prepack, /clean.*build.*prepare:package.*test:built/);
   assert.match(license, /Apache License[\s\S]*Version 2\.0/);
-  assert.match(readme, /npm exec --yes --package @latent\/course-kit@0\.1\.0 --/);
+  assert.match(readme, /releases\/download\/course-kit-v0\.1\.0\/latent-course-kit-0\.1\.0\.tgz/);
+  assert.match(readme, /npm exec --yes --package "\$COURSE_KIT_RELEASE" --/);
   assert.match(ci, /permissions:\s*\n\s*contents: read/);
   assert.doesNotMatch(ci, /uses: [^@\n]+@v\d/);
   assert.match(ci, /npm run smoke:package --workspace @latent\/course-kit/);
@@ -66,6 +67,8 @@ test("Course Kit is independently licensed, packable, and guarded for public rel
   assert.match(release, /release:check --workspace @latent\/course-kit/);
   assert.match(release, /actions\/upload-artifact@[0-9a-f]{40} # v4/);
   assert.match(release, /actions\/download-artifact@[0-9a-f]{40} # v4/);
+  assert.match(release, /github-release:[\s\S]*?gh release create "\$GITHUB_REF_NAME"/);
+  assert.match(release, /if: vars\.NPM_PUBLISH_ENABLED == 'true'/);
   assert.match(release, /npm publish course-kit-release\/\*\.tgz --access public --provenance/);
   assert.match(release, /_schema-site\/open-learning\/v1/);
   assert.match(release, /actions\/deploy-pages@[0-9a-f]{40} # v4/);

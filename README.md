@@ -25,10 +25,14 @@ without that service.
 A Learning Pack is declarative JSON containing objectives, sources, lessons,
 multiple-choice checks, flash-card decks, or any combination of those.
 
-With the published Course Kit:
+Use the exact v0.1.0 release tarball. This registry-independent URL works
+without access to the source repository or ownership of the `@latent` npm
+scope:
 
 ```bash
-npm exec --yes --package=@latent/course-kit@0.1.0 -- \
+COURSE_KIT_RELEASE=https://github.com/model-systems-labs/latent/releases/download/course-kit-v0.1.0/latent-course-kit-0.1.0.tgz
+
+npm exec --yes --package="$COURSE_KIT_RELEASE" -- \
   latent-learning init my-learning-pack
 ```
 
@@ -36,14 +40,14 @@ The starter is intentionally incomplete. Replace its placeholder identity,
 sources, objectives, and teaching material, then validate and build it:
 
 ```bash
-npm exec --yes --package=@latent/course-kit@0.1.0 -- \
+npm exec --yes --package="$COURSE_KIT_RELEASE" -- \
   latent-learning validate my-learning-pack/learning-pack.json --strict
 
-npm exec --yes --package=@latent/course-kit@0.1.0 -- \
+npm exec --yes --package="$COURSE_KIT_RELEASE" -- \
   latent-learning build my-learning-pack/learning-pack.json \
   --out-dir my-learning-pack/site
 
-npm exec --yes --package=@latent/course-kit@0.1.0 -- \
+npm exec --yes --package="$COURSE_KIT_RELEASE" -- \
   latent-learning serve my-learning-pack/site
 ```
 
@@ -69,6 +73,10 @@ lives at
 [examples/open-learning/reliable-llm-changes](./examples/open-learning/reliable-llm-changes).
 The browser application also exposes a local authoring studio at
 `/open-learning`.
+
+After the one-time npm scope bootstrap, the equivalent shorter package pin is
+`@latent/course-kit@0.1.0`. The GitHub release remains a permanent install path
+and includes a published SHA-256 checksum.
 
 ## Why the format stays open
 

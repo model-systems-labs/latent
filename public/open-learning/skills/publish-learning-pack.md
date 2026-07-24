@@ -18,6 +18,13 @@ At the repository root, read:
 
 Resolve the exact source file, package id, version, intended host, and deployment target before changing external state.
 
+Use this immutable, registry-independent Course Kit release for every public
+CLI command in this workflow:
+
+```bash
+COURSE_KIT_RELEASE=https://github.com/model-systems-labs/latent/releases/download/course-kit-v0.1.0/latent-course-kit-0.1.0.tgz
+```
+
 ## Release workflow
 
 ### 1. Establish immutability
@@ -33,7 +40,7 @@ Do not infer ownership of a hostname, bucket, repository, or site. Use only the 
 ### 2. Run the strict gate
 
 ```bash
-npm exec --yes --package @latent/course-kit@0.1.0 -- \
+npm exec --yes --package "$COURSE_KIT_RELEASE" -- \
   latent-learning validate \
   <path>/learning-pack.json \
   --strict \
@@ -51,7 +58,7 @@ An independent `$review-learning-pack` verdict is recommended for public or paid
 ### 3. Build into a dedicated directory
 
 ```bash
-npm exec --yes --package @latent/course-kit@0.1.0 -- \
+npm exec --yes --package "$COURSE_KIT_RELEASE" -- \
   latent-learning build \
   <path>/learning-pack.json \
   --out-dir <dedicated-output-directory> \
@@ -69,7 +76,7 @@ complete trees:
 
 ```bash
 second_build="$(mktemp -d)"
-npm exec --yes --package @latent/course-kit@0.1.0 -- \
+npm exec --yes --package "$COURSE_KIT_RELEASE" -- \
   latent-learning build \
   <path>/learning-pack.json \
   --out-dir "$second_build" \
@@ -83,7 +90,7 @@ temporary directory you created after recording the result.
 ### 4. Preview the exact build
 
 ```bash
-npm exec --yes --package @latent/course-kit@0.1.0 -- \
+npm exec --yes --package "$COURSE_KIT_RELEASE" -- \
   latent-learning serve \
   <dedicated-output-directory>
 ```
@@ -113,7 +120,7 @@ For cross-origin readers, configure `Access-Control-Allow-Origin` for the reader
 ### 6. Verify the deployed feed
 
 ```bash
-npm exec --yes --package @latent/course-kit@0.1.0 -- \
+npm exec --yes --package "$COURSE_KIT_RELEASE" -- \
   latent-learning verify-url \
   https://publisher.example/path/learning-feed.json \
   --json

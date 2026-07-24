@@ -17,12 +17,19 @@ At the repository root, read:
 
 Do not rely on the authoring agent's summary. Read the package and its cited sources directly.
 
+Use this immutable, registry-independent Course Kit release for every public
+CLI command in this workflow:
+
+```bash
+COURSE_KIT_RELEASE=https://github.com/model-systems-labs/latent/releases/download/course-kit-v0.1.0/latent-course-kit-0.1.0.tgz
+```
+
 ## Review workflow
 
 ### 1. Run the automated gate
 
 ```bash
-npm exec --yes --package @latent/course-kit@0.1.0 -- \
+npm exec --yes --package "$COURSE_KIT_RELEASE" -- \
   latent-learning validate \
   <path>/learning-pack.json \
   --strict \
@@ -83,13 +90,13 @@ Review any high-stakes domain claim under an appropriately strict expert standar
 Build twice into separate empty temporary directories:
 
 ```bash
-npm exec --yes --package @latent/course-kit@0.1.0 -- \
+npm exec --yes --package "$COURSE_KIT_RELEASE" -- \
   latent-learning build \
   <path>/learning-pack.json \
   --out-dir <first-directory> \
   --json
 
-npm exec --yes --package @latent/course-kit@0.1.0 -- \
+npm exec --yes --package "$COURSE_KIT_RELEASE" -- \
   latent-learning build \
   <path>/learning-pack.json \
   --out-dir <second-directory> \
@@ -101,7 +108,7 @@ diff -r <first-directory> <second-directory>
 If reviewing a deployment, run:
 
 ```bash
-npm exec --yes --package @latent/course-kit@0.1.0 -- \
+npm exec --yes --package "$COURSE_KIT_RELEASE" -- \
   latent-learning verify-url \
   <https-feed-url> \
   --json

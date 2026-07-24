@@ -17,6 +17,13 @@ At the repository root, read:
 
 Do not infer fields from the current first-party lesson types. Community packs use the public JSON contract and cannot invoke privileged lesson runtimes.
 
+Use this immutable, registry-independent Course Kit release for every public
+CLI command in this workflow:
+
+```bash
+COURSE_KIT_RELEASE=https://github.com/model-systems-labs/latent/releases/download/course-kit-v0.1.0/latent-course-kit-0.1.0.tgz
+```
+
 ## Authoring workflow
 
 ### 1. Establish the learning promise
@@ -51,7 +58,7 @@ Never invent a citation. Do not make a paywalled or inaccessible item the only s
 Use the pinned public CLI:
 
 ```bash
-npm exec --yes --package @latent/course-kit@0.1.0 -- \
+npm exec --yes --package "$COURSE_KIT_RELEASE" -- \
   latent-learning init <directory> --json
 ```
 
@@ -87,7 +94,7 @@ Each flash card should test one useful retrieval. The back should be concise; th
 Run:
 
 ```bash
-npm exec --yes --package @latent/course-kit@0.1.0 -- \
+npm exec --yes --package "$COURSE_KIT_RELEASE" -- \
   latent-learning validate \
   <directory>/learning-pack.json \
   --strict \
@@ -101,13 +108,13 @@ The authoring task is not finished until `ok` is `true`, with zero errors and ze
 ### 6. Build and inspect
 
 ```bash
-npm exec --yes --package @latent/course-kit@0.1.0 -- \
+npm exec --yes --package "$COURSE_KIT_RELEASE" -- \
   latent-learning build \
   <directory>/learning-pack.json \
   --out-dir <directory>/site \
   --json
 
-npm exec --yes --package @latent/course-kit@0.1.0 -- \
+npm exec --yes --package "$COURSE_KIT_RELEASE" -- \
   latent-learning serve \
   <directory>/site
 ```

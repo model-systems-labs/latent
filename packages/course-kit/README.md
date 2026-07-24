@@ -5,15 +5,21 @@ lessons and flash cards. It validates learning packs, builds deterministic
 static sites, emits integrity-bound feeds, and verifies published feeds without
 requiring Latent hosting.
 
-Use a pinned release from any directory:
+Use the exact v0.1.0 GitHub release from any directory. The tarball remains
+available even before or independently of npm scope setup:
 
 ```bash
-npm exec --yes --package @latent/course-kit@0.1.0 -- \
+COURSE_KIT_RELEASE=https://github.com/model-systems-labs/latent/releases/download/course-kit-v0.1.0/latent-course-kit-0.1.0.tgz
+
+npm exec --yes --package "$COURSE_KIT_RELEASE" -- \
   latent-learning init my-learning-pack --json
 
-npm exec --yes --package @latent/course-kit@0.1.0 -- \
+npm exec --yes --package "$COURSE_KIT_RELEASE" -- \
   latent-learning validate my-learning-pack/learning-pack.json --strict --json
 ```
+
+Once `@latent/course-kit` has been bootstrapped on npm, the equivalent registry
+pin is `@latent/course-kit@0.1.0`.
 
 The generated starter is intentionally incomplete. Replace its example content
 before strict validation.

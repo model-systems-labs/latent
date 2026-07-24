@@ -23,7 +23,8 @@ if (manifest.bin?.["latent-learning"] !== "bin/latent-learning.mjs") {
   fail("latent-learning must resolve to bin/latent-learning.mjs.");
 }
 
-const pinnedCommand = `@latent/course-kit@${manifest.version}`;
+const pinnedRelease =
+  `https://github.com/model-systems-labs/latent/releases/download/${expectedTag}/latent-course-kit-${manifest.version}.tgz`;
 for (const relativePath of [
   "packages/course-kit/README.md",
   "docs/open-learning.md",
@@ -32,11 +33,11 @@ for (const relativePath of [
   "skills/publish-learning-pack/SKILL.md",
 ]) {
   const source = await readFile(resolve(repositoryRoot, relativePath), "utf8");
-  if (!source.includes(pinnedCommand)) {
-    fail(`${relativePath} must include the pinned consumer command ${pinnedCommand}.`);
+  if (!source.includes(pinnedRelease)) {
+    fail(`${relativePath} must include the pinned public release ${pinnedRelease}.`);
   }
 }
 
 if (!process.exitCode) {
-  process.stdout.write(`Course Kit ${manifest.version} matches ${expectedTag} and its pinned documentation.\n`);
+  process.stdout.write(`Course Kit ${manifest.version} matches ${expectedTag} and its registry-independent documentation.\n`);
 }

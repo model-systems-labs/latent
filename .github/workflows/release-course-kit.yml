@@ -1,8 +1,10 @@
 name: Release Course Kit
 
-# npm must already contain the package and trust this workflow before the first
-# tag-driven release. Bootstrap ownership interactively; never add a publish
-# token to this workflow.
+# Every tag publishes a registry-independent GitHub tarball and immutable
+# schemas. npm publishing is additionally enabled only when the repository
+# variable NPM_PUBLISH_ENABLED is true. npm must already contain the package
+# and trust this workflow first; bootstrap ownership interactively, then use
+# OIDC here and never add a publish token.
 
 on:
   push:
@@ -127,10 +129,41 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
 
-  publish:
+  github-release:
     needs:
       - verify
       - schemas
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: course-kit-npm-tarball
+          path: course-kit-release
+      - name: Add a checksum and publish the registry-independent release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tarball="$(find course-kit-release -maxdepth 1 -name '*.tgz' -print -quit)"
+          test -n "$tarball"
+          (cd course-kit-release && sha256sum "$(basename "$tarball")" > SHA256SUMS)
+          gh release create "$GITHUB_REF_NAME" \
+            "$tarball" \
+            course-kit-release/SHA256SUMS \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Course Kit ${GITHUB_REF_NAME#course-kit-v}" \
+            --notes-file CHANGELOG.md \
+            --verify-tag
+
+  publish:
+    if: vars.NPM_PUBLISH_ENABLED == 'true'
+    needs:
+      - verify
+      - schemas
+      - github-release
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

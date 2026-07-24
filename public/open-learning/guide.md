@@ -19,31 +19,37 @@ Version 1 intentionally does not execute community JavaScript, HTML, CSS, Python
 
 ## Quick start
 
-Use the pinned public CLI from any directory:
+Use the exact v0.1.0 release from any directory:
 
 ```bash
-npm exec --yes --package @latent/course-kit@0.1.0 -- \
+COURSE_KIT_RELEASE=https://github.com/model-systems-labs/latent/releases/download/course-kit-v0.1.0/latent-course-kit-0.1.0.tgz
+
+npm exec --yes --package "$COURSE_KIT_RELEASE" -- \
   latent-learning init my-learning-pack --json
 ```
+
+The GitHub tarball is the permanent registry-independent install path. After
+the `@latent` npm scope is bootstrapped, `@latent/course-kit@0.1.0` is an
+equivalent shorter pin.
 
 `init` deliberately writes an incomplete scaffold. Replace every example
 identity, source, and content field in `my-learning-pack/learning-pack.json`;
 the release validator rejects the starter placeholders. Then run:
 
 ```bash
-npm exec --yes --package @latent/course-kit@0.1.0 -- \
+npm exec --yes --package "$COURSE_KIT_RELEASE" -- \
   latent-learning validate \
   my-learning-pack/learning-pack.json \
   --strict \
   --json
 
-npm exec --yes --package @latent/course-kit@0.1.0 -- \
+npm exec --yes --package "$COURSE_KIT_RELEASE" -- \
   latent-learning build \
   my-learning-pack/learning-pack.json \
   --out-dir my-learning-pack/site \
   --json
 
-npm exec --yes --package @latent/course-kit@0.1.0 -- \
+npm exec --yes --package "$COURSE_KIT_RELEASE" -- \
   latent-learning serve \
   my-learning-pack/site
 ```
@@ -62,8 +68,7 @@ node packages/course-kit/bin/latent-learning.mjs --help
 
 Use the `node packages/course-kit/bin/latent-learning.mjs` form only from a
 checkout. Published automation should keep the explicit
-`@latent/course-kit@0.1.0` pin so a future CLI release cannot silently change a
-build.
+release tarball pin so a future CLI release cannot silently change a build.
 
 ## Generated directory
 
@@ -102,7 +107,7 @@ The standalone site does not need CORS. CORS is needed only when a reader on ano
 Verify a deployed feed:
 
 ```bash
-npm exec --yes --package @latent/course-kit@0.1.0 -- \
+npm exec --yes --package "$COURSE_KIT_RELEASE" -- \
   latent-learning verify-url \
   https://publisher.example/course/learning-feed.json \
   --json

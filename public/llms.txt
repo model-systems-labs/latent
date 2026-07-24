@@ -2,6 +2,13 @@
 
 Latent supports portable, self-hosted lessons and flash cards created by people or any capable LLM.
 
+Programming question groups are a separate declarative primitive:
+/question-groups/guide.md
+/question-groups/v1/question-group-library.schema.json
+
+The built-in browser practice site is:
+/practice
+
 Authoritative guide:
 /open-learning/guide.md
 

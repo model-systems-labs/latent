@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import {
   learningFeedJsonSchema,
   learningPackJsonSchema,
+  questionGroupLibraryJsonSchema,
 } from "../dist/index.js";
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -18,6 +19,7 @@ await Promise.all([
 const schemaFiles = [
   ["schema/learning-pack.schema.json", learningPackJsonSchema],
   ["schema/learning-feed.schema.json", learningFeedJsonSchema],
+  ["schema/question-group-library.schema.json", questionGroupLibraryJsonSchema],
 ];
 
 for (const [relativePath, schema] of schemaFiles) {
@@ -57,6 +59,10 @@ const docs = [
   [
     "docs/learning-pack-quality-rubric.md",
     await readFile(resolve(repositoryRoot, "docs/learning-pack-quality-rubric.md"), "utf8"),
+  ],
+  [
+    "docs/question-groups.md",
+    await readFile(resolve(repositoryRoot, "docs/question-groups.md"), "utf8"),
   ],
 ];
 

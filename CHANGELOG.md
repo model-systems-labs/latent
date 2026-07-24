@@ -13,6 +13,20 @@ contracts and are identified inside their documents.
 - Public contribution, security, conduct, licensing, and roadmap documentation.
 - GitHub issue and pull-request templates for community participation.
 
+## [0.2.0] - 2026-07-24
+
+### Added
+
+- The versioned `latent-question-group-library` v1 format for portable
+  JavaScript, TypeScript, and Python function or class-method practice.
+- Strict structural and semantic validation, canonical JSON, a public JSON
+  Schema, and a framework-neutral package subpath for question-group readers.
+
+### Changed
+
+- Course Kit release packaging and smoke tests now include the question-group
+  guide, schema, runtime exports, and type declarations.
+
 ## [0.1.0] - 2026-07-24
 
 ### Added
@@ -36,5 +50,6 @@ contracts and are identified inside their documents.
 - Feed loading verifies origin, redirects, UTF-8, byte limits, canonical bytes,
   identity, version, and SHA-256 before rendering.
 
-[Unreleased]: https://github.com/model-systems-labs/latent/compare/course-kit-v0.1.0...HEAD
+[Unreleased]: https://github.com/model-systems-labs/latent/compare/course-kit-v0.2.0...HEAD
+[0.2.0]: https://github.com/model-systems-labs/latent/compare/course-kit-v0.1.0...course-kit-v0.2.0
 [0.1.0]: https://github.com/model-systems-labs/latent/releases/tag/course-kit-v0.1.0

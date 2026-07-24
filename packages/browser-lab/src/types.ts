@@ -84,8 +84,8 @@ export type HostAssertion =
   | { id: string; label: string; kind: "range"; minimum: number; maximum: number; path?: ValuePath }
   | { id: string; label: string; kind: "length"; expected: number; path?: ValuePath }
   | { id: string; label: string; kind: "includes"; expected: JsonValue; path?: ValuePath }
-  | { id: string; label: string; kind: "matches"; pattern: string; flags?: "" | "i" | "m" | "im"; path?: ValuePath }
-  | { id: string; label: string; kind: "throws"; errorName?: string };
+  | { id: string; label: string; kind: "matches"; pattern: string; flags?: "" | "i" | "m" | "s" | "im" | "is" | "ms" | "ims"; path?: ValuePath }
+  | { id: string; label: string; kind: "throws"; errorName?: string; messagePattern?: string };
 
 export type ExerciseCase = {
   id: string;

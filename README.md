@@ -25,12 +25,12 @@ without that service.
 A Learning Pack is declarative JSON containing objectives, sources, lessons,
 multiple-choice checks, flash-card decks, or any combination of those.
 
-Use the exact v0.1.0 release tarball. This registry-independent URL works
+Use the exact v0.2.0 release tarball. This registry-independent URL works
 without access to the source repository or ownership of the `@latent` npm
 scope:
 
 ```bash
-COURSE_KIT_RELEASE=https://github.com/model-systems-labs/latent/releases/download/course-kit-v0.1.0/latent-course-kit-0.1.0.tgz
+COURSE_KIT_RELEASE=https://github.com/model-systems-labs/latent/releases/download/course-kit-v0.2.0/latent-course-kit-0.2.0.tgz
 
 npm exec --yes --package="$COURSE_KIT_RELEASE" -- \
   latent-learning init my-learning-pack
@@ -75,7 +75,7 @@ The browser application also exposes a local authoring studio at
 `/open-learning`.
 
 After the one-time npm scope bootstrap, the equivalent shorter package pin is
-`@latent/course-kit@0.1.0`. The GitHub release remains a permanent install path
+`@latent/course-kit@0.2.0`. The GitHub release remains a permanent install path
 and includes a published SHA-256 checksum.
 
 ## Why the format stays open
@@ -148,10 +148,12 @@ realm.
 ## Repository map
 
 - `packages/course-kit/` — public Learning Pack schemas, validation, CLI, and
-  static-site builder
+  static-site builder, plus the portable question-group schema
 - `skills/` — model-neutral author, review, and publish workflows for LLMs
 - `examples/open-learning/` — complete self-hosted Learning Pack examples
 - `app/open-learning/` — browser authoring and verified hosted-feed reader
+- `app/practice/` — grouped method practice using the shared editor and
+  source-bound device progress
 - `packages/browser-lab/` — virtual compiler, QuickJS sandbox, checks, and
   promotion gate
 - `packages/python-lab/` — isolated browser Python execution

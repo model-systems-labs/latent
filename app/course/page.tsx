@@ -70,7 +70,7 @@ export default function CourseCatalogPage() {
   return (
     <main>
       <PageAtmosphere />
-      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><Link href="/course">Courses</Link><Link href="/open-learning">Open learning</Link><Link href="/workspace" aria-label="Open coding workspace">Code</Link><Link href="/flashcards" aria-label="Flash cards">Cards</Link><Link href="/sources">Further reading</Link></nav></header>
+      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><Link href="/course">Courses</Link><Link href="/practice">Practice</Link><Link href="/open-learning">Open learning</Link><Link href="/workspace" aria-label="Open coding workspace">Code</Link><Link href="/flashcards" aria-label="Flash cards">Cards</Link><Link href="/sources">Further reading</Link></nav></header>
       <article className={`course-page ${styles.catalogPage}`}>
         <header className={`course-hero ${styles.catalogHero}`}>
           <h1>Courses</h1>
@@ -125,6 +125,14 @@ export default function CourseCatalogPage() {
             <p>Filter by subject, search any concept, then mark each card Got it or Needs work. Your progress stays on this device.</p>
           </div>
           <strong>Study flash cards <span aria-hidden="true">→</span></strong>
+        </Link>
+        <Link className={styles.reviewCallout} href="/practice">
+          <div>
+            <span>Method practice</span>
+            <h2>Work the problem, then check the code.</h2>
+            <p>Practice original interview-style questions in the browser. Drafts and solved status stay on this device.</p>
+          </div>
+          <strong>Open practice <span aria-hidden="true">→</span></strong>
         </Link>
       </article>
     </main>

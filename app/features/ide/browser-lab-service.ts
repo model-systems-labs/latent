@@ -17,6 +17,7 @@ import {
   type ProjectSnapshot,
   type SourceHash,
   type TestReceipt,
+  type VirtualSourceFile,
 } from "@latent/browser-lab";
 import { getPersistenceContext } from "../../platform/persistence/client";
 import type { TestReceiptRecord } from "../../platform/persistence/types";
@@ -136,17 +137,39 @@ export type BrowserLabProjectRun = {
   persistenceReceipt: TestReceiptRecord | null;
 };
 
-export async function runPracticeContracts(input: {
+export type BrowserPracticeContractInput = {
   path: string;
   source: string;
-  contractIds: readonly string[];
+  contracts: readonly ExerciseContract[];
+  contractVersion: string;
+  supportFiles?: readonly VirtualSourceFile[];
   signal?: AbortSignal;
-}): Promise<PracticeContractRun> {
-  const wanted = new Set(input.contractIds);
-  const contracts = llmSystemsContractSuite.contracts.filter((contract) => wanted.has(contract.id));
-  if (!contracts.length || contracts.length !== wanted.size) throw new Error("That lesson check isn’t available.");
+};
+
+/**
+ * Compile and check one browser-practice module against an explicit, host-owned
+ * contract suite. Curriculum selection stays outside this runtime seam so
+ * lessons, question groups, and future trusted practice surfaces can share the
+ * same isolated compiler and QuickJS boundary.
+ */
+export async function runBrowserPracticeContracts(
+  input: BrowserPracticeContractInput,
+): Promise<PracticeContractRun> {
+  const contracts = [...input.contracts];
+  if (!input.contractVersion.trim() || !contracts.length) {
+    throw new Error("That practice check isn’t available.");
+  }
+  const contractIds = contracts.map((contract) => contract.id);
+  if (new Set(contractIds).size !== contractIds.length) {
+    throw new Error("That practice check contains duplicate contract ids.");
+  }
   if (contracts.some((contract) => contract.cases.some((exerciseCase) => exerciseCase.invoke.modulePath !== input.path))) {
-    throw new Error("That lesson check doesn’t belong to this project file.");
+    throw new Error("That practice check doesn’t belong to this source file.");
+  }
+  const supportFiles = [...(input.supportFiles ?? [])];
+  const sourcePaths = [input.path, ...supportFiles.map((file) => file.path)];
+  if (new Set(sourcePaths).size !== sourcePaths.length) {
+    throw new Error("That practice check contains duplicate source paths.");
   }
   const exportNames = [...new Set(contracts.flatMap((contract) => contract.cases.map((exerciseCase) => exerciseCase.invoke.exportName)))];
   let contents: string;
@@ -161,7 +184,7 @@ export async function runPracticeContracts(input: {
     revision: 0,
     files: [
       { path: input.path, contents, loader: loaderFor(input.path) },
-      { path: LATENT_TENSOR_PATH, contents: LATENT_TENSOR_SOURCE, loader: "js" },
+      ...supportFiles,
     ],
   };
   const job = await createCompileJob({
@@ -179,7 +202,7 @@ export async function runPracticeContracts(input: {
   } finally {
     compiler.dispose();
   }
-  const suite = { contractVersion: llmSystemsContractSuite.contractVersion, contracts };
+  const suite = { contractVersion: input.contractVersion, contracts };
   const receipt = await new BrowserLabWorkerClient().runSuite({
     schemaVersion: 1,
     jobId: `practice-test-${crypto.randomUUID()}`,
@@ -195,6 +218,30 @@ export async function runPracticeContracts(input: {
     limits: { ...DEFAULT_SANDBOX_LIMITS },
   }, { signal: input.signal });
   return { cases: [...receipt.results], results: aggregateReceipt(receipt, contracts), ...practiceOutput(receipt) };
+}
+
+export async function runPracticeContracts(input: {
+  path: string;
+  source: string;
+  contractIds: readonly string[];
+  signal?: AbortSignal;
+}): Promise<PracticeContractRun> {
+  const wanted = new Set(input.contractIds);
+  const contracts = llmSystemsContractSuite.contracts.filter((contract) => wanted.has(contract.id));
+  if (!contracts.length || contracts.length !== wanted.size) throw new Error("That lesson check isn’t available.");
+  if (contracts.some((contract) => contract.cases.some((exerciseCase) => exerciseCase.invoke.modulePath !== input.path))) {
+    throw new Error("That lesson check doesn’t belong to this project file.");
+  }
+  return runBrowserPracticeContracts({
+    path: input.path,
+    source: input.source,
+    contracts,
+    contractVersion: llmSystemsContractSuite.contractVersion,
+    supportFiles: [
+      { path: LATENT_TENSOR_PATH, contents: LATENT_TENSOR_SOURCE, loader: "js" },
+    ],
+    signal: input.signal,
+  });
 }
 
 export async function runLessonContracts(

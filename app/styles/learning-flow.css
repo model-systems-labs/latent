@@ -1666,14 +1666,18 @@ button:disabled {
   color: var(--muted);
 }
 
-.transport-stages {
+.transport-stages,
+.reliability-trace,
+.streaming-render-path {
   border-top: 1px solid var(--line);
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.transport-stages li {
+.transport-stages li,
+.reliability-trace li,
+.streaming-render-path li {
   align-items: baseline;
   display: grid;
   gap: 0.75rem;
@@ -1682,11 +1686,15 @@ button:disabled {
   position: relative;
 }
 
-.transport-stages li + li {
+.transport-stages li + li,
+.reliability-trace li + li,
+.streaming-render-path li + li {
   border-top: 1px solid var(--line);
 }
 
-.transport-stages li:not(:last-child)::after {
+.transport-stages li:not(:last-child)::after,
+.reliability-trace li:not(:last-child)::after,
+.streaming-render-path li:not(:last-child)::after {
   bottom: -0.34rem;
   color: var(--diagram-accent);
   content: "↓";
@@ -1697,7 +1705,9 @@ button:disabled {
   z-index: 1;
 }
 
-.transport-stages li > span {
+.transport-stages li > span,
+.reliability-trace li > span,
+.streaming-render-path li > span {
   color: var(--diagram-label);
   font-family: var(--mono);
   font-size: max(0.68rem, 11px);
@@ -1710,12 +1720,16 @@ button:disabled {
   grid-template-columns: minmax(6.5rem, 0.65fr) minmax(0, 1.35fr);
 }
 
-.transport-stages strong {
+.transport-stages strong,
+.reliability-trace strong,
+.streaming-render-path strong {
   font-size: max(0.68rem, 11px);
   font-weight: 560;
 }
 
-.transport-stages code {
+.transport-stages code,
+.reliability-trace code,
+.streaming-render-path code {
   color: var(--violet-deep);
   font-size: max(0.68rem, 11px);
   line-height: 1.45;
@@ -1801,60 +1815,11 @@ button:disabled {
   color: var(--muted);
 }
 
-.reliability-trace {
-  border-top: 1px solid var(--line);
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.reliability-trace li {
-  align-items: baseline;
-  display: grid;
-  gap: 0.75rem;
-  grid-template-columns: 1.5rem minmax(0, 1fr);
-  padding: 0.68rem 0;
-  position: relative;
-}
-
-.reliability-trace li + li {
-  border-top: 1px solid var(--line);
-}
-
-.reliability-trace li:not(:last-child)::after {
-  bottom: -0.34rem;
-  color: var(--diagram-accent);
-  content: "↓";
-  font-family: var(--mono);
-  font-size: max(0.68rem, 11px);
-  left: 0.46rem;
-  position: absolute;
-  z-index: 1;
-}
-
-.reliability-trace li > span {
-  color: var(--diagram-label);
-  font-family: var(--mono);
-  font-size: max(0.68rem, 11px);
-}
-
 .reliability-trace li > div {
   align-items: baseline;
   display: grid;
   gap: 0.7rem;
   grid-template-columns: minmax(7.3rem, 0.65fr) minmax(0, 1.35fr);
-}
-
-.reliability-trace strong {
-  font-size: max(0.68rem, 11px);
-  font-weight: 560;
-}
-
-.reliability-trace code {
-  color: var(--violet-deep);
-  font-size: max(0.68rem, 11px);
-  line-height: 1.45;
-  text-align: right;
 }
 
 .reliability-retry-branch,
@@ -2054,60 +2019,11 @@ button:disabled {
   color: var(--muted);
 }
 
-.streaming-render-path {
-  border-top: 1px solid var(--line);
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.streaming-render-path li {
-  align-items: baseline;
-  display: grid;
-  gap: 0.75rem;
-  grid-template-columns: 1.5rem minmax(0, 1fr);
-  padding: 0.68rem 0;
-  position: relative;
-}
-
-.streaming-render-path li + li {
-  border-top: 1px solid var(--line);
-}
-
-.streaming-render-path li:not(:last-child)::after {
-  bottom: -0.34rem;
-  color: var(--diagram-accent);
-  content: "↓";
-  font-family: var(--mono);
-  font-size: max(0.68rem, 11px);
-  left: 0.46rem;
-  position: absolute;
-  z-index: 1;
-}
-
-.streaming-render-path li > span {
-  color: var(--diagram-label);
-  font-family: var(--mono);
-  font-size: max(0.68rem, 11px);
-}
-
 .streaming-render-path li > div {
   align-items: baseline;
   display: grid;
   gap: 0.7rem;
   grid-template-columns: minmax(7.8rem, 0.7fr) minmax(0, 1.3fr);
-}
-
-.streaming-render-path strong {
-  font-size: max(0.68rem, 11px);
-  font-weight: 560;
-}
-
-.streaming-render-path code {
-  color: var(--violet-deep);
-  font-size: max(0.68rem, 11px);
-  line-height: 1.45;
-  text-align: right;
 }
 
 .streaming-commit-evidence,

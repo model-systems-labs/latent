@@ -1,7 +1,7 @@
 {
   "name": "@latent/course-kit",
-  "version": "0.1.0",
-  "description": "Model-neutral schemas, validation, and static publishing for portable lessons and flash cards.",
+  "version": "0.2.0",
+  "description": "Model-neutral schemas, validation, and static publishing for portable lessons, flash cards, and question groups.",
   "license": "Apache-2.0",
   "author": "Model Systems Labs",
   "homepage": "https://github.com/model-systems-labs/latent/tree/main/packages/course-kit",
@@ -19,6 +19,8 @@
     "learning",
     "lessons",
     "llm",
+    "programming-practice",
+    "question-groups",
     "static-site"
   ],
   "type": "module",
@@ -52,6 +54,10 @@
     "./learning-pack": {
       "types": "./dist/learning-pack.d.ts",
       "import": "./dist/learning-pack.js"
+    },
+    "./question-group": {
+      "types": "./dist/question-group.d.ts",
+      "import": "./dist/question-group.js"
     },
     "./static-site": {
       "types": "./dist/static-site.d.ts",

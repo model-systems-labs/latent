@@ -77,6 +77,13 @@ export function validateExerciseContract(contract: ExerciseContract): void {
         throw new BrowserLabError("INVALID_ASSERTION", `Case ${exerciseCase.id} has an invalid numeric range.`);
       }
       if (assertion.kind === "matches" && assertion.pattern.length > 500) throw new BrowserLabError("INVALID_ASSERTION", "Regular-expression assertions are limited to 500 characters.");
+      if (
+        assertion.kind === "throws"
+        && assertion.messagePattern !== undefined
+        && assertion.messagePattern.length > 500
+      ) {
+        throw new BrowserLabError("INVALID_ASSERTION", "Exception-message assertions are limited to 500 characters.");
+      }
     }
   }
 }
@@ -87,7 +94,21 @@ export function evaluateHostAssertion(assertion: HostAssertion, observation: Inv
     if (assertion.errorName && observation.errorName !== assertion.errorName) {
       return fail(assertion, `Expected ${assertion.errorName}, but the invocation raised ${observation.errorName}.`);
     }
-    return pass(assertion, assertion.errorName ? `The invocation raised ${assertion.errorName}.` : "The invocation threw as expected.");
+    if (assertion.messagePattern !== undefined) {
+      let matched = false;
+      try {
+        matched = new RegExp(assertion.messagePattern).test(observation.message);
+      } catch {
+        return fail(assertion, "The course-authored exception-message pattern is invalid.");
+      }
+      if (!matched) return fail(assertion, "The exception message did not match the required pattern.");
+    }
+    if (assertion.errorName && assertion.messagePattern !== undefined) {
+      return pass(assertion, `The invocation raised ${assertion.errorName} with the expected message.`);
+    }
+    if (assertion.errorName) return pass(assertion, `The invocation raised ${assertion.errorName}.`);
+    if (assertion.messagePattern !== undefined) return pass(assertion, "The invocation threw with the expected message.");
+    return pass(assertion, "The invocation threw as expected.");
   }
   if (observation.status !== "returned") {
     const exception = observation.status === "threw" && observation.message

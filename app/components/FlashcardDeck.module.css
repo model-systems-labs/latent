@@ -9,7 +9,7 @@
 }
 
 .study {
-  padding-bottom: clamp(4rem, 8vw, 7rem);
+  padding-bottom: clamp(2.8rem, 5.6vw, 4.9rem);
 }
 
 .studyControls {
@@ -17,15 +17,14 @@
 }
 
 .overview {
-  border-bottom: 1px solid var(--line-strong);
-  border-top: 1px solid var(--line-strong);
+  border-top: 1px solid var(--line);
   padding: 1.1rem 0 0;
 }
 
 .progressHeading {
   align-items: end;
   display: flex;
-  gap: 2rem;
+  gap: 1.4rem;
   justify-content: space-between;
 }
 
@@ -96,8 +95,8 @@
 }
 
 .stats {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
+  gap: 1.25rem;
   margin: 0;
 }
 
@@ -109,8 +108,7 @@
 }
 
 .stats > div + div {
-  border-left: 1px solid var(--line);
-  padding-left: 1.2rem;
+  padding-left: 0;
 }
 
 .stats dt {
@@ -132,17 +130,33 @@
   color: var(--red);
 }
 
+.filterDisclosure { border-bottom: 1px solid var(--line); }
+
 .filters {
-  border-bottom: 1px solid var(--line);
-  display: grid;
+  display: none;
   gap: 1rem;
   grid-template-columns: minmax(0, 1.5fr) minmax(15rem, 1fr);
-  padding: 1.1rem 0;
+  padding: 0.7rem 0 1.1rem;
 }
 
 .filterToggle {
-  display: none;
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  min-height: 3.25rem;
+  padding: 0.25rem 0;
+  width: 100%;
 }
+
+.filterToggle::after { color: var(--violet); content: "+"; font-size: 1.1rem; margin-left: 0.7rem; }
+.filterToggle[aria-expanded="true"]::after { content: "−"; }
+.filterToggle span { color: var(--muted); font-size: max(0.7rem, 12px); font-weight: 590; letter-spacing: 0.08em; text-transform: uppercase; }
+.filterToggle strong { color: var(--muted); flex: 1; font-size: max(0.7rem, 12px); font-weight: 450; margin-left: 0.9rem; overflow: hidden; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
+.filters.filtersOpen { display: grid; }
 
 .filters fieldset {
   border: 0;
@@ -234,7 +248,7 @@
 }
 
 .deck {
-  margin: clamp(1.65rem, 3vw, 2.6rem) auto 0;
+  margin: clamp(1.15rem, 2.1vw, 1.8rem) auto 0;
   max-width: 52rem;
 }
 
@@ -307,8 +321,8 @@
   --receipt-accent: var(--violet);
   align-items: center;
   animation: receipt-in 180ms ease-out;
-  background: linear-gradient(90deg, rgba(116, 100, 135, 0.1), rgba(251, 250, 247, 0.55));
-  border: 1px solid var(--line);
+  background: rgba(255, 253, 248, 0.34);
+  border: 0;
   border-left: 2px solid var(--receipt-accent);
   display: flex;
   gap: 0.8rem;
@@ -320,12 +334,10 @@
 
 .markReceipt[data-result="success"] {
   --receipt-accent: var(--green);
-  background: linear-gradient(90deg, rgba(84, 115, 93, 0.11), rgba(251, 250, 247, 0.55));
 }
 
 .markReceipt[data-result="failure"] {
   --receipt-accent: var(--red);
-  background: linear-gradient(90deg, rgba(141, 90, 84, 0.1), rgba(251, 250, 247, 0.55));
 }
 
 .markReceipt p {
@@ -375,23 +387,12 @@
 .card {
   --card-accent: var(--violet);
   animation: card-enter 180ms ease-out;
-  background: rgba(251, 250, 247, 0.82);
-  border: 1px solid var(--line-strong);
-  box-shadow: inset 0 2px 0 var(--card-accent), 0 1.3rem 4rem rgba(59, 47, 70, 0.07);
-  isolation: isolate;
+  background: rgba(255, 253, 248, 0.56);
+  border: 1px solid var(--line);
+  border-top: 2px solid var(--card-accent);
   min-width: 0;
   position: relative;
   scroll-margin-top: 0.75rem;
-}
-
-.card::before {
-  background: rgba(251, 250, 247, 0.42);
-  border: 1px solid var(--line);
-  content: "";
-  inset: 0.42rem -0.42rem -0.42rem 0.42rem;
-  pointer-events: none;
-  position: absolute;
-  z-index: -1;
 }
 
 .card[data-subject="linear-algebra"] { --card-accent: #58636d; }
@@ -408,7 +409,7 @@
 
 .cardFront {
   align-items: center;
-  background: radial-gradient(circle at 82% 16%, rgba(116, 100, 135, 0.09), transparent 31%);
+  background: transparent;
   border: 0;
   display: flex;
   flex-direction: column;
@@ -794,7 +795,7 @@
 
 .clearSection {
   border-top: 1px solid var(--line);
-  margin-top: 2rem;
+  margin-top: 1.4rem;
   padding-top: 0.75rem;
   text-align: center;
 }
@@ -828,7 +829,7 @@
 @media (min-width: 960px) {
   .study {
     align-items: start;
-    column-gap: clamp(2rem, 5vw, 4.5rem);
+    column-gap: clamp(1.4rem, 3.5vw, 3.15rem);
     display: grid;
     grid-template-columns: minmax(17rem, 0.72fr) minmax(0, 1.55fr);
   }
@@ -865,63 +866,8 @@
 }
 
 @media (max-width: 959px) {
-  .filterDisclosure {
-    border-bottom: 1px solid var(--line);
-  }
-
-  .filterToggle {
-    align-items: center;
-    background: transparent;
-    border: 0;
-    color: inherit;
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    min-height: 3.25rem;
-    padding: 0.25rem 0;
-    width: 100%;
-  }
-
-  .filterToggle::after {
-    color: var(--violet);
-    content: "+";
-    font-size: 1.1rem;
-    margin-left: 0.7rem;
-  }
-
-  .filterToggle[aria-expanded="true"]::after {
-    content: "−";
-  }
-
-  .filterToggle span {
-    color: var(--muted);
-    font-size: max(0.7rem, 12px);
-    font-weight: 590;
-    letter-spacing: 0.11em;
-    text-transform: uppercase;
-  }
-
-  .filterToggle strong {
-    color: var(--muted);
-    flex: 1;
-    font-size: max(0.7rem, 12px);
-    font-weight: 450;
-    margin-left: 0.9rem;
-    overflow: hidden;
-    text-align: right;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
   .filters {
-    border-bottom: 0;
-    display: none;
     grid-template-columns: 1fr;
-    padding-top: 0.7rem;
-  }
-
-  .filters.filtersOpen {
-    display: grid;
   }
 
   .filterScroller {

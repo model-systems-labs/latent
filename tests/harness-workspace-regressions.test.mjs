@@ -148,6 +148,17 @@ function starterFiles() {
   ]));
 }
 
+function assertPythonParses(source, label) {
+  pyodide.globals.set("__latent_syntax_source", source);
+  try {
+    pyodide.runPython("import ast; ast.parse(__latent_syntax_source); True");
+  } catch (error) {
+    assert.fail(`${label} must be valid Python: ${error}`);
+  } finally {
+    pyodide.globals.delete("__latent_syntax_source");
+  }
+}
+
 function database() {
   return new persistence.BrowserLabDatabase(`harness-workspace-${crypto.randomUUID()}`);
 }
@@ -172,10 +183,16 @@ test("the Harness workbook exposes one complete importable Python scaffold", () 
     assert.equal(file.track, "harness");
     assert.equal(file.verifiedCells, 0);
     assert.equal(file.totalCells, 2);
-    assert.equal((file.content.match(/raise NotImplementedError\(/g) ?? []).length, file.totalCells, file.path);
+    const starterTodoCount = (file.content.match(/# TODO:/g) ?? []).length;
+    const starterStubCount = (file.content.match(/raise NotImplementedError/g) ?? []).length;
+    assert.ok(starterTodoCount >= file.totalCells, file.path);
+    assert.ok(starterStubCount >= file.totalCells, file.path);
     assert.equal((file.content.match(/^# \d{2} · /gm) ?? []).length, file.totalCells, file.path);
     assert.doesNotMatch(file.referenceContent, /NotImplementedError|# TODO:/, file.path);
+    assert.match(file.content, /NotImplementedError|# TODO:/, file.path);
     assert.notEqual(file.content, file.referenceContent, file.path);
+    assertPythonParses(file.content, `${file.path} guided scaffold`);
+    assertPythonParses(file.referenceContent, `${file.path} authored reference`);
   }
 
   assert.match(referenceFiles()["harness/harness.py"], /from harness\.agent_loop import/);

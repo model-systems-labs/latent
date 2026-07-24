@@ -36,7 +36,7 @@ test("lessons use an editorial hierarchy instead of landing-page scale", async (
   assert.match(learningFlow, /\.paper-hero h1\s*\{[^}]*font-size:\s*clamp\(2\.65rem,\s*4vw,\s*4rem\)/);
   assert.match(learningFlow, /\.paper-hero h1\s*\{[^}]*white-space:\s*nowrap/);
   assert.match(learningFlow, /\.section-title h2\s*\{[^}]*font-size:\s*clamp\(1\.65rem,\s*2\.3vw,\s*2\.15rem\)/);
-  assert.match(learningFlow, /\.paper-section\s*\{[^}]*padding:\s*clamp\(2\.25rem,\s*4vw,\s*3\.25rem\)/);
+  assert.match(learningFlow, /\.paper-section\s*\{[^}]*padding:\s*clamp\(1\.6rem,\s*2\.8vw,\s*2\.3rem\)/);
   assert.match(lessonMobile, /\.lessonShell :global\(\.paper-hero h1\)\s*\{[^}]*font-size:\s*clamp\(2\.15rem,\s*9vw,\s*2\.65rem\)[^}]*white-space:\s*normal/);
   assert.match(lessonMobile, /\.lessonShell :global\(\.exercise-body\) \{ padding:\s*0\.15rem 0 1\.7rem; \}/);
   assert.match(lessonMobile, /\.lessonShell :global\(\.exercise-feedback\) \{[^}]*flex-direction:\s*column/);
@@ -165,7 +165,7 @@ test("lesson further reading uses one compact inline list with assistive metadat
   assert.doesNotMatch(lessonMobile, /source-set\[open\]|source-set-title::after/);
 });
 
-test("lesson code opens one starter-first syntax-aware Python exercise in a light-neutral workspace", async () => {
+test("lesson code opens progressive starter-first syntax-aware Python practice in a light-neutral workspace", async () => {
   const [paperLab, syntaxCode, codeEditor, codingWorkspace, learningFlow] = await Promise.all([
     readFile(paperLabUrl, "utf8"),
     readFile(syntaxCodeUrl, "utf8"),
@@ -188,17 +188,22 @@ test("lesson code opens one starter-first syntax-aware Python exercise in a ligh
   assert.match(paperLab, /const active = activeBlockId === block\.id/);
   assert.match(paperLab, /className="exercise-summary"[\s\S]*?aria-expanded=\{active\}[\s\S]*?aria-controls=\{`exercise-\$\{lesson\.id\}-\$\{block\.id\}`\}/);
   assert.match(paperLab, /\{active \? \([\s\S]*?className="exercise-body" id=\{`exercise-\$\{lesson\.id\}-\$\{block\.id\}`\}/);
-  assert.match(paperLab, /const starterSource = starterCodeFor\(block, lesson\)/);
+  assert.match(paperLab, /const starterSource = round === 1[\s\S]*?\? starterCodeFor\(block, lesson\)[\s\S]*?: practiceRepetitionSource\(lesson\.implementation\.filename, block, round\)/);
+  assert.match(paperLab, /<fieldset className="practice-rounds"[^>]*>[\s\S]*?<legend className="sr-only">\{block\.label\} progressive practice rounds<\/legend>/);
+  assert.match(paperLab, /\{PRACTICE_ROUNDS\.map\(\(option\) => \{/);
+  assert.match(paperLab, /const unlocked = option\.id === 1[\s\S]*?option\.id === 2 && baselineVerified[\s\S]*?option\.id === 3 && baselineVerified && roundTwoVerified/);
+  assert.match(paperLab, /const status = complete \? "Complete" : option\.required \? "Required" : unlocked \? "Optional" : "Locked"/);
+  assert.match(paperLab, /Pass this guided round to complete the exercise\. The harder rounds stay optional\./);
   assert.match(paperLab, /className="answer-area" data-direct-edit="true"/);
   assert.match(paperLab, /value=\{workingSource\}/);
   assert.match(paperLab, /onChange=\{\(value\) => updateAnswer\(block, value\)\}/);
   assert.match(paperLab, /<div className="lesson-editor-loading" role="status">Restoring saved code…<\/div>/);
   assert.doesNotMatch(paperLab, /<SyntaxCode code=\{starterSource\}/);
-  assert.match(paperLab, /"Running…" : "Run cell"/);
+  assert.match(paperLab, /"Running…" : `Run round \$\{round\}`/);
   assert.match(paperLab, /"Running tests…" : "Run all tests"/);
   assert.match(paperLab, /className="reference-comparison"[\s\S]*?<summary>Reference solution<\/summary>[\s\S]*?<SyntaxCode code=\{block\.code\}/);
   assert.match(paperLab, /dirty \? <button className="start-over-button"[\s\S]*?>Start over<\/button> : null/);
-  assert.match(paperLab, /resetArmed \? \([\s\S]*?Confirm start over for \$\{block\.label\}[\s\S]*?>Confirm<\/button>[\s\S]*?Cancel start over for \$\{block\.label\}[\s\S]*?>Cancel<\/button>/);
+  assert.match(paperLab, /resetArmed \? \([\s\S]*?Confirm start over for \$\{block\.label\}, round \$\{round\}[\s\S]*?>Confirm<\/button>[\s\S]*?Cancel start over for \$\{block\.label\}, round \$\{round\}[\s\S]*?>Cancel<\/button>/);
   assert.doesNotMatch(paperLab, /Reset all|Restore all|Restore reference|Restore draft|Run all examples|Run practice checks|Practice cell|Show solution|Hide solution/);
   assert.doesNotMatch(paperLab, /const (?:hideAll|showSolution|restoreBlock|recoverBlock)\s*=/);
   assert.match(paperLab, /setCellOutputs/);

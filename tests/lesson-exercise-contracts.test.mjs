@@ -108,6 +108,19 @@ test("lesson completion requires current code, the experiment, and the knowledge
     progress.lessonGateProgress(lesson, base, contractVersion, checkId).gates.map((gate) => gate.complete),
     [true, false, false],
   );
+  const optionalRoundInProgress = {
+    ...base,
+    practiceRepetitions: {
+      answers: { [`${verifiedCells[0]}::round-2`]: "def optional_draft():\n    pass" },
+      verifiedSources: {},
+      verifiedContractVersion: null,
+    },
+  };
+  assert.equal(
+    progress.lessonGateProgress(lesson, optionalRoundInProgress, contractVersion, checkId).gates[0].complete,
+    true,
+    "an unfinished optional repetition cannot revoke the required first-pass completion",
+  );
   const staleSource = { ...base, answers: { ...answers, [verifiedCells[0]]: "def changed():\n    pass" } };
   assert.equal(progress.lessonGateProgress(lesson, staleSource, contractVersion, checkId).gates[0].complete, false);
   const complete = progress.lessonGateProgress(lesson, {

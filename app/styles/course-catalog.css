@@ -13,7 +13,7 @@
 .course-page {
   margin: 0 auto;
   max-width: 1120px;
-  padding: 2rem 0 5rem;
+  padding: 1.4rem 0 3.5rem;
   position: relative;
   width: calc(100% - 5rem);
   z-index: 1;
@@ -25,7 +25,7 @@
   flex-direction: column;
   justify-content: center;
   min-height: 0;
-  padding: clamp(2.5rem, 4vw, 3.75rem) 0 clamp(2rem, 3vw, 3rem);
+  padding: clamp(1.75rem, 2.8vw, 2.65rem) 0 clamp(1.4rem, 2.1vw, 2.1rem);
   text-align: left;
 }
 
@@ -45,7 +45,7 @@
 }
 
 .track-hero.catalog-track-hero {
-  padding: clamp(2.5rem, 4vw, 3.75rem) 0 clamp(2rem, 3vw, 3rem);
+  padding: clamp(1.75rem, 2.8vw, 2.65rem) 0 clamp(1.4rem, 2.1vw, 2.1rem);
 }
 
 .course-thesis {
@@ -79,7 +79,6 @@
 
 .course-progress-record {
   align-items: center;
-  border-bottom: 1px solid var(--line);
   border-top: 1px solid var(--line);
   display: grid;
   gap: 1.25rem;
@@ -101,7 +100,7 @@
 }
 
 .course-progress-record > i > b {
-  background: linear-gradient(90deg, var(--violet), #c7956b);
+  background: var(--violet);
   display: block;
   height: 100%;
   transition: width 220ms ease;
@@ -110,8 +109,8 @@
 .course-progress-next {
   border-bottom: 1px solid var(--line);
   display: flex;
-  justify-content: flex-end;
-  padding: 0.8rem 0;
+  justify-content: flex-start;
+  padding: 0 0 1rem;
 }
 
 .course-progress-next a,
@@ -132,7 +131,7 @@
   gap: 1.5rem;
   grid-template-columns: minmax(0, 1fr) auto;
   min-height: 0;
-  padding: 1.35rem 0;
+  padding: 1rem 0;
 }
 
 .lesson-card.lesson-card-simple + .lesson-card.lesson-card-simple {
@@ -141,7 +140,12 @@
 
 .lesson-card.lesson-card-simple:hover,
 .lesson-card.lesson-card-simple:focus-visible {
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.32), transparent);
+  background: transparent;
+}
+
+.lesson-card.lesson-card-simple:hover h2,
+.lesson-card.lesson-card-simple:focus-visible h2 {
+  color: var(--violet-deep);
 }
 
 .lesson-card.lesson-card-simple h2 {
@@ -157,7 +161,7 @@
   font-size: max(0.68rem, 11px);
   line-height: 1.5;
   margin: 0.4rem 0 0;
-  max-width: 56rem;
+  max-width: 62ch;
 }
 
 .lesson-card.lesson-card-simple > .lesson-card-status {
@@ -176,7 +180,7 @@
 }
 
 .course-track-card.catalog-track-card {
-  padding: 1.65rem 0;
+  padding: 1.15rem 0;
 }
 
 .course-track-card.catalog-track-card h2 {
@@ -191,13 +195,12 @@
 
 .catalog-capstone-link {
   align-items: center;
-  border-bottom: 1px solid var(--line-strong);
   border-top: 1px solid var(--line-strong);
   display: flex;
   gap: 2rem;
   justify-content: space-between;
-  margin-top: 2.75rem;
-  padding: 1.75rem 0;
+  margin-top: clamp(2.45rem, 4.9vw, 3.85rem);
+  padding: 1.25rem 0;
 }
 
 .catalog-capstone-link h2 {
@@ -221,12 +224,36 @@
   font-size: 1rem;
 }
 
+.catalog-track-outcome {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 0.5rem 1.5rem;
+  grid-template-columns: 5rem minmax(0, 1fr);
+  margin-top: 0.4rem;
+  padding: 1rem 0;
+}
+
+.catalog-track-outcome > span {
+  color: var(--violet);
+  font-size: max(0.68rem, 11px);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.catalog-track-outcome > p {
+  color: var(--muted);
+  font-size: max(0.7rem, 12px);
+  line-height: 1.55;
+  margin: 0;
+  max-width: 48rem;
+}
 .module-checkpoint-card.module-checkpoint-card-simple {
   align-items: center;
   display: flex;
   gap: 2rem;
   justify-content: space-between;
   padding: 1.35rem 0;
+  border-top: 0;
 }
 
 .module-checkpoint-card.module-checkpoint-card-simple > span {
@@ -268,5 +295,7 @@
   .catalog-capstone-link {
     align-items: flex-start;
   }
+
+  .catalog-track-outcome { grid-template-columns: 1fr; }
 
 }

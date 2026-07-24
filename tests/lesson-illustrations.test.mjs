@@ -1,16 +1,43 @@
 import assert from "node:assert/strict";
 import { readFile, stat } from "node:fs/promises";
-import test from "node:test";
+import { after, before, test } from "node:test";
+import { fileURLToPath } from "node:url";
+import { createServer } from "vite";
 
-import {
-  LESSON_ILLUSTRATION_CHANCE_SCALE,
-  LESSON_ILLUSTRATION_MIN_USEFULNESS,
-  lessonIllustrationDraw,
-  lessonIllustrations,
-  lessonIllustrationUsefulness,
-  lessonPassesIllustrationDraw,
-  selectedLessonIllustrationIds,
-} from "../app/lessons/lesson-illustrations.ts";
+let LESSON_ILLUSTRATION_CHANCE_SCALE;
+let LESSON_ILLUSTRATION_MIN_USEFULNESS;
+let lessonIllustrationDraw;
+let lessonIllustrations;
+let lessonIllustrationUsefulness;
+let lessonPassesIllustrationDraw;
+let selectedLessonIllustrationIds;
+let vite;
+
+before(async () => {
+  vite = await createServer({
+    root: fileURLToPath(new URL("../", import.meta.url)),
+    configFile: false,
+    server: { middlewareMode: true },
+    appType: "custom",
+    logLevel: "silent",
+  });
+  const illustrationsModule = await vite.ssrLoadModule(
+    "/app/lessons/lesson-illustrations.ts",
+  );
+  ({
+    LESSON_ILLUSTRATION_CHANCE_SCALE,
+    LESSON_ILLUSTRATION_MIN_USEFULNESS,
+    lessonIllustrationDraw,
+    lessonIllustrations,
+    lessonIllustrationUsefulness,
+    lessonPassesIllustrationDraw,
+    selectedLessonIllustrationIds,
+  } = illustrationsModule);
+});
+
+after(async () => {
+  await vite?.close();
+});
 
 const expectedLessonIds = [
   "arrays-and-shapes",

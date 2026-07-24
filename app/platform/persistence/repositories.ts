@@ -530,6 +530,11 @@ function normalizedProgressRecord(record: LessonProgressRecord, updatedAt: numbe
     verifiedContractVersion: typeof record.verifiedContractVersion === "string" ? record.verifiedContractVersion : undefined,
     hiddenBlockIds: [...new Set(record.hiddenBlockIds)],
     answers: { ...record.answers },
+    practiceRepetitions: record.practiceRepetitions ? {
+      answers: { ...record.practiceRepetitions.answers },
+      verifiedSources: { ...record.practiceRepetitions.verifiedSources },
+      verifiedContractVersion: record.practiceRepetitions.verifiedContractVersion,
+    } : undefined,
     knowledgeAnswers: record.knowledgeAnswers ? { ...record.knowledgeAnswers } : undefined,
     knowledgeVerifiedIds: record.knowledgeVerifiedIds
       ? [...new Set(record.knowledgeVerifiedIds)]
@@ -546,6 +551,7 @@ function progressComparisonValue(record: LessonProgressRecord) {
     verifiedContractVersion: record.verifiedContractVersion ?? null,
     hiddenBlockIds: [...new Set(record.hiddenBlockIds)],
     answers: record.answers,
+    practiceRepetitions: record.practiceRepetitions ?? null,
     knowledgeAnswers: record.knowledgeAnswers ?? null,
     knowledgeVerifiedIds: record.knowledgeVerifiedIds ? [...new Set(record.knowledgeVerifiedIds)] : null,
   };

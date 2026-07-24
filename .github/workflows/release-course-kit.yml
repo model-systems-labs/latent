@@ -1,0 +1,213 @@
+name: Release Course Kit
+
+# Every tag publishes a registry-independent GitHub tarball and immutable
+# schemas. npm publishing is additionally enabled only when the repository
+# variable NPM_PUBLISH_ENABLED is true. npm must already contain the package
+# and trust this workflow first; bootstrap ownership interactively, then use
+# OIDC here and never add a publish token.
+
+on:
+  push:
+    tags:
+      - "course-kit-v*"
+
+concurrency:
+  group: course-kit-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.14.0
+          registry-url: https://registry.npmjs.org
+          cache: npm
+      - name: Use an npm CLI with trusted publishing support
+        run: npm install --global npm@11.5.1
+      - run: npm ci --ignore-scripts
+      - name: Require a matching version tag on main
+        run: |
+          git fetch origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+          npm run release:check --workspace @latent/course-kit -- "$GITHUB_REF_NAME"
+      - name: Refuse an existing npm version
+        run: |
+          set +e
+          npm view @latent/course-kit versions --json > "$RUNNER_TEMP/course-kit-versions.json" 2> "$RUNNER_TEMP/npm-view-error.txt"
+          npm_view_status=$?
+          set -e
+          if [ "$npm_view_status" -ne 0 ]; then
+            if grep -q "E404" "$RUNNER_TEMP/npm-view-error.txt"; then
+              printf '[]\n' > "$RUNNER_TEMP/course-kit-versions.json"
+            else
+              cat "$RUNNER_TEMP/npm-view-error.txt" >&2
+              exit "$npm_view_status"
+            fi
+          fi
+          node --input-type=module --eval '
+            import { readFile } from "node:fs/promises";
+            const manifest = JSON.parse(await readFile("packages/course-kit/package.json", "utf8"));
+            const value = JSON.parse(await readFile(process.env.RUNNER_TEMP + "/course-kit-versions.json", "utf8"));
+            const versions = Array.isArray(value) ? value : [value];
+            if (versions.includes(manifest.version)) {
+              throw new Error(`@latent/course-kit@${manifest.version} is already published`);
+            }
+          '
+      - name: Pack and smoke-test the exact tarball
+        run: |
+          mkdir -p "$RUNNER_TEMP/course-kit-release"
+          npm pack --workspace @latent/course-kit --pack-destination "$RUNNER_TEMP/course-kit-release"
+          tarball="$(find "$RUNNER_TEMP/course-kit-release" -maxdepth 1 -name '*.tgz' -print -quit)"
+          test -n "$tarball"
+          node packages/course-kit/scripts/smoke-package.mjs "$tarball"
+          git diff --exit-code -- packages/course-kit/docs packages/course-kit/schema
+          mkdir -p course-kit-release
+          cp "$tarball" course-kit-release/
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: course-kit-npm-tarball
+          path: course-kit-release/*.tgz
+          if-no-files-found: error
+
+  schemas:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+      pages: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.14.0
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Generate the schema-only Pages artifact
+        run: |
+          npm run build --workspace @latent/course-kit
+          mkdir -p _schema-site/open-learning/v1 _schema-site/open-learning
+          node packages/course-kit/bin/latent-learning.mjs schema _schema-site/open-learning/v1/learning-pack.schema.json
+          node packages/course-kit/bin/latent-learning.mjs schema _schema-site/open-learning/v1/learning-feed.schema.json --feed
+          cp _schema-site/open-learning/v1/learning-pack.schema.json _schema-site/open-learning/learning-pack.schema.json
+          cp _schema-site/open-learning/v1/learning-feed.schema.json _schema-site/open-learning/learning-feed.schema.json
+          cmp public/open-learning/v1/learning-pack.schema.json _schema-site/open-learning/v1/learning-pack.schema.json
+          cmp public/open-learning/v1/learning-feed.schema.json _schema-site/open-learning/v1/learning-feed.schema.json
+          cmp public/open-learning/learning-pack.schema.json _schema-site/open-learning/learning-pack.schema.json
+          cmp public/open-learning/learning-feed.schema.json _schema-site/open-learning/learning-feed.schema.json
+          touch _schema-site/.nojekyll
+      - name: Refuse to replace published version 1 schema bytes
+        run: |
+          for schema in learning-pack.schema.json learning-feed.schema.json; do
+            url="https://model-systems-labs.github.io/latent/open-learning/v1/$schema"
+            existing="$RUNNER_TEMP/$schema"
+            http_status="$(curl --silent --show-error --location --output "$existing" --write-out '%{http_code}' "$url")"
+            if [ "$http_status" = "200" ]; then
+              cmp "$existing" "_schema-site/open-learning/v1/$schema"
+            elif [ "$http_status" != "404" ]; then
+              printf 'Unexpected HTTP %s while checking %s\n' "$http_status" "$url" >&2
+              exit 1
+            fi
+          done
+      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
+        with:
+          path: _schema-site
+      - name: Deploy immutable schemas to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
+
+  github-release:
+    needs:
+      - verify
+      - schemas
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: course-kit-npm-tarball
+          path: course-kit-release
+      - name: Add a checksum and publish the registry-independent release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tarball="$(find course-kit-release -maxdepth 1 -name '*.tgz' -print -quit)"
+          test -n "$tarball"
+          (cd course-kit-release && sha256sum "$(basename "$tarball")" > SHA256SUMS)
+          gh release create "$GITHUB_REF_NAME" \
+            "$tarball" \
+            course-kit-release/SHA256SUMS \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Course Kit ${GITHUB_REF_NAME#course-kit-v}" \
+            --notes-file CHANGELOG.md \
+            --verify-tag
+
+  publish:
+    if: vars.NPM_PUBLISH_ENABLED == 'true'
+    needs:
+      - verify
+      - schemas
+      - github-release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.14.0
+          registry-url: https://registry.npmjs.org
+      - name: Use an npm CLI with trusted publishing support
+        run: npm install --global npm@11.5.1
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: course-kit-npm-tarball
+          path: course-kit-release
+      - name: Recheck release identity and npm availability
+        run: |
+          git fetch origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+          npm run release:check --workspace @latent/course-kit -- "$GITHUB_REF_NAME"
+          version="$(node --print "require('./packages/course-kit/package.json').version")"
+          set +e
+          npm view @latent/course-kit versions --json > "$RUNNER_TEMP/course-kit-versions.json" 2> "$RUNNER_TEMP/npm-view-error.txt"
+          npm_view_status=$?
+          set -e
+          if [ "$npm_view_status" -ne 0 ]; then
+            if grep -q "E404" "$RUNNER_TEMP/npm-view-error.txt"; then
+              printf '[]\n' > "$RUNNER_TEMP/course-kit-versions.json"
+            else
+              cat "$RUNNER_TEMP/npm-view-error.txt" >&2
+              exit "$npm_view_status"
+            fi
+          fi
+          COURSE_KIT_VERSION="$version" node --input-type=module --eval '
+            import { readFile } from "node:fs/promises";
+            const value = JSON.parse(await readFile(process.env.RUNNER_TEMP + "/course-kit-versions.json", "utf8"));
+            const versions = Array.isArray(value) ? value : [value];
+            if (versions.includes(process.env.COURSE_KIT_VERSION)) {
+              throw new Error(`@latent/course-kit@${process.env.COURSE_KIT_VERSION} is already published`);
+            }
+          '
+      - name: Publish the verified tarball
+        run: npm publish course-kit-release/*.tgz --access public --provenance

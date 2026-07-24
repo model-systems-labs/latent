@@ -1,0 +1,22 @@
+{
+  "format": "latent-learning-feed",
+  "schemaVersion": 1,
+  "publisher": {
+    "id": "latent",
+    "name": "Latent Project Contributors",
+    "url": "https://github.com/model-systems-labs/latent"
+  },
+  "packages": [
+    {
+      "packageId": "latent/reliable-llm-changes",
+      "version": "1.0.0",
+      "title": "Make reliable changes to an LLM application",
+      "description": "A compact lesson and review pack for turning a proposed LLM application change into explicit claims, representative checks, and an inspectable release decision.",
+      "packageUrl": "./learning-pack.json",
+      "siteUrl": "./",
+      "sha256": "acd7a92d2858a55d4b18f723ea8bc1d0643b57d19b33975ca4b4c7b6d581623e",
+      "bytes": 13993,
+      "publishedAt": "2026-07-23T12:00:00Z"
+    }
+  ]
+}

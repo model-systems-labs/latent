@@ -231,6 +231,11 @@ test("progress repository preserves source-and-contract-bound lesson verificatio
     experimentComplete: false,
     hiddenBlockIds: ["merge-pair"],
     answers: { "merge-pair": "function mergePair() { return []; }" },
+    practiceRepetitions: {
+      answers: { "merge-pair::round-2": "function mergePair() { /* less help */ }" },
+      verifiedSources: { "merge-pair::round-2": "function mergePair() { /* less help */ }" },
+      verifiedContractVersion: "llm-systems-contracts-v3",
+    },
     knowledgeAnswers: { "merge-order": "dependencies" },
     knowledgeVerifiedIds: ["merge-order"],
     lastProjectPath: "models/bpe-tokenizer.js",
@@ -240,6 +245,11 @@ test("progress repository preserves source-and-contract-bound lesson verificatio
   assert.equal(restored.verifiedContractVersion, "llm-systems-contracts-v3");
   assert.deepEqual(restored.verifiedCellIds, ["merge-pair"]);
   assert.deepEqual(restored.verifiedSources, { "merge-pair": "function mergePair() { return []; }" });
+  assert.deepEqual(restored.practiceRepetitions, {
+    answers: { "merge-pair::round-2": "function mergePair() { /* less help */ }" },
+    verifiedSources: { "merge-pair::round-2": "function mergePair() { /* less help */ }" },
+    verifiedContractVersion: "llm-systems-contracts-v3",
+  });
   assert.deepEqual(restored.knowledgeAnswers, { "merge-order": "dependencies" });
   assert.deepEqual(restored.knowledgeVerifiedIds, ["merge-order"]);
   await dispose(db);

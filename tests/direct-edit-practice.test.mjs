@@ -65,7 +65,9 @@ test("a fresh cell resolves directly to inviting starter source", () => {
     `import numpy as np
 
 def stable_softmax(logits):
-    raise NotImplementedError("Implement Stable softmax.")`,
+    shifted = np.asarray(logits) - np.max(logits)
+    weights = np.exp(shifted)
+    return ...`,
   );
   assert.equal(
     practiceState.workingPracticeBlockSource("neural-language-model.py", pythonBlocks[0], {}),
@@ -242,15 +244,17 @@ test("the active exercise waits for hydration, then exposes the editor and persi
   assert.match(source, /const active = activeBlockId === block\.id/);
   assert.match(source, /aria-expanded=\{active\}/);
   assert.match(source, /setActiveBlockId\(\(current\) => current === block\.id \? "" : block\.id\)/);
-  assert.match(source, /const workingSource = practiceReady \? answers\[block\.id\] \?\? starterSource : starterSource/);
-  assert.match(source, /ariaLabel=\{`Edit \$\{block\.label\}`\}/);
+  assert.match(source, /const round = activePracticeRounds\[block\.id\] \?\? 1/);
+  assert.match(source, /const workingSource = practiceReady[\s\S]*?workingPracticeRepetitionSource/);
+  assert.match(source, /ariaLabel=\{`Edit \$\{block\.label\}, round \$\{round\} of \$\{PRACTICE_ROUNDS\.length\}`\}/);
   assert.match(source, /const blockRunning = runningBlockIds\.includes\(block\.id\)/);
-  assert.match(source, /readOnly=\{blockRunning \|\| projectConflict\}/);
+  assert.match(source, /readOnly=\{blockRunning \|\| \(projectConflict && round === 1\)\}/);
   assert.match(source, /value=\{workingSource\}/);
   assert.match(source, /<div className="lesson-editor-loading" role="status">Restoring saved code…<\/div>/);
   assert.doesNotMatch(source, /<SyntaxCode code=\{starterSource\}/);
   assert.match(source, /onChange=\{\(value\) => updateAnswer\(block, value\)\}/);
   assert.match(source, /editPracticeBlock\(practiceDraftState\(\), block\.id, value\)/);
+  assert.match(source, /editPracticeRepetition\(practiceRepetitionsRef\.current, attemptKey, value\)/);
   assert.match(source, /saveLessonPracticeAndVerification\(lesson\.id, next\.hiddenBlocks, persistedAnswers/);
   assert.match(source, /saveCurrentProjectSeed\(projectSeedForLesson\(lesson, next\.hiddenBlocks, next\.answers/);
   assert.doesNotMatch(source, /Editable reference|Practice not run|Example not run|>Practice cell<\/button>/);
@@ -267,18 +271,31 @@ test("a single-cell check locks only that cell and preserves concurrent edits el
   assert.match(runCellSource, /saveCurrentProjectSeed\(projectSeedForLesson\(lesson, currentHidden, currentAnswers, nextVerified\)\)/);
   assert.doesNotMatch(runCellSource, /applyPracticeState\(hiddenSnapshot, answersSnapshot, nextVerified/);
   assert.match(source, /dirty \? <button className="start-over-button"/);
-  assert.match(source, /disabled=\{!practiceReady \|\| projectConflict \|\| blockRunning\}>Start over/);
+  assert.match(source, /disabled=\{!practiceReady \|\| \(projectConflict && round === 1\) \|\| blockRunning\}>Start over/);
+});
+
+test("optional rounds use their own receipts while run all stays on required project sources", async () => {
+  const source = await readFile(paperLabUrl, "utf8");
+  const runCellSource = source.slice(source.indexOf("const runCell"), source.indexOf("const runAll"));
+  const runAllSource = source.slice(source.indexOf("const runAll"), source.indexOf("const updateAnswer"));
+
+  assert.match(runCellSource, /const roundSnapshot = activeRoundFor\(block\)/);
+  assert.match(runCellSource, /if \(roundSnapshot === 1\) \{[\s\S]*?recordVerifiedCells[\s\S]*?saveCurrentProjectSeed/);
+  assert.match(runCellSource, /else \{[\s\S]*?verificationAfterPracticeRepetitionRun\([\s\S]*?persistPracticeRepetitions/);
+  assert.match(runCellSource, /Your required completion and project code are still saved/);
+  assert.match(runAllSource, /const sourceSnapshots = Object\.fromEntries\(blocks\.map\(\(block\) => \[block\.id, baselineSourceFor\(block\)\]\)\)/);
+  assert.doesNotMatch(runAllSource, /workingPracticeRepetitionSource/);
 });
 
 test("start over confirms inline while reference comparison never swaps the draft", async () => {
   const source = await readFile(paperLabUrl, "utf8");
 
   assert.match(source, /onClick=\{\(\) => armBlockReset\(block\)\}/);
-  assert.match(source, /Confirm start over for \$\{block\.label\}/);
+  assert.match(source, /Confirm start over for \$\{block\.label\}, round \$\{round\}/);
   assert.match(source, /onClick=\{\(\) => resetBlock\(block\)\}[^\n]*>Confirm<\/button>/);
   assert.match(source, /onClick=\{\(\) => cancelBlockReset\(block\)\}/);
   assert.match(source, /aria-describedby=\{`practice-status-\$\{lesson\.id\}`\}/);
-  assert.match(source, /is ready to start over\. Confirm to replace this draft with starter code, or cancel to keep your code/);
+  assert.match(source, /round \$\{round\} is ready to start over\. Confirm to replace this round with its starter code, or cancel to keep your code/);
   assert.match(source, /<details className="reference-comparison">[\s\S]*?<SyntaxCode code=\{block\.code\}/);
   assert.match(source, /<summary>Reference solution<\/summary>/);
   assert.doesNotMatch(source, /Your draft stays unchanged|Compare with reference/);
@@ -300,7 +317,7 @@ test("lesson writes preserve quarantined legacy bytes and never overwrite newer 
   assert.match(source, /harnessFileSourceIsCurrent\(projectPath, projectContentRef\.current\)/);
   assert.match(source, /if \(!projectSourceIsCurrent\(\)\) \{\s*reportProjectConflict\(\);\s*return;\s*\}/);
   assert.match(source, /data-project-conflict=\{projectConflict\}/);
-  assert.match(source, /readOnly=\{blockRunning \|\| projectConflict\}/);
+  assert.match(source, /readOnly=\{blockRunning \|\| \(projectConflict && round === 1\)\}/);
   assert.match(source, /This file changed in the project workspace\. Continue there so this lesson doesn.t overwrite the newer code\./);
 });
 

@@ -1,9 +1,8 @@
 .layout {
-  border-block: 1px solid var(--line);
   display: grid;
   gap: 1.25rem;
   margin-top: 0;
-  padding: 1.5rem 0;
+  padding: 0.5rem 0 1.5rem;
 }
 
 .check {
@@ -37,6 +36,10 @@
 
 .choices label:has(input:focus-visible) {
   box-shadow: 0 0 0 3px rgba(118, 104, 137, 0.12);
+}
+
+.choices label:has(input:checked) {
+  background: rgba(204, 188, 204, 0.12);
 }
 
 .choices input {

@@ -1,4 +1,41 @@
 import type { CodeBlock } from "@latent/course-kit";
+import { pythonLanguage } from "@codemirror/lang-python";
+
+export type PracticeRound = 1 | 2 | 3;
+
+export type PracticeRoundMetadata = {
+  id: PracticeRound;
+  label: string;
+  description: string;
+  required: boolean;
+};
+
+export const PRACTICE_ROUNDS = [
+  {
+    id: 1,
+    label: "Guided",
+    description: "Fill a few focused gaps while most of the implementation stays visible.",
+    required: true,
+  },
+  {
+    id: 2,
+    label: "Less help",
+    description: "Rebuild more of the implementation with fewer cues.",
+    required: false,
+  },
+  {
+    id: 3,
+    label: "From scratch",
+    description: "Start from the imports and callable contract.",
+    required: false,
+  },
+] as const satisfies readonly PracticeRoundMetadata[];
+
+export type PracticeRepetitionState = {
+  answers: Record<string, string>;
+  verifiedSources: Record<string, string>;
+  verifiedContractVersion: string | null;
+};
 
 export type SourceBoundVerification = {
   ids: string[];
@@ -20,6 +57,25 @@ export type CompatiblePracticeDrafts = {
 
 type PracticeSourceBlock = Pick<CodeBlock, "id" | "code" | "label" | "starterCode">;
 
+type PythonSyntaxNode = {
+  name: string;
+  from: number;
+  to: number;
+  firstChild: PythonSyntaxNode | null;
+  nextSibling: PythonSyntaxNode | null;
+};
+
+type SourceReplacement = {
+  from: number;
+  to: number;
+  value: string;
+};
+
+type PracticeStatement = {
+  node: PythonSyntaxNode;
+  expression: { from: number; to: number } | null;
+};
+
 const JAVASCRIPT_DRAFT_MARKERS = [
   /\bfunction\s+[A-Za-z_$]/,
   /\b(?:const|let|var)\s+[A-Za-z_$]/,
@@ -29,6 +85,150 @@ const JAVASCRIPT_DRAFT_MARKERS = [
 ];
 
 const PROVIDED_PYTHON_STARTER_POSTLUDE = "# Provided browser adapter.";
+
+const SIMPLE_PYTHON_STATEMENTS = new Set([
+  "AssertStatement",
+  "AssignStatement",
+  "BreakStatement",
+  "ContinueStatement",
+  "DeleteStatement",
+  "ExpressionStatement",
+  "GlobalStatement",
+  "NonlocalStatement",
+  "RaiseStatement",
+  "ReturnStatement",
+  "UpdateStatement",
+]);
+
+function children(node: PythonSyntaxNode): PythonSyntaxNode[] {
+  const result: PythonSyntaxNode[] = [];
+  for (let child = node.firstChild; child; child = child.nextSibling) result.push(child);
+  return result;
+}
+
+function expressionWithinStatement(node: PythonSyntaxNode): { from: number; to: number } | null {
+  const parts = children(node);
+  if (node.name === "ExpressionStatement") return { from: node.from, to: node.to };
+  if (node.name === "AssignStatement" || node.name === "UpdateStatement") {
+    const operator = parts.find((part) => part.name === "AssignOp" || part.name === "UpdateOp");
+    const expression = operator?.nextSibling;
+    return expression ? { from: expression.from, to: node.to } : null;
+  }
+  if (node.name === "ReturnStatement" || node.name === "AssertStatement") {
+    const expression = parts[1];
+    return expression ? { from: expression.from, to: node.to } : null;
+  }
+  return null;
+}
+
+function implementationEnd(source: string): number {
+  const marker = source.indexOf(PROVIDED_PYTHON_STARTER_POSTLUDE);
+  return marker < 0 ? source.length : marker;
+}
+
+function practiceStatements(source: string): PracticeStatement[] {
+  const limit = implementationEnd(source);
+  const tree = pythonLanguage.parser.parse(source);
+  const statements: PracticeStatement[] = [];
+  const visit = (node: PythonSyntaxNode) => {
+    if (node.from >= limit) return;
+    if (SIMPLE_PYTHON_STATEMENTS.has(node.name)) {
+      statements.push({ node, expression: expressionWithinStatement(node) });
+      return;
+    }
+    for (const child of children(node)) visit(child);
+  };
+  visit(tree.topNode);
+  return statements;
+}
+
+function evenlySpaced<T>(items: readonly T[], count: number): T[] {
+  if (count <= 0 || items.length === 0) return [];
+  if (count >= items.length) return [...items];
+  return Array.from({ length: count }, (_, index) => (
+    items[Math.ceil(((index + 1) * items.length) / count) - 1]
+  ));
+}
+
+function applySourceReplacements(source: string, replacements: readonly SourceReplacement[]): string {
+  return [...replacements]
+    .sort((left, right) => right.from - left.from)
+    .reduce((result, replacement) => (
+      `${result.slice(0, replacement.from)}${replacement.value}${result.slice(replacement.to)}`
+    ), source);
+}
+
+function guidedPythonSource(source: string): string {
+  const candidates = practiceStatements(source).filter((statement) => statement.expression !== null);
+  const selected = evenlySpaced(candidates, Math.max(1, Math.ceil(candidates.length / 4)));
+  return applySourceReplacements(source, selected.flatMap((statement) => (
+    statement.expression ? [{ ...statement.expression, value: "..." }] : []
+  )));
+}
+
+function lessHelpPythonSource(source: string): string {
+  const statements = practiceStatements(source);
+  const guidedStatements = evenlySpaced(
+    statements.filter((statement) => statement.expression !== null),
+    Math.max(1, Math.ceil(statements.filter((statement) => statement.expression !== null).length / 4)),
+  );
+  const targetCount = Math.max(guidedStatements.length, Math.ceil(statements.length * 0.6));
+  const selected = new Set(evenlySpaced(statements, targetCount));
+  for (const statement of guidedStatements) selected.add(statement);
+  for (const statement of statements) {
+    if (selected.size >= targetCount) break;
+    selected.add(statement);
+  }
+  return applySourceReplacements(source, [...selected].map(({ node }) => ({
+    from: node.from,
+    to: node.to,
+    value: "pass",
+  })));
+}
+
+function fromScratchPythonSource(block: Pick<CodeBlock, "code" | "label">): string {
+  const source = block.code;
+  const postludeStart = source.indexOf(PROVIDED_PYTHON_STARTER_POSTLUDE);
+  const limit = postludeStart < 0 ? source.length : postludeStart;
+  const topLevel = children(pythonLanguage.parser.parse(source).topNode)
+    .filter((node) => node.from < limit);
+  const imports = topLevel
+    .filter((node) => node.name === "ImportStatement")
+    .map((node) => source.slice(node.from, node.to))
+    .join("\n");
+  const definition = topLevel.find((node) => node.name === "FunctionDefinition");
+  const body = definition && children(definition).find((node) => node.name === "Body");
+  const signature = definition && body
+    ? source.slice(definition.from, body.from + 1).trimEnd()
+    : null;
+  const todo = `# TODO: implement ${block.label.toLowerCase()}.`;
+  const scaffold = signature
+    ? `${signature}\n    ${todo}\n    raise NotImplementedError(${JSON.stringify(`Implement ${block.label}.`)})`
+    : `${todo}\nraise NotImplementedError(${JSON.stringify(`Implement ${block.label}.`)})`;
+  const postlude = postludeStart < 0 ? "" : source.slice(postludeStart);
+  return [imports, scaffold, postlude].filter(Boolean).join("\n\n");
+}
+
+function javascriptStarterSource(block: Pick<CodeBlock, "code" | "label">): string {
+  const signature = block.code.split("\n")[0];
+  return `${signature}\n  // TODO: implement ${block.label.toLowerCase()}.\n}`;
+}
+
+export function practiceRepetitionKey(blockId: string, round: PracticeRound): string {
+  return round === 1 ? blockId : `${blockId}::round-${round}`;
+}
+
+export function practiceRepetitionSource(
+  filename: string,
+  block: Pick<CodeBlock, "code" | "label" | "starterCode">,
+  round: PracticeRound,
+): string {
+  if (round === 1 && block.starterCode) return block.starterCode;
+  if (!filename.toLowerCase().endsWith(".py")) return javascriptStarterSource(block);
+  if (round === 1) return guidedPythonSource(block.code);
+  if (round === 2) return lessHelpPythonSource(block.code);
+  return fromScratchPythonSource(block);
+}
 
 export function practiceDraftIsCompatible(filename: string, source: string): boolean {
   return !filename.toLowerCase().endsWith(".py") || !JAVASCRIPT_DRAFT_MARKERS.some((marker) => marker.test(source));
@@ -40,24 +240,7 @@ export function practiceDraftIsCompatible(filename: string, source: string): boo
  * the canonical project must resolve an untouched cell to the same bytes.
  */
 export function starterPracticeSource(filename: string, block: Pick<CodeBlock, "code" | "label" | "starterCode">): string {
-  if (block.starterCode) return block.starterCode;
-  if (filename.toLowerCase().endsWith(".py")) {
-    const lines = block.code.split("\n");
-    const postludeIndex = lines.findIndex((line) => line === PROVIDED_PYTHON_STARTER_POSTLUDE);
-    const implementation = postludeIndex < 0 ? lines : lines.slice(0, postludeIndex);
-    const definition = implementation.findIndex((line) => line.startsWith("def "));
-    if (definition < 0) {
-      return `# TODO: implement ${block.label.toLowerCase()}.\nraise NotImplementedError(${JSON.stringify(`Implement ${block.label}.`)})`;
-    }
-    const prefix = implementation.slice(0, definition).join("\n").trimEnd();
-    const signature = implementation[definition];
-    const postlude = postludeIndex < 0 ? "" : lines.slice(postludeIndex).join("\n").trimEnd();
-    return [prefix, `${signature}\n    raise NotImplementedError(${JSON.stringify(`Implement ${block.label}.`)})`, postlude]
-      .filter(Boolean)
-      .join("\n\n");
-  }
-  const signature = block.code.split("\n")[0];
-  return `${signature}\n  // TODO: implement ${block.label.toLowerCase()}.\n}`;
+  return practiceRepetitionSource(filename, block, 1);
 }
 
 /** Compatibility-shaped entrypoint for lesson components. */
@@ -86,6 +269,79 @@ export function workingPracticeBlockSource(
   return saved !== undefined && practiceDraftIsCompatible(filename, saved)
     ? saved
     : starterPracticeSource(filename, block);
+}
+
+export function workingPracticeRepetitionSource(
+  filename: string,
+  block: PracticeSourceBlock,
+  round: PracticeRound,
+  answers: Readonly<Record<string, string>>,
+): string {
+  const key = practiceRepetitionKey(block.id, round);
+  const saved = Object.prototype.hasOwnProperty.call(answers, key) ? answers[key] : undefined;
+  return saved !== undefined && practiceDraftIsCompatible(filename, saved)
+    ? saved
+    : practiceRepetitionSource(filename, block, round);
+}
+
+export function restorePracticeRepetitionVerification(
+  state: PracticeRepetitionState,
+  currentContractVersion: string,
+): PracticeRepetitionState {
+  if (state.verifiedContractVersion !== currentContractVersion) {
+    return { answers: { ...state.answers }, verifiedSources: {}, verifiedContractVersion: null };
+  }
+  const verifiedSources = Object.fromEntries(Object.entries(state.verifiedSources).filter(([key, source]) => (
+    state.answers[key] === source
+  )));
+  return {
+    answers: { ...state.answers },
+    verifiedSources,
+    verifiedContractVersion: Object.keys(verifiedSources).length ? currentContractVersion : null,
+  };
+}
+
+export function editPracticeRepetition(
+  state: PracticeRepetitionState,
+  key: string,
+  source: string,
+): PracticeRepetitionState {
+  const verifiedSources = Object.fromEntries(Object.entries(state.verifiedSources).filter(([id]) => id !== key));
+  return {
+    answers: { ...state.answers, [key]: source },
+    verifiedSources,
+    verifiedContractVersion: Object.keys(verifiedSources).length ? state.verifiedContractVersion : null,
+  };
+}
+
+export function verificationAfterPracticeRepetitionRun(
+  state: PracticeRepetitionState,
+  key: string,
+  source: string,
+  passed: boolean,
+  currentContractVersion: string,
+): PracticeRepetitionState {
+  const currentSources = state.verifiedContractVersion === currentContractVersion
+    ? state.verifiedSources
+    : {};
+  const verifiedSources = passed
+    ? { ...currentSources, [key]: source }
+    : Object.fromEntries(Object.entries(currentSources).filter(([id]) => id !== key));
+  return {
+    answers: { ...state.answers, [key]: source },
+    verifiedSources,
+    verifiedContractVersion: Object.keys(verifiedSources).length ? currentContractVersion : null,
+  };
+}
+
+export function practiceRepetitionIsVerified(
+  state: PracticeRepetitionState,
+  key: string,
+  source: string,
+  currentContractVersion: string,
+): boolean {
+  return state.verifiedContractVersion === currentContractVersion
+    && state.verifiedSources[key] === source;
 }
 
 export function workingPracticeSources(

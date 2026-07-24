@@ -89,13 +89,31 @@ test("canonical lesson seeds use starter-first working source and source-bound v
   assert.match(savedSeed.content, /learner-owned draft/);
   assert.match(savedSeed.referenceContent, new RegExp(block.code.split("\n")[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 
+  const optionalDraft = "# optional harder repetition must stay out of the project";
+  const repeatedSeed = seedFor({
+    ...lessonState,
+    practiceRepetitions: {
+      answers: { [`${block.id}::round-2`]: optionalDraft },
+      verifiedSources: {},
+      verifiedContractVersion: null,
+    },
+  });
+  assert.match(repeatedSeed.content, /learner-owned draft/);
+  assert.doesNotMatch(repeatedSeed.content, /optional harder repetition/);
+  assert.equal(repeatedSeed.verifiedCells, 1, "optional practice cannot revoke required project verification");
+
   const freshSeed = seedFor({
     ...lessonState,
     hiddenBlocks: [],
     answers: {},
   });
   assert.equal(freshSeed.verifiedCells, 0, "an authored-solution receipt cannot validate the starter working file");
-  assert.match(freshSeed.content, /NotImplementedError/);
+  assert.ok(block.starterCode, "the course authors an explicit guided starter for this block");
+  assert.match(
+    freshSeed.content,
+    new RegExp(block.starterCode.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
+    "the composed canonical file includes the authored guided round exactly",
+  );
   assert.notEqual(freshSeed.content, freshSeed.referenceContent);
   assert.equal(seedFor({
     ...lessonState,
@@ -599,6 +617,7 @@ test("an old untouched authored file migrates to the starter while IDE edits rem
   const suffix = crypto.randomUUID();
   const referenceContent = "def value():\n    return 42";
   const starterContent = "def value():\n    raise NotImplementedError('Implement value.')";
+  const revisedStarterContent = "def value():\n    # TODO: return the lesson value\n    raise NotImplementedError('Implement value.')";
   const base = {
     courseId: "models",
     lessonId: `starter-migration-${suffix}`,
@@ -608,11 +627,32 @@ test("an old untouched authored file migrates to the starter while IDE edits rem
     totalCells: 1,
   };
   const untouchedPath = `models/starter-migration-${suffix}.py`;
+  const revisedSeedPath = `models/starter-migration-revised-${suffix}.py`;
   const editedPath = `models/starter-migration-edited-${suffix}.py`;
 
   workspace.ensureProjectWorkspace([{ ...base, path: untouchedPath, content: referenceContent }]);
   workspace.ensureProjectWorkspace([{ ...base, path: untouchedPath, content: starterContent }]);
   assert.equal(workspace.loadProjectState().files[untouchedPath].content, starterContent);
+  const guidedContent = "def value():\n    return ...";
+  workspace.ensureProjectWorkspace([{ ...base, path: untouchedPath, content: guidedContent }]);
+  assert.equal(workspace.loadProjectState().files[untouchedPath].content, guidedContent, "an untouched seed adopts the newer guided scaffold");
+
+  workspace.ensureProjectWorkspace([{ ...base, lessonId: `${base.lessonId}-revised`, path: revisedSeedPath, content: starterContent }]);
+  workspace.ensureProjectWorkspace([{ ...base, lessonId: `${base.lessonId}-revised`, path: revisedSeedPath, content: revisedStarterContent }]);
+  assert.equal(
+    workspace.loadProjectState().files[revisedSeedPath].content,
+    revisedStarterContent,
+    "an untouched seed migrates when lesson authors revise an incomplete starter",
+  );
+  assert.equal(workspace.loadProjectState().files[revisedSeedPath].sourceProvenance, "seed");
+
+  workspace.saveProjectFile(revisedSeedPath, "def value():\n    return 7  # learner IDE edit after starter revision");
+  workspace.ensureProjectWorkspace([{ ...base, lessonId: `${base.lessonId}-revised`, path: revisedSeedPath, content: `${revisedStarterContent}\n# revised again` }]);
+  assert.match(
+    workspace.loadProjectState().files[revisedSeedPath].content,
+    /learner IDE edit after starter revision/,
+    "an IDE edit remains authoritative after an earlier seed migration",
+  );
 
   workspace.ensureProjectWorkspace([{ ...base, lessonId: `${base.lessonId}-edited`, path: editedPath, content: referenceContent }]);
   workspace.saveProjectFile(editedPath, "def value():\n    return 7  # learner IDE edit");

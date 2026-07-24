@@ -22,9 +22,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "localhost:3001";
   const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   const metadataBase = new URL(`${protocol}://${host}`);
-  const title = "Latent · Courses for learning LLM systems";
+  const title = "Latent · Learn, make, and host lessons";
   const description =
-    "Standalone courses in linear algebra, machine learning, and harness engineering, plus a separate project course for building an LLM system in the browser.";
+    "A high-quality self-learning platform with first-party courses and an open format that anyone—or any LLM—can use to create and self-host lessons and flash cards.";
 
   return {
     metadataBase,
@@ -34,13 +34,13 @@ export async function generateMetadata(): Promise<Metadata> {
       title,
       description,
       type: "website",
-      images: [{ url: new URL("/og-learning-paths.png", metadataBase).toString(), width: 1731, height: 909 }],
+      images: [{ url: new URL("/og-open-learning.png", metadataBase).toString(), width: 1731, height: 909 }],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [new URL("/og-learning-paths.png", metadataBase).toString()],
+      images: [new URL("/og-open-learning.png", metadataBase).toString()],
     },
   };
 }

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { assertRnnCheckpoint, type RnnCheckpoint, type RnnResult } from "@latent/model-lab/character-rnn";
 import { getPersistenceContext } from "../platform/persistence/client";
 import { lessonProgressId } from "../platform/persistence/pure";
-import type { CheckpointRecord, JsonValue } from "../platform/persistence/types";
+import type { CheckpointRecord, JsonValue, PracticeRepetitionProgress } from "../platform/persistence/types";
 import { lessonProgressLocation, progressCourseIds } from "../content/course-progress";
 
 export const LEARNER_STATE_KEY = "latent-learner-v2";
@@ -21,10 +21,13 @@ export type LessonLocalState = {
   experimentComplete: boolean;
   hiddenBlocks: string[];
   answers: Record<string, string>;
+  practiceRepetitions: PracticeRepetitionProgress;
   knowledgeAnswers: Record<string, string>;
   knowledgeVerified: string[];
   updatedAt: number;
 };
+
+export type { PracticeRepetitionProgress } from "../platform/persistence/types";
 
 export type SavedRnnArtifact = {
   checkpoint: RnnCheckpoint;
@@ -102,6 +105,7 @@ function sanitizeLessonLocalState(value: unknown): LessonLocalState | null {
     answers: lesson.answers && typeof lesson.answers === "object"
       ? Object.fromEntries(Object.entries(lesson.answers).filter((entry): entry is [string, string] => typeof entry[1] === "string"))
       : {},
+    practiceRepetitions: sanitizePracticeRepetitions(lesson.practiceRepetitions),
     knowledgeAnswers: lesson.knowledgeAnswers && typeof lesson.knowledgeAnswers === "object"
       ? Object.fromEntries(Object.entries(lesson.knowledgeAnswers).filter((entry): entry is [string, string] => typeof entry[1] === "string"))
       : {},
@@ -109,6 +113,25 @@ function sanitizeLessonLocalState(value: unknown): LessonLocalState | null {
       ? lesson.knowledgeVerified.filter((id): id is string => typeof id === "string")
       : [],
     updatedAt: typeof lesson.updatedAt === "number" && Number.isFinite(lesson.updatedAt) ? lesson.updatedAt : 0,
+  };
+}
+
+export function emptyPracticeRepetitions(): PracticeRepetitionProgress {
+  return { answers: {}, verifiedSources: {}, verifiedContractVersion: null };
+}
+
+function sanitizePracticeRepetitions(value: unknown): PracticeRepetitionProgress {
+  if (!value || typeof value !== "object") return emptyPracticeRepetitions();
+  const repetitions = value as Partial<PracticeRepetitionProgress>;
+  const stringEntries = (record: unknown) => record && typeof record === "object"
+    ? Object.fromEntries(Object.entries(record).filter((entry): entry is [string, string] => typeof entry[1] === "string"))
+    : {};
+  return {
+    answers: stringEntries(repetitions.answers),
+    verifiedSources: stringEntries(repetitions.verifiedSources),
+    verifiedContractVersion: typeof repetitions.verifiedContractVersion === "string"
+      ? repetitions.verifiedContractVersion
+      : null,
   };
 }
 
@@ -343,6 +366,8 @@ function sameLearnerValue(left: unknown, right: unknown) {
 
 function lessonProgressRecord(lessonId: string, lesson: LessonLocalState) {
   const location = lessonProgressLocation(lessonId);
+  const hasPracticeRepetitions = Object.keys(lesson.practiceRepetitions.answers).length > 0
+    || Object.keys(lesson.practiceRepetitions.verifiedSources).length > 0;
   return {
     id: lessonProgressId(location.courseId, lessonId),
     courseId: location.courseId,
@@ -355,6 +380,7 @@ function lessonProgressRecord(lessonId: string, lesson: LessonLocalState) {
     experimentComplete: lesson.experimentComplete,
     hiddenBlockIds: lesson.hiddenBlocks,
     answers: lesson.answers,
+    ...(hasPracticeRepetitions ? { practiceRepetitions: lesson.practiceRepetitions } : {}),
     knowledgeAnswers: lesson.knowledgeAnswers,
     knowledgeVerifiedIds: lesson.knowledgeVerified,
     lastProjectPath: null,
@@ -369,6 +395,7 @@ function lessonStateFromProgress(record: {
   experimentComplete: boolean;
   hiddenBlockIds: string[];
   answers: Record<string, string>;
+  practiceRepetitions?: PracticeRepetitionProgress;
   knowledgeAnswers?: Record<string, string>;
   knowledgeVerifiedIds?: string[];
   updatedAt: number;
@@ -380,6 +407,7 @@ function lessonStateFromProgress(record: {
     experimentComplete: record.experimentComplete,
     hiddenBlocks: record.hiddenBlockIds,
     answers: record.answers,
+    practiceRepetitions: sanitizePracticeRepetitions(record.practiceRepetitions),
     knowledgeAnswers: record.knowledgeAnswers ?? {},
     knowledgeVerified: record.knowledgeVerifiedIds ?? [],
     updatedAt: record.updatedAt,
@@ -781,6 +809,7 @@ function lessonState(state: LearnerState, lessonId: string): LessonLocalState {
     experimentComplete: false,
     hiddenBlocks: [],
     answers: {},
+    practiceRepetitions: emptyPracticeRepetitions(),
     knowledgeAnswers: {},
     knowledgeVerified: [],
     updatedAt: 0,
@@ -816,6 +845,23 @@ export function saveLessonPracticeAndVerification(
         verifiedCells: [...new Set(verifiedCells)],
         verifiedSources,
         verifiedContractVersion: verifiedCells.length ? verifiedContractVersion : null,
+        updatedAt: Date.now(),
+      },
+    },
+  }));
+}
+
+export function saveLessonPracticeRepetitions(
+  lessonId: string,
+  practiceRepetitions: PracticeRepetitionProgress,
+) {
+  updateLearnerState((state) => ({
+    ...state,
+    lessons: {
+      ...state.lessons,
+      [lessonId]: {
+        ...lessonState(state, lessonId),
+        practiceRepetitions: sanitizePracticeRepetitions(practiceRepetitions),
         updatedAt: Date.now(),
       },
     },

@@ -43,20 +43,23 @@ function ProgramCard({
   lessonCount: string;
 }) {
   return (
-    <Link className="course-track-card catalog-program-card" href={program.href}>
+    <article className="course-track-card catalog-program-card">
       <header><span>{label}</span><em>{lessonCount}</em></header>
-      <h2>{program.title}</h2>
+      <h2><Link href={program.href}>{program.title}</Link></h2>
       <p>{program.thesis}</p>
-      <dl style={{ borderBlock: "1px solid var(--line)", display: "grid", gap: "1rem", gridTemplateColumns: "repeat(auto-fit, minmax(13rem, 1fr))", margin: 0, padding: "0.9rem 0" }}>
-        <div><dt className="eyebrow">Best for</dt><dd style={{ color: "var(--muted)", fontSize: "max(0.68rem, 11px)", lineHeight: 1.5, margin: 0 }}>{program.audience.description}</dd></div>
-        <div><dt className="eyebrow">Before you start</dt><dd style={{ color: "var(--muted)", fontSize: "max(0.68rem, 11px)", lineHeight: 1.5, margin: 0 }}>{program.prerequisite.description}</dd></div>
-        <div><dt className="eyebrow">Outcome</dt><dd style={{ color: "var(--muted)", fontSize: "max(0.68rem, 11px)", lineHeight: 1.5, margin: 0 }}>{program.outcome}</dd></div>
-      </dl>
+      <details className={`${styles.programDetails} calm-disclosure`}>
+        <summary>Fit, prerequisites, and outcome</summary>
+        <dl>
+          <div><dt className="eyebrow">Best for</dt><dd>{program.audience.description}</dd></div>
+          <div><dt className="eyebrow">Before you start</dt><dd>{program.prerequisite.description}</dd></div>
+          <div><dt className="eyebrow">Outcome</dt><dd>{program.outcome}</dd></div>
+        </dl>
+      </details>
       <footer>
         <span><b>{program.runtime.language}</b> · {program.runtime.environment}. {program.runtime.persistence}</span>
-        <strong>Open course →</strong>
+        <Link href={program.href}><strong>Open course →</strong></Link>
       </footer>
-    </Link>
+    </article>
   );
 }
 
@@ -67,28 +70,31 @@ export default function CourseCatalogPage() {
   return (
     <main>
       <PageAtmosphere />
-      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><Link href="/course">Courses</Link><Link href="/flashcards" aria-label="Flash cards">Cards</Link><Link href="/sources">Further reading</Link></nav></header>
+      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><Link href="/course">Courses</Link><Link href="/open-learning">Open learning</Link><Link href="/workspace" aria-label="Open coding workspace">Code</Link><Link href="/flashcards" aria-label="Flash cards">Cards</Link><Link href="/sources">Further reading</Link></nav></header>
       <article className={`course-page ${styles.catalogPage}`}>
         <header className={`course-hero ${styles.catalogHero}`}>
           <h1>Courses</h1>
           <p className="course-thesis">Pick the starting point that matches what you already know. The foundation courses are optional refreshers, Harness Engineering stands on its own, and the LLM Systems course builds one cumulative browser project.</p>
         </header>
-        <section id="starting-point" aria-labelledby="starting-point-title" style={{ borderBlock: "1px solid var(--line-strong)", padding: "clamp(1.5rem, 3vw, 2.2rem) 0", scrollMarginTop: "1.5rem" }}>
+        <section className={styles.startingPoint} id="starting-point" aria-labelledby="starting-point-title">
           <header>
             <span className="eyebrow">Choose by experience</span>
           </header>
-          <h2 id="starting-point-title" style={{ fontFamily: "var(--serif)", fontSize: "clamp(1.8rem, 3vw, 2.45rem)", fontWeight: 400, letterSpacing: "-0.035em", lineHeight: 1.05, margin: 0 }}>Where should I start?</h2>
+          <h2 id="starting-point-title">Where should I start?</h2>
           <p className="course-thesis">You do not have to finish every course in order. Pick the route that feels closest to you.</p>
-          <div className="course-track-grid" style={{ gap: "1.5rem", gridTemplateColumns: "repeat(auto-fit, minmax(16rem, 1fr))" }}>
-            {startingRoutes.map((route) => (
-              <Link className="course-track-card" href={route.href} key={route.title} style={{ borderTop: "1px solid var(--line)" }}>
-                <header><span>{route.eyebrow}</span></header>
-                <h3 style={{ fontFamily: "var(--serif)", fontSize: "clamp(1.35rem, 2.1vw, 1.7rem)", fontWeight: 400, letterSpacing: "-0.025em", lineHeight: 1.08, margin: "1.1rem 0 0" }}>{route.title}</h3>
-                <p>{route.description}</p>
-                <footer><strong>{route.action} <span aria-hidden="true">→</span></strong></footer>
-              </Link>
-            ))}
-          </div>
+          <nav aria-label="Starting points">
+            <ol className={styles.startingRoutes}>
+              {startingRoutes.map((route, index) => (
+                <li key={route.title}>
+                  <Link className={styles.startingRoute} href={route.href}>
+                    <span>{String(index + 1).padStart(2, "0")}</span>
+                    <div><small>{route.eyebrow}</small><h3>{route.title}</h3><p>{route.description}</p></div>
+                    <strong aria-label={route.action}>→</strong>
+                  </Link>
+                </li>
+              ))}
+            </ol>
+          </nav>
         </section>
         <section className={styles.programGroup} aria-labelledby="foundations-title">
           <header><strong id="foundations-title">Foundations</strong><p>Two standalone courses with small NumPy exercises.</p></header>
@@ -112,7 +118,6 @@ export default function CourseCatalogPage() {
             <ProgramCard program={projectCourse} label="Project course" lessonCount={`${projectCourse.lessons.length} lessons · 4 modules`} />
           </div>
         </section>
-        <p className={styles.sequenceNote}>Linear algebra and machine learning prepare you for the LLM systems project. Harness Engineering is independent and studies agent execution around an existing model.</p>
         <Link className={styles.reviewCallout} href="/flashcards">
           <div>
             <span>Review library</span>

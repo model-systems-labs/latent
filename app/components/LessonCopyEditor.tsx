@@ -52,6 +52,7 @@ export function LessonCopyEditor({
   const [values, setValues] = useState<LessonCopyValues>(defaults);
   const [savedValues, setSavedValues] = useState<LessonCopyValues>(defaults);
   const [status, setStatus] = useState("Loading saved text");
+  const [codingVisible, setCodingVisible] = useState(false);
   const touchedPathsRef = useRef(new Set<string>());
   const valuesRef = useRef(values);
   const savedValuesRef = useRef(savedValues);
@@ -86,6 +87,17 @@ export function LessonCopyEditor({
 
     return () => controller.abort();
   }, [defaults, lesson.id]);
+
+  useEffect(() => {
+    const codingSection = globalThis.document.getElementById("implementation");
+    if (!codingSection || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setCodingVisible(entry.isIntersecting),
+      { threshold: 0.05 },
+    );
+    observer.observe(codingSection);
+    return () => observer.disconnect();
+  }, [lesson.id]);
 
   const persistLatest = useCallback(async () => {
     if (saveRunningRef.current) {
@@ -143,6 +155,12 @@ export function LessonCopyEditor({
   const visibleStatus = dirty.length && status !== "Saving" && status !== "Save failed"
     ? "Unsaved changes"
     : status || "Saved";
+  const showToolbarStatus = dirty.length > 0 || [
+    "Loading saved text",
+    "Saved lesson text is unavailable",
+    "Saving",
+    "Save failed",
+  ].includes(status);
 
   const closeEditor = () => {
     void persistLatest();
@@ -152,12 +170,14 @@ export function LessonCopyEditor({
   return (
     <>
       <PaperLab lesson={editedDocument.lesson} outcome={editedDocument.outcome} />
-      <div className={styles.toolbar}>
-        <button type="button" aria-expanded={open} aria-controls="lesson-copy-panel" onClick={() => setOpen(true)}>
-          Edit lesson
-        </button>
-        <span role="status" aria-live="polite">{visibleStatus}</span>
-      </div>
+      {!open && !codingVisible ? (
+        <div className={styles.toolbar}>
+          <button type="button" aria-expanded="false" aria-controls="lesson-copy-panel" onClick={() => setOpen(true)}>
+            Edit lesson
+          </button>
+          {showToolbarStatus ? <span role="status" aria-live="polite">{visibleStatus}</span> : null}
+        </div>
+      ) : null}
       {open ? (
         <aside className={styles.panel} id="lesson-copy-panel" aria-label={`Edit ${editedDocument.lesson.title}`}>
           <header>

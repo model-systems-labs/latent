@@ -40,6 +40,12 @@ const architectureState = [
   { className: "statePersistence", title: "Browser persistence", detail: "IndexedDB drafts · checkpoints" },
 ] as const;
 
+const architectureMovements = [
+  { number: "01", title: "Model", detail: "Text becomes tokens, then model state." },
+  { number: "02", title: "Runtime", detail: "Prefill, cache, scheduling, and decode." },
+  { number: "03", title: "Product", detail: "Events become a responsive conversation." },
+] as const;
+
 const projectFiles = [
   "models/character-rnn.py",
   "systems/inference-runtime.py",
@@ -50,13 +56,13 @@ const projectFiles = [
 
 const homepageCopyDefaults = {
   "hero.title": "Learn how LLM systems actually work.",
-  "hero.body": "Start with the math if you need it, or jump straight into models, inference, serving, and chat product code. Every lesson pairs a clear explanation with code you can run in your browser. The LLM Systems course builds those pieces into a working local chatbot.",
+  "hero.body": "Start with the math if you need it, or jump straight into models, inference, serving, and chat product code. Every lesson pairs a clear explanation with code you can run in your browser.",
   "hero.primaryAction": "Find your starting point",
   "hero.secondaryAction": "Open LLM systems",
   "system.title": "Model, runtime, serving, and interface.",
   "system.body": "A paper can explain one mechanism clearly while leaving the surrounding system implicit. These lessons begin with recurrence, tokenization, attention, and causal masking, then continue into prefill and decoding, KV-cache accounting, continuous batching, SSE framing, cancellation, retries, and conversation state. Each example is small enough to inspect and run in a browser.",
   "architecture.title": "Browser-native LLM system",
-  "architecture.kicker": "One generation request",
+  "architecture.kicker": "One request · three movements",
   "architecture.description": "Text moves left to right. The lower rail shows state that is loaded, reused, or persisted rather than streamed with each token.",
   "project.title": "The implementation accumulates.",
   "project.body": "Each lesson adds a tested file to the same project. The tests isolate the idea under study; the capstone connects browser versions of those pieces into a local chatbot. This is not a production-scale model or serving stack. It is a compact implementation for studying where the boundaries are and how data moves across them.",
@@ -74,7 +80,11 @@ export default function Home() {
 
         <header className={`site-header course-header ${styles.header}`}>
           <Link className="wordmark" href="/"><i />latent</Link>
-          <Link className={styles.headerLink} href="/course">Courses</Link>
+          <nav aria-label="Primary navigation">
+            <Link className={styles.headerLink} href="/course">Courses</Link>
+            <Link className={styles.headerLink} href="/open-learning">Open learning</Link>
+            <Link className={styles.headerLink} href="/workspace" aria-label="Open coding workspace">Code</Link>
+          </nav>
         </header>
 
         <article className={styles.shell}>
@@ -125,68 +135,78 @@ export default function Home() {
                 />
               </figcaption>
 
-              <ol className={styles.architectureBoundaries} aria-label="System boundaries">
-                {architectureBoundaries.map((boundary, index) => (
-                  <li key={boundary}>
-                    <span aria-hidden="true">0{index + 1}</span>
-                    <strong>{boundary}</strong>
+              <ol className={styles.architectureOverview} aria-label="Model, runtime, and product path">
+                {architectureMovements.map((movement) => (
+                  <li key={movement.title}>
+                    <span>{movement.number}</span>
+                    <strong>{movement.title}</strong>
+                    <p>{movement.detail}</p>
                   </li>
                 ))}
               </ol>
 
-              <ol className={styles.architectureFlow} aria-label="Request and token event flow">
-                {architectureStages.map((stage, index) => (
-                  <li key={stage.title}>
-                    <span className={styles.architectureScope}>{stage.scope}</span>
-                    <strong>{stage.title}</strong>
-                    <code>{stage.detail}</code>
-                    {index < architectureStages.length - 1 ? (
-                      <i className={styles.architectureArrow} aria-hidden="true">→</i>
-                    ) : null}
-                  </li>
-                ))}
-              </ol>
+              <details className="calm-disclosure">
+                <summary>
+                  <span>Follow the generation request, step by step</span>
+                  <small>8 stages · 4 boundaries</small>
+                </summary>
+                <div className={styles.architectureDeepDive}>
+                  <ol className={styles.architectureBoundaries} aria-label="System boundaries">
+                    {architectureBoundaries.map((boundary, index) => (
+                      <li key={boundary}>
+                        <span aria-hidden="true">0{index + 1}</span>
+                        <strong>{boundary}</strong>
+                      </li>
+                    ))}
+                  </ol>
 
-              <div
-                className={styles.architectureState}
-                role="group"
-                aria-label="State reused or persisted across the request path"
-              >
-                {architectureState.map((state) => (
-                  <div className={styles[state.className]} key={state.title}>
-                    <strong>{state.title}</strong>
-                    <code>{state.detail}</code>
+                  <ol className={styles.architectureFlow} aria-label="Request and token event flow">
+                    {architectureStages.map((stage, index) => (
+                      <li key={stage.title}>
+                        <span className={styles.architectureScope}>{stage.scope}</span>
+                        <strong>{stage.title}</strong>
+                        <code>{stage.detail}</code>
+                        {index < architectureStages.length - 1 ? (
+                          <i className={styles.architectureArrow} aria-hidden="true">→</i>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ol>
+
+                  <div
+                    className={styles.architectureState}
+                    role="group"
+                    aria-label="State reused or persisted across the request path"
+                  >
+                    {architectureState.map((state) => (
+                      <div className={styles[state.className]} key={state.title}>
+                        <strong>{state.title}</strong>
+                        <code>{state.detail}</code>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
 
-              <div className={styles.architectureLegend} aria-hidden="true">
-                <span><i className={styles.flowKey} />request + token events</span>
-                <span><i className={styles.stateKey} />reused or persisted state</span>
-              </div>
+                  <div className={styles.architectureLegend} aria-hidden="true">
+                    <span><i className={styles.flowKey} />request + token events</span>
+                    <span><i className={styles.stateKey} />reused or persisted state</span>
+                  </div>
+                </div>
+              </details>
             </figure>
           </section>
 
           <section className={styles.argument} aria-labelledby="project-title">
             <EditableText as="h2" copyKey="project.title" fallback={copy("project.title")} id="project-title" />
             <EditableText as="p" copyKey="project.body" fallback={copy("project.body")} />
-            <div className={styles.projectTree} role="group" aria-label="Course files accumulating into the Browser Chat capstone">
-              <span>browser-chat/</span>
-              {projectFiles.map((file, index) => (
-                <code key={file}><i aria-hidden="true">{index === projectFiles.length - 1 ? "└──" : "├──"}</i>{file}</code>
-              ))}
-            </div>
-          </section>
-
-          <section className={styles.closing}>
-            <EditableText as="p" copyKey="closing.body" fallback={copy("closing.body")} />
-            <EditableHomepageLink
-              arrow
-              className={styles.closingAction}
-              copyKey="closing.action"
-              fallback={copy("closing.action")}
-              href="/courses/llm-systems"
-            />
+            <details className={`${styles.projectDetails} calm-disclosure`}>
+              <summary>See how the five course files come together</summary>
+              <div className={styles.projectTree} role="group" aria-label="Course files accumulating into the Browser Chat capstone">
+                <span>browser-chat/</span>
+                {projectFiles.map((file, index) => (
+                  <code key={file}><i aria-hidden="true">{index === projectFiles.length - 1 ? "└──" : "├──"}</i>{file}</code>
+                ))}
+              </div>
+            </details>
           </section>
         </article>
 
@@ -194,6 +214,7 @@ export default function Home() {
           <span>Latent</span>
           <nav aria-label="Footer navigation">
             <Link href="/course">Courses</Link>
+            <Link href="/open-learning">Open learning</Link>
             <Link href="/workspace">IDE</Link>
             <Link href="/sources">Further reading</Link>
           </nav>

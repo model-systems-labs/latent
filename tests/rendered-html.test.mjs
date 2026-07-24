@@ -72,6 +72,21 @@ test("the course catalog separates foundations, agent systems, and the cumulativ
   assert.equal((html.match(/class="course-track-card catalog-program-card"/g) ?? []).length, 4);
 });
 
+test("open learning exposes self-hosted feeds and local package authoring", async () => {
+  const response = await render("/open-learning");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Anyone can publish a lesson/);
+  assert.match(html, /Open a hosted lesson feed/);
+  assert.match(html, /Make your own lesson or flash-card site/);
+  assert.match(html, /learning-feed-url/);
+  assert.match(html, /learning-pack-source/);
+  assert.match(html, /Download host-ready site/);
+  assert.match(html, /Portable content\. Constrained runtime/);
+  assert.match(html, /Remote JavaScript, HTML, Python, React, iframes, workers/);
+  assert.doesNotMatch(html, /Submit for approval|Upload to Latent|central repository/i);
+});
+
 test("Harness Engineering renders as an eight-lesson applied course with its own project", async () => {
   const response = await render("/courses/harness-engineering");
   assert.equal(response.status, 200);
@@ -112,7 +127,10 @@ test("Agent Loop combines technical reading with two isolated runnable cells", a
   assert.match(html, /Parse a model response/);
   assert.match(html, /Append a tool result/);
   assert.equal((html.match(/class="exercise-summary"/g) ?? []).length, 2);
-  assert.match(html, /Run cell/);
+  assert.match(html, /Run round 1/);
+  assert.match(html, /Guided/);
+  assert.match(html, /Less help/);
+  assert.match(html, /From scratch/);
   assert.match(html, /Run all tests/);
   assert.match(html, /id="lesson-sources-title">Further reading/);
   assert.equal((html.match(/class="source-entry"/g) ?? []).length, 4);
@@ -243,11 +261,12 @@ test("all fourteen lessons use the reusable learning flow", async () => {
     assert.match(html, /Restoring saved code/);
     assert.match(html, /NotImplementedError/);
     assert.doesNotMatch(html, /Practice all|Practice cell|Run example|Reset all|Restore all|Restore reference|Restore draft|Run all examples|Run practice checks/);
-    assert.match(html, /Run cell/);
+    assert.match(html, /Run round 1/);
+    assert.match(html, /Pass this guided round to complete the exercise\. The harder rounds stay optional\./);
     assert.match(html, /Run all tests/);
     assert.match(html, /Reference solution/);
     assert.doesNotMatch(html, /Compare with reference|Your draft stays unchanged/);
-    assert.match(html, /Open in IDE/);
+    assert.match(html, /Open coding workspace/);
     assert.match(html, /Saved results/);
     assert.doesNotMatch(html, /Proof tied to the exact code you ran|Take a look|Course-provided runtime|Fixed worked example|Dataset included with the lesson/);
   }
@@ -258,8 +277,8 @@ test("every lesson keeps its executable work inside the browser", async () => {
     const response = await render(`/lessons/${slug}`);
     assert.equal(response.status, 200, slug);
     const html = await response.text();
-    assert.match(html, /Run cell/);
-    assert.match(html, /Open in IDE/);
+    assert.match(html, /Run round 1/);
+    assert.match(html, /Open coding workspace/);
     assert.doesNotMatch(html, /Colab|Download notebook|Open notebook|native Python|native runtime|PyTorch version/i);
   }
 });
@@ -539,7 +558,7 @@ test("the design kit, simulations, model engines, and artifact runtime remain re
   assert.doesNotMatch(paperLab, /supporting-sources/);
   assert.match(paperLab, /source\.role/);
   assert.doesNotMatch(paperLab, /SelectionAsk|selection-ask|data-selection-ask|Highlight a passage/);
-  assert.match(layout, /og-learning-paths\.png/);
+  assert.match(layout, /og-open-learning\.png/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   await assert.rejects(access(new URL("../app/_sites-preview", templateRoot)));
 });

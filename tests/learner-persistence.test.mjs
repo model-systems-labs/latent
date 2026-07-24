@@ -120,6 +120,35 @@ test("lesson keystrokes create an immediate recovery copy and coalesce to the la
   assert.equal(saved.answers.cell, "answer 40");
 });
 
+test("optional repetition drafts persist without replacing the required project answer", async () => {
+  const lessonId = `practice-repetitions-${crypto.randomUUID()}`;
+  learner.saveLessonPracticeAndVerification(
+    lessonId,
+    ["cell"],
+    { cell: "def required_answer():\n    return 1" },
+    ["cell"],
+    { cell: "def required_answer():\n    return 1" },
+    "contracts-v1",
+  );
+  learner.saveLessonPracticeRepetitions(lessonId, {
+    answers: { "cell::round-2": "def required_answer():\n    pass" },
+    verifiedSources: {},
+    verifiedContractVersion: null,
+  });
+  assert.match(storage.get(learner.learnerRecoveryStorageKey()), /cell::round-2/);
+  await learner.flushLearnerPersistence();
+
+  const { repositories } = await client.getPersistenceContext();
+  const saved = await repositories.progress.get(persistence.lessonProgressId("llm-systems", lessonId));
+  assert.equal(saved.answers.cell, "def required_answer():\n    return 1");
+  assert.deepEqual(saved.verifiedCellIds, ["cell"]);
+  assert.deepEqual(saved.practiceRepetitions, {
+    answers: { "cell::round-2": "def required_answer():\n    pass" },
+    verifiedSources: {},
+    verifiedContractVersion: null,
+  });
+});
+
 test("editing one lesson cannot rewrite a newer lesson from another tab", async () => {
   const { repositories } = await client.getPersistenceContext();
   learner.saveLessonPractice("local-lesson", ["cell"], { cell: "local 1" });

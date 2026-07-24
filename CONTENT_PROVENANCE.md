@@ -7,6 +7,11 @@ explanations, diagrams, exercises, reference solutions, tests, and small
 synthetic fixtures are written for this project unless a local notice says
 otherwise.
 
+The repository's licensing boundary is defined in `CONTENT_LICENSE.md`.
+Apache-2.0 and CC BY 4.0 apply only to rights held by Latent contributors; they
+do not relicense the papers, standards, models, dependencies, datasets, or
+other third-party material cited by the courses.
+
 ## What the sources contribute
 
 The source list establishes prior work and supports technical facts, equations,
@@ -25,8 +30,11 @@ with their licenses on the in-product Sources page.
 Every dataset shown in the lesson index is a small synthetic fixture created for
 the course. None is extracted from a paper's evaluation corpus, an author's
 tutorial, or a production conversation. These fixtures are currently marked
-`Not separately licensed`; the project does not make a CC0 or other open-data
-grant on the repository owner's behalf.
+`Not separately licensed`; the project does not make a CC0 or other separate
+open-data grant on the repository owner's behalf. Their representation in the
+source tree is distributed as part of the Apache-2.0-licensed software, but the
+CC BY 4.0 educational-content grant does not turn them into separately licensed
+datasets.
 
 ## Review record
 

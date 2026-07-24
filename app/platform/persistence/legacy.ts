@@ -91,8 +91,21 @@ function decodeLearner(raw: unknown, timestamp: number, fingerprint: string) {
     const verifiedContractVersion = typeof value.verifiedContractVersion === "string" ? value.verifiedContractVersion : undefined;
     const experimentComplete = value.experimentComplete === true;
     const answers = stringRecord(value.answers);
+    const rawPracticeRepetitions = isRecord(value.practiceRepetitions) ? value.practiceRepetitions : null;
+    const practiceRepetitions = rawPracticeRepetitions ? {
+      answers: stringRecord(rawPracticeRepetitions.answers),
+      verifiedSources: stringRecord(rawPracticeRepetitions.verifiedSources),
+      verifiedContractVersion: typeof rawPracticeRepetitions.verifiedContractVersion === "string"
+        ? rawPracticeRepetitions.verifiedContractVersion
+        : null,
+    } : undefined;
     const hiddenBlockIds = stringArray(value.hiddenBlocks);
-    const hasProgress = experimentComplete || verifiedCellIds.length > 0 || hiddenBlockIds.length > 0 || Object.keys(answers).length > 0;
+    const hasProgress = experimentComplete
+      || verifiedCellIds.length > 0
+      || hiddenBlockIds.length > 0
+      || Object.keys(answers).length > 0
+      || Object.keys(practiceRepetitions?.answers ?? {}).length > 0
+      || Object.keys(practiceRepetitions?.verifiedSources ?? {}).length > 0;
     bundle.lessonProgress.push({
       id: lessonProgressId("llm-systems", lessonId),
       courseId: "llm-systems",
@@ -105,6 +118,7 @@ function decodeLearner(raw: unknown, timestamp: number, fingerprint: string) {
       experimentComplete,
       hiddenBlockIds,
       answers,
+      ...(practiceRepetitions ? { practiceRepetitions } : {}),
       lastProjectPath: null,
       updatedAt: typeof value.updatedAt === "number" && Number.isFinite(value.updatedAt) ? value.updatedAt : timestamp,
     });

@@ -12,7 +12,7 @@ pending cell is not a compatibility claim.
 | Types | `npm run typecheck` | no TypeScript errors |
 | Lint | `npm run lint` | no lint errors or warnings |
 | Unit and integration contracts | `npm test` | every workspace and app test passes |
-| Production dependencies | `npm audit --omit=dev` | zero known vulnerabilities |
+| Production dependencies | `npm audit --omit=dev` | zero known vulnerabilities, or only a reviewed and unexpired entry in `docs/security-exceptions.md` |
 | Payload ceilings | `npm run test:performance` | all emitted assets stay under the checked budgets |
 
 The payload gate also proves that the IDE and local Transformer remain deferred
@@ -64,6 +64,18 @@ not substitute for them.
 - The progress backup downloaded and parsed as a versioned portable snapshot
   containing the project, source files, immutable revisions, receipts, builds,
   checkpoints, lesson progress, and conversations.
+
+## Open-source release evidence — 2026-07-24
+
+- Cloudflare's Vite integration, Workers types, and Wrangler were advanced to
+  their compatible current lines (`1.47.0`, `5.20260724.1`, and `4.114.0`).
+- `npm audit --omit=dev` reports three high entries that all resolve to the one
+  Sharp/libvips advisory recorded in `docs/security-exceptions.md`. No
+  compatible upstream resolution exists yet; the exception expires on
+  2026-08-31 and forbids adding untrusted server-side image processing.
+- `npm audit` reports the same production advisory plus four moderate
+  development-tool findings. These do not ship in Course Kit or the deployed
+  application, but remain tracked for upstream resolution.
 
 ## Remaining manual recovery evidence
 

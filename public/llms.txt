@@ -1,0 +1,28 @@
+# Latent Open Learning
+
+Latent supports portable, self-hosted lessons and flash cards created by people or any capable LLM.
+
+Authoritative guide:
+/open-learning/guide.md
+
+JSON Schema:
+/open-learning/learning-pack.schema.json
+/open-learning/learning-feed.schema.json
+
+Complete example:
+/open-learning/reliable-llm-changes/learning-pack.json
+
+LLM workflows:
+/open-learning/skills/author-learning-pack.md
+/open-learning/skills/review-learning-pack.md
+/open-learning/skills/publish-learning-pack.md
+
+Rules:
+- Author only the public declarative JSON format.
+- Cite HTTPS sources and explain how they support the material.
+- Make every objective taught and assessed.
+- Never place executable code, HTML, scripts, credentials, or personal data in a community pack.
+- Run strict validation before building.
+- Publish the complete generated static directory without changing learning-pack.json.
+- Never reuse a published package id and version for different bytes.
+- Do not describe format validity as Latent review, endorsement, or certification.

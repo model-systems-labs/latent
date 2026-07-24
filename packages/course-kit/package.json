@@ -1,12 +1,41 @@
 {
   "name": "@latent/course-kit",
   "version": "0.1.0",
-  "private": true,
+  "description": "Model-neutral schemas, validation, and static publishing for portable lessons and flash cards.",
+  "license": "Apache-2.0",
+  "author": "Model Systems Labs",
+  "homepage": "https://github.com/model-systems-labs/latent/tree/main/packages/course-kit",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/model-systems-labs/latent.git",
+    "directory": "packages/course-kit"
+  },
+  "bugs": {
+    "url": "https://github.com/model-systems-labs/latent/issues"
+  },
+  "keywords": [
+    "education",
+    "flashcards",
+    "learning",
+    "lessons",
+    "llm",
+    "static-site"
+  ],
   "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
   "files": [
+    "bin",
     "dist",
+    "docs",
+    "schema",
+    "LICENSE",
     "README.md"
   ],
+  "bin": {
+    "latent-learning": "bin/latent-learning.mjs"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -20,6 +49,14 @@
       "types": "./dist/manifest.d.ts",
       "import": "./dist/manifest.js"
     },
+    "./learning-pack": {
+      "types": "./dist/learning-pack.d.ts",
+      "import": "./dist/learning-pack.js"
+    },
+    "./static-site": {
+      "types": "./dist/static-site.d.ts",
+      "import": "./dist/static-site.js"
+    },
     "./types": {
       "types": "./dist/types.d.ts",
       "import": "./dist/types.js"
@@ -28,9 +65,20 @@
   "scripts": {
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
     "build": "tsc -p tsconfig.json",
+    "prepare:package": "node scripts/prepare-package.mjs",
+    "prepack": "npm run clean && npm run build && npm run prepare:package && npm run test:built",
+    "release:check": "node scripts/check-release.mjs",
+    "smoke:package": "node scripts/smoke-package.mjs",
+    "test:built": "node --test test/*.test.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "npm run build && node --test test/*.test.mjs",
+    "test": "npm run build && npm run test:built",
     "validate": "npm run typecheck && npm test"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "zod": "4.4.3"

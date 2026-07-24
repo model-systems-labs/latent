@@ -59,8 +59,8 @@ export default function SourcesPage() {
         <section className="lesson-source-index" aria-labelledby="lesson-source-index-title">
           <header><h2 id="lesson-source-index-title">Further reading by lesson</h2></header>
           {coursePrograms.map((program) => (
-            <section className="source-program-group" aria-labelledby={`sources-${program.id}`} key={program.id}>
-              <h3 id={`sources-${program.id}`}>{program.title}</h3>
+            <details className="source-program-group calm-disclosure" key={program.id}>
+              <summary id={`sources-${program.id}`}><span>{program.title}</span><small>{program.lessons.length} lessons</small></summary>
               {program.lessons.map((lesson) => (
                 <article key={lesson.id}>
                   <header><strong>{lesson.title}</strong><code>{lesson.dataset.name} · {lesson.dataset.source} · {lesson.dataset.license} · {lesson.dataset.size}</code></header>
@@ -73,7 +73,7 @@ export default function SourcesPage() {
                   <ul>{flashcardReferenceShelves[program.id as keyof typeof flashcardReferenceShelves].map((source) => <li key={source.url}><a href={source.url} target="_blank" rel="noreferrer" aria-label={`${source.title}, ${source.authors}, ${source.year}; opens in a new tab`}><span><strong>{source.title}</strong><em>{source.authors} · {source.year}</em></span><i aria-hidden="true">↗</i></a></li>)}</ul>
                 </article>
               ) : null}
-            </section>
+            </details>
           ))}
         </section>
       </article>

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Author Learning Pack"
+  short_description: "Create source-grounded portable lessons and flash cards"
+  default_prompt: "Use $author-learning-pack to create or improve a portable Latent learning pack."

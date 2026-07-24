@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review Learning Pack"
+  short_description: "Audit learning packs for accuracy, teaching quality, and safety"
+  default_prompt: "Use $review-learning-pack to review a Latent learning pack and report exact fixes."

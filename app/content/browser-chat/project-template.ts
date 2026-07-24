@@ -585,11 +585,7 @@ export function BrowserChat() {
   const [maxTokens, setMaxTokens] = useState(160);
   const [preview, setPreview] = useState<PreviewInitialization | null>(null);
   const [preparing, setPreparing] = useState(false);
-  const [controlsOpen, setControlsOpen] = useState(
-    () => typeof window === "undefined"
-      || typeof window.matchMedia !== "function"
-      || !window.matchMedia("(max-width: 520px)").matches,
-  );
+  const [controlsOpen, setControlsOpen] = useState(false);
   const [mobileControlsOpen, setMobileControlsOpen] = useState(false);
   const [preparationDetail, setPreparationDetail] = useState("Checking the model");
   const [persistencePhase, setPersistencePhase] = useState<"idle" | "saving" | "saved" | "error">("idle");
@@ -1087,14 +1083,16 @@ export function BrowserChat() {
           </section>
 
           {preview?.runtime.interface.showMetrics !== false ? <section className="metrics-panel">
-            <span className="section-label">Last request</span>
-            <dl>
-              <div><dt>Host queue</dt><dd>{metrics.queueMs} ms</dd></div>
-              <div><dt>First visible</dt><dd>{metrics.ttftMs} ms</dd></div>
-              <div><dt>Model run</dt><dd>{metrics.modelMs} ms</dd></div>
-              <div><dt>{metrics.generatedUnitLabel}</dt><dd>{metrics.generatedUnits}</dd></div>
-              <div><dt>Total</dt><dd>{metrics.durationMs} ms</dd></div>
-            </dl>
+            <details>
+              <summary><span className="section-label">Last request</span><strong>{metrics.durationMs ? metrics.durationMs + " ms total" : "No request yet"}</strong></summary>
+              <dl>
+                <div><dt>Host queue</dt><dd>{metrics.queueMs} ms</dd></div>
+                <div><dt>First visible</dt><dd>{metrics.ttftMs} ms</dd></div>
+                <div><dt>Model run</dt><dd>{metrics.modelMs} ms</dd></div>
+                <div><dt>{metrics.generatedUnitLabel}</dt><dd>{metrics.generatedUnits}</dd></div>
+                <div><dt>Total</dt><dd>{metrics.durationMs} ms</dd></div>
+              </dl>
+            </details>
           </section> : null}
 
           <footer>
@@ -1229,7 +1227,7 @@ const BROWSER_CHAT_CSS = `
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; min-height: 100vh; background: radial-gradient(circle at 78% 9%, rgba(173, 151, 193, 0.22), transparent 32rem), radial-gradient(circle at 11% 86%, rgba(225, 186, 145, 0.18), transparent 30rem), #f3f0ec; }
+body { margin: 0; min-height: 100vh; background: radial-gradient(circle at 78% 9%, rgba(173, 151, 193, 0.14), transparent 34rem), #f3f0ec; }
 button, textarea, input { font: inherit; }
 button { color: inherit; }
 .browser-chat { min-height: 100vh; padding: 1.25rem; }
@@ -1240,7 +1238,7 @@ button { color: inherit; }
 .phase-status i { background: #73927b; border-radius: 50%; box-shadow: 0 0 0 5px rgba(115, 146, 123, 0.1); height: 0.46rem; width: 0.46rem; }
 .phase-status[data-phase="streaming"] i, .phase-status[data-phase="prefill"] i { animation: pulse 1.4s infinite; background: #947bb1; }
 .phase-status[data-phase="error"] i { background: #a96d6d; }
-.app-layout { background: var(--paper); border: 1px solid rgba(65, 53, 72, 0.18); border-radius: 1.25rem; box-shadow: 0 30px 80px rgba(61, 48, 67, 0.1); display: grid; grid-template-columns: 18rem minmax(0, 1fr); margin: 0 auto; max-width: 1320px; min-height: calc(100vh - 7.5rem); overflow: hidden; backdrop-filter: blur(24px); }
+.app-layout { background: var(--paper); border: 1px solid rgba(65, 53, 72, 0.14); border-radius: 0.4rem; display: grid; grid-template-columns: 18rem minmax(0, 1fr); margin: 0 auto; max-width: 1320px; min-height: calc(100vh - 7.5rem); overflow: hidden; }
 .control-panel { border-right: 1px solid var(--line); display: flex; flex-direction: column; min-width: 0; }
 .mobile-control-toggle { display: none; }
 .control-panel section { border-bottom: 1px solid var(--line); padding: 1.35rem; }
@@ -1250,6 +1248,11 @@ button { color: inherit; }
 .inference-panel details summary::after { color: var(--faint); content: "＋"; font-size: 0.8rem; margin-left: 0.6rem; }
 .inference-panel details[open] summary::after { content: "−"; }
 .inference-panel summary > strong { color: var(--faint); font-size: 0.68rem; font-weight: 500; margin-left: auto; }
+.metrics-panel summary { align-items: center; cursor: pointer; display: flex; justify-content: space-between; list-style: none; }
+.metrics-panel summary::-webkit-details-marker { display: none; }
+.metrics-panel summary::after { color: var(--faint); content: "＋"; font-size: 0.8rem; margin-left: 0.6rem; }
+.metrics-panel details[open] summary::after { content: "−"; }
+.metrics-panel summary > strong { color: var(--faint); font-size: 0.68rem; font-weight: 500; margin-left: auto; }
 .segmented-control { display: grid; gap: 0.35rem; margin-top: 0.85rem; }
 .segmented-control button, .control-panel footer button, .conversation-heading button, .composer button { background: transparent; border: 1px solid var(--line); border-radius: 999px; cursor: pointer; font-size: 0.7rem; padding: 0.65rem 0.85rem; text-align: left; }
 .segmented-control button.active { background: rgba(116, 100, 135, 0.1); border-color: rgba(116, 100, 135, 0.4); color: #5c496f; }
@@ -1259,7 +1262,7 @@ button:disabled { cursor: default; opacity: 0.42; }
 .control-panel label > span { display: flex; font-size: 0.7rem; justify-content: space-between; }
 .control-panel label strong { color: var(--violet); font-weight: 600; }
 input[type="range"] { accent-color: var(--violet); width: 100%; }
-.metrics-panel dl { display: grid; grid-template-columns: 1fr 1fr; margin: 0.7rem 0 0; }
+.metrics-panel dl { display: grid; grid-template-columns: 1fr 1fr; margin: 0.9rem 0 0; }
 .metrics-panel dl div { border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; padding: 0.65rem 0; }
 .metrics-panel dl div:nth-child(odd) { padding-right: 0.65rem; }
 .metrics-panel dl div:nth-child(even) { border-left: 1px solid var(--line); padding-left: 0.65rem; }

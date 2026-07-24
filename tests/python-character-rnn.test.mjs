@@ -203,6 +203,17 @@ function replacePythonRegion(sourceText, pattern, replacement) {
   return next;
 }
 
+function assertPythonParses(sourceText, label) {
+  pyodide.globals.set("__latent_syntax_source", sourceText);
+  try {
+    pyodide.runPython("import ast; ast.parse(__latent_syntax_source); True");
+  } catch (error) {
+    assert.fail(`${label} must be valid Python: ${error}`);
+  } finally {
+    pyodide.globals.delete("__latent_syntax_source");
+  }
+}
+
 function validPayload() {
   return {
     checkpoint: {
@@ -268,7 +279,7 @@ function passingPythonLab(payload = validPayload()) {
   return { calls, client };
 }
 
-test("the canonical project keeps one editable learner source while the trusted trainer remains host-owned", () => {
+test("the canonical project keeps one editable learner source while the trusted trainer remains host-owned", { timeout: 60_000 }, async () => {
   const manifestPath = course.llmSystemsCurriculum.lessonById["character-rnns"].projectPath;
   const seeds = canonical.completeCanonicalProjectSeeds({ version: 2, lessons: {}, artifacts: {} });
   const lessonSeeds = seeds.filter((seed) => seed.lessonId === "character-rnns");
@@ -281,11 +292,30 @@ test("the canonical project keeps one editable learner source while the trusted 
   assert.notEqual(python.readOnly, true);
   assert.notEqual(python.content, source.PYTHON_CHARACTER_RNN_SOURCE);
   assert.equal(python.referenceContent, source.PYTHON_CHARACTER_RNN_SOURCE);
+  const lesson = course.getLesson("character-rnns");
+  assert.ok(lesson);
+  for (const block of lesson.implementation.codeBlocks) {
+    assert.ok(block.starterCode, `${block.id} has course-authored guidance`);
+    assert.match(python.content, new RegExp(block.starterCode.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  }
+  assert.match(python.content, /# TODO:/);
   assert.match(python.content, /raise NotImplementedError\("Implement Recurrent transition\."\)/);
   assert.match(python.content, /def train_character_rnn/);
   assert.match(python.content, /np\.random\.default_rng\(19\)/);
   assert.equal(seeds.some((seed) => seed.lessonId === "character-rnns" && seed.path.endsWith(".js")), false);
   assert.equal(seeds.some((seed) => seed.path === service.PYTHON_CHARACTER_RNN_TRAINER_PATH), false);
+
+  const pythonLab = await realPythonLab();
+  assertPythonParses(python.content, "the Guided character RNN seed");
+  assertPythonParses(python.referenceContent, "the authored character RNN reference");
+  const initialRun = await service.runPythonCharacterRnnArtifact({ source: python.content, pythonLab });
+  assert.equal(initialRun.passed, false);
+  assert.equal(initialRun.artifact, undefined);
+  assert.ok(initialRun.tests.some(({ passed }) => !passed));
+  assert.match(
+    initialRun.tests.filter(({ passed }) => !passed).map(({ detail }) => detail).join("\n"),
+    /notimplemented|implement recurrent transition/i,
+  );
 });
 
 test("Python bytes route to the CPython contract entry while remaining a JSON identity module", async () => {

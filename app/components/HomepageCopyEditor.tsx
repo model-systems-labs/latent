@@ -125,6 +125,13 @@ export function HomepageCopyProvider({
     dirty.length && status !== "Saving" && status !== "Save failed"
       ? "Unsaved changes"
       : status;
+  const showToolbarStatus = editing || [
+    "Loading saved text",
+    "Saved text is unavailable",
+    "Saving",
+    "Save failed",
+    "Unsaved changes",
+  ].includes(visibleStatus);
 
   useEffect(() => {
     if (!dirty.length) return;
@@ -161,7 +168,9 @@ export function HomepageCopyProvider({
         <button type="button" aria-pressed={editing} onClick={() => setEditing(!editing)}>
           {editing ? "Done" : "Edit text"}
         </button>
-        <span role="status" aria-live="polite">{status || (editing ? "Autosaves" : "Saved")}</span>
+        {showToolbarStatus ? (
+          <span role="status" aria-live="polite">{visibleStatus || "Autosaves"}</span>
+        ) : null}
       </div>
     </EditableCopyContext.Provider>
   );

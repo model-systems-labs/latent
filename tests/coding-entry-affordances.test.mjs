@@ -33,7 +33,9 @@ test("lesson exercise rows advertise the editor and leave the coding area unobst
     read("app/styles/coding-workspace.css"),
   ]);
 
-  assert.match(paperLab, /active \? "Editor open" : "Open editor"/);
+  assert.match(paperLab, /`Running round \$\{round\}`/);
+  assert.match(paperLab, /`Complete · \$\{completedRounds\}\/3 rounds`/);
+  assert.match(paperLab, /"Round 1 of 3"/);
   assert.match(paperLab, />Open coding workspace ↗<\/Link>/);
   assert.match(copyEditor, /new IntersectionObserver/);
   assert.match(copyEditor, /!open && !codingVisible/);

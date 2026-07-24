@@ -1,13 +1,36 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import test from "node:test";
+import { after, before, test } from "node:test";
+import { fileURLToPath } from "node:url";
+import { createServer } from "vite";
 
-import { lessonFlairRegistry } from "../app/lessons/lesson-flair.ts";
-import { llmSystemsManifest } from "../app/content/llm-systems/manifest.ts";
+let lessonFlairRegistry;
+let llmSystemsManifest;
+let vite;
 
 const root = new URL("../", import.meta.url);
 const paperLabUrl = new URL("app/components/PaperLab.tsx", root);
 const paperLabCssUrl = new URL("app/components/PaperLab.module.css", root);
+
+before(async () => {
+  vite = await createServer({
+    root: fileURLToPath(root),
+    configFile: false,
+    server: { middlewareMode: true },
+    appType: "custom",
+    logLevel: "silent",
+  });
+  const [flairModule, manifestModule] = await Promise.all([
+    vite.ssrLoadModule("/app/lessons/lesson-flair.ts"),
+    vite.ssrLoadModule("/app/content/llm-systems/manifest.ts"),
+  ]);
+  lessonFlairRegistry = flairModule.lessonFlairRegistry;
+  llmSystemsManifest = manifestModule.llmSystemsManifest;
+});
+
+after(async () => {
+  await vite?.close();
+});
 
 function luminance(hex) {
   const channels = hex.match(/[0-9a-f]{2}/gi).map((channel) => Number.parseInt(channel, 16) / 255);

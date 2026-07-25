@@ -26,7 +26,8 @@ Use Node.js 22.13 or newer. Do not reuse a prior clone, generated project, or
 maintainer-provided build artifact.
 
 ```bash
-git clone --depth 1 https://github.com/model-systems-labs/latent.git
+git clone --depth 1 --branch course-kit-v0.2.0 \
+  https://github.com/model-systems-labs/latent.git
 cd latent
 npm ci
 npm run create:platform -- ../my-learning-platform \
@@ -41,7 +42,9 @@ npm run preview
 
 The creation command must finish with a validated project. `npm run preview`
 reruns validation, rebuilds the static output, and starts a loopback-only local
-server. The participant may stop it after checking all four surfaces.
+server. If port 4173 is occupied, retry with
+`npm run preview -- --port 0`; record the printed URL. The participant may stop
+it after checking all four surfaces.
 
 ## Evidence
 
@@ -75,3 +78,26 @@ an actual person performs the procedure and supplies the evidence above.
 
 Repeated product or documentation failures block release until they are fixed
 or explicitly removed from the launch promise.
+
+## Recorded v0.2 candidate evidence
+
+Three independent agents completed the public procedure from empty directories
+against public release-candidate `main` commit
+`6ac657f3fc06c83a2add2ef996f573dd573c266a`. Each customized portable learning
+content, validated all four primitives, reproduced deterministic static output,
+and checked the built site over loopback HTTP in under four minutes:
+
+| Participant | Topic | Elapsed | Result |
+| --- | --- | ---: | --- |
+| [agent-field-notes](./conformance-reports/2026-07-25-agent-field-notes.md) | Field observation | 3m 16s | Candidate pass |
+| [cleanroom-accessibility](./conformance-reports/2026-07-25-agent-accessibility.md) | Keyboard-friendly interfaces | 3m 36s | Candidate pass |
+| [http-cache-lab](./conformance-reports/2026-07-25-agent-http-cache.md) | HTTP cache freshness | 3m 59s | Candidate pass |
+
+The two concurrent runs that found port 4173 occupied both recovered with the
+now-documented `--port 0` path. The reports classify this as an environment
+collision, not a platform failure.
+
+These runs validate the public candidate workflow, not the exact tagged release
+procedure above. Exact-tag agent runs must be recorded after the immutable tag
+exists. Human developer evidence also remains pending and is not inferred from
+agent runs.

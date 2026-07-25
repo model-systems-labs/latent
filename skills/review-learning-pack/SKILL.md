@@ -21,7 +21,7 @@ Use this immutable, registry-independent Course Kit release for every public
 CLI command in this workflow:
 
 ```bash
-COURSE_KIT_RELEASE=https://github.com/model-systems-labs/latent/releases/download/course-kit-v0.1.0/latent-course-kit-0.1.0.tgz
+COURSE_KIT_RELEASE=https://github.com/model-systems-labs/latent/releases/download/course-kit-v0.2.0/latent-course-kit-0.2.0.tgz
 ```
 
 ## Review workflow

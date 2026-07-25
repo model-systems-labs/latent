@@ -46,8 +46,8 @@ Core rules:
 - Keep integrity, publisher identity, editorial review, and certification as separate claims.
 - Keep a central directory optional. A valid pack must work from a publisher-controlled static URL without Latent.
 - Use namespaced metadata for experimental extensions; unknown extensions receive no new runtime capability.
-- Treat Question Groups as a preview data contract. Hosting a library does not
-  authorize Latent to execute it.
+- Treat Question Groups as a released declarative contract. Hosting a library
+  does not authorize Latent to execute it.
 - Keep publisher-authored tests data-only. The application owns executable
   behavioral contracts and runtime adapters.
 - Do not describe Python Lab as a hostile-code security sandbox.

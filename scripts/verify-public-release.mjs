@@ -85,14 +85,16 @@ async function verifySchema({ remoteUrl, localPath }) {
   };
 }
 
-async function verifyRelease(options) {
+async function verifyRelease(options, { releaseBaseUrl } = {}) {
   if (!options.version || !/^\d+\.\d+\.\d+$/.test(options.version)) {
     throw new Error("--version must be a semantic version such as 0.2.0");
   }
 
   const tag = `course-kit-v${options.version}`;
-  const releaseBase =
-    `https://github.com/${options.repository}/releases/download/${tag}`;
+  const releaseBase = normalizedBaseUrl(
+    releaseBaseUrl
+      ?? `https://github.com/${options.repository}/releases/download/${tag}`,
+  );
   const tarballName = `latent-course-kit-${options.version}.tgz`;
   const [tarball, checksums] = await Promise.all([
     fetchBytes(`${releaseBase}/${tarballName}`),

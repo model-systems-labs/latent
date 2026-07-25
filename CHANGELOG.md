@@ -8,24 +8,41 @@ contracts and are identified inside their documents.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-07-25
+
 ### Added
 
-- The candidate `latent-question-group-library` v1 format for portable
+- A five-minute platform generator with a lesson, flash-card deck, Question
+  Group, browser IDE exercise, deterministic validation, local serving, and a
+  static-host deployment workflow.
+- The released `latent-question-group-library` v1 format for portable
   JavaScript, TypeScript, and Python function or class-method practice.
-- Strict structural and semantic validation, canonical JSON, a checked-in JSON
-  Schema candidate, and a framework-neutral package subpath for
-  question-group readers.
+- Strict structural and semantic validation, canonical JSON, immutable JSON
+  Schemas, progress contracts, leech queries, a static JavaScript/TypeScript
+  player, and framework-neutral package subpaths for Question Group readers.
 - A grouped programming-practice route using the shared editor, host-owned
   behavioral contracts, and source-bound device progress.
-- A frozen v0.2 launch contract plus an architecture decision separating
-  portable declarative content from trusted executable repository extensions.
+- An injected Browser IDE seam for host-supplied editors, JavaScript or
+  TypeScript runtimes, files, checks, and persistence.
+- Agent-neutral workflows for authoring, reviewing, and publishing platforms,
+  courses, flash-card decks, Question Groups, and IDE exercises.
+- A tiny non-LLM reference platform, clean-room conformance protocol,
+  architecture graphic, social card, and screenshots of all four primitives.
 
 ### Changed
 
 - Course Kit release packaging and smoke tests now include the question-group
   guide, schema, runtime exports, and type declarations.
-- Public documentation distinguishes the published Course Kit v0.1.0 release
-  from the unreleased v0.2 source tree.
+- Public documentation pins the Course Kit v0.2.0 tarball and distinguishes
+  portable declarative content from trusted repository extensions.
+
+### Security
+
+- The bundled Question Group worker denies browser network and persistent
+  storage capabilities, lowers dynamic imports before evaluation, freezes
+  grading intrinsics, and rejects hostile or non-plain result graphs.
+- Browser IDE persistence uses source-bound identities, monotonic
+  compare-and-save semantics, bounded receipts, and abort/disposal gates.
 
 ## [0.1.0] - 2026-07-24
 
@@ -52,5 +69,6 @@ contracts and are identified inside their documents.
 - Feed loading verifies origin, redirects, UTF-8, byte limits, canonical bytes,
   identity, version, and SHA-256 before rendering.
 
-[Unreleased]: https://github.com/model-systems-labs/latent/compare/course-kit-v0.1.0...HEAD
+[Unreleased]: https://github.com/model-systems-labs/latent/compare/course-kit-v0.2.0...HEAD
+[0.2.0]: https://github.com/model-systems-labs/latent/compare/course-kit-v0.1.0...course-kit-v0.2.0
 [0.1.0]: https://github.com/model-systems-labs/latent/releases/tag/course-kit-v0.1.0

@@ -690,6 +690,17 @@ test("starter workflow validates before deploying only the static artifact", asy
   assert.match(app, /new Worker\("\.\/runner\.worker\.mjs"/);
 });
 
+test("public and generated guides document collision-free loopback preview", async () => {
+  for (const relativePath of [
+    "docs/getting-started.md",
+    "docs/conformance.md",
+    "examples/learning-platform/javascript-array-methods/GUIDE.md",
+  ]) {
+    const source = await readFile(join(repositoryRoot, relativePath), "utf8");
+    assert.match(source, /npm run preview -- --port 0/);
+  }
+});
+
 test("all platform workflows declare their editable layer and validation", async () => {
   const workflows = [
     "author-learning-platform",

@@ -46,6 +46,10 @@ test("Course Kit is independently licensed, packable, and guarded for public rel
     readFile(new URL("../.github/workflows/release-course-kit.yml", import.meta.url), "utf8"),
   ]);
   const manifest = JSON.parse(manifestSource);
+  const rootManifest = JSON.parse(
+    await readFile(new URL("../package.json", import.meta.url), "utf8"),
+  );
+  assert.equal(rootManifest.version, manifest.version);
   assert.equal(manifest.license, "Apache-2.0");
   assert.equal(manifest.publishConfig.access, "public");
   assert.equal(manifest.bin["latent-learning"], "bin/latent-learning.mjs");
@@ -55,9 +59,9 @@ test("Course Kit is independently licensed, packable, and guarded for public rel
   );
   assert.match(manifest.scripts.prepack, /clean.*build.*prepare:package.*test:built/);
   assert.match(license, /Apache License[\s\S]*Version 2\.0/);
-  assert.match(readme, /source tree is now Course Kit v0\.2\.0/);
-  assert.match(readme, /releases\/download\/course-kit-v0\.1\.0\/latent-course-kit-0\.1\.0\.tgz/);
-  assert.match(readme, /Until the v0\.2\.0\s+package is published/);
+  assert.match(readme, /Course Kit v0\.2\.0 is the latest published release/);
+  assert.match(readme, /releases\/download\/course-kit-v0\.2\.0\/latent-course-kit-0\.2\.0\.tgz/);
+  assert.match(readme, /not currently published on npm/);
   assert.match(readme, /npm exec --yes --package "\$COURSE_KIT_RELEASE" --/);
   assert.match(ci, /permissions:\s*\n\s*contents: read/);
   assert.doesNotMatch(ci, /uses: [^@\n]+@v\d/);
@@ -132,33 +136,20 @@ test("the v0.2 contract separates portable content from trusted executable sourc
   const courseKitStatus = releaseStatus.courseKit;
   assert.equal(releaseStatus.schemaVersion, 1);
   assert.equal(courseKitStatus.sourceVersion, packageManifest.version);
-  assert.match(courseKitStatus.state, /^(development|released)$/);
+  assert.equal(courseKitStatus.state, "released");
   assert.equal(courseKitStatus.npmState, "unpublished");
+  assert.equal(courseKitStatus.latestPublishedVersion, packageManifest.version);
+  assert.equal(courseKitStatus.questionGroupSchemaState, "published");
   assert.equal(
     courseKitStatus.latestPublishedTag,
-    `course-kit-v${courseKitStatus.latestPublishedVersion}`,
+    `course-kit-v${packageManifest.version}`,
   );
   assert.equal(
     courseKitStatus.installUrl,
-    `https://github.com/model-systems-labs/latent/releases/download/${courseKitStatus.latestPublishedTag}/latent-course-kit-${courseKitStatus.latestPublishedVersion}.tgz`,
+    `https://github.com/model-systems-labs/latent/releases/download/${courseKitStatus.latestPublishedTag}/latent-course-kit-${packageManifest.version}.tgz`,
   );
-  if (courseKitStatus.state === "development") {
-    assert.notEqual(courseKitStatus.latestPublishedVersion, packageManifest.version);
-    assert.equal(courseKitStatus.questionGroupSchemaState, "candidate");
-    assert.match(
-      launchContract,
-      /frozen release target; implementation incomplete; not yet released/,
-    );
-    assert.match(
-      launchContract,
-      /Question Groups: programming practice \| Required for release; currently preview/,
-    );
-  } else {
-    assert.equal(courseKitStatus.latestPublishedVersion, packageManifest.version);
-    assert.equal(courseKitStatus.questionGroupSchemaState, "published");
-    assert.match(launchContract, /Status: \*\*released\*\*/);
-    assert.doesNotMatch(launchContract, /\bpreview\b|not yet released/i);
-  }
+  assert.match(launchContract, /Status: \*\*released\*\*/);
+  assert.doesNotMatch(launchContract, /\bpreview\b|not yet released/i);
   assert.match(launchContract, /Portable content/);
   assert.match(launchContract, /Trusted platform source/);
   assert.match(launchContract, /Question Groups include the release-ready authorship/);

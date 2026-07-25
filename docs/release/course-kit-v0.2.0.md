@@ -100,12 +100,12 @@ npm exec --yes --package="$COURSE_KIT_RELEASE" -- \
 The release also includes `SHA256SUMS`. The immutable Learning Pack, feed, and
 Question Group schemas are published through GitHub Pages.
 
-The immutable v0.2.0 tarball's bundled README uses “registry-independent” to
-mean that the Course Kit artifact itself is hosted on GitHub rather than
-published under the `@latent` npm scope. It does not mean fully offline:
-`npm exec` still resolves the tarball's pinned `esbuild-wasm` and `zod`
-dependencies from the configured npm registry. Use an approved cache or mirror
-when that registry is unavailable.
+The immutable v0.2.0 tarball's bundled README and open-learning guide use
+“registry-independent” to mean that the Course Kit artifact itself is hosted
+on GitHub rather than published under the `@latent` npm scope. It does not mean
+fully offline: `npm exec` still resolves the tarball's pinned `esbuild-wasm`
+and `zod` dependencies from the configured npm registry. Use an approved cache
+or mirror when that registry is unavailable.
 
 `npm run release:verify -- --version 0.2.0` publicly verifies the annotated tag
 and peeled commit, release checksum, four schema digests, live routes, and the

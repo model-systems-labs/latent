@@ -11,7 +11,7 @@
     "learningPack": "content/learning-pack.json",
     "questionGroups": "content/question-groups.json"
   },
-  "trusted": {
+  "hostOwned": {
     "ideExercises": "trusted/ide-exercises.mjs"
   }
 }

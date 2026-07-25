@@ -535,7 +535,7 @@ function configureNavigation() {
 }
 
 try {
-  const [platform, pack, libraryRecord, trusted] = await Promise.all([
+  const [platform, pack, libraryRecord, hostModule] = await Promise.all([
     loadJson("./platform.json"),
     loadJson("./content/learning-pack.json"),
     loadJsonWithDigest("./content/question-groups.json"),
@@ -556,7 +556,7 @@ try {
   const practiceIdentities = practiceQuestions.map((question) => (
     practiceProgressIdentity(library, libraryRecord.digest, question)
   ));
-  const ideExercise = trusted.ideExercises[0];
+  const ideExercise = hostModule.ideExercises[0];
   const ideDraftKey = `ide-draft:${ideExercise.id}:${ideExercise.contractVersion}`;
   const ideResultKey = `ide-result:${ideExercise.id}:${ideExercise.contractVersion}`;
   const ideDraft = store.read(ideDraftKey, null);
@@ -597,7 +597,7 @@ try {
   renderLesson(pack, state);
   renderCards(pack, state);
   renderPractice(library, state);
-  renderIde(trusted.ideExercises, state);
+  renderIde(hostModule.ideExercises, state);
   announce(`${platform.brand.name} is ready.`);
 } catch (error) {
   for (const root of $$(".loading")) {

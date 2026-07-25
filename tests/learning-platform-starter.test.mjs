@@ -112,7 +112,7 @@ async function treeDigest(directory) {
 test("tiny non-LLM example passes canonical validators with all four primitives", async () => {
   const learningPack = await json(join(exampleRoot, "content/learning-pack.json"));
   const questions = await json(join(exampleRoot, "content/question-groups.json"));
-  const trusted = await import(`../examples/learning-platform/javascript-array-methods/trusted/ide-exercises.mjs?test=${Date.now()}`);
+  const hostModule = await import(`../examples/learning-platform/javascript-array-methods/trusted/ide-exercises.mjs?test=${Date.now()}`);
 
   const learningValidation = validateLearningPack(learningPack);
   assert.equal(learningValidation.valid, true);
@@ -136,9 +136,12 @@ test("tiny non-LLM example passes canonical validators with all four primitives"
     exampleCases: 1,
     checkCases: 2,
   });
-  assert.equal(trusted.ideExercises.length, 1);
-  assert.equal(trusted.ideExercises[0].language, "javascript");
-  assert.ok(trusted.ideExercises[0].checks.length >= 2);
+  assert.equal(hostModule.ideExercises.length, 1);
+  assert.equal(hostModule.ideExercises[0].language, "javascript");
+  assert.ok(hostModule.ideExercises[0].checks.length >= 2);
+  const platform = await json(join(exampleRoot, "platform.json"));
+  assert.equal(platform.hostOwned.ideExercises, "trusted/ide-exercises.mjs");
+  assert.equal(Object.hasOwn(platform, "trusted"), false);
 });
 
 test("the checked-in offline validator is generated deterministically from public Course Kit exports", async (context) => {

@@ -184,5 +184,5 @@ if (releaseStart >= 0) {
 }
 
 if (!process.exitCode) {
-  process.stdout.write(`Course Kit ${manifest.version} matches ${expectedTag} and its registry-independent documentation.\n`);
+  process.stdout.write(`Course Kit ${manifest.version} matches ${expectedTag} and its GitHub-hosted release documentation.\n`);
 }

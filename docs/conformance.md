@@ -54,7 +54,9 @@ Record:
 - participant or run identifier;
 - operating system and Node version;
 - start and finish timestamps;
-- exact commands;
+- exact shell commands and non-shell tool actions; for an agent action, record
+  its action type and target, and say whether the full payload survives only in
+  the run transcript;
 - generated title and topic;
 - validation and build results;
 - preview or deployed URL;
@@ -79,6 +81,31 @@ an actual person performs the procedure and supplies the evidence above.
 Repeated product or documentation failures block release until they are fixed
 or explicitly removed from the launch promise.
 
+## Recorded v0.2 exact-tag agent evidence
+
+Three independent agents completed the public procedure from empty directories
+against the public `course-kit-v0.2.0` tag at commit
+`57d5b7ca00e36411841d1aeaff32085afead5c7c`. Each created a distinct topic,
+validated all four primitives, reproduced deterministic static output, and
+served the built site over loopback HTTP:
+
+| Participant | Topic | Elapsed | Result |
+| --- | --- | ---: | --- |
+| [tagged-agent-mergecraft](./conformance-reports/2026-07-25-tagged-agent-mergecraft.md) | Git conflict resolution | 7m 11s | Pass |
+| [tagged-agent-query-trail](./conformance-reports/2026-07-25-tagged-agent-query-trail.md) | SQL row flow | 10m 00s | Pass |
+| [tagged-agent-layout-rescue](./conformance-reports/2026-07-25-tagged-agent-layout-rescue.md) | CSS layout debugging | 2m 38s | Pass |
+
+The first two clocks include recovery from three concurrent `npm ci` processes
+exhausting the shared test volume. The third agent's first attempt encountered
+the same collision and a coordination pause, so it was recorded as an
+environment failure; its pass began again from a genuinely empty directory
+after installs were serialized. No product or public-documentation defect was
+needed to complete any tagged run.
+
+These are agent results, not developer results. Independent human developer
+evidence remains pending in
+[issue #19](https://github.com/model-systems-labs/latent/issues/19).
+
 ## Recorded v0.2 candidate evidence
 
 Three independent agents completed the public procedure from empty directories
@@ -97,7 +124,6 @@ The two concurrent runs that found port 4173 occupied both recovered with the
 now-documented `--port 0` path. The reports classify this as an environment
 collision, not a platform failure.
 
-These runs validate the public candidate workflow, not the exact tagged release
-procedure above. Exact-tag agent runs must be recorded after the immutable tag
-exists. Human developer evidence also remains pending and is not inferred from
-agent runs.
+These runs validate the earlier public candidate workflow. The exact-tag table
+above supersedes them for released agent evidence. Human developer evidence
+remains pending and is not inferred from either set of agent runs.

@@ -17,8 +17,10 @@ At the repository root, read:
 
 Do not infer fields from the current first-party lesson types. Community packs use the public JSON contract and cannot invoke privileged lesson runtimes.
 
-Use this immutable, registry-independent Course Kit release for every public
-CLI command in this workflow:
+Use this immutable, GitHub-hosted Course Kit release for every public CLI
+command in this workflow. Course Kit itself is not published under the
+`@latent` npm scope; `npm exec` still resolves its pinned dependencies from the
+configured npm registry:
 
 ```bash
 COURSE_KIT_RELEASE=https://github.com/model-systems-labs/latent/releases/download/course-kit-v0.2.0/latent-course-kit-0.2.0.tgz

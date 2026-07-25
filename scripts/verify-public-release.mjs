@@ -6,6 +6,7 @@ import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 const DEFAULT_REPOSITORY = "model-systems-labs/latent";
+const DEFAULT_GITHUB_API_URL = "https://api.github.com";
 const DEFAULT_PAGES_URL = "https://model-systems-labs.github.io/latent";
 const DEFAULT_SITE_URL =
   "https://latent-llm-learning.cswansondeveloper.chatgpt.site";
@@ -60,6 +61,15 @@ async function fetchText(url) {
   };
 }
 
+async function fetchJson(url) {
+  const result = await fetchText(url);
+  try {
+    return JSON.parse(result.text);
+  } catch {
+    throw new Error(`${url} did not return valid JSON`);
+  }
+}
+
 function sha256(bytes) {
   return createHash("sha256").update(bytes).digest("hex");
 }
@@ -68,6 +78,109 @@ function requireText(source, expected, label) {
   if (!source.includes(expected)) {
     throw new Error(`${label} did not contain ${JSON.stringify(expected)}`);
   }
+}
+
+function requireEqual(actual, expected, label) {
+  if (actual !== expected) {
+    throw new Error(
+      `${label} recorded ${JSON.stringify(actual)} instead of ${JSON.stringify(expected)}`,
+    );
+  }
+}
+
+function verifyRecordedStatus(status, report) {
+  requireEqual(status?.schemaVersion, 1, "release status schemaVersion");
+  requireEqual(
+    status?.courseKit?.sourceVersion,
+    report.version,
+    "release status Course Kit version",
+  );
+  requireEqual(
+    status?.courseKit?.latestPublishedTag,
+    report.tag,
+    "release status Course Kit tag",
+  );
+  requireEqual(
+    status?.courseKit?.releaseCommit,
+    report.tagCommit,
+    "release status release commit",
+  );
+  requireEqual(
+    status?.courseKit?.installUrl,
+    report.tarball.url,
+    "release status tarball URL",
+  );
+  requireEqual(
+    status?.courseKit?.tarballSha256,
+    report.tarball.sha256,
+    "release status tarball checksum",
+  );
+
+  const recordedSchemas = new Map(
+    (status?.schemas?.artifacts ?? []).map((entry) => [entry.url, entry.sha256]),
+  );
+  requireEqual(
+    recordedSchemas.size,
+    report.schemas.length,
+    "release status schema count",
+  );
+  for (const schema of report.schemas) {
+    requireEqual(
+      recordedSchemas.get(schema.url),
+      schema.sha256,
+      `release status checksum for ${schema.url}`,
+    );
+  }
+
+  requireEqual(
+    status?.referenceDeployment?.url,
+    report.site,
+    "release status reference deployment URL",
+  );
+  requireEqual(
+    status?.referenceDeployment?.llmsUrl,
+    report.llms,
+    "release status llms.txt URL",
+  );
+  requireEqual(
+    status?.referenceDeployment?.commitSha,
+    report.tagCommit,
+    "release status deployment commit",
+  );
+}
+
+async function verifyTagCommit(repository, tag, githubApiUrl) {
+  const apiBase = normalizedBaseUrl(githubApiUrl);
+  const repositoryPath = repository
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+  const reference = await fetchJson(
+    `${apiBase}/repos/${repositoryPath}/git/ref/tags/${encodeURIComponent(tag)}`,
+  );
+  const tagObject = reference?.object;
+  if (!tagObject || !/^[0-9a-f]{40}$/.test(tagObject.sha ?? "")) {
+    throw new Error(`${tag} did not resolve to a valid Git object`);
+  }
+  if (tagObject.type === "commit") {
+    throw new Error(`${tag} must be an annotated tag`);
+  }
+  if (tagObject.type !== "tag") {
+    throw new Error(`${tag} resolved to unsupported Git object ${tagObject.type ?? ""}`);
+  }
+  const annotatedTag = await fetchJson(
+    `${apiBase}/repos/${repositoryPath}/git/tags/${tagObject.sha}`,
+  );
+  if (
+    annotatedTag?.object?.type !== "commit"
+    || !/^[0-9a-f]{40}$/.test(annotatedTag.object.sha ?? "")
+  ) {
+    throw new Error(`${tag} annotated tag did not peel to a commit`);
+  }
+  return {
+    tagObjectSha: tagObject.sha,
+    commitSha: annotatedTag.object.sha,
+  };
 }
 
 async function verifySchema({ remoteUrl, localPath }) {
@@ -85,12 +198,24 @@ async function verifySchema({ remoteUrl, localPath }) {
   };
 }
 
-async function verifyRelease(options, { releaseBaseUrl } = {}) {
+async function verifyRelease(
+  options,
+  {
+    githubApiUrl = DEFAULT_GITHUB_API_URL,
+    releaseBaseUrl,
+    releaseStatus,
+  } = {},
+) {
   if (!options.version || !/^\d+\.\d+\.\d+$/.test(options.version)) {
     throw new Error("--version must be a semantic version such as 0.2.0");
   }
 
   const tag = `course-kit-v${options.version}`;
+  const tagIdentity = await verifyTagCommit(
+    options.repository,
+    tag,
+    githubApiUrl,
+  );
   const releaseBase = normalizedBaseUrl(
     releaseBaseUrl
       ?? `https://github.com/${options.repository}/releases/download/${tag}`,
@@ -176,9 +301,11 @@ async function verifyRelease(options, { releaseBaseUrl } = {}) {
     };
   }
 
-  return {
+  const report = {
     version: options.version,
     tag,
+    tagObject: tagIdentity.tagObjectSha,
+    tagCommit: tagIdentity.commitSha,
     tarball: {
       url: `${releaseBase}/${tarballName}`,
       bytes: tarball.bytes.byteLength,
@@ -186,10 +313,20 @@ async function verifyRelease(options, { releaseBaseUrl } = {}) {
     },
     schemas,
     routes: routeResults,
+    site: siteBase,
     llms: `${siteBase}/llms.txt`,
     example,
     verifiedAt: new Date().toISOString(),
   };
+  const recordedStatus = releaseStatus === undefined
+    ? JSON.parse(
+      await readFile(resolve("docs/release-status.json"), "utf8"),
+    )
+    : releaseStatus;
+  if (recordedStatus !== null) {
+    verifyRecordedStatus(recordedStatus, report);
+  }
+  return report;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
@@ -206,4 +343,10 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   }
 }
 
-export { parseArguments, sha256, verifyRelease };
+export {
+  parseArguments,
+  sha256,
+  verifyRecordedStatus,
+  verifyRelease,
+  verifyTagCommit,
+};

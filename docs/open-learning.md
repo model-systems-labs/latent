@@ -28,13 +28,10 @@ npm exec --yes --package "$COURSE_KIT_RELEASE" -- \
   latent-learning init my-learning-pack --json
 ```
 
-The GitHub tarball is the permanent package-artifact URL and does not depend on
-publishing Course Kit under the `@latent` npm scope. `npm exec` still resolves
-the tarball's pinned `esbuild-wasm` and `zod` dependencies from the configured
-npm registry; use an approved cache or mirror when the public registry is
-unavailable. After the `@latent` npm scope is bootstrapped, the matching package
-version can become an equivalent shorter pin; do not advertise that pin before
-it exists.
+The GitHub tarball is the permanent registry-independent install path. Course
+Kit is not currently published on npm. After the `@latent` npm scope is
+bootstrapped, the matching package version can become an equivalent shorter
+pin; do not advertise that pin before it exists.
 
 `init` deliberately writes an incomplete scaffold. Replace every example
 identity, source, and content field in `my-learning-pack/learning-pack.json`;

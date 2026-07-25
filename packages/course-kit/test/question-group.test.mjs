@@ -24,6 +24,9 @@ function question(overrides = {}) {
     path: "solution.js",
     starterCode: "export function sumValues(left, right) {\n  // Your code here.\n}\n",
     entrypoint: { kind: "function", functionName: "sumValues" },
+    objectiveIds: ["add-values"],
+    sourceIds: ["original-library"],
+    runtimeId: "browser-javascript",
     constraints: ["Both arguments are finite JSON numbers."],
     cases: [
       {
@@ -72,12 +75,46 @@ function library(overrides = {}) {
       version: "1.0.0",
       title: "Method practice",
       description: "Small programming questions designed for focused, repeatable practice.",
+      authors: [{
+        name: "Model Systems Labs",
+        url: "https://github.com/model-systems-labs",
+      }],
+      license: {
+        expression: "Apache-2.0",
+        url: "https://www.apache.org/licenses/LICENSE-2.0",
+      },
+      provenance: {
+        sourceUrl: "https://github.com/model-systems-labs/latent",
+        revision: "test-fixture-1.0.0",
+      },
     },
+    objectives: [{
+      id: "add-values",
+      title: "Implement numeric functions",
+      description: "Implement and verify a bounded function over finite JSON numbers.",
+    }],
+    sources: [{
+      id: "original-library",
+      title: "Original Course Kit test fixture",
+      url: "https://github.com/model-systems-labs/latent/tree/main/packages/course-kit/test",
+      note: "Original practice content used to verify the public Question Group contract.",
+      license: { expression: "Apache-2.0" },
+    }],
+    runtimes: [{
+      id: "browser-javascript",
+      language: "javascript",
+      environment: "browser-worker",
+      engine: "esbuild-wasm",
+      engineVersion: "0.28.1",
+      capabilities: ["function", "class-method", "exceptions"],
+      limits: { timeoutMs: 1_000, maxOutputBytes: 50_000 },
+    }],
     groups: [{
       id: "warmups",
       order: 1,
       title: "Warmups",
       description: "Short function and method exercises that establish the portable question contract.",
+      objectiveIds: ["add-values"],
       questions: [question()],
       tags: ["fundamentals"],
     }],
@@ -140,6 +177,10 @@ test("supports JavaScript, TypeScript, and Python function and class-method entr
   for (const configuration of configurations) {
     const input = library();
     Object.assign(input.groups[0].questions[0], configuration);
+    input.runtimes[0].language = configuration.language;
+    input.runtimes[0].environment = configuration.language === "python"
+      ? "host-managed"
+      : "browser-worker";
     assert.equal(
       validateQuestionGroupLibrary(input).valid,
       true,
@@ -227,6 +268,87 @@ test("rejects unknown fields and unsupported source-language shapes", () => {
       .map((entry) => entry.code)
       .join("\n"),
     /reserved-entrypoint-identifier/,
+  );
+});
+
+test("validates provenance, objectives, sources, runtimes, and inert extensions", () => {
+  const unknownObjective = library();
+  unknownObjective.groups[0].questions[0].objectiveIds = ["missing-objective"];
+  assert.match(
+    validateQuestionGroupLibrary(unknownObjective).errors.map((entry) => entry.code).join("\n"),
+    /unknown-objective/,
+  );
+
+  const unknownSource = library();
+  unknownSource.groups[0].questions[0].sourceIds = ["missing-source"];
+  assert.match(
+    validateQuestionGroupLibrary(unknownSource).errors.map((entry) => entry.code).join("\n"),
+    /unknown-source/,
+  );
+
+  const unknownRuntime = library();
+  unknownRuntime.groups[0].questions[0].runtimeId = "missing-runtime";
+  assert.match(
+    validateQuestionGroupLibrary(unknownRuntime).errors.map((entry) => entry.code).join("\n"),
+    /unknown-runtime/,
+  );
+
+  const mismatchedRuntime = library();
+  mismatchedRuntime.runtimes[0].language = "typescript";
+  assert.match(
+    validateQuestionGroupLibrary(mismatchedRuntime).errors.map((entry) => entry.code).join("\n"),
+    /runtime-language-mismatch/,
+  );
+
+  const browserPython = library();
+  browserPython.runtimes[0].language = "python";
+  assert.match(
+    validateQuestionGroupLibrary(browserPython).errors.map((entry) => entry.code).join("\n"),
+    /unsupported-portable-python-runtime/,
+  );
+
+  const missingCapability = library();
+  missingCapability.runtimes[0].capabilities = ["class-method"];
+  assert.match(
+    validateQuestionGroupLibrary(missingCapability).errors.map((entry) => entry.code).join("\n"),
+    /missing-runtime-capability/,
+  );
+
+  const inertExtension = library({ extensions: {
+    "example.org/review-style": { spacing: "daily", weight: 2 },
+  } });
+  assert.equal(validateQuestionGroupLibrary(inertExtension).valid, true);
+
+  const executableLookingField = library({ extensions: {
+    runtime: { module: "https://example.com/run.js" },
+  } });
+  assert.equal(
+    validateQuestionGroupLibrary(executableLookingField).valid,
+    false,
+    "extension keys must be namespaced and cannot become runtime hooks",
+  );
+
+  const credentialUrl = library();
+  credentialUrl.library.provenance.sourceUrl = "https://user:secret@example.com/private";
+  assert.equal(validateQuestionGroupLibrary(credentialUrl).valid, false);
+
+  const movingRevision = library();
+  movingRevision.library.provenance.revision = "main";
+  assert.match(
+    validateQuestionGroupLibrary(movingRevision).errors.map((entry) => entry.code).join("\n"),
+    /mutable-provenance-revision/,
+  );
+
+  const objectiveOutsideGroup = library();
+  objectiveOutsideGroup.objectives.push({
+    id: "advanced-values",
+    title: "Implement advanced values",
+    description: "Implement a second objective that is not assigned to the containing group.",
+  });
+  objectiveOutsideGroup.groups[0].questions[0].objectiveIds = ["advanced-values"];
+  assert.match(
+    validateQuestionGroupLibrary(objectiveOutsideGroup).errors.map((entry) => entry.code).join("\n"),
+    /objective-outside-group/,
   );
 });
 
@@ -379,6 +501,9 @@ test("parses size-bounded JSON and emits canonical, key-order-independent output
 
   const reordered = {
     groups: library().groups,
+    runtimes: library().runtimes,
+    sources: library().sources,
+    objectives: library().objectives,
     library: library().library,
     schemaVersion: QUESTION_GROUP_LIBRARY_SCHEMA_VERSION,
     format: QUESTION_GROUP_LIBRARY_FORMAT,

@@ -34,7 +34,14 @@ import {
   learningFeedSchema,
   learningPackJsonSchema,
   parseLearningPackJson,
+  parseQuestionGroupLibraryJson,
+  questionGroupLibraryJsonSchema,
+  questionGroupProgressJsonSchema,
 } from "../dist/index.js";
+import {
+  QUESTION_GROUP_BUILD_MARKER,
+  buildStandaloneQuestionGroupSite,
+} from "../dist/question-group-site.js";
 
 const MAX_REMOTE_BYTES = 2_000_000;
 const MAX_VERIFY_PACKAGES = 100;
@@ -46,15 +53,20 @@ const MIME_TYPES = new Map([
   [".js", "text/javascript; charset=utf-8"],
   [".json", "application/json; charset=utf-8"],
   [".txt", "text/plain; charset=utf-8"],
+  [".wasm", "application/wasm"],
 ]);
 const COMMAND_OPTIONS = new Map([
   ["init", new Set(["--json"])],
   ["inspect", new Set(["--json"])],
   ["validate", new Set(["--json", "--strict"])],
-  ["schema", new Set(["--feed", "--json"])],
+  ["schema", new Set(["--feed", "--force", "--json"])],
   ["build", new Set(["--json", "--out-dir"])],
   ["serve", new Set(["--host", "--port"])],
   ["verify-url", new Set(["--json"])],
+  ["questions:validate", new Set(["--json", "--strict"])],
+  ["questions:schema", new Set(["--force", "--json", "--progress"])],
+  ["questions:build", new Set(["--json", "--out-dir"])],
+  ["questions:serve", new Set(["--host", "--port"])],
 ]);
 const OPTION_VALUE_NAMES = new Set(["--host", "--out-dir", "--port"]);
 const POSITIONAL_LIMITS = new Map([
@@ -65,6 +77,10 @@ const POSITIONAL_LIMITS = new Map([
   ["build", [1, 1]],
   ["serve", [1, 1]],
   ["verify-url", [1, 1]],
+  ["questions:validate", [1, 1]],
+  ["questions:schema", [0, 1]],
+  ["questions:build", [1, 1]],
+  ["questions:serve", [1, 1]],
 ]);
 
 function usage() {
@@ -74,10 +90,14 @@ Usage:
   latent-learning init <directory> [--json]
   latent-learning inspect <learning-pack.json> [--json]
   latent-learning validate <learning-pack.json> [--strict] [--json]
-  latent-learning schema [output.json] [--feed] [--json]
+  latent-learning schema [output.json] [--feed] [--force] [--json]
   latent-learning build <learning-pack.json> --out-dir <directory> [--json]
   latent-learning serve <directory> [--host 127.0.0.1] [--port 4173]
   latent-learning verify-url <learning-feed.json URL> [--json]
+  latent-learning questions validate <question-group-library.json> [--strict] [--json]
+  latent-learning questions schema [output.json] [--progress] [--force] [--json]
+  latent-learning questions build <question-group-library.json> --out-dir <directory> [--json]
+  latent-learning questions serve <directory> [--host 127.0.0.1] [--port 4173]
 
 Exit codes: 0 success, 1 invalid content, 2 invalid invocation, 3 hosting or network failure.
 `;
@@ -140,9 +160,15 @@ function report(command, payload, asJson) {
   }
   process.stdout.write(`${payload.ok ? "✓" : "✗"} ${command}\n`);
   if (payload.summary) {
-    process.stdout.write(
-      `  ${payload.summary.lessons} lessons · ${payload.summary.quizzes} quizzes · ${payload.summary.flashcards} flash cards · ${payload.summary.sources} sources\n`,
-    );
+    if (typeof payload.summary.groups === "number") {
+      process.stdout.write(
+        `  ${payload.summary.groups} groups · ${payload.summary.questions} questions · ${payload.summary.exampleCases} examples · ${payload.summary.checkCases} checks\n`,
+      );
+    } else {
+      process.stdout.write(
+        `  ${payload.summary.lessons} lessons · ${payload.summary.quizzes} quizzes · ${payload.summary.flashcards} flash cards · ${payload.summary.sources} sources\n`,
+      );
+    }
   }
   for (const warning of payload.warnings ?? []) {
     process.stdout.write(`  warning ${warning.path}: ${warning.message}\n`);
@@ -185,6 +211,38 @@ async function readPack(path) {
   }
 }
 
+async function readQuestionLibrary(path) {
+  let handle;
+  try {
+    handle = await open(path, fsConstants.O_RDONLY | (fsConstants.O_NOFOLLOW ?? 0));
+    const file = await handle.stat();
+    if (!file.isFile()) {
+      throw new InvocationError(`Question Group input must be a regular file: ${path}`);
+    }
+    if (file.size > MAX_REMOTE_BYTES) {
+      throw new InvocationError(`Question Group input exceeds the 2 MB limit: ${path}`);
+    }
+    const bytes = await handle.readFile();
+    if (bytes.byteLength > MAX_REMOTE_BYTES) {
+      throw new InvocationError(`Question Group input exceeds the 2 MB limit: ${path}`);
+    }
+    let source;
+    try {
+      source = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    } catch {
+      throw new InvocationError(`Question Group input is not valid UTF-8: ${path}`);
+    }
+    return { source, validation: parseQuestionGroupLibraryJson(source) };
+  } catch (error) {
+    if (error instanceof InvocationError) throw error;
+    throw new InvocationError(
+      `Could not read ${path}: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  } finally {
+    await handle?.close();
+  }
+}
+
 async function initCommand(args, asJson) {
   const directory = positionalArgs(args)[0];
   if (!directory) throw new InvocationError("init requires a directory.");
@@ -217,6 +275,51 @@ async function inspectOrValidateCommand(command, args, asJson) {
   if (!ok) process.exitCode = 1;
 }
 
+async function writeOwnedOutput(target, source, force) {
+  await mkdir(dirname(target), { recursive: true });
+  if (!force) {
+    let handle;
+    try {
+      handle = await open(
+        target,
+        fsConstants.O_WRONLY
+          | fsConstants.O_CREAT
+          | fsConstants.O_EXCL
+          | (fsConstants.O_NOFOLLOW ?? 0),
+        0o644,
+      );
+      await handle.writeFile(source, "utf8");
+      return;
+    } catch (error) {
+      if (error?.code === "EEXIST" || error?.code === "ELOOP") {
+        throw new InvocationError(`Refusing to overwrite ${target}; pass --force to replace a regular file.`);
+      }
+      throw error;
+    } finally {
+      await handle?.close();
+    }
+  }
+
+  let targetStat;
+  try {
+    targetStat = await lstat(target);
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+  if (targetStat && (targetStat.isSymbolicLink() || !targetStat.isFile())) {
+    throw new InvocationError(`Schema output must be a regular file, not a directory or symlink: ${target}`);
+  }
+
+  const temporaryDirectory = await mkdtemp(join(dirname(target), `.${basename(target)}.latent-schema-`));
+  const temporaryPath = join(temporaryDirectory, basename(target));
+  try {
+    await writeFile(temporaryPath, source, { encoding: "utf8", flag: "wx", mode: 0o644 });
+    await rename(temporaryPath, target);
+  } finally {
+    await rm(temporaryDirectory, { force: true, recursive: true });
+  }
+}
+
 async function schemaCommand(args, asJson) {
   const output = positionalArgs(args)[0];
   const schema = args.includes("--feed") ? learningFeedJsonSchema : learningPackJsonSchema;
@@ -227,12 +330,59 @@ async function schemaCommand(args, asJson) {
     return;
   }
   const target = resolve(output);
-  await mkdir(resolve(target, ".."), { recursive: true });
-  await writeFile(target, source, "utf8");
+  await writeOwnedOutput(target, source, args.includes("--force"));
   report("schema", { ok: true, errors: [], warnings: [], summary: null, artifacts: [target] }, asJson);
 }
 
-async function inspectBuildTarget(target) {
+async function questionValidateCommand(args, asJson) {
+  const path = positionalArgs(args)[0];
+  if (!path) throw new InvocationError("questions validate requires a JSON path.");
+  const { validation } = await readQuestionLibrary(resolve(path));
+  const strictFailure = args.includes("--strict") && validation.warnings.length > 0;
+  const ok = validation.valid && !strictFailure;
+  report("questions validate", {
+    ok,
+    errors: validation.errors,
+    warnings: validation.warnings,
+    summary: validation.summary,
+    artifacts: [],
+  }, asJson);
+  if (!ok) process.exitCode = 1;
+}
+
+async function questionSchemaCommand(args, asJson) {
+  const output = positionalArgs(args)[0];
+  const schema = args.includes("--progress")
+    ? questionGroupProgressJsonSchema
+    : questionGroupLibraryJsonSchema;
+  const source = `${JSON.stringify(schema, null, 2)}\n`;
+  if (!output) {
+    if (asJson) {
+      report("questions schema", {
+        ok: true,
+        errors: [],
+        warnings: [],
+        summary: null,
+        schema,
+        artifacts: [],
+      }, true);
+    } else {
+      process.stdout.write(source);
+    }
+    return;
+  }
+  const target = resolve(output);
+  await writeOwnedOutput(target, source, args.includes("--force"));
+  report("questions schema", {
+    ok: true,
+    errors: [],
+    warnings: [],
+    summary: null,
+    artifacts: [target],
+  }, asJson);
+}
+
+async function inspectBuildTarget(target, expectedMarker = LEARNING_BUILD_MARKER) {
   if (target === parse(target).root) {
     throw new InvocationError("Refusing to use a filesystem root as a build output.");
   }
@@ -259,7 +409,7 @@ async function inspectBuildTarget(target) {
     throw new InvocationError(`The Latent build marker must be a regular file: ${markerPath}`);
   }
   const marker = (await readFile(markerPath, "utf8")).trim();
-  if (marker !== LEARNING_BUILD_MARKER) {
+  if (marker !== expectedMarker) {
     throw new InvocationError(`Refusing to replace a nonempty directory without a Latent build marker: ${target}`);
   }
   return true;
@@ -316,6 +466,62 @@ async function buildCommand(args, asJson) {
   }, asJson);
 }
 
+async function questionBuildCommand(args, asJson) {
+  const input = positionalArgs(args)[0];
+  const outDir = argumentValue(args, "--out-dir");
+  if (!input || !outDir) {
+    throw new InvocationError(
+      "questions build requires a question-group-library.json path and --out-dir.",
+    );
+  }
+  const { validation } = await readQuestionLibrary(resolve(input));
+  if (!validation.valid) {
+    report("questions build", {
+      ok: false,
+      errors: validation.errors,
+      warnings: validation.warnings,
+      summary: null,
+      artifacts: [],
+    }, asJson);
+    process.exitCode = 1;
+    return;
+  }
+  const target = resolve(outDir);
+  const targetExists = await inspectBuildTarget(target, QUESTION_GROUP_BUILD_MARKER);
+  const files = await buildStandaloneQuestionGroupSite(validation.library);
+  const artifacts = [];
+  const parent = dirname(target);
+  await mkdir(parent, { recursive: true });
+  const temporary = await mkdtemp(join(parent, `.${basename(target)}.latent-question-build-`));
+  try {
+    for (const [relativePath, source] of Object.entries(files).sort(([left], [right]) => (
+      left < right ? -1 : left > right ? 1 : 0
+    ))) {
+      const output = resolve(temporary, relativePath);
+      if (!output.startsWith(`${temporary}${sep}`)) {
+        throw new InvocationError(`Generated path escaped the build directory: ${relativePath}`);
+      }
+      await mkdir(dirname(output), { recursive: true });
+      if (typeof source === "string") await writeFile(output, source, "utf8");
+      else await writeFile(output, source);
+      artifacts.push(resolve(target, relativePath));
+    }
+    if (targetExists) await rm(target, { recursive: true });
+    await rename(temporary, target);
+  } catch (error) {
+    await rm(temporary, { force: true, recursive: true });
+    throw error;
+  }
+  report("questions build", {
+    ok: true,
+    errors: [],
+    warnings: validation.warnings,
+    summary: validation.summary,
+    sha256: JSON.parse(files["build-report.json"]).sha256,
+    artifacts,
+  }, asJson);
+}
+
 function safeServePath(root, requestUrl) {
   let pathname;
   try {
@@ -328,7 +534,7 @@ function safeServePath(root, requestUrl) {
   return output === root || output.startsWith(`${root}${sep}`) ? output : null;
 }
 
-async function resolveBuiltRoot(directory) {
+async function resolveBuiltRoot(directory, expectedMarker = LEARNING_BUILD_MARKER) {
   const root = resolve(directory);
   let rootStat;
   try {
@@ -349,16 +555,16 @@ async function resolveBuiltRoot(directory) {
   if (markerStat.isSymbolicLink() || !markerStat.isFile()) {
     throw new InvocationError(`The Latent build marker must be a regular file: ${markerPath}`);
   }
-  if ((await readFile(markerPath, "utf8")).trim() !== LEARNING_BUILD_MARKER) {
+  if ((await readFile(markerPath, "utf8")).trim() !== expectedMarker) {
     throw new InvocationError(`The built directory has an invalid Latent marker: ${root}`);
   }
   return realpath(root);
 }
 
-async function serveCommand(args) {
+async function serveCommand(args, expectedMarker = LEARNING_BUILD_MARKER) {
   const directory = positionalArgs(args)[0];
   if (!directory) throw new InvocationError("serve requires a built directory.");
-  const root = await resolveBuiltRoot(directory);
+  const root = await resolveBuiltRoot(directory, expectedMarker);
   const host = argumentValue(args, "--host", "127.0.0.1");
   const port = Number(argumentValue(args, "--port", "4173"));
   if (!Number.isInteger(port) || port < 1 || port > 65_535) throw new InvocationError("--port must be between 1 and 65535.");
@@ -385,6 +591,9 @@ async function serveCommand(args) {
         "content-length": file.size,
         "cache-control": "no-store",
         "x-content-type-options": "nosniff",
+        ...(resolvedPath.endsWith(`${sep}sandbox.worker.js`) ? {
+          "content-security-policy": "default-src 'none'; script-src 'self' 'unsafe-eval'; connect-src 'none'; object-src 'none'",
+        } : {}),
         ...(extname(resolvedPath) === ".json" ? { "access-control-allow-origin": "*" } : {}),
       });
       handle.createReadStream().pipe(response);
@@ -589,7 +798,14 @@ async function verifyUrlCommand(args, asJson) {
 }
 
 async function main() {
-  const [, , command, ...args] = process.argv;
+  const [, , primaryCommand, ...rawArgs] = process.argv;
+  let command = primaryCommand;
+  let args = rawArgs;
+  if (primaryCommand === "questions") {
+    const [subcommand, ...questionArgs] = rawArgs;
+    command = subcommand ? `questions:${subcommand}` : "questions";
+    args = questionArgs;
+  }
   const asJson = args.includes("--json");
   if (!command || ["help", "--help", "-h"].includes(command)) {
     process.stdout.write(usage());
@@ -602,6 +818,12 @@ async function main() {
   else if (command === "build") await buildCommand(args, asJson);
   else if (command === "serve") await serveCommand(args);
   else if (command === "verify-url") await verifyUrlCommand(args, asJson);
+  else if (command === "questions:validate") await questionValidateCommand(args, asJson);
+  else if (command === "questions:schema") await questionSchemaCommand(args, asJson);
+  else if (command === "questions:build") await questionBuildCommand(args, asJson);
+  else if (command === "questions:serve") {
+    await serveCommand(args, QUESTION_GROUP_BUILD_MARKER);
+  }
   else throw new InvocationError(`Unknown command "${command}".\n\n${usage()}`);
 }
 

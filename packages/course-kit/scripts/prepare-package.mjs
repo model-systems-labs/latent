@@ -6,6 +6,7 @@ import {
   learningFeedJsonSchema,
   learningPackJsonSchema,
   questionGroupLibraryJsonSchema,
+  questionGroupProgressJsonSchema,
 } from "../dist/index.js";
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -20,6 +21,7 @@ const schemaFiles = [
   ["schema/learning-pack.schema.json", learningPackJsonSchema],
   ["schema/learning-feed.schema.json", learningFeedJsonSchema],
   ["schema/question-group-library.schema.json", questionGroupLibraryJsonSchema],
+  ["schema/question-group-progress.schema.json", questionGroupProgressJsonSchema],
 ];
 
 for (const [relativePath, schema] of schemaFiles) {
@@ -56,10 +58,15 @@ const openLearning = (await readFile(resolve(repositoryRoot, "docs/open-learning
 
 const questionGroups = (
   await readFile(resolve(repositoryRoot, "docs/question-groups.md"), "utf8")
-).replace(
-  "../packages/course-kit/schema/question-group-library.schema.json",
-  "../schema/question-group-library.schema.json",
-);
+)
+  .replace(
+    "../packages/course-kit/schema/question-group-library.schema.json",
+    "../schema/question-group-library.schema.json",
+  )
+  .replace(
+    "../packages/course-kit/schema/question-group-progress.schema.json",
+    "../schema/question-group-progress.schema.json",
+  );
 
 const docs = [
   ["docs/open-learning.md", openLearning],

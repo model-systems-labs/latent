@@ -59,6 +59,18 @@
       "types": "./dist/question-group.d.ts",
       "import": "./dist/question-group.js"
     },
+    "./question-group-player": {
+      "types": "./dist/question-player.d.ts",
+      "import": "./dist/question-player.js"
+    },
+    "./question-group-progress": {
+      "types": "./dist/question-progress.d.ts",
+      "import": "./dist/question-progress.js"
+    },
+    "./question-group-site": {
+      "types": "./dist/question-group-site.d.ts",
+      "import": "./dist/question-group-site.js"
+    },
     "./static-site": {
       "types": "./dist/static-site.d.ts",
       "import": "./dist/static-site.js"
@@ -87,6 +99,7 @@
     "access": "public"
   },
   "dependencies": {
+    "esbuild-wasm": "0.28.1",
     "zod": "4.4.3"
   },
   "devDependencies": {

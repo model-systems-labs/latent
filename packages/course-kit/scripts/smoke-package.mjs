@@ -1,5 +1,14 @@
 import { spawn } from "node:child_process";
-import { access, copyFile, mkdir, mkdtemp, readdir, rm } from "node:fs/promises";
+import {
+  access,
+  copyFile,
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -79,11 +88,18 @@ try {
     "schema/learning-pack.schema.json",
     "schema/learning-feed.schema.json",
     "schema/question-group-library.schema.json",
+    "schema/question-group-progress.schema.json",
     "bin/latent-learning.mjs",
     "dist/index.js",
     "dist/index.d.ts",
     "dist/question-group.js",
     "dist/question-group.d.ts",
+    "dist/question-player.js",
+    "dist/question-player.d.ts",
+    "dist/question-progress.js",
+    "dist/question-progress.d.ts",
+    "dist/question-group-site.js",
+    "dist/question-group-site.d.ts",
   ]) {
     await access(join(installed, relativePath));
   }
@@ -98,6 +114,11 @@ try {
     "--input-type=module",
     "--eval",
     "import { QUESTION_GROUP_LIBRARY_SCHEMA_VERSION, questionGroupLibraryJsonSchema } from '@latent/course-kit/question-group'; if (QUESTION_GROUP_LIBRARY_SCHEMA_VERSION !== 1 || !questionGroupLibraryJsonSchema?.properties?.groups) process.exit(1);",
+  ], { cwd: consumer });
+  await run(process.execPath, [
+    "--input-type=module",
+    "--eval",
+    "import { createQuestionGroupPlayer } from '@latent/course-kit/question-group-player'; import { isLeechQuestionProgress } from '@latent/course-kit/question-group-progress'; import { buildStandaloneQuestionGroupSite } from '@latent/course-kit/question-group-site'; if (typeof createQuestionGroupPlayer !== 'function' || typeof isLeechQuestionProgress !== 'function' || typeof buildStandaloneQuestionGroupSite !== 'function') process.exit(1);",
   ], { cwd: consumer });
 
   const cli = join(installed, "bin", "latent-learning.mjs");
@@ -118,6 +139,31 @@ try {
     "--json",
   ], { cwd: consumer });
   await access(join(consumer, "site", "learning-feed.json"));
+
+  const questionGuide = await readFile(join(installed, "docs", "question-groups.md"), "utf8");
+  const questionSource = questionGuide.match(/```json\n([\s\S]*?)\n```/)?.[1];
+  if (!questionSource) throw new Error("Packaged Question Group guide has no JSON example.");
+  const questionPath = join(consumer, "question-group-library.json");
+  await writeFile(questionPath, `${questionSource}\n`);
+  await run(process.execPath, [
+    cli,
+    "questions",
+    "validate",
+    questionPath,
+    "--strict",
+    "--json",
+  ], { cwd: consumer });
+  await run(process.execPath, [
+    cli,
+    "questions",
+    "build",
+    questionPath,
+    "--out-dir",
+    join(consumer, "practice-site"),
+    "--json",
+  ], { cwd: consumer });
+  await access(join(consumer, "practice-site", "leeches", "index.html"));
+  await access(join(consumer, "practice-site", "assets", "esbuild.wasm"));
 
   process.stdout.write(`Course Kit tarball passed an isolated install and CLI smoke test: ${tarball}\n`);
 } finally {

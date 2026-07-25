@@ -8,6 +8,8 @@ const libraryIdPattern = /^[a-z0-9][a-z0-9._-]{0,63}\/[a-z0-9][a-z0-9._-]{0,63}$
 const contentIdPattern = /^[a-z0-9][a-z0-9._-]*$/;
 const semverPattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 const sourcePathPattern = /^(?!\/)(?!\.{1,2}(?:\/|$))(?!.*\/\.{1,2}(?:\/|$))(?!.*\\)(?!.*%2e)(?!.*%5c)[A-Za-z0-9._-]+(?:\/[A-Za-z0-9._-]+)*$/i;
+const extensionKeyPattern = /^[a-z0-9][a-z0-9.-]{1,127}\/[a-z0-9][a-z0-9._-]{0,63}$/;
+const spdxExpressionPattern = /^[A-Za-z0-9.+-]+(?: (?:AND|OR|WITH) [A-Za-z0-9.+-]+)*$/;
 const javascriptIdentifierPattern = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 const pythonIdentifierPattern = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const javascriptReservedWords = new Set([
@@ -183,6 +185,65 @@ const contentIdSchema = z.string()
   .max(80)
   .regex(contentIdPattern, "Use lowercase letters, numbers, dots, underscores, or hyphens.");
 
+const webUrlSchema = z.url().max(2_000).superRefine((value, context) => {
+  const url = new URL(value);
+  if (!["https:", "http:"].includes(url.protocol)) {
+    context.addIssue({ code: "custom", message: "Use an HTTP or HTTPS URL." });
+  }
+  if (url.username || url.password) {
+    context.addIssue({ code: "custom", message: "URLs may not contain credentials." });
+  }
+});
+
+const extensionKeySchema = z.string().min(3).max(193).regex(
+  extensionKeyPattern,
+  "Use a namespaced extension key such as example.org/hint-style.",
+);
+
+const extensionsSchema = z.record(extensionKeySchema, boundedJsonValueSchema);
+
+export const questionGroupAuthorSchema = z.object({
+  name: z.string().trim().min(2).max(160),
+  url: webUrlSchema.optional(),
+}).strict();
+
+export const questionGroupLicenseSchema = z.object({
+  expression: z.string().min(2).max(200).regex(
+    spdxExpressionPattern,
+    "Use an SPDX license expression such as Apache-2.0 or CC-BY-4.0.",
+  ),
+  url: webUrlSchema.optional(),
+}).strict();
+
+export const questionGroupSourceSchema = z.object({
+  id: contentIdSchema,
+  title: z.string().trim().min(3).max(300),
+  url: webUrlSchema,
+  note: z.string().trim().min(10).max(1_000),
+  license: questionGroupLicenseSchema.optional(),
+}).strict();
+
+export const questionGroupObjectiveSchema = z.object({
+  id: contentIdSchema,
+  title: z.string().trim().min(3).max(200),
+  description: z.string().trim().min(20).max(1_000),
+}).strict();
+
+export const questionGroupRuntimeRequirementSchema = z.object({
+  id: contentIdSchema,
+  language: z.enum(["javascript", "typescript", "python"]),
+  environment: z.enum(["browser-worker", "host-managed"]),
+  engine: z.string().trim().min(2).max(100),
+  engineVersion: z.string().trim().min(1).max(100),
+  capabilities: z.array(z.enum(["function", "class-method", "exceptions"]))
+    .min(1)
+    .max(3),
+  limits: z.object({
+    timeoutMs: z.number().int().min(100).max(10_000),
+    maxOutputBytes: z.number().int().min(1_024).max(1_000_000),
+  }).strict(),
+}).strict();
+
 const assertionPathSchema = z.array(z.union([
   z.string().min(1).max(200),
   z.number().int().nonnegative().max(1_000_000),
@@ -327,9 +388,13 @@ export const practiceQuestionSchema = z.object({
   ),
   starterCode: z.string().min(1).max(50_000),
   entrypoint: questionEntrypointSchema,
+  objectiveIds: z.array(contentIdSchema).min(1).max(30),
+  sourceIds: z.array(contentIdSchema).min(1).max(30),
+  runtimeId: contentIdSchema,
   constraints: z.array(z.string().trim().min(3).max(500)).min(1).max(30),
   cases: z.array(practiceCaseSchema).min(2).max(50),
   tags: z.array(contentIdSchema).max(30).optional(),
+  extensions: extensionsSchema.optional(),
 }).strict();
 
 export const questionGroupSchema = z.object({
@@ -337,8 +402,10 @@ export const questionGroupSchema = z.object({
   order: z.number().int().positive().max(10_000),
   title: z.string().trim().min(3).max(160),
   description: z.string().trim().min(20).max(1_000),
+  objectiveIds: z.array(contentIdSchema).min(1).max(30),
   questions: z.array(practiceQuestionSchema).min(1).max(200),
   tags: z.array(contentIdSchema).max(30).optional(),
+  extensions: extensionsSchema.optional(),
 }).strict();
 
 export const questionGroupLibrarySchema = z.object({
@@ -349,8 +416,18 @@ export const questionGroupLibrarySchema = z.object({
     version: z.string().regex(semverPattern, "Use a semantic version such as 1.0.0."),
     title: z.string().trim().min(3).max(160),
     description: z.string().trim().min(30).max(500),
+    authors: z.array(questionGroupAuthorSchema).min(1).max(20),
+    license: questionGroupLicenseSchema,
+    provenance: z.object({
+      sourceUrl: webUrlSchema,
+      revision: z.string().trim().min(1).max(200),
+    }).strict(),
   }).strict(),
+  objectives: z.array(questionGroupObjectiveSchema).min(1).max(200),
+  sources: z.array(questionGroupSourceSchema).min(1).max(500),
+  runtimes: z.array(questionGroupRuntimeRequirementSchema).min(1).max(30),
   groups: z.array(questionGroupSchema).min(1).max(100),
+  extensions: extensionsSchema.optional(),
 }).strict();
 
 export type PortableAssertion = z.infer<typeof portableAssertionSchema>;
@@ -358,6 +435,13 @@ export type PracticeCase = z.infer<typeof practiceCaseSchema>;
 export type PracticeQuestion = z.infer<typeof practiceQuestionSchema>;
 export type QuestionGroup = z.infer<typeof questionGroupSchema>;
 export type QuestionGroupLibrary = z.infer<typeof questionGroupLibrarySchema>;
+export type QuestionGroupAuthor = z.infer<typeof questionGroupAuthorSchema>;
+export type QuestionGroupLicense = z.infer<typeof questionGroupLicenseSchema>;
+export type QuestionGroupObjective = z.infer<typeof questionGroupObjectiveSchema>;
+export type QuestionGroupSource = z.infer<typeof questionGroupSourceSchema>;
+export type QuestionGroupRuntimeRequirement = z.infer<
+  typeof questionGroupRuntimeRequirementSchema
+>;
 
 export type QuestionGroupLibraryIssue = {
   path: string;
@@ -414,6 +498,72 @@ function semanticValidation(library: QuestionGroupLibrary) {
   const errors: QuestionGroupLibraryIssue[] = [];
   const groupIds = library.groups.map((group) => group.id);
   const questionIds: string[] = [];
+  const objectiveIds = new Set(library.objectives.map((objective) => objective.id));
+  const sourceIds = new Set(library.sources.map((source) => source.id));
+  const runtimeById = new Map(library.runtimes.map((runtime) => [runtime.id, runtime]));
+
+  const reportDuplicateIds = (
+    values: readonly string[],
+    path: Array<string | number>,
+    label: string,
+  ) => {
+    for (const duplicate of duplicateValues(values)) {
+      errors.push(issue(path, "duplicate-id", `The ${label} id "${duplicate}" is used more than once.`));
+    }
+  };
+  const reportUnknownReferences = (
+    values: readonly string[],
+    known: ReadonlySet<string>,
+    path: Array<string | number>,
+    label: string,
+  ) => {
+    for (const [index, value] of values.entries()) {
+      if (!known.has(value)) {
+        errors.push(issue(
+          [...path, index],
+          `unknown-${label}`,
+          `The ${label} "${value}" is not declared by this library.`,
+        ));
+      }
+    }
+  };
+  const validateExtensions = (
+    extensions: Record<string, JsonValue> | undefined,
+    path: Array<string | number>,
+  ) => {
+    if (extensions && Object.keys(extensions).length > 50) {
+      errors.push(issue(path, "too-many-extensions", "At most 50 namespaced extensions are allowed."));
+    }
+  };
+
+  reportDuplicateIds(library.objectives.map((objective) => objective.id), ["objectives"], "objective");
+  reportDuplicateIds(library.sources.map((source) => source.id), ["sources"], "source");
+  reportDuplicateIds(library.runtimes.map((runtime) => runtime.id), ["runtimes"], "runtime");
+  validateExtensions(library.extensions, ["extensions"]);
+  if (/^(?:head|latest|main|master)$/i.test(library.library.provenance.revision)) {
+    errors.push(issue(
+      ["library", "provenance", "revision"],
+      "mutable-provenance-revision",
+      "Provenance must name an immutable revision, version, or digest rather than a moving branch.",
+    ));
+  }
+
+  library.runtimes.forEach((runtime, runtimeIndex) => {
+    for (const duplicate of duplicateValues(runtime.capabilities)) {
+      errors.push(issue(
+        ["runtimes", runtimeIndex, "capabilities"],
+        "duplicate-capability",
+        `The runtime capability "${duplicate}" is repeated.`,
+      ));
+    }
+    if (runtime.environment === "browser-worker" && runtime.language === "python") {
+      errors.push(issue(
+        ["runtimes", runtimeIndex, "environment"],
+        "unsupported-portable-python-runtime",
+        "Portable Python execution must be host-managed; the self-hosted player runs JavaScript and TypeScript only.",
+      ));
+    }
+  });
 
   for (const duplicate of duplicateValues(groupIds)) {
     errors.push(issue(["groups"], "duplicate-id", `The group id "${duplicate}" is used more than once.`));
@@ -423,6 +573,20 @@ function semanticValidation(library: QuestionGroupLibrary) {
   }
 
   library.groups.forEach((group, groupIndex) => {
+    reportUnknownReferences(
+      group.objectiveIds,
+      objectiveIds,
+      ["groups", groupIndex, "objectiveIds"],
+      "objective",
+    );
+    for (const duplicate of duplicateValues(group.objectiveIds)) {
+      errors.push(issue(
+        ["groups", groupIndex, "objectiveIds"],
+        "duplicate-objective-reference",
+        `The objective "${duplicate}" is referenced more than once.`,
+      ));
+    }
+    validateExtensions(group.extensions, ["groups", groupIndex, "extensions"]);
     for (const duplicate of duplicateValues(group.tags ?? [])) {
       errors.push(issue(
         ["groups", groupIndex, "tags"],
@@ -441,6 +605,75 @@ function semanticValidation(library: QuestionGroupLibrary) {
     group.questions.forEach((question, questionIndex) => {
       const questionPath = ["groups", groupIndex, "questions", questionIndex] as const;
       questionIds.push(question.id);
+
+      reportUnknownReferences(
+        question.objectiveIds,
+        objectiveIds,
+        [...questionPath, "objectiveIds"],
+        "objective",
+      );
+      for (const [objectiveIndex, objectiveId] of question.objectiveIds.entries()) {
+        if (!group.objectiveIds.includes(objectiveId)) {
+          errors.push(issue(
+            [...questionPath, "objectiveIds", objectiveIndex],
+            "objective-outside-group",
+            `Question objective "${objectiveId}" must also be declared by group "${group.id}".`,
+          ));
+        }
+      }
+      reportUnknownReferences(
+        question.sourceIds,
+        sourceIds,
+        [...questionPath, "sourceIds"],
+        "source",
+      );
+      for (const [field, values] of [
+        ["objectiveIds", question.objectiveIds],
+        ["sourceIds", question.sourceIds],
+      ] as const) {
+        for (const duplicate of duplicateValues(values)) {
+          errors.push(issue(
+            [...questionPath, field],
+            `duplicate-${field === "objectiveIds" ? "objective" : "source"}-reference`,
+            `The ${field === "objectiveIds" ? "objective" : "source"} "${duplicate}" is referenced more than once.`,
+          ));
+        }
+      }
+      validateExtensions(question.extensions, [...questionPath, "extensions"]);
+
+      const runtime = runtimeById.get(question.runtimeId);
+      if (!runtime) {
+        errors.push(issue(
+          [...questionPath, "runtimeId"],
+          "unknown-runtime",
+          `The runtime "${question.runtimeId}" is not declared by this library.`,
+        ));
+      } else {
+        if (runtime.language !== question.language) {
+          errors.push(issue(
+            [...questionPath, "runtimeId"],
+            "runtime-language-mismatch",
+            `Runtime "${runtime.id}" provides ${runtime.language}, not ${question.language}.`,
+          ));
+        }
+        if (!runtime.capabilities.includes(question.entrypoint.kind)) {
+          errors.push(issue(
+            [...questionPath, "runtimeId"],
+            "missing-runtime-capability",
+            `Runtime "${runtime.id}" does not declare the ${question.entrypoint.kind} capability.`,
+          ));
+        }
+        const usesThrows = question.cases.some((practiceCase) => (
+          practiceCase.assertions.some((assertion) => assertion.kind === "throws")
+        ));
+        if (usesThrows && !runtime.capabilities.includes("exceptions")) {
+          errors.push(issue(
+            [...questionPath, "runtimeId"],
+            "missing-runtime-capability",
+            `Runtime "${runtime.id}" must declare the exceptions capability for throws assertions.`,
+          ));
+        }
+      }
 
       for (const duplicate of duplicateValues(question.tags ?? [])) {
         errors.push(issue(

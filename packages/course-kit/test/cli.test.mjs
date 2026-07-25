@@ -29,6 +29,9 @@ const examplePath = fileURLToPath(
   new URL("../../../examples/open-learning/reliable-llm-changes/learning-pack.json", import.meta.url),
 );
 const example = JSON.parse(await readFile(examplePath, "utf8"));
+const questionGuidePath = fileURLToPath(
+  new URL("../../../docs/question-groups.md", import.meta.url),
+);
 
 function sha256(bytes) {
   return createHash("sha256").update(bytes).digest("hex");
@@ -81,6 +84,124 @@ test("build replaces its marked directory without following output symlinks or r
   assert.equal(await readFile(victim, "utf8"), "outside");
   assert.equal((await lstat(join(output, "index.html"))).isSymbolicLink(), false);
   await assert.rejects(access(join(output, "stale-secret.txt")));
+});
+
+test("Question Group CLI validates, builds, and serves the self-hosted player", async (context) => {
+  const root = await mkdtemp(join(tmpdir(), "latent-question-cli-"));
+  context.after(() => rm(root, { force: true, recursive: true }));
+  const sourcePath = join(root, "question-group-library.json");
+  const output = join(root, "site");
+  const guide = await readFile(questionGuidePath, "utf8");
+  const source = guide.match(/```json\n([\s\S]*?)\n```/)?.[1];
+  assert.ok(source);
+  await writeFile(sourcePath, `${source}\n`);
+
+  const validation = await runCli(["questions", "validate", sourcePath, "--strict", "--json"]);
+  assert.equal(validation.exitCode, 0, validation.stderr || validation.stdout);
+  assert.equal(JSON.parse(validation.stdout).summary.questions, 1);
+
+  const progressSchemaPath = join(root, "question-group-progress.schema.json");
+  const progressSchema = await runCli([
+    "questions",
+    "schema",
+    progressSchemaPath,
+    "--progress",
+    "--json",
+  ]);
+  assert.equal(progressSchema.exitCode, 0, progressSchema.stderr || progressSchema.stdout);
+  assert.match(
+    JSON.parse(await readFile(progressSchemaPath, "utf8")).$id,
+    /question-group-progress\.schema\.json$/,
+  );
+
+  const build = await runCli([
+    "questions",
+    "build",
+    sourcePath,
+    "--out-dir",
+    output,
+    "--json",
+  ]);
+  assert.equal(build.exitCode, 0, build.stderr || build.stdout);
+  assert.equal((await lstat(join(output, "assets", "esbuild.wasm"))).isFile(), true);
+  assert.match(await readFile(join(output, "leeches", "index.html"), "utf8"), /leeches/);
+
+  const probe = await listen((_request, response) => response.end());
+  const port = Number(new URL(probe.origin).port);
+  await probe.close();
+  const child = spawn(process.execPath, [
+    cliPath,
+    "questions",
+    "serve",
+    output,
+    "--port",
+    String(port),
+  ], {
+    cwd: repoRoot,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  context.after(() => child.kill("SIGTERM"));
+  await new Promise((resolveReady, reject) => {
+    const timer = setTimeout(() => reject(new Error("Question Group serve did not start")), 5_000);
+    child.once("error", reject);
+    child.stdout.on("data", (chunk) => {
+      if (String(chunk).includes("Serving ")) {
+        clearTimeout(timer);
+        resolveReady();
+      }
+    });
+  });
+  const worker = await fetch(`http://127.0.0.1:${port}/assets/sandbox.worker.js`);
+  assert.equal(worker.status, 200);
+  assert.match(worker.headers.get("content-security-policy") ?? "", /connect-src 'none'/);
+  child.kill("SIGTERM");
+  await new Promise((resolveExit) => child.once("close", resolveExit));
+});
+
+test("Question Group schema output refuses overwrites and never follows symlinks", async (context) => {
+  const root = await mkdtemp(join(tmpdir(), "latent-question-schema-"));
+  context.after(() => rm(root, { force: true, recursive: true }));
+  const output = join(root, "question-group-progress.schema.json");
+  const victim = join(root, "victim.txt");
+  await writeFile(output, "owned");
+  await writeFile(victim, "outside");
+
+  const refused = await runCli([
+    "questions",
+    "schema",
+    output,
+    "--progress",
+    "--json",
+  ]);
+  assert.equal(refused.exitCode, 2);
+  assert.match(refused.stdout, /Refusing to overwrite/);
+  assert.equal(await readFile(output, "utf8"), "owned");
+
+  const forced = await runCli([
+    "questions",
+    "schema",
+    output,
+    "--progress",
+    "--force",
+    "--json",
+  ]);
+  assert.equal(forced.exitCode, 0, forced.stderr || forced.stdout);
+  assert.match(JSON.parse(await readFile(output, "utf8")).$id, /question-group-progress/);
+
+  await rm(output);
+  await symlink(victim, output);
+  const symlinked = await runCli([
+    "questions",
+    "schema",
+    output,
+    "--progress",
+    "--force",
+    "--json",
+  ]);
+  assert.equal(symlinked.exitCode, 2);
+  assert.match(symlinked.stdout, /not a directory or symlink/);
+  assert.equal(await readFile(victim, "utf8"), "outside");
+  assert.equal((await lstat(output)).isSymbolicLink(), true);
 });
 
 test("serve requires a build marker and refuses symlinked files", async (context) => {

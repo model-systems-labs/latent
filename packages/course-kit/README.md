@@ -40,7 +40,8 @@ The package includes versioned pack, feed, and question-group schemas under
 
 Course Kit also owns the framework-neutral lesson types, curriculum manifest
 schema, and strict curriculum compiler used by the Latent application. It has
-no React, persistence, learner-sandbox, or course-content dependencies.
+no React, application persistence, privileged Latent runtime, or course-content
+dependency.
 
 The public `latent-learning-pack` and `latent-learning-feed` formats, semantic
 quality checks, canonical JSON, and standalone renderer are data-only and
@@ -53,9 +54,21 @@ for the independent review standard.
 
 Question groups are a separate versioned primitive so Learning Pack v1 remains
 immutable. They contain declarative cases and assertions, never executable
-publisher-authored tests. Until the v0.2.0 package is published, use the
-checked-out workspace or the checked-in candidate JSON Schema rather than a
-nonexistent release artifact. The candidate may change before the v0.2 tag;
-the planned permanent schema URL is not a published contract yet. Read
+publisher-authored tests. Course Kit v0.2 adds authorship, licensing,
+provenance, objectives, explicit runtime requirements, bounded extensions,
+portable progress and leech queries, a host-injected player contract, and a
+self-hosted JavaScript/TypeScript practice build:
+
+```bash
+latent-learning questions validate question-group-library.json --strict
+latent-learning questions build question-group-library.json --out-dir practice-site
+latent-learning questions serve practice-site
+```
+
+The static player runs learner code in a disposable worker. It does not execute
+Python; Python requirements remain host-managed. A hosted library cannot load
+an adapter or gain authority in another Latent deployment. Until the v0.2.0
+package is published, use the checked-out workspace rather than a nonexistent
+release artifact. The planned permanent schema URL is not published yet. Read
 [`docs/question-groups.md`](./docs/question-groups.md) for the layering and
 runtime trust boundary.

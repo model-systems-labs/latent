@@ -57,7 +57,7 @@ test("Course Kit is independently licensed, packable, and guarded for public rel
   assert.match(license, /Apache License[\s\S]*Version 2\.0/);
   assert.match(readme, /source tree is now Course Kit v0\.2\.0/);
   assert.match(readme, /releases\/download\/course-kit-v0\.1\.0\/latent-course-kit-0\.1\.0\.tgz/);
-  assert.match(readme, /Until the v0\.2\.0 package is published/);
+  assert.match(readme, /Until the v0\.2\.0\s+package is published/);
   assert.match(readme, /npm exec --yes --package "\$COURSE_KIT_RELEASE" --/);
   assert.match(ci, /permissions:\s*\n\s*contents: read/);
   assert.doesNotMatch(ci, /uses: [^@\n]+@v\d/);

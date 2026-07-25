@@ -45,14 +45,42 @@ function enforceLargestCss(maximum) {
   if (bytes > maximum) failures.push(`Largest stylesheet exceeds its budget by ${kib(bytes - maximum)}`);
 }
 
-function requireDynamicEntry(source, label) {
-  const entry = manifest[source];
-  if (!entry) {
-    failures.push(`${label}: no build-manifest entry for ${source}`);
+function manifestEntryForSource(source) {
+  if (manifest[source]) return [source, manifest[source]];
+
+  const sourceName = source.split("/").at(-1)?.replace(/\.[^.]+$/, "");
+  const matches = Object.entries(manifest).filter(([, entry]) => (
+    entry.src === source
+    || (!entry.src && entry.name === sourceName)
+  ));
+  return matches.length === 1 ? matches[0] : null;
+}
+
+function isDeferredChunk(key, ancestors = new Set()) {
+  const entry = manifest[key];
+  if (!entry || entry.isEntry === true) return false;
+  if (entry.isDynamicEntry === true) return true;
+  if (ancestors.has(key)) return false;
+
+  const nextAncestors = new Set(ancestors).add(key);
+  const importers = Object.entries(manifest).filter(([, candidate]) => (
+    candidate.imports?.includes(key)
+    || candidate.dynamicImports?.includes(key)
+  ));
+  return importers.length > 0
+    && importers.every(([importerKey]) => isDeferredChunk(importerKey, nextAncestors));
+}
+
+function requireDeferredModule(source, label) {
+  const match = manifestEntryForSource(source);
+  if (!match) {
+    failures.push(`${label}: no unique build-manifest entry for ${source}`);
     return;
   }
-  measurements.push(`${label}: ${entry.isDynamicEntry === true ? "deferred" : "eager"}`);
-  if (entry.isDynamicEntry !== true) failures.push(`${label} must remain a deferred build entry`);
+  const [key] = match;
+  const deferred = isDeferredChunk(key);
+  measurements.push(`${label}: ${deferred ? "deferred" : "eager"}`);
+  if (!deferred) failures.push(`${label} must remain deferred from every eager entry`);
 }
 
 // These are regression ceilings, not performance targets. They protect the
@@ -64,10 +92,10 @@ enforceAsset("Local Transformer runtime", /^local-transformer-runtime-.*\.js$/, 
 enforceAsset("Training worker", /^model\.worker-.*\.js$/, 950 * 1024);
 enforceAsset("Browser compiler WASM", /^esbuild-.*\.wasm$/, 14 * 1024 * 1024, mib);
 enforceAsset("Transformer WASM", /^ort-wasm-simd-threaded\.jsep-.*\.wasm$/, 22 * 1024 * 1024, mib);
-requireDynamicEntry("app/components/ProjectWorkbench.tsx", "Project IDE loading boundary");
-requireDynamicEntry("app/lib/local-transformer-runtime.ts", "Local Transformer loading boundary");
-requireDynamicEntry("app/features/ide/CodeEditor.tsx", "Lesson editor loading boundary");
-requireDynamicEntry("app/components/LessonExperiment.tsx", "Lesson experiment loading boundary");
+requireDeferredModule("app/components/ProjectWorkbench.tsx", "Project IDE loading boundary");
+requireDeferredModule("app/lib/local-transformer-runtime.ts", "Local Transformer loading boundary");
+requireDeferredModule("app/features/ide/CodeEditor.tsx", "Lesson editor loading boundary");
+requireDeferredModule("app/components/LessonExperiment.tsx", "Lesson experiment loading boundary");
 
 console.log(measurements.join("\n"));
 

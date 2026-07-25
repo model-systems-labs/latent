@@ -561,7 +561,7 @@ test("the design kit, simulations, model engines, and artifact runtime remain re
   assert.doesNotMatch(paperLab, /supporting-sources/);
   assert.match(paperLab, /source\.role/);
   assert.doesNotMatch(paperLab, /SelectionAsk|selection-ask|data-selection-ask|Highlight a passage/);
-  assert.match(layout, /og-open-learning\.png/);
+  assert.match(layout, /og-v0\.2\.png/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   await assert.rejects(access(new URL("../app/_sites-preview", templateRoot)));
 });

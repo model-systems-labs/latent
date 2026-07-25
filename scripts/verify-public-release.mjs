@@ -128,6 +128,12 @@ async function verifyRelease(options) {
       localPath:
         "public/question-groups/v1/question-group-library.schema.json",
     }),
+    verifySchema({
+      remoteUrl:
+        `${pagesBase}/question-groups/v1/question-group-progress.schema.json`,
+      localPath:
+        "public/question-groups/v1/question-group-progress.schema.json",
+    }),
   ]);
 
   const siteBase = normalizedBaseUrl(options.siteUrl);
@@ -137,6 +143,8 @@ async function verifyRelease(options) {
     "/course",
     "/flashcards",
     "/practice",
+    "/practice/leeches",
+    "/practice/ide/unique-values",
     "/project",
     "/open-learning",
   ]) {

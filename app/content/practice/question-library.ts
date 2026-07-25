@@ -8,13 +8,60 @@ export const methodQuestionLibrary = {
     version: "1.0.0",
     title: "Method practice",
     description: "Original interview-style coding questions that run locally in the browser.",
+    authors: [{
+      name: "Model Systems Labs",
+      url: "https://github.com/model-systems-labs",
+    }],
+    license: {
+      expression: "Apache-2.0",
+      url: "https://www.apache.org/licenses/LICENSE-2.0",
+    },
+    provenance: {
+      sourceUrl: "https://github.com/model-systems-labs/latent",
+      revision: "method-practice-1.0.0",
+    },
   },
+  objectives: [
+    {
+      id: "array-map-methods",
+      title: "Design array and map methods",
+      description: "Choose sets, maps, and stable iteration to implement bounded collection transformations.",
+    },
+    {
+      id: "text-stack-methods",
+      title: "Design text and stack methods",
+      description: "Use stacks, normalization rules, and sliding windows to implement reliable text transformations.",
+    },
+  ],
+  sources: [{
+    id: "latent-original",
+    title: "Latent original method-practice library",
+    url: "https://github.com/model-systems-labs/latent/tree/main/app/content/practice",
+    note: "Original practice prompts and checks maintained with the Latent reference application.",
+    license: {
+      expression: "Apache-2.0",
+      url: "https://www.apache.org/licenses/LICENSE-2.0",
+    },
+  }],
+  runtimes: [{
+    id: "browser-typescript",
+    language: "typescript",
+    environment: "browser-worker",
+    engine: "esbuild-wasm",
+    engineVersion: "0.28.1",
+    capabilities: ["class-method", "exceptions"],
+    limits: {
+      timeoutMs: 2_000,
+      maxOutputBytes: 100_000,
+    },
+  }],
   groups: [
     {
       id: "arrays-and-maps",
       order: 1,
       title: "Arrays and maps",
       description: "Use sets, lookup tables, and stable iteration to turn repeated scans into clear methods.",
+      objectiveIds: ["array-map-methods"],
       questions: [
         {
           id: "unique-values",
@@ -41,6 +88,9 @@ export const methodQuestionLibrary = {
             className: "Solution",
             methodName: "uniqueValues",
           },
+          objectiveIds: ["array-map-methods"],
+          sourceIds: ["latent-original"],
+          runtimeId: "browser-typescript",
           tags: ["arrays", "sets"],
           cases: [
             {
@@ -118,6 +168,9 @@ export const methodQuestionLibrary = {
             className: "Solution",
             methodName: "pairTargetIndices",
           },
+          objectiveIds: ["array-map-methods"],
+          sourceIds: ["latent-original"],
+          runtimeId: "browser-typescript",
           tags: ["arrays", "maps"],
           cases: [
             {
@@ -195,6 +248,9 @@ export const methodQuestionLibrary = {
             className: "Solution",
             methodName: "groupEquivalentWords",
           },
+          objectiveIds: ["array-map-methods"],
+          sourceIds: ["latent-original"],
+          runtimeId: "browser-typescript",
           tags: ["strings", "maps", "sorting"],
           cases: [
             {
@@ -254,6 +310,7 @@ export const methodQuestionLibrary = {
       order: 2,
       title: "Text and stacks",
       description: "Practice stateful scans where one pass and the right data structure make the behavior easy to reason about.",
+      objectiveIds: ["text-stack-methods"],
       questions: [
         {
           id: "balanced-delimiters",
@@ -280,6 +337,9 @@ export const methodQuestionLibrary = {
             className: "Solution",
             methodName: "balancedDelimiters",
           },
+          objectiveIds: ["text-stack-methods"],
+          sourceIds: ["latent-original"],
+          runtimeId: "browser-typescript",
           tags: ["strings", "stacks"],
           cases: [
             {
@@ -357,6 +417,9 @@ export const methodQuestionLibrary = {
             className: "Solution",
             methodName: "normalizePath",
           },
+          objectiveIds: ["text-stack-methods"],
+          sourceIds: ["latent-original"],
+          runtimeId: "browser-typescript",
           tags: ["strings", "stacks"],
           cases: [
             {
@@ -434,6 +497,9 @@ export const methodQuestionLibrary = {
             className: "Solution",
             methodName: "longestUniqueWindow",
           },
+          objectiveIds: ["text-stack-methods"],
+          sourceIds: ["latent-original"],
+          runtimeId: "browser-typescript",
           tags: ["strings", "maps", "sliding-window"],
           cases: [
             {

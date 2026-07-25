@@ -1,5 +1,6 @@
 "use client";
 
+import { isLeechQuestionProgress } from "@latent/course-kit";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PracticeContractRun } from "../features/ide/browser-lab-service";
 import { CodeEditor } from "../features/ide/CodeEditor";
@@ -75,7 +76,11 @@ function resultDetail(result: PracticeContractRun["cases"][number]) {
   return failures.map((failure) => failure.detail).join(" ");
 }
 
-export function PracticeWorkbench() {
+export function PracticeWorkbench({
+  initialProgressQuery = "all",
+}: {
+  initialProgressQuery?: "all" | "leeches";
+} = {}) {
   const questions = methodQuestions;
   const [query, setQuery] = useState("");
   const [groupFilter, setGroupFilter] = useState("all");
@@ -303,6 +308,15 @@ export function PracticeWorkbench() {
     );
   }, [activeKey, draft, progressForQuestion]);
 
+  const isLeech = useCallback((question: MethodQuestion) => {
+    const progress = progressForQuestion(question);
+    return isLeechQuestionProgress({
+      status: statusOf(question),
+      attemptCount: progress.attemptCount,
+      failureCount: progress.failureCount,
+    });
+  }, [progressForQuestion, statusOf]);
+
   const visibleGroups = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     return methodQuestionGroups.flatMap((group) => {
@@ -310,6 +324,7 @@ export function PracticeWorkbench() {
       const visibleQuestions = group.questions.filter((question) => {
         const withGroup = questions.find((candidate) => candidate.groupId === group.id && candidate.id === question.id);
         if (!withGroup) return false;
+        if (initialProgressQuery === "leeches" && !isLeech(withGroup)) return false;
         if (statusFilter !== "all" && statusOf(withGroup) !== statusFilter) return false;
         return !normalizedQuery || [
           question.title,
@@ -319,11 +334,20 @@ export function PracticeWorkbench() {
       });
       return visibleQuestions.length ? [{ ...group, questions: visibleQuestions }] : [];
     });
-  }, [groupFilter, query, questions, statusFilter, statusOf]);
+  }, [groupFilter, initialProgressQuery, isLeech, query, questions, statusFilter, statusOf]);
 
   const visibleQuestionKeys = useMemo(() => new Set(visibleGroups.flatMap((group) => (
     group.questions.map((question) => `${group.id}/${question.id}`)
   ))), [visibleGroups]);
+  const firstVisibleQuestion = useMemo(() => {
+    const group = visibleGroups[0];
+    const question = group?.questions[0];
+    return question
+      ? questions.find((candidate) => (
+          candidate.groupId === group.id && candidate.id === question.id
+        )) ?? null
+      : null;
+  }, [questions, visibleGroups]);
 
   const openQuestion = useCallback((question: MethodQuestion) => {
     if (questionKey(question) === activeKey) {
@@ -343,10 +367,23 @@ export function PracticeWorkbench() {
     setMobileView("question");
   }, [activeKey, flushCurrentDraft]);
 
+  useEffect(() => {
+    if (
+      initialProgressQuery === "leeches"
+      && firstVisibleQuestion
+      && !isLeech(activeQuestionRef.current)
+    ) {
+      openQuestion(firstVisibleQuestion);
+    }
+  }, [firstVisibleQuestion, initialProgressQuery, isLeech, openQuestion]);
+
   const resumeNext = useCallback(() => {
-    const next = questions.find((question) => statusOf(question) !== "solved") ?? questions[0];
+    const next = initialProgressQuery === "leeches"
+      ? questions.find(isLeech)
+      : questions.find((question) => statusOf(question) !== "solved");
+    if (!next) return;
     openQuestion(next);
-  }, [openQuestion, questions, statusOf]);
+  }, [initialProgressQuery, isLeech, openQuestion, questions, statusOf]);
 
   const handleChange = useCallback((source: string) => {
     setDraft(source);
@@ -569,15 +606,55 @@ export function PracticeWorkbench() {
     draft,
   );
   const solvedCount = questions.filter((question) => statusOf(question) === "solved").length;
+  const leechCount = questions.filter(isLeech).length;
   const runIsStale = (runState.status === "complete" || runState.status === "error")
     && runState.source !== draft;
+
+  if (initialProgressQuery === "leeches" && storageState === "loading") {
+    return (
+      <section className={styles.workbench} aria-busy="true" aria-label="Leech practice workspace">
+        <p className={styles.emptyLibrary}>Loading device practice progress…</p>
+      </section>
+    );
+  }
+
+  if (initialProgressQuery === "leeches" && leechCount === 0) {
+    return (
+      <section className={styles.workbench} aria-label="Leech practice workspace">
+        <p className={styles.emptyLibrary}>
+          No leeched questions. A question appears here after three attempts and two misses,
+          and leaves after you solve it.
+        </p>
+      </section>
+    );
+  }
+
+  if (initialProgressQuery === "leeches" && !isLeech(activeQuestion)) {
+    return (
+      <section
+        aria-busy={Boolean(firstVisibleQuestion)}
+        aria-label="Leech practice workspace"
+        className={styles.workbench}
+      >
+        <p className={styles.emptyLibrary}>
+          {firstVisibleQuestion
+            ? "Opening the next leeched question…"
+            : "No leeched questions match the current filters."}
+        </p>
+      </section>
+    );
+  }
 
   return (
     <section className={styles.workbench} aria-label="Method practice workspace">
       <p className="sr-only" aria-live="polite">{announcement}</p>
       <header className={styles.toolbar}>
         <div className={styles.progressSummary}>
-          <strong>{solvedCount} of {questions.length} solved</strong>
+          <strong>
+            {initialProgressQuery === "leeches"
+              ? `${leechCount} leeched question${leechCount === 1 ? "" : "s"}`
+              : `${solvedCount} of ${questions.length} solved`}
+          </strong>
           <span>{storageState === "loading" ? "Loading device progress" : storageState === "ready" ? "Saved on this device" : "Tab-only progress"}</span>
         </div>
         <div className={styles.filters}>

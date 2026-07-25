@@ -104,15 +104,8 @@ jobs:
             _schema-site/question-groups
           node packages/course-kit/bin/latent-learning.mjs schema _schema-site/open-learning/v1/learning-pack.schema.json
           node packages/course-kit/bin/latent-learning.mjs schema _schema-site/open-learning/v1/learning-feed.schema.json --feed
-          node --input-type=module --eval '
-            import { writeFile } from "node:fs/promises";
-            import { questionGroupLibraryJsonSchema } from "./packages/course-kit/dist/index.js";
-            await writeFile(
-              "_schema-site/question-groups/v1/question-group-library.schema.json",
-              `${JSON.stringify(questionGroupLibraryJsonSchema, null, 2)}\n`,
-              "utf8",
-            );
-          '
+          node packages/course-kit/bin/latent-learning.mjs questions schema _schema-site/question-groups/v1/question-group-library.schema.json
+          node packages/course-kit/bin/latent-learning.mjs questions schema _schema-site/question-groups/v1/question-group-progress.schema.json --progress
           cp _schema-site/open-learning/v1/learning-pack.schema.json _schema-site/open-learning/learning-pack.schema.json
           cp _schema-site/open-learning/v1/learning-feed.schema.json _schema-site/open-learning/learning-feed.schema.json
           cp public/question-groups/guide.md _schema-site/question-groups/guide.md
@@ -122,6 +115,8 @@ jobs:
           cmp public/open-learning/learning-feed.schema.json _schema-site/open-learning/learning-feed.schema.json
           cmp public/question-groups/v1/question-group-library.schema.json _schema-site/question-groups/v1/question-group-library.schema.json
           cmp packages/course-kit/schema/question-group-library.schema.json _schema-site/question-groups/v1/question-group-library.schema.json
+          cmp public/question-groups/v1/question-group-progress.schema.json _schema-site/question-groups/v1/question-group-progress.schema.json
+          cmp packages/course-kit/schema/question-group-progress.schema.json _schema-site/question-groups/v1/question-group-progress.schema.json
           touch _schema-site/.nojekyll
       - name: Refuse to replace published version 1 schema bytes
         run: |
@@ -136,16 +131,17 @@ jobs:
               exit 1
             fi
           done
-          question_schema="question-group-library.schema.json"
-          question_url="https://model-systems-labs.github.io/latent/question-groups/v1/$question_schema"
-          question_existing="$RUNNER_TEMP/$question_schema"
-          question_status="$(curl --silent --show-error --location --output "$question_existing" --write-out '%{http_code}' "$question_url")"
-          if [ "$question_status" = "200" ]; then
-            cmp "$question_existing" "_schema-site/question-groups/v1/$question_schema"
-          elif [ "$question_status" != "404" ]; then
-            printf 'Unexpected HTTP %s while checking %s\n' "$question_status" "$question_url" >&2
-            exit 1
-          fi
+          for question_schema in question-group-library.schema.json question-group-progress.schema.json; do
+            question_url="https://model-systems-labs.github.io/latent/question-groups/v1/$question_schema"
+            question_existing="$RUNNER_TEMP/$question_schema"
+            question_status="$(curl --silent --show-error --location --output "$question_existing" --write-out '%{http_code}' "$question_url")"
+            if [ "$question_status" = "200" ]; then
+              cmp "$question_existing" "_schema-site/question-groups/v1/$question_schema"
+            elif [ "$question_status" != "404" ]; then
+              printf 'Unexpected HTTP %s while checking %s\n' "$question_status" "$question_url" >&2
+              exit 1
+            fi
+          done
       - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         with:

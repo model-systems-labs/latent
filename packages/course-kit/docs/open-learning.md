@@ -226,11 +226,15 @@ A future directory can index publisher-controlled feed URLs and these independen
 latent-learning init <directory> [--json]
 latent-learning inspect <learning-pack.json> [--json]
 latent-learning validate <learning-pack.json> [--strict] [--json]
-latent-learning schema [output.json] [--feed] [--json]
+latent-learning schema [output.json] [--feed] [--force] [--json]
 latent-learning build <learning-pack.json> --out-dir <directory> [--json]
 latent-learning serve <directory> [--host 127.0.0.1] [--port 4173]
 latent-learning verify-url <learning-feed.json URL> [--json]
 ```
+
+Schema commands refuse to replace an existing path by default and never follow
+an output symlink. Pass `--force` only when intentionally replacing a regular
+file that your workflow owns.
 
 - `0`: success
 - `1`: invalid learning content

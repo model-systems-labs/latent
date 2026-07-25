@@ -19,6 +19,7 @@ export default function PracticePage() {
         <nav aria-label="Practice navigation">
           <Link href="/course">Courses</Link>
           <Link aria-current="page" href="/practice">Practice</Link>
+          <Link href="/practice/leeches">Leeches</Link>
           <Link href="/flashcards">Cards</Link>
           <Link href="/workspace" aria-label="Open coding workspace">Code</Link>
         </nav>
@@ -31,6 +32,11 @@ export default function PracticePage() {
           <p>
             Work through {methodQuestions.length} original coding questions in {methodQuestionGroups.length} groups.
             Your drafts and solved status stay in this browser.
+          </p>
+          <p>
+            <Link href="/practice/ide/unique-values">
+              Try “Keep unique values” in the extension-backed IDE
+            </Link>
           </p>
         </header>
         <PracticeWorkbench />

@@ -1,0 +1,112 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "format": {
+      "type": "string",
+      "const": "latent-question-group-progress"
+    },
+    "schemaVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "libraryId": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 129,
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}\\/[a-z0-9][a-z0-9._-]{0,63}$"
+    },
+    "libraryVersion": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"
+    },
+    "libraryDigest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "groupId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80,
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "questionId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80,
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "contractVersion": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "new",
+        "attempted",
+        "solved"
+      ]
+    },
+    "attemptCount": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "failureCount": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "lastAttemptAt": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8640000000000
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "solvedAt": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8640000000000
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "updatedAt": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 8640000000000
+    }
+  },
+  "required": [
+    "format",
+    "schemaVersion",
+    "libraryId",
+    "libraryVersion",
+    "libraryDigest",
+    "groupId",
+    "questionId",
+    "contractVersion",
+    "status",
+    "attemptCount",
+    "failureCount",
+    "lastAttemptAt",
+    "solvedAt",
+    "updatedAt"
+  ],
+  "additionalProperties": false,
+  "$id": "https://model-systems-labs.github.io/latent/question-groups/v1/question-group-progress.schema.json",
+  "title": "Latent Question Group Progress v1",
+  "description": "Framework-neutral, source-free progress snapshots for Question Group status and leech queries."
+}

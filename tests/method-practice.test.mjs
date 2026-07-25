@@ -8,6 +8,7 @@ const root = new URL("../", import.meta.url);
 let adapter;
 let content;
 let courseKit;
+let progressContract;
 let runner;
 let vite;
 
@@ -19,10 +20,11 @@ before(async () => {
     appType: "custom",
     logLevel: "silent",
   });
-  [adapter, content, courseKit, runner] = await Promise.all([
+  [adapter, content, courseKit, progressContract, runner] = await Promise.all([
     vite.ssrLoadModule("/app/features/practice/question-adapter.ts"),
     vite.ssrLoadModule("/app/content/practice/question-library.ts"),
     vite.ssrLoadModule("/packages/course-kit/src/question-group.ts"),
+    vite.ssrLoadModule("/packages/course-kit/src/question-progress.ts"),
     vite.ssrLoadModule("/app/features/practice/question-runner.ts"),
   ]);
 });
@@ -47,28 +49,51 @@ test("the first-party method library is a valid portable question-group primitiv
 
 test("the published and packaged question-group contracts match Course Kit", async () => {
   const expected = `${JSON.stringify(courseKit.questionGroupLibraryJsonSchema, null, 2)}\n`;
-  const [published, packaged, publicGuide, packageGuide, sourceGuide] = await Promise.all([
+  const expectedProgress = `${JSON.stringify(progressContract.questionGroupProgressJsonSchema, null, 2)}\n`;
+  const [
+    published,
+    packaged,
+    publishedProgress,
+    packagedProgress,
+    publicGuide,
+    packageGuide,
+    sourceGuide,
+  ] = await Promise.all([
     readFile(new URL("public/question-groups/v1/question-group-library.schema.json", root), "utf8"),
     readFile(new URL("packages/course-kit/schema/question-group-library.schema.json", root), "utf8"),
+    readFile(new URL("public/question-groups/v1/question-group-progress.schema.json", root), "utf8"),
+    readFile(new URL("packages/course-kit/schema/question-group-progress.schema.json", root), "utf8"),
     readFile(new URL("public/question-groups/guide.md", root), "utf8"),
     readFile(new URL("packages/course-kit/docs/question-groups.md", root), "utf8"),
     readFile(new URL("docs/question-groups.md", root), "utf8"),
   ]);
   assert.equal(published, expected);
   assert.equal(packaged, expected);
+  assert.equal(publishedProgress, expectedProgress);
+  assert.equal(packagedProgress, expectedProgress);
   assert.equal(
     publicGuide,
-    sourceGuide.replace(
-      "../packages/course-kit/schema/question-group-library.schema.json",
-      "./v1/question-group-library.schema.json",
-    ),
+    sourceGuide
+      .replace(
+        "../packages/course-kit/schema/question-group-library.schema.json",
+        "./v1/question-group-library.schema.json",
+      )
+      .replace(
+        "../packages/course-kit/schema/question-group-progress.schema.json",
+        "./v1/question-group-progress.schema.json",
+      ),
   );
   assert.equal(
     packageGuide,
-    sourceGuide.replace(
-      "../packages/course-kit/schema/question-group-library.schema.json",
-      "../schema/question-group-library.schema.json",
-    ),
+    sourceGuide
+      .replace(
+        "../packages/course-kit/schema/question-group-library.schema.json",
+        "../schema/question-group-library.schema.json",
+      )
+      .replace(
+        "../packages/course-kit/schema/question-group-progress.schema.json",
+        "../schema/question-group-progress.schema.json",
+      ),
   );
 });
 
@@ -107,8 +132,9 @@ test("example and full runs have stable source-bound contract versions", () => {
 });
 
 test("the practice route reuses the shared editor and independent progress layer", async () => {
-  const [page, workbench, editor] = await Promise.all([
+  const [page, leechPage, workbench, editor] = await Promise.all([
     readFile(new URL("app/practice/page.tsx", root), "utf8"),
+    readFile(new URL("app/practice/leeches/page.tsx", root), "utf8"),
     readFile(new URL("app/practice/PracticeWorkbench.tsx", root), "utf8"),
     readFile(new URL("app/features/ide/CodeEditor.tsx", root), "utf8"),
   ]);
@@ -119,7 +145,13 @@ test("the practice route reuses the shared editor and independent progress layer
   assert.match(workbench, /applyQuestionDraftMutation/);
   assert.match(workbench, /applyQuestionAttemptMutation/);
   assert.match(workbench, /applyQuestionResetMutation/);
+  assert.match(workbench, /isLeechQuestionProgress/);
+  assert.match(workbench, /initialProgressQuery === "leeches"/);
+  assert.match(workbench, /openQuestion\(firstVisibleQuestion\)/);
+  assert.match(workbench, /initialProgressQuery === "leeches" && !isLeech\(activeQuestion\)/);
   assert.match(workbench, /storageUnavailableRef/);
+  assert.match(leechPage, /<PracticeWorkbench initialProgressQuery="leeches" \/>/);
+  assert.match(leechPage, /no separate leech content is created/i);
   assert.doesNotMatch(workbench, /PaperLab|project-workspace|learner-state/);
   assert.match(editor, /const hasRunHandler = Boolean\(onRun\)/);
   assert.match(editor, /\.\.\.\(hasRunHandler \? \[\{[\s\S]*?key:\s*"Mod-Enter"[\s\S]*?preventDefault:\s*true/);

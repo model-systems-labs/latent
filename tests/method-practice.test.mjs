@@ -45,17 +45,31 @@ test("the first-party method library is a valid portable question-group primitiv
   assert.equal(new Set(content.methodQuestions.map((question) => question.id)).size, 6);
 });
 
-test("the published and packaged question-group schemas match Course Kit", async () => {
+test("the published and packaged question-group contracts match Course Kit", async () => {
   const expected = `${JSON.stringify(courseKit.questionGroupLibraryJsonSchema, null, 2)}\n`;
-  const [published, packaged, guide, sourceGuide] = await Promise.all([
+  const [published, packaged, publicGuide, packageGuide, sourceGuide] = await Promise.all([
     readFile(new URL("public/question-groups/v1/question-group-library.schema.json", root), "utf8"),
     readFile(new URL("packages/course-kit/schema/question-group-library.schema.json", root), "utf8"),
     readFile(new URL("public/question-groups/guide.md", root), "utf8"),
+    readFile(new URL("packages/course-kit/docs/question-groups.md", root), "utf8"),
     readFile(new URL("docs/question-groups.md", root), "utf8"),
   ]);
   assert.equal(published, expected);
   assert.equal(packaged, expected);
-  assert.equal(guide, sourceGuide);
+  assert.equal(
+    publicGuide,
+    sourceGuide.replace(
+      "../packages/course-kit/schema/question-group-library.schema.json",
+      "./v1/question-group-library.schema.json",
+    ),
+  );
+  assert.equal(
+    packageGuide,
+    sourceGuide.replace(
+      "../packages/course-kit/schema/question-group-library.schema.json",
+      "../schema/question-group-library.schema.json",
+    ),
+  );
 });
 
 test("every shipped problem uses a real class method and data-only host checks", () => {

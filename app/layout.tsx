@@ -22,9 +22,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "localhost:3001";
   const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   const metadataBase = new URL(`${protocol}://${host}`);
-  const title = "Latent · Learn, make, and host lessons";
+  const title = "Latent · Build your learning platform with agents";
   const description =
-    "A high-quality self-learning platform with first-party courses and an open format that anyone—or any LLM—can use to create and self-host lessons and flash cards.";
+    "An opinionated open-source framework for courses, browser IDE lessons, flash cards, and programming practice. The LLM Learning curriculum is the reference implementation.";
 
   return {
     metadataBase,

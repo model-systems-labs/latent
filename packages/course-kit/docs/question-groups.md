@@ -4,13 +4,21 @@ Question groups are a portable, model-neutral primitive for programming
 practice. A person or LLM can author the same declarative JSON, validate it
 with Course Kit, and host the file on any static server.
 
-The format is versioned separately from Learning Pack v1. This keeps the
-released lesson and flash-card contract byte-for-byte compatible while giving
-practice questions a clean schema of their own.
+**Status: preview in the unreleased Course Kit v0.2 source tree.**
 
-The immutable version 1 schema is:
+The candidate format is versioned separately from Learning Pack v1. This keeps
+the released lesson and flash-card contract byte-for-byte compatible while
+giving practice questions a clean schema of their own.
 
-- [`question-group-library.schema.json`](https://model-systems-labs.github.io/latent/question-groups/v1/question-group-library.schema.json)
+- [Checked-in candidate JSON Schema](../schema/question-group-library.schema.json)
+- Planned permanent URL after the v0.2 release:
+  `https://model-systems-labs.github.io/latent/question-groups/v1/question-group-library.schema.json`
+
+The planned URL may return `404` before `course-kit-v0.2.0` is tagged. The
+candidate schema may change before that release, including changes needed for
+authorship, licensing, provenance, learning objectives, and source grounding.
+Once the release workflow publishes `/question-groups/v1/`, those exact bytes
+become immutable.
 
 ## Layering
 
@@ -21,7 +29,9 @@ reader adapter (validated data → host-owned contracts)
         ↓
 language runtime (isolated learner code)
         ↓
-source-bound result receipt
+bounded runtime result
+        ↓
+host source and contract binding
         ↓
 practice UI and device-local progress
 ```
@@ -57,15 +67,17 @@ learning checks, not secret certification tests.
 
 ## Validate the complete contract
 
-The public JSON Schema checks the versioned document shape, strict fields,
+The candidate JSON Schema checks the versioned document shape, strict fields,
 types, and size bounds. It cannot express every cross-field rule in the
 portable contract. Full Course Kit validation additionally checks unique ids
 and ordering, language-specific paths and non-reserved entrypoint names,
 example and check coverage, constructor-argument use, assertion combinations,
 and ECMAScript regular-expression syntax.
 
+The validator shown below is available from a checkout of the v0.2 source. The
+latest published v0.1.0 package does not include Question Groups yet.
 Run the full validator before publishing; JSON Schema success alone is not the
-publication gate:
+publication gate.
 
 ```js
 import { readFile } from "node:fs/promises";
@@ -91,9 +103,10 @@ Readers must validate the complete file before use, map the data into their own
 host-owned checks, and run learner source outside the page realm.
 
 Latent currently executes its built-in reviewed library. An arbitrary hosted
-library may use the public schema immediately, but it does not automatically
-gain access to Latent's privileged runtimes. A publisher can build a compatible
-standalone player with its own sandbox, or serve the JSON for another reader.
+library may use the checked-in candidate schema, but it does not automatically
+gain access to Latent's privileged runtimes. A publisher can build a
+compatible standalone player with its own sandbox, or serve the JSON for
+another reader.
 
 Python support in the schema describes interoperability; it is not a claim that
 every reader provides a hostile-code Python sandbox.
@@ -175,6 +188,7 @@ This complete library passes full Course Kit validation:
 
 ## Versioning
 
-Publish changed content under a new semantic library version. A future
-incompatible schema receives a new `/question-groups/vN/` path rather than
-replacing the v1 bytes.
+During the preview, the candidate schema may change before the v0.2 release.
+After v1 is published, publishers must put changed content under a new semantic
+library version. A future incompatible schema receives a new
+`/question-groups/vN/` path rather than replacing the published v1 bytes.

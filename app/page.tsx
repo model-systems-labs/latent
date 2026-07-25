@@ -10,9 +10,9 @@ import type { SiteCopyKey, SiteCopyValues } from "./content/site-copy";
 import styles from "./page.module.css";
 
 export const metadata: Metadata = {
-  title: "Latent · Hands-on courses on LLM systems",
+  title: "Latent · Build your learning platform with agents",
   description:
-    "Learn machine learning and LLM systems with clear explanations, runnable browser exercises, and a cumulative local chatbot project.",
+    "An opinionated open-source framework for courses, browser IDE lessons, flash cards, and programming practice.",
 };
 
 const architectureStages = [
@@ -55,11 +55,11 @@ const projectFiles = [
 ] as const;
 
 const homepageCopyDefaults = {
-  "hero.title": "Learn how LLM systems actually work.",
-  "hero.body": "Start with the math if you need it, or jump straight into models, inference, serving, and chat product code. Every lesson pairs a clear explanation with code you can run in your browser.",
-  "hero.primaryAction": "Find your starting point",
-  "hero.secondaryAction": "Open LLM systems",
-  "system.title": "Model, runtime, serving, and interface.",
+  "hero.title": "Build your own learning platform with agents.",
+  "hero.body": "Latent is an opinionated open-source framework for courses, browser IDE lessons, flash cards, and programming practice. Use the LLM systems curriculum as a complete reference implementation, or start with portable lessons and cards you can host anywhere.",
+  "hero.primaryAction": "Create portable content",
+  "hero.secondaryAction": "Explore the LLM course",
+  "system.title": "The reference implementation goes deep.",
   "system.body": "A paper can explain one mechanism clearly while leaving the surrounding system implicit. These lessons begin with recurrence, tokenization, attention, and causal masking, then continue into prefill and decoding, KV-cache accounting, continuous batching, SSE framing, cancellation, retries, and conversation state. Each example is small enough to inspect and run in a browser.",
   "architecture.title": "Browser-native LLM system",
   "architecture.kicker": "One request · three movements",
@@ -90,7 +90,7 @@ export default function Home() {
 
         <article className={styles.shell}>
           <section className={styles.hero}>
-            <span className="eyebrow">Hands-on courses · runs locally in your browser</span>
+            <span className="eyebrow">Open source · agent-friendly · portable content</span>
             <EditableText as="h1" copyKey="hero.title" fallback={copy("hero.title")} />
             <EditableText as="p" copyKey="hero.body" fallback={copy("hero.body")} />
             <div className={styles.actions}>
@@ -99,7 +99,7 @@ export default function Home() {
                 className={styles.primaryAction}
                 copyKey="hero.primaryAction"
                 fallback={copy("hero.primaryAction")}
-                href="/course#starting-point"
+                href="/open-learning"
               />
               <EditableHomepageLink
                 className={styles.secondaryAction}

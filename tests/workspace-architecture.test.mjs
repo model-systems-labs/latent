@@ -63,15 +63,16 @@ test("Course Kit is independently licensed, packable, and guarded for public rel
   assert.doesNotMatch(ci, /uses: [^@\n]+@v\d/);
   assert.match(ci, /npm run smoke:package --workspace @latent\/course-kit/);
   assert.match(release, /course-kit-v\*/);
-  assert.match(release, /npm install --global npm@11\.5\.1/);
   assert.doesNotMatch(release, /NPM_TOKEN/);
   assert.doesNotMatch(release, /uses: [^@\n]+@v\d/);
   assert.match(release, /release:check --workspace @latent\/course-kit/);
+  assert.match(release, /Validate the exact tagged repository[\s\S]*npm run validate/);
+  assert.match(release, /npm run validate[\s\S]*git diff --exit-code/);
   assert.match(release, /actions\/upload-artifact@[0-9a-f]{40} # v4/);
   assert.match(release, /actions\/download-artifact@[0-9a-f]{40} # v4/);
   assert.match(release, /github-release:[\s\S]*?gh release create "\$GITHUB_REF_NAME"/);
-  assert.match(release, /if: vars\.NPM_PUBLISH_ENABLED == 'true'/);
-  assert.match(release, /npm publish course-kit-release\/\*\.tgz --access public --provenance/);
+  assert.match(release, /npm publishing is intentionally deferred/);
+  assert.doesNotMatch(release, /NPM_PUBLISH_ENABLED|run:\s*npm publish/);
   assert.match(release, /_schema-site\/open-learning\/v1/);
   assert.match(release, /actions\/deploy-pages@[0-9a-f]{40} # v4/);
 });
@@ -96,6 +97,84 @@ test("Course Kit schema ids use immutable versioned Pages paths with exact conve
     assert.equal(new Set(copies).size, 1, `${name} copies must be byte-identical`);
     assert.equal(JSON.parse(copies[0]).$id, expectedId);
   }
+});
+
+test("the v0.2 contract separates portable content from trusted executable source", async () => {
+  const [
+    launchContract,
+    releaseStatusSource,
+    packageManifestSource,
+    architecture,
+    decision,
+    security,
+    releaseCheck,
+  ] = await Promise.all([
+    readFile(new URL("../docs/v0.2-launch-contract.md", import.meta.url), "utf8"),
+    readFile(new URL("../docs/release-status.json", import.meta.url), "utf8"),
+    readFile(new URL("../packages/course-kit/package.json", import.meta.url), "utf8"),
+    readFile(new URL("../docs/architecture.md", import.meta.url), "utf8"),
+    readFile(
+      new URL(
+        "../docs/decisions/0001-portable-content-and-trusted-extensions.md",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+    readFile(new URL("../SECURITY.md", import.meta.url), "utf8"),
+    readFile(
+      new URL("../packages/course-kit/scripts/check-release.mjs", import.meta.url),
+      "utf8",
+    ),
+  ]);
+
+  const releaseStatus = JSON.parse(releaseStatusSource);
+  const packageManifest = JSON.parse(packageManifestSource);
+  const courseKitStatus = releaseStatus.courseKit;
+  assert.equal(releaseStatus.schemaVersion, 1);
+  assert.equal(courseKitStatus.sourceVersion, packageManifest.version);
+  assert.match(courseKitStatus.state, /^(development|released)$/);
+  assert.equal(courseKitStatus.npmState, "unpublished");
+  assert.equal(
+    courseKitStatus.latestPublishedTag,
+    `course-kit-v${courseKitStatus.latestPublishedVersion}`,
+  );
+  assert.equal(
+    courseKitStatus.installUrl,
+    `https://github.com/model-systems-labs/latent/releases/download/${courseKitStatus.latestPublishedTag}/latent-course-kit-${courseKitStatus.latestPublishedVersion}.tgz`,
+  );
+  if (courseKitStatus.state === "development") {
+    assert.notEqual(courseKitStatus.latestPublishedVersion, packageManifest.version);
+    assert.equal(courseKitStatus.questionGroupSchemaState, "candidate");
+    assert.match(
+      launchContract,
+      /frozen release target; implementation incomplete; not yet released/,
+    );
+    assert.match(
+      launchContract,
+      /Question Groups: programming practice \| Required for release; currently preview/,
+    );
+  } else {
+    assert.equal(courseKitStatus.latestPublishedVersion, packageManifest.version);
+    assert.equal(courseKitStatus.questionGroupSchemaState, "published");
+    assert.match(launchContract, /Status: \*\*released\*\*/);
+    assert.doesNotMatch(launchContract, /\bpreview\b|not yet released/i);
+  }
+  assert.match(launchContract, /Portable content/);
+  assert.match(launchContract, /Trusted platform source/);
+  assert.match(launchContract, /Question Groups include the release-ready authorship/);
+  assert.match(architecture, /@latent\/python-lab/);
+  assert.match(architecture, /application-owned question adapter/);
+  assert.match(architecture, /application source and contract binding/);
+  assert.match(decision, /Models and agents operate at authoring and build time/);
+  assert.match(decision, /never downloaded and activated as remote executable/);
+  assert.match(security, /Python Lab is not a\s+hostile-code security sandbox/);
+  assert.match(releaseCheck, /"README\.md"/);
+  assert.match(releaseCheck, /contains stale Course Kit release/);
+  assert.match(releaseCheck, /release-status\.json/);
+  assert.match(releaseCheck, /Status: \*\*released\*\*/);
+  assert.match(releaseCheck, /CHANGELOG\.md must contain a dated/);
+  assert.match(releaseCheck, /npmState/);
+  assert.match(releaseCheck, /release section still contains pre-release wording/);
 });
 
 test("the source inventory attributes the browser Python runtime", async () => {

@@ -10,22 +10,22 @@ contracts and are identified inside their documents.
 
 ### Added
 
-- Public contribution, security, conduct, licensing, and roadmap documentation.
-- GitHub issue and pull-request templates for community participation.
-
-## [0.2.0] - 2026-07-24
-
-### Added
-
-- The versioned `latent-question-group-library` v1 format for portable
+- The candidate `latent-question-group-library` v1 format for portable
   JavaScript, TypeScript, and Python function or class-method practice.
-- Strict structural and semantic validation, canonical JSON, a public JSON
-  Schema, and a framework-neutral package subpath for question-group readers.
+- Strict structural and semantic validation, canonical JSON, a checked-in JSON
+  Schema candidate, and a framework-neutral package subpath for
+  question-group readers.
+- A grouped programming-practice route using the shared editor, host-owned
+  behavioral contracts, and source-bound device progress.
+- A frozen v0.2 launch contract plus an architecture decision separating
+  portable declarative content from trusted executable repository extensions.
 
 ### Changed
 
 - Course Kit release packaging and smoke tests now include the question-group
   guide, schema, runtime exports, and type declarations.
+- Public documentation distinguishes the published Course Kit v0.1.0 release
+  from the unreleased v0.2 source tree.
 
 ## [0.1.0] - 2026-07-24
 
@@ -39,6 +39,8 @@ contracts and are identified inside their documents.
   device saves, and digest-bound learner progress.
 - Model-neutral author, review, and publish workflows for capable file-editing
   LLMs.
+- Public contribution, security, conduct, licensing, and roadmap documentation,
+  plus GitHub issue and pull-request templates.
 - A complete self-hosted example covering lessons, quizzes, and flash cards.
 - Four first-party executable browser courses, local learner persistence,
   Browser Lab, Model Lab, Artifact Runtime, and the project capstone.
@@ -50,6 +52,5 @@ contracts and are identified inside their documents.
 - Feed loading verifies origin, redirects, UTF-8, byte limits, canonical bytes,
   identity, version, and SHA-256 before rendering.
 
-[Unreleased]: https://github.com/model-systems-labs/latent/compare/course-kit-v0.2.0...HEAD
-[0.2.0]: https://github.com/model-systems-labs/latent/compare/course-kit-v0.1.0...course-kit-v0.2.0
+[Unreleased]: https://github.com/model-systems-labs/latent/compare/course-kit-v0.1.0...HEAD
 [0.1.0]: https://github.com/model-systems-labs/latent/releases/tag/course-kit-v0.1.0

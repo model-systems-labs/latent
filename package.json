@@ -86,7 +86,8 @@
   },
   "overrides": {
     "fast-uri": "3.1.4",
-    "postcss": "8.5.19"
+    "postcss": "8.5.19",
+    "tar": "7.5.22"
   },
   "type": "module"
 }

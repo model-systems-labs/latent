@@ -20,6 +20,7 @@ function verifyReleaseRef({
   cwd = process.cwd(),
   tag,
   mainRef = "refs/remotes/origin/main",
+  remote = "origin",
 } = {}) {
   if (!tag || !/^course-kit-v\d+\.\d+\.\d+$/.test(tag)) {
     throw new Error(
@@ -28,14 +29,23 @@ function verifyReleaseRef({
   }
 
   const tagRef = `refs/tags/${tag}`;
-  const tagType = git(cwd, ["cat-file", "-t", tagRef]);
-  if (tagType !== "tag") {
+  const remoteTags = new Map(
+    git(cwd, ["ls-remote", "--tags", remote, tagRef, `${tagRef}^{}`])
+      .split("\n")
+      .filter(Boolean)
+      .map((line) => {
+        const [object, ref] = line.split(/\s+/);
+        return [ref, object];
+      }),
+  );
+  const tagObject = remoteTags.get(tagRef);
+  const tagCommit = remoteTags.get(`${tagRef}^{}`);
+  if (!tagObject || !tagCommit) {
     throw new Error(
-      `${tag} must be an annotated tag, received object type ${tagType}`,
+      `${tag} must be an annotated tag on remote ${remote}`,
     );
   }
 
-  const tagCommit = git(cwd, ["rev-parse", `${tagRef}^{commit}`]);
   const mainCommit = git(cwd, ["rev-parse", `${mainRef}^{commit}`]);
   const checkoutCommit = git(cwd, ["rev-parse", "HEAD^{commit}"]);
 
@@ -50,7 +60,7 @@ function verifyReleaseRef({
     );
   }
 
-  return { tag, tagCommit, mainCommit, checkoutCommit };
+  return { tag, tagObject, tagCommit, mainCommit, checkoutCommit };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

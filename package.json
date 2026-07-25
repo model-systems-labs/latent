@@ -42,7 +42,7 @@
     "@codemirror/language": "6.12.4",
     "@codemirror/state": "6.7.1",
     "@codemirror/view": "6.43.6",
-    "@huggingface/transformers": "^3.8.1",
+    "@huggingface/transformers": "^4.2.0",
     "@latent/artifact-runtime": "*",
     "@latent/browser-lab": "*",
     "@latent/course-kit": "*",
@@ -57,7 +57,7 @@
     "dexie": "4.4.4",
     "drizzle-orm": "^0.45.2",
     "esbuild-wasm": "0.28.1",
-    "fflate": "0.7.4",
+    "fflate": "0.8.3",
     "next": "16.2.11",
     "react": "19.2.8",
     "react-dom": "19.2.8"

@@ -50,11 +50,24 @@ test("the release ref gate accepts only an annotated tag at exact current main",
     ["tag", "-a", "course-kit-v0.2.0", "-m", "Course Kit v0.2.0"],
     checkout,
   );
+  run(
+    "git",
+    ["push", "origin", "refs/tags/course-kit-v0.2.0"],
+    checkout,
+  );
+  // actions/checkout may materialize a tag-triggered checkout as a local
+  // commit ref. Remote peeling remains the authoritative annotation proof.
+  run("git", ["tag", "-f", "course-kit-v0.2.0"], checkout);
   const accepted = verify(checkout, "course-kit-v0.2.0");
   assert.equal(accepted.status, 0, `${accepted.stdout}\n${accepted.stderr}`);
   assert.match(accepted.stdout, /annotated tag on current main/);
 
   run("git", ["tag", "course-kit-v0.2.1"], checkout);
+  run(
+    "git",
+    ["push", "origin", "refs/tags/course-kit-v0.2.1"],
+    checkout,
+  );
   const lightweight = verify(checkout, "course-kit-v0.2.1");
   assert.notEqual(lightweight.status, 0);
   assert.match(lightweight.stderr, /must be an annotated tag/);

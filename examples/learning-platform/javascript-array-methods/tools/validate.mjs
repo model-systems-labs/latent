@@ -170,17 +170,17 @@ function validateTinyQuestionPlayer(library) {
 
 function validateIdeExercises(exercises) {
   if (!Array.isArray(exercises)) {
-    fail("trusted.ideExercises", "Export ideExercises as an array.");
+    fail("hostOwned.ideExercises", "Export ideExercises as an array.");
     return;
   }
   expect(
     exercises.length === 1,
-    "trusted.ideExercises",
+    "hostOwned.ideExercises",
     "The tiny player intentionally renders exactly one trusted IDE exercise.",
   );
   const exerciseIds = new Set();
   for (const [exerciseIndex, exercise] of exercises.entries()) {
-    const path = `trusted.ideExercises.${exerciseIndex}`;
+    const path = `hostOwned.ideExercises.${exerciseIndex}`;
     if (!isRecord(exercise)) {
       fail(path, "Every trusted IDE exercise must be an object.");
       continue;
@@ -313,8 +313,8 @@ expect(
   `The tiny player reads exactly ${expectedPaths.questionGroups}.`,
 );
 expect(
-  platform?.trusted?.ideExercises === expectedPaths.ideExercises,
-  "platform.trusted.ideExercises",
+  platform?.hostOwned?.ideExercises === expectedPaths.ideExercises,
+  "platform.hostOwned.ideExercises",
   `The tiny player imports exactly ${expectedPaths.ideExercises}.`,
 );
 
@@ -361,7 +361,7 @@ try {
   validateIdeExercises(loadedModule.ideExercises);
 } catch (error) {
   fail(
-    "trusted.ideExercises",
+    "hostOwned.ideExercises",
     error instanceof Error ? error.message : "Could not import trusted IDE exercises.",
   );
 }

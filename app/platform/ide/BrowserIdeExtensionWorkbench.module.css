@@ -1,0 +1,130 @@
+.shell {
+  display: grid;
+  gap: 1rem;
+}
+
+.practiceExercise {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.prompt {
+  border: 1px solid var(--line, #d8d1ca);
+  border-radius: 0.65rem;
+  display: grid;
+  gap: 0.65rem;
+  padding: 1rem;
+}
+
+.prompt h2,
+.prompt p,
+.prompt ul {
+  margin: 0;
+}
+
+.prompt ul {
+  display: grid;
+  gap: 0.35rem;
+  padding-left: 1.25rem;
+}
+
+.promptLabel {
+  color: var(--muted, #6f6963);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.toolbar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  justify-content: space-between;
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.tabs button,
+.actions button {
+  border: 1px solid var(--line, #d8d1ca);
+  border-radius: 0.45rem;
+  cursor: pointer;
+  font: inherit;
+  padding: 0.55rem 0.8rem;
+}
+
+.tabs button {
+  background: var(--paper, #fbfaf8);
+  color: inherit;
+}
+
+.tabs button[aria-pressed="true"] {
+  background: var(--ink, #292623);
+  color: var(--paper, #fbfaf8);
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.actions button {
+  background: var(--ink, #292623);
+  color: var(--paper, #fbfaf8);
+}
+
+.actions button:disabled,
+.tabs button:disabled {
+  cursor: wait;
+  opacity: 0.58;
+}
+
+.editor {
+  border: 1px solid var(--line, #d8d1ca);
+  border-radius: 0.65rem;
+  min-height: 28rem;
+  overflow: hidden;
+}
+
+.status {
+  color: var(--muted, #6f6963);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.results {
+  border: 1px solid var(--line, #d8d1ca);
+  border-radius: 0.65rem;
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.9rem;
+}
+
+.results h3 {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.results ul {
+  display: grid;
+  gap: 0.35rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.results li {
+  align-items: baseline;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.results li span {
+  color: var(--muted, #6f6963);
+}

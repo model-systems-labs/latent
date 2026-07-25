@@ -190,3 +190,665 @@ test("browser clients retain bundler-discoverable source-relative workers", asyn
   assert.match(compilerClient, /new URL\("\.\/compiler\.worker\.ts", import\.meta\.url\)/);
   assert.match(sandboxClient, /new URL\("\.\/worker\/sandbox\.worker\.ts", import\.meta\.url\)/);
 });
+
+function ideFixture(overrides = {}) {
+  return {
+    schemaVersion: 1,
+    id: "example.methods",
+    title: "Method practice",
+    description: "A small trusted TypeScript exercise.",
+    initialFilePath: "src/math.ts",
+    files: [
+      {
+        path: "src/math.ts",
+        loader: "ts",
+        title: "Math methods",
+        editable: true,
+        contents: "export const double = (value: number) => value;",
+      },
+      {
+        path: "src/constants.ts",
+        loader: "ts",
+        title: "Provided constants",
+        editable: false,
+        contents: "export const factor = 2;",
+      },
+    ],
+    entryPoints: ["src/math.ts"],
+    checks: {
+      contractVersion: "methods-v1",
+      contracts: [{
+        id: "double",
+        label: "Double a value",
+        cases: [{
+          id: "positive",
+          label: "Doubles a positive number",
+          invoke: { modulePath: "src/math.ts", exportName: "double", args: [4] },
+          assertions: [{ id: "value", label: "Returns eight", kind: "deep-equal", expected: 8 }],
+        }],
+      }],
+    },
+    ...overrides,
+  };
+}
+
+async function receiptForIdeRun(input, status = "passed") {
+  const sourceHash = await browserLab.hashSnapshot(input.snapshot);
+  const passed = status === "passed";
+  return {
+    schemaVersion: 1,
+    receiptId: `receipt-${input.snapshot.revision}`,
+    jobId: `job-${input.snapshot.revision}`,
+    projectId: input.snapshot.projectId,
+    projectRevision: input.snapshot.revision,
+    sourceHash,
+    contractVersion: input.suite.contractVersion,
+    status,
+    startedAt: 10,
+    completedAt: 20,
+    results: input.suite.contracts.flatMap((contract) => contract.cases.map((exerciseCase) => ({
+      contractId: contract.id,
+      contractLabel: contract.label,
+      caseId: exerciseCase.id,
+      caseLabel: exerciseCase.label,
+      observationStatus: "returned",
+      passed,
+      detail: passed ? "passed" : "failed",
+      assertions: [],
+    }))),
+    logs: [],
+    logsTruncated: false,
+    limits: { ...browserLab.DEFAULT_SANDBOX_LIMITS },
+  };
+}
+
+function sameIdeIdentity(left, right) {
+  return left === null
+    ? right === null
+    : right !== null
+      && left.revision === right.revision
+      && left.sourceHash === right.sourceHash;
+}
+
+function createMemoryIdePersistence(options = {}) {
+  let durableState = options.loaded ?? options.durableState ?? null;
+  let durableIdentity = options.durableIdentity ?? null;
+  let recordVersion = durableState === null ? 0 : 1;
+  let currentReceiptArtifactKey = null;
+  const artifacts = new Map();
+  const calls = {
+    saves: [],
+    stages: [],
+    admits: [],
+    resets: 0,
+  };
+  return {
+    adapter: {
+      adapterId: "memory-persistence",
+      load: async () => durableState === null
+        ? null
+        : {
+            value: structuredClone(durableState),
+            token: `memory-record:${recordVersion}`,
+          },
+      save: async (state, identity, expected) => {
+        const call = { state, identity, expected };
+        calls.saves.push(call);
+        await options.beforeSave?.(call, calls.saves.length - 1);
+        const idempotent = sameIdeIdentity(durableIdentity, identity);
+        if (!idempotent && !sameIdeIdentity(durableIdentity, expected)) {
+          throw new browserLab.BrowserLabError("IDE_WRITE_CONFLICT", "The durable source changed.");
+        }
+        if (
+          durableIdentity
+          && (
+            identity.revision < durableIdentity.revision
+            || (identity.revision === durableIdentity.revision
+              && identity.sourceHash !== durableIdentity.sourceHash)
+          )
+        ) {
+          throw new browserLab.BrowserLabError("IDE_WRITE_CONFLICT", "A stale source cannot replace newer source.");
+        }
+        if (!sameIdeIdentity(durableIdentity, identity)) currentReceiptArtifactKey = null;
+        durableState = structuredClone(state);
+        durableIdentity = { ...identity };
+        recordVersion += 1;
+        return identity;
+      },
+      stageReceipt: async (extensionId, receipt) => {
+        const artifact = {
+          artifactKey: [
+            "receipt",
+            extensionId,
+            receipt.sourceHash,
+            receipt.contractVersion,
+            receipt.receiptId,
+          ].join(":"),
+          extensionId,
+          sourceHash: receipt.sourceHash,
+          contractVersion: receipt.contractVersion,
+          receiptId: receipt.receiptId,
+        };
+        const call = { extensionId, receipt, artifact };
+        calls.stages.push(call);
+        await options.beforeStage?.(call, calls.stages.length - 1);
+        artifacts.set(artifact.artifactKey, structuredClone(receipt));
+        return artifact;
+      },
+      admitReceipt: async (extensionId, artifact, expected) => {
+        const call = { extensionId, artifact, expected };
+        calls.admits.push(call);
+        await options.beforeAdmit?.(call, calls.admits.length - 1);
+        if (
+          extensionId !== artifact.extensionId
+          || artifact.sourceHash !== expected.sourceHash
+          || !sameIdeIdentity(durableIdentity, expected)
+          || !artifacts.has(artifact.artifactKey)
+        ) return false;
+        currentReceiptArtifactKey = artifact.artifactKey;
+        return true;
+      },
+      reset: async (_extensionId, rejectedToken) => {
+        calls.resets += 1;
+        if (options.resetError) throw options.resetError;
+        await options.beforeReset?.({
+          replace(state, identity = null) {
+            durableState = structuredClone(state);
+            durableIdentity = identity ? { ...identity } : null;
+            recordVersion += 1;
+          },
+        });
+        if (
+          durableState === null
+          || rejectedToken !== `memory-record:${recordVersion}`
+        ) return false;
+        durableState = null;
+        durableIdentity = null;
+        currentReceiptArtifactKey = null;
+        recordVersion += 1;
+        return true;
+      },
+    },
+    calls,
+    inspect: () => ({
+      durableState,
+      durableIdentity,
+      currentReceiptArtifactKey,
+      artifacts,
+    }),
+  };
+}
+
+test("the Browser IDE seam composes injected editor, runtime, files, checks, and persistence", async () => {
+  const definition = browserLab.defineBrowserIdeExtension(ideFixture());
+  const persistence = createMemoryIdePersistence();
+  const runtimeInputs = [];
+  let rendered;
+  const session = browserLab.createBrowserIdeSession(definition, {
+    editor: {
+      adapterId: "test-editor",
+      supports: (file) => file.loader === "ts",
+      render: (model, actions) => {
+        rendered = { model, actions };
+        return model.path;
+      },
+    },
+    runtime: {
+      runtimeId: "test-browser-runtime",
+      run: async (input) => {
+        runtimeInputs.push(input);
+        return receiptForIdeRun(input);
+      },
+    },
+    persistence: persistence.adapter,
+  }, { now: () => 100 });
+
+  assert.equal((await session.initialize()).selectedPath, "src/math.ts");
+  session.renderEditor();
+  assert.equal(rendered.model.file.title, "Math methods");
+  rendered.actions.change("export const double = (value: number) => value * 2;");
+  const receipt = await rendered.actions.run();
+
+  assert.equal(runtimeInputs.length, 1);
+  assert.equal(runtimeInputs[0].snapshot.files.find((file) => file.path === "src/math.ts").contents.includes("* 2"), true);
+  assert.equal(runtimeInputs[0].suite.contracts[0].id, "double");
+  assert.equal(persistence.calls.saves.length, 1);
+  assert.equal(persistence.calls.stages.length, 1);
+  assert.equal(persistence.calls.admits.length, 1);
+  assert.equal(
+    persistence.inspect().currentReceiptArtifactKey,
+    persistence.calls.stages[0].artifact.artifactKey,
+  );
+  assert.equal(receipt.status, "passed");
+  assert.equal(session.getState().lastReceipt.receiptId, receipt.receiptId);
+  assert.equal(session.getState().dirty, false);
+  session.change("export const double = (value: number) => value + value;");
+  assert.match(
+    session.getReceiptState(receipt.receiptId).files
+      .find((file) => file.path === "src/math.ts").contents,
+    /value \* 2/,
+    "receipt observers must receive the exact admitted source after a later edit",
+  );
+});
+
+test("the Browser IDE runtime adapter compiles TypeScript and checks it in QuickJS", async () => {
+  const definition = browserLab.defineBrowserIdeExtension(ideFixture({
+    files: [
+      {
+        path: "src/math.ts",
+        loader: "ts",
+        title: "Math methods",
+        editable: true,
+        contents: "export const double = (value: number): number => value * 2;",
+      },
+    ],
+  }));
+  let sequence = 0;
+  const runtime = browserLab.createBrowserLabIdeRuntime({
+    createId: (prefix) => `${prefix}-${++sequence}`,
+    now: () => 100 + sequence,
+    createCompiler: () => ({
+      compile: (job) => browserLab.compileVirtualProject(job, { version: esbuild.version, build: esbuild.build }),
+      dispose: () => {},
+    }),
+    createRunner: () => ({
+      runSuite: (request) => worker.handleSandboxRunRequest(
+        request,
+        new worker.QuickJSSandboxEngine(),
+        () => {},
+        () => 200 + sequence,
+      ),
+    }),
+  });
+  const session = browserLab.createBrowserIdeSession(definition, {
+    editor: { adapterId: "test-editor", supports: () => true, render: () => null },
+    runtime,
+    persistence: createMemoryIdePersistence().adapter,
+  });
+
+  await session.initialize();
+  const receipt = await session.runChecks();
+  assert.equal(receipt.status, "passed");
+  assert.equal(receipt.results.length, 1);
+  assert.equal(receipt.results[0].passed, true);
+  assert.match(receipt.sourceHash, /^sha256:[a-f0-9]{64}$/);
+});
+
+test("Browser IDE definitions fail closed on Python and checks outside declared entry points", () => {
+  assert.throws(
+    () => browserLab.defineBrowserIdeExtension(ideFixture({
+      initialFilePath: "main.py",
+      files: [{ path: "main.py", loader: "js", title: "Python", editable: true, contents: "def answer(): return 42" }],
+      entryPoints: ["main.py"],
+    })),
+    (error) => error.code === "UNSUPPORTED_IDE_LANGUAGE",
+  );
+  assert.throws(
+    () => browserLab.defineBrowserIdeExtension(ideFixture({
+      checks: {
+        ...ideFixture().checks,
+        contracts: [{
+          ...ideFixture().checks.contracts[0],
+          cases: [{
+            ...ideFixture().checks.contracts[0].cases[0],
+            invoke: { modulePath: "src/constants.ts", exportName: "factor", args: [] },
+          }],
+        }],
+      },
+    })),
+    (error) => error.code === "UNBOUND_IDE_CHECK",
+  );
+  assert.throws(
+    () => browserLab.defineBrowserIdeExtension(ideFixture({
+      initialFilePath: "src/constants.ts",
+    })),
+    (error) => error.code === "READ_ONLY_IDE_FILE",
+  );
+});
+
+test("Browser IDE definitions expose logical identity and content migration fingerprints", async () => {
+  const first = browserLab.defineBrowserIdeExtension(ideFixture());
+  const equivalent = browserLab.defineBrowserIdeExtension(ideFixture());
+  const changedSource = browserLab.defineBrowserIdeExtension(ideFixture({
+    files: ideFixture().files.map((file) => (
+      file.path === "src/math.ts"
+        ? { ...file, contents: "export const double = (value: number) => value * 2;" }
+        : file
+    )),
+  }));
+  assert.equal(
+    browserLab.browserIdeDefinitionIdentity(first),
+    browserLab.browserIdeDefinitionIdentity(equivalent),
+  );
+  assert.equal(
+    await browserLab.browserIdeDefinitionFingerprint(first),
+    await browserLab.browserIdeDefinitionFingerprint(equivalent),
+  );
+  assert.notEqual(
+    await browserLab.browserIdeDefinitionFingerprint(first),
+    await browserLab.browserIdeDefinitionFingerprint(changedSource),
+  );
+});
+
+test("Browser IDE persistence cannot modify a trusted read-only file", async () => {
+  const definition = browserLab.defineBrowserIdeExtension(ideFixture());
+  const definitionFingerprint = await browserLab.browserIdeDefinitionFingerprint(definition);
+  const tampered = {
+    schemaVersion: 1,
+    extensionId: definition.id,
+    definitionFingerprint,
+    revision: 2,
+    selectedPath: "src/math.ts",
+    updatedAt: 100,
+    files: definition.files.map(({ path, loader, contents }) => ({
+      path,
+      loader,
+      contents: path === "src/constants.ts" ? "export const factor = 999;" : contents,
+    })),
+  };
+  const persistence = createMemoryIdePersistence({ loaded: tampered });
+  const session = browserLab.createBrowserIdeSession(definition, {
+    editor: { adapterId: "test-editor", supports: () => true, render: () => null },
+    runtime: { runtimeId: "test-runtime", run: (input) => receiptForIdeRun(input) },
+    persistence: persistence.adapter,
+  });
+  const recovered = await session.initialize();
+  assert.equal(recovered.recovery.code, "invalid-state");
+  assert.equal(recovered.revision, 0);
+  assert.equal(
+    recovered.files.find((file) => file.path === "src/constants.ts").contents,
+    "export const factor = 2;",
+  );
+  assert.equal(persistence.calls.resets, 1);
+});
+
+test("Browser IDE state recovers when the trusted definition fingerprint changes", async () => {
+  const original = browserLab.defineBrowserIdeExtension(ideFixture());
+  const originalFingerprint = await browserLab.browserIdeDefinitionFingerprint(original);
+  const persisted = {
+    schemaVersion: 1,
+    extensionId: original.id,
+    definitionFingerprint: originalFingerprint,
+    revision: 3,
+    selectedPath: "src/math.ts",
+    updatedAt: 100,
+    files: original.files.map(({ path, loader, contents }) => ({ path, loader, contents })),
+  };
+  const changed = browserLab.defineBrowserIdeExtension(ideFixture({
+    files: ideFixture().files.map((file) => (
+      file.path === "src/math.ts"
+        ? { ...file, contents: "export const double = (value: number) => value * 2;" }
+        : file
+    )),
+  }));
+  const persistence = createMemoryIdePersistence({ loaded: persisted });
+  const session = browserLab.createBrowserIdeSession(changed, {
+    editor: { adapterId: "test-editor", supports: () => true, render: () => null },
+    runtime: { runtimeId: "test-runtime", run: (input) => receiptForIdeRun(input) },
+    persistence: persistence.adapter,
+  });
+
+  const recovered = await session.initialize();
+  assert.equal(recovered.recovery.code, "definition-changed");
+  assert.equal(recovered.revision, 0);
+  assert.match(
+    recovered.files.find((file) => file.path === "src/math.ts").contents,
+    /value \* 2/,
+  );
+  assert.equal(persistence.calls.resets, 1);
+});
+
+test("an invalid stored record cannot brick the IDE when browser cleanup fails", async () => {
+  const definition = browserLab.defineBrowserIdeExtension(ideFixture());
+  const persistence = createMemoryIdePersistence({
+    loaded: { invalid: true },
+    resetError: new Error("storage is blocked"),
+  });
+  const session = browserLab.createBrowserIdeSession(definition, {
+    editor: { adapterId: "test-editor", supports: () => true, render: () => null },
+    runtime: { runtimeId: "test-runtime", run: (input) => receiptForIdeRun(input) },
+    persistence: persistence.adapter,
+  });
+
+  const recovered = await session.initialize();
+  assert.equal(recovered.revision, 0);
+  assert.equal(recovered.recovery.code, "invalid-state");
+  assert.match(recovered.recovery.message, /clean in-memory copy/);
+  assert.equal(persistence.calls.resets, 1);
+});
+
+test("invalid-state cleanup keeps a concurrent valid repair", async () => {
+  const definition = browserLab.defineBrowserIdeExtension(ideFixture());
+  const definitionFingerprint = await browserLab.browserIdeDefinitionFingerprint(definition);
+  const repairedState = {
+    schemaVersion: 1,
+    extensionId: definition.id,
+    definitionFingerprint,
+    revision: 4,
+    selectedPath: "src/math.ts",
+    updatedAt: 400,
+    files: definition.files.map(({ path, loader, contents }) => ({
+      path,
+      loader,
+      contents: path === "src/math.ts"
+        ? "export const double = (value: number) => value * 2;"
+        : contents,
+    })),
+  };
+  const repairedIdentity = {
+    revision: repairedState.revision,
+    sourceHash: await browserLab.hashSnapshot({
+      projectId: definition.id,
+      revision: repairedState.revision,
+      files: repairedState.files,
+    }),
+  };
+  let repairWritten = false;
+  const persistence = createMemoryIdePersistence({
+    loaded: { invalid: true },
+    beforeReset: ({ replace }) => {
+      if (repairWritten) return;
+      repairWritten = true;
+      replace(repairedState, repairedIdentity);
+    },
+  });
+  const session = browserLab.createBrowserIdeSession(definition, {
+    editor: { adapterId: "test-editor", supports: () => true, render: () => null },
+    runtime: { runtimeId: "test-runtime", run: (input) => receiptForIdeRun(input) },
+    persistence: persistence.adapter,
+  });
+
+  const recovered = await session.initialize();
+  assert.equal(recovered.revision, 4);
+  assert.match(recovered.files.find((file) => file.path === "src/math.ts").contents, /value \* 2/);
+  assert.match(recovered.recovery.message, /newer valid saved state/);
+  assert.equal(persistence.calls.resets, 1);
+  assert.equal(persistence.inspect().durableState.revision, 4);
+});
+
+test("Browser IDE sessions discard results when source changes during a run", async () => {
+  const definition = browserLab.defineBrowserIdeExtension(ideFixture());
+  let releaseRun;
+  let runtimeInput;
+  const persistence = createMemoryIdePersistence();
+  const session = browserLab.createBrowserIdeSession(definition, {
+    editor: { adapterId: "test-editor", supports: () => true, render: () => null },
+    runtime: {
+      runtimeId: "deferred-runtime",
+      run: (input) => {
+        runtimeInput = input;
+        return new Promise((resolve) => { releaseRun = resolve; });
+      },
+    },
+    persistence: persistence.adapter,
+  });
+  await session.initialize();
+  const pending = session.runChecks();
+  while (!runtimeInput) await new Promise((resolve) => setTimeout(resolve, 0));
+  session.change("export const double = (value: number) => value * 2;");
+  releaseRun(await receiptForIdeRun(runtimeInput));
+
+  await assert.rejects(pending, (error) => error.code === "STALE_RESULT");
+  assert.equal(persistence.calls.stages.length, 1);
+  assert.equal(persistence.calls.admits.length, 0);
+  assert.equal(persistence.inspect().currentReceiptArtifactKey, null);
+  assert.equal(session.getState().lastReceipt, null);
+});
+
+test("a source edit during receipt staging cannot promote the stale artifact", async () => {
+  const definition = browserLab.defineBrowserIdeExtension(ideFixture());
+  let releaseStage;
+  let stageStarted;
+  const stageStartedPromise = new Promise((resolve) => { stageStarted = resolve; });
+  const persistence = createMemoryIdePersistence({
+    beforeStage: () => {
+      stageStarted();
+      return new Promise((resolve) => { releaseStage = resolve; });
+    },
+  });
+  const session = browserLab.createBrowserIdeSession(definition, {
+    editor: { adapterId: "test-editor", supports: () => true, render: () => null },
+    runtime: { runtimeId: "test-runtime", run: (input) => receiptForIdeRun(input) },
+    persistence: persistence.adapter,
+  });
+  await session.initialize();
+
+  const pending = session.runChecks();
+  await stageStartedPromise;
+  session.change("export const double = (value: number) => value * 2;");
+  releaseStage();
+
+  await assert.rejects(pending, (error) => error.code === "STALE_RESULT");
+  assert.equal(persistence.inspect().artifacts.size, 1);
+  assert.equal(persistence.inspect().currentReceiptArtifactKey, null);
+  assert.equal(persistence.calls.admits.length, 0);
+});
+
+test("disposing while a receipt artifact is staging prevents admission and resolution", async () => {
+  const definition = browserLab.defineBrowserIdeExtension(ideFixture());
+  let releaseStage;
+  let signalStageStarted;
+  const stageStarted = new Promise((resolve) => { signalStageStarted = resolve; });
+  const persistence = createMemoryIdePersistence({
+    beforeStage: () => {
+      signalStageStarted();
+      return new Promise((resolve) => { releaseStage = resolve; });
+    },
+  });
+  const session = browserLab.createBrowserIdeSession(definition, {
+    editor: { adapterId: "test-editor", supports: () => true, render: () => null },
+    runtime: { runtimeId: "test-runtime", run: (input) => receiptForIdeRun(input) },
+    persistence: persistence.adapter,
+  });
+  await session.initialize();
+
+  const pending = session.runChecks();
+  await stageStarted;
+  session.dispose();
+  releaseStage();
+
+  await assert.rejects(pending, (error) => error.code === "IDE_DISPOSED");
+  assert.equal(persistence.calls.admits.length, 0);
+});
+
+test("an already-aborted run performs no save, runtime, or receipt work", async () => {
+  const definition = browserLab.defineBrowserIdeExtension(ideFixture());
+  const persistence = createMemoryIdePersistence();
+  let runtimeCalls = 0;
+  const session = browserLab.createBrowserIdeSession(definition, {
+    editor: { adapterId: "test-editor", supports: () => true, render: () => null },
+    runtime: {
+      runtimeId: "test-runtime",
+      run: async (input) => {
+        runtimeCalls += 1;
+        return receiptForIdeRun(input);
+      },
+    },
+    persistence: persistence.adapter,
+  });
+  await session.initialize();
+  const controller = new AbortController();
+  controller.abort();
+
+  await assert.rejects(
+    session.runChecks({ signal: controller.signal }),
+    (error) => error.code === "ABORTED",
+  );
+  assert.equal(persistence.calls.saves.length, 0);
+  assert.equal(persistence.calls.stages.length, 0);
+  assert.equal(runtimeCalls, 0);
+});
+
+test("aborting during receipt admission prevents a completed run from escaping", async () => {
+  const definition = browserLab.defineBrowserIdeExtension(ideFixture());
+  let releaseAdmission;
+  let signalAdmissionStarted;
+  const admissionStarted = new Promise((resolve) => { signalAdmissionStarted = resolve; });
+  const persistence = createMemoryIdePersistence({
+    beforeAdmit: () => {
+      signalAdmissionStarted();
+      return new Promise((resolve) => { releaseAdmission = resolve; });
+    },
+  });
+  const session = browserLab.createBrowserIdeSession(definition, {
+    editor: { adapterId: "test-editor", supports: () => true, render: () => null },
+    runtime: { runtimeId: "test-runtime", run: (input) => receiptForIdeRun(input) },
+    persistence: persistence.adapter,
+  });
+  await session.initialize();
+  const controller = new AbortController();
+
+  const pending = session.runChecks({ signal: controller.signal });
+  await admissionStarted;
+  controller.abort();
+  releaseAdmission();
+
+  await assert.rejects(pending, (error) => error.code === "ABORTED");
+  assert.equal(session.getState().lastReceipt, null);
+  assert.notEqual(
+    persistence.inspect().currentReceiptArtifactKey,
+    null,
+    "admission may commit atomically, but an aborted caller must not publish it into session state",
+  );
+});
+
+test("overlapping saves serialize and an older save cannot clear newer dirty source", async () => {
+  const definition = browserLab.defineBrowserIdeExtension(ideFixture());
+  let releaseFirst;
+  let releaseSecond;
+  const persistence = createMemoryIdePersistence({
+    beforeSave: (_call, index) => new Promise((resolve) => {
+      if (index === 0) releaseFirst = resolve;
+      else releaseSecond = resolve;
+    }),
+  });
+  const session = browserLab.createBrowserIdeSession(definition, {
+    editor: { adapterId: "test-editor", supports: () => true, render: () => null },
+    runtime: { runtimeId: "test-runtime", run: (input) => receiptForIdeRun(input) },
+    persistence: persistence.adapter,
+  });
+  await session.initialize();
+
+  session.change("export const double = (value: number) => value * 2;");
+  const firstSave = session.save();
+  while (!releaseFirst) await new Promise((resolve) => setTimeout(resolve, 0));
+  session.change("export const double = (value: number) => value + value;");
+  const secondSave = session.save();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(persistence.calls.saves.length, 1, "the second write must wait behind the first");
+
+  releaseFirst();
+  while (!releaseSecond) await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(session.getState().dirty, true, "the first completion must not clear newer edits");
+  assert.equal(persistence.calls.saves[1].expected.revision, 1);
+  assert.equal(persistence.calls.saves[1].state.revision, 2);
+
+  releaseSecond();
+  await Promise.all([firstSave, secondSave]);
+  assert.equal(persistence.inspect().durableState.revision, 2);
+  assert.match(
+    persistence.inspect().durableState.files.find((file) => file.path === "src/math.ts").contents,
+    /value \+ value/,
+  );
+  assert.equal(session.getState().dirty, false);
+});

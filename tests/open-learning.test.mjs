@@ -171,6 +171,13 @@ test("the live LLM entrypoint and public workflow documents are self-contained",
     ["skills/author-learning-pack/SKILL.md", "public/open-learning/skills/author-learning-pack.md"],
     ["skills/review-learning-pack/SKILL.md", "public/open-learning/skills/review-learning-pack.md"],
     ["skills/publish-learning-pack/SKILL.md", "public/open-learning/skills/publish-learning-pack.md"],
+    ["skills/author-learning-platform/SKILL.md", "public/skills/author-learning-platform.md"],
+    ["skills/author-course/SKILL.md", "public/skills/author-course.md"],
+    ["skills/author-flash-card-deck/SKILL.md", "public/skills/author-flash-card-deck.md"],
+    ["skills/author-question-group/SKILL.md", "public/skills/author-question-group.md"],
+    ["skills/author-ide-exercise/SKILL.md", "public/skills/author-ide-exercise.md"],
+    ["skills/review-learning-design/SKILL.md", "public/skills/review-learning-design.md"],
+    ["skills/publish-learning-platform/SKILL.md", "public/skills/publish-learning-platform.md"],
   ]) {
     assert.equal(
       await readFile(new URL(publicPath, root), "utf8"),

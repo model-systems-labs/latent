@@ -1,0 +1,4 @@
+interface:
+  display_name: "Author IDE Exercise"
+  short_description: "Add a reviewed browser IDE exercise and checks"
+  default_prompt: "Use $author-ide-exercise to add a trusted browser IDE exercise."

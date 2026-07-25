@@ -1,0 +1,4 @@
+interface:
+  display_name: "Author Course"
+  short_description: "Create a source-grounded course in a Latent platform"
+  default_prompt: "Use $author-course to create or improve a course in this Latent platform."

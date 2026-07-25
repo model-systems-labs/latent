@@ -1,0 +1,271 @@
+{
+  "format": "latent-learning-pack",
+  "schemaVersion": 1,
+  "package": {
+    "id": "latent-starters/javascript-array-methods",
+    "version": "1.0.0",
+    "title": "JavaScript array method choices",
+    "description": "A tiny course for choosing map, filter, and reduce from the shape of the result you need.",
+    "language": "en-US",
+    "license": "CC-BY-4.0",
+    "authors": [
+      {
+        "name": "Latent Project Contributors",
+        "url": "https://github.com/model-systems-labs/latent"
+      }
+    ],
+    "homepage": "https://github.com/model-systems-labs/latent/tree/main/examples/learning-platform/javascript-array-methods",
+    "publishedAt": "2026-07-25T12:00:00Z"
+  },
+  "objectives": [
+    {
+      "id": "choose-array-method",
+      "description": "Choose map, filter, or reduce from the output shape a transformation must produce."
+    },
+    {
+      "id": "preserve-input",
+      "description": "Implement an array transformation without mutating the caller's input array."
+    }
+  ],
+  "sources": [
+    {
+      "id": "mdn-array-map",
+      "kind": "reference",
+      "title": "Array.prototype.map()",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/map",
+      "authors": [
+        "MDN contributors"
+      ],
+      "note": "Documents that map creates a new array from a callback applied to each input element."
+    },
+    {
+      "id": "ecma-array-map",
+      "kind": "specification",
+      "title": "ECMAScript Array.prototype.map",
+      "url": "https://tc39.es/ecma262/multipage/indexed-collections.html#sec-array.prototype.map",
+      "authors": [
+        "Ecma International"
+      ],
+      "note": "Defines the language-level behavior of Array.prototype.map and provides the primary specification source."
+    },
+    {
+      "id": "mdn-array-filter",
+      "kind": "reference",
+      "title": "Array.prototype.filter()",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/filter",
+      "authors": [
+        "MDN contributors"
+      ],
+      "note": "Documents that filter creates a shallow copy containing only elements accepted by the callback."
+    },
+    {
+      "id": "mdn-array-reduce",
+      "kind": "reference",
+      "title": "Array.prototype.reduce()",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/reduce",
+      "authors": [
+        "MDN contributors"
+      ],
+      "note": "Documents how reduce combines array elements into one accumulated result."
+    }
+  ],
+  "lessons": [
+    {
+      "id": "result-shape-first",
+      "order": 1,
+      "title": "Choose from the result shape",
+      "summary": "Use the number and shape of desired outputs to choose a clear array transformation.",
+      "durationMinutes": 7,
+      "objectiveIds": [
+        "choose-array-method",
+        "preserve-input"
+      ],
+      "sourceIds": [
+        "mdn-array-map",
+        "ecma-array-map",
+        "mdn-array-filter",
+        "mdn-array-reduce"
+      ],
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Start with the result, not the method name. Use map when every input contributes one output, filter when the result keeps only some inputs, and reduce when many inputs become one accumulated value. All three return a value instead of requiring you to mutate the input array."
+        },
+        {
+          "type": "heading",
+          "level": 2,
+          "text": "Three result shapes"
+        },
+        {
+          "type": "list",
+          "style": "unordered",
+          "items": [
+            "map: an array with one transformed slot for every visited input slot.",
+            "filter: an array containing the input values that pass a condition.",
+            "reduce: one accumulated result, which may itself be a number, object, or array."
+          ]
+        },
+        {
+          "type": "code",
+          "language": "javascript",
+          "caption": "The desired result shape makes map the direct choice.",
+          "code": "const labels = records.map((record) => record.label);"
+        },
+        {
+          "type": "callout",
+          "tone": "warning",
+          "title": "Do not hide mutation",
+          "text": "A callback can still mutate an object or the original array. Returning a new array does not make every operation inside the callback immutable."
+        },
+        {
+          "type": "quiz",
+          "id": "method-choice",
+          "prompt": "You need one email address for every user record, in the same order. Which method most directly expresses that result?",
+          "choices": [
+            {
+              "id": "map",
+              "text": "map, because every user contributes one email address"
+            },
+            {
+              "id": "filter",
+              "text": "filter, because email addresses are selected values"
+            },
+            {
+              "id": "reduce",
+              "text": "reduce, because every array transformation can be written as a reduction"
+            }
+          ],
+          "correctChoiceId": "map",
+          "explanation": "The result has exactly one transformed value for every input value, so map communicates the intended one-to-one shape directly.",
+          "objectiveIds": [
+            "choose-array-method"
+          ],
+          "sourceIds": [
+            "mdn-array-map",
+            "ecma-array-map"
+          ]
+        }
+      ]
+    }
+  ],
+  "flashcardDecks": [
+    {
+      "id": "array-method-retrieval",
+      "order": 1,
+      "title": "Array method retrieval",
+      "description": "Recall the output shapes and mutation boundaries of common JavaScript array transformations.",
+      "objectiveIds": [
+        "choose-array-method",
+        "preserve-input"
+      ],
+      "sourceIds": [
+        "mdn-array-map",
+        "ecma-array-map",
+        "mdn-array-filter",
+        "mdn-array-reduce"
+      ],
+      "cards": [
+        {
+          "id": "map-shape",
+          "front": "Which array method signals one output for every input?",
+          "back": "map",
+          "explanation": "Map creates a new array from callback results while preserving the transformation's one-input-to-one-output intent.",
+          "objectiveIds": [
+            "choose-array-method"
+          ],
+          "sourceIds": [
+            "mdn-array-map",
+            "ecma-array-map"
+          ],
+          "tags": [
+            "map",
+            "result-shape"
+          ]
+        },
+        {
+          "id": "filter-shape",
+          "front": "Which array method signals that only some input values should remain?",
+          "back": "filter",
+          "explanation": "Filter returns the input values whose callback result is truthy, so the output may contain fewer values.",
+          "objectiveIds": [
+            "choose-array-method"
+          ],
+          "sourceIds": [
+            "mdn-array-filter"
+          ],
+          "tags": [
+            "filter",
+            "result-shape"
+          ]
+        },
+        {
+          "id": "reduce-shape",
+          "front": "Which array method signals that many values become one accumulated result?",
+          "back": "reduce",
+          "explanation": "Reduce carries an accumulator across the array and returns the final accumulated value.",
+          "objectiveIds": [
+            "choose-array-method"
+          ],
+          "sourceIds": [
+            "mdn-array-reduce"
+          ],
+          "tags": [
+            "reduce",
+            "result-shape"
+          ]
+        },
+        {
+          "id": "map-input",
+          "front": "Does map mutate the input array merely by creating its result?",
+          "back": "No; map creates a new result array.",
+          "explanation": "The callback can still perform mutations, but the map operation itself returns a separate array.",
+          "objectiveIds": [
+            "preserve-input"
+          ],
+          "sourceIds": [
+            "mdn-array-map",
+            "ecma-array-map"
+          ],
+          "tags": [
+            "map",
+            "mutation"
+          ]
+        },
+        {
+          "id": "callback-boundary",
+          "front": "Why can a map expression still cause mutation?",
+          "back": "Its callback can mutate referenced objects or the original array.",
+          "explanation": "A new outer result array does not make side effects inside the callback disappear.",
+          "objectiveIds": [
+            "preserve-input"
+          ],
+          "sourceIds": [
+            "mdn-array-map"
+          ],
+          "tags": [
+            "callbacks",
+            "mutation"
+          ]
+        },
+        {
+          "id": "method-choice",
+          "front": "What question should you ask before choosing map, filter, or reduce?",
+          "back": "What shape and number of outputs should this transformation produce?",
+          "explanation": "Starting with the result makes the method communicate intent instead of merely proving the operation is possible.",
+          "objectiveIds": [
+            "choose-array-method"
+          ],
+          "sourceIds": [
+            "mdn-array-map",
+            "mdn-array-filter",
+            "mdn-array-reduce"
+          ],
+          "tags": [
+            "decision",
+            "result-shape"
+          ]
+        }
+      ]
+    }
+  ]
+}

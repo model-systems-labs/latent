@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "brand": {
+    "name": "Array Method School",
+    "tagline": "Learn one useful JavaScript idea, then retrieve it and use it.",
+    "accent": "#d6ff5f",
+    "ink": "#182019",
+    "paper": "#f6f3e8"
+  },
+  "content": {
+    "learningPack": "content/learning-pack.json",
+    "questionGroups": "content/question-groups.json"
+  },
+  "trusted": {
+    "ideExercises": "trusted/ide-exercises.mjs"
+  }
+}

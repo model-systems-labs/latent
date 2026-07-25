@@ -1,0 +1,4 @@
+interface:
+  display_name: "Author Flash Card Deck"
+  short_description: "Create a focused source-grounded flash-card deck"
+  default_prompt: "Use $author-flash-card-deck to create or improve a Latent flash-card deck."

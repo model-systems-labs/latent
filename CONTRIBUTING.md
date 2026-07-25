@@ -7,10 +7,13 @@ documentation, and first-party lessons.
 ## Before you start
 
 - Search existing issues and pull requests before opening a duplicate.
+- Use [Discussions](https://github.com/model-systems-labs/latent/discussions)
+  for setup questions, platform showcases, and early design exploration.
 - For a focused bug fix, a pull request can be the first discussion.
 - For a format change, new runtime capability, large dependency, or broad
-  product change, open a proposal first. Describe the learner problem,
-  compatibility impact, security boundary, and smallest viable change.
+  product change, open an Ideas discussion first. Describe the learner
+  problem, compatibility impact, security boundary, and smallest viable
+  change.
 - Report security problems privately as described in [SECURITY.md](./SECURITY.md).
 - Follow the [Code of Conduct](./CODE_OF_CONDUCT.md).
 

@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Questions and platform showcases
+    url: https://github.com/model-systems-labs/latent/discussions
+    about: Ask for help, share a generated learning platform, or discuss an idea before filing an issue.
   - name: Security report
     url: https://github.com/model-systems-labs/latent/security/advisories/new
     about: Report vulnerabilities privately instead of opening an issue.

@@ -4,6 +4,7 @@ export * from "./compiler";
 export * from "./contracts";
 export * from "./errors";
 export * from "./hash";
+export * from "./ide-extension";
 export * from "./logs";
 export * from "./receipts";
 export * from "./sandbox-protocol";

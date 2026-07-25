@@ -23,6 +23,11 @@
       "import": "./src/contracts.ts",
       "default": "./src/contracts.ts"
     },
+    "./ide": {
+      "types": "./src/ide-extension.ts",
+      "import": "./src/ide-extension.ts",
+      "default": "./src/ide-extension.ts"
+    },
     "./types": {
       "types": "./src/types.ts",
       "import": "./src/types.ts",

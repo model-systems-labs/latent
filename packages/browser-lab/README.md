@@ -21,6 +21,12 @@ import {
 } from "@latent/browser-lab";
 
 import {
+  createBrowserIdeSession,
+  createBrowserLabIdeRuntime,
+  defineBrowserIdeExtension,
+} from "@latent/browser-lab/ide";
+
+import {
   BrowserLabCompilerClient,
   compileVirtualProject,
 } from "@latent/browser-lab/compiler";
@@ -30,8 +36,81 @@ import type { ProjectSnapshot } from "@latent/browser-lab/types";
 import { QuickJSSandboxEngine } from "@latent/browser-lab/worker";
 ```
 
-Only the package root and the `compiler`, `contracts`, `types`, and `worker`
-subpaths are public. All other files are implementation details.
+Only the package root and the `compiler`, `contracts`, `ide`, `types`, and
+`worker` subpaths are public. All other files are implementation details.
+
+## Browser IDE extension seam
+
+Trusted application source can define a JavaScript or TypeScript exercise
+without importing an application editor, storage repository, or lesson module:
+
+```ts
+const definition = defineBrowserIdeExtension({
+  schemaVersion: 1,
+  id: "example.double",
+  title: "Implement double",
+  initialFilePath: "src/double.ts",
+  files: [{
+    path: "src/double.ts",
+    loader: "ts",
+    title: "Double",
+    editable: true,
+    contents: "export const double = (value: number) => value;",
+  }],
+  entryPoints: ["src/double.ts"],
+  checks: {
+    contractVersion: "double-v1",
+    contracts: [{
+      id: "double",
+      label: "Double",
+      cases: [{
+        id: "positive",
+        label: "Doubles four",
+        invoke: { modulePath: "src/double.ts", exportName: "double", args: [4] },
+        assertions: [{
+          id: "result",
+          label: "Returns eight",
+          kind: "deep-equal",
+          expected: 8,
+        }],
+      }],
+    }],
+  },
+});
+
+const session = createBrowserIdeSession(definition, {
+  editor: myEditorAdapter,
+  runtime: createBrowserLabIdeRuntime(),
+  persistence: myPersistenceAdapter,
+});
+await session.initialize();
+```
+
+The framework-neutral session owns source revisions, read-only file admission,
+exact contract coverage, stale-result rejection, and adapter orchestration.
+The host injects the editor, runtime, and persistence; the trusted definition
+injects files and checks.
+
+Definitions returned by `defineBrowserIdeExtension` are deeply frozen. UI hosts
+should construct them once and treat the definition reference as the active
+session identity. `browserIdeDefinitionIdentity` exposes the logical
+schema/id/contract identity; `browserIdeDefinitionFingerprint` additionally
+binds persisted state to the reviewed file tree and checks so incompatible
+state can be reset safely.
+
+Persistence adapters implement monotonic compare-and-save. `save` receives the
+last admitted revision/source hash, receipts are first written as immutable
+content-addressed artifacts with `stageReceipt`, and `admitReceipt` may update a
+current pointer only while the durable source still matches. The session
+serializes all saves—including the pre-check save—and never clears dirty state
+for a newer edit when an older write finishes. `load` also returns an opaque
+record token; recovery passes that token to compare-and-delete `reset`, so an
+invalid record cannot cause a concurrently repaired record to be deleted.
+
+Browser IDE v1 accepts `.js`, `.jsx`, `.ts`, `.tsx`, and `.json` files. It does
+not load remote extensions, npm packages, or URLs. It does not expose arbitrary
+remote Python execution. Python Lab remains a separate trusted application
+integration.
 
 ## Worker asset contract
 

@@ -37,3 +37,19 @@ On 2026-07-25, `npm audit --omit=dev` reported three high findings representing
 this one transitive advisory (`sharp` and its two direct dependents). Course Kit
 has no reported production dependency vulnerability and does not depend on
 Sharp.
+
+## Development toolchain advisories
+
+The full 2026-07-25 audit reports 4 moderate and 12 high dependency entries.
+The three production entries are the Sharp exception above. The other nine high
+entries propagate
+[`GHSA-mh99-v99m-4gvg`](https://github.com/advisories/GHSA-mh99-v99m-4gvg)
+from `brace-expansion` through `minimatch` and the ESLint toolchain. The four
+moderate entries propagate the existing esbuild development-server advisory
+through Drizzle Kit.
+
+These packages are development-only in this repository and are absent from the
+Course Kit tarball and deployed application dependency surface. They do not
+extend the production exception, but they remain tracked for compatible
+upstream updates. Do not expose repository lint or development servers to
+untrusted input or networks while the advisories remain open.

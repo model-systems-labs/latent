@@ -40,13 +40,14 @@ query, validation, and GitHub Pages workflow.
 
 ## Clean-room evidence
 
-Before tagging, three independent agents started in empty directories from
-public release-candidate documentation and produced distinct, validated,
-deterministic platforms with all four surfaces in 3m 16s, 3m 36s, and 3m 59s.
-Their candidate
-[reports](https://github.com/model-systems-labs/latent/blob/course-kit-v0.2.0/docs/conformance.md)
-are recorded separately from people. Exact-tag agent reruns are pending until
-the immutable tag exists.
+Before tagging, three independent agents passed against the public release
+candidate. After publication, three fresh agents repeated the procedure from
+empty directories against the immutable `course-kit-v0.2.0` tag and produced
+distinct, validated, deterministic platforms in 7m 11s, 10m 00s, and 2m 38s.
+The exact-tag
+[reports](https://github.com/model-systems-labs/latent/blob/main/docs/conformance.md)
+record commands, digests, HTTP probes, and the shared-disk collision separately
+from product behavior.
 
 Human developer conformance remains pending; this release does not relabel an
 agent persona as developer evidence.
@@ -85,8 +86,9 @@ repository source. Hosted content cannot grant itself executable authority.
 
 ## Install Course Kit directly
 
-Course Kit remains intentionally unpublished on npm. Install the exact
-registry-independent tarball:
+Course Kit remains intentionally unpublished under the `@latent` npm scope.
+Install the exact GitHub-hosted tarball; `npm exec` still resolves its pinned
+dependencies from the configured npm registry:
 
 ```bash
 COURSE_KIT_RELEASE=https://github.com/model-systems-labs/latent/releases/download/course-kit-v0.2.0/latent-course-kit-0.2.0.tgz
@@ -97,6 +99,19 @@ npm exec --yes --package="$COURSE_KIT_RELEASE" -- \
 
 The release also includes `SHA256SUMS`. The immutable Learning Pack, feed, and
 Question Group schemas are published through GitHub Pages.
+
+The immutable v0.2.0 tarball's bundled README uses “registry-independent” to
+mean that the Course Kit artifact itself is hosted on GitHub rather than
+published under the `@latent` npm scope. It does not mean fully offline:
+`npm exec` still resolves the tarball's pinned `esbuild-wasm` and `zod`
+dependencies from the configured npm registry. Use an approved cache or mirror
+when that registry is unavailable.
+
+`npm run release:verify -- --version 0.2.0` publicly verifies the annotated tag
+and peeled commit, release checksum, four schema digests, live routes, and the
+tag declared by the deployed `llms.txt`. The recorded Sites version, deployment
+ID, source archive hash, and commit came from an authenticated provider lookup;
+Sites does not expose that source-provenance lookup to unauthenticated clients.
 
 Read the [five-minute guide](https://github.com/model-systems-labs/latent/blob/course-kit-v0.2.0/docs/getting-started.md),
 [Question Group contract](https://github.com/model-systems-labs/latent/blob/course-kit-v0.2.0/docs/question-groups.md),

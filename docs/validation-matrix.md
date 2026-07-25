@@ -73,9 +73,12 @@ not substitute for them.
   Sharp/libvips advisory recorded in `docs/security-exceptions.md`. No
   compatible upstream resolution exists yet; the exception expires on
   2026-08-31 and forbids adding untrusted server-side image processing.
-- `npm audit` reports the same production advisory plus four moderate
-  development-tool findings. These do not ship in Course Kit or the deployed
-  application, but remain tracked for upstream resolution.
+- `npm audit` reports 4 moderate and 12 high dependency entries. Three high
+  entries are the accepted production Sharp advisory above; the other nine
+  high entries all propagate one `brace-expansion` advisory through the ESLint
+  toolchain. The four moderate entries are development-tool findings. The
+  development-only entries do not ship in Course Kit or the deployed
+  application and remain tracked for a compatible upstream resolution.
 
 ## Remaining manual recovery evidence
 

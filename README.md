@@ -82,10 +82,10 @@ boundaries.
 A Learning Pack is declarative JSON containing objectives, sources, lessons,
 multiple-choice checks, flash-card decks, or any combination of those.
 
-The latest published Course Kit release is v0.2.0. Use its exact tarball. This
-registry-independent URL works
-without access to the source repository or ownership of the `@latent` npm
-scope:
+The latest published Course Kit release is v0.2.0. Use its exact GitHub-hosted
+tarball. The package itself does not need to be published under the `@latent`
+npm scope, although `npm exec` still resolves Course Kit's pinned dependencies
+from the configured npm registry:
 
 ```bash
 COURSE_KIT_RELEASE=https://github.com/model-systems-labs/latent/releases/download/course-kit-v0.2.0/latent-course-kit-0.2.0.tgz
@@ -129,8 +129,8 @@ The complete format, hosting, extension, and trust contract is in
 [docs/open-learning.md](./docs/open-learning.md). A production-sized example
 lives at
 [examples/open-learning/reliable-llm-changes](./examples/open-learning/reliable-llm-changes).
-The browser application also exposes a local authoring studio at
-`/open-learning`.
+The browser application also exposes a local authoring studio in the
+[public reference platform](https://latent-llm-learning.cswansondeveloper.chatgpt.site/open-learning).
 
 Course Kit is not currently published on npm. The GitHub release is the
 official install path and includes a published SHA-256 checksum. The immutable

@@ -148,6 +148,60 @@ test("the v0.2 contract separates portable content from trusted executable sourc
     courseKitStatus.installUrl,
     `https://github.com/model-systems-labs/latent/releases/download/${courseKitStatus.latestPublishedTag}/latent-course-kit-${packageManifest.version}.tgz`,
   );
+  assert.match(courseKitStatus.releaseCommit, /^[0-9a-f]{40}$/);
+  assert.equal(
+    courseKitStatus.releaseUrl,
+    `https://github.com/model-systems-labs/latent/releases/tag/${courseKitStatus.latestPublishedTag}`,
+  );
+  assert.match(courseKitStatus.tarballSha256, /^[0-9a-f]{64}$/);
+  assert.equal(releaseStatus.referenceDeployment.state, "released");
+  assert.equal(releaseStatus.referenceDeployment.provider, "Sites");
+  assert.match(
+    releaseStatus.referenceDeployment.projectId,
+    /^appgprj_[0-9a-f]+$/,
+  );
+  assert.match(
+    releaseStatus.referenceDeployment.versionId,
+    /^appgprj_[0-9a-f]+~appgver_[0-9a-f]+$/,
+  );
+  assert.match(
+    releaseStatus.referenceDeployment.deploymentId,
+    /^appgdep_[0-9a-f]+$/,
+  );
+  assert.match(
+    releaseStatus.referenceDeployment.sourceArchiveSha256,
+    /^[0-9a-f]{64}$/,
+  );
+  assert.equal(
+    releaseStatus.referenceDeployment.provenanceVerification.mode,
+    "provider-authenticated",
+  );
+  assert.equal(
+    releaseStatus.referenceDeployment.provenanceVerification.publiclyReproducible,
+    false,
+  );
+  assert.equal(
+    releaseStatus.referenceDeployment.commitSha,
+    courseKitStatus.releaseCommit,
+  );
+  assert.equal(
+    releaseStatus.referenceDeployment.url,
+    "https://latent-llm-learning.cswansondeveloper.chatgpt.site",
+  );
+  assert.equal(
+    releaseStatus.referenceDeployment.llmsUrl,
+    `${releaseStatus.referenceDeployment.url}/llms.txt`,
+  );
+  assert.ok(
+    Number.isInteger(releaseStatus.referenceDeployment.versionNumber)
+      && releaseStatus.referenceDeployment.versionNumber > 0,
+  );
+  assert.equal(releaseStatus.schemas.state, "published");
+  assert.equal(releaseStatus.schemas.artifacts.length, 4);
+  for (const schema of releaseStatus.schemas.artifacts) {
+    assert.match(schema.url, /^https:\/\/model-systems-labs\.github\.io\/latent\//);
+    assert.match(schema.sha256, /^[0-9a-f]{64}$/);
+  }
   assert.match(launchContract, /Status: \*\*released\*\*/);
   assert.doesNotMatch(launchContract, /\bpreview\b|not yet released/i);
   assert.match(launchContract, /Portable content/);

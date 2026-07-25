@@ -61,6 +61,8 @@ test("the public release verifier checks release bytes, schemas, routes, and ide
     llms: `Latent release ${tag}\n`,
     missingRoute: null,
   };
+  const tagObjectSha = "b".repeat(40);
+  const tagCommitSha = "a".repeat(40);
   const siteRoutes = new Set([
     "/site/",
     "/site/course",
@@ -76,6 +78,29 @@ test("the public release verifier checks release bytes, schemas, routes, and ide
     const path = new URL(request.url ?? "/", "http://127.0.0.1").pathname;
     if (path === `/release/${tarballName}`) {
       response.end(tarball);
+      return;
+    }
+    if (
+      path
+      === `/api/repos/example/latent/git/ref/tags/${tag}`
+    ) {
+      response.setHeader("content-type", "application/json");
+      response.end(JSON.stringify({
+        object: {
+          type: "tag",
+          sha: tagObjectSha,
+        },
+      }));
+      return;
+    }
+    if (path === `/api/repos/example/latent/git/tags/${tagObjectSha}`) {
+      response.setHeader("content-type", "application/json");
+      response.end(JSON.stringify({
+        object: {
+          type: "commit",
+          sha: tagCommitSha,
+        },
+      }));
       return;
     }
     if (path === "/release/SHA256SUMS") {
@@ -121,14 +146,57 @@ test("the public release verifier checks release bytes, schemas, routes, and ide
       siteUrl: `${base}/site`,
       exampleUrl: `${base}/example`,
     };
-    const overrides = { releaseBaseUrl: `${base}/release` };
+    const releaseStatus = {
+      schemaVersion: 1,
+      courseKit: {
+        sourceVersion: version,
+        latestPublishedTag: tag,
+        releaseCommit: tagCommitSha,
+        installUrl: `${base}/release/${tarballName}`,
+        tarballSha256: state.checksum,
+      },
+      schemas: {
+        artifacts: await Promise.all(
+          schemaPaths.map(async (path) => ({
+            url: `${base}/pages/${path}`,
+            sha256: sha256(await readFile(resolve(repositoryRoot, "public", path))),
+          })),
+        ),
+      },
+      referenceDeployment: {
+        url: `${base}/site`,
+        llmsUrl: `${base}/site/llms.txt`,
+        commitSha: tagCommitSha,
+      },
+    };
+    const overrides = {
+      githubApiUrl: `${base}/api`,
+      releaseBaseUrl: `${base}/release`,
+      releaseStatus,
+    };
 
     const report = await verifyRelease(options, overrides);
     assert.equal(report.tag, tag);
+    assert.equal(report.tagObject, tagObjectSha);
+    assert.equal(report.tagCommit, tagCommitSha);
     assert.equal(report.tarball.sha256, state.checksum);
     assert.equal(report.schemas.length, 4);
     assert.equal(report.routes.length, 8);
     assert.equal(report.example.finalUrl, `${base}/example`);
+
+    releaseStatus.courseKit.tarballSha256 = "f".repeat(64);
+    await assert.rejects(
+      verifyRelease(options, overrides),
+      /release status tarball checksum/,
+    );
+    releaseStatus.courseKit.tarballSha256 = state.checksum;
+
+    releaseStatus.courseKit.releaseCommit = "c".repeat(40);
+    await assert.rejects(
+      verifyRelease(options, overrides),
+      /release status release commit/,
+    );
+    releaseStatus.courseKit.releaseCommit = tagCommitSha;
 
     state.checksum = "0".repeat(64);
     await assert.rejects(

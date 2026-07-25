@@ -14,7 +14,9 @@
 ## Commands
 
 ```text
-Paste the exact commands in order.
+Paste the exact shell commands and non-shell tool actions in order. For an
+agent tool action, record the action type and target. If its full payload exists
+only in the run transcript, say that explicitly rather than reconstructing it.
 ```
 
 ## Results

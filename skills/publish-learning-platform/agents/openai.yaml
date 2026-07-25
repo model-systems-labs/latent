@@ -1,0 +1,4 @@
+interface:
+  display_name: "Publish Learning Platform"
+  short_description: "Validate and publish a branded static platform"
+  default_prompt: "Use $publish-learning-platform to validate and publish this Latent platform."

@@ -22,13 +22,18 @@ Merely rebuilding the checked-in example is not a conformance pass.
 
 ## Public procedure
 
+Use Node.js 22.13 or newer. Do not reuse a prior clone, generated project, or
+maintainer-provided build artifact.
+
 ```bash
 git clone --depth 1 https://github.com/model-systems-labs/latent.git
 cd latent
-node scripts/create-learning-platform.mjs ../my-learning-platform \
+npm ci
+npm run create:platform -- ../my-learning-platform \
   --title "My learning platform" \
   --tagline "A concrete promise for its learners"
 cd ../my-learning-platform
+# Change at least one item using AGENTS.md and GUIDE.md.
 npm run validate
 npm run build
 npm run preview
@@ -70,4 +75,3 @@ an actual person performs the procedure and supplies the evidence above.
 
 Repeated product or documentation failures block release until they are fixed
 or explicitly removed from the launch promise.
-

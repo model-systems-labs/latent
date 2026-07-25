@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review Learning Design"
+  short_description: "Review a platform learning graph and practice quality"
+  default_prompt: "Use $review-learning-design to audit this learning platform and report exact fixes."

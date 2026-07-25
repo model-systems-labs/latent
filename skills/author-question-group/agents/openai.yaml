@@ -1,0 +1,4 @@
+interface:
+  display_name: "Author Question Group"
+  short_description: "Create validated portable programming practice"
+  default_prompt: "Use $author-question-group to create or improve a Latent Question Group library."

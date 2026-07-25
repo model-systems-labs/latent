@@ -22,15 +22,17 @@
     "packages:test": "npm run test --workspaces --if-present",
     "packages:typecheck": "npm run typecheck --workspaces --if-present",
     "open-learning:build": "node packages/course-kit/bin/latent-learning.mjs build",
-    "open-learning:generate": "node packages/course-kit/bin/latent-learning.mjs schema public/open-learning/learning-pack.schema.json && node packages/course-kit/bin/latent-learning.mjs schema public/open-learning/learning-feed.schema.json --feed && node packages/course-kit/bin/latent-learning.mjs build examples/open-learning/reliable-llm-changes/learning-pack.json --out-dir public/open-learning/reliable-llm-changes && node scripts/generate-open-learning-public-docs.mjs",
-    "open-learning:schema": "node packages/course-kit/bin/latent-learning.mjs schema docs/learning-pack.schema.json && node packages/course-kit/bin/latent-learning.mjs schema docs/learning-feed.schema.json --feed",
+    "open-learning:generate": "node packages/course-kit/bin/latent-learning.mjs schema public/open-learning/learning-pack.schema.json --force && node packages/course-kit/bin/latent-learning.mjs schema public/open-learning/learning-feed.schema.json --feed --force && node packages/course-kit/bin/latent-learning.mjs build examples/open-learning/reliable-llm-changes/learning-pack.json --out-dir public/open-learning/reliable-llm-changes && node scripts/generate-open-learning-public-docs.mjs",
+    "open-learning:schema": "node packages/course-kit/bin/latent-learning.mjs schema docs/learning-pack.schema.json --force && node packages/course-kit/bin/latent-learning.mjs schema docs/learning-feed.schema.json --feed --force",
     "open-learning:validate": "npm run build --workspace @latent/course-kit && node packages/course-kit/bin/latent-learning.mjs validate examples/open-learning/reliable-llm-changes/learning-pack.json --strict",
     "typecheck": "npm run packages:build && tsc --noEmit",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "boundaries": "node scripts/check-package-boundaries.mjs",
     "validate": "npm run boundaries && npm run typecheck && npm run lint && npm test",
     "runtime:generate": "node scripts/generate-capstone-react-runtime.mjs",
-    "artifacts:record-training": "npm run build --workspace @latent/model-lab && npm run build --workspace @latent/training-replay && node scripts/generate-recorded-training.mjs"
+    "artifacts:record-training": "npm run build --workspace @latent/model-lab && npm run build --workspace @latent/training-replay && node scripts/generate-recorded-training.mjs",
+    "create:platform": "node scripts/create-learning-platform.mjs",
+    "release:verify": "node scripts/verify-public-release.mjs"
   },
   "dependencies": {
     "@codemirror/autocomplete": "6.20.3",

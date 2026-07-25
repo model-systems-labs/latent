@@ -1,0 +1,4 @@
+interface:
+  display_name: "Author Learning Platform"
+  short_description: "Create a branded Latent platform with all four primitives"
+  default_prompt: "Use $author-learning-platform to create a branded Latent learning platform."

@@ -12,6 +12,36 @@ any conforming static server.
 [![License: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-blue.svg)](./LICENSE)
 [![Content: CC BY 4.0](https://img.shields.io/badge/content-CC%20BY%204.0-lightgrey.svg)](./CONTENT_LICENSE.md)
 
+## Five-minute golden path
+
+Prepare one checkout with Node.js 22.13 or newer:
+
+```bash
+git clone --depth 1 https://github.com/model-systems-labs/latent.git
+cd latent
+npm ci
+```
+
+Then create, validate, build, and preview a complete branded platform with one
+command:
+
+```bash
+npm run create:platform -- ../my-school \
+  --title "My School" \
+  --tagline "Learn one useful idea, retrieve it, and put it to work." \
+  --preview
+```
+
+The generated project is dependency-free and includes a lesson, six-card
+deck, Question Group, trusted browser JavaScript IDE exercise, device-local
+progress, leech-only progress query, deterministic static build, and pinned
+GitHub Pages workflow.
+
+Read the [five-minute guide](./docs/getting-started.md), inspect the
+[tiny JavaScript example](./examples/learning-platform/javascript-array-methods),
+or use the included agent workflows in `skills/` to author and review each
+layer.
+
 Latent is two things in one repository:
 
 - an open, model-neutral publishing framework for portable lessons, quizzes,

@@ -17,7 +17,8 @@ application server.
 Install Node.js 22.13 or newer, then prepare one Latent checkout:
 
 ```bash
-git clone --depth 1 https://github.com/model-systems-labs/latent.git
+git clone --depth 1 --branch course-kit-v0.2.0 \
+  https://github.com/model-systems-labs/latent.git
 cd latent
 npm ci
 ```
@@ -36,7 +37,9 @@ The command copies the tiny template into a new directory, applies the brand,
 runs the canonical strict Learning Pack and Question Group validators, runs
 the complete platform validator, builds deterministic static output, and
 starts the exact `dist/` artifact on a loopback URL. Press Control-C to stop
-the preview.
+the preview. If port 4173 is already occupied, run
+`npm run preview -- --port 0` inside the generated project to select an
+available loopback port.
 
 The target must be new or empty. Latent stages the project beside the target
 and renames it into place only after validation succeeds, so a failed scaffold

@@ -25,6 +25,9 @@ npm run validate
 npm run preview
 ```
 
+If port 4173 is already occupied, run `npm run preview -- --port 0` and use the
+available loopback URL it prints.
+
 Open the printed loopback URL. Complete the lesson quiz, reveal a card, submit
 the practice question, and run the IDE checks. Progress stays on this device.
 After at least three attempts and two misses, a question appears in the

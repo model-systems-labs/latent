@@ -130,10 +130,10 @@ application source and contract binding
 practice UI and separate device-local progress
 ```
 
-The built-in `/practice` route currently imports one reviewed library from the
-repository. An arbitrary hosted library can use the preview schema and
-TypeScript validator, but Latent does not fetch it by URL or grant it access to
-privileged runtimes in v0.2.
+The built-in `/practice` route imports one reviewed library from the repository.
+An arbitrary hosted library can use the released schema and TypeScript
+validator, but Latent does not fetch it by URL or grant it access to privileged
+runtimes in v0.2.
 
 Practice progress is separate from lesson completion, the cumulative course
 project, and flash-card ratings. A leech-focused practice view is a query over

@@ -4,8 +4,8 @@ Question groups are a portable, model-neutral primitive for programming
 practice. A person or LLM can author the same declarative JSON, validate it
 with Course Kit, and host the file on any static server.
 
-**Status: complete in the Course Kit v0.2 source tree; published availability
-still follows the repository release status.**
+**Status: published with Course Kit v0.2.0 as the released Question Group v1
+contract.**
 
 The format is versioned separately from Learning Pack v1. This keeps
 the released lesson and flash-card contract byte-for-byte compatible while
@@ -13,14 +13,13 @@ giving practice questions a clean schema of their own.
 
 - [Checked-in JSON Schema](../packages/course-kit/schema/question-group-library.schema.json)
 - [Checked-in progress JSON Schema](../packages/course-kit/schema/question-group-progress.schema.json)
-- Planned permanent URL after the v0.2 release:
+- Permanent library-schema URL:
   `https://model-systems-labs.github.io/latent/question-groups/v1/question-group-library.schema.json`
-- Planned progress-schema URL after the v0.2 release:
+- Permanent progress-schema URL:
   `https://model-systems-labs.github.io/latent/question-groups/v1/question-group-progress.schema.json`
 
-The planned URL may return `404` before `course-kit-v0.2.0` is tagged. Once the
-release workflow publishes `/question-groups/v1/`, those exact bytes become
-immutable.
+The published versioned bytes are immutable and exactly match the checked-in
+schemas and the copies shipped in the Course Kit v0.2.0 tarball.
 
 ## Layering
 
@@ -89,9 +88,21 @@ Run the full validator before publishing; JSON Schema success alone is not the
 publication gate:
 
 ```sh
-latent-learning questions validate question-group-library.json --strict
-latent-learning questions build question-group-library.json --out-dir dist
-latent-learning questions serve dist
+COURSE_KIT_RELEASE=https://github.com/model-systems-labs/latent/releases/download/course-kit-v0.2.0/latent-course-kit-0.2.0.tgz
+
+npm exec --yes --package="$COURSE_KIT_RELEASE" -- \
+  latent-learning questions validate question-group-library.json --strict
+npm exec --yes --package="$COURSE_KIT_RELEASE" -- \
+  latent-learning questions build question-group-library.json --out-dir dist
+npm exec --yes --package="$COURSE_KIT_RELEASE" -- \
+  latent-learning questions serve dist
+```
+
+For package-consumer code, install the same exact release first:
+
+```sh
+npm install --save-exact \
+  https://github.com/model-systems-labs/latent/releases/download/course-kit-v0.2.0/latent-course-kit-0.2.0.tgz
 ```
 
 ```js

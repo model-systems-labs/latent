@@ -17,7 +17,8 @@ any conforming static server.
 Prepare one checkout with Node.js 22.13 or newer:
 
 ```bash
-git clone --depth 1 https://github.com/model-systems-labs/latent.git
+git clone --depth 1 --branch course-kit-v0.2.0 \
+  https://github.com/model-systems-labs/latent.git
 cd latent
 npm ci
 ```
@@ -45,7 +46,7 @@ layer.
 Latent is two things in one repository:
 
 - an open, model-neutral publishing framework for portable lessons, quizzes,
-  flash-card decks, and a preview Question Group contract; and
+  flash-card decks, and released Question Groups; and
 - an executable reference platform with courses, an IDE, flash cards, and
   programming practice.
 
@@ -66,11 +67,11 @@ Latent supports two extension modes:
   that are reviewed and compiled before deployment.
 
 These modes do not grant arbitrary hosted content executable plugin authority.
-Learning Packs for lessons, quizzes, and cards are the stable portable
-contract. Question Groups are currently a preview data contract; the v0.2 tag
-is blocked until their complete authoring, validation, publishing, and player
-path is ready. The built-in practice site executes only its reviewed bundled
-library. IDE and custom runtime extensions are trusted source changes in v0.2.
+Learning Packs for lessons, quizzes, and cards and Question Group v1 are stable
+portable contracts. Course Kit validates both and can build self-hosted sites;
+its bundled Question Group player supports JavaScript and TypeScript. The
+built-in Latent practice site still executes only its reviewed bundled library.
+IDE and custom runtime extensions are trusted source changes in v0.2.
 
 Read the exact [v0.2 launch contract](./docs/v0.2-launch-contract.md) and the
 [workspace architecture](./docs/architecture.md) before building against those
@@ -81,13 +82,13 @@ boundaries.
 A Learning Pack is declarative JSON containing objectives, sources, lessons,
 multiple-choice checks, flash-card decks, or any combination of those.
 
-The latest published Course Kit release is v0.1.0. Use its exact tarball. This
+The latest published Course Kit release is v0.2.0. Use its exact tarball. This
 registry-independent URL works
 without access to the source repository or ownership of the `@latent` npm
 scope:
 
 ```bash
-COURSE_KIT_RELEASE=https://github.com/model-systems-labs/latent/releases/download/course-kit-v0.1.0/latent-course-kit-0.1.0.tgz
+COURSE_KIT_RELEASE=https://github.com/model-systems-labs/latent/releases/download/course-kit-v0.2.0/latent-course-kit-0.2.0.tgz
 
 npm exec --yes --package="$COURSE_KIT_RELEASE" -- \
   latent-learning init my-learning-pack
@@ -132,10 +133,12 @@ The browser application also exposes a local authoring studio at
 `/open-learning`.
 
 Course Kit is not currently published on npm. The GitHub release is the
-official install path and includes a published SHA-256 checksum. The source
-tree is preparing v0.2.0, but its tag, package tarball, npm package, and
-Question Group schema URL are not release artifacts until the v0.2 workflow
-publishes them.
+official install path and includes a published SHA-256 checksum. The immutable
+Question Group v1
+[library schema](https://model-systems-labs.github.io/latent/question-groups/v1/question-group-library.schema.json)
+and
+[progress schema](https://model-systems-labs.github.io/latent/question-groups/v1/question-group-progress.schema.json)
+are published separately from npm.
 
 ## Why the format stays open
 
@@ -160,10 +163,13 @@ redirects and unsafe package paths, enforces a two-megabyte UTF-8 limit, checks
 the declared byte count and SHA-256 digest, validates package identity, and
 requires canonical JSON before rendering.
 
-Community packs cannot execute JavaScript, HTML, CSS, MDX, React, Python,
-workers, iframes, npm packages, or authored tests. Built-in courses may use
-privileged Browser Lab and Python Lab runtimes, but those capabilities are not
-available to remote content.
+Community Learning Packs cannot execute JavaScript, HTML, CSS, MDX, React,
+Python, workers, iframes, npm packages, or authored tests. Question Groups may
+carry bounded learner starter source and data-only assertions, but they cannot
+provide publisher-authored executable tests, imports, adapters, network
+access, or runtime authority. Built-in courses may use privileged Browser Lab
+and Python Lab runtimes, but those capabilities are not available to remote
+content.
 
 See [SECURITY.md](./SECURITY.md) for private vulnerability reporting.
 
@@ -207,8 +213,8 @@ realm.
 ## Repository map
 
 - `packages/course-kit/` — public Learning Pack schemas, validation, CLI, and
-  static-site builder, plus the preview Question Group schema and TypeScript
-  validator
+  static-site builder, plus the released Question Group schemas, validator,
+  progress contract, and injectable player
 - `skills/` — model-neutral author, review, and publish workflows for LLMs
 - `examples/open-learning/` — complete self-hosted Learning Pack examples
 - `app/open-learning/` — browser authoring and verified hosted-feed reader

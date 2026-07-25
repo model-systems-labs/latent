@@ -40,13 +40,18 @@ Run the full Question Group validation and static-player build commands from
 `docs/question-groups.md`; JSON Schema alone is not the release gate:
 
 ```bash
-latent-learning questions validate <library.json> --strict --json
-latent-learning questions build <library.json> --out-dir <site> --json
-latent-learning questions serve <site>
+COURSE_KIT_RELEASE=https://github.com/model-systems-labs/latent/releases/download/course-kit-v0.2.0/latent-course-kit-0.2.0.tgz
+
+npm exec --yes --package="$COURSE_KIT_RELEASE" -- \
+  latent-learning questions validate <library.json> --strict --json
+npm exec --yes --package="$COURSE_KIT_RELEASE" -- \
+  latent-learning questions build <library.json> --out-dir <site> --json
+npm exec --yes --package="$COURSE_KIT_RELEASE" -- \
+  latent-learning questions serve <site>
 ```
 
 When working in the Latent source tree, build Course Kit and replace
-`latent-learning` with
+each `npm exec ... -- latent-learning` prefix with
 `node packages/course-kit/bin/latent-learning.mjs`. In the tiny platform, also
 run:
 

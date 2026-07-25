@@ -187,7 +187,24 @@ test("the live LLM entrypoint and public workflow documents are self-contained",
   }
   const llms = await readFile(new URL("public/llms.txt", root), "utf8");
   assert.doesNotMatch(llms, /github\.com\/model-systems-labs\/latent\/(?:blob|tree)\/main/);
-  assert.match(llms, /\/open-learning\/skills\/author-learning-pack\.md/);
+  for (const path of [
+    "/open-learning/skills/author-learning-pack.md",
+    "/open-learning/skills/review-learning-pack.md",
+    "/open-learning/skills/publish-learning-pack.md",
+    "/skills/author-learning-platform.md",
+    "/skills/author-course.md",
+    "/skills/author-flash-card-deck.md",
+    "/skills/author-question-group.md",
+    "/skills/author-ide-exercise.md",
+    "/skills/review-learning-design.md",
+    "/skills/publish-learning-platform.md",
+  ]) {
+    assert.ok(llms.includes(path), `public/llms.txt does not discover ${path}`);
+  }
+  assert.match(llms, /course-kit-v0\.2\.0/);
+  assert.match(llms, /Community Learning Pack/);
+  assert.match(llms, /Question Groups may contain learner starter source/);
+  assert.match(llms, /never publisher-authored executable tests/);
 });
 
 test("community rendering stays declarative and outside privileged runtimes", async () => {

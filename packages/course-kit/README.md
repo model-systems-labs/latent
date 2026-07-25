@@ -5,12 +5,11 @@ lessons, flash cards, and programming question groups. It validates learning
 content, builds deterministic lesson sites, emits integrity-bound feeds, and
 verifies published feeds without requiring Latent hosting.
 
-The source tree is now Course Kit v0.2.0 and includes question groups. The
-latest published tarball is still v0.1.0; it supports Learning Packs and flash
-cards. Use that exact release for the published CLI until v0.2.0 is tagged:
+Course Kit v0.2.0 is the latest published release. It supports Learning Packs,
+flash cards, and Question Groups. Use its exact registry-independent tarball:
 
 ```bash
-COURSE_KIT_RELEASE=https://github.com/model-systems-labs/latent/releases/download/course-kit-v0.1.0/latent-course-kit-0.1.0.tgz
+COURSE_KIT_RELEASE=https://github.com/model-systems-labs/latent/releases/download/course-kit-v0.2.0/latent-course-kit-0.2.0.tgz
 
 npm exec --yes --package "$COURSE_KIT_RELEASE" -- \
   latent-learning init my-learning-pack --json
@@ -60,15 +59,22 @@ portable progress and leech queries, a host-injected player contract, and a
 self-hosted JavaScript/TypeScript practice build:
 
 ```bash
-latent-learning questions validate question-group-library.json --strict
-latent-learning questions build question-group-library.json --out-dir practice-site
-latent-learning questions serve practice-site
+COURSE_KIT_RELEASE=https://github.com/model-systems-labs/latent/releases/download/course-kit-v0.2.0/latent-course-kit-0.2.0.tgz
+
+npm exec --yes --package="$COURSE_KIT_RELEASE" -- \
+  latent-learning questions validate question-group-library.json --strict
+npm exec --yes --package="$COURSE_KIT_RELEASE" -- \
+  latent-learning questions build question-group-library.json --out-dir practice-site
+npm exec --yes --package="$COURSE_KIT_RELEASE" -- \
+  latent-learning questions serve practice-site
 ```
 
 The static player runs learner code in a disposable worker. It does not execute
 Python; Python requirements remain host-managed. A hosted library cannot load
-an adapter or gain authority in another Latent deployment. Until the v0.2.0
-package is published, use the checked-out workspace rather than a nonexistent
-release artifact. The planned permanent schema URL is not published yet. Read
+an adapter or gain authority in another Latent deployment. The permanent
+[library schema](https://model-systems-labs.github.io/latent/question-groups/v1/question-group-library.schema.json)
+and
+[progress schema](https://model-systems-labs.github.io/latent/question-groups/v1/question-group-progress.schema.json)
+match the immutable bytes shipped with v0.2.0. Read
 [`docs/question-groups.md`](./docs/question-groups.md) for the layering and
 runtime trust boundary.

@@ -29,7 +29,9 @@ const installDocumentation = [
   "README.md",
   "packages/course-kit/README.md",
   "docs/open-learning.md",
+  "docs/question-groups.md",
   "skills/author-learning-pack/SKILL.md",
+  "skills/author-question-group/SKILL.md",
   "skills/review-learning-pack/SKILL.md",
   "skills/publish-learning-pack/SKILL.md",
 ];
@@ -66,6 +68,27 @@ for (const [field, actual, expected] of [
 ]) {
   if (actual !== expected) {
     fail(`docs/release-status.json courseKit.${field} must be "${expected}", received "${actual ?? ""}".`);
+  }
+}
+
+const releaseNotesPath = `docs/release/${expectedTag}.md`;
+let releaseNotes = "";
+try {
+  releaseNotes = await readFile(resolve(repositoryRoot, releaseNotesPath), "utf8");
+} catch {
+  fail(`${releaseNotesPath} must exist for ${expectedTag}.`);
+}
+for (const [label, expected] of [
+  ["version heading", `# Course Kit v${manifest.version}`],
+  ["release tag", expectedTag],
+  ["release tarball", pinnedRelease],
+  [
+    "release demo",
+    `https://github.com/model-systems-labs/latent/releases/download/${expectedTag}/latent-v0.2-demo.webm`,
+  ],
+]) {
+  if (!releaseNotes.includes(expected)) {
+    fail(`${releaseNotesPath} must include the exact ${label} ${expected}.`);
   }
 }
 
@@ -109,22 +132,14 @@ for (const relativePath of [
 }
 
 for (const relativePath of [
-  "docs/architecture.md",
-  "docs/question-groups.md",
-  "packages/course-kit/docs/question-groups.md",
-  "public/question-groups/guide.md",
-]) {
-  const source = await readFile(resolve(repositoryRoot, relativePath), "utf8");
-  if (/\bpreview\b/i.test(source)) {
-    fail(`${relativePath} still describes the released Question Group contract as preview.`);
-  }
-}
-
-for (const relativePath of [
   "README.md",
   "AGENTS.md",
   "docs/v0.2-launch-contract.md",
+  "docs/architecture.md",
+  "docs/question-groups.md",
   "packages/course-kit/README.md",
+  "packages/course-kit/docs/question-groups.md",
+  "public/question-groups/guide.md",
   "public/llms.txt",
 ]) {
   const source = await readFile(resolve(repositoryRoot, relativePath), "utf8");

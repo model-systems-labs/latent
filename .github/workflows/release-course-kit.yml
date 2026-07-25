@@ -1,8 +1,9 @@
 name: Release Course Kit
 
-# Every v0.2 tag publishes a registry-independent GitHub tarball and immutable
-# schemas. npm publishing is intentionally deferred until a later release can
-# represent the registry transition without making the immutable tag stale.
+# Every Course Kit tag publishes a registry-independent GitHub tarball and
+# immutable schemas. npm publishing is intentionally deferred until a later
+# release can represent the registry transition without making an immutable
+# tag stale.
 
 on:
   push:
@@ -30,8 +31,8 @@ jobs:
       - run: npm ci --ignore-scripts
       - name: Require a matching version tag on main
         run: |
-          git fetch origin main
-          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+          git fetch --force origin main:refs/remotes/origin/main
+          node scripts/verify-release-ref.mjs "$GITHUB_REF_NAME"
           npm run release:check --workspace @latent/course-kit -- "$GITHUB_REF_NAME"
       - name: Validate the exact tagged repository
         run: |
@@ -126,8 +127,8 @@ jobs:
             http_status="$(curl --silent --show-error --location --output "$existing" --write-out '%{http_code}' "$url")"
             if [ "$http_status" = "200" ]; then
               cmp "$existing" "_schema-site/open-learning/v1/$schema"
-            elif [ "$http_status" != "404" ]; then
-              printf 'Unexpected HTTP %s while checking %s\n' "$http_status" "$url" >&2
+            else
+              printf 'Published schema %s returned HTTP %s\n' "$url" "$http_status" >&2
               exit 1
             fi
           done
@@ -137,7 +138,9 @@ jobs:
             question_status="$(curl --silent --show-error --location --output "$question_existing" --write-out '%{http_code}' "$question_url")"
             if [ "$question_status" = "200" ]; then
               cmp "$question_existing" "_schema-site/question-groups/v1/$question_schema"
-            elif [ "$question_status" != "404" ]; then
+            elif [ "$question_status" = "404" ] && [ "$GITHUB_REF_NAME" = "course-kit-v0.2.0" ]; then
+              printf 'Publishing new immutable schema %s\n' "$question_url"
+            else
               printf 'Unexpected HTTP %s while checking %s\n' "$question_status" "$question_url" >&2
               exit 1
             fi
@@ -170,11 +173,16 @@ jobs:
         run: |
           tarball="$(find course-kit-release -maxdepth 1 -name '*.tgz' -print -quit)"
           test -n "$tarball"
+          release_notes="docs/release/${GITHUB_REF_NAME}.md"
+          demo="docs/release/latent-v0.2-demo.webm"
+          test -f "$release_notes"
+          test -f "$demo"
           (cd course-kit-release && sha256sum "$(basename "$tarball")" > SHA256SUMS)
           gh release create "$GITHUB_REF_NAME" \
             "$tarball" \
             course-kit-release/SHA256SUMS \
+            "$demo" \
             --repo "$GITHUB_REPOSITORY" \
             --title "Course Kit ${GITHUB_REF_NAME#course-kit-v}" \
-            --notes-file CHANGELOG.md \
+            --notes-file "$release_notes" \
             --verify-tag

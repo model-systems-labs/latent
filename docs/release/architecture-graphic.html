@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Latent architecture</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: #f8f5ec;
+        --ink: #211f1b;
+        --muted: #68635b;
+        --line: #c9c0b2;
+        --violet: #6d4da1;
+        --violet-wash: #eee7f7;
+        --green: #32634f;
+        --green-wash: #e5f0e9;
+        --gold: #8d6621;
+        --gold-wash: #f6ecd7;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        width: 1600px;
+        height: 900px;
+        overflow: hidden;
+        background: var(--paper);
+        color: var(--ink);
+      }
+
+      body {
+        padding: 48px 88px 36px;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+      }
+
+      header {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 20px;
+      }
+
+      h1 {
+        margin: 0;
+        max-width: 920px;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 54px;
+        font-weight: 500;
+        letter-spacing: -0.035em;
+        line-height: 1.02;
+      }
+
+      header p {
+        margin: 0 0 6px;
+        color: var(--muted);
+        font-size: 19px;
+        letter-spacing: 0.01em;
+      }
+
+      .source {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 410px;
+        min-height: 66px;
+        margin: 24px auto 18px;
+        border: 1px solid var(--ink);
+        border-radius: 999px;
+        background: #fffdf8;
+        font-size: 23px;
+        font-weight: 700;
+      }
+
+      .split {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 32px;
+        position: relative;
+      }
+
+      .split::before {
+        content: "";
+        position: absolute;
+        top: -18px;
+        left: 50%;
+        width: 1px;
+        height: 18px;
+        background: var(--line);
+      }
+
+      .lane {
+        min-height: 346px;
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        padding: 22px;
+        background: rgb(255 255 255 / 48%);
+      }
+
+      .lane h2 {
+        margin: 0;
+        font-size: 24px;
+        letter-spacing: -0.015em;
+      }
+
+      .lane > p {
+        margin: 5px 0 16px;
+        color: var(--muted);
+        font-size: 16px;
+      }
+
+      .cards {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+
+      .card {
+        min-height: 86px;
+        border-radius: 18px;
+        padding: 16px;
+      }
+
+      .card strong {
+        display: block;
+        margin-bottom: 7px;
+        font-size: 17px;
+      }
+
+      .card span {
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.35;
+      }
+
+      .portable .card {
+        background: var(--green-wash);
+      }
+
+      .trusted .card {
+        background: var(--violet-wash);
+      }
+
+      .gate {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 58px;
+        margin-top: 14px;
+        border: 1px dashed currentColor;
+        border-radius: 16px;
+        font-size: 16px;
+        font-weight: 700;
+      }
+
+      .portable .gate {
+        color: var(--green);
+      }
+
+      .trusted .gate {
+        color: var(--violet);
+      }
+
+      .destination {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        gap: 22px;
+        margin-top: 18px;
+      }
+
+      .destination .box {
+        min-height: 74px;
+        border-radius: 20px;
+        padding: 14px 22px;
+        background: var(--gold-wash);
+      }
+
+      .destination strong {
+        display: block;
+        font-size: 18px;
+      }
+
+      .destination span {
+        display: block;
+        margin-top: 5px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .plus {
+        color: var(--gold);
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 38px;
+      }
+
+      footer {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 14px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Build your own learning platform with agents.</h1>
+      <p>Latent v0.2 · two explicit extension modes</p>
+    </header>
+
+    <div class="source">People + coding agents</div>
+
+    <main class="split" aria-label="Latent extension architecture">
+      <section class="lane portable">
+        <h2>Portable content</h2>
+        <p>Untrusted declarative data · inspectable · host anywhere</p>
+        <div class="cards">
+          <div class="card">
+            <strong>Courses</strong>
+            <span>Lessons, quizzes, objectives, and sources</span>
+          </div>
+          <div class="card">
+            <strong>Flash cards</strong>
+            <span>Decks, scheduling identity, and progress</span>
+          </div>
+          <div class="card">
+            <strong>Question Groups</strong>
+            <span>Starter source, cases, assertions, and provenance</span>
+          </div>
+          <div class="card">
+            <strong>Static publishing</strong>
+            <span>Deterministic sites, feeds, and integrity metadata</span>
+          </div>
+        </div>
+        <div class="gate">Course Kit schemas · full validation · canonical bytes</div>
+      </section>
+
+      <section class="lane trusted">
+        <h2>Trusted platform source</h2>
+        <p>Reviewed repository code · compiled before learner use</p>
+        <div class="cards">
+          <div class="card">
+            <strong>IDE extensions</strong>
+            <span>Files, editor adapter, runtime, checks, and persistence</span>
+          </div>
+          <div class="card">
+            <strong>Sandbox workers</strong>
+            <span>Hardened browser JavaScript and TypeScript execution</span>
+          </div>
+          <div class="card">
+            <strong>Application adapters</strong>
+            <span>Source and contract binding before progress</span>
+          </div>
+          <div class="card">
+            <strong>Opinionated UI</strong>
+            <span>Navigation, learning flow, evidence, and recovery</span>
+          </div>
+        </div>
+        <div class="gate">Code review · package boundaries · CI · exact-SHA build</div>
+      </section>
+    </main>
+
+    <section class="destination" aria-label="Publishing outcomes">
+      <div class="box">
+        <strong>Self-hosted learning sites</strong>
+        <span>Local server, GitHub Pages, S3, Cloudflare, or Netlify</span>
+      </div>
+      <div class="plus">+</div>
+      <div class="box">
+        <strong>Optional Latent services</strong>
+        <span>Discovery, managed publishing, identity, and certification</span>
+      </div>
+    </section>
+
+    <footer>
+      <span>Agents operate during authoring and build—not as hidden learner-runtime authorities.</span>
+      <span>model-systems-labs/latent</span>
+    </footer>
+  </body>
+</html>

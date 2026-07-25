@@ -13,7 +13,7 @@ been reviewed, and the exception is visible here.
 | Severity | High |
 | Introduced through | `next@16.2.11` and `@huggingface/transformers@3.8.1` → `sharp@0.34.5` |
 | Fixed version | `sharp>=0.35.0` |
-| Compatible upstream fix | None as of 2026-07-24 |
+| Compatible upstream fix | None as of 2026-07-25 |
 | Owner | Latent maintainers |
 | Review by | 2026-08-31, or immediately when either upstream permits `sharp>=0.35.0` |
 
@@ -33,7 +33,7 @@ Required controls while this exception is open:
 - close this exception, update the lockfile, and rerun the full release gates as
   soon as the fixed dependency line is available.
 
-On 2026-07-24, `npm audit --omit=dev` reported three high findings representing
+On 2026-07-25, `npm audit --omit=dev` reported three high findings representing
 this one transitive advisory (`sharp` and its two direct dependents). Course Kit
 has no reported production dependency vulnerability and does not depend on
 Sharp.

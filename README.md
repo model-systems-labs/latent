@@ -1,7 +1,12 @@
 # Latent
 
-Create lessons and flash cards locally, publish them on any static host, and let
-learners use them without a required account or model provider.
+**Build your own learning platform with agents.**
+
+Latent is an opinionated, open-source framework for courses, browser IDE
+lessons, flash cards, and programming practice. Use any coding agent to extend
+it; the included LLM Learning curriculum is the complete reference
+implementation. Portable Learning Pack sites remain independently hostable on
+any conforming static server.
 
 [![Validate](https://github.com/model-systems-labs/latent/actions/workflows/ci.yml/badge.svg)](https://github.com/model-systems-labs/latent/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-blue.svg)](./LICENSE)
@@ -10,9 +15,9 @@ learners use them without a required account or model provider.
 Latent is two things in one repository:
 
 - an open, model-neutral publishing framework for portable lessons, quizzes,
-  and flash-card decks; and
-- four first-party executable browser courses that exercise the framework and
-  the deeper learning runtimes in a real product.
+  flash-card decks, and a preview Question Group contract; and
+- an executable reference platform with courses, an IDE, flash cards, and
+  programming practice.
 
 The open framework is the floor. Everything required to author, validate,
 export, read, and self-host a Learning Pack is available here. An optional
@@ -20,17 +25,39 @@ managed service can later provide project storage, one-click publishing,
 domains, analytics, and collaboration, but exported content must keep working
 without that service.
 
+## What v0.2 promises
+
+Latent supports two extension modes:
+
+- **Portable content:** people and agents author bounded, declarative data that
+  can be validated, inspected, and hosted independently.
+- **Trusted platform source:** coding agents or people extend a repository fork
+  with IDE exercises, runtime adapters, and host-owned behavioral contracts
+  that are reviewed and compiled before deployment.
+
+These modes do not grant arbitrary hosted content executable plugin authority.
+Learning Packs for lessons, quizzes, and cards are the stable portable
+contract. Question Groups are currently a preview data contract; the v0.2 tag
+is blocked until their complete authoring, validation, publishing, and player
+path is ready. The built-in practice site executes only its reviewed bundled
+library. IDE and custom runtime extensions are trusted source changes in v0.2.
+
+Read the exact [v0.2 launch contract](./docs/v0.2-launch-contract.md) and the
+[workspace architecture](./docs/architecture.md) before building against those
+boundaries.
+
 ## Create and host a Learning Pack
 
 A Learning Pack is declarative JSON containing objectives, sources, lessons,
 multiple-choice checks, flash-card decks, or any combination of those.
 
-Use the exact v0.2.0 release tarball. This registry-independent URL works
+The latest published Course Kit release is v0.1.0. Use its exact tarball. This
+registry-independent URL works
 without access to the source repository or ownership of the `@latent` npm
 scope:
 
 ```bash
-COURSE_KIT_RELEASE=https://github.com/model-systems-labs/latent/releases/download/course-kit-v0.2.0/latent-course-kit-0.2.0.tgz
+COURSE_KIT_RELEASE=https://github.com/model-systems-labs/latent/releases/download/course-kit-v0.1.0/latent-course-kit-0.1.0.tgz
 
 npm exec --yes --package="$COURSE_KIT_RELEASE" -- \
   latent-learning init my-learning-pack
@@ -74,9 +101,11 @@ lives at
 The browser application also exposes a local authoring studio at
 `/open-learning`.
 
-After the one-time npm scope bootstrap, the equivalent shorter package pin is
-`@latent/course-kit@0.2.0`. The GitHub release remains a permanent install path
-and includes a published SHA-256 checksum.
+Course Kit is not currently published on npm. The GitHub release is the
+official install path and includes a published SHA-256 checksum. The source
+tree is preparing v0.2.0, but its tag, package tarball, npm package, and
+Question Group schema URL are not release artifacts until the v0.2 workflow
+publishes them.
 
 ## Why the format stays open
 
@@ -148,7 +177,8 @@ realm.
 ## Repository map
 
 - `packages/course-kit/` — public Learning Pack schemas, validation, CLI, and
-  static-site builder, plus the portable question-group schema
+  static-site builder, plus the preview Question Group schema and TypeScript
+  validator
 - `skills/` — model-neutral author, review, and publish workflows for LLMs
 - `examples/open-learning/` — complete self-hosted Learning Pack examples
 - `app/open-learning/` — browser authoring and verified hosted-feed reader

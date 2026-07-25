@@ -54,6 +54,13 @@ const openLearning = (await readFile(resolve(repositoryRoot, "docs/open-learning
     "](https://github.com/model-systems-labs/latent/blob/main/examples/open-learning/reliable-llm-changes/learning-pack.json)",
   );
 
+const questionGroups = (
+  await readFile(resolve(repositoryRoot, "docs/question-groups.md"), "utf8")
+).replace(
+  "../packages/course-kit/schema/question-group-library.schema.json",
+  "../schema/question-group-library.schema.json",
+);
+
 const docs = [
   ["docs/open-learning.md", openLearning],
   [
@@ -62,7 +69,7 @@ const docs = [
   ],
   [
     "docs/question-groups.md",
-    await readFile(resolve(repositoryRoot, "docs/question-groups.md"), "utf8"),
+    questionGroups,
   ],
 ];
 

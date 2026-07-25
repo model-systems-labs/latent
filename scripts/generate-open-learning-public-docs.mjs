@@ -17,7 +17,14 @@ const copies = [
   ["skills/author-learning-pack/SKILL.md", "public/open-learning/skills/author-learning-pack.md"],
   ["skills/review-learning-pack/SKILL.md", "public/open-learning/skills/review-learning-pack.md"],
   ["skills/publish-learning-pack/SKILL.md", "public/open-learning/skills/publish-learning-pack.md"],
-  ["docs/question-groups.md", "public/question-groups/guide.md"],
+  [
+    "docs/question-groups.md",
+    "public/question-groups/guide.md",
+    (source) => source.replace(
+      "../packages/course-kit/schema/question-group-library.schema.json",
+      "./v1/question-group-library.schema.json",
+    ),
+  ],
 ];
 
 for (const [sourcePath, outputPath, transform = (source) => source] of copies) {

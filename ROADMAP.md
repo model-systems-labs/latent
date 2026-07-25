@@ -1,11 +1,15 @@
 # Latent roadmap
 
-Latent's floor is an open, model-neutral framework that lets people create,
-inspect, export, and host their own lessons or flash cards. A managed platform
-can make those jobs easier, but it must not become a gate around the format or a
-learner's content.
+Latent's floor is an open, model-neutral framework that lets people and coding
+agents build learning platforms from inspectable source. Portable lessons,
+quizzes, and flash cards are the stable independently hosted content seam.
+Programming practice and executable IDE courses layer on top without turning
+remote content into plugins. A managed platform can make those jobs easier,
+but it must not become a gate around the format or a learner's content.
 
 This roadmap expresses direction, not a delivery promise.
+The exact current commitment is in the
+[v0.2 launch contract](./docs/v0.2-launch-contract.md).
 
 ## Product principles
 
@@ -13,14 +17,16 @@ This roadmap expresses direction, not a delivery promise.
 - **Host anywhere:** a static host and a URL are enough to publish.
 - **Export always:** hosted projects remain downloadable as standard Learning
   Packs and static sites.
-- **Model neutral:** people and arbitrary LLMs use the same documented
-  contracts.
+- **Model neutral:** people and arbitrary coding agents use the same documented
+  authoring and repository contracts.
 - **Declarative community content:** remote packs do not gain executable
   privileges.
+- **Build-time agents:** agents may author content or change reviewed source,
+  but are never required authorities in the learner runtime.
 - **Optional center:** discovery, identity, review, and certification may be
   centralized services; reading and self-hosting may not.
 
-## Foundation: v0.1
+## Released foundation: v0.1
 
 - Publish Course Kit, the schemas, CLI, reader, browser studio, and LLM
   workflows as open source.
@@ -30,6 +36,29 @@ This roadmap expresses direction, not a delivery promise.
   flash-card-only, and combined packs.
 - Keep the first-party browser courses as demanding real-world consumers of
   the framework.
+
+## Launch contract: v0.2
+
+- Present the repository as an agent-friendly learning-platform framework, with
+  the LLM Systems curriculum as its reference implementation.
+- Keep Learning Pack v1 stable for independently hosted lessons, quizzes, and
+  flash cards.
+- Finish Question Groups as a stable declarative primitive with authorship,
+  licensing, provenance, objectives, namespaced extensions, CLI validation,
+  self-hosted publishing, a progress contract, and the reviewed built-in
+  practice experience.
+- Support custom IDE and executable-course work as trusted changes to a
+  repository fork, not remote runtime plugins.
+- Make source, changelog, tags, package artifacts, immutable schemas, and the
+  reference deployment identify the same release commit.
+- Publish the exact architecture and security boundary between portable
+  content, application adapters, host-owned checks, sandbox workers, UI, and
+  progress.
+
+The Question Group CLI, self-hosted practice player, and agent authoring
+workflow are v0.2 release requirements. Automatically installing an arbitrary
+hosted library into an unrelated Latent deployment remains follow-on work and
+must not be implied by the launch copy.
 
 ## Interoperability
 
@@ -77,6 +106,8 @@ separate claims.
 - Requiring a Latent account to create, read, or self-host a Learning Pack.
 - Locking a course into a private format.
 - Executing arbitrary remote plugins inside the learner application.
+- Treating a hosted Question Group library as permission to execute its starter
+  source.
 - Making one model provider mandatory.
 - Treating automatic validation as proof of accuracy or teaching quality.
 

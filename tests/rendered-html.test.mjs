@@ -15,15 +15,17 @@ async function render(path = "/") {
   );
 }
 
-test("the landing page gives learners a plainspoken route into the courses", async () => {
+test("the landing page presents the framework and its reference course", async () => {
   const response = await render("/");
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /Learn how LLM systems actually work/);
-  assert.match(html, /Start with the math if you need it, or jump straight into models/);
-  assert.match(html, /Every lesson pairs a clear explanation with code you can run in your browser/);
-  assert.match(html, /Find your starting point/);
-  assert.match(html, /Model, runtime, serving, and interface/);
+  assert.match(html, /Build your own learning platform with agents/);
+  assert.match(html, /opinionated open-source framework/);
+  assert.match(html, /browser IDE lessons, flash cards, and programming practice/);
+  assert.match(html, /LLM systems curriculum as a complete reference implementation/);
+  assert.match(html, /Create portable content/);
+  assert.match(html, /Explore the LLM course/);
+  assert.match(html, /The reference implementation goes deep/);
   assert.match(html, /Browser-native LLM system/);
   assert.match(html, /Prompt \+ messages/);
   assert.match(html, /Tokenizer/);
@@ -42,7 +44,8 @@ test("the landing page gives learners a plainspoken route into the courses", asy
   assert.match(html, /This is not a production-scale model or serving stack/);
   assert.match(html, /models\/character-rnn\.py/);
   assert.match(html, /capstone\/BrowserChat\.tsx/);
-  assert.match(html, /href="\/course#starting-point"/);
+  assert.match(html, /href="\/open-learning"/);
+  assert.match(html, /href="\/courses\/llm-systems"/);
   assert.doesNotMatch(html, /Open the course|Build the system|Token generation is the midpoint|It is free to use/);
   assert.doesNotMatch(html, /Character-level RNN training|course-track-card catalog-track-card|Run the first model/);
 });

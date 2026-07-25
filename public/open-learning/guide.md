@@ -28,9 +28,10 @@ npm exec --yes --package "$COURSE_KIT_RELEASE" -- \
   latent-learning init my-learning-pack --json
 ```
 
-The GitHub tarball is the permanent registry-independent install path. After
-the `@latent` npm scope is bootstrapped, `@latent/course-kit@0.1.0` is an
-equivalent shorter pin.
+The GitHub tarball is the permanent registry-independent install path. Course
+Kit is not currently published on npm. After the `@latent` npm scope is
+bootstrapped, the matching package version can become an equivalent shorter
+pin; do not advertise that pin before it exists.
 
 `init` deliberately writes an incomplete scaffold. Replace every example
 identity, source, and content field in `my-learning-pack/learning-pack.json`;

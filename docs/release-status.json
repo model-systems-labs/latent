@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "courseKit": {
+    "sourceVersion": "0.2.0",
+    "state": "development",
+    "latestPublishedVersion": "0.1.0",
+    "latestPublishedTag": "course-kit-v0.1.0",
+    "installUrl": "https://github.com/model-systems-labs/latent/releases/download/course-kit-v0.1.0/latent-course-kit-0.1.0.tgz",
+    "npmState": "unpublished",
+    "questionGroupSchemaState": "candidate"
+  }
+}

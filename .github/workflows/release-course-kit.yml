@@ -1,10 +1,8 @@
 name: Release Course Kit
 
-# Every tag publishes a registry-independent GitHub tarball and immutable
-# schemas. npm publishing is additionally enabled only when the repository
-# variable NPM_PUBLISH_ENABLED is true. npm must already contain the package
-# and trust this workflow first; bootstrap ownership interactively, then use
-# OIDC here and never add a publish token.
+# Every v0.2 tag publishes a registry-independent GitHub tarball and immutable
+# schemas. npm publishing is intentionally deferred until a later release can
+# represent the registry transition without making the immutable tag stale.
 
 on:
   push:
@@ -28,16 +26,17 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22.14.0
-          registry-url: https://registry.npmjs.org
           cache: npm
-      - name: Use an npm CLI with trusted publishing support
-        run: npm install --global npm@11.5.1
       - run: npm ci --ignore-scripts
       - name: Require a matching version tag on main
         run: |
           git fetch origin main
           git merge-base --is-ancestor "$GITHUB_SHA" origin/main
           npm run release:check --workspace @latent/course-kit -- "$GITHUB_REF_NAME"
+      - name: Validate the exact tagged repository
+        run: |
+          npm run validate
+          git diff --exit-code
       - name: Refuse an existing npm version
         run: |
           set +e
@@ -183,57 +182,3 @@ jobs:
             --title "Course Kit ${GITHUB_REF_NAME#course-kit-v}" \
             --notes-file CHANGELOG.md \
             --verify-tag
-
-  publish:
-    if: vars.NPM_PUBLISH_ENABLED == 'true'
-    needs:
-      - verify
-      - schemas
-      - github-release
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: 22.14.0
-          registry-url: https://registry.npmjs.org
-      - name: Use an npm CLI with trusted publishing support
-        run: npm install --global npm@11.5.1
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          name: course-kit-npm-tarball
-          path: course-kit-release
-      - name: Recheck release identity and npm availability
-        run: |
-          git fetch origin main
-          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
-          npm run release:check --workspace @latent/course-kit -- "$GITHUB_REF_NAME"
-          version="$(node --print "require('./packages/course-kit/package.json').version")"
-          set +e
-          npm view @latent/course-kit versions --json > "$RUNNER_TEMP/course-kit-versions.json" 2> "$RUNNER_TEMP/npm-view-error.txt"
-          npm_view_status=$?
-          set -e
-          if [ "$npm_view_status" -ne 0 ]; then
-            if grep -q "E404" "$RUNNER_TEMP/npm-view-error.txt"; then
-              printf '[]\n' > "$RUNNER_TEMP/course-kit-versions.json"
-            else
-              cat "$RUNNER_TEMP/npm-view-error.txt" >&2
-              exit "$npm_view_status"
-            fi
-          fi
-          COURSE_KIT_VERSION="$version" node --input-type=module --eval '
-            import { readFile } from "node:fs/promises";
-            const value = JSON.parse(await readFile(process.env.RUNNER_TEMP + "/course-kit-versions.json", "utf8"));
-            const versions = Array.isArray(value) ? value : [value];
-            if (versions.includes(process.env.COURSE_KIT_VERSION)) {
-              throw new Error(`@latent/course-kit@${process.env.COURSE_KIT_VERSION} is already published`);
-            }
-          '
-      - name: Publish the verified tarball
-        run: npm publish course-kit-release/*.tgz --access public --provenance

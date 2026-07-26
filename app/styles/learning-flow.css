@@ -144,6 +144,17 @@ main {
   width: 5px;
 }
 
+.wordmark small {
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: max(0.64rem, 11px);
+  font-style: normal;
+  font-weight: 560;
+  letter-spacing: 0.08em;
+  margin-left: 0.4rem;
+  text-transform: uppercase;
+}
+
 .site-header nav {
   display: flex;
   gap: 1.75rem;

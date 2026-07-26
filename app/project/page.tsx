@@ -6,7 +6,7 @@ import { LearningDataPanel } from "../components/LearningDataPanel";
 import { PageAtmosphere } from "../components/PageAtmosphere";
 
 export const metadata: Metadata = {
-  title: "Project structure · Latent",
+  title: "Project structure · Latent Courses",
   description: "See which starter files you have completed and what is ready for the browser-chat build.",
 };
 
@@ -15,7 +15,7 @@ export default function ProjectPage() {
     <main>
       <PageAtmosphere />
       <header className="site-header course-header">
-        <Link className="wordmark" href="/"><i />latent</Link>
+        <Link className="wordmark" href="/" aria-label="Latent Courses home"><i />latent courses</Link>
         <nav><Link href="/courses/llm-systems">LLM Systems</Link><Link href="/workspace">IDE</Link><Link href="/capstone">Capstone</Link></nav>
       </header>
       <article className="project-page">

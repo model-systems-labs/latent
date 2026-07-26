@@ -1,9 +1,13 @@
 import vinext from "vinext";
+import { resolve } from "node:path";
 import { defineConfig } from "vite";
 import { sites } from "./build/sites-vite-plugin";
 
 // macOS Seatbelt blocks FSEvents, so Codex previews need polling for HMR.
 const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
+const productHome = process.env.LATENT_PRODUCT_HOME === "framework"
+  ? "products/framework/home.ts"
+  : "products/courses/home.ts";
 
 const localBindingConfig = {
   main: "./worker/index.ts",
@@ -21,6 +25,11 @@ export default defineConfig(async () => {
   const { cloudflare } = await import("@cloudflare/vite-plugin");
 
   return {
+    resolve: {
+      alias: {
+        "../products/product-home": resolve(process.cwd(), productHome),
+      },
+    },
     // Consent-gated and editor-only features are dynamically imported. Explicitly
     // prebundle their static client boundaries so the first click cannot request
     // a dependency chunk Vite never prepared in the RSC development graph.

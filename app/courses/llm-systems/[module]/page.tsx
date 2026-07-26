@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: { params: Promise<{ module: s
   const { module } = await params;
   const track = getTrack(module);
   if (!track) return {};
-  return { title: `${track.title} · Build an LLM System · Latent`, description: track.thesis };
+  return { title: `${track.title} · Build an LLM System · Latent Courses`, description: track.thesis };
 }
 
 export default async function LlmSystemsModulePage({ params }: { params: Promise<{ module: string }> }) {
@@ -28,7 +28,7 @@ export default async function LlmSystemsModulePage({ params }: { params: Promise
   return (
     <main>
       <PageAtmosphere />
-      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><Link href="/courses/llm-systems">LLM Systems</Link><Link href="/project">Project</Link><Link href="/workspace">IDE</Link></nav></header>
+      <header className="site-header course-header"><Link className="wordmark" href="/" aria-label="Latent Courses home"><i />latent courses</Link><nav><Link href="/courses/llm-systems">LLM Systems</Link><Link href="/project">Project</Link><Link href="/workspace">IDE</Link></nav></header>
       <article className="course-page track-page">
         <header className="course-hero track-hero catalog-track-hero">
           <p className="eyebrow">Build an LLM System</p>

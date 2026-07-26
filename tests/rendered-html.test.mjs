@@ -15,8 +15,26 @@ async function render(path = "/") {
   );
 }
 
-test("the landing page presents the framework and its reference course", async () => {
+test("the landing page presents the learner course product", async () => {
   const response = await render("/");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Learn how language-model systems actually work/);
+  assert.match(html, /Match the course to what you already know/);
+  assert.match(html, /Linear Algebra Basics/);
+  assert.match(html, /Machine Learning Basics/);
+  assert.match(html, /Harness Engineering/);
+  assert.match(html, /Build an LLM System in Your Browser/);
+  assert.match(html, /href="\/practice"/);
+  assert.match(html, /href="\/flashcards"/);
+  assert.match(html, /href="\/sources"/);
+  assert.match(html, /Latent Courses/);
+  assert.doesNotMatch(html, /href="\/(?:open-learning|workspace)"/);
+  assert.doesNotMatch(html, /Platform publishing pipeline|Publish portable content/);
+});
+
+test("the framework route presents the platform and its reference course boundary", async () => {
+  const response = await render("/framework");
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /Build a learning platform you own/);
@@ -29,7 +47,7 @@ test("the landing page presents the framework and its reference course", async (
   assert.match(html, /Portable content or reviewed application source/);
   assert.match(html, /Schemas, quality checks, tests, and deterministic builds/);
   assert.match(html, /packages\/course-kit\//);
-  assert.match(html, /app\/  # reference implementation/);
+  assert.match(html, /app\/  # shared route composition/);
   assert.match(html, /href="\/open-learning"/);
   assert.match(html, /href="\/course"/);
   assert.doesNotMatch(html, /Edit text|Edit lesson|href="\/workspace"/);
@@ -58,6 +76,25 @@ test("the course catalog separates foundations, agent systems, and the cumulativ
   assert.equal((html.match(/<dt[^>]*>Outcome<\/dt>/g) ?? []).length, 4);
   assert.ok(html.indexOf("project-course-title") < html.indexOf("Review library"));
   assert.equal((html.match(/class="course-track-card catalog-program-card"/g) ?? []).length, 4);
+  assert.doesNotMatch(html, /href="\/(?:open-learning|workspace)"/);
+});
+
+test("learner-wide pages do not expose framework publishing or project IDE navigation", async () => {
+  for (const path of [
+    "/",
+    "/course",
+    "/practice",
+    "/practice/leeches",
+    "/practice/ide/unique-values",
+    "/flashcards",
+    "/sources",
+  ]) {
+    const response = await render(path);
+    assert.equal(response.status, 200, path);
+    const html = await response.text();
+    assert.doesNotMatch(html, /href="\/open-learning"/, path);
+    assert.doesNotMatch(html, /href="\/workspace"/, path);
+  }
 });
 
 test("open learning exposes self-hosted feeds and local package authoring", async () => {
@@ -562,7 +599,8 @@ test("the design kit, simulations, model engines, and artifact runtime remain re
   assert.doesNotMatch(paperLab, /supporting-sources/);
   assert.match(paperLab, /source\.role/);
   assert.doesNotMatch(paperLab, /SelectionAsk|selection-ask|data-selection-ask|Highlight a passage/);
-  assert.match(layout, /og-v0\.2\.png/);
+  assert.match(layout, /Latent Courses · Learn LLM systems in your browser/);
+  assert.match(layout, /new URL\("\/og\.png", metadataBase\)/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   await assert.rejects(access(new URL("../app/_sites-preview", templateRoot)));
 });

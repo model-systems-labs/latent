@@ -979,7 +979,7 @@ export function BrowserChatCapstone() {
   return (
     <main className="compiled-capstone-shell">
       <header className="capstone-topbar">
-        <Link className="wordmark" href="/"><i />latent</Link>
+        <Link className="wordmark" href="/" aria-label="Latent Courses home"><i />latent courses</Link>
         <div><strong>Browser Chat</strong></div>
         <nav><Link href="/courses/llm-systems">LLM Systems</Link><Link href="/project">Project</Link><Link href="/workspace">IDE</Link></nav>
       </header>

@@ -347,7 +347,7 @@ export function HarnessWorkbench() {
   return (
     <main className={styles.shell}>
       <header className={styles.topbar}>
-        <Link className="wordmark" href="/" aria-label="Latent home"><i />latent</Link>
+        <Link className="wordmark" href="/" aria-label="Latent Courses home"><i />latent courses</Link>
         <div><strong>harness-engineering/</strong></div>
         <nav><Link href="/courses/harness-engineering">Course</Link><Link href="/lessons/agent-loop">Lessons</Link></nav>
       </header>

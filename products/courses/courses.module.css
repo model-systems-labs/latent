@@ -1,0 +1,437 @@
+.page {
+  min-height: 100vh;
+}
+
+.shell,
+.footer {
+  margin: 0 auto;
+  max-width: 1120px;
+  position: relative;
+  width: calc(100% - 5rem);
+  z-index: 1;
+}
+
+.hero {
+  padding: var(--rhythm-landing) 0;
+}
+
+.hero h1,
+.startingPoint h2,
+.programs h2,
+.project h2,
+.study h2,
+.local h2 {
+  font-family: var(--serif);
+  font-weight: 400;
+  letter-spacing: -0.06em;
+  line-height: 0.98;
+  margin: 0;
+}
+
+.hero h1 {
+  font-size: clamp(3.15rem, 6.2vw, 5.6rem);
+  max-width: 65rem;
+  text-wrap: balance;
+}
+
+.hero > p {
+  color: var(--muted);
+  font-family: var(--serif);
+  font-size: clamp(1.12rem, 1.7vw, 1.4rem);
+  line-height: 1.65;
+  margin: 1.45rem 0 0;
+  max-width: 55rem;
+}
+
+.actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem 1.1rem;
+  margin-top: 1.8rem;
+}
+
+.primaryAction,
+.secondaryAction {
+  border-bottom: 1px solid var(--line-strong);
+  min-height: 3rem;
+  padding: 0.8rem 0;
+}
+
+.primaryAction {
+  display: inline-flex;
+  gap: 1rem;
+}
+
+.secondaryAction {
+  color: var(--muted);
+}
+
+.startingPoint,
+.programs,
+.project,
+.study,
+.local {
+  border-top: 1px solid var(--line-strong);
+  padding: var(--rhythm-major) 0;
+}
+
+.startingPoint > header,
+.programs > header,
+.project > header,
+.study > header {
+  max-width: 56rem;
+}
+
+.startingPoint h2,
+.programs h2,
+.project h2,
+.study h2,
+.local h2 {
+  font-size: clamp(2.25rem, 4vw, 3.5rem);
+}
+
+.startingPoint ol,
+.project ol {
+  display: grid;
+  list-style: none;
+  margin: clamp(2.2rem, 4vw, 3.4rem) 0 0;
+  padding: 0;
+}
+
+.startingPoint ol {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.startingPoint li {
+  border-block: 1px solid var(--line);
+}
+
+.startingPoint li + li {
+  border-left: 1px solid var(--line);
+}
+
+.startingPoint li a {
+  display: grid;
+  min-height: 23rem;
+  padding: 1.2rem clamp(1rem, 2.5vw, 2rem);
+}
+
+.startingPoint li:first-child a {
+  padding-left: 0;
+}
+
+.startingPoint li:last-child a {
+  padding-right: 0;
+}
+
+.startingPoint li a > span,
+.project li > span {
+  color: var(--violet);
+  font-family: var(--mono);
+  font-size: max(0.68rem, 11px);
+}
+
+.startingPoint small,
+.programCard > span {
+  align-self: end;
+  color: var(--muted);
+  font-size: max(0.68rem, 11px);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.startingPoint h3,
+.programCard h3 {
+  font-family: var(--serif);
+  font-size: clamp(1.5rem, 2.4vw, 2rem);
+  font-weight: 400;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  margin: 0.55rem 0 0;
+}
+
+.startingPoint p,
+.programCard p,
+.project header p,
+.project li p,
+.study nav span,
+.local p {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.startingPoint p {
+  font-size: max(0.75rem, 12px);
+}
+
+.startingPoint li strong {
+  align-self: end;
+}
+
+.programGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: clamp(2.2rem, 4vw, 3.4rem);
+}
+
+.programCard {
+  border-top: 1px solid var(--line);
+  display: grid;
+  min-height: 29rem;
+  padding: 1.35rem clamp(1.25rem, 3vw, 2.4rem) 1.5rem 0;
+  position: relative;
+}
+
+.programCard:nth-child(even) {
+  border-left: 1px solid var(--line);
+  padding-left: clamp(1.25rem, 3vw, 2.4rem);
+}
+
+.programCard:nth-last-child(-n + 2) {
+  border-bottom: 1px solid var(--line);
+}
+
+.programCard > em {
+  color: var(--muted);
+  font-size: max(0.68rem, 11px);
+  font-style: normal;
+  position: absolute;
+  right: clamp(1.25rem, 3vw, 2.4rem);
+  top: 1.35rem;
+}
+
+.programCard h3 {
+  align-self: end;
+  font-size: clamp(1.8rem, 3vw, 2.55rem);
+}
+
+.programCard dl {
+  border-top: 1px solid var(--line);
+  margin: 1.25rem 0;
+  padding-top: 0.8rem;
+}
+
+.programCard dl div {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 5rem minmax(0, 1fr);
+  padding: 0.45rem 0;
+}
+
+.programCard dt,
+.programCard dd {
+  font-size: max(0.7rem, 12px);
+  line-height: 1.45;
+}
+
+.programCard dt {
+  color: var(--muted);
+}
+
+.programCard dd {
+  margin: 0;
+}
+
+.programCard > a {
+  align-self: end;
+  border-bottom: 1px solid var(--line-strong);
+  justify-self: start;
+  min-height: 2.75rem;
+  padding-top: 0.75rem;
+}
+
+.project header p {
+  font-family: var(--serif);
+  font-size: clamp(1.03rem, 1.5vw, 1.22rem);
+  max-width: 52rem;
+}
+
+.project ol {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.project li {
+  border-block: 1px solid var(--line);
+  display: grid;
+  min-height: 15rem;
+  padding: 1rem 1.2rem;
+}
+
+.project li:first-child {
+  padding-left: 0;
+}
+
+.project li + li {
+  border-left: 1px solid var(--line);
+}
+
+.project li strong {
+  align-self: end;
+  font-family: var(--serif);
+  font-size: clamp(1.35rem, 2vw, 1.75rem);
+  font-weight: 400;
+}
+
+.project li p {
+  font-size: max(0.72rem, 12px);
+}
+
+.project > a {
+  border-bottom: 1px solid var(--line-strong);
+  display: inline-flex;
+  margin-top: 1.3rem;
+  min-height: 2.75rem;
+  padding-top: 0.75rem;
+}
+
+.study nav {
+  border-block: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: clamp(2.2rem, 4vw, 3.4rem);
+}
+
+.study nav a {
+  display: grid;
+  min-height: 12rem;
+  padding: 1.2rem clamp(1rem, 2.5vw, 2rem);
+}
+
+.study nav a:first-child {
+  padding-left: 0;
+}
+
+.study nav a + a {
+  border-left: 1px solid var(--line);
+}
+
+.study nav strong {
+  font-family: var(--serif);
+  font-size: 1.4rem;
+  font-weight: 400;
+}
+
+.study nav span {
+  align-self: end;
+  font-size: max(0.72rem, 12px);
+}
+
+.local {
+  display: grid;
+  gap: 1.2rem 3rem;
+  grid-template-columns: 0.7fr 1.3fr;
+}
+
+.local > span {
+  grid-column: 1 / -1;
+}
+
+.local p {
+  font-family: var(--serif);
+  font-size: clamp(1.05rem, 1.5vw, 1.22rem);
+  margin: 0;
+}
+
+.footer {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  min-height: 5rem;
+}
+
+.footer > span {
+  font-family: var(--serif);
+}
+
+.footer p {
+  color: var(--muted);
+  font-size: max(0.68rem, 11px);
+  margin: 0;
+}
+
+.footer a {
+  border-bottom: 1px solid var(--line-strong);
+}
+
+@media (max-width: 720px) {
+  .shell,
+  .footer {
+    width: calc(100% - 2rem);
+  }
+
+  .hero {
+    padding: 3.2rem 0;
+  }
+
+  .hero h1 {
+    font-size: clamp(2.65rem, 11vw, 3.5rem);
+  }
+
+  .actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .startingPoint ol,
+  .programGrid,
+  .project ol,
+  .study nav,
+  .local {
+    grid-template-columns: 1fr;
+  }
+
+  .startingPoint li + li,
+  .programCard:nth-child(even),
+  .project li + li,
+  .study nav a + a {
+    border-left: 0;
+  }
+
+  .startingPoint li a,
+  .startingPoint li:first-child a,
+  .startingPoint li:last-child a,
+  .programCard,
+  .programCard:nth-child(even),
+  .project li,
+  .project li:first-child,
+  .study nav a,
+  .study nav a:first-child {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .startingPoint li a,
+  .programCard {
+    min-height: 22rem;
+  }
+
+  .programCard:nth-child(3) {
+    border-bottom: 0;
+  }
+
+  .project li {
+    grid-template-columns: 2.5rem 6rem 1fr;
+    min-height: 0;
+  }
+
+  .project li strong {
+    align-self: start;
+  }
+
+  .project li p {
+    margin: 0;
+  }
+
+  .local > span {
+    grid-column: 1;
+  }
+
+  .footer {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding: 1rem 0;
+  }
+}

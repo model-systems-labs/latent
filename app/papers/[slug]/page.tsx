@@ -12,7 +12,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const lesson = getLesson(slug);
   if (!lesson) return {};
   return {
-    title: `${lesson.title} · Latent`,
+    title: `${lesson.title} · Latent Courses`,
     description: lesson.thesis,
   };
 }

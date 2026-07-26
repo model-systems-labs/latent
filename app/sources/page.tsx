@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { LearnerHeader } from "../components/LearnerHeader";
 import { coursePrograms } from "../lessons/course";
 import { PageAtmosphere } from "../components/PageAtmosphere";
 
 export const metadata: Metadata = {
-  title: "Further reading and licenses · Latent",
+  title: "Further reading and licenses · Latent Courses",
   description: "References, datasets, model licenses, and open-source notices for every Latent course.",
 };
 
@@ -43,7 +43,7 @@ export default function SourcesPage() {
   return (
     <main>
       <PageAtmosphere />
-      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><Link href="/course">Courses</Link><Link href="/project">Project</Link><Link href="/workspace">IDE</Link></nav></header>
+      <LearnerHeader current="reading" />
       <article className="sources-page">
         <header className="sources-hero"><h1>Further reading</h1><p>References, datasets, models, and software used across the four courses.</p></header>
 

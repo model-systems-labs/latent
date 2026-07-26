@@ -6,7 +6,7 @@ import { CourseResume } from "../../components/CourseResume";
 import { PageAtmosphere } from "../../components/PageAtmosphere";
 
 export const metadata: Metadata = {
-  title: "Build an LLM System in Your Browser · Latent",
+  title: "Build an LLM System in Your Browser · Latent Courses",
   description: "Build model foundations, an inference runtime, LLM serving, and a React chat application as one browser project.",
 };
 
@@ -15,7 +15,7 @@ export default function LlmSystemsCoursePage() {
   return (
     <main>
       <PageAtmosphere />
-      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><Link href="/course">Courses</Link><Link href="/workspace" aria-label="Open coding workspace">Code</Link><Link href="/project">Project</Link><Link href="/sources">Further reading</Link></nav></header>
+      <header className="site-header course-header"><Link className="wordmark" href="/" aria-label="Latent Courses home"><i />latent courses</Link><nav><Link href="/course">Courses</Link><Link href="/workspace" aria-label="Open coding workspace">Code</Link><Link href="/project">Project</Link><Link href="/sources">Further reading</Link></nav></header>
       <article className="course-page full-course-page">
         <header className="course-hero full-course-hero home-course-hero">
           <p className="eyebrow">Project course · {llmSystemsCurriculum.lessonCount} lessons · 4 modules</p>

@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { coursePrograms, courseTracks, getCourseProgram } from "../../lessons/course";
 import { CourseGuide } from "../../components/CourseGuide";
 import { CourseCurriculum } from "../../components/CourseCurriculum";
+import { LearnerHeader } from "../../components/LearnerHeader";
 import { PageAtmosphere } from "../../components/PageAtmosphere";
 
 export function generateStaticParams() {
@@ -17,10 +18,10 @@ export async function generateMetadata({ params }: { params: Promise<{ course: s
   const { course } = await params;
   const program = getCourseProgram(course);
   if (program && program.kind !== "project") {
-    return { title: `${program.title} · Latent`, description: program.thesis };
+    return { title: `${program.title} · Latent Courses`, description: program.thesis };
   }
   const track = courseTracks.find((candidate) => candidate.id === course);
-  if (track) return { title: `${track.title} · Latent`, description: track.thesis };
+  if (track) return { title: `${track.title} · Latent Courses`, description: track.thesis };
   return {};
 }
 
@@ -38,7 +39,7 @@ export default async function StandaloneCoursePage({ params }: { params: Promise
   return (
     <main>
       <PageAtmosphere />
-      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><Link href="/course">All courses</Link><Link href="/sources">Further reading</Link></nav></header>
+      <LearnerHeader current="courses" />
       <article className="course-page track-page standalone-course-page">
         <header className="course-hero track-hero catalog-track-hero">
           <p className="eyebrow">{courseKind} course · {program.lessons.length} lessons</p>

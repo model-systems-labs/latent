@@ -22,25 +22,30 @@ export async function generateMetadata(): Promise<Metadata> {
   const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "localhost:3001";
   const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   const metadataBase = new URL(`${protocol}://${host}`);
-  const title = "Latent · Open-source learning platform framework";
+  const title = "Latent Courses · Learn LLM systems in your browser";
   const description =
-    "Build browser-native courses, coding lessons, flash cards, and practice sites from reviewed source and portable content.";
+    "Four interactive, browser-native courses in linear algebra, machine learning, harness engineering, and LLM systems, with runnable exercises, flash cards, and coding practice.";
 
   return {
     metadataBase,
     title,
     description,
+    robots: {
+      index: false,
+      follow: false,
+      nocache: true,
+    },
     openGraph: {
       title,
       description,
       type: "website",
-      images: [{ url: new URL("/og-v0.2.png", metadataBase).toString(), width: 1733, height: 908 }],
+      images: [{ url: new URL("/og.png", metadataBase).toString(), width: 1731, height: 909 }],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [new URL("/og-v0.2.png", metadataBase).toString()],
+      images: [new URL("/og.png", metadataBase).toString()],
     },
   };
 }

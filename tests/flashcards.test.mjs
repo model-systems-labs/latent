@@ -10,6 +10,7 @@ const deckSourceUrl = new URL("../app/components/FlashcardDeck.tsx", import.meta
 const deckStylesUrl = new URL("../app/components/FlashcardDeck.module.css", import.meta.url);
 const flashcardPageUrl = new URL("../app/flashcards/page.tsx", import.meta.url);
 const flashcardPageStylesUrl = new URL("../app/flashcards/page.module.css", import.meta.url);
+const learnerHeaderUrl = new URL("../app/components/LearnerHeader.tsx", import.meta.url);
 const progressSourceUrl = new URL("../app/lib/flashcard-progress.ts", import.meta.url);
 const searchSourceUrl = new URL("../app/lib/flashcard-search.ts", import.meta.url);
 const transportSourceUrl = new URL("../app/content/flashcard-transport.ts", import.meta.url);
@@ -554,7 +555,8 @@ test("the built flash-card route renders an accessible unrevealed study deck", a
 
   assert.match(html, /Make the ideas stick/);
   assert.match(html, /Review library · (?:<!-- -->)?638(?:<!-- -->)? cards/);
-  assert.match(html, /href="\/course"[^>]*>Course home/);
+  assert.match(html, /href="\/course">Courses/);
+  assert.match(html, /href="\/flashcards" aria-current="page">Cards/);
   assert.match(html, /aria-label="Study progress"/);
   assert.match(html, /role="progressbar"/);
   assert.match(html, /aria-label="Cards reviewed in selected subjects"/);
@@ -725,14 +727,18 @@ test("flash-card controls keep 44px targets and mobile, safe-area, and reduced-m
 });
 
 test("course navigation links to the flash-card section", async () => {
-  const source = await readFile(coursePageUrl, "utf8");
-  assert.match(source, /<Link href="\/flashcards" aria-label="Flash cards">Cards<\/Link>/);
+  const [source, learnerHeader] = await Promise.all([
+    readFile(coursePageUrl, "utf8"),
+    readFile(learnerHeaderUrl, "utf8"),
+  ]);
+  assert.match(source, /<LearnerHeader current="courses" \/>/);
+  assert.match(learnerHeader, /\{ id: "cards", href: "\/flashcards", label: "Cards" \}/);
   assert.match(source, /className=\{styles\.reviewCallout\} href="\/flashcards"/);
 
   const response = await render("/course");
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /href="\/flashcards" aria-label="Flash cards">Cards<\/a>/);
+  assert.match(html, /href="\/flashcards">Cards<\/a>/);
   assert.match(html, /Review library/);
   assert.match(html, /Study flash cards/);
 });

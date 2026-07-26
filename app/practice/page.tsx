@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { LearnerHeader } from "../components/LearnerHeader";
 import { PageAtmosphere } from "../components/PageAtmosphere";
 import { PracticeWorkbench } from "./PracticeWorkbench";
 import { methodQuestionGroups, methodQuestions } from "../content/practice/question-library";
 import styles from "./page.module.css";
 
 export const metadata: Metadata = {
-  title: "Method practice · Latent",
+  title: "Method practice · Latent Courses",
   description: "Solve original interview-style coding questions locally in your browser.",
 };
 
@@ -14,16 +15,7 @@ export default function PracticePage() {
   return (
     <main className={styles.shell}>
       <PageAtmosphere />
-      <header className={`site-header course-header ${styles.topbar}`}>
-        <Link className="wordmark" href="/"><i />latent</Link>
-        <nav aria-label="Practice navigation">
-          <Link href="/course">Courses</Link>
-          <Link aria-current="page" href="/practice">Practice</Link>
-          <Link href="/practice/leeches">Leeches</Link>
-          <Link href="/flashcards">Cards</Link>
-          <Link href="/workspace" aria-label="Open coding workspace">Code</Link>
-        </nav>
-      </header>
+      <LearnerHeader className={styles.topbar} current="practice" />
 
       <article className={styles.page}>
         <header className={styles.hero}>
@@ -35,8 +27,10 @@ export default function PracticePage() {
           </p>
           <p>
             <Link href="/practice/ide/unique-values">
-              Try “Keep unique values” in the extension-backed IDE
+              Try “Keep unique values” in the focused browser IDE
             </Link>
+            {" · "}
+            <Link href="/practice/leeches">Review questions you keep missing</Link>
           </p>
         </header>
         <PracticeWorkbench />

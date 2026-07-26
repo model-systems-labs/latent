@@ -13,7 +13,7 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{ module: string }> }): Promise<Metadata> {
   const { module } = await params;
   const definition = moduleCheckpoint(module);
-  return definition ? { title: `${definition.title} · Latent`, description: definition.objective } : {};
+  return definition ? { title: `${definition.title} · Latent Courses`, description: definition.objective } : {};
 }
 
 export default async function CheckpointPage({ params }: { params: Promise<{ module: string }> }) {
@@ -23,7 +23,7 @@ export default async function CheckpointPage({ params }: { params: Promise<{ mod
   return (
     <main>
       <PageAtmosphere />
-      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><Link href={`/courses/llm-systems/${track.id}`}>Module</Link><Link href="/project">Project</Link><Link href="/workspace">IDE</Link></nav></header>
+      <header className="site-header course-header"><Link className="wordmark" href="/" aria-label="Latent Courses home"><i />latent courses</Link><nav><Link href={`/courses/llm-systems/${track.id}`}>Module</Link><Link href="/project">Project</Link><Link href="/workspace">IDE</Link></nav></header>
       <ModuleCheckpoint courseId={track.id} />
     </main>
   );

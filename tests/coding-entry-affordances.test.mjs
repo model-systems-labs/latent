@@ -13,17 +13,23 @@ function primaryHeader(source) {
   return source.slice(start, end);
 }
 
-test("the framework homepage avoids learner-only IDE navigation while course pages retain it", async () => {
-  const [landing, catalog, llmCourse] = await Promise.all([
-    read("app/page.tsx"),
+test("learner-wide navigation omits publishing and IDE links while the project course retains its contextual workspace", async () => {
+  const [learnerHeader, landing, catalog, framework, llmCourse] = await Promise.all([
+    read("app/components/LearnerHeader.tsx"),
+    read("products/courses/CoursesLanding.tsx"),
     read("app/course/page.tsx"),
+    read("products/framework/FrameworkLanding.tsx"),
     read("app/courses/llm-systems/page.tsx"),
   ]);
 
-  assert.doesNotMatch(primaryHeader(landing), /href="\/workspace"/);
-  for (const page of [catalog, llmCourse]) {
-    assert.match(primaryHeader(page), /href="\/workspace"/);
+  assert.doesNotMatch(primaryHeader(learnerHeader), /href="\/(?:workspace|open-learning)"/);
+  for (const page of [landing, catalog]) {
+    assert.match(page, /<LearnerHeader current="courses" \/>/);
+    assert.doesNotMatch(page, /href="\/(?:workspace|open-learning)"/);
   }
+  assert.match(primaryHeader(framework), /href="\/open-learning"/);
+  assert.doesNotMatch(primaryHeader(framework), /href="\/workspace"/);
+  assert.match(primaryHeader(llmCourse), /href="\/workspace"/);
   assert.match(llmCourse, /secondaryLink=\{\{ href: "\/workspace", label: "Open coding workspace" \}\}/);
 });
 

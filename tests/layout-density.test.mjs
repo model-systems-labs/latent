@@ -8,7 +8,7 @@ const read = (path) => readFile(new URL(path, root), "utf8");
 test("macro layout rhythm is tuned to roughly seventy percent", async () => {
   const [tokens, landing, lessons, catalog, course] = await Promise.all([
     read("app/styles/tokens.css"),
-    read("app/page.module.css"),
+    read("products/courses/courses.module.css"),
     read("app/styles/learning-flow.css"),
     read("app/styles/course-catalog.css"),
     read("app/course/page.module.css"),
@@ -19,7 +19,7 @@ test("macro layout rhythm is tuned to roughly seventy percent", async () => {
   assert.match(tokens, /--rhythm-section:\s*clamp\(2\.1rem, 4\.2vw, 3\.5rem\)/);
   assert.match(tokens, /--rhythm-group:\s*clamp\(2\.8rem, 5\.6vw, 4\.55rem\)/);
   assert.match(landing, /\.hero\s*\{[^}]*padding:\s*var\(--rhythm-landing\) 0/);
-  assert.match(landing, /\.argument\s*\{[^}]*padding:\s*var\(--rhythm-major\) 0/);
+  assert.match(landing, /\.startingPoint,[^{]*\{[^}]*padding:\s*var\(--rhythm-major\) 0/);
   assert.match(lessons, /\.paper-page \.paper-section\s*\{\s*padding:\s*var\(--rhythm-section\) 0/);
   assert.match(catalog, /\.course-page\s*\{[^}]*padding:\s*1\.4rem 0 3\.5rem/);
   assert.match(course, /\.programGroup \+ \.programGroup\s*\{\s*margin-top:\s*var\(--rhythm-group\)/);

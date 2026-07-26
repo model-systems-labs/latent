@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { FrameworkHeader } from "../../../products/framework/FrameworkHeader";
 import { PageAtmosphere } from "../../components/PageAtmosphere";
 import { LearningPackPublisher } from "../LearningPackPublisher";
 import styles from "../page.module.css";
@@ -14,15 +14,7 @@ export default function LearningPackPublisherPage() {
   return (
     <main>
       <PageAtmosphere />
-      <header className="site-header course-header">
-        <Link className="wordmark" href="/"><i />latent <small>framework</small></Link>
-        <nav aria-label="Primary navigation">
-          <Link href="/open-learning">Open learning</Link>
-          <Link href="/open-learning/read">Read a feed</Link>
-          <Link aria-current="page" href="/open-learning/publish">Publish a pack</Link>
-          <Link href="/course">Reference courses</Link>
-        </nav>
-      </header>
+      <FrameworkHeader current="publish" />
       <article className={`${styles.shell} ${styles.toolShell}`}>
         <header className={styles.toolHero}>
           <span className="eyebrow">Publisher workflow</span>

@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { FrameworkHeader } from "../../products/framework/FrameworkHeader";
 import { PageAtmosphere } from "../components/PageAtmosphere";
 import styles from "./page.module.css";
 
 export const metadata: Metadata = {
-  title: "Open learning · Latent",
+  title: "Open learning · Latent Framework",
   description: "Create, self-host, verify, and study portable lessons and flash cards made by people or any capable LLM.",
 };
 
@@ -30,15 +31,7 @@ export default function OpenLearningPage() {
   return (
     <main>
       <PageAtmosphere />
-      <header className="site-header course-header">
-        <Link className="wordmark" href="/"><i />latent</Link>
-        <nav aria-label="Primary navigation">
-          <Link href="/course">Courses</Link>
-          <Link href="/practice">Practice</Link>
-          <Link aria-current="page" href="/open-learning">Open learning</Link>
-          <Link href="/workspace" aria-label="Open coding workspace">Code</Link>
-        </nav>
-      </header>
+      <FrameworkHeader current="open-learning" />
 
       <article className={styles.shell}>
         <header className={styles.hero}>
@@ -125,13 +118,13 @@ export default function OpenLearningPage() {
       </article>
 
       <footer className={styles.footer}>
-        <span>Latent</span>
+        <span>Latent framework</span>
         <nav aria-label="Footer navigation">
-          <Link href="/course">Courses</Link>
-          <Link href="/practice">Practice</Link>
+          <Link href="/framework">Framework</Link>
           <Link href="/open-learning">Open learning</Link>
-          <Link href="/flashcards">Cards</Link>
-          <Link href="/sources">Further reading</Link>
+          <Link href="/open-learning/read">Read a feed</Link>
+          <Link href="/open-learning/publish">Publish a pack</Link>
+          <Link href="/course">Reference courses</Link>
         </nav>
       </footer>
     </main>

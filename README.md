@@ -3,11 +3,13 @@
 **Build your own learning platform with agents.**
 
 Latent is an opinionated, open-source framework for courses, browser IDE
-lessons, flash cards, and programming practice. The included courses are a
-reviewed reference implementation, not the identity of the framework.
-Production course sites should live in separate downstream repositories with
-their own curriculum, access policy, and deployment history. Portable Learning
-Pack sites remain independently hostable on any conforming static server.
+lessons, flash cards, and programming practice. This repository currently
+contains two distinct products: the framework for people building and
+publishing learning experiences, and the learner-facing Latent Courses site.
+Their product-owned entry surfaces live in separate `products/` folders while
+reviewed runtimes, contracts, application adapters, and reference curriculum
+remain shared at the repository root. Portable Learning Pack sites remain
+independently hostable on any conforming static server.
 
 [![Validate](https://github.com/model-systems-labs/latent/actions/workflows/ci.yml/badge.svg)](https://github.com/model-systems-labs/latent/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-blue.svg)](./LICENSE)
@@ -44,20 +46,35 @@ Read the [five-minute guide](./docs/getting-started.md), inspect the
 or use the included agent workflows in `skills/` to author and review each
 layer.
 
-This public repository contains two layers:
+This public repository contains two product surfaces over one shared
+architecture:
 
-- an open, model-neutral publishing framework for portable lessons, quizzes,
-  flash-card decks, and released Question Groups; and
-- a released reference implementation with courses, an IDE, flash cards, and
-  programming practice that exercises those framework boundaries.
+- `products/framework/` is the developer and publisher product. It explains
+  the platform, its public contracts, and the paths for publishing portable
+  content or extending reviewed source.
+- `products/courses/` is the learner product. It presents the released
+  courses, practice, flash cards, and reading as a coherent course library.
+- Root `app/`, `packages/`, `worker/`, and curriculum directories contain the
+  shared route adapters, trusted runtimes, portable contracts, and reviewed
+  reference content used by those products.
 
-A deployed course library is a third thing: a downstream instance. It belongs
-in its own repository and owns its own product name, content choices, access
-controls, and hosting metadata. The framework repository intentionally has no
-`.openai/hosting.json`, so it cannot overwrite an instance deployment.
+The distinction is a product boundary, not a claim that there are already two
+repositories. Latent Courses lives in this monorepo today. Its product folder
+and nested hosting profile are intentionally shaped so the course product can
+move into its own repository later if it needs an independent release history,
+access policy, or ownership model. The root intentionally has no hosting
+profile. `npm run build:courses` and `npm run build:framework` each select
+their product folder's hosting profile and root homepage explicitly.
 
-See [Framework and course instances](./docs/framework-and-instances.md) for
-the code map and the upstream/downstream workflow.
+This is an organizational and deployment-identity split, not yet two fully
+independent applications. Each build selects its own homepage, hosting
+metadata, and public identity, but both still compile the shared route tree.
+A later extraction will give each product an exclusive route root and one-way
+dependency graph.
+
+See [Framework and course instances](./docs/framework-and-instances.md) and
+the [`products/` guide](./products/README.md) for the code map, current
+ownership boundary, and possible future repository split.
 
 The open framework is the floor. Everything required to author, validate,
 export, read, and self-host a Learning Pack is available here. An optional
@@ -222,6 +239,11 @@ realm.
 
 ## Repository map
 
+- `products/framework/` — product-owned framework landing surface for
+  developers and publishers
+- `products/courses/` — product-owned learner landing surface and the course
+  deployment's nested hosting profile; designed for possible later extraction,
+  but still part of this repository today
 - `packages/course-kit/` — public Learning Pack schemas, validation, CLI, and
   static-site builder, plus the released Question Group schemas, validator,
   progress contract, and injectable player

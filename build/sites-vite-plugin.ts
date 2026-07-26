@@ -26,14 +26,29 @@ export function sites(): Plugin {
     },
     async closeBundle() {
       const outputDirectory = resolve(root, "dist", ".openai");
-      const hostingConfig = resolve(root, ".openai", "hosting.json");
+      const explicitHostingConfig = process.env.LATENT_HOSTING_CONFIG;
+      const hostingConfig = resolve(
+        root,
+        explicitHostingConfig ?? ".openai/hosting.json",
+      );
       const drizzleSource = resolve(root, "drizzle");
 
       await rm(outputDirectory, { recursive: true, force: true });
       await mkdir(outputDirectory, { recursive: true });
 
+      if (explicitHostingConfig && !(await exists(hostingConfig))) {
+        throw new Error(
+          `LATENT_HOSTING_CONFIG does not exist: ${explicitHostingConfig}`,
+        );
+      }
       if (await exists(hostingConfig)) {
         await cp(hostingConfig, resolve(outputDirectory, "hosting.json"));
+      }
+      if (explicitHostingConfig) {
+        const productLlms = resolve(hostingConfig, "..", "..", "llms.txt");
+        if (await exists(productLlms)) {
+          await cp(productLlms, resolve(root, "dist", "client", "llms.txt"));
+        }
       }
       if (await exists(drizzleSource)) {
         await cp(drizzleSource, resolve(outputDirectory, "drizzle"), {

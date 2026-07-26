@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { LearnerHeader } from "../components/LearnerHeader";
 import { coursePrograms, type CourseProgram } from "../lessons/course";
 import { PageAtmosphere } from "../components/PageAtmosphere";
 import styles from "./page.module.css";
 
 export const metadata: Metadata = {
-  title: "Courses · Latent",
+  title: "Courses · Latent Courses",
   description: "Choose the right starting point for mathematical foundations, machine learning, agent harnesses, or the browser-based LLM systems project.",
 };
 
@@ -70,7 +71,7 @@ export default function CourseCatalogPage() {
   return (
     <main>
       <PageAtmosphere />
-      <header className="site-header course-header"><Link className="wordmark" href="/"><i />latent</Link><nav><Link href="/course">Courses</Link><Link href="/practice">Practice</Link><Link href="/open-learning">Open learning</Link><Link href="/workspace" aria-label="Open coding workspace">Code</Link><Link href="/flashcards" aria-label="Flash cards">Cards</Link><Link href="/sources">Further reading</Link></nav></header>
+      <LearnerHeader current="courses" />
       <article className={`course-page ${styles.catalogPage}`}>
         <header className={`course-hero ${styles.catalogHero}`}>
           <h1>Courses</h1>

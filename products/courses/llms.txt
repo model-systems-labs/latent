@@ -1,0 +1,27 @@
+# Latent Courses
+
+Interactive, browser-native courses for learning how language-model systems
+work, from mathematical and machine-learning foundations through agent
+harnesses and a complete local chat application.
+
+Course catalog:
+/course
+
+Courses:
+/courses/linear-algebra
+/courses/machine-learning-basics
+/courses/harness-engineering
+/courses/llm-systems
+
+Study tools:
+/practice
+/flashcards
+/sources
+
+The exercises run in reviewed browser runtimes. Learner code, progress,
+checkpoints, and flash-card ratings stay on the learner's device. No hosted
+model API or API key is required.
+
+Latent Courses is built with the Latent open-source learning-platform
+framework. Publishing tools and public portable-content contracts belong to
+the framework product, not to this learner catalog.

@@ -12,7 +12,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const lesson = getLesson(slug);
   if (!lesson) return {};
-  return { title: `${lesson.title} · Latent`, description: lesson.thesis };
+  return { title: `${lesson.title} · Latent Courses`, description: lesson.thesis };
 }
 
 export default async function LessonPage({ params }: { params: Promise<{ slug: string }> }) {

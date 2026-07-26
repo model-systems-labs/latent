@@ -5,9 +5,11 @@ import { test } from "node:test";
 const courseCatalogCssUrl = new URL("../app/styles/course-catalog.css", import.meta.url);
 const responsiveCssUrl = new URL("../app/styles/responsive.css", import.meta.url);
 const projectCourseUrl = new URL("../app/courses/llm-systems/page.tsx", import.meta.url);
-const landingPageUrl = new URL("../app/page.tsx", import.meta.url);
+const coursesLandingUrl = new URL("../products/courses/CoursesLanding.tsx", import.meta.url);
+const frameworkLandingUrl = new URL("../products/framework/FrameworkLanding.tsx", import.meta.url);
 const pageAtmosphereUrl = new URL("../app/components/PageAtmosphere.tsx", import.meta.url);
-const landingCssUrl = new URL("../app/page.module.css", import.meta.url);
+const coursesCssUrl = new URL("../products/courses/courses.module.css", import.meta.url);
+const frameworkCssUrl = new URL("../products/framework/framework.module.css", import.meta.url);
 
 function cssRule(source, selector) {
   const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -37,24 +39,46 @@ test("the course CTA does not reintroduce a dark surface", async () => {
   assert.doesNotMatch(responsiveCss, /\.first-run/);
 });
 
-test("the academic landing stays unboxed and reuses the established atmosphere", async () => {
+test("the learner landing presents courses without platform publishing controls", async () => {
   const [page, atmosphere, css] = await Promise.all([
-    readFile(landingPageUrl, "utf8"),
+    readFile(coursesLandingUrl, "utf8"),
     readFile(pageAtmosphereUrl, "utf8"),
-    readFile(landingCssUrl, "utf8"),
+    readFile(coursesCssUrl, "utf8"),
   ]);
 
   assert.match(page, /<PageAtmosphere \/>/);
+  assert.match(page, /<LearnerHeader current="courses" \/>/);
   assert.match(atmosphere, /page-atmosphere/);
   assert.match(atmosphere, /orbit orbit-one/);
   assert.match(atmosphere, /node node-one/);
   assert.match(atmosphere, /warm-star/);
-  assert.match(page, /href="\/course"/);
+  assert.match(page, /Learn how language-model systems actually work/);
+  assert.match(page, /href="\/course#starting-point"/);
+  assert.match(page, /href="\/courses\/llm-systems"/);
+  assert.match(page, /href="\/practice"/);
+  assert.match(page, /href="\/flashcards"/);
+  assert.match(page, /href="\/sources"/);
+  assert.match(page, /coursePrograms\.map/);
+  assert.doesNotMatch(page, /href="\/(?:open-learning|workspace)"/);
+  assert.doesNotMatch(page, /Platform publishing pipeline|Publish portable content/);
+  assert.doesNotMatch(page, /HomepageCopy|EditableText|testimonial|trusted by/i);
+  assert.doesNotMatch(css, /box-shadow|linear-gradient|#[0-9a-f]{3,8}/i);
+  assert.match(css, /\.startingPoint,[^{]*\{[^}]*border-top:\s*1px solid var\(--line-strong\)/);
+});
+
+test("the framework landing explains the platform boundary separately", async () => {
+  const [page, css] = await Promise.all([
+    readFile(frameworkLandingUrl, "utf8"),
+    readFile(frameworkCssUrl, "utf8"),
+  ]);
+
+  assert.match(page, /<PageAtmosphere \/>/);
   assert.match(page, /The platform is not the course library/);
   assert.match(page, /aria-label="Platform publishing pipeline"/);
   assert.match(page, /Portable content or reviewed application source/);
   assert.match(page, /packages\/course-kit\//);
-  assert.match(page, /reference implementation/);
+  assert.match(page, /shared route composition/);
+  assert.match(page, /href="\/open-learning"/);
   assert.doesNotMatch(page, /FirstRunExperience|courseTracks|testimonial|trusted by/i);
   assert.doesNotMatch(page, /HomepageCopy|EditableText|href="\/workspace"/);
   assert.doesNotMatch(css, /box-shadow|linear-gradient|#[0-9a-f]{3,8}/i);

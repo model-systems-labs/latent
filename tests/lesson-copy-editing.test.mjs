@@ -9,13 +9,15 @@ async function source(path) {
 }
 
 test("maintainer copy is reviewed source and lessons render without a mutation wrapper", async () => {
-  const [page, homepage] = await Promise.all([
+  const [page, homepageRoute, homepage] = await Promise.all([
     source("app/lessons/[slug]/page.tsx"),
     source("app/page.tsx"),
+    source("products/courses/CoursesLanding.tsx"),
   ]);
 
   assert.match(page, /<PaperLab lesson=\{lesson\} outcome=\{lessonLearningOutcome\(lesson\.id\)\} \/>/);
   assert.doesNotMatch(page, /LessonCopyEditor/);
+  assert.doesNotMatch(homepageRoute, /HomepageCopyEditor|HomepageCopyProvider|EditableText|fetch\(/);
   assert.doesNotMatch(homepage, /HomepageCopyEditor|HomepageCopyProvider|EditableText|fetch\(/);
 });
 

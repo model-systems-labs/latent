@@ -1,35 +1,51 @@
 import Link from "next/link";
+import styles from "./FrameworkHeader.module.css";
 
-type FrameworkDestination = "open-learning" | "read" | "publish";
+type FrameworkDestination = "overview" | "open-learning" | "read" | "publish";
+const frameworkHomeHref = process.env.LATENT_PRODUCT_HOME === "framework" ? "/" : "/framework";
 
 const destinations = [
+  { id: "overview", href: frameworkHomeHref, label: "Overview" },
   { id: "open-learning", href: "/open-learning", label: "Open learning" },
-  { id: "read", href: "/open-learning/read", label: "Read a feed" },
-  { id: "publish", href: "/open-learning/publish", label: "Publish a pack" },
 ] as const;
+
+function isCurrent(
+  destination: (typeof destinations)[number]["id"],
+  current: FrameworkDestination,
+) {
+  return destination === "overview" ? current === "overview" : current !== "overview";
+}
 
 export function FrameworkHeader({
   current,
 }: {
-  current?: FrameworkDestination;
+  current: FrameworkDestination;
 }) {
   return (
-    <header className="site-header course-header">
-      <Link className="wordmark" href="/framework" aria-label="Latent framework home">
+    <header className={`site-header course-header ${styles.header}`}>
+      <Link className="wordmark" href={frameworkHomeHref} aria-label="Latent framework home">
         <i />
         latent <small>framework</small>
       </Link>
       <nav aria-label="Framework navigation">
         {destinations.map((destination) => (
           <Link
-            aria-current={current === destination.id ? "page" : undefined}
+            aria-current={isCurrent(destination.id, current) ? "page" : undefined}
+            className={styles.headerLink}
             href={destination.href}
             key={destination.id}
           >
             {destination.label}
           </Link>
         ))}
-        <Link href="/course">Reference courses</Link>
+        <Link className={styles.headerLink} href="/course">Reference courses</Link>
+        <a
+          className={styles.headerLink}
+          href="https://github.com/model-systems-labs/latent"
+          rel="noreferrer"
+        >
+          GitHub
+        </a>
       </nav>
     </header>
   );

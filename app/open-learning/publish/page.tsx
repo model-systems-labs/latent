@@ -5,7 +5,7 @@ import { LearningPackPublisher } from "../LearningPackPublisher";
 import styles from "../page.module.css";
 
 export const metadata: Metadata = {
-  title: "Learning Pack publisher · Latent Open Learning",
+  title: "Learning Pack publisher · Latent Framework",
   description:
     "Validate declarative lessons and flash cards, then build a host-ready static Learning Pack site.",
 };

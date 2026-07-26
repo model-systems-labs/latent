@@ -14,11 +14,12 @@ function primaryHeader(source) {
 }
 
 test("learner-wide navigation omits publishing and IDE links while the project course retains its contextual workspace", async () => {
-  const [learnerHeader, landing, catalog, framework, llmCourse] = await Promise.all([
+  const [learnerHeader, landing, catalog, frameworkLanding, frameworkHeader, llmCourse] = await Promise.all([
     read("app/components/LearnerHeader.tsx"),
     read("products/courses/CoursesLanding.tsx"),
     read("app/course/page.tsx"),
     read("products/framework/FrameworkLanding.tsx"),
+    read("products/framework/FrameworkHeader.tsx"),
     read("app/courses/llm-systems/page.tsx"),
   ]);
 
@@ -27,8 +28,9 @@ test("learner-wide navigation omits publishing and IDE links while the project c
     assert.match(page, /<LearnerHeader current="courses" \/>/);
     assert.doesNotMatch(page, /href="\/(?:workspace|open-learning)"/);
   }
-  assert.match(primaryHeader(framework), /href="\/open-learning"/);
-  assert.doesNotMatch(primaryHeader(framework), /href="\/workspace"/);
+  assert.match(frameworkLanding, /<FrameworkHeader current="overview" \/>/);
+  assert.match(frameworkHeader, /href: "\/open-learning"/);
+  assert.doesNotMatch(frameworkHeader, /href="\/workspace"|href: "\/workspace"/);
   assert.match(primaryHeader(llmCourse), /href="\/workspace"/);
   assert.match(llmCourse, /secondaryLink=\{\{ href: "\/workspace", label: "Open coding workspace" \}\}/);
 });

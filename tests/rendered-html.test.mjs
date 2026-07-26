@@ -33,24 +33,62 @@ test("the landing page presents the learner course product", async () => {
   assert.doesNotMatch(html, /Platform publishing pipeline|Publish portable content/);
 });
 
-test("the framework route presents the platform and its reference course boundary", async () => {
+test("the framework route presents its local-first browser runtime and publishing model", async () => {
   const response = await render("/framework");
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /Build a learning platform you own/);
-  assert.match(html, /open-source framework for browser-native courses/);
-  assert.match(html, /The platform is not the course library/);
-  assert.match(html, /Build and publish a platform/);
-  assert.match(html, /Inspect courses built with Latent/);
-  assert.match(html, /A visible path from source to learner/);
-  assert.match(html, /aria-label="Platform publishing pipeline"/);
-  assert.match(html, /Portable content or reviewed application source/);
-  assert.match(html, /Schemas, quality checks, tests, and deterministic builds/);
+  assert.match(html, /Build learning software that runs in the browser/);
+  assert.match(html, /Publish static sites/);
+  assert.match(html, /CPython through WebAssembly/);
+  assert.match(html, /Understanding comes from changing the code/);
+  assert.match(html, /Latent Courses[\s\S]*separate reference product built with this framework/);
+  assert.match(html, /Give coding agents a framework they can actually work in/);
+  assert.match(html, /aria-label="Agent-assisted publishing workflow"/);
+  assert.match(html, /Course Kit turns declarative lessons/);
+  assert.match(html, /Use reviewed source when the learning tool needs code/);
   assert.match(html, /packages\/course-kit\//);
-  assert.match(html, /app\/  # shared route composition/);
+  assert.match(html, /packages\/python-lab\//);
   assert.match(html, /href="\/open-learning"/);
   assert.match(html, /href="\/course"/);
+  assert.doesNotMatch(html, /Two products, one explicit boundary|The platform is not the course library/);
   assert.doesNotMatch(html, /Edit text|Edit lesson|href="\/workspace"/);
+});
+
+test("framework navigation keeps one product heading and header frame", async () => {
+  let canonicalHeaderClass;
+  let canonicalHomeHref;
+
+  for (const path of [
+    "/framework",
+    "/open-learning",
+    "/open-learning/read",
+    "/open-learning/publish",
+  ]) {
+    const response = await render(path);
+    assert.equal(response.status, 200, path);
+    const html = await response.text();
+    const header = html.match(/<header class="[^"]*\bsite-header\b[^"]*">[\s\S]*?<\/header>/)?.[0];
+    assert.ok(header, `${path} must render the framework header`);
+
+    const headerClass = header.match(/^<header class="([^"]+)">/)?.[1];
+    assert.ok(headerClass, `${path} must identify the framework header frame`);
+    canonicalHeaderClass ??= headerClass;
+    assert.equal(headerClass, canonicalHeaderClass, `${path} must keep the framework header aligned`);
+
+    const wordmark = header.match(/<a\b(?=[^>]*\bclass="wordmark")[^>]*>[\s\S]*?<\/a>/)?.[0];
+    assert.ok(wordmark, `${path} must render the framework wordmark`);
+    const homeHref = wordmark.match(/\bhref="(\/(?:framework)?)"/)?.[1];
+    assert.ok(homeHref, `${path} must link the framework wordmark to a product home`);
+    canonicalHomeHref ??= homeHref;
+    assert.equal(homeHref, canonicalHomeHref, `${path} must keep one framework home`);
+    const visibleWordmark = wordmark
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
+    assert.equal(visibleWordmark, "latent framework", `${path} must retain the framework product heading`);
+    assert.doesNotMatch(header, /latent courses/i);
+  }
 });
 
 test("the course catalog separates foundations, agent systems, and the cumulative LLM project", async () => {

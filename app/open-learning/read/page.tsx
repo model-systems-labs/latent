@@ -5,7 +5,7 @@ import { HostedLearningReader } from "../HostedLearningReader";
 import styles from "../page.module.css";
 
 export const metadata: Metadata = {
-  title: "Hosted feed reader · Latent Open Learning",
+  title: "Hosted feed reader · Latent Framework",
   description:
     "Verify a publisher-controlled Learning Feed and read its portable lessons and flash cards.",
 };

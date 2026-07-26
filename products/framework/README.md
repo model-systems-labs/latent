@@ -1,12 +1,33 @@
-# Latent Framework product
+# Latent Framework
 
-This folder owns the product-level surface for developers and publishers using
-Latent as an open-source learning-platform framework.
+Latent is an open-source framework for building rigorous learning experiences
+around real practice. It combines static publishing with browser-native
+JavaScript, TypeScript, and Python runtimes so a lesson can move from an idea,
+to code, to immediate feedback without requiring a proprietary learner
+backend.
 
-## Responsibilities
+The framework is designed around four product principles:
 
-- Explain the distinction between the framework and the bundled reference
-  courses.
+- **Practice over passive familiarity.** Lessons can connect to focused coding
+  problems, cumulative projects, retrieval practice, and flash cards.
+- **Local-first learner runtime.** JavaScript and TypeScript run in reviewed
+  browser workers; the full reference application runs CPython and NumPy
+  through Pyodide and WebAssembly. Progress stays on the learner's device.
+- **Portable publishing.** Course Kit builds declarative lessons, quizzes,
+  cards, and programming-practice data into independently hosted artifacts.
+- **Agent-ready, model-neutral authoring.** Checked-in skills and validation
+  gates let people or coding agents change the source. No agent or model
+  provider is required when a learner opens the result.
+
+Read the repository's [founding principles](../../PRINCIPLES.md) for the
+original motivation and the
+[five-minute guide](../../docs/getting-started.md) for the smallest complete
+platform.
+
+## What this folder owns
+
+- Explain what developers, educators, and communities can build with the
+  framework.
 - Direct publishers to the portable Open Learning authoring, validation, and
   self-hosting workflows.
 - Direct trusted extensions through normal source review, build, and
@@ -25,7 +46,8 @@ This folder owns only the Latent Framework deployment profile. Run
 hosting metadata. It does not own the Latent Courses profile, and the
 repository root has no implicit hosting target.
 
-Reference courses remain in the repository as reviewed examples and runtime
-integration fixtures. They do not become part of the portable content trust
-boundary: remote packs still cannot provide React, workers, executable tests,
-runtime adapters, or persistence code.
+Reference courses remain in the repository as proof that the browser runtimes
+and learning loop work together. They do not define the framework, and they do
+not expand the portable-content trust boundary: remote packs still cannot
+provide React, workers, executable tests, runtime adapters, or persistence
+code.

@@ -19,6 +19,7 @@ test("the app routes compose separate course and framework product folders", asy
   assert.match(rootRoute, /export default ProductHome/);
   assert.match(selector, /CoursesLanding as ProductHome/);
   assert.match(viteConfig, /LATENT_PRODUCT_HOME === "framework"/);
+  assert.match(viteConfig, /"process\.env\.LATENT_PRODUCT_HOME"/);
   assert.match(viteConfig, /products\/framework\/home\.ts/);
   assert.match(viteConfig, /products\/courses\/home\.ts/);
 
@@ -31,7 +32,7 @@ test("the app routes compose separate course and framework product folders", asy
   assert.doesNotMatch(courses, /LearningPackPublisher|Platform publishing pipeline/);
 
   assert.match(framework, /href="\/open-learning"/);
-  assert.match(framework, /Platform publishing pipeline/);
+  assert.match(framework, /<FrameworkHeader current="overview" \/>/);
   assert.doesNotMatch(framework, /<LearnerHeader/);
 });
 
@@ -98,10 +99,23 @@ test("product builds opt into distinct deployments and the future repository spl
 });
 
 test("course and framework routes keep separate social identities", async () => {
-  const [rootLayout, frameworkRoute, openLearningLayout, frameworkMetadata] = await Promise.all([
+  const [
+    rootLayout,
+    frameworkRoute,
+    openLearningLayout,
+    openLearningPage,
+    readerPage,
+    publisherPage,
+    frameworkHeader,
+    frameworkMetadata,
+  ] = await Promise.all([
     read("app/layout.tsx"),
     read("app/framework/page.tsx"),
     read("app/open-learning/layout.tsx"),
+    read("app/open-learning/page.tsx"),
+    read("app/open-learning/read/page.tsx"),
+    read("app/open-learning/publish/page.tsx"),
+    read("products/framework/FrameworkHeader.tsx"),
     read("products/framework/metadata.ts"),
   ]);
 
@@ -109,6 +123,22 @@ test("course and framework routes keep separate social identities", async () => 
   assert.match(rootLayout, /"\/og\.png"[\s\S]*width: 1731, height: 909/);
   assert.match(frameworkRoute, /frameworkMetadata/);
   assert.match(openLearningLayout, /frameworkMetadata/);
-  assert.match(frameworkMetadata, /Latent Framework · Build a learning platform you own/);
-  assert.match(frameworkMetadata, /"\/og-v0\.2\.png"[\s\S]*width: 1733, height: 908/);
+  assert.match(frameworkMetadata, /Latent Framework · Learning software that runs in the browser/);
+  assert.match(frameworkMetadata, /"\/og-framework\.png"[\s\S]*width: 1731, height: 909/);
+
+  assert.match(frameworkHeader, /styles\.header/);
+  assert.match(frameworkHeader, /\.\/FrameworkHeader\.module\.css/);
+  assert.doesNotMatch(frameworkHeader, /\.\/framework\.module\.css/);
+  assert.match(frameworkHeader, /frameworkHomeHref = process\.env\.LATENT_PRODUCT_HOME/);
+  assert.match(frameworkHeader, /aria-label="Latent framework home"/);
+  assert.match(frameworkHeader, /latent <small>framework<\/small>/);
+  assert.match(frameworkHeader, /\{ id: "overview", href: frameworkHomeHref, label: "Overview" \}/);
+  assert.match(openLearningPage, /<FrameworkHeader current="open-learning" \/>/);
+  assert.match(readerPage, /<FrameworkHeader current="read" \/>/);
+  assert.match(publisherPage, /<FrameworkHeader current="publish" \/>/);
+
+  for (const route of [openLearningPage, readerPage, publisherPage]) {
+    assert.match(route, /Latent Framework/);
+    assert.doesNotMatch(route, /Latent Open Learning/);
+  }
 });

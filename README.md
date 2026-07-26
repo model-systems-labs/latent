@@ -2,14 +2,21 @@
 
 **Build your own learning platform with agents.**
 
-Latent is an opinionated, open-source framework for courses, browser IDE
-lessons, flash cards, and programming practice. This repository currently
-contains two distinct products: the framework for people building and
-publishing learning experiences, and the learner-facing Latent Courses site.
-Their product-owned entry surfaces live in separate `products/` folders while
-reviewed runtimes, contracts, application adapters, and reference curriculum
-remain shared at the repository root. Portable Learning Pack sites remain
-independently hostable on any conforming static server.
+Latent is an open-source framework for courses, coding practice, flash cards,
+and browser IDE lessons. Generate a dependency-free static learning site you
+can run locally or host on ordinary static infrastructure. The full reference
+application demonstrates JavaScript and TypeScript in bounded browser workers,
+CPython and NumPy through WebAssembly, and code plus progress stored on the
+learner's device.
+
+The repository is designed for coding agents without making one part of the
+learner runtime. Checked-in instructions, schemas, examples, and validation
+gates let a person or any capable file-editing agent author, review, and
+publish the same source. No Latent account or hosted model API is required.
+
+Latent began with a simple frustration: reading papers was not enough to close
+the gap between recognizing an idea and being able to make it work. Read the
+[founding principles](./PRINCIPLES.md).
 
 [![Validate](https://github.com/model-systems-labs/latent/actions/workflows/ci.yml/badge.svg)](https://github.com/model-systems-labs/latent/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-blue.svg)](./LICENSE)
@@ -46,31 +53,22 @@ Read the [five-minute guide](./docs/getting-started.md), inspect the
 or use the included agent workflows in `skills/` to author and review each
 layer.
 
-This public repository contains two product surfaces over one shared
-architecture:
+## Framework and reference courses
+
+This repository contains two product surfaces over one shared architecture:
 
 - `products/framework/` is the developer and publisher product. It explains
-  the platform, its public contracts, and the paths for publishing portable
-  content or extending reviewed source.
+  the browser runtimes, static publishing paths, public contracts, and
+  agent-assisted authoring workflows.
 - `products/courses/` is the learner product. It presents the released
   courses, practice, flash cards, and reading as a coherent course library.
 - Root `app/`, `packages/`, `worker/`, and curriculum directories contain the
   shared route adapters, trusted runtimes, portable contracts, and reviewed
   reference content used by those products.
 
-The distinction is a product boundary, not a claim that there are already two
-repositories. Latent Courses lives in this monorepo today. Its product folder
-and nested hosting profile are intentionally shaped so the course product can
-move into its own repository later if it needs an independent release history,
-access policy, or ownership model. The root intentionally has no hosting
-profile. `npm run build:courses` and `npm run build:framework` each select
-their product folder's hosting profile and root homepage explicitly.
-
-This is an organizational and deployment-identity split, not yet two fully
-independent applications. Each build selects its own homepage, hosting
-metadata, and public identity, but both still compile the shared route tree.
-A later extraction will give each product an exclusive route root and one-way
-dependency graph.
+They remain in one monorepo today. The product folders keep their identity and
+deployment entry points explicit without pretending the code has already been
+split into independent repositories.
 
 See [Framework and course instances](./docs/framework-and-instances.md) and
 the [`products/` guide](./products/README.md) for the code map, current

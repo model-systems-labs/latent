@@ -25,6 +25,11 @@ export default defineConfig(async () => {
   const { cloudflare } = await import("@cloudflare/vite-plugin");
 
   return {
+    define: {
+      "process.env.LATENT_PRODUCT_HOME": JSON.stringify(
+        process.env.LATENT_PRODUCT_HOME ?? "courses",
+      ),
+    },
     resolve: {
       alias: {
         "../products/product-home": resolve(process.cwd(), productHome),

@@ -66,24 +66,29 @@ test("the learner landing presents courses without platform publishing controls"
   assert.match(css, /\.startingPoint,[^{]*\{[^}]*border-top:\s*1px solid var\(--line-strong\)/);
 });
 
-test("the framework landing explains the platform boundary separately", async () => {
+test("the framework landing leads with local browser execution and agent-ready publishing", async () => {
   const [page, css] = await Promise.all([
     readFile(frameworkLandingUrl, "utf8"),
     readFile(frameworkCssUrl, "utf8"),
   ]);
 
   assert.match(page, /<PageAtmosphere \/>/);
-  assert.match(page, /The platform is not the course library/);
-  assert.match(page, /aria-label="Platform publishing pipeline"/);
-  assert.match(page, /Portable content or reviewed application source/);
+  assert.match(page, /<FrameworkHeader current="overview" \/>/);
+  assert.match(page, /Build learning software that runs in the browser/);
+  assert.match(page, /Course Kit \+ starter/);
+  assert.match(page, /CPython through WebAssembly/);
+  assert.match(page, /Understanding comes from changing the code/);
+  assert.match(page, /Latent Courses[\s\S]*separate reference[\s\S]*built with this framework/);
+  assert.match(page, /aria-label="Agent-assisted publishing workflow"/);
   assert.match(page, /packages\/course-kit\//);
-  assert.match(page, /shared route composition/);
+  assert.match(page, /packages\/python-lab\//);
   assert.match(page, /href="\/open-learning"/);
+  assert.doesNotMatch(page, /Two products, one explicit boundary|The platform is not the course library/);
   assert.doesNotMatch(page, /FirstRunExperience|courseTracks|testimonial|trusted by/i);
   assert.doesNotMatch(page, /HomepageCopy|EditableText|href="\/workspace"/);
   assert.doesNotMatch(css, /box-shadow|linear-gradient|#[0-9a-f]{3,8}/i);
   assert.match(cssRule(css, ".argument"), /border-top:\s*1px solid var\(--line-strong\)/);
-  assert.match(css, /\.boundaryGrid\s*\{[^}]*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/s);
-  assert.match(css, /\.platformFlow\s*\{[^}]*grid-template-columns:\s*repeat\(4, minmax\(0, 1fr\)\)/s);
-  assert.match(css, /@media \(max-width: 720px\)[\s\S]*\.platformFlow\s*\{[\s\S]*grid-template-columns:\s*1fr/);
+  assert.match(css, /\.browserProof\s*\{[^}]*grid-template-columns:\s*repeat\(4, minmax\(0, 1fr\)\)/s);
+  assert.match(css, /\.agentFlow\s*\{[^}]*grid-template-columns:\s*repeat\(5, minmax\(0, 1fr\)\)/s);
+  assert.match(css, /@media \(max-width: 720px\)[\s\S]*\.browserProof,[\s\S]*\.agentFlow,[\s\S]*grid-template-columns:\s*1fr/);
 });

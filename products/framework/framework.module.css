@@ -2,42 +2,6 @@
   min-height: 100vh;
 }
 
-.header {
-  grid-template-columns: 1fr auto;
-  max-width: 1120px;
-}
-
-.header :global(.wordmark) {
-  min-height: 2.75rem;
-}
-
-.header :global(.wordmark small) {
-  color: var(--muted);
-  font-family: var(--sans);
-  font-size: max(0.64rem, 11px);
-  font-style: normal;
-  font-weight: 560;
-  letter-spacing: 0.08em;
-  margin-left: 0.4rem;
-  text-transform: uppercase;
-}
-
-.headerLink {
-  align-items: center;
-  color: var(--muted);
-  display: inline-flex;
-  font-size: max(0.72rem, 12px);
-  font-weight: 590;
-  letter-spacing: 0.08em;
-  min-height: 2.75rem;
-  text-transform: uppercase;
-}
-
-.headerLink:hover,
-.headerLink:focus-visible {
-  color: var(--ink);
-}
-
 .shell,
 .footer {
   margin: 0 auto;
@@ -108,6 +72,21 @@
   color: var(--ink);
 }
 
+.hero .productNote {
+  border-top: 1px solid var(--line);
+  font-family: var(--sans);
+  font-size: max(0.76rem, 13px);
+  line-height: 1.6;
+  margin-top: 2.35rem;
+  max-width: 46rem;
+  padding-top: 1rem;
+}
+
+.productNote a {
+  border-bottom: 1px solid var(--line-strong);
+  color: var(--ink);
+}
+
 .argument {
   border-top: 1px solid var(--line-strong);
   padding: var(--rhythm-major) 0;
@@ -137,136 +116,160 @@
   margin-bottom: 1.1rem;
 }
 
-.boundaryGrid {
-  display: grid;
-  gap: 1px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin-top: clamp(2.4rem, 4vw, 3.5rem);
-}
-
-.boundaryCard {
+.browserProof {
   border-bottom: 1px solid var(--line);
   border-top: 1px solid var(--line);
   display: grid;
-  min-height: 21rem;
-  padding: 1.3rem clamp(1.25rem, 3vw, 2.4rem) 1.5rem 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-.boundaryCard + .boundaryCard {
+.browserProof article {
+  display: grid;
+  min-height: 16rem;
+  padding: 1.15rem clamp(1rem, 2vw, 1.5rem);
+}
+
+.browserProof article:first-child {
+  padding-left: 0;
+}
+
+.browserProof article + article {
   border-left: 1px solid var(--line);
-  padding-left: clamp(1.25rem, 3vw, 2.4rem);
 }
 
-.boundaryCard > span {
+.browserProof article > span,
+.experienceGrid li > span,
+.pathGrid article > span {
   color: var(--violet);
-  font-size: max(0.7rem, 12px);
+  font-size: max(0.68rem, 11px);
   font-weight: 650;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-.boundaryCard h3 {
-  font-family: var(--serif);
-  font-size: clamp(1.7rem, 2.7vw, 2.35rem);
-  font-weight: 400;
-  letter-spacing: -0.045em;
-  line-height: 1.05;
-  margin: 1.6rem 0 0;
-  max-width: 24rem;
-}
-
-.boundaryCard p {
-  color: var(--muted);
-  line-height: 1.65;
-  margin: 1rem 0;
-  max-width: 31rem;
-}
-
-.boundaryCard a {
+.browserProof h2 {
   align-self: end;
-  border-bottom: 1px solid var(--line-strong);
-  justify-self: start;
-  min-height: 2.75rem;
-  padding-top: 0.8rem;
+  font-family: var(--serif);
+  font-size: clamp(1.25rem, 2vw, 1.65rem);
+  font-weight: 400;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  margin: 0;
 }
 
-.architecture {
+.browserProof p,
+.experienceGrid p,
+.agentFlow p,
+.pathGrid p {
+  color: var(--muted);
+  font-size: max(0.74rem, 12px);
+  line-height: 1.6;
+  margin: 0.75rem 0 0;
+}
+
+.experienceGrid {
   border-bottom: 1px solid var(--line);
   border-top: 1px solid var(--line);
-  margin: clamp(2.45rem, 4.2vw, 3.5rem) 0 0;
-  padding: 1.05rem 0 0.9rem;
-}
-
-.architectureCaption {
-  align-items: start;
   display: grid;
-  gap: 2rem;
-  grid-template-columns: minmax(13rem, 0.7fr) minmax(20rem, 1fr);
-  justify-content: space-between;
-}
-
-.architectureCaption div,
-.architectureCaption strong,
-.architectureCaption span {
-  display: block;
-}
-
-.architectureCaption strong {
-  font-family: var(--serif);
-  font-size: clamp(1.4rem, 2.3vw, 1.8rem);
-  font-weight: 400;
-}
-
-.architectureCaption span,
-.architectureCaption p {
-  color: var(--muted);
-  font-size: max(0.75rem, 12px);
-  line-height: 1.55;
-}
-
-.architectureCaption p {
-  margin: 0;
-  max-width: 35rem;
-}
-
-.platformFlow {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   list-style: none;
-  margin: 2rem 0 0;
+  margin: clamp(2.45rem, 4.2vw, 3.5rem) 0 0;
   padding: 0;
 }
 
-.platformFlow li {
+.experienceGrid li {
+  display: grid;
+  min-height: 18rem;
+  padding: 1.15rem clamp(1.1rem, 2.4vw, 2rem);
+}
+
+.experienceGrid li:first-child {
+  padding-left: 0;
+}
+
+.experienceGrid li + li {
+  border-left: 1px solid var(--line);
+}
+
+.experienceGrid h3,
+.pathGrid h3 {
+  align-self: end;
+  font-family: var(--serif);
+  font-size: clamp(1.55rem, 2.6vw, 2.1rem);
+  font-weight: 400;
+  letter-spacing: -0.045em;
+  line-height: 1.05;
+  margin: 0;
+}
+
+.agentFlow {
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  list-style: none;
+  margin: clamp(2.45rem, 4.2vw, 3.5rem) 0 0;
+  padding: 0;
+}
+
+.agentFlow li {
   border-left: 1px solid var(--line);
   display: grid;
   min-height: 13rem;
   padding: 0.85rem 1.15rem 1rem;
 }
 
-.platformFlow li:first-child {
+.agentFlow li:first-child {
   border-left: 0;
   padding-left: 0;
 }
 
-.platformFlow li > span {
+.agentFlow li > span {
   color: var(--violet);
   font-family: var(--mono);
   font-size: max(0.68rem, 11px);
 }
 
-.platformFlow strong {
+.agentFlow strong {
   align-self: end;
   font-family: var(--serif);
   font-size: clamp(1.45rem, 2.2vw, 1.9rem);
   font-weight: 400;
 }
 
-.platformFlow p {
-  color: var(--muted);
-  font-size: max(0.78rem, 13px);
-  line-height: 1.5;
-  margin: 0.65rem 0 0;
+.pathGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: clamp(2.45rem, 4.2vw, 3.5rem);
+}
+
+.pathGrid article {
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  display: grid;
+  min-height: 22rem;
+  padding: 1.25rem clamp(1.25rem, 3vw, 2.4rem) 1.4rem 0;
+}
+
+.pathGrid article + article {
+  border-left: 1px solid var(--line);
+  padding-left: clamp(1.25rem, 3vw, 2.4rem);
+}
+
+.pathGrid h3 {
+  max-width: 27rem;
+}
+
+.pathGrid p {
+  max-width: 31rem;
+}
+
+.pathGrid a {
+  align-self: end;
+  border-bottom: 1px solid var(--line-strong);
+  justify-self: start;
+  min-height: 2.75rem;
+  padding-top: 0.8rem;
 }
 
 .projectTree {
@@ -296,6 +299,19 @@
   display: inline-block;
   font-style: normal;
   width: 2.4rem;
+}
+
+.closingActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.4rem;
+  margin-top: 1.5rem;
+}
+
+.closingActions a {
+  border-bottom: 1px solid var(--line-strong);
+  min-height: 2.75rem;
+  padding-top: 0.75rem;
 }
 
 .footer {
@@ -330,11 +346,6 @@
     width: calc(100% - 2rem);
   }
 
-  .headerLink {
-    letter-spacing: 0;
-    text-transform: none;
-  }
-
   .hero {
     padding: 3.15rem 0 3.5rem;
   }
@@ -361,28 +372,39 @@
     font-size: clamp(2.15rem, 8.8vw, 2.6rem);
   }
 
-  .boundaryGrid,
-  .platformFlow {
+  .browserProof,
+  .experienceGrid,
+  .agentFlow,
+  .pathGrid {
     grid-template-columns: 1fr;
   }
 
-  .boundaryCard {
-    min-height: 18rem;
+  .browserProof article,
+  .browserProof article:first-child {
+    min-height: 13rem;
+    padding-left: 0;
     padding-right: 0;
   }
 
-  .boundaryCard + .boundaryCard {
+  .browserProof article + article {
     border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .experienceGrid li,
+  .experienceGrid li:first-child {
+    min-height: 15rem;
     padding-left: 0;
+    padding-right: 0;
   }
 
-  .architectureCaption {
-    gap: 1rem;
-    grid-template-columns: 1fr;
+  .experienceGrid li + li {
+    border-left: 0;
+    border-top: 1px solid var(--line);
   }
 
-  .platformFlow li,
-  .platformFlow li:first-child {
+  .agentFlow li,
+  .agentFlow li:first-child {
     border-left: 0;
     border-top: 1px solid var(--line);
     grid-template-columns: 2.5rem minmax(6rem, 0.55fr) 1fr;
@@ -390,12 +412,24 @@
     padding: 1rem 0;
   }
 
-  .platformFlow strong {
+  .agentFlow strong {
     align-self: start;
   }
 
-  .platformFlow p {
+  .agentFlow p {
     margin: 0;
+  }
+
+  .pathGrid article,
+  .pathGrid article + article {
+    border-left: 0;
+    min-height: 19rem;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .pathGrid article + article {
+    border-top: 0;
   }
 
   .projectTree {

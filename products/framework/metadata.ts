@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
-const title = "Latent Framework · Build a learning platform you own";
+const title = "Latent Framework · Learning software that runs in the browser";
 const description =
-  "Build browser-native courses, coding lessons, flash cards, and practice sites from reviewed source and portable content.";
+  "Build local-first courses, coding practice, flash cards, and browser IDE lessons with WebAssembly runtimes and agent-ready source.";
 
 export const frameworkMetadata: Metadata = {
   title,
@@ -11,12 +11,12 @@ export const frameworkMetadata: Metadata = {
     title,
     description,
     type: "website",
-    images: [{ url: "/og-v0.2.png", width: 1733, height: 908 }],
+    images: [{ url: "/og-framework.png", width: 1731, height: 909 }],
   },
   twitter: {
     card: "summary_large_image",
     title,
     description,
-    images: ["/og-v0.2.png"],
+    images: ["/og-framework.png"],
   },
 };

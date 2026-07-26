@@ -1,0 +1,42 @@
+.header {
+  grid-template-columns: 1fr auto;
+  max-width: 1120px;
+}
+
+.header :global(.wordmark) {
+  min-height: 2.75rem;
+}
+
+.header :global(.wordmark small) {
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: max(0.64rem, 11px);
+  font-style: normal;
+  font-weight: 560;
+  letter-spacing: 0.08em;
+  margin-left: 0.4rem;
+  text-transform: uppercase;
+}
+
+.headerLink {
+  align-items: center;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: max(0.72rem, 12px);
+  font-weight: 590;
+  letter-spacing: 0.08em;
+  min-height: 2.75rem;
+  text-transform: uppercase;
+}
+
+.headerLink:hover,
+.headerLink:focus-visible {
+  color: var(--ink);
+}
+
+@media (max-width: 720px) {
+  .headerLink {
+    letter-spacing: 0;
+    text-transform: none;
+  }
+}

@@ -1,0 +1,849 @@
+{
+  "format": "latent-learning-pack",
+  "schemaVersion": 1,
+  "package": {
+    "id": "latent-demos/interview-loop",
+    "version": "1.2.0",
+    "title": "Interview Loop Lab",
+    "description": "A compact preparation lab for experienced software engineers practicing behavioral stories, coding communication, and defensible system-architecture decisions.",
+    "language": "en-US",
+    "license": "CC-BY-4.0",
+    "authors": [
+      {
+        "name": "Latent Project Contributors",
+        "url": "https://github.com/model-systems-labs/latent"
+      }
+    ],
+    "homepage": "https://github.com/model-systems-labs/latent/tree/main/examples/learning-platform/interview-loop",
+    "publishedAt": "2026-07-26T12:00:00Z"
+  },
+  "objectives": [
+    {
+      "id": "build-story-bank",
+      "description": "Build a reusable behavioral story record that separates context, personal responsibility, actions, results, and reflection."
+    },
+    {
+      "id": "answer-follow-ups",
+      "description": "Answer behavioral follow-up questions with specific evidence about decisions, alternatives, collaboration, failure, and learning."
+    },
+    {
+      "id": "solve-code-aloud",
+      "description": "Drive a coding exercise from clarified contract through examples, implementation, boundary checks, and complexity analysis."
+    },
+    {
+      "id": "frame-architecture",
+      "description": "Structure a system-design discussion around requirements, constraints, interfaces and data flow, failure modes, and scaling."
+    },
+    {
+      "id": "defend-design",
+      "description": "Tie observability and explicit tradeoffs to system requirements so design decisions remain testable and revisable."
+    }
+  ],
+  "sources": [
+    {
+      "id": "openai-interview-guide",
+      "kind": "primary",
+      "title": "OpenAI interview guide",
+      "url": "https://openai.com/interview-guide/",
+      "authors": [
+        "OpenAI"
+      ],
+      "note": "Official public guidance supporting preparation around experience, motivation, problem-solving communication, code quality, performance, testing, and collaboration."
+    },
+    {
+      "id": "anthropic-careers",
+      "kind": "primary",
+      "title": "Anthropic careers: How we hire",
+      "url": "https://www.anthropic.com/careers",
+      "authors": [
+        "Anthropic"
+      ],
+      "note": "Official public guidance supporting practice with live coding, standard libraries, experience discussion, motivation, and visible problem-solving."
+    },
+    {
+      "id": "va-interview-process",
+      "kind": "guide",
+      "title": "The interview process",
+      "url": "https://vacareers.va.gov/job-application-process/the-interview-process/",
+      "authors": [
+        "U.S. Department of Veterans Affairs"
+      ],
+      "note": "Official guidance describing behavioral questions, the Situation-Task-Action-Result structure, specificity about personal actions, and reflection."
+    },
+    {
+      "id": "stripe-idempotency",
+      "kind": "reference",
+      "title": "Idempotent requests",
+      "url": "https://docs.stripe.com/api/idempotent_requests",
+      "authors": [
+        "Stripe"
+      ],
+      "note": "Official API documentation grounding the course scenario's treatment of safe retries, duplicate-operation prevention, and idempotency keys."
+    },
+    {
+      "id": "aws-well-architected",
+      "kind": "guide",
+      "title": "AWS Well-Architected Framework",
+      "url": "https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html",
+      "authors": [
+        "Amazon Web Services"
+      ],
+      "note": "Official framework supporting systematic review of architectural decisions across reliability, security, efficiency, cost, and sustainability."
+    },
+    {
+      "id": "aws-reliability",
+      "kind": "guide",
+      "title": "Reliability design principles",
+      "url": "https://docs.aws.amazon.com/wellarchitected/latest/framework/rel-dp.html",
+      "authors": [
+        "Amazon Web Services"
+      ],
+      "note": "Official reliability guidance supporting explicit failure detection, recovery behavior, recovery testing, and demand-aware design."
+    },
+    {
+      "id": "aws-tradeoffs",
+      "kind": "guide",
+      "title": "Evaluate how trade-offs impact customers and architecture efficiency",
+      "url": "https://docs.aws.amazon.com/wellarchitected/latest/framework/perf_architecture_evaluate_trade_offs.html",
+      "authors": [
+        "Amazon Web Services"
+      ],
+      "note": "Official guidance supporting requirement-linked comparison of performance, cost, reliability, security, complexity, and customer impact."
+    },
+    {
+      "id": "google-sre-monitoring",
+      "kind": "primary",
+      "title": "Monitoring distributed systems",
+      "url": "https://sre.google/sre-book/monitoring-distributed-systems/",
+      "authors": [
+        "Rob Ewaschuk",
+        "Google"
+      ],
+      "note": "Firsthand SRE material supporting symptom-oriented monitoring and the latency, traffic, errors, and saturation signals used in the architecture framework."
+    },
+    {
+      "id": "ecma-map",
+      "kind": "specification",
+      "title": "ECMAScript keyed collections",
+      "url": "https://tc39.es/ecma262/multipage/keyed-collections.html#sec-map-objects",
+      "authors": [
+        "Ecma International"
+      ],
+      "note": "The language specification for Map and Set behavior used by the JavaScript coding examples and practice exercises."
+    }
+  ],
+  "lessons": [
+    {
+      "id": "behavioral-evidence",
+      "order": 1,
+      "title": "Behavioral evidence under follow-up",
+      "summary": "Turn one vague incident answer into a factual, decision-rich story, then pressure-test it with likely follow-ups and a five-part self-review.",
+      "durationMinutes": 16,
+      "objectiveIds": [
+        "build-story-bank",
+        "answer-follow-ups"
+      ],
+      "sourceIds": [
+        "openai-interview-guide",
+        "anthropic-careers",
+        "va-interview-process"
+      ],
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "This course has three modules: behavioral evidence, progressive coding, and a webhook-delivery architecture mock. Start here with one real incident you can discuss without inventing scope or metrics."
+        },
+        {
+          "type": "callout",
+          "tone": "note",
+          "title": "Public preparation, not a private question bank",
+          "text": "Interview Loop Lab is an original, transferable practice course. It does not reproduce or predict the private process, evaluation rubric, or questions of Stripe, OpenAI, Anthropic, or any other employer. Use the recruiter-provided format for the role you actually pursue."
+        },
+        {
+          "type": "heading",
+          "level": 2,
+          "text": "Start with the weak answer"
+        },
+        {
+          "type": "code",
+          "language": "text",
+          "caption": "Weak: the answer names a team event but hides ownership, decisions, evidence, outcome, and learning.",
+          "code": "We had a provider outage and webhook deliveries duplicated. We all jumped on it, worked really hard, and fixed the queues. It was stressful, but the incident showed that I handle pressure well."
+        },
+        {
+          "type": "heading",
+          "level": 2,
+          "text": "Coach the rewrite"
+        },
+        {
+          "type": "paragraph",
+          "text": "Preserve only facts you can defend. Replace collective activity with your responsibility, expose the choice you made and its alternatives, name the observation that supported the result, then show how the incident changed later practice."
+        },
+        {
+          "type": "list",
+          "style": "ordered",
+          "items": [
+            "Ownership: I say exactly what I owned and credit what others owned.",
+            "Decisions: I name a consequential choice, the alternative, and the constraint that separated them.",
+            "Evidence: I cite an observation, artifact, test, or recorded metric without invented precision.",
+            "Outcome: I describe the observable result, including uncertainty or a mixed result.",
+            "Reflection: I say what I would change and where the lesson altered later behavior."
+          ]
+        },
+        {
+          "type": "code",
+          "language": "text",
+          "caption": "Coached rewrite: concise enough to say aloud, specific enough to survive follow-up.",
+          "code": "OWNERSHIP\nI was incident lead for replay safety; the on-call operator owned provider communication and support owned customer priorities.\n\nDECISIONS\nDuplicate deliveries rose after a provider outage. I paused the affected tenant queue instead of all traffic because unaffected tenants were still delivering normally. After tracing two duplicate paths, I added an idempotency boundary before replay.\n\nEVIDENCE + OUTCOME\nQueue-age and duplicate-delivery dashboards showed the backlog drain without another duplicate wave. I would quote exact impact only from the incident record.\n\nREFLECTION\nI later added a duplicate-rate alert and a documented replay drill. I would define the replay-stop threshold before the next incident."
+        },
+        {
+          "type": "paragraph",
+          "text": "Self-review this draft against the five rubric lines above. The player does not and should not auto-grade a free-form behavioral answer; use a peer, mentor, or your own recording to challenge whether each claim is specific and supported."
+        },
+        {
+          "type": "heading",
+          "level": 2,
+          "text": "Likely follow-up questions"
+        },
+        {
+          "type": "list",
+          "style": "unordered",
+          "items": [
+            "Ownership follow-up: What was your decision, and what belonged to someone else?",
+            "Alternative follow-up: What options did you reject, and what constraint decided it?",
+            "Conflict follow-up: Who disagreed, what did you learn from them, and how was the decision made?",
+            "Failure follow-up: What did not work, and how did the plan change?",
+            "Measurement follow-up: What observation supported the result, and what remained uncertain?",
+            "Reflection follow-up: What would you do sooner, and where did you apply that lesson again?"
+          ]
+        },
+        {
+          "type": "callout",
+          "tone": "warning",
+          "title": "Specific does not mean inflated",
+          "text": "Use first-person language for your actions, credit collaborators, and distinguish remembered evidence from estimates. Never invent scope, metrics, titles, or outcomes to make a story sound larger."
+        },
+        {
+          "type": "quiz",
+          "id": "story-record-check",
+          "prompt": "Which note is the strongest foundation for a behavioral story about an incident?",
+          "choices": [
+            {
+              "id": "team-hero",
+              "text": "We worked extremely hard and fixed a major outage, which proves I perform well under pressure."
+            },
+            {
+              "id": "decision-evidence",
+              "text": "I owned replay safety, paused one queue after tracing duplicate paths, proposed an idempotency boundary, recorded the backlog drain, and later added a replay drill."
+            },
+            {
+              "id": "perfect-number",
+              "text": "I improved reliability by exactly 73%, although I no longer have the incident record."
+            }
+          ],
+          "correctChoiceId": "decision-evidence",
+          "explanation": "The second note separates personal responsibility, action, evidence, and reflection. The others hide the decision or substitute an unsupported claim for evidence.",
+          "objectiveIds": [
+            "build-story-bank"
+          ],
+          "sourceIds": [
+            "va-interview-process",
+            "openai-interview-guide"
+          ]
+        },
+        {
+          "type": "quiz",
+          "id": "follow-up-check",
+          "prompt": "After your story, the interviewer asks why you did not pause all traffic. What is the strongest response pattern?",
+          "choices": [
+            {
+              "id": "repeat",
+              "text": "Repeat the original story with more implementation detail."
+            },
+            {
+              "id": "defensive",
+              "text": "Say the chosen approach worked, so the alternatives do not matter."
+            },
+            {
+              "id": "compare",
+              "text": "Restate the availability constraint, compare the blast radius of both options, name the evidence available then, and say what would have triggered a full pause."
+            }
+          ],
+          "correctChoiceId": "compare",
+          "explanation": "A follow-up tests the decision boundary. Comparing alternatives against the known constraint shows judgment without pretending the choice was inevitable.",
+          "objectiveIds": [
+            "answer-follow-ups"
+          ],
+          "sourceIds": [
+            "openai-interview-guide",
+            "anthropic-careers",
+            "va-interview-process"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "coding-under-constraints",
+      "order": 2,
+      "title": "Progressive coding under constraints",
+      "summary": "Move from first-seen deduplication through unsorted windows and per-tenant admission, with an explicit invariant, boundary case, and complexity target at every step.",
+      "durationMinutes": 18,
+      "objectiveIds": [
+        "solve-code-aloud"
+      ],
+      "sourceIds": [
+        "openai-interview-guide",
+        "anthropic-careers",
+        "ecma-map"
+      ],
+      "prerequisiteLessonIds": [
+        "behavioral-evidence"
+      ],
+      "blocks": [
+        {
+          "type": "heading",
+          "level": 2,
+          "text": "A four-step practice ladder"
+        },
+        {
+          "type": "paragraph",
+          "text": "The Practice tab contains the first three steps as portable Question Groups; the IDE tab contains the host-owned retry exercise. Public OpenAI and Anthropic guidance supports making reasoning, correctness, testing, and performance visible."
+        },
+        {
+          "type": "list",
+          "style": "ordered",
+          "items": [
+            "Step 1 of 4 — Collapse attempts: preserve the first record for each key in first-seen order. Target O(n) time and O(u) space for n attempts and u unique keys.",
+            "Step 2 of 4 — Summarize an unsorted window: count matching signals without sorting or early exit. Target O(n) time and O(1) auxiliary space.",
+            "Step 3 of 4 — Enforce per-tenant admission: preserve global arrival order while applying independent limits. Target O(n) time and O(t) space for t tenants.",
+            "Step 4 of 4 — Schedule bounded retries in the IDE: return a fresh delay sequence without mutating policy input. Target O(r) time and O(r) output space for r admitted retries."
+          ]
+        },
+        {
+          "type": "code",
+          "language": "javascript",
+          "caption": "Display-only sketch: a Map can make the deduplication invariant explicit.",
+          "code": "function firstResultPerKey(results) {\n  const first = new Map();\n  for (const result of results) {\n    if (!first.has(result.key)) first.set(result.key, result);\n  }\n  return [...first.values()];\n}"
+        },
+        {
+          "type": "callout",
+          "tone": "warning",
+          "title": "Boundary that defeats the obvious partial solution",
+          "text": "A duplicate can reappear after another key, so comparing only adjacent records fails. The first practice case includes A, B, then A again; the later A must still disappear without sorting away first-seen order. The unsorted-window case similarly defeats an early break when an old signal appears before a later in-window signal."
+        },
+        {
+          "type": "quiz",
+          "id": "coding-loop-check",
+          "prompt": "You receive an event-deduplication problem with no stated ordering rule. What should you do first?",
+          "choices": [
+            {
+              "id": "sort",
+              "text": "Sort by identifier because deterministic output is always preferable."
+            },
+            {
+              "id": "clarify",
+              "text": "Ask whether output must preserve first arrival, last arrival, or no order, then test the chosen rule with a duplicate example."
+            },
+            {
+              "id": "optimize",
+              "text": "Choose the data structure with the best theoretical complexity before discussing examples."
+            }
+          ],
+          "correctChoiceId": "clarify",
+          "explanation": "Ordering is part of the observable contract. Clarifying it prevents an efficient implementation of the wrong behavior and gives the first boundary test.",
+          "objectiveIds": [
+            "solve-code-aloud"
+          ],
+          "sourceIds": [
+            "openai-interview-guide",
+            "anthropic-careers",
+            "ecma-map"
+          ]
+        },
+        {
+          "type": "quiz",
+          "id": "complexity-boundary-check",
+          "prompt": "For n attempts and u unique keys, which solution meets the first exercise's first-seen-order contract and complexity target?",
+          "choices": [
+            {
+              "id": "adjacent",
+              "text": "Compare each attempt only with its immediate predecessor in O(n) time and O(1) space."
+            },
+            {
+              "id": "nested",
+              "text": "Scan the accepted output for every attempt in O(n²) time and O(u) space."
+            },
+            {
+              "id": "set",
+              "text": "Scan once, append only keys absent from a Set, and retain the first record in O(n) time and O(u) space."
+            }
+          ],
+          "correctChoiceId": "set",
+          "explanation": "The Set records every previously seen key, including non-adjacent duplicates, while a single left-to-right scan preserves first-seen order.",
+          "objectiveIds": [
+            "solve-code-aloud"
+          ],
+          "sourceIds": [
+            "ecma-map",
+            "openai-interview-guide"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "architecture-webhook-delivery",
+      "order": 3,
+      "title": "Webhook delivery architecture",
+      "summary": "Use this 24-minute module to prepare a separate 45-minute take-away mock: walk a multi-tenant webhook system through seven decision stages, then use targeted interviewer follow-ups.",
+      "durationMinutes": 24,
+      "objectiveIds": [
+        "frame-architecture",
+        "defend-design"
+      ],
+      "sourceIds": [
+        "stripe-idempotency",
+        "aws-well-architected",
+        "aws-reliability",
+        "aws-tradeoffs",
+        "google-sre-monitoring"
+      ],
+      "prerequisiteLessonIds": [
+        "coding-under-constraints"
+      ],
+      "blocks": [
+        {
+          "type": "heading",
+          "level": 2,
+          "text": "Webhook delivery: seven explicit passes"
+        },
+        {
+          "type": "paragraph",
+          "text": "Use R-C-I-F-S-O-T as a coverage checklist, not a speech. Move forward when the current detail can change a decision; move back when a new constraint invalidates an earlier choice. The sequence is an original synthesis for this lab, informed by public reliability, observability, and tradeoff guidance."
+        },
+        {
+          "type": "list",
+          "style": "ordered",
+          "items": [
+            "Requirements: name actors, core use cases, success semantics, and the few non-functional goals that matter most.",
+            "Constraints: quantify traffic, payload size, latency, availability, retention, consistency, geography, cost, security, and team limits only as far as needed.",
+            "Interfaces and data flow: define APIs and events, draw state ownership, and trace one write plus one read end to end.",
+            "Failure modes: enumerate partial failure at every boundary and choose timeout, retry, idempotency, backpressure, degradation, or recovery behavior.",
+            "Scaling: identify the resource that grows, the partition key, hot spots, concurrency limits, and when the simple design stops working.",
+            "Observability: derive user-facing indicators, internal saturation signals, correlation identifiers, alerts, and a recovery verification plan.",
+            "Tradeoffs: compare at least two viable choices against the requirements, record the losing property, and name the signal that would trigger revision."
+          ]
+        },
+        {
+          "type": "heading",
+          "level": 3,
+          "text": "A concrete pass: multi-tenant webhook delivery"
+        },
+        {
+          "type": "paragraph",
+          "text": "Suppose producers submit events and the service delivers each event to a tenant-controlled HTTPS endpoint. Begin with semantics: does accepted mean durably queued or already delivered? Is delivery at least once? How long are attempts retained? Safe retry requires an explicit duplicate strategy; an idempotency key can bind repeated submissions to one logical operation, while downstream delivery still needs a documented receiver contract."
+        },
+        {
+          "type": "list",
+          "style": "ordered",
+          "items": [
+            "Requirements — Actors are event producers, tenant administrators, and endpoint receivers. Define accepted as durably queued, expose delivery status, isolate tenants, retain attempts, and state at-least-once delivery rather than implying exactly once.",
+            "Constraints — Ask for peak events per second, payload limit, tenant count, endpoint timeout, retention window, availability target, regions, and per-tenant fairness. If numbers are absent, choose labeled estimates and keep them easy to replace.",
+            "Interfaces and data flow — POST an event with tenant and idempotency key → admission API → durable event store plus queue → delivery worker → tenant HTTPS endpoint → attempt record; GET status reads event and attempt state. Trace identifiers and ownership across every boundary.",
+            "Failure modes — Cover a lost admission response, queue redelivery, worker crash after remote success, slow endpoint, poison payload, storage outage, and a hot tenant. For each one choose timeout, bounded retry, idempotency, dead-letter handling, backpressure, or recovery behavior.",
+            "Scale — Estimate admission writes, queued bytes, delivery concurrency, and retention storage. Partition without breaking tenant fairness, scale workers from queue age, cap per-tenant concurrency, and name the queue-age threshold at which admission sheds or slows work.",
+            "Observability — Derive acceptance success and latency, oldest queue age, delivery success and latency, retry and duplicate rates, worker saturation, and dead-letter depth. Carry one correlation identifier from submission through every attempt and verify recovery against user-visible symptoms.",
+            "Tradeoffs — Compare synchronous delivery with durable asynchronous acceptance. The queue improves isolation and recovery but adds lag, at-least-once duplicates, storage cost, and operational complexity; revisit the choice if the required delivery latency becomes tighter than durable queuing can reliably meet."
+          ]
+        },
+        {
+          "type": "code",
+          "language": "text",
+          "caption": "The first diagram should expose ownership and boundaries before adding components.",
+          "code": "producer -> admission API -> event store + queue -> delivery worker -> tenant endpoint\n                |                    |                  |\n             status API          queue age         attempt log"
+        },
+        {
+          "type": "callout",
+          "tone": "warning",
+          "title": "A component is not a decision",
+          "text": "“Add a queue” is incomplete. State which requirement it serves, which failure it introduces, how you observe its backlog, and why its delivery semantics are acceptable. Architecture depth comes from consequences, not a longer list of products."
+        },
+        {
+          "type": "quiz",
+          "id": "failure-mode-check",
+          "prompt": "A delivery worker times out, but the tenant endpoint may have processed the request. What is the most important next design discussion?",
+          "choices": [
+            {
+              "id": "bigger-worker",
+              "text": "Increase worker memory so the timeout is less likely."
+            },
+            {
+              "id": "duplicate-semantics",
+              "text": "Define retry and duplicate semantics, including a delivery identifier the receiver can use for idempotent handling."
+            },
+            {
+              "id": "more-regions",
+              "text": "Deploy immediately to more regions."
+            }
+          ],
+          "correctChoiceId": "duplicate-semantics",
+          "explanation": "The uncertainty is whether the side effect already occurred. Before retrying, the design needs an explicit duplicate contract and a stable operation identity.",
+          "objectiveIds": [
+            "frame-architecture"
+          ],
+          "sourceIds": [
+            "stripe-idempotency",
+            "aws-reliability"
+          ]
+        },
+        {
+          "type": "quiz",
+          "id": "observability-tradeoff-check",
+          "prompt": "Which architecture statement is the most defensible?",
+          "choices": [
+            {
+              "id": "generic-scale",
+              "text": "Use a distributed queue because distributed systems scale better."
+            },
+            {
+              "id": "requirement-led",
+              "text": "Use a durable queue to decouple acceptance from slow endpoints; accept at-least-once delivery, monitor queue age and duplicate rate, and reconsider partitioning if one tenant drives sustained lag."
+            },
+            {
+              "id": "tool-led",
+              "text": "Use the queue technology the team already knows, with no further analysis."
+            }
+          ],
+          "correctChoiceId": "requirement-led",
+          "explanation": "The second statement links a component to a requirement, names the lost property and failure semantics, selects observable signals, and supplies a revision trigger.",
+          "objectiveIds": [
+            "defend-design"
+          ],
+          "sourceIds": [
+            "aws-well-architected",
+            "aws-tradeoffs",
+            "google-sre-monitoring"
+          ]
+        },
+        {
+          "type": "heading",
+          "level": 2,
+          "text": "Take-away: schedule a separate 45-minute mock interview"
+        },
+        {
+          "type": "list",
+          "style": "ordered",
+          "items": [
+            "0–5 minutes — Restate actors, core operations, delivery semantics, and the two requirements that will drive the design.",
+            "5–10 minutes — Establish traffic, payload, retention, latency, availability, region, security, and team constraints; label assumptions.",
+            "10–18 minutes — Define admission and status interfaces, sketch state ownership, and trace one event and one status read end to end.",
+            "18–27 minutes — Walk network and storage failure boundaries, including the crash-after-remote-success ambiguity, and choose retry plus idempotency behavior.",
+            "27–33 minutes — Estimate the growing resources, choose partition and concurrency controls, and handle a hot tenant with backpressure.",
+            "33–38 minutes — Select user-facing and saturation signals, correlation identifiers, alert conditions, and a recovery-verification check.",
+            "38–43 minutes — Compare synchronous and queued delivery against the requirements; state costs, lost properties, and a revision trigger.",
+            "43–45 minutes — Recap the contract, the riskiest assumption, and the next experiment or measurement."
+          ]
+        },
+        {
+          "type": "heading",
+          "level": 2,
+          "text": "Interviewer follow-up checklist"
+        },
+        {
+          "type": "list",
+          "style": "unordered",
+          "items": [
+            "Requirements: What does accepted promise, and which guarantee would you relax first?",
+            "Constraints: What changes if one tenant owns half the traffic or payloads are ten times larger?",
+            "Interfaces and data flow: How are idempotency keys scoped, retained, and represented in status responses?",
+            "Failure modes: What happens when the worker crashes after the endpoint commits but before the attempt record is durable?",
+            "Scale: Which partition becomes hot, what signal exposes it, and where does backpressure reach the producer?",
+            "Observability: Which user-visible symptom pages the team, and how do responders confirm recovery?",
+            "Tradeoffs: What evidence would make you replace asynchronous delivery or change its partitioning strategy?"
+          ]
+        },
+        {
+          "type": "callout",
+          "tone": "tip",
+          "title": "Exit criterion",
+          "text": "Finish when every major component answers a stated requirement, every network boundary has failure semantics, and every tradeoff has an observable revision trigger."
+        }
+      ]
+    }
+  ],
+  "flashcardDecks": [
+    {
+      "id": "interview-loop-retrieval",
+      "order": 1,
+      "title": "Interview loop retrieval",
+      "description": "Retrieve the prompts and decision checks that connect behavioral evidence, coding correctness, and architecture judgment.",
+      "objectiveIds": [
+        "build-story-bank",
+        "answer-follow-ups",
+        "solve-code-aloud",
+        "frame-architecture",
+        "defend-design"
+      ],
+      "sourceIds": [
+        "openai-interview-guide",
+        "anthropic-careers",
+        "va-interview-process",
+        "stripe-idempotency",
+        "aws-well-architected",
+        "aws-reliability",
+        "aws-tradeoffs",
+        "google-sre-monitoring",
+        "ecma-map"
+      ],
+      "cards": [
+        {
+          "id": "story-fields",
+          "front": "What five fields belong in an evidence-first behavioral story record?",
+          "back": "Situation, task, action, result, and reflection.",
+          "explanation": "The fields keep context, personal responsibility, choices, observed outcomes, and later learning distinct.",
+          "objectiveIds": [
+            "build-story-bank"
+          ],
+          "sourceIds": [
+            "va-interview-process"
+          ],
+          "tags": [
+            "behavioral",
+            "story-bank"
+          ]
+        },
+        {
+          "id": "story-metrics",
+          "front": "What should you do when you remember the direction of a result but not the exact metric?",
+          "back": "Describe the observed direction and evidence, and say that the exact number is not available.",
+          "explanation": "Specificity is useful only when it remains factual; unsupported precision weakens the whole story.",
+          "objectiveIds": [
+            "build-story-bank"
+          ],
+          "sourceIds": [
+            "va-interview-process"
+          ],
+          "tags": [
+            "behavioral",
+            "evidence"
+          ]
+        },
+        {
+          "id": "follow-up-lenses",
+          "front": "Which six lenses can you use to stress-test a behavioral story?",
+          "back": "Ownership, alternatives, conflict, failure, measurement, and reflection.",
+          "explanation": "Each lens exposes a decision boundary that a memorized surface narrative can hide.",
+          "objectiveIds": [
+            "answer-follow-ups"
+          ],
+          "sourceIds": [
+            "openai-interview-guide",
+            "anthropic-careers",
+            "va-interview-process"
+          ],
+          "tags": [
+            "behavioral",
+            "follow-ups"
+          ]
+        },
+        {
+          "id": "coding-first-move",
+          "front": "What should happen before you choose a coding data structure?",
+          "back": "Clarify the contract and walk an ordinary example plus a boundary example.",
+          "explanation": "A fast implementation cannot compensate for misunderstood output, ordering, mutation, or scale requirements.",
+          "objectiveIds": [
+            "solve-code-aloud"
+          ],
+          "sourceIds": [
+            "openai-interview-guide",
+            "anthropic-careers"
+          ],
+          "tags": [
+            "coding",
+            "contract"
+          ]
+        },
+        {
+          "id": "coding-invariant",
+          "front": "Why state an invariant during a coding interview?",
+          "back": "It gives the implementation and tests one concise correctness condition to preserve.",
+          "explanation": "The invariant makes state changes easier to narrate and helps locate the first point where an edge case breaks the solution.",
+          "objectiveIds": [
+            "solve-code-aloud"
+          ],
+          "sourceIds": [
+            "openai-interview-guide",
+            "ecma-map"
+          ],
+          "tags": [
+            "coding",
+            "correctness"
+          ]
+        },
+        {
+          "id": "coding-complexity",
+          "front": "How should you present complexity at the end of a coding exercise?",
+          "back": "Name the input variables, give time and space costs, and identify what bottleneck appears if scale changes.",
+          "explanation": "Complexity is a decision aid tied to the contract, not a detached slogan about Big O.",
+          "objectiveIds": [
+            "solve-code-aloud"
+          ],
+          "sourceIds": [
+            "openai-interview-guide",
+            "anthropic-careers"
+          ],
+          "tags": [
+            "coding",
+            "complexity"
+          ]
+        },
+        {
+          "id": "rcifsot",
+          "front": "What does R-C-I-F-S-O-T cover in a system-design interview?",
+          "back": "Requirements, constraints, interfaces and data flow, failure modes, scaling, observability, and tradeoffs.",
+          "explanation": "The checklist keeps the discussion decision-oriented while covering the major operational boundaries.",
+          "objectiveIds": [
+            "frame-architecture",
+            "defend-design"
+          ],
+          "sourceIds": [
+            "aws-well-architected",
+            "aws-reliability",
+            "aws-tradeoffs",
+            "google-sre-monitoring"
+          ],
+          "tags": [
+            "architecture",
+            "framework"
+          ]
+        },
+        {
+          "id": "accepted-semantics",
+          "front": "What must “accepted” mean in an asynchronous API contract?",
+          "back": "A specific state, such as durably queued, rather than the ambiguous promise that work merely started.",
+          "explanation": "Precise success semantics determine client retry behavior, persistence needs, and status reporting.",
+          "objectiveIds": [
+            "frame-architecture"
+          ],
+          "sourceIds": [
+            "stripe-idempotency",
+            "aws-reliability"
+          ],
+          "tags": [
+            "architecture",
+            "requirements"
+          ]
+        },
+        {
+          "id": "network-timeout",
+          "front": "Why is a timeout after a remote side effect an architecture boundary?",
+          "back": "The caller cannot know whether the operation failed or succeeded before the response was lost.",
+          "explanation": "Retrying without an idempotency contract may duplicate the side effect, while not retrying may lose intended work.",
+          "objectiveIds": [
+            "frame-architecture"
+          ],
+          "sourceIds": [
+            "stripe-idempotency",
+            "aws-reliability"
+          ],
+          "tags": [
+            "architecture",
+            "failure-modes"
+          ]
+        },
+        {
+          "id": "scaling-question",
+          "front": "What four questions turn “scale it” into a useful architecture discussion?",
+          "back": "What grows, how is it partitioned, where is the hot spot, and when does the simple design stop working?",
+          "explanation": "The answers locate a resource boundary and create a concrete trigger for the next design change.",
+          "objectiveIds": [
+            "frame-architecture"
+          ],
+          "sourceIds": [
+            "aws-well-architected",
+            "aws-reliability"
+          ],
+          "tags": [
+            "architecture",
+            "scaling"
+          ]
+        },
+        {
+          "id": "golden-signals",
+          "front": "Which four broad signals does the Google SRE monitoring chapter recommend watching?",
+          "back": "Latency, traffic, errors, and saturation.",
+          "explanation": "Together they expose user-visible behavior, demand, unsuccessful work, and pressure on constrained resources.",
+          "objectiveIds": [
+            "defend-design"
+          ],
+          "sourceIds": [
+            "google-sre-monitoring"
+          ],
+          "tags": [
+            "architecture",
+            "observability"
+          ]
+        },
+        {
+          "id": "queue-observability",
+          "front": "What should accompany the decision to add a durable queue?",
+          "back": "The requirement it serves, delivery semantics, backlog and saturation signals, recovery behavior, and accepted tradeoffs.",
+          "explanation": "A component becomes defensible when its consequences and operating signals are explicit.",
+          "objectiveIds": [
+            "frame-architecture",
+            "defend-design"
+          ],
+          "sourceIds": [
+            "aws-reliability",
+            "google-sre-monitoring"
+          ],
+          "tags": [
+            "architecture",
+            "queues"
+          ]
+        },
+        {
+          "id": "tradeoff-record",
+          "front": "What makes an architecture tradeoff statement complete?",
+          "back": "It compares viable choices against requirements, names the property sacrificed, and identifies a revision trigger.",
+          "explanation": "This turns preference into a decision that another engineer can inspect and update when conditions change.",
+          "objectiveIds": [
+            "defend-design"
+          ],
+          "sourceIds": [
+            "aws-tradeoffs",
+            "aws-well-architected"
+          ],
+          "tags": [
+            "architecture",
+            "tradeoffs"
+          ]
+        },
+        {
+          "id": "shared-interview-loop",
+          "front": "What four moves connect behavioral, coding, and architecture interviews?",
+          "back": "Clarify the contract, present evidence, test a boundary, and make a revisable decision.",
+          "explanation": "The same operating loop makes past actions, code, and system designs easier to inspect under follow-up.",
+          "objectiveIds": [
+            "answer-follow-ups",
+            "solve-code-aloud",
+            "defend-design"
+          ],
+          "sourceIds": [
+            "openai-interview-guide",
+            "anthropic-careers",
+            "aws-tradeoffs"
+          ],
+          "tags": [
+            "interview-loop",
+            "framework"
+          ]
+        }
+      ]
+    }
+  ],
+  "extensions": {
+    "org.latent/reading-order": {
+      "recommendation": "Complete the lesson, retrieve the cards, solve the portable practice set, then finish the trusted IDE retry exercise."
+    }
+  }
+}

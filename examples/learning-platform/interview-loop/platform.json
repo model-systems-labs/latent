@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "brand": {
+    "name": "Interview Loop Lab",
+    "tagline": "Build clear stories, robust code, and defensible system designs for demanding engineering interviews.",
+    "accent": "#5eead4",
+    "ink": "#182019",
+    "paper": "#f6f3e8"
+  },
+  "content": {
+    "learningPack": "content/learning-pack.json",
+    "questionGroups": "content/question-groups.json"
+  },
+  "hostOwned": {
+    "ideExercises": "trusted/ide-exercises.mjs"
+  }
+}

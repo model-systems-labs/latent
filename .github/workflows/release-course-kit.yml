@@ -81,6 +81,9 @@ jobs:
     needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
     permissions:
       contents: read
       id-token: write
@@ -95,7 +98,7 @@ jobs:
           node-version: 22.14.0
           cache: npm
       - run: npm ci --ignore-scripts
-      - name: Generate the schema-only Pages artifact
+      - name: Generate the schema portion of the Pages artifact
         run: |
           npm run build --workspace @latent/course-kit
           mkdir -p \
@@ -118,7 +121,13 @@ jobs:
           cmp packages/course-kit/schema/question-group-library.schema.json _schema-site/question-groups/v1/question-group-library.schema.json
           cmp public/question-groups/v1/question-group-progress.schema.json _schema-site/question-groups/v1/question-group-progress.schema.json
           cmp packages/course-kit/schema/question-group-progress.schema.json _schema-site/question-groups/v1/question-group-progress.schema.json
+          cp -R public/open-learning/. _schema-site/open-learning/
+          cp -R public/question-groups/. _schema-site/question-groups/
           touch _schema-site/.nojekyll
+      - name: Add the validated course to the Pages root
+        run: |
+          npm run build --prefix examples/learning-platform/interview-loop
+          cp -R examples/learning-platform/interview-loop/dist/. _schema-site/
       - name: Refuse to replace published version 1 schema bytes
         run: |
           for schema in learning-pack.schema.json learning-feed.schema.json; do

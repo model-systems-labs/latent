@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-eval'; worker-src 'self'; connect-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'none'"
+    >
+    <meta name="description" content="Practice behavioral stories, coding, and system architecture in a tiny Latent platform.">
+    <title>Interview Loop Lab</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <a class="skip-link" href="#learning-surface">Skip to learning content</a>
+    <div class="shell">
+      <header class="masthead">
+        <div>
+          <p class="eyebrow">A tiny Latent platform</p>
+          <h1 id="brand-name">Interview Loop Lab</h1>
+          <p id="brand-tagline" class="tagline">Loading the learning promise…</p>
+        </div>
+        <div class="brand-mark" aria-hidden="true">
+          <span>4</span>
+          <small>ways<br>to learn</small>
+        </div>
+      </header>
+
+      <nav class="primitive-nav" aria-label="Learning modes">
+        <button type="button" data-view="lesson" aria-current="page">
+          <span>01</span> Course
+        </button>
+        <button type="button" data-view="cards">
+          <span>02</span> Cards
+        </button>
+        <button type="button" data-view="practice">
+          <span>03</span> Practice
+        </button>
+        <button type="button" data-view="ide">
+          <span>04</span> IDE
+        </button>
+      </nav>
+
+      <main id="learning-surface" tabindex="-1">
+        <section class="view" data-panel="lesson" aria-labelledby="lesson-heading">
+          <div id="lesson-root" class="loading">Loading course…</div>
+        </section>
+        <section class="view" data-panel="cards" aria-labelledby="cards-heading" hidden>
+          <div id="cards-root" class="loading">Loading cards…</div>
+        </section>
+        <section class="view" data-panel="practice" aria-labelledby="practice-heading" hidden>
+          <div id="practice-root" class="loading">Loading practice…</div>
+        </section>
+        <section class="view" data-panel="ide" aria-labelledby="ide-heading" hidden>
+          <div id="ide-root" class="loading">Loading IDE…</div>
+        </section>
+      </main>
+
+      <footer>
+        <span>Portable modules, cards, and practice.</span>
+        <span>Reviewed browser IDE source.</span>
+        <span>No account or model required.</span>
+      </footer>
+    </div>
+    <div id="announcement" class="sr-only" role="status" aria-live="polite"></div>
+    <script type="module" src="./app.mjs"></script>
+  </body>
+</html>

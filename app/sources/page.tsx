@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { LearnerHeader } from "../components/LearnerHeader";
-import { coursePrograms } from "../lessons/course";
+import { coursePrograms } from "../../products/courses/reference-curriculum/lessons/course";
 import { PageAtmosphere } from "../components/PageAtmosphere";
 
 export const metadata: Metadata = {

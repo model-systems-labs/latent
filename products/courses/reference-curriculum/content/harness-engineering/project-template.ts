@@ -2,7 +2,7 @@ import type { CourseLesson } from "@latent/course-kit";
 import { harnessEngineeringManifest } from "./manifest";
 import { harnessEngineeringLessons } from "../../lessons/harness-engineering";
 import { lessonBlockComment, lessonImplementationSource } from "../../lessons/implementation-source";
-import { starterPracticeSource, workingPracticeBlockSource } from "../../features/ide/practice-state";
+import { starterPracticeSource, workingPracticeBlockSource } from "../../../../../app/features/ide/practice-state";
 
 export const HARNESS_PROJECT_ID = "harness-engineering";
 export const HARNESS_PROJECT_TITLE = "Harness Engineering";

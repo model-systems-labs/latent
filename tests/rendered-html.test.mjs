@@ -20,6 +20,9 @@ test("the landing page presents the learner course product", async () => {
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /Learn how language-model systems actually work/);
+  assert.match(html, /Bundled reference courses/);
+  assert.match(html, /not a shared[\s\S]*catalog of courses other publishers make/);
+  assert.match(html, /does[\s\S]*not sync them to an account/);
   assert.match(html, /Match the course to what you already know/);
   assert.match(html, /Linear Algebra Basics/);
   assert.match(html, /Machine Learning Basics/);
@@ -41,7 +44,11 @@ test("the framework route presents its local-first browser runtime and publishin
   assert.match(html, /Publish static sites/);
   assert.match(html, /CPython through WebAssembly/);
   assert.match(html, /Understanding comes from changing the code/);
-  assert.match(html, /Latent Courses[\s\S]*separate reference product built with this framework/);
+  assert.match(html, /Latent Courses[\s\S]*bundled[\s\S]*reference-course product/);
+  assert.match(html, /not added to Latent Courses/);
+  assert.match(html, /There is no hidden Latent course cloud/);
+  assert.match(html, /courses\/authored/);
+  assert.match(html, /Progress is browser-local/);
   assert.match(html, /Give coding agents a framework they can actually work in/);
   assert.match(html, /aria-label="Agent-assisted publishing workflow"/);
   assert.match(html, /Course Kit turns declarative lessons/);
@@ -142,7 +149,8 @@ test("open learning exposes self-hosted feeds and local package authoring", asyn
   assert.match(html, /Anyone can publish a lesson/);
   assert.match(html, /Reading and publishing are different jobs/);
   assert.match(html, /Verify and read a hosted feed/);
-  assert.match(html, /Validate and build a portable site/);
+  assert.match(html, /Build a portable Learning Pack you host/);
+  assert.match(html, /host the generated static site at a URL you control/);
   assert.match(html, /href="\/open-learning\/read"/);
   assert.match(html, /href="\/open-learning\/publish"/);
   assert.doesNotMatch(html, /learning-feed-url|learning-pack-source/);
@@ -160,8 +168,11 @@ test("open learning gives readers and publishers separate tools", async () => {
   const publisher = await publisherResponse.text();
   assert.match(reader, /learning-feed-url/);
   assert.match(reader, /Open a hosted lesson feed/);
+  assert.match(reader, /Progress is never sent to the publisher/);
   assert.doesNotMatch(reader, /learning-pack-source|Download host-ready site/);
   assert.match(publisher, /learning-pack-source/);
+  assert.match(publisher, /Build a portable Learning Pack you host/);
+  assert.match(publisher, /Latent does not add it to the bundled courses/);
   assert.match(publisher, /Download host-ready site/);
   assert.doesNotMatch(publisher, /learning-feed-url|Save on this device/);
 });
@@ -569,7 +580,7 @@ test("the design kit, simulations, model engines, and artifact runtime remain re
     readFile(new URL("../app/components/PaperLab.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/LessonExperiment.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/BrowserChatCapstone.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/content/browser-chat/project-template.ts", import.meta.url), "utf8"),
+    readFile(new URL("../products/courses/reference-curriculum/content/browser-chat/project-template.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/runtime/capstone/preview-frame.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/components/ProjectWorkbench.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/lib/project-workspace.ts", import.meta.url), "utf8"),
@@ -583,10 +594,10 @@ test("the design kit, simulations, model engines, and artifact runtime remain re
     readFile(new URL("../app/lib/browser-lab/types.ts", import.meta.url), "utf8"),
     readFile(new URL("../packages/model-lab/src/character-rnn.ts", import.meta.url), "utf8"),
     Promise.all([
-      readFile(new URL("../app/lessons/extended-course.ts", import.meta.url), "utf8"),
-      readFile(new URL("../app/lessons/extended/systems/reliability-observability.ts", import.meta.url), "utf8"),
+      readFile(new URL("../products/courses/reference-curriculum/lessons/extended-course.ts", import.meta.url), "utf8"),
+      readFile(new URL("../products/courses/reference-curriculum/lessons/extended/systems/reliability-observability.ts", import.meta.url), "utf8"),
     ]).then((parts) => parts.join("\n")),
-    readFile(new URL("../app/lessons/sources.ts", import.meta.url), "utf8"),
+    readFile(new URL("../products/courses/reference-curriculum/lessons/sources.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
   ]);

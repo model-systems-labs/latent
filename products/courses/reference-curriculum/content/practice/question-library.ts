@@ -36,7 +36,7 @@ export const methodQuestionLibrary = {
   sources: [{
     id: "latent-original",
     title: "Latent original method-practice library",
-    url: "https://github.com/model-systems-labs/latent/tree/main/app/content/practice",
+    url: "https://github.com/model-systems-labs/latent/tree/main/products/courses/reference-curriculum/content/practice",
     note: "Original practice prompts and checks maintained with the Latent reference application.",
     license: {
       expression: "Apache-2.0",

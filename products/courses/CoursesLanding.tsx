@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { LearnerHeader } from "../../app/components/LearnerHeader";
 import { PageAtmosphere } from "../../app/components/PageAtmosphere";
-import { coursePrograms } from "../../app/lessons/course";
+import { coursePrograms } from "./reference-curriculum/lessons/course";
 import styles from "./courses.module.css";
 
 export const coursesMetadata: Metadata = {
   title: "Latent Courses · Learn LLM systems in your browser",
   description:
-    "Four interactive, browser-native courses in linear algebra, machine learning, harness engineering, and LLM systems.",
+    "Four bundled, browser-native reference courses in linear algebra, machine learning, harness engineering, and LLM systems.",
 };
 
 const startingRoutes = [
@@ -53,7 +53,7 @@ export function CoursesLanding() {
 
       <article className={styles.shell}>
         <section className={styles.hero}>
-          <span className="eyebrow">Interactive courses · runs in your browser</span>
+          <span className="eyebrow">Bundled reference courses · run in your browser</span>
           <h1>Learn how language-model systems actually work.</h1>
           <p>
             Start with the math and machine-learning foundations, study the
@@ -69,6 +69,13 @@ export function CoursesLanding() {
               Open LLM Systems
             </Link>
           </div>
+          <p className={styles.productNote}>
+            These are Latent&apos;s bundled reference courses—not a shared
+            catalog of courses other publishers make.{" "}
+            <Link href="/framework">
+              Use Latent Framework to publish a course you own.
+            </Link>
+          </p>
         </section>
 
         <section className={styles.startingPoint} aria-labelledby="starting-title">
@@ -161,8 +168,9 @@ export function CoursesLanding() {
           <h2 id="local-title">Your work stays with you.</h2>
           <p>
             No install or API key is required. Exercises, code, and progress
-            stay in this browser. The optional pretrained model downloads only
-            when you choose to load it.
+            are saved only in this browser on this device; Latent Courses does
+            not sync them to an account. The optional pretrained model
+            downloads only when you choose to load it.
           </p>
         </section>
       </article>
@@ -170,10 +178,9 @@ export function CoursesLanding() {
       <footer className={styles.footer}>
         <span>Latent Courses</span>
         <p>
-          These courses are built with{" "}
-          <a href="https://github.com/model-systems-labs/latent" rel="noreferrer" target="_blank">
-            Latent, the open-source learning-platform framework
-          </a>.
+          These are Latent&apos;s bundled reference courses. To publish your
+          own, use <Link href="/framework">Latent Framework</Link> to build a
+          portable Learning Pack and host it at a URL you control.
         </p>
       </footer>
     </main>

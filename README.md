@@ -242,6 +242,10 @@ realm.
 - `products/courses/` — product-owned learner landing surface and the course
   deployment's nested hosting profile; designed for possible later extraction,
   but still part of this repository today
+- `products/courses/reference-curriculum/` — bundled, reviewed curriculum
+  compiled into Latent Courses
+- `courses/authored/` — publisher-owned portable Learning Pack workspaces;
+  generated sites are hosted independently
 - `packages/course-kit/` — public Learning Pack schemas, validation, CLI, and
   static-site builder, plus the released Question Group schemas, validator,
   progress contract, and injectable player
@@ -257,8 +261,6 @@ realm.
   engines
 - `packages/artifact-runtime/` and `packages/training-replay/` — immutable
   artifact lineage and model-neutral recordings
-- `app/content/` and `app/lessons/` — first-party curricula and exercise
-  contracts
 - `tests/` — format, CLI, curriculum, runtime, persistence, accessibility, and
   rendered-product contracts
 

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { coursePrograms, courseTracks, getCourseProgram } from "../../lessons/course";
+import { coursePrograms, courseTracks, getCourseProgram } from "../../../products/courses/reference-curriculum/lessons/course";
 import { CourseGuide } from "../../components/CourseGuide";
 import { CourseCurriculum } from "../../components/CourseCurriculum";
 import { LearnerHeader } from "../../components/LearnerHeader";

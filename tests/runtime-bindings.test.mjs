@@ -20,7 +20,7 @@ before(async () => {
   [runtime, persistencePure, template] = await Promise.all([
     vite.ssrLoadModule("/app/runtime/bindings/index.ts"),
     vite.ssrLoadModule("/app/platform/persistence/pure.ts"),
-    vite.ssrLoadModule("/app/content/browser-chat/project-template.ts"),
+    vite.ssrLoadModule("/products/courses/reference-curriculum/content/browser-chat/project-template.ts"),
   ]);
 });
 

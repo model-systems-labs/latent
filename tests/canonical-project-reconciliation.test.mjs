@@ -45,11 +45,11 @@ before(async () => {
   [canonical, client, contracts, course, persistence, snapshot, template, workspace] = await Promise.all([
     vite.ssrLoadModule("/app/lib/canonical-project.ts"),
     vite.ssrLoadModule("/app/platform/persistence/client.ts"),
-    vite.ssrLoadModule("/app/content/llm-systems/contracts.ts"),
-    vite.ssrLoadModule("/app/lessons/course.ts"),
+    vite.ssrLoadModule("/products/courses/reference-curriculum/content/llm-systems/contracts.ts"),
+    vite.ssrLoadModule("/products/courses/reference-curriculum/lessons/course.ts"),
     vite.ssrLoadModule("/app/platform/persistence/index.ts"),
     vite.ssrLoadModule("/app/features/ide/project-snapshot.ts"),
-    vite.ssrLoadModule("/app/content/browser-chat/project-template.ts"),
+    vite.ssrLoadModule("/products/courses/reference-curriculum/content/browser-chat/project-template.ts"),
     vite.ssrLoadModule("/app/lib/project-workspace.ts"),
   ]);
 });

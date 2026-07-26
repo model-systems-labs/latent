@@ -20,8 +20,8 @@ import {
   HARNESS_PROJECT_TITLE,
   harnessLessonProjectSeed,
   type HarnessProjectSeed,
-} from "../content/harness-engineering/project-template";
-import { harnessEngineeringLessons } from "../lessons/harness-engineering";
+} from "../../products/courses/reference-curriculum/content/harness-engineering/project-template";
+import { harnessEngineeringLessons } from "../../products/courses/reference-curriculum/lessons/harness-engineering";
 import { loadLearnerState } from "./learner-state";
 import { restoreWorkingSourceVerification, workingPracticeSources } from "../features/ide/practice-state";
 

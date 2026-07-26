@@ -21,7 +21,7 @@ before(async () => {
   [browserLab, browserWorker, content, reviewedQuestionIde] = await Promise.all([
     vite.ssrLoadModule("/packages/browser-lab/src/index.ts"),
     vite.ssrLoadModule("/packages/browser-lab/src/worker/index.ts"),
-    vite.ssrLoadModule("/app/content/practice/question-library.ts"),
+    vite.ssrLoadModule("/products/courses/reference-curriculum/content/practice/question-library.ts"),
     vite.ssrLoadModule("/app/platform/ide/reviewed-question-extension.ts"),
   ]);
 });

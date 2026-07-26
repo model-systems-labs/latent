@@ -37,11 +37,11 @@ before(async () => {
     { runPythonLessonContracts },
   ] = await Promise.all([
     vite.ssrLoadModule("/packages/browser-lab/src/contracts.ts"),
-    vite.ssrLoadModule("/app/lessons/course.ts"),
-    vite.ssrLoadModule("/app/lessons/foundations/exercise-contracts.ts"),
-    vite.ssrLoadModule("/app/content/foundations/contracts.ts"),
-    vite.ssrLoadModule("/app/lessons/implementation-source.ts"),
-    vite.ssrLoadModule("/app/content/foundations/manifests.ts"),
+    vite.ssrLoadModule("/products/courses/reference-curriculum/lessons/course.ts"),
+    vite.ssrLoadModule("/products/courses/reference-curriculum/lessons/foundations/exercise-contracts.ts"),
+    vite.ssrLoadModule("/products/courses/reference-curriculum/content/foundations/contracts.ts"),
+    vite.ssrLoadModule("/products/courses/reference-curriculum/lessons/implementation-source.ts"),
+    vite.ssrLoadModule("/products/courses/reference-curriculum/content/foundations/manifests.ts"),
     vite.ssrLoadModule("/app/features/ide/python-lesson-service.ts"),
   ]);
 
@@ -263,7 +263,7 @@ test("batching explains why one output bias is shared before asking learners to 
   assert.match(biasExercise.concepts.map(({ detail }) => detail).join(" "), /does not learn a different bias for each example/);
   assert.match(biasExercise.checkCode, /\[\[0, 0\], \[3, 4\]\]/);
 
-  const learning = await readFile(new URL("../app/content/foundations/learning.ts", import.meta.url), "utf8");
+  const learning = await readFile(new URL("../products/courses/reference-curriculum/content/foundations/learning.ts", import.meta.url), "utf8");
   assert.match(learning, /id: "shared-bias-purpose"/);
   assert.match(learning, /The bias belongs to the layer's output coordinates, not to an individual example/);
 });

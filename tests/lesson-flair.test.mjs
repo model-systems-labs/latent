@@ -21,8 +21,8 @@ before(async () => {
     logLevel: "silent",
   });
   const [flairModule, manifestModule] = await Promise.all([
-    vite.ssrLoadModule("/app/lessons/lesson-flair.ts"),
-    vite.ssrLoadModule("/app/content/llm-systems/manifest.ts"),
+    vite.ssrLoadModule("/products/courses/reference-curriculum/lessons/lesson-flair.ts"),
+    vite.ssrLoadModule("/products/courses/reference-curriculum/content/llm-systems/manifest.ts"),
   ]);
   lessonFlairRegistry = flairModule.lessonFlairRegistry;
   llmSystemsManifest = manifestModule.llmSystemsManifest;

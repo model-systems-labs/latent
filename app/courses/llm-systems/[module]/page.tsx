@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { courseTracks, getTrack, getTrackLessons } from "../../../lessons/course";
+import { courseTracks, getTrack, getTrackLessons } from "../../../../products/courses/reference-curriculum/lessons/course";
 import { CourseCurriculum } from "../../../components/CourseCurriculum";
-import { moduleCheckpoint } from "../../../content/llm-systems/learning";
+import { moduleCheckpoint } from "../../../../products/courses/reference-curriculum/content/llm-systems/learning";
 import { PageAtmosphere } from "../../../components/PageAtmosphere";
 
 export function generateStaticParams() {

@@ -4,7 +4,7 @@ import { artifactBundleBlob, createArtifact, hashArtifactValue, type ArtifactEnv
 import { getArtifactRuntime } from "@latent/artifact-runtime/client";
 import { lessonArtifactBlueprintById, lessonArtifactBlueprints, previousArtifactLessonId } from "./lesson-blueprints";
 import { recordedTrainingRegistry } from "./training-scenarios";
-import { llmSystemsContractSuite } from "../../content/llm-systems/contracts";
+import { llmSystemsContractSuite } from "../../../products/courses/reference-curriculum/content/llm-systems/contracts";
 import { downloadBrowserBlob } from "../../lib/browser-download";
 
 export type ValidatedLessonResult = { id: string; label: string; passed: boolean; detail: string };

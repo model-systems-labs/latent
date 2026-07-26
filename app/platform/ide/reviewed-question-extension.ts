@@ -14,7 +14,7 @@ import {
   type QuestionGroupLibrary,
   type QuestionGroupRuntimeRequirement,
 } from "@latent/course-kit";
-import { methodQuestionLibrary } from "../../content/practice/question-library";
+import { methodQuestionLibrary } from "../../../products/courses/reference-curriculum/content/practice/question-library";
 import {
   createPracticeQuestionContract,
   practiceQuestionExportName,

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PaperLab } from "../../components/PaperLab";
-import { allRoutedLessons, getLesson } from "../../lessons/course";
+import { allRoutedLessons, getLesson } from "../../../products/courses/reference-curriculum/lessons/course";
 
 export function generateStaticParams() {
   return allRoutedLessons.map((lesson) => ({ slug: lesson.id }));

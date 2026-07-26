@@ -53,6 +53,10 @@ test("the learner landing presents courses without platform publishing controls"
   assert.match(atmosphere, /node node-one/);
   assert.match(atmosphere, /warm-star/);
   assert.match(page, /Learn how language-model systems actually work/);
+  assert.match(page, /Bundled reference courses/);
+  assert.match(page, /not a shared[\s\S]*catalog of courses other publishers make/);
+  assert.match(page, /does[\s\S]*not sync them to an account/);
+  assert.match(page, /href="\/framework"/);
   assert.match(page, /href="\/course#starting-point"/);
   assert.match(page, /href="\/courses\/llm-systems"/);
   assert.match(page, /href="\/practice"/);
@@ -78,10 +82,15 @@ test("the framework landing leads with local browser execution and agent-ready p
   assert.match(page, /Course Kit \+ starter/);
   assert.match(page, /CPython through WebAssembly/);
   assert.match(page, /Understanding comes from changing the code/);
-  assert.match(page, /Latent Courses[\s\S]*separate reference[\s\S]*built with this framework/);
+  assert.match(page, /Latent Courses[\s\S]*bundled[\s\S]*reference-course product/);
+  assert.match(page, /not added to Latent Courses/);
+  assert.match(page, /There is no hidden Latent course cloud/);
+  assert.match(page, /courses\/authored/);
+  assert.match(page, /Progress is browser-local/);
   assert.match(page, /aria-label="Agent-assisted publishing workflow"/);
   assert.match(page, /packages\/course-kit\//);
   assert.match(page, /packages\/python-lab\//);
+  assert.match(page, /products\/courses\/reference-curriculum\//);
   assert.match(page, /href="\/open-learning"/);
   assert.doesNotMatch(page, /Two products, one explicit boundary|The platform is not the course library/);
   assert.doesNotMatch(page, /FirstRunExperience|courseTracks|testimonial|trusted by/i);

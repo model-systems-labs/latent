@@ -28,11 +28,16 @@ test("the app routes compose separate course and framework product folders", asy
   assert.doesNotMatch(frameworkRoute, /CoursesLanding/);
 
   assert.match(courses, /<LearnerHeader current="courses" \/>/);
+  assert.match(courses, /bundled reference courses/i);
+  assert.match(courses, /href="\/framework"/);
+  assert.match(courses, /host it at a URL you control/);
   assert.doesNotMatch(courses, /href="\/(?:open-learning|workspace)"/);
   assert.doesNotMatch(courses, /LearningPackPublisher|Platform publishing pipeline/);
 
   assert.match(framework, /href="\/open-learning"/);
   assert.match(framework, /<FrameworkHeader current="overview" \/>/);
+  assert.match(framework, /not added to Latent Courses/);
+  assert.match(framework, /courses\/authored/);
   assert.doesNotMatch(framework, /<LearnerHeader/);
 });
 
@@ -43,7 +48,19 @@ test("product builds opt into distinct deployments and the future repository spl
     "the repository root must not select a Sites deployment",
   );
 
-  const [courseHostingSource, frameworkHostingSource, packageSource, releaseSource, productLlms, sitesPlugin, productsReadme, coursesReadme] = await Promise.all([
+  const [
+    courseHostingSource,
+    frameworkHostingSource,
+    packageSource,
+    releaseSource,
+    productLlms,
+    sitesPlugin,
+    productsReadme,
+    coursesReadme,
+    courseOwnershipReadme,
+    authoredCoursesReadme,
+    referenceCurriculumReadme,
+  ] = await Promise.all([
     read("products/courses/.openai/hosting.json"),
     read("products/framework/.openai/hosting.json"),
     read("package.json"),
@@ -52,6 +69,9 @@ test("product builds opt into distinct deployments and the future repository spl
     read("build/sites-vite-plugin.ts"),
     read("products/README.md"),
     read("products/courses/README.md"),
+    read("courses/README.md"),
+    read("courses/authored/README.md"),
+    read("products/courses/reference-curriculum/README.md"),
   ]);
   const courseHosting = JSON.parse(courseHostingSource);
   const frameworkHosting = JSON.parse(frameworkHostingSource);
@@ -59,6 +79,16 @@ test("product builds opt into distinct deployments and the future repository spl
   const release = JSON.parse(releaseSource);
   const productIntent = productsReadme.replaceAll("**", "");
   const courseIntent = coursesReadme.replaceAll("**", "");
+
+  await Promise.all([
+    access(new URL("products/courses/reference-curriculum/lessons/course.ts", root)),
+    access(new URL("products/courses/reference-curriculum/content/llm-systems/manifest.ts", root)),
+    access(new URL("courses/authored/README.md", root)),
+  ]);
+  await Promise.all([
+    assert.rejects(access(new URL("app/lessons/course.ts", root))),
+    assert.rejects(access(new URL("app/content/llm-systems/manifest.ts", root))),
+  ]);
 
   assert.deepEqual(courseHosting, {
     project_id: "appgprj_6a6571528c3881919c919eec615da43a",
@@ -86,6 +116,8 @@ test("product builds opt into distinct deployments and the future repository spl
     "LATENT_PRODUCT_HOME=framework LATENT_HOSTING_CONFIG=products/framework/.openai/hosting.json npm run build",
   );
   assert.match(productLlms, /^# Latent Courses/m);
+  assert.match(productLlms, /bundled, browser-native reference courses/i);
+  assert.match(productLlms, /not added to this\s+bundled learner catalog/i);
   assert.doesNotMatch(productLlms, /Authoritative guide|Publish the complete generated static directory/);
   assert.match(sitesPlugin, /explicitHostingConfig && !\(await exists\(hostingConfig\)\)/);
   assert.match(sitesPlugin, /LATENT_HOSTING_CONFIG does not exist/);
@@ -94,8 +126,14 @@ test("product builds opt into distinct deployments and the future repository spl
   assert.match(productIntent, /can later become an\s+independent repository/i);
   assert.match(productIntent, /not a separate\s+repository today/i);
   assert.match(productIntent, /not two fully\s+independent applications/i);
+  assert.match(productIntent, /courses\/authored/);
   assert.match(courseIntent, /moving Latent Courses into\s+its own repository later/i);
   assert.match(courseIntent, /future architectural option, not the current\s+state/i);
+  assert.match(courseOwnershipReadme, /two kinds of course source deliberately separate/i);
+  assert.match(courseOwnershipReadme, /learner progress[\s\S]*learner's browser/i);
+  assert.match(authoredCoursesReadme, /does not automatically upload/i);
+  assert.match(referenceCurriculumReadme, /bundled reference library/i);
+  assert.match(referenceCurriculumReadme, /not a storage location[\s\S]*Open Learning/i);
 });
 
 test("course and framework routes keep separate social identities", async () => {
@@ -136,6 +174,9 @@ test("course and framework routes keep separate social identities", async () => 
   assert.match(openLearningPage, /<FrameworkHeader current="open-learning" \/>/);
   assert.match(readerPage, /<FrameworkHeader current="read" \/>/);
   assert.match(publisherPage, /<FrameworkHeader current="publish" \/>/);
+  assert.match(publisherPage, /Build a portable Learning Pack you host/);
+  assert.match(publisherPage, /Latent does not[\s\S]*add it to the bundled courses/);
+  assert.match(readerPage, /Progress is never sent to the publisher/);
 
   for (const route of [openLearningPage, readerPage, publisherPage]) {
     assert.match(route, /Latent Framework/);

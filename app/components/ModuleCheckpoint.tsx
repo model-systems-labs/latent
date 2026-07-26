@@ -4,19 +4,19 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { consumeSse, createMockServingStream } from "@latent/mock-services/sse";
 import { sampleCharacterRnn } from "@latent/model-lab/character-rnn";
-import { moduleCheckpoint } from "../content/llm-systems/learning";
-import { llmSystemsCurriculum } from "../lessons/course";
+import { moduleCheckpoint } from "../../products/courses/reference-curriculum/content/llm-systems/learning";
+import { llmSystemsCurriculum } from "../../products/courses/reference-curriculum/lessons/course";
 import { lessonCodeIsComplete, lessonKnowledgeIsComplete, useLearnerState } from "../lib/learner-state";
 import { reconcileCanonicalProject } from "../lib/canonical-project";
 import { runProjectUnitTests } from "../lib/project-tests";
 import { saveProjectTestResults, useProjectState, type ProjectUnitResult } from "../lib/project-workspace";
 import { recordLearningEvent } from "../lib/learning-analytics";
-import { lessonLearningOutcome } from "../content/llm-systems/learning";
+import { lessonLearningOutcome } from "../../products/courses/reference-curriculum/content/llm-systems/learning";
 import {
   ModuleCheckpointAttemptCoordinator,
   type ModuleCheckpointAttempt,
 } from "../lib/module-checkpoint-attempt";
-import { llmSystemsContractSuite } from "../content/llm-systems/contracts";
+import { llmSystemsContractSuite } from "../../products/courses/reference-curriculum/content/llm-systems/contracts";
 
 type CheckpointStatus = "idle" | "verifying" | "running" | "passed" | "failed" | "cancelled";
 

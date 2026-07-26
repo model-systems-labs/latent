@@ -5,7 +5,7 @@ import { assertRnnCheckpoint, type RnnCheckpoint, type RnnResult } from "@latent
 import { getPersistenceContext } from "../platform/persistence/client";
 import { lessonProgressId } from "../platform/persistence/pure";
 import type { CheckpointRecord, JsonValue, PracticeRepetitionProgress } from "../platform/persistence/types";
-import { lessonProgressLocation, progressCourseIds } from "../content/course-progress";
+import { lessonProgressLocation, progressCourseIds } from "../../products/courses/reference-curriculum/content/course-progress";
 
 export const LEARNER_STATE_KEY = "latent-learner-v2";
 export const LEARNER_RECOVERY_KEY = "latent-learner-recovery-v3:";

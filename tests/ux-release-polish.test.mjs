@@ -11,7 +11,7 @@ const productizationStylesUrl = new URL("../app/styles/productization.css", impo
 const projectStructureStylesUrl = new URL("../app/styles/project-structure.css", import.meta.url);
 const responsiveStylesUrl = new URL("../app/styles/responsive.css", import.meta.url);
 const paperLabMobileStylesUrl = new URL("../app/components/PaperLab.module.css", import.meta.url);
-const projectTemplateUrl = new URL("../app/content/browser-chat/project-template.ts", import.meta.url);
+const projectTemplateUrl = new URL("../products/courses/reference-curriculum/content/browser-chat/project-template.ts", import.meta.url);
 const projectWorkbenchUrl = new URL("../app/components/ProjectWorkbench.tsx", import.meta.url);
 const lessonExperimentUrl = new URL("../app/components/LessonExperiment.tsx", import.meta.url);
 

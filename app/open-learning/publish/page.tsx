@@ -18,11 +18,11 @@ export default function LearningPackPublisherPage() {
       <article className={`${styles.shell} ${styles.toolShell}`}>
         <header className={styles.toolHero}>
           <span className="eyebrow">Publisher workflow</span>
-          <h1>Build portable course content, not a platform dependency.</h1>
+          <h1>Build a portable Learning Pack you host.</h1>
           <p>
-            Course Kit validates the public JSON contract and builds an
-            independent static site. The result can live on any ordinary HTTPS
-            host without Latent.
+            Course Kit turns your declarative course into a static site. You
+            publish that output on an HTTPS host you control; Latent does not
+            add it to the bundled courses.
           </p>
         </header>
         <div>

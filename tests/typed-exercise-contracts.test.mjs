@@ -19,9 +19,9 @@ before(async () => {
   });
   [browserLabContracts, contractModule, course, manifestModule] = await Promise.all([
     vite.ssrLoadModule("/packages/browser-lab/src/contracts.ts"),
-    vite.ssrLoadModule("/app/content/llm-systems/contracts.ts"),
-    vite.ssrLoadModule("/app/lessons/course.ts"),
-    vite.ssrLoadModule("/app/content/llm-systems/manifest.ts"),
+    vite.ssrLoadModule("/products/courses/reference-curriculum/content/llm-systems/contracts.ts"),
+    vite.ssrLoadModule("/products/courses/reference-curriculum/lessons/course.ts"),
+    vite.ssrLoadModule("/products/courses/reference-curriculum/content/llm-systems/manifest.ts"),
   ]);
 });
 

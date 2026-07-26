@@ -14,7 +14,7 @@ before(async () => {
     appType: "custom",
     logLevel: "silent",
   });
-  sourceModule = await vite.ssrLoadModule("/app/lessons/implementation-source.ts");
+  sourceModule = await vite.ssrLoadModule("/products/courses/reference-curriculum/lessons/implementation-source.ts");
 });
 
 after(async () => {

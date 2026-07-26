@@ -28,16 +28,16 @@ before(async () => {
     logLevel: "silent",
   });
   [course, learning, portfolio, projectWorkspace, learnerState, canonicalProject, fileStatus, contracts, template, provenance] = await Promise.all([
-    vite.ssrLoadModule("/app/lessons/course.ts"),
-    vite.ssrLoadModule("/app/content/llm-systems/learning.ts"),
+    vite.ssrLoadModule("/products/courses/reference-curriculum/lessons/course.ts"),
+    vite.ssrLoadModule("/products/courses/reference-curriculum/content/llm-systems/learning.ts"),
     vite.ssrLoadModule("/app/lib/portfolio-export.ts"),
     vite.ssrLoadModule("/app/lib/project-workspace.ts"),
     vite.ssrLoadModule("/app/lib/learner-state.ts"),
     vite.ssrLoadModule("/app/lib/canonical-project.ts"),
     vite.ssrLoadModule("/app/lib/project-file-status.ts"),
-    vite.ssrLoadModule("/app/content/llm-systems/contracts.ts"),
-    vite.ssrLoadModule("/app/content/browser-chat/project-template.ts"),
-    vite.ssrLoadModule("/app/lessons/provenance.ts"),
+    vite.ssrLoadModule("/products/courses/reference-curriculum/content/llm-systems/contracts.ts"),
+    vite.ssrLoadModule("/products/courses/reference-curriculum/content/browser-chat/project-template.ts"),
+    vite.ssrLoadModule("/products/courses/reference-curriculum/lessons/provenance.ts"),
   ]);
 });
 
@@ -115,7 +115,7 @@ test("lesson source and dataset attribution is complete and reviewable", () => {
 test("reviewed lessons do not reintroduce the two remediated source patterns", async () => {
   const root = new URL("../", import.meta.url);
   const rnnTrainerSources = await Promise.all([
-    "app/lessons/model/character-rnn-training.ts",
+    "products/courses/reference-curriculum/lessons/model/character-rnn-training.ts",
     "packages/model-lab/src/character-rnn.ts",
   ].map((path) => readFile(new URL(path, root), "utf8")));
   for (const source of rnnTrainerSources) {
@@ -123,10 +123,10 @@ test("reviewed lessons do not reintroduce the two remediated source patterns", a
   }
 
   const bpeSources = await Promise.all([
-    "app/lessons/model/subword-tokenization.ts",
-    "app/lessons/lesson-flair.ts",
-    "app/lessons/exercise-contracts.ts",
-    "app/content/llm-systems/contracts.ts",
+    "products/courses/reference-curriculum/lessons/model/subword-tokenization.ts",
+    "products/courses/reference-curriculum/lessons/lesson-flair.ts",
+    "products/courses/reference-curriculum/lessons/exercise-contracts.ts",
+    "products/courses/reference-curriculum/content/llm-systems/contracts.ts",
   ].map((path) => readFile(new URL(path, root), "utf8")));
   for (const source of bpeSources) {
     assert.doesNotMatch(source, /\blower\b|low\|er|l-o pair|\[\\?"l\\?"\s*,\s*\\?"o\\?"/);

@@ -24,9 +24,9 @@ before(async () => {
     logLevel: "silent",
   });
   const [courseModule, contractModule, sourceModule, serviceModule, projectServiceModule] = await Promise.all([
-    vite.ssrLoadModule("/app/lessons/course.ts"),
-    vite.ssrLoadModule("/app/content/llm-systems/contracts.ts"),
-    vite.ssrLoadModule("/app/lessons/implementation-source.ts"),
+    vite.ssrLoadModule("/products/courses/reference-curriculum/lessons/course.ts"),
+    vite.ssrLoadModule("/products/courses/reference-curriculum/content/llm-systems/contracts.ts"),
+    vite.ssrLoadModule("/products/courses/reference-curriculum/lessons/implementation-source.ts"),
     vite.ssrLoadModule("/app/features/ide/python-lesson-service.ts"),
     vite.ssrLoadModule("/app/features/ide/browser-lab-service.ts"),
   ]);

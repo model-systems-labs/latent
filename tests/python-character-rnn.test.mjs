@@ -46,7 +46,7 @@ before(async () => {
   [canonical, client, course, learner, persistence, service, snapshot, source] = await Promise.all([
     vite.ssrLoadModule("/app/lib/canonical-project.ts"),
     vite.ssrLoadModule("/app/platform/persistence/client.ts"),
-    vite.ssrLoadModule("/app/lessons/course.ts"),
+    vite.ssrLoadModule("/products/courses/reference-curriculum/lessons/course.ts"),
     vite.ssrLoadModule("/app/lib/learner-state.ts"),
     vite.ssrLoadModule("/app/platform/persistence/index.ts"),
     vite.ssrLoadModule("/app/features/python/character-rnn-service.ts"),

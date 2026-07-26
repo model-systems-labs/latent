@@ -33,9 +33,9 @@ import {
   type ValidatedPreviewRuntime,
 } from "../runtime/capstone/preview-frame";
 import type { CapstoneBackend, PersistedChatMessage } from "../lib/capstone-contract";
-import { CAPSTONE_COMPONENT_PATH as CANONICAL_CAPSTONE_COMPONENT_PATH } from "../content/browser-chat/project-template";
+import { CAPSTONE_COMPONENT_PATH as CANONICAL_CAPSTONE_COMPONENT_PATH } from "../../products/courses/reference-curriculum/content/browser-chat/project-template";
 import { PYTHON_CHARACTER_RNN_PATH } from "../features/python/character-rnn-source";
-import { courseLessons, getLesson } from "../lessons/course";
+import { courseLessons, getLesson } from "../../products/courses/reference-curriculum/lessons/course";
 import { portfolioReadiness } from "../lib/portfolio-export";
 
 const ALLOWED_METHODS = new Set(["initialize", "load-local", "generate", "cancel", "persist"]);

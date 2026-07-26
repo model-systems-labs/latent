@@ -13,10 +13,10 @@ import {
 import {
   characterRnnTrustedTrainingSource,
   PYTHON_CHARACTER_RNN_TRAINER_PATH,
-} from "../../lessons/model/character-rnn-training";
+} from "../../../products/courses/reference-curriculum/lessons/model/character-rnn-training";
 
 export { PYTHON_CHARACTER_RNN_PATH } from "./character-rnn-source";
-export { PYTHON_CHARACTER_RNN_TRAINER_PATH } from "../../lessons/model/character-rnn-training";
+export { PYTHON_CHARACTER_RNN_TRAINER_PATH } from "../../../products/courses/reference-curriculum/lessons/model/character-rnn-training";
 
 export const PYTHON_CHARACTER_RNN_ARTIFACT_PATH = "artifacts/character-rnn.json" as const;
 

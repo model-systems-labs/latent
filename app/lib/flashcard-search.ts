@@ -1,4 +1,4 @@
-import type { Flashcard } from "../content/flashcards";
+import type { Flashcard } from "../../products/courses/reference-curriculum/content/flashcards";
 
 type SearchForms = {
   words: string;

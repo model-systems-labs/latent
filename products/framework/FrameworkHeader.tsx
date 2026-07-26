@@ -38,7 +38,7 @@ export function FrameworkHeader({
             {destination.label}
           </Link>
         ))}
-        <Link className={styles.headerLink} href="/course">Reference courses</Link>
+        <Link className={styles.headerLink} href="/course">Bundled courses</Link>
         <a
           className={styles.headerLink}
           href="https://github.com/model-systems-labs/latent"

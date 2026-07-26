@@ -1,5 +1,5 @@
 import type { CourseLesson } from "@latent/course-kit";
-import type { LessonLocalState } from "../lib/learner-state";
+import type { LessonLocalState } from "../../../../app/lib/learner-state";
 
 export type LessonGate = {
   label: "Code" | "Experiment" | "Check";

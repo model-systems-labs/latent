@@ -243,9 +243,9 @@ test("legacy in-app package copies have been removed", async () => {
 
 test("lesson content and style layers have independent ownership", async () => {
   const [modelFiles, systemFiles, productFiles, globals] = await Promise.all([
-    readdir(new URL("../app/lessons/model/", import.meta.url)),
-    readdir(new URL("../app/lessons/extended/systems/", import.meta.url)),
-    readdir(new URL("../app/lessons/extended/product/", import.meta.url)),
+    readdir(new URL("../products/courses/reference-curriculum/lessons/model/", import.meta.url)),
+    readdir(new URL("../products/courses/reference-curriculum/lessons/extended/systems/", import.meta.url)),
+    readdir(new URL("../products/courses/reference-curriculum/lessons/extended/product/", import.meta.url)),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
   const modelLessonFiles = modelFiles.filter((file) => file.endsWith(".ts") && !["shared.ts", "character-rnn-training.ts"].includes(file));

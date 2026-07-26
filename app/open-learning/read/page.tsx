@@ -21,7 +21,8 @@ export default function HostedFeedReaderPage() {
           <h1>Verify a publisher’s feed before you read it.</h1>
           <p>
             The reader checks immutable package identity and integrity, renders
-            authored strings as text, and keeps saved progress on this device.
+            authored strings as text, and keeps saved progress only in this
+            browser. Progress is never sent to the publisher.
           </p>
         </header>
         <div>

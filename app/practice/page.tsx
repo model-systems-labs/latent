@@ -3,7 +3,7 @@ import Link from "next/link";
 import { LearnerHeader } from "../components/LearnerHeader";
 import { PageAtmosphere } from "../components/PageAtmosphere";
 import { PracticeWorkbench } from "./PracticeWorkbench";
-import { methodQuestionGroups, methodQuestions } from "../content/practice/question-library";
+import { methodQuestionGroups, methodQuestions } from "../../products/courses/reference-curriculum/content/practice/question-library";
 import styles from "./page.module.css";
 
 export const metadata: Metadata = {

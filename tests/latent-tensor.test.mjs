@@ -13,8 +13,8 @@ const vite = await createServer({
 
 const sourceModule = await vite.ssrLoadModule("/packages/tensor/src/browser-source.ts");
 const catalogModule = await vite.ssrLoadModule("/packages/tensor/src/catalog.ts");
-const lessonSourceModule = await vite.ssrLoadModule("/app/lessons/implementation-source.ts");
-const courseModule = await vite.ssrLoadModule("/app/lessons/course.ts");
+const lessonSourceModule = await vite.ssrLoadModule("/products/courses/reference-curriculum/lessons/implementation-source.ts");
+const courseModule = await vite.ssrLoadModule("/products/courses/reference-curriculum/lessons/course.ts");
 const runtimeUrl = `data:text/javascript;base64,${Buffer.from(sourceModule.LATENT_TENSOR_SOURCE).toString("base64")}`;
 const latent = await import(runtimeUrl);
 

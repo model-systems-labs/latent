@@ -4,8 +4,8 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import Link from "next/link";
 import { CodeEditor } from "../features/ide/CodeEditor";
 import { PythonInspector, PythonRuntimeActions, usePythonExecution } from "../features/ide/PythonExecution";
-import { courseLessons } from "../lessons/course";
-import { llmSystemsCurriculum } from "../lessons/course";
+import { courseLessons } from "../../products/courses/reference-curriculum/lessons/course";
+import { llmSystemsCurriculum } from "../../products/courses/reference-curriculum/lessons/course";
 import { sampleCharacterRnn } from "@latent/model-lab/character-rnn";
 import { flushLearnerPersistence, lessonIsComplete, loadLearnerState, saveLessonPracticeAndVerification, sourceBoundPythonRnnArtifactFromCheckpoint, useLearnerState } from "../lib/learner-state";
 import { runProjectUnitTests } from "../lib/project-tests";
@@ -15,19 +15,19 @@ import { getPersistenceContext } from "../platform/persistence/client";
 import { exportPersistenceSnapshot, importPersistenceSnapshot, persistenceSnapshotBlob } from "../platform/persistence/portable";
 import type { JsonValue } from "../platform/persistence/types";
 import type { FileRevisionRecord } from "../platform/persistence/types";
-import { llmSystemsContractSuite } from "../content/llm-systems/contracts";
+import { llmSystemsContractSuite } from "../../products/courses/reference-curriculum/content/llm-systems/contracts";
 import { createCapstoneRuntimeDescriptor, llmRuntimeBindingManifest } from "../runtime/bindings";
 import { downloadArtifact, latestProjectBuildArtifact, recordProjectBuildArtifact, recordValidatedProjectLessonArtifacts } from "../features/artifacts/lesson-artifacts";
 import type { ArtifactEnvelope } from "@latent/artifact-runtime";
 import { expectedProjectContractIdsForPath, projectFileStatus, projectLessonBuildStatus, projectResultsForFile, projectUsesIntegratedEntryReceipt, trustedProjectResults } from "../lib/project-file-status";
 import { canonicalLessonSeeds, reconcileCanonicalProject } from "../lib/canonical-project";
 import { PYTHON_CHARACTER_RNN_PATH } from "../features/python/character-rnn-source";
-import { CAPSTONE_COMPONENT_PATH, CAPSTONE_ENTRY_PATH } from "../content/browser-chat/project-template";
+import { CAPSTONE_COMPONENT_PATH, CAPSTONE_ENTRY_PATH } from "../../products/courses/reference-curriculum/content/browser-chat/project-template";
 import { portfolioProjectBlob, portfolioReadiness } from "../lib/portfolio-export";
 import { downloadBrowserBlob } from "../lib/browser-download";
 import { recordLearningEvent } from "../lib/learning-analytics";
-import { lessonLearningOutcome } from "../content/llm-systems/learning";
-import { lessonImplementationBlockSources } from "../lessons/implementation-source";
+import { lessonLearningOutcome } from "../../products/courses/reference-curriculum/content/llm-systems/learning";
+import { lessonImplementationBlockSources } from "../../products/courses/reference-curriculum/lessons/implementation-source";
 import { actionableBuildFailurePath, draftSnapshotIsCurrent, revisionCanRestore, revisionResponseIsCurrent } from "../lib/ide-async-guards";
 import {
   compileProject,

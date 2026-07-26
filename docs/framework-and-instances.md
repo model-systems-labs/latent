@@ -40,8 +40,12 @@ Latent Courses is not the framework's canonical homepage.
   own reviewed runtime capabilities. Remote course data cannot import them.
 - `app/platform` contains application-owned adapters, persistence, and IDE
   extension hosts.
-- `app/lessons` and `app/courses` compose the released first-party reference
-  curriculum.
+- `products/courses/reference-curriculum` owns the released first-party
+  curriculum, while `app/lessons/[slug]` and `app/courses` provide its current
+  route adapters.
+- `courses/authored` is the optional in-repository workspace for
+  publisher-owned portable Learning Packs; those packs are hosted independently
+  and are not added to the bundled catalog.
 - `app/open-learning/read` verifies and renders publisher-controlled feeds.
 - `app/open-learning/publish` validates declarative content and builds a
   host-ready static site.

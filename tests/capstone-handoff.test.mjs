@@ -22,9 +22,9 @@ before(async () => {
   [capstone, bindings, template, fileStatus, contracts] = await Promise.all([
     vite.ssrLoadModule("/app/components/BrowserChatCapstone.tsx"),
     vite.ssrLoadModule("/app/runtime/bindings/manifest.ts"),
-    vite.ssrLoadModule("/app/content/browser-chat/project-template.ts"),
+    vite.ssrLoadModule("/products/courses/reference-curriculum/content/browser-chat/project-template.ts"),
     vite.ssrLoadModule("/app/lib/project-file-status.ts"),
-    vite.ssrLoadModule("/app/content/llm-systems/contracts.ts"),
+    vite.ssrLoadModule("/products/courses/reference-curriculum/content/llm-systems/contracts.ts"),
   ]);
 });
 

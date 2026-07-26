@@ -24,8 +24,9 @@ const browserCapabilities = [
   },
   {
     label: "Learner state",
-    title: "Progress stays on device",
-    detail: "Code, checkpoints, flash-card ratings, and practice history belong to the learner.",
+    title: "Progress is browser-local",
+    detail:
+      "Code, checkpoints, flash-card ratings, and practice history are saved only in the learner's browser.",
   },
 ] as const;
 
@@ -82,6 +83,8 @@ const repositoryFiles = [
   "packages/course-kit/        # released formats + static builds",
   "packages/browser-lab/       # JavaScript and TypeScript runtime",
   "packages/python-lab/        # CPython and NumPy through WASM",
+  "courses/authored/           # your portable Learning Packs",
+  "products/courses/reference-curriculum/ # bundled courses",
   "skills/                     # agent author, review, publish flows",
   "examples/learning-platform/ # complete static starter",
   "products/framework/         # this product surface",
@@ -121,9 +124,10 @@ export function FrameworkLanding() {
             </a>
           </div>
           <p className={styles.productNote}>
-            <Link href="/course">Latent Courses</Link> is a separate reference
-            product built with this framework. Your platform keeps its own
-            identity, curriculum, and hosting.
+            <Link href="/course">Latent Courses</Link> is the bundled
+            reference-course product. Courses you publish through Open Learning
+            are portable Learning Packs that you host at a URL you control;
+            they are not added to Latent Courses.
           </p>
         </section>
 
@@ -135,6 +139,46 @@ export function FrameworkLanding() {
               <p>{capability.detail}</p>
             </article>
           ))}
+        </section>
+
+        <section className={styles.argument} aria-labelledby="storage-title">
+          <span className="eyebrow">Where your course lives</span>
+          <h2 id="storage-title">There is no hidden Latent course cloud.</h2>
+          <p>
+            Your source, published files, and learner progress have different
+            homes. Latent does not require an upload account or silently place
+            your work in the bundled course library.
+          </p>
+          <ol className={styles.experienceGrid}>
+            <li>
+              <span>01 · Source</span>
+              <h3>Your working folder</h3>
+              <p>
+                Keep <code>learning-pack.json</code> under{" "}
+                <code>courses/authored/&lt;course&gt;/</code> in this
+                repository—or in any directory you own.
+              </p>
+            </li>
+            <li>
+              <span>02 · Published</span>
+              <h3>Your static URL</h3>
+              <p>
+                Course Kit generates a complete static site. Publish that output
+                on an HTTPS host and URL you control.
+              </p>
+            </li>
+            <li>
+              <span>03 · Progress</span>
+              <h3>The learner&apos;s browser</h3>
+              <p>
+                Learners open your URL. Saved content and progress remain local
+                to their browser instead of syncing to Latent.
+              </p>
+            </li>
+          </ol>
+          <div className={styles.closingActions}>
+            <Link href="/open-learning/publish">Build a portable Learning Pack →</Link>
+          </div>
         </section>
 
         <section className={styles.argument} aria-labelledby="practice-title">

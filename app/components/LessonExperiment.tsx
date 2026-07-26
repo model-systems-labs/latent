@@ -26,7 +26,7 @@ import {
   settlePipelineLoadFailure,
 } from "../lib/pipeline-load-lifecycle";
 import styles from "./LessonExperiment.module.css";
-import { isHarnessExperimentVariant } from "../content/harness-engineering/experiments";
+import { isHarnessExperimentVariant } from "../../products/courses/reference-curriculum/content/harness-engineering/experiments";
 
 const HarnessExperiment = lazy(() => import("./HarnessExperiment"));
 

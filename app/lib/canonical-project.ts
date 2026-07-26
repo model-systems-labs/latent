@@ -1,8 +1,8 @@
-import { CANONICAL_BROWSER_CHAT_FILES } from "../content/browser-chat/project-template";
+import { CANONICAL_BROWSER_CHAT_FILES } from "../../products/courses/reference-curriculum/content/browser-chat/project-template";
 import { initializeLearnerPersistence, loadLearnerState, type LearnerState } from "./learner-state";
-import { llmSystemsCurriculum } from "../lessons/course";
-import { lessonBlockComment, lessonImplementationSource } from "../lessons/implementation-source";
-import { llmSystemsContractSuite } from "../content/llm-systems/contracts";
+import { llmSystemsCurriculum } from "../../products/courses/reference-curriculum/lessons/course";
+import { lessonBlockComment, lessonImplementationSource } from "../../products/courses/reference-curriculum/lessons/implementation-source";
+import { llmSystemsContractSuite } from "../../products/courses/reference-curriculum/content/llm-systems/contracts";
 import { restoreWorkingSourceVerification, workingPracticeSources } from "../features/ide/practice-state";
 import {
   ensureProjectWorkspace,

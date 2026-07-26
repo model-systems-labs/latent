@@ -66,10 +66,10 @@ export default function OpenLearningPage() {
           </article>
           <article>
             <span>For publishers</span>
-            <h3>Validate and build a portable site</h3>
+            <h3>Build a portable Learning Pack you host</h3>
             <p>
-              Edit or import declarative JSON, pass the local quality gate, and
-              download a host-ready static site.
+              Edit or import declarative JSON, pass the local quality gate,
+              then host the generated static site at a URL you control.
             </p>
             <Link href="/open-learning/publish">Open the publishing studio →</Link>
           </article>

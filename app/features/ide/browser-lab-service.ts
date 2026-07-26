@@ -1,6 +1,6 @@
 "use client";
 
-import { llmSystemsContractSuite } from "../../content/llm-systems/contracts";
+import { llmSystemsContractSuite } from "../../../products/courses/reference-curriculum/content/llm-systems/contracts";
 import {
   BROWSER_LAB_COMPILER_VERSION,
   BrowserLabCompilerClient,
@@ -23,7 +23,7 @@ import { getPersistenceContext } from "../../platform/persistence/client";
 import type { TestReceiptRecord } from "../../platform/persistence/types";
 import { flushProjectPersistence, type ProjectFile, type ProjectUnitResult } from "../../lib/project-workspace";
 import { LATENT_TENSOR_PATH, LATENT_TENSOR_SOURCE } from "@latent/tensor/browser-source";
-import { CAPSTONE_ENTRY_PATH } from "../../content/browser-chat/project-template";
+import { CAPSTONE_ENTRY_PATH } from "../../../products/courses/reference-curriculum/content/browser-chat/project-template";
 import {
   CAPSTONE_BEHAVIOR_COMPONENT_PATH,
   CAPSTONE_BEHAVIOR_CONTRACT_ID,

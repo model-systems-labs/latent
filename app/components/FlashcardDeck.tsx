@@ -7,7 +7,7 @@ import {
   type Flashcard,
   type FlashcardSubject,
   type FlashcardSubjectId,
-} from "../content/flashcards";
+} from "../../products/courses/reference-curriculum/content/flashcards";
 /*
  * Keep the full library in this hash-named client asset instead of serializing
  * it into every HTML response. Repeat study visits can then reuse the browser

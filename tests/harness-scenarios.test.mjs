@@ -5,10 +5,10 @@ import { fileURLToPath } from "node:url";
 import { createServer } from "vite";
 
 const root = new URL("../", import.meta.url);
-const scenarioSourceUrl = new URL("../app/content/harness-engineering/scenarios.ts", import.meta.url);
+const scenarioSourceUrl = new URL("../products/courses/reference-curriculum/content/harness-engineering/scenarios.ts", import.meta.url);
 const workbenchSourceUrl = new URL("../app/components/HarnessWorkbench.tsx", import.meta.url);
 const workbenchStylesUrl = new URL("../app/components/HarnessWorkbench.module.css", import.meta.url);
-const lessonSourceUrl = new URL("../app/lessons/harness-engineering/index.ts", import.meta.url);
+const lessonSourceUrl = new URL("../products/courses/reference-curriculum/lessons/harness-engineering/index.ts", import.meta.url);
 const expectedIds = [
   "read-file-and-finish",
   "denied-secret-read",
@@ -33,7 +33,7 @@ before(async () => {
     appType: "custom",
     logLevel: "silent",
   });
-  scenariosModule = await vite.ssrLoadModule("/app/content/harness-engineering/scenarios.ts");
+  scenariosModule = await vite.ssrLoadModule("/products/courses/reference-curriculum/content/harness-engineering/scenarios.ts");
 });
 
 after(async () => {

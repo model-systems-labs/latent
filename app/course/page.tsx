@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LearnerHeader } from "../components/LearnerHeader";
-import { coursePrograms, type CourseProgram } from "../lessons/course";
+import { coursePrograms, type CourseProgram } from "../../products/courses/reference-curriculum/lessons/course";
 import { PageAtmosphere } from "../components/PageAtmosphere";
 import styles from "./page.module.css";
 
@@ -75,7 +75,7 @@ export default function CourseCatalogPage() {
       <article className={`course-page ${styles.catalogPage}`}>
         <header className={`course-hero ${styles.catalogHero}`}>
           <h1>Courses</h1>
-          <p className="course-thesis">Pick the starting point that matches what you already know. The foundation courses are optional refreshers, Harness Engineering stands on its own, and the LLM Systems course builds one cumulative browser project.</p>
+          <p className="course-thesis">These are Latent&apos;s four bundled reference courses. Pick the starting point that matches what you already know. The foundation courses are optional refreshers, Harness Engineering stands on its own, and the LLM Systems course builds one cumulative browser project.</p>
         </header>
         <section className={styles.startingPoint} id="starting-point" aria-labelledby="starting-point-title">
           <header>

@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { courseLessons } from "../lessons/course";
-import { lessonLearningOutcome } from "../content/llm-systems/learning";
+import { courseLessons } from "../../products/courses/reference-curriculum/lessons/course";
+import { lessonLearningOutcome } from "../../products/courses/reference-curriculum/content/llm-systems/learning";
 import { initializeLearnerPersistence, lessonIsComplete, useLearnerState } from "../lib/learner-state";
-import { llmSystemsContractSuite } from "../content/llm-systems/contracts";
+import { llmSystemsContractSuite } from "../../products/courses/reference-curriculum/content/llm-systems/contracts";
 import { initializeProjectPersistence, useProjectState } from "../lib/project-workspace";
 import styles from "./CourseResume.module.css";
 

@@ -97,7 +97,12 @@ const rootDeclared = new Set([
   ...Object.keys(rootManifest.dependencies ?? {}),
   ...Object.keys(rootManifest.devDependencies ?? {}),
 ]);
-for (const directory of [resolve(root, "app"), resolve(root, "scripts"), resolve(root, "tests")]) {
+for (const directory of [
+  resolve(root, "app"),
+  resolve(root, "products"),
+  resolve(root, "scripts"),
+  resolve(root, "tests"),
+]) {
   for (const file of await filesBelow(directory)) {
     const source = await readFile(file, "utf8");
     for (const match of source.matchAll(importPattern)) {

@@ -1,0 +1,76 @@
+name: Deploy Interview Loop Lab
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/deploy-interview-loop-pages.yml"
+      - ".github/workflows/release-course-kit.yml"
+      - "examples/learning-platform/interview-loop/**"
+      - "public/open-learning/**"
+      - "public/question-groups/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+  pages: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.14.0
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Build the Course Kit CLI
+        run: npm run build --workspace @latent/course-kit
+      - name: Verify committed public artifacts
+        run: |
+          npm run open-learning:generate
+          git diff --exit-code -- docs public
+      - name: Build the validated course
+        run: npm run build --prefix examples/learning-platform/interview-loop
+      - name: Assemble the Pages artifact
+        run: |
+          mkdir -p _pages-site/open-learning _pages-site/question-groups
+          cp -R examples/learning-platform/interview-loop/dist/. _pages-site/
+          cp -R public/open-learning/. _pages-site/open-learning/
+          cp -R public/question-groups/. _pages-site/question-groups/
+          touch _pages-site/.nojekyll
+      - name: Refuse to replace published version 1 schema bytes
+        run: |
+          for schema_path in \
+            open-learning/v1/learning-pack.schema.json \
+            open-learning/v1/learning-feed.schema.json \
+            question-groups/v1/question-group-library.schema.json \
+            question-groups/v1/question-group-progress.schema.json
+          do
+            url="https://model-systems-labs.github.io/latent/$schema_path"
+            existing="$RUNNER_TEMP/$(basename "$schema_path")"
+            http_status="$(curl --silent --show-error --location --output "$existing" --write-out '%{http_code}' "$url")"
+            if [ "$http_status" = "200" ]; then
+              cmp "$existing" "_pages-site/$schema_path"
+            else
+              printf 'Published schema %s returned HTTP %s\n' "$url" "$http_status" >&2
+              exit 1
+            fi
+          done
+      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
+        with:
+          path: _pages-site
+      - name: Deploy the course without replacing public schemas
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4

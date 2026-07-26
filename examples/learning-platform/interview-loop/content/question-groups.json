@@ -1,0 +1,541 @@
+{
+  "format": "latent-question-group-library",
+  "schemaVersion": 1,
+  "library": {
+    "id": "latent-demos/interview-loop",
+    "version": "1.2.0",
+    "title": "Interview Loop Lab coding practice",
+    "description": "Original JavaScript interview drills connecting duplicate handling, observable event windows, and fair admission to the course architecture scenario.",
+    "authors": [
+      {
+        "name": "Latent Project Contributors",
+        "url": "https://github.com/model-systems-labs/latent"
+      }
+    ],
+    "license": {
+      "expression": "CC-BY-4.0",
+      "url": "https://creativecommons.org/licenses/by/4.0/"
+    },
+    "provenance": {
+      "sourceUrl": "https://github.com/model-systems-labs/latent/tree/main/examples/learning-platform/interview-loop",
+      "revision": "1.2.0-agent-revision"
+    }
+  },
+  "objectives": [
+    {
+      "id": "dedupe-retries",
+      "title": "Collapse duplicate attempts",
+      "description": "Use keyed state to return one stable first-seen result for each logical delivery identifier."
+    },
+    {
+      "id": "aggregate-signals",
+      "title": "Aggregate an observation window",
+      "description": "Compute traffic, error, and latency summary values for an inclusive time window over unsorted events."
+    },
+    {
+      "id": "enforce-fairness",
+      "title": "Enforce per-tenant admission",
+      "description": "Apply a per-tenant concurrency limit while preserving the global arrival order of admitted work."
+    }
+  ],
+  "sources": [
+    {
+      "id": "stripe-idempotency",
+      "title": "Idempotent requests",
+      "url": "https://docs.stripe.com/api/idempotent_requests",
+      "note": "Official API documentation grounding the duplicate-request and stable-operation-identity context; the practice prompt itself is original."
+    },
+    {
+      "id": "google-sre-monitoring",
+      "title": "Monitoring distributed systems",
+      "url": "https://sre.google/sre-book/monitoring-distributed-systems/",
+      "note": "Firsthand SRE guidance grounding the traffic, error, and latency concepts used by the observation-window exercise."
+    },
+    {
+      "id": "aws-reliability",
+      "title": "Reliability design principles",
+      "url": "https://docs.aws.amazon.com/wellarchitected/latest/framework/rel-dp.html",
+      "note": "Official reliability guidance grounding demand-aware failure management and recovery considerations in the admission exercise."
+    },
+    {
+      "id": "aws-tradeoffs",
+      "title": "Evaluate how trade-offs impact customers and architecture efficiency",
+      "url": "https://docs.aws.amazon.com/wellarchitected/latest/framework/perf_architecture_evaluate_trade_offs.html",
+      "note": "Official guidance grounding the exercise discussion about fairness, throughput, resource use, and customer impact."
+    },
+    {
+      "id": "ecma-map",
+      "title": "ECMAScript keyed collections",
+      "url": "https://tc39.es/ecma262/multipage/keyed-collections.html#sec-map-objects",
+      "note": "The language specification for keyed collections suitable for tracking identifiers and per-tenant counts."
+    }
+  ],
+  "runtimes": [
+    {
+      "id": "interview-browser-javascript",
+      "language": "javascript",
+      "environment": "browser-worker",
+      "engine": "native-javascript",
+      "engineVersion": "ES2024",
+      "capabilities": [
+        "function"
+      ],
+      "limits": {
+        "timeoutMs": 1500,
+        "maxOutputBytes": 50000
+      }
+    }
+  ],
+  "groups": [
+    {
+      "id": "identity-and-signals",
+      "order": 1,
+      "title": "Identity and signals",
+      "description": "Practice making retry identity and operational summaries explicit in small deterministic functions.",
+      "objectiveIds": [
+        "dedupe-retries",
+        "aggregate-signals"
+      ],
+      "tags": [
+        "maps",
+        "retries",
+        "observability"
+      ],
+      "questions": [
+        {
+          "id": "collapse-attempts",
+          "order": 1,
+          "title": "Collapse repeated delivery attempts",
+          "prompt": "Step 1 of 4. Implement collapseAttempts(attempts). Each attempt has a string deliveryId and string status. Return one new object with only deliveryId and status for each logical delivery. Return a fresh array. Keep the first attempt for a deliveryId and preserve the order in which distinct identifiers first appeared. Meet O(n) time and O(u) space for n attempts and u unique identifiers. Treat the input as read-only.",
+          "difficulty": "easy",
+          "language": "javascript",
+          "path": "collapse-attempts.js",
+          "starterCode": "function collapseAttempts(attempts) {\n  // Keep the first result for each deliveryId in first-seen order.\n  return [];\n}\n",
+          "entrypoint": {
+            "kind": "function",
+            "functionName": "collapseAttempts"
+          },
+          "objectiveIds": [
+            "dedupe-retries"
+          ],
+          "sourceIds": [
+            "stripe-idempotency",
+            "ecma-map"
+          ],
+          "runtimeId": "interview-browser-javascript",
+          "constraints": [
+            "attempts contains zero or more plain JSON objects with string deliveryId and status fields.",
+            "Return one new { deliveryId, status } object for each distinct deliveryId.",
+            "Return a fresh result array that does not reuse the input array.",
+            "The first occurrence wins and distinct identifiers retain first-seen order.",
+            "A duplicate may be non-adjacent; comparing only neighboring records is not sufficient.",
+            "Expected complexity: O(n) time and O(u) space for u unique delivery identifiers.",
+            "Do not mutate the input array or its objects."
+          ],
+          "tags": [
+            "maps",
+            "deduplication",
+            "ordering"
+          ],
+          "cases": [
+            {
+              "id": "interleaved-retry",
+              "label": "rejects a non-adjacent duplicate without reordering",
+              "visibility": "example",
+              "args": [
+                [
+                  {
+                    "deliveryId": "evt-a",
+                    "status": "accepted"
+                  },
+                  {
+                    "deliveryId": "evt-b",
+                    "status": "failed"
+                  },
+                  {
+                    "deliveryId": "evt-a",
+                    "status": "delivered"
+                  }
+                ]
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns the first status for each identifier",
+                  "kind": "deep-equal",
+                  "expected": [
+                    {
+                      "deliveryId": "evt-a",
+                      "status": "accepted"
+                    },
+                    {
+                      "deliveryId": "evt-b",
+                      "status": "failed"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "empty-input",
+              "label": "handles no attempts",
+              "visibility": "check",
+              "args": [
+                []
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns an empty array",
+                  "kind": "deep-equal",
+                  "expected": []
+                }
+              ]
+            },
+            {
+              "id": "several-duplicates",
+              "label": "ignores every later duplicate",
+              "visibility": "check",
+              "args": [
+                [
+                  {
+                    "deliveryId": "x",
+                    "status": "queued"
+                  },
+                  {
+                    "deliveryId": "x",
+                    "status": "running"
+                  },
+                  {
+                    "deliveryId": "x",
+                    "status": "delivered"
+                  },
+                  {
+                    "deliveryId": "y",
+                    "status": "queued"
+                  }
+                ]
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "keeps only the earliest x and y values",
+                  "kind": "deep-equal",
+                  "expected": [
+                    {
+                      "deliveryId": "x",
+                      "status": "queued"
+                    },
+                    {
+                      "deliveryId": "y",
+                      "status": "queued"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "summarize-window",
+          "order": 2,
+          "title": "Summarize an observation window",
+          "prompt": "Step 2 of 4. Implement summarizeWindow(events, startMs). Events are not guaranteed to be sorted. Include each event whose atMs is greater than or equal to startMs. Return a fresh { traffic, errors, maxLatencyMs } object, where errors counts events whose outcome is \"error\". Return zero for all fields when the window is empty. Meet O(n) time and O(1) auxiliary space. Treat inputs as read-only.",
+          "difficulty": "medium",
+          "language": "javascript",
+          "path": "summarize-window.js",
+          "starterCode": "function summarizeWindow(events, startMs) {\n  // Aggregate the inclusive window without assuming input order.\n  return { traffic: 0, errors: 0, maxLatencyMs: 0 };\n}\n",
+          "entrypoint": {
+            "kind": "function",
+            "functionName": "summarizeWindow"
+          },
+          "objectiveIds": [
+            "aggregate-signals"
+          ],
+          "sourceIds": [
+            "google-sre-monitoring"
+          ],
+          "runtimeId": "interview-browser-javascript",
+          "constraints": [
+            "Each event has finite numeric atMs and latencyMs fields plus a string outcome.",
+            "Input order is arbitrary and the start boundary is inclusive.",
+            "An old event may appear before a later in-window event, so early exit on timestamp is incorrect.",
+            "Expected complexity: O(n) time and O(1) auxiliary space; do not sort.",
+            "Only the exact outcome string error increments errors.",
+            "Return a fresh summary object that does not reuse an input object.",
+            "Do not mutate the events array or its objects."
+          ],
+          "tags": [
+            "aggregation",
+            "observability",
+            "boundaries"
+          ],
+          "cases": [
+            {
+              "id": "unsorted-window",
+              "label": "keeps scanning after an old event in unsorted input",
+              "visibility": "example",
+              "args": [
+                [
+                  {
+                    "atMs": 120,
+                    "outcome": "ok",
+                    "latencyMs": 40
+                  },
+                  {
+                    "atMs": 80,
+                    "outcome": "error",
+                    "latencyMs": 900
+                  },
+                  {
+                    "atMs": 150,
+                    "outcome": "error",
+                    "latencyMs": 75
+                  },
+                  {
+                    "atMs": 100,
+                    "outcome": "ok",
+                    "latencyMs": 55
+                  }
+                ],
+                100
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "counts traffic errors and maximum latency",
+                  "kind": "deep-equal",
+                  "expected": {
+                    "traffic": 3,
+                    "errors": 1,
+                    "maxLatencyMs": 75
+                  }
+                }
+              ]
+            },
+            {
+              "id": "empty-window",
+              "label": "returns zeros for an empty window",
+              "visibility": "check",
+              "args": [
+                [
+                  {
+                    "atMs": 10,
+                    "outcome": "error",
+                    "latencyMs": 400
+                  }
+                ],
+                20
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns the zero summary",
+                  "kind": "deep-equal",
+                  "expected": {
+                    "traffic": 0,
+                    "errors": 0,
+                    "maxLatencyMs": 0
+                  }
+                }
+              ]
+            },
+            {
+              "id": "inclusive-boundary",
+              "label": "includes events exactly at the start",
+              "visibility": "check",
+              "args": [
+                [
+                  {
+                    "atMs": 500,
+                    "outcome": "error",
+                    "latencyMs": 10
+                  },
+                  {
+                    "atMs": 499,
+                    "outcome": "ok",
+                    "latencyMs": 999
+                  }
+                ],
+                500
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "counts only the boundary event",
+                  "kind": "deep-equal",
+                  "expected": {
+                    "traffic": 1,
+                    "errors": 1,
+                    "maxLatencyMs": 10
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bounded-admission",
+      "order": 2,
+      "title": "Bounded admission",
+      "description": "Practice a small fairness policy that makes a scaling constraint observable in code.",
+      "objectiveIds": [
+        "enforce-fairness"
+      ],
+      "tags": [
+        "maps",
+        "fairness",
+        "scaling"
+      ],
+      "questions": [
+        {
+          "id": "admit-per-tenant",
+          "order": 1,
+          "title": "Apply a per-tenant limit",
+          "prompt": "Step 3 of 4. Implement admitPerTenant(jobs, limit). Each job has string id and tenant fields. Walk jobs in arrival order and return a fresh array containing the ids of admitted jobs. Admit at most limit jobs for each tenant, while preserving the global order of every job that is admitted. A zero limit admits nothing. Meet O(n) time and O(t) space for n jobs and t tenants. Treat inputs as read-only.",
+          "difficulty": "medium",
+          "language": "javascript",
+          "path": "admit-per-tenant.js",
+          "starterCode": "function admitPerTenant(jobs, limit) {\n  // Preserve global arrival order while enforcing each tenant's cap.\n  return [];\n}\n",
+          "entrypoint": {
+            "kind": "function",
+            "functionName": "admitPerTenant"
+          },
+          "objectiveIds": [
+            "enforce-fairness"
+          ],
+          "sourceIds": [
+            "aws-reliability",
+            "aws-tradeoffs",
+            "ecma-map"
+          ],
+          "runtimeId": "interview-browser-javascript",
+          "constraints": [
+            "jobs contains plain JSON objects with unique string id and string tenant fields.",
+            "limit is a non-negative integer applied independently to each tenant.",
+            "Return admitted job ids in their original global arrival order.",
+            "Return a fresh result array that does not reuse the jobs array.",
+            "Expected complexity: O(n) time and O(t) space for t distinct tenants.",
+            "Do not mutate the jobs array or its objects."
+          ],
+          "tags": [
+            "maps",
+            "fairness",
+            "admission-control"
+          ],
+          "cases": [
+            {
+              "id": "interleaved-tenants",
+              "label": "caps tenants without reordering admissions",
+              "visibility": "example",
+              "args": [
+                [
+                  {
+                    "id": "a1",
+                    "tenant": "alpha"
+                  },
+                  {
+                    "id": "b1",
+                    "tenant": "beta"
+                  },
+                  {
+                    "id": "a2",
+                    "tenant": "alpha"
+                  },
+                  {
+                    "id": "a3",
+                    "tenant": "alpha"
+                  },
+                  {
+                    "id": "b2",
+                    "tenant": "beta"
+                  }
+                ],
+                2
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "admits two jobs per tenant in arrival order",
+                  "kind": "deep-equal",
+                  "expected": [
+                    "a1",
+                    "b1",
+                    "a2",
+                    "b2"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "zero-limit",
+              "label": "admits nothing at a zero limit",
+              "visibility": "check",
+              "args": [
+                [
+                  {
+                    "id": "a1",
+                    "tenant": "alpha"
+                  }
+                ],
+                0
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns no admitted ids",
+                  "kind": "deep-equal",
+                  "expected": []
+                }
+              ]
+            },
+            {
+              "id": "independent-counters",
+              "label": "tracks each tenant independently",
+              "visibility": "check",
+              "args": [
+                [
+                  {
+                    "id": "x1",
+                    "tenant": "x"
+                  },
+                  {
+                    "id": "x2",
+                    "tenant": "x"
+                  },
+                  {
+                    "id": "y1",
+                    "tenant": "y"
+                  },
+                  {
+                    "id": "z1",
+                    "tenant": "z"
+                  },
+                  {
+                    "id": "y2",
+                    "tenant": "y"
+                  }
+                ],
+                1
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "admits the first job from each tenant",
+                  "kind": "deep-equal",
+                  "expected": [
+                    "x1",
+                    "y1",
+                    "z1"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

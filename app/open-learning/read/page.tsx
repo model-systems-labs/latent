@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { FrameworkHeader } from "../../../products/framework/FrameworkHeader";
-import { PageAtmosphere } from "../../components/PageAtmosphere";
-import { HostedLearningReader } from "../HostedLearningReader";
-import styles from "../page.module.css";
+import { FrameworkHeader } from "@/products/framework/FrameworkHeader";
+import { PageAtmosphere } from "@/app/components/PageAtmosphere";
+import { HostedLearningReader } from "@/app/open-learning/HostedLearningReader";
+import styles from "@/app/open-learning/page.module.css";
 
 export const metadata: Metadata = {
   title: "Hosted feed reader · Latent Framework",

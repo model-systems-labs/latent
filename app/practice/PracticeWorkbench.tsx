@@ -2,18 +2,18 @@
 
 import { isLeechQuestionProgress } from "@latent/course-kit";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { PracticeContractRun } from "../features/ide/browser-lab-service";
-import { CodeEditor } from "../features/ide/CodeEditor";
+import type { PracticeContractRun } from "@/app/features/ide/browser-lab-service";
+import { CodeEditor } from "@/app/features/ide/CodeEditor";
 import {
   methodQuestionGroups,
   methodQuestionLibrary,
   methodQuestions,
-} from "../../examples/learning-platform/llm-learning/content/practice/question-library";
+} from "@/examples/learning-platform/llm-learning/content/practice/question-library";
 import {
   contractVersionForMethodQuestion,
   runMethodQuestion,
   type MethodQuestionRunMode,
-} from "../features/practice/question-runner";
+} from "@/app/features/practice/question-runner";
 import {
   applyQuestionAttemptMutation,
   applyQuestionDraftMutation,
@@ -28,8 +28,8 @@ import {
   type QuestionProgress,
   type QuestionProgressIdentity,
   type QuestionProgressStatus,
-} from "../lib/question-progress";
-import styles from "./PracticeWorkbench.module.css";
+} from "@/app/lib/question-progress";
+import styles from "@/app/practice/PracticeWorkbench.module.css";
 
 type MethodQuestion = (typeof methodQuestions)[number];
 type StatusFilter = "all" | QuestionProgressStatus;

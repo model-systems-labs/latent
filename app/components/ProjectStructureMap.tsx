@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { courseLessons, courseTracks, getTrackLessons } from "../../examples/learning-platform/llm-learning/lessons/course";
-import { CAPSTONE_COMPONENT_PATH, CAPSTONE_ENTRY_PATH, CANONICAL_BROWSER_CHAT_FILES } from "../../examples/learning-platform/llm-learning/content/browser-chat/project-template";
-import { useLearnerState } from "../lib/learner-state";
-import { RUNTIME_PATHS, useProjectState } from "../lib/project-workspace";
-import { expectedProjectContractIdsForPath, projectFileStatus, projectLessonBuildStatus, projectResultsForFile, projectSourceProgress, projectUsesIntegratedEntryReceipt, trustedProjectResults, type ProjectFileStatus } from "../lib/project-file-status";
-import { canonicalLessonSeeds, reconcileCanonicalProject } from "../lib/canonical-project";
-import { portfolioReadiness } from "../lib/portfolio-export";
-import styles from "./ProjectStructureMap.module.css";
+import { courseLessons, courseTracks, getTrackLessons } from "@/examples/learning-platform/llm-learning/lessons/course";
+import { CAPSTONE_COMPONENT_PATH, CAPSTONE_ENTRY_PATH, CANONICAL_BROWSER_CHAT_FILES } from "@/examples/learning-platform/llm-learning/content/browser-chat/project-template";
+import { useLearnerState } from "@/app/lib/learner-state";
+import { RUNTIME_PATHS, useProjectState } from "@/app/lib/project-workspace";
+import { expectedProjectContractIdsForPath, projectFileStatus, projectLessonBuildStatus, projectResultsForFile, projectSourceProgress, projectUsesIntegratedEntryReceipt, trustedProjectResults, type ProjectFileStatus } from "@/app/lib/project-file-status";
+import { canonicalLessonSeeds, reconcileCanonicalProject } from "@/app/lib/canonical-project";
+import { portfolioReadiness } from "@/app/lib/portfolio-export";
+import styles from "@/app/components/ProjectStructureMap.module.css";
 
 type ProjectRow = {
   path: string;

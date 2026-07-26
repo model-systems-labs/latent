@@ -2,8 +2,8 @@
 
 import { useSyncExternalStore } from "react";
 import type { CourseLesson } from "@latent/course-kit";
-import { getPersistenceContext } from "../platform/persistence/client";
-import { hashSourceTree } from "../platform/persistence/hash";
+import { getPersistenceContext } from "@/app/platform/persistence/client";
+import { hashSourceTree } from "@/app/platform/persistence/hash";
 import type {
   FileRevisionRecord,
   ProjectFileRecord,
@@ -11,7 +11,7 @@ import type {
   TestReceiptRecord,
   TestResultRecord,
   TestRunRecord,
-} from "../platform/persistence/types";
+} from "@/app/platform/persistence/types";
 import {
   HARNESS_PROJECT_CONTRACT_VERSION,
   HARNESS_PROJECT_ID,
@@ -20,10 +20,10 @@ import {
   HARNESS_PROJECT_TITLE,
   harnessLessonProjectSeed,
   type HarnessProjectSeed,
-} from "./harness-project";
-import { harnessEngineeringLessons } from "../../examples/learning-platform/llm-learning/lessons/harness-engineering";
-import { loadLearnerState } from "./learner-state";
-import { restoreWorkingSourceVerification, workingPracticeSources } from "../features/ide/practice-state";
+} from "@/app/lib/harness-project";
+import { harnessEngineeringLessons } from "@/examples/learning-platform/llm-learning/lessons/harness-engineering";
+import { loadLearnerState } from "@/app/lib/learner-state";
+import { restoreWorkingSourceVerification, workingPracticeSources } from "@/app/features/ide/practice-state";
 
 export const HARNESS_RECOVERY_PREFIX = "latent-harness-workspace-recovery-v1:";
 

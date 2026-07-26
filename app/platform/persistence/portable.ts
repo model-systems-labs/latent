@@ -1,6 +1,6 @@
 import type { Table } from "dexie";
-import type { BrowserLabDatabase } from "./database";
-import { assertBundleIntegrity } from "./hash";
+import type { BrowserLabDatabase } from "@/app/platform/persistence/database";
+import { assertBundleIntegrity } from "@/app/platform/persistence/hash";
 import {
   PERSISTENCE_TABLE_NAMES,
   PersistenceDataError,
@@ -9,7 +9,7 @@ import {
   parsePortableSnapshot,
   structurallyEqual,
   validatePortableSnapshot,
-} from "./pure";
+} from "@/app/platform/persistence/pure";
 import {
   DEFAULT_PERSISTENCE_LIMITS,
   PERSISTENCE_SCHEMA_VERSION,
@@ -21,7 +21,7 @@ import {
   type PortablePersistenceSnapshot,
   type ProjectRecord,
   type SettingRecord,
-} from "./types";
+} from "@/app/platform/persistence/types";
 
 export type PortableImportMode = "merge" | "replace";
 

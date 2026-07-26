@@ -1,5 +1,5 @@
-import { foundationExerciseContractCopy } from "./foundations/exercise-contracts";
-import { harnessEngineeringExerciseContractCopy } from "./harness-engineering/exercise-contracts";
+import { foundationExerciseContractCopy } from "@/examples/learning-platform/llm-learning/lessons/foundations/exercise-contracts";
+import { harnessEngineeringExerciseContractCopy } from "@/examples/learning-platform/llm-learning/lessons/harness-engineering/exercise-contracts";
 
 export type ExerciseContract = {
   signature: string;

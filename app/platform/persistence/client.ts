@@ -1,6 +1,6 @@
 "use client";
 
-import { initializePersistence, type PersistenceContext } from "./index";
+import { initializePersistence, type PersistenceContext } from "@/app/platform/persistence/index";
 
 let contextPromise: Promise<PersistenceContext> | null = null;
 

@@ -6,7 +6,7 @@ import type {
   JsonValue,
   ValuePath,
 } from "@latent/browser-lab/types";
-import { llmSystemsManifest } from "./manifest";
+import { llmSystemsManifest } from "@/examples/learning-platform/llm-learning/content/llm-systems/manifest";
 
 type AuthoredCase = {
   id: string;

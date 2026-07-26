@@ -1,6 +1,6 @@
 "use client";
 
-import { llmSystemsContractSuite } from "../../../examples/learning-platform/llm-learning/content/llm-systems/contracts";
+import { llmSystemsContractSuite } from "@/examples/learning-platform/llm-learning/content/llm-systems/contracts";
 import {
   BROWSER_LAB_COMPILER_VERSION,
   BrowserLabCompilerClient,
@@ -19,20 +19,20 @@ import {
   type TestReceipt,
   type VirtualSourceFile,
 } from "@latent/browser-lab";
-import { getPersistenceContext } from "../../platform/persistence/client";
-import type { TestReceiptRecord } from "../../platform/persistence/types";
-import { flushProjectPersistence, type ProjectFile, type ProjectUnitResult } from "../../lib/project-workspace";
+import { getPersistenceContext } from "@/app/platform/persistence/client";
+import type { TestReceiptRecord } from "@/app/platform/persistence/types";
+import { flushProjectPersistence, type ProjectFile, type ProjectUnitResult } from "@/app/lib/project-workspace";
 import { LATENT_TENSOR_PATH, LATENT_TENSOR_SOURCE } from "@latent/tensor/browser-source";
-import { CAPSTONE_ENTRY_PATH } from "../../../examples/learning-platform/llm-learning/content/browser-chat/project-template";
+import { CAPSTONE_ENTRY_PATH } from "@/examples/learning-platform/llm-learning/content/browser-chat/project-template";
 import {
   CAPSTONE_BEHAVIOR_COMPONENT_PATH,
   CAPSTONE_BEHAVIOR_CONTRACT_ID,
-} from "../../lib/capstone-behavior-contract";
-import { formatPracticeContractDetail } from "./practice-feedback";
-import { prepareProjectSnapshotFiles } from "./project-snapshot";
-import { runCapstoneBehaviorContract } from "./capstone-behavior-runner";
-import { runPythonLessonContracts } from "./python-lesson-service";
-import { llmRuntimeBindingManifest } from "../../runtime/bindings/manifest";
+} from "@/app/lib/capstone-behavior-contract";
+import { formatPracticeContractDetail } from "@/app/features/ide/practice-feedback";
+import { prepareProjectSnapshotFiles } from "@/app/features/ide/project-snapshot";
+import { runCapstoneBehaviorContract } from "@/app/features/ide/capstone-behavior-runner";
+import { runPythonLessonContracts } from "@/app/features/ide/python-lesson-service";
+import { llmRuntimeBindingManifest } from "@/app/runtime/bindings/manifest";
 
 const PROJECT_ID = "browser-chat";
 const RUNNER_VERSION = "browser-lab-cpython-v1";

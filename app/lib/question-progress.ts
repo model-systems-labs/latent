@@ -1,8 +1,8 @@
 "use client";
 
 import { liveQuery } from "dexie";
-import { getPersistenceContext } from "../platform/persistence/client";
-import type { JsonValue } from "../platform/persistence/types";
+import { getPersistenceContext } from "@/app/platform/persistence/client";
+import type { JsonValue } from "@/app/platform/persistence/types";
 
 export const QUESTION_PROGRESS_STORAGE_PREFIX = "practice.question-progress.v1:";
 export const MAX_QUESTION_SOURCE_CHARACTERS = 200_000;

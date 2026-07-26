@@ -6,8 +6,8 @@ import {
   learningAnalyticsBlob,
   loadLearningAnalytics,
   type LearningEvent,
-} from "../lib/learning-analytics";
-import { downloadBrowserBlob } from "../lib/browser-download";
+} from "@/app/lib/learning-analytics";
+import { downloadBrowserBlob } from "@/app/lib/browser-download";
 
 export function LearningDataPanel() {
   const [events, setEvents] = useState<LearningEvent[]>([]);

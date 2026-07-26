@@ -1,6 +1,6 @@
 import Link from "next/link";
-import type { CourseProgram } from "../../examples/learning-platform/llm-learning/lessons/course";
-import styles from "./CourseGuide.module.css";
+import type { CourseProgram } from "@/examples/learning-platform/llm-learning/lessons/course";
+import styles from "@/app/components/CourseGuide.module.css";
 
 export type CourseGuideLink = {
   href: string;

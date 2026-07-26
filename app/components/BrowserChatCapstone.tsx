@@ -3,15 +3,15 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { sampleCharacterRnn } from "@latent/model-lab/character-rnn";
-import { sourceBoundPythonRnnArtifactFromCheckpoint, useLearnerState, type SavedRnnArtifact } from "../lib/learner-state";
-import { useProjectState, type ProjectState } from "../lib/project-workspace";
-import { expectedProjectContractIdsForPath, projectLessonBuildStatus, projectResultsForFile, trustedProjectResults } from "../lib/project-file-status";
-import { canonicalLessonSeeds, reconcileCanonicalProject } from "../lib/canonical-project";
-import { recordLearningEvent } from "../lib/learning-analytics";
-import { createLatestConversationWriter, loadCapstoneConversation } from "../features/capstone/conversation-store";
-import { LocalModelClient } from "../runtime/model/local-model-client";
-import { LOCAL_MODEL_MAX_NEW_TOKENS, type ModelMessage } from "../runtime/model/protocol";
-import { getPersistenceContext } from "../platform/persistence/client";
+import { sourceBoundPythonRnnArtifactFromCheckpoint, useLearnerState, type SavedRnnArtifact } from "@/app/lib/learner-state";
+import { useProjectState, type ProjectState } from "@/app/lib/project-workspace";
+import { expectedProjectContractIdsForPath, projectLessonBuildStatus, projectResultsForFile, trustedProjectResults } from "@/app/lib/project-file-status";
+import { canonicalLessonSeeds, reconcileCanonicalProject } from "@/app/lib/canonical-project";
+import { recordLearningEvent } from "@/app/lib/learning-analytics";
+import { createLatestConversationWriter, loadCapstoneConversation } from "@/app/features/capstone/conversation-store";
+import { LocalModelClient } from "@/app/runtime/model/local-model-client";
+import { LOCAL_MODEL_MAX_NEW_TOKENS, type ModelMessage } from "@/app/runtime/model/protocol";
+import { getPersistenceContext } from "@/app/platform/persistence/client";
 import { createMockServingStream, parseSseChunk as parseMockSseChunk } from "@latent/mock-services/sse";
 import {
   LLM_LESSON_SOURCES,
@@ -20,7 +20,7 @@ import {
   loadValidatedCapstoneBundle,
   type CapstoneRuntimeDescriptor,
   type CertifiedCapstoneRuntimeConfig,
-} from "../runtime/bindings";
+} from "@/app/runtime/bindings";
 import {
   mountPreviewFrame,
   PREVIEW_REACT_RUNTIME_PATH,
@@ -31,12 +31,12 @@ import {
   type PreviewRequestMessage,
   type ValidatedPreviewBundle,
   type ValidatedPreviewRuntime,
-} from "../runtime/capstone/preview-frame";
-import type { CapstoneBackend, PersistedChatMessage } from "../lib/capstone-contract";
-import { CAPSTONE_COMPONENT_PATH as CANONICAL_CAPSTONE_COMPONENT_PATH } from "../../examples/learning-platform/llm-learning/content/browser-chat/project-template";
-import { PYTHON_CHARACTER_RNN_PATH } from "../features/python/character-rnn-source";
-import { courseLessons, getLesson } from "../../examples/learning-platform/llm-learning/lessons/course";
-import { portfolioReadiness } from "../lib/portfolio-export";
+} from "@/app/runtime/capstone/preview-frame";
+import type { CapstoneBackend, PersistedChatMessage } from "@/app/lib/capstone-contract";
+import { CAPSTONE_COMPONENT_PATH as CANONICAL_CAPSTONE_COMPONENT_PATH } from "@/examples/learning-platform/llm-learning/content/browser-chat/project-template";
+import { PYTHON_CHARACTER_RNN_PATH } from "@/app/features/python/character-rnn-source";
+import { courseLessons, getLesson } from "@/examples/learning-platform/llm-learning/lessons/course";
+import { portfolioReadiness } from "@/app/lib/portfolio-export";
 
 const ALLOWED_METHODS = new Set(["initialize", "load-local", "generate", "cancel", "persist"]);
 

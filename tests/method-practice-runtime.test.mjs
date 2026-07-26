@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { after, before, test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import * as esbuild from "esbuild-wasm";
-import { createServer } from "vite";
+import { createServer } from "#vite-test-server";
 
 const root = new URL("../", import.meta.url);
 let adapter;

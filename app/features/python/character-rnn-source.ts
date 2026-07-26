@@ -1,6 +1,6 @@
-import { characterRnnsLesson } from "../../../examples/learning-platform/llm-learning/lessons/model/character-rnns";
-import { PYTHON_CHARACTER_RNN_LEARNER_PATH } from "../../../examples/learning-platform/llm-learning/lessons/model/character-rnn-training";
-import { lessonBlockComment, lessonImplementationSource } from "../../../examples/learning-platform/llm-learning/lessons/implementation-source";
+import { characterRnnsLesson } from "@/examples/learning-platform/llm-learning/lessons/model/character-rnns";
+import { PYTHON_CHARACTER_RNN_LEARNER_PATH } from "@/examples/learning-platform/llm-learning/lessons/model/character-rnn-training";
+import { lessonBlockComment, lessonImplementationSource } from "@/examples/learning-platform/llm-learning/lessons/implementation-source";
 
 /** The trusted trainer reads its three learner-owned operations from this editable file. */
 export const PYTHON_CHARACTER_RNN_PATH = PYTHON_CHARACTER_RNN_LEARNER_PATH;

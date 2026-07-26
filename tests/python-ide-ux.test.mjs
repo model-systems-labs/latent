@@ -62,7 +62,7 @@ test("the project tree surfaces Python once without changing lesson completion s
   assert.match(source, /const isPythonFile = Boolean\(selected\?\.path\.endsWith\("\.py"\)\)/);
   assert.match(source, /canTestAndTrain: selected\?\.path === PYTHON_CHARACTER_RNN_PATH/);
   assert.match(source, /persistedArtifact: persistedPythonArtifact/);
-  assert.match(source, /const PythonCodeEditor = lazy\(\(\) => import\("\.\.\/features\/ide\/PythonCodeEditor"\)/);
+  assert.match(source, /const PythonCodeEditor = lazy\(\(\) => import\("@\/app\/features\/ide\/PythonCodeEditor"\)/);
   assert.match(source, /const SelectedCodeEditor = isPythonFile \? PythonCodeEditor : CodeEditor/);
   assert.match(source, /<Suspense fallback=\{<div className="python-editor-loading" role="status">[\s\S]*?<SelectedCodeEditor path=\{selected\.path\}/);
   assert.match(source, /isPythonFile && selected \? <PythonInspector/);
@@ -111,6 +111,6 @@ test("Python evidence stays readable and uses the existing mobile Tests and Outp
   assert.match(pythonModuleStyles, /data-mobile-view="tests"\]\) \.checksPanel/);
   assert.match(pythonStyles, /\.python-output pre \{[\s\S]*?font-size: max\(0\.68rem, 11px\)/);
   assert.match(pythonStyles, /\.python-empty-output \{[^}]*font-size: max\(0\.68rem, 11px\)/);
-  assert.match(globals, /@import "\.\/styles\/python-runtime\.css"/);
+  assert.match(globals, /@import "@\/app\/styles\/python-runtime\.css"/);
   assert.match(responsive, /\.project-workbench-grid\[data-mobile-view="tests"\] \.project-output,[\s\S]*?\.project-workbench-grid\[data-mobile-view="output"\] \.unit-test-panel/);
 });

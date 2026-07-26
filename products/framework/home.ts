@@ -1,2 +1,2 @@
-export { FrameworkLanding as ProductHome } from "./FrameworkLanding";
-export { frameworkMetadata as productMetadata } from "./metadata";
+export { FrameworkLanding as ProductHome } from "@/products/framework/FrameworkLanding";
+export { frameworkMetadata as productMetadata } from "@/products/framework/metadata";

@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import "fake-indexeddb/auto";
 import { loadPyodide } from "pyodide";
-import { createServer } from "vite";
+import { createServer } from "#vite-test-server";
 
 const storage = new Map();
 const sessionStorage = new Map();

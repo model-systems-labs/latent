@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { LearnerHeader } from "../../../components/LearnerHeader";
-import { PageAtmosphere } from "../../../components/PageAtmosphere";
-import { BundledQuestionIdeWorkbench } from "../../../platform/ide/BundledQuestionIdeWorkbench";
-import styles from "../../page.module.css";
+import { LearnerHeader } from "@/app/components/LearnerHeader";
+import { PageAtmosphere } from "@/app/components/PageAtmosphere";
+import { BundledQuestionIdeWorkbench } from "@/app/platform/ide/BundledQuestionIdeWorkbench";
+import styles from "@/app/practice/page.module.css";
 
 export const metadata: Metadata = {
   title: "Keep unique values IDE · Latent Courses",

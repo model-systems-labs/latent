@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { CodeEditor } from "../features/ide/CodeEditor";
-import { runPythonProjectContracts, runPythonProjectFunction } from "../features/ide/python-lesson-service";
-import { harnessEngineeringContractSuite } from "../../examples/learning-platform/llm-learning/content/harness-engineering/contracts";
-import { HARNESS_PROJECT_STARTER_FILES } from "../lib/harness-project";
+import { CodeEditor } from "@/app/features/ide/CodeEditor";
+import { runPythonProjectContracts, runPythonProjectFunction } from "@/app/features/ide/python-lesson-service";
+import { harnessEngineeringContractSuite } from "@/examples/learning-platform/llm-learning/content/harness-engineering/contracts";
+import { HARNESS_PROJECT_STARTER_FILES } from "@/app/lib/harness-project";
 import {
   HARNESS_SCENARIO_EXPORT,
   HARNESS_SCENARIO_FIXTURES,
@@ -14,8 +14,8 @@ import {
   harnessScenarioMatchesExpected,
   harnessScenarioTrace,
   type HarnessScenarioTrace,
-} from "../../examples/learning-platform/llm-learning/content/harness-engineering/scenarios";
-import { initializeLearnerPersistence } from "../lib/learner-state";
+} from "@/examples/learning-platform/llm-learning/content/harness-engineering/scenarios";
+import { initializeLearnerPersistence } from "@/app/lib/learner-state";
 import {
   currentHarnessReceipt,
   firstHarnessSourceMismatch,
@@ -29,9 +29,9 @@ import {
   selectHarnessWorkspaceFile,
   useHarnessWorkspaceState,
   HARNESS_RECOVERY_PREFIX,
-} from "../lib/harness-workspace";
-import type { TestResultRecord } from "../platform/persistence/types";
-import styles from "./HarnessWorkbench.module.css";
+} from "@/app/lib/harness-workspace";
+import type { TestResultRecord } from "@/app/platform/persistence/types";
+import styles from "@/app/components/HarnessWorkbench.module.css";
 
 type MobileView = "files" | "code" | "run" | "checks";
 type InspectorView = "run" | "checks";

@@ -14,8 +14,8 @@ import {
   type RnnResult,
   type TransformerResult,
 } from "@latent/model-lab";
-import { markExperimentComplete, saveCharacterRnnArtifact } from "../lib/learner-state";
-import { MANUAL_PRODUCT_VERIFICATION, runCapstoneQualityAudit } from "../lib/capstone-contract";
+import { markExperimentComplete, saveCharacterRnnArtifact } from "@/app/lib/learner-state";
+import { MANUAL_PRODUCT_VERIFICATION, runCapstoneQualityAudit } from "@/app/lib/capstone-contract";
 import {
   beginPipelineLoad,
   createPipelineLoadLifecycle,
@@ -24,11 +24,11 @@ import {
   requestPipelineLoadCleanup,
   settlePipelineLoad,
   settlePipelineLoadFailure,
-} from "../lib/pipeline-load-lifecycle";
-import styles from "./LessonExperiment.module.css";
-import { isHarnessExperimentVariant } from "../../examples/learning-platform/llm-learning/content/harness-engineering/experiments";
+} from "@/app/lib/pipeline-load-lifecycle";
+import styles from "@/app/components/LessonExperiment.module.css";
+import { isHarnessExperimentVariant } from "@/examples/learning-platform/llm-learning/content/harness-engineering/experiments";
 
-const HarnessExperiment = lazy(() => import("./HarnessExperiment"));
+const HarnessExperiment = lazy(() => import("@/app/components/HarnessExperiment"));
 
 type ModelMessage = { role: "system" | "user" | "assistant"; content: string };
 type TextGenerator = {
@@ -310,7 +310,7 @@ function IclExperiment({ onComplete }: ExperimentProps) {
     setModelStatus("loading");
     setError("");
     try {
-      const transformers = await import("../lib/local-transformer-runtime");
+      const transformers = await import("@/app/lib/local-transformer-runtime");
       const progressCallback = (info: unknown) => {
         if (!isCurrent()) return;
         const update = info as { progress?: number; file?: string; status?: string };

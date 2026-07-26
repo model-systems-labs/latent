@@ -4,19 +4,19 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { consumeSse, createMockServingStream } from "@latent/mock-services/sse";
 import { sampleCharacterRnn } from "@latent/model-lab/character-rnn";
-import { moduleCheckpoint } from "../../examples/learning-platform/llm-learning/content/llm-systems/learning";
-import { llmSystemsCurriculum } from "../../examples/learning-platform/llm-learning/lessons/course";
-import { lessonCodeIsComplete, lessonKnowledgeIsComplete, useLearnerState } from "../lib/learner-state";
-import { reconcileCanonicalProject } from "../lib/canonical-project";
-import { runProjectUnitTests } from "../lib/project-tests";
-import { saveProjectTestResults, useProjectState, type ProjectUnitResult } from "../lib/project-workspace";
-import { recordLearningEvent } from "../lib/learning-analytics";
-import { lessonLearningOutcome } from "../../examples/learning-platform/llm-learning/content/llm-systems/learning";
+import { moduleCheckpoint } from "@/examples/learning-platform/llm-learning/content/llm-systems/learning";
+import { llmSystemsCurriculum } from "@/examples/learning-platform/llm-learning/lessons/course";
+import { lessonCodeIsComplete, lessonKnowledgeIsComplete, useLearnerState } from "@/app/lib/learner-state";
+import { reconcileCanonicalProject } from "@/app/lib/canonical-project";
+import { runProjectUnitTests } from "@/app/lib/project-tests";
+import { saveProjectTestResults, useProjectState, type ProjectUnitResult } from "@/app/lib/project-workspace";
+import { recordLearningEvent } from "@/app/lib/learning-analytics";
+import { lessonLearningOutcome } from "@/examples/learning-platform/llm-learning/content/llm-systems/learning";
 import {
   ModuleCheckpointAttemptCoordinator,
   type ModuleCheckpointAttempt,
-} from "../lib/module-checkpoint-attempt";
-import { llmSystemsContractSuite } from "../../examples/learning-platform/llm-learning/content/llm-systems/contracts";
+} from "@/app/lib/module-checkpoint-attempt";
+import { llmSystemsContractSuite } from "@/examples/learning-platform/llm-learning/content/llm-systems/contracts";
 
 type CheckpointStatus = "idle" | "verifying" | "running" | "passed" | "failed" | "cancelled";
 

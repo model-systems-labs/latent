@@ -15,8 +15,8 @@ import type {
   BrowserIdeSession,
   BrowserLabIdeRuntimeOptions,
 } from "@latent/browser-lab/ide";
-import { createLatentBrowserIdeSession } from "./browser-extension-host";
-import styles from "./BrowserIdeExtensionWorkbench.module.css";
+import { createLatentBrowserIdeSession } from "@/app/platform/ide/browser-extension-host";
+import styles from "@/app/platform/ide/BrowserIdeExtensionWorkbench.module.css";
 
 export type BrowserIdeExtensionWorkbenchProps = {
   /**

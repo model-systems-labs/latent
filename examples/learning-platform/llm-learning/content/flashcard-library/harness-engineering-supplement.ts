@@ -1,7 +1,7 @@
 import {
   combineFlashcardLibraries,
   defineFlashcardGroup,
-} from "../flashcard-schema";
+} from "@/examples/learning-platform/llm-learning/content/flashcard-schema";
 
 const agentPatternsSource = "Anthropic, Building effective agents (2024); OpenAI, Harness engineering (2026).";
 const runtimePolicySource = "W3C, High Resolution Time Working Draft (2026); course-authored Agent Loop runtime-policy contract.";

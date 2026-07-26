@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { createServer } from "vite";
+import { createServer } from "#vite-test-server";
 
 const root = new URL("../", import.meta.url);
 const scenarioSourceUrl = new URL("../examples/learning-platform/llm-learning/content/harness-engineering/scenarios.ts", import.meta.url);

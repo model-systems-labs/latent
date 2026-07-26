@@ -1,4 +1,4 @@
-import type { Flashcard } from "../../examples/learning-platform/llm-learning/content/flashcards";
+import type { Flashcard } from "@/examples/learning-platform/llm-learning/content/flashcards";
 
 type SearchForms = {
   words: string;

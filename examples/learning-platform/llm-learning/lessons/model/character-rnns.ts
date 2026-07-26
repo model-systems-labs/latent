@@ -1,7 +1,7 @@
 import type { CourseLesson } from "@latent/course-kit";
-import { withGuidedExercises } from "../guided-exercises";
-import { commonQuestionInstruction } from "./shared";
-import { characterRnnTrainingPostlude } from "./character-rnn-training";
+import { withGuidedExercises } from "@/examples/learning-platform/llm-learning/lessons/guided-exercises";
+import { commonQuestionInstruction } from "@/examples/learning-platform/llm-learning/lessons/model/shared";
+import { characterRnnTrainingPostlude } from "@/examples/learning-platform/llm-learning/lessons/model/character-rnn-training";
 
 export const characterRnnsLesson = withGuidedExercises({
     id: "character-rnns",

@@ -9,11 +9,11 @@ import {
   HARNESS_PROJECT_TITLE,
   type HarnessPracticeSourcePolicy,
   type HarnessProjectSeed,
-} from "../../examples/learning-platform/llm-learning/content/harness-engineering/project-template";
+} from "@/examples/learning-platform/llm-learning/content/harness-engineering/project-template";
 import {
   starterPracticeSource,
   workingPracticeBlockSource,
-} from "../features/ide/practice-state";
+} from "@/app/features/ide/practice-state";
 
 const sourcePolicy: HarnessPracticeSourcePolicy = {
   starterSource: starterPracticeSource,

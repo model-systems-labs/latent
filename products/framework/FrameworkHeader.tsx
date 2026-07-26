@@ -1,5 +1,5 @@
 import Link from "next/link";
-import styles from "./FrameworkHeader.module.css";
+import styles from "@/products/framework/FrameworkHeader.module.css";
 
 type FrameworkDestination = "overview" | "open-learning" | "read" | "publish";
 const frameworkHomeHref = process.env.LATENT_PRODUCT_HOME === "framework" ? "/" : "/framework";

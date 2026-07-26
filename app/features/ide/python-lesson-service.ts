@@ -14,8 +14,8 @@ import type {
   PythonLabRunResult,
   PythonLabSyncResult,
 } from "@latent/python-lab";
-import type { ProjectUnitResult } from "../../lib/project-workspace";
-import { formatPracticeContractDetail } from "./practice-feedback";
+import type { ProjectUnitResult } from "@/app/lib/project-workspace";
+import { formatPracticeContractDetail } from "@/app/features/ide/practice-feedback";
 
 export type PythonLessonClient = Pick<PythonLabClient, "initialize" | "sync" | "run">;
 

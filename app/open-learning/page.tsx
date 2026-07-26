@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { FrameworkHeader } from "../../products/framework/FrameworkHeader";
-import { PageAtmosphere } from "../components/PageAtmosphere";
-import styles from "./page.module.css";
+import { FrameworkHeader } from "@/products/framework/FrameworkHeader";
+import { PageAtmosphere } from "@/app/components/PageAtmosphere";
+import styles from "@/app/open-learning/page.module.css";
 
 export const metadata: Metadata = {
   title: "Open learning · Latent Framework",

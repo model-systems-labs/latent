@@ -1,10 +1,10 @@
-import { RUNTIME_PATHS, type ProjectUnitResult } from "./project-workspace";
-import { llmSystemsContractSuite } from "../../examples/learning-platform/llm-learning/content/llm-systems/contracts";
-import { CAPSTONE_ENTRY_PATH } from "../../examples/learning-platform/llm-learning/content/browser-chat/project-template";
+import { RUNTIME_PATHS, type ProjectUnitResult } from "@/app/lib/project-workspace";
+import { llmSystemsContractSuite } from "@/examples/learning-platform/llm-learning/content/llm-systems/contracts";
+import { CAPSTONE_ENTRY_PATH } from "@/examples/learning-platform/llm-learning/content/browser-chat/project-template";
 import {
   CAPSTONE_BEHAVIOR_COMPONENT_PATH,
   CAPSTONE_BEHAVIOR_CONTRACT_ID,
-} from "./capstone-behavior-contract";
+} from "@/app/lib/capstone-behavior-contract";
 
 export type ProjectFileStatusTone =
   | "provided"

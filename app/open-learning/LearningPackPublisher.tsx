@@ -8,9 +8,9 @@ import {
 } from "@latent/course-kit";
 import { strToU8, zipSync } from "fflate";
 import { useCallback, useMemo, useState } from "react";
-import { downloadBrowserBlob } from "../lib/browser-download";
-import { MAX_HOSTED_LEARNING_BYTES } from "../lib/open-learning";
-import styles from "./studio.module.css";
+import { downloadBrowserBlob } from "@/app/lib/browser-download";
+import { MAX_HOSTED_LEARNING_BYTES } from "@/app/lib/open-learning";
+import styles from "@/app/open-learning/studio.module.css";
 
 const starterSource = canonicalLearningPackJson(createStarterLearningPack());
 

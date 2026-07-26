@@ -1,4 +1,4 @@
-import { stableFingerprint } from "./pure";
+import { stableFingerprint } from "@/app/platform/persistence/pure";
 
 export class PersistenceIntegrityError extends Error {
   constructor(message: string) {

@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react";
 import type { CourseLesson } from "@latent/course-kit";
-import type { LessonLearningOutcome } from "../../examples/learning-platform/llm-learning/content/llm-systems/learning";
-import { lessonLearningOutcome } from "../../examples/learning-platform/llm-learning/lessons/learning";
+import type { LessonLearningOutcome } from "@/examples/learning-platform/llm-learning/content/llm-systems/learning";
+import { lessonLearningOutcome } from "@/examples/learning-platform/llm-learning/lessons/learning";
 import {
   recordKnowledgeCheck,
   useLearnerState,
-} from "../lib/learner-state";
-import { recordLearningEvent } from "../lib/learning-analytics";
-import styles from "./LessonOutcome.module.css";
+} from "@/app/lib/learner-state";
+import { recordLearningEvent } from "@/app/lib/learning-analytics";
+import styles from "@/app/components/LessonOutcome.module.css";
 
 export function LessonOutcome({
   lesson,

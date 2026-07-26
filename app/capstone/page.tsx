@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { BrowserChatCapstone } from "../components/BrowserChatCapstone";
+import { BrowserChatCapstone } from "@/app/components/BrowserChatCapstone";
 
 export const metadata: Metadata = {
   title: "Browser Chat Capstone · Latent Courses",

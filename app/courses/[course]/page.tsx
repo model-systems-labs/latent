@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { coursePrograms, courseTracks, getCourseProgram } from "../../../examples/learning-platform/llm-learning/lessons/course";
-import { CourseGuide } from "../../components/CourseGuide";
-import { CourseCurriculum } from "../../components/CourseCurriculum";
-import { LearnerHeader } from "../../components/LearnerHeader";
-import { PageAtmosphere } from "../../components/PageAtmosphere";
+import { coursePrograms, courseTracks, getCourseProgram } from "@/examples/learning-platform/llm-learning/lessons/course";
+import { CourseGuide } from "@/app/components/CourseGuide";
+import { CourseCurriculum } from "@/app/components/CourseCurriculum";
+import { LearnerHeader } from "@/app/components/LearnerHeader";
+import { PageAtmosphere } from "@/app/components/PageAtmosphere";
 
 export function generateStaticParams() {
   return [

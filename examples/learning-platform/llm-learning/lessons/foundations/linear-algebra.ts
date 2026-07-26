@@ -1,4 +1,4 @@
-import { defineFoundationLesson } from "./define-foundation-lesson";
+import { defineFoundationLesson } from "@/examples/learning-platform/llm-learning/lessons/foundations/define-foundation-lesson";
 
 const numpyBasicsSource = {
   role: "Guide" as const,

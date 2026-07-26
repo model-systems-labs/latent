@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { HarnessExperimentVariant } from "../../examples/learning-platform/llm-learning/content/harness-engineering/experiments";
+import type { HarnessExperimentVariant } from "@/examples/learning-platform/llm-learning/content/harness-engineering/experiments";
 
 type HarnessResult = {
   control: string;

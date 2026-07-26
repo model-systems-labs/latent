@@ -4,7 +4,7 @@ import test from "node:test";
 import {
   CHARACTER_RNN_RECORDED_STEPS,
   createCharacterRnnRecording,
-} from "../scripts/recordings/character-rnn.mjs";
+} from "#root/scripts/recordings/character-rnn.mjs";
 
 function assertNumericallyEquivalent(actual, expected, path = "recording") {
   if (typeof actual === "number" && typeof expected === "number") {

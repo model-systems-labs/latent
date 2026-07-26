@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
-import { LearnerHeader } from "../../components/LearnerHeader";
-import { PageAtmosphere } from "../../components/PageAtmosphere";
-import { PracticeWorkbench } from "../PracticeWorkbench";
-import styles from "../page.module.css";
+import { LearnerHeader } from "@/app/components/LearnerHeader";
+import { PageAtmosphere } from "@/app/components/PageAtmosphere";
+import { PracticeWorkbench } from "@/app/practice/PracticeWorkbench";
+import styles from "@/app/practice/page.module.css";
 
 export const metadata: Metadata = {
   title: "Leech practice · Latent Courses",

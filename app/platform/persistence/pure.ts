@@ -7,7 +7,7 @@ import {
   type PortablePersistenceSnapshot,
   type TestReceiptRecord,
   type TestRunRecord,
-} from "./types";
+} from "@/app/platform/persistence/types";
 
 export class PersistenceDataError extends Error {
   constructor(message: string) {

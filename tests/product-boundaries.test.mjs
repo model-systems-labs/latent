@@ -172,8 +172,8 @@ test("course and framework routes keep separate social identities", async () => 
   assert.match(frameworkMetadata, /"\/og-framework\.png"[\s\S]*width: 1731, height: 909/);
 
   assert.match(frameworkHeader, /styles\.header/);
-  assert.match(frameworkHeader, /\.\/FrameworkHeader\.module\.css/);
-  assert.doesNotMatch(frameworkHeader, /\.\/framework\.module\.css/);
+  assert.match(frameworkHeader, /@\/products\/framework\/FrameworkHeader\.module\.css/);
+  assert.doesNotMatch(frameworkHeader, /@\/products\/framework\/framework\.module\.css/);
   assert.match(frameworkHeader, /frameworkHomeHref = process\.env\.LATENT_PRODUCT_HOME/);
   assert.match(frameworkHeader, /aria-label="Latent framework home"/);
   assert.match(frameworkHeader, /latent <small>framework<\/small>/);

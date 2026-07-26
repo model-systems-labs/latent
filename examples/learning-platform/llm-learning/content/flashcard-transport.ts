@@ -1,4 +1,4 @@
-import type { Flashcard, FlashcardSubjectId } from "./flashcard-schema";
+import type { Flashcard, FlashcardSubjectId } from "@/examples/learning-platform/llm-learning/content/flashcard-schema";
 
 /**
  * A transport-only representation of the fields shared by cards from the same

@@ -4,9 +4,9 @@ import type { PracticeQuestion } from "@latent/course-kit";
 import {
   runBrowserPracticeContracts,
   type PracticeContractRun,
-} from "../ide/browser-lab-service";
-import { runPythonLessonContracts } from "../ide/python-lesson-service";
-import { adaptPracticeQuestion } from "./question-adapter";
+} from "@/app/features/ide/browser-lab-service";
+import { runPythonLessonContracts } from "@/app/features/ide/python-lesson-service";
+import { adaptPracticeQuestion } from "@/app/features/practice/question-adapter";
 
 export type MethodQuestionRunMode = "examples" | "check";
 

@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { assertRnnCheckpoint, type RnnCheckpoint, type RnnResult } from "@latent/model-lab/character-rnn";
-import { getPersistenceContext } from "../platform/persistence/client";
-import { lessonProgressId } from "../platform/persistence/pure";
-import type { CheckpointRecord, JsonValue, PracticeRepetitionProgress } from "../platform/persistence/types";
-import { lessonProgressLocation, progressCourseIds } from "../../examples/learning-platform/llm-learning/content/course-progress";
+import { getPersistenceContext } from "@/app/platform/persistence/client";
+import { lessonProgressId } from "@/app/platform/persistence/pure";
+import type { CheckpointRecord, JsonValue, PracticeRepetitionProgress } from "@/app/platform/persistence/types";
+import { lessonProgressLocation, progressCourseIds } from "@/examples/learning-platform/llm-learning/content/course-progress";
 
 export const LEARNER_STATE_KEY = "latent-learner-v2";
 export const LEARNER_RECOVERY_KEY = "latent-learner-recovery-v3:";
@@ -27,7 +27,7 @@ export type LessonLocalState = {
   updatedAt: number;
 };
 
-export type { PracticeRepetitionProgress } from "../platform/persistence/types";
+export type { PracticeRepetitionProgress } from "@/app/platform/persistence/types";
 
 export type SavedRnnArtifact = {
   checkpoint: RnnCheckpoint;

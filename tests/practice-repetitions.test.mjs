@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { pythonLanguage } from "@codemirror/lang-python";
-import { createServer } from "vite";
+import { createServer } from "#vite-test-server";
 
 const root = new URL("../", import.meta.url);
 const PROVIDED_BROWSER_ADAPTER = "# Provided browser adapter.";

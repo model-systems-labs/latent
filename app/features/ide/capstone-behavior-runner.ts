@@ -4,7 +4,7 @@ import {
   CAPSTONE_BEHAVIOR_COMPONENT_PATH,
   CAPSTONE_BEHAVIOR_CONTRACT_ID,
   CAPSTONE_BEHAVIOR_CONTRACT_LABEL,
-} from "../../lib/capstone-behavior-contract";
+} from "@/app/lib/capstone-behavior-contract";
 import {
   BrowserLabWorkerClient,
   DEFAULT_SANDBOX_LIMITS,
@@ -12,7 +12,7 @@ import {
   type CompiledProgram,
   type ExerciseContract,
 } from "@latent/browser-lab";
-import type { ProjectUnitResult } from "../../lib/project-workspace";
+import type { ProjectUnitResult } from "@/app/lib/project-workspace";
 
 const CAPSTONE_BEHAVIOR_FRAME_TIMEOUT_MS = 12_000;
 const MAX_BEHAVIOR_ASSET_BYTES = 2_000_000;

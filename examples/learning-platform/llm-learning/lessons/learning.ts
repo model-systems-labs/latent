@@ -1,9 +1,9 @@
-import { foundationLearningOutcomes } from "../content/foundations/learning";
-import { harnessEngineeringLearningOutcomes } from "../content/harness-engineering/learning";
+import { foundationLearningOutcomes } from "@/examples/learning-platform/llm-learning/content/foundations/learning";
+import { harnessEngineeringLearningOutcomes } from "@/examples/learning-platform/llm-learning/content/harness-engineering/learning";
 import {
   lessonLearningOutcome as llmLessonLearningOutcome,
   moduleCheckpoint,
-} from "../content/llm-systems/learning";
+} from "@/examples/learning-platform/llm-learning/content/llm-systems/learning";
 
 export { moduleCheckpoint };
 

@@ -5,7 +5,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import * as esbuild from "esbuild";
-import { createServer } from "vite";
+import { createServer } from "#vite-test-server";
 
 let vite;
 let course;

@@ -7,7 +7,7 @@ import {
   type Flashcard,
   type FlashcardSubject,
   type FlashcardSubjectId,
-} from "../../examples/learning-platform/llm-learning/content/flashcards";
+} from "@/examples/learning-platform/llm-learning/content/flashcards";
 /*
  * Keep the full library in this hash-named client asset instead of serializing
  * it into every HTML response. Repeat study visits can then reuse the browser
@@ -27,12 +27,12 @@ import {
   type FlashcardProgress,
   type FlashcardResult,
   type FlashcardResultRecord,
-} from "../lib/flashcard-progress";
+} from "@/app/lib/flashcard-progress";
 import {
   normalizeFlashcardSearchQuery,
   rankFlashcardSearchResults,
-} from "../lib/flashcard-search";
-import styles from "./FlashcardDeck.module.css";
+} from "@/app/lib/flashcard-search";
+import styles from "@/app/components/FlashcardDeck.module.css";
 
 type CardStatusFilter = "all" | "new" | FlashcardResult;
 

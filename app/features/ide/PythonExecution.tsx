@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PythonLabClient, PythonLabEvent, PythonLabRunResult } from "@latent/python-lab";
-import styles from "./PythonExecution.module.css";
+import styles from "@/app/features/ide/PythonExecution.module.css";
 
 export type PythonExecutionPhase =
   | "off"
@@ -255,7 +255,7 @@ export function usePythonExecution({
     try {
       await saveRef.current();
       if (operation !== operationRef.current) return;
-      const { savePythonCharacterRnnArtifact } = await import("../python/character-rnn-service");
+      const { savePythonCharacterRnnArtifact } = await import("@/app/features/python/character-rnn-service");
       const result = await savePythonCharacterRnnArtifact({
         source: snapshot.source,
         pythonLab: client,

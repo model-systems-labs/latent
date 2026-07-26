@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 
-import { LOCAL_MODEL_MAX_NEW_TOKENS, type ModelWorkerRequest, type ModelWorkerResponse } from "./protocol";
+import { LOCAL_MODEL_MAX_NEW_TOKENS, type ModelWorkerRequest, type ModelWorkerResponse } from "@/app/runtime/model/protocol";
 
 type TextGenerator = ((input: unknown, options?: Record<string, unknown>) => Promise<unknown>) & {
   tokenizer: unknown;

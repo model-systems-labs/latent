@@ -1,6 +1,6 @@
 import type { CourseLesson } from "@latent/course-kit";
-import { getLessonSources } from "../sources";
-import { withGuidedExercises } from "../guided-exercises";
+import { getLessonSources } from "@/examples/learning-platform/llm-learning/lessons/sources";
+import { withGuidedExercises } from "@/examples/learning-platform/llm-learning/lessons/guided-exercises";
 
 export type ExtendedLessonInput = Pick<
   CourseLesson,

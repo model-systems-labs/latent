@@ -1,5 +1,5 @@
-import type { BrowserLabDatabase } from "./database";
-import { assertBundleIntegrity, createPersistenceId, hashBundleContents, hashText } from "./hash";
+import type { BrowserLabDatabase } from "@/app/platform/persistence/database";
+import { assertBundleIntegrity, createPersistenceId, hashBundleContents, hashText } from "@/app/platform/persistence/hash";
 import {
   assertStructuredValueWithinLimits,
   certifyValidatedPersistedBuild,
@@ -8,7 +8,7 @@ import {
   promotionKey,
   structurallyEqual,
   type ValidatedPersistedBuild,
-} from "./pure";
+} from "@/app/platform/persistence/pure";
 import {
   PERSISTENCE_SCHEMA_VERSION,
   type BuildBindings,
@@ -25,7 +25,7 @@ import {
   type TestReceiptRecord,
   type TestResultRecord,
   type TestRunRecord,
-} from "./types";
+} from "@/app/platform/persistence/types";
 
 export class PersistenceInvariantError extends Error {
   constructor(message: string) {

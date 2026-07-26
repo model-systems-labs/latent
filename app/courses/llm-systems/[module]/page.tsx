@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { courseTracks, getTrack, getTrackLessons } from "../../../../examples/learning-platform/llm-learning/lessons/course";
-import { CourseCurriculum } from "../../../components/CourseCurriculum";
-import { moduleCheckpoint } from "../../../../examples/learning-platform/llm-learning/content/llm-systems/learning";
-import { PageAtmosphere } from "../../../components/PageAtmosphere";
+import { courseTracks, getTrack, getTrackLessons } from "@/examples/learning-platform/llm-learning/lessons/course";
+import { CourseCurriculum } from "@/app/components/CourseCurriculum";
+import { moduleCheckpoint } from "@/examples/learning-platform/llm-learning/content/llm-systems/learning";
+import { PageAtmosphere } from "@/app/components/PageAtmosphere";
 
 export function generateStaticParams() {
   return courseTracks.map((track) => ({ module: track.id }));

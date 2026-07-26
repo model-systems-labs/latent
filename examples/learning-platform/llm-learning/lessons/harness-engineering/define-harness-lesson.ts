@@ -1,6 +1,6 @@
 import type { CourseLesson, LessonSource } from "@latent/course-kit";
-import type { HarnessExperimentVariant } from "../../content/harness-engineering/experiments";
-import { withGuidedExercises } from "../guided-exercises";
+import type { HarnessExperimentVariant } from "@/examples/learning-platform/llm-learning/content/harness-engineering/experiments";
+import { withGuidedExercises } from "@/examples/learning-platform/llm-learning/lessons/guided-exercises";
 
 type HarnessLessonInput = Pick<
   CourseLesson,

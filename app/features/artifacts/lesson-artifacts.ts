@@ -2,10 +2,10 @@
 
 import { artifactBundleBlob, createArtifact, hashArtifactValue, type ArtifactEnvelope, type ArtifactJson } from "@latent/artifact-runtime";
 import { getArtifactRuntime } from "@latent/artifact-runtime/client";
-import { lessonArtifactBlueprintById, lessonArtifactBlueprints, previousArtifactLessonId } from "./lesson-blueprints";
-import { recordedTrainingRegistry } from "./training-scenarios";
-import { llmSystemsContractSuite } from "../../../examples/learning-platform/llm-learning/content/llm-systems/contracts";
-import { downloadBrowserBlob } from "../../lib/browser-download";
+import { lessonArtifactBlueprintById, lessonArtifactBlueprints, previousArtifactLessonId } from "@/app/features/artifacts/lesson-blueprints";
+import { recordedTrainingRegistry } from "@/app/features/artifacts/training-scenarios";
+import { llmSystemsContractSuite } from "@/examples/learning-platform/llm-learning/content/llm-systems/contracts";
+import { downloadBrowserBlob } from "@/app/lib/browser-download";
 
 export type ValidatedLessonResult = { id: string; label: string; passed: boolean; detail: string };
 

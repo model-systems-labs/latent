@@ -1,4 +1,4 @@
-import { frameworkMetadata } from "../../products/framework/metadata";
+import { frameworkMetadata } from "@/products/framework/metadata";
 
 export const metadata = frameworkMetadata;
 

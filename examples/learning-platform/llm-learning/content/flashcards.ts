@@ -2,20 +2,20 @@ import {
   buildFlashcards,
   combineFlashcardLibraries,
   defineFlashcardLibrary,
-} from "./flashcard-schema";
-import { foundationExpansionLibrary } from "./flashcard-library/foundations";
-import { harnessEngineeringFlashcardLibrary } from "./flashcard-library/harness-engineering";
-import { harnessEngineeringSupplementFlashcardLibrary } from "./flashcard-library/harness-engineering-supplement";
-import { mlPrerequisiteFlashcardLibrary } from "./flashcard-library/ml-prerequisites";
-import { modelFoundationsExpansionLibrary } from "./flashcard-library/model-foundations";
-import { systemsAndProductExpansionLibrary } from "./flashcard-library/systems-and-product";
+} from "@/examples/learning-platform/llm-learning/content/flashcard-schema";
+import { foundationExpansionLibrary } from "@/examples/learning-platform/llm-learning/content/flashcard-library/foundations";
+import { harnessEngineeringFlashcardLibrary } from "@/examples/learning-platform/llm-learning/content/flashcard-library/harness-engineering";
+import { harnessEngineeringSupplementFlashcardLibrary } from "@/examples/learning-platform/llm-learning/content/flashcard-library/harness-engineering-supplement";
+import { mlPrerequisiteFlashcardLibrary } from "@/examples/learning-platform/llm-learning/content/flashcard-library/ml-prerequisites";
+import { modelFoundationsExpansionLibrary } from "@/examples/learning-platform/llm-learning/content/flashcard-library/model-foundations";
+import { systemsAndProductExpansionLibrary } from "@/examples/learning-platform/llm-learning/content/flashcard-library/systems-and-product";
 
-export { flashcardSubjects } from "./flashcard-schema";
+export { flashcardSubjects } from "@/examples/learning-platform/llm-learning/content/flashcard-schema";
 export type {
   Flashcard,
   FlashcardSubject,
   FlashcardSubjectId,
-} from "./flashcard-schema";
+} from "@/examples/learning-platform/llm-learning/content/flashcard-schema";
 
 const coreFlashcardLibrary = defineFlashcardLibrary({
   "Array rank and shape": {

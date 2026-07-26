@@ -7,7 +7,7 @@ import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import * as esbuild from "esbuild";
 import { chromium } from "playwright";
-import { createServer } from "vite";
+import { createServer } from "#vite-test-server";
 
 let vite;
 let course;

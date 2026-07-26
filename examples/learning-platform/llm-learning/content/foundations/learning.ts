@@ -1,4 +1,4 @@
-import type { LessonLearningOutcome } from "../llm-systems/learning";
+import type { LessonLearningOutcome } from "@/examples/learning-platform/llm-learning/content/llm-systems/learning";
 
 export const foundationLearningOutcomes = {
   "arrays-and-shapes": {

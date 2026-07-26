@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { coursePrograms, courseTracks, llmSystemsCurriculum } from "../../../examples/learning-platform/llm-learning/lessons/course";
-import { CourseGuide } from "../../components/CourseGuide";
-import { CourseResume } from "../../components/CourseResume";
-import { PageAtmosphere } from "../../components/PageAtmosphere";
+import { coursePrograms, courseTracks, llmSystemsCurriculum } from "@/examples/learning-platform/llm-learning/lessons/course";
+import { CourseGuide } from "@/app/components/CourseGuide";
+import { CourseResume } from "@/app/components/CourseResume";
+import { PageAtmosphere } from "@/app/components/PageAtmosphere";
 
 export const metadata: Metadata = {
   title: "Build an LLM System in Your Browser · Latent Courses",

@@ -5,18 +5,18 @@ import type { PythonLabClient, PythonLabEvent } from "@latent/python-lab";
 import {
   saveCharacterRnnArtifact,
   type SavedRnnArtifact,
-} from "../../lib/learner-state";
-import { hashText } from "../../platform/persistence/hash";
+} from "@/app/lib/learner-state";
+import { hashText } from "@/app/platform/persistence/hash";
 import {
   PYTHON_CHARACTER_RNN_PATH,
-} from "./character-rnn-source";
+} from "@/app/features/python/character-rnn-source";
 import {
   characterRnnTrustedTrainingSource,
   PYTHON_CHARACTER_RNN_TRAINER_PATH,
-} from "../../../examples/learning-platform/llm-learning/lessons/model/character-rnn-training";
+} from "@/examples/learning-platform/llm-learning/lessons/model/character-rnn-training";
 
-export { PYTHON_CHARACTER_RNN_PATH } from "./character-rnn-source";
-export { PYTHON_CHARACTER_RNN_TRAINER_PATH } from "../../../examples/learning-platform/llm-learning/lessons/model/character-rnn-training";
+export { PYTHON_CHARACTER_RNN_PATH } from "@/app/features/python/character-rnn-source";
+export { PYTHON_CHARACTER_RNN_TRAINER_PATH } from "@/examples/learning-platform/llm-learning/lessons/model/character-rnn-training";
 
 export const PYTHON_CHARACTER_RNN_ARTIFACT_PATH = "artifacts/character-rnn.json" as const;
 

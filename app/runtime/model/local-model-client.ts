@@ -1,6 +1,6 @@
 "use client";
 
-import type { LocalModelGenerationResult, LocalModelOptions, ModelMessage, ModelWorkerRequest, ModelWorkerResponse } from "./protocol";
+import type { LocalModelGenerationResult, LocalModelOptions, ModelMessage, ModelWorkerRequest, ModelWorkerResponse } from "@/app/runtime/model/protocol";
 
 type LoadCallbacks = {
   onProgress: (progress: number, detail: string) => void;

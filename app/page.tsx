@@ -1,4 +1,4 @@
-import { ProductHome, productMetadata } from "../products/product-home";
+import { ProductHome, productMetadata } from "@/products/product-home";
 
 export const metadata = productMetadata;
 

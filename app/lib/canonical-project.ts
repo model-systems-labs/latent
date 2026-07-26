@@ -1,15 +1,15 @@
-import { CANONICAL_BROWSER_CHAT_FILES } from "../../examples/learning-platform/llm-learning/content/browser-chat/project-template";
-import { initializeLearnerPersistence, loadLearnerState, type LearnerState } from "./learner-state";
-import { llmSystemsCurriculum } from "../../examples/learning-platform/llm-learning/lessons/course";
-import { lessonBlockComment, lessonImplementationSource } from "../../examples/learning-platform/llm-learning/lessons/implementation-source";
-import { llmSystemsContractSuite } from "../../examples/learning-platform/llm-learning/content/llm-systems/contracts";
-import { restoreWorkingSourceVerification, workingPracticeSources } from "../features/ide/practice-state";
+import { CANONICAL_BROWSER_CHAT_FILES } from "@/examples/learning-platform/llm-learning/content/browser-chat/project-template";
+import { initializeLearnerPersistence, loadLearnerState, type LearnerState } from "@/app/lib/learner-state";
+import { llmSystemsCurriculum } from "@/examples/learning-platform/llm-learning/lessons/course";
+import { lessonBlockComment, lessonImplementationSource } from "@/examples/learning-platform/llm-learning/lessons/implementation-source";
+import { llmSystemsContractSuite } from "@/examples/learning-platform/llm-learning/content/llm-systems/contracts";
+import { restoreWorkingSourceVerification, workingPracticeSources } from "@/app/features/ide/practice-state";
 import {
   ensureProjectWorkspace,
   flushProjectPersistence,
   initializeProjectPersistence,
-} from "./project-workspace";
-import type { LessonProjectSeed, ProjectCourse } from "./project-workspace";
+} from "@/app/lib/project-workspace";
+import type { LessonProjectSeed, ProjectCourse } from "@/app/lib/project-workspace";
 
 export function canonicalProjectSeeds(): LessonProjectSeed[] {
   const application: LessonProjectSeed[] = CANONICAL_BROWSER_CHAT_FILES.map((file) => ({

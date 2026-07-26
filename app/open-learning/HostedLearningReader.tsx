@@ -25,8 +25,8 @@ import {
   sha256Hex,
   verifyHostedPackage,
   type InstalledLearningPack,
-} from "../lib/open-learning";
-import styles from "./studio.module.css";
+} from "@/app/lib/open-learning";
+import styles from "@/app/open-learning/studio.module.css";
 
 const exampleFeedPath = "/open-learning/reliable-llm-changes/learning-feed.json";
 

@@ -1,6 +1,6 @@
 import type { CourseLesson } from "@latent/course-kit";
-import { withGuidedExercises } from "../guided-exercises";
-import { commonQuestionInstruction } from "./shared";
+import { withGuidedExercises } from "@/examples/learning-platform/llm-learning/lessons/guided-exercises";
+import { commonQuestionInstruction } from "@/examples/learning-platform/llm-learning/lessons/model/shared";
 
 export const transformersLesson = withGuidedExercises({
     id: "transformers",

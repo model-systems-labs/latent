@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ProjectStructureMap } from "../components/ProjectStructureMap";
-import { ProjectTimeline } from "../components/ProjectTimeline";
-import { LearningDataPanel } from "../components/LearningDataPanel";
-import { PageAtmosphere } from "../components/PageAtmosphere";
+import { ProjectStructureMap } from "@/app/components/ProjectStructureMap";
+import { ProjectTimeline } from "@/app/components/ProjectTimeline";
+import { LearningDataPanel } from "@/app/components/LearningDataPanel";
+import { PageAtmosphere } from "@/app/components/PageAtmosphere";
 
 export const metadata: Metadata = {
   title: "Project structure · Latent Courses",

@@ -1,18 +1,18 @@
 "use client";
 
-import { runLessonContracts, type BrowserLabProjectRun } from "../features/ide/browser-lab-service";
+import { runLessonContracts, type BrowserLabProjectRun } from "@/app/features/ide/browser-lab-service";
 import {
   compileProject,
   RUNTIME_PATHS,
   type ProjectFile,
   type ProjectRuntime,
   type ProjectUnitResult,
-} from "./project-workspace";
-import { CAPSTONE_ENTRY_PATH, CANONICAL_BROWSER_CHAT_FILES } from "../../examples/learning-platform/llm-learning/content/browser-chat/project-template";
+} from "@/app/lib/project-workspace";
+import { CAPSTONE_ENTRY_PATH, CANONICAL_BROWSER_CHAT_FILES } from "@/examples/learning-platform/llm-learning/content/browser-chat/project-template";
 import {
   CAPSTONE_BEHAVIOR_COMPONENT_PATH,
   CAPSTONE_BEHAVIOR_CONTRACT_ID,
-} from "./capstone-behavior-contract";
+} from "@/app/lib/capstone-behavior-contract";
 
 export type ProjectTestRun = Omit<BrowserLabProjectRun, "results"> & {
   results: ProjectUnitResult[];

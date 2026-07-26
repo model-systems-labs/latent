@@ -18,9 +18,9 @@ import {
   type BrowserIdeSession,
   type BrowserLabIdeRuntimeOptions,
 } from "@latent/browser-lab/ide";
-import { CodeEditor } from "../../features/ide/CodeEditor";
-import { getPersistenceContext } from "../persistence/client";
-import type { JsonValue } from "../persistence/types";
+import { CodeEditor } from "@/app/features/ide/CodeEditor";
+import { getPersistenceContext } from "@/app/platform/persistence/client";
+import type { JsonValue } from "@/app/platform/persistence/types";
 
 const STATE_KEY_PREFIX = "browser-ide-extension:v1:state:";
 const RECEIPT_KEY_PREFIX = "browser-ide-extension:v1:receipt-artifact:";

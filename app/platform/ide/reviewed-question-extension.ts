@@ -14,11 +14,11 @@ import {
   type QuestionGroupLibrary,
   type QuestionGroupRuntimeRequirement,
 } from "@latent/course-kit";
-import { methodQuestionLibrary } from "../../../examples/learning-platform/llm-learning/content/practice/question-library";
+import { methodQuestionLibrary } from "@/examples/learning-platform/llm-learning/content/practice/question-library";
 import {
   createPracticeQuestionContract,
   practiceQuestionExportName,
-} from "../../features/practice/question-adapter";
+} from "@/app/features/practice/question-adapter";
 
 const SUPPORTED_ENGINE = "esbuild-wasm";
 

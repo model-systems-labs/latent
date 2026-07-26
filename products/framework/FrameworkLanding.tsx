@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { PageAtmosphere } from "../../app/components/PageAtmosphere";
-import { FrameworkHeader } from "./FrameworkHeader";
-import styles from "./framework.module.css";
+import { PageAtmosphere } from "@/app/components/PageAtmosphere";
+import { FrameworkHeader } from "@/products/framework/FrameworkHeader";
+import styles from "@/products/framework/framework.module.css";
 
 const browserCapabilities = [
   {

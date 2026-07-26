@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import type { CourseLesson } from "@latent/course-kit";
 import type { ArtifactEnvelope } from "@latent/artifact-runtime";
-import { downloadArtifact, lessonHasRecordedTraining, loadLessonArtifactView } from "./lesson-artifacts";
-import { RecordedTrainingPanel } from "./RecordedTrainingPanel";
+import { downloadArtifact, lessonHasRecordedTraining, loadLessonArtifactView } from "@/app/features/artifacts/lesson-artifacts";
+import { RecordedTrainingPanel } from "@/app/features/artifacts/RecordedTrainingPanel";
 
 type ArtifactView = Awaited<ReturnType<typeof loadLessonArtifactView>>;
 

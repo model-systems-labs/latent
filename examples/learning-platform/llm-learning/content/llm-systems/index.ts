@@ -2,8 +2,8 @@ export {
   LLM_SYSTEMS_PROGRAM_ID,
   llmSystemsManifest,
   type LlmSystemsModuleId,
-} from "./manifest";
+} from "@/examples/learning-platform/llm-learning/content/llm-systems/manifest";
 export {
   llmSystemsContractSuite,
   llmSystemsExerciseContracts,
-} from "./contracts";
+} from "@/examples/learning-platform/llm-learning/content/llm-systems/contracts";

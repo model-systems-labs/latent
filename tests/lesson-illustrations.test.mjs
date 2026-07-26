@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile, stat } from "node:fs/promises";
 import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { createServer } from "vite";
+import { createServer } from "#vite-test-server";
 
 let LESSON_ILLUSTRATION_CHANCE_SCALE;
 let LESSON_ILLUSTRATION_MIN_USEFULNESS;

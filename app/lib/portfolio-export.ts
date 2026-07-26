@@ -1,11 +1,11 @@
 import { strToU8, zipSync } from "fflate";
 import type { CourseLesson } from "@latent/course-kit";
 import { exposeLessonFunctions } from "@latent/browser-lab/compiler";
-import { llmSystemsContractSuite } from "../../examples/learning-platform/llm-learning/content/llm-systems/contracts";
-import { lessonLearningOutcome } from "../../examples/learning-platform/llm-learning/content/llm-systems/learning";
-import { lessonIsComplete, type LearnerState } from "./learner-state";
-import type { ProjectFile, ProjectState, ProjectUnitResult } from "./project-workspace";
-import { trustedProjectResults } from "./project-file-status";
+import { llmSystemsContractSuite } from "@/examples/learning-platform/llm-learning/content/llm-systems/contracts";
+import { lessonLearningOutcome } from "@/examples/learning-platform/llm-learning/content/llm-systems/learning";
+import { lessonIsComplete, type LearnerState } from "@/app/lib/learner-state";
+import type { ProjectFile, ProjectState, ProjectUnitResult } from "@/app/lib/project-workspace";
+import { trustedProjectResults } from "@/app/lib/project-file-status";
 
 const PORTFOLIO_HOST_TEST_COUNT = 6;
 

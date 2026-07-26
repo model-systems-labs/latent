@@ -1,7 +1,7 @@
 import {
   combineFlashcardLibraries,
   defineFlashcardGroup,
-} from "../flashcard-schema";
+} from "@/examples/learning-platform/llm-learning/content/flashcard-schema";
 
 const characterRnnCards = defineFlashcardGroup(
   {

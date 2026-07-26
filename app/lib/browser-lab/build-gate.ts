@@ -1,4 +1,4 @@
-import type { BrowserLabBuildGate, BrowserLabTestResult } from "./types";
+import type { BrowserLabBuildGate, BrowserLabTestResult } from "@/app/lib/browser-lab/types";
 
 /** Presentation-level summary; execution lives in @latent/browser-lab workers. */
 export function gateBrowserLabBuild(results: BrowserLabTestResult[]): BrowserLabBuildGate {

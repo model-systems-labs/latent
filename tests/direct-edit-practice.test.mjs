@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test, { after, before } from "node:test";
 import { fileURLToPath } from "node:url";
-import { createServer } from "vite";
+import { createServer } from "#vite-test-server";
 
 const root = new URL("../", import.meta.url);
 const paperLabUrl = new URL("app/components/PaperLab.tsx", root);

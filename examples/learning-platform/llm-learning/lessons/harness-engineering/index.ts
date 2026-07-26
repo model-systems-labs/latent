@@ -1,4 +1,4 @@
-import { defineHarnessLesson } from "./define-harness-lesson";
+import { defineHarnessLesson } from "@/examples/learning-platform/llm-learning/lessons/harness-engineering/define-harness-lesson";
 
 const harnessEngineeringSource = {
   role: "Guide" as const,

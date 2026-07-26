@@ -1,4 +1,4 @@
-import type { ExerciseContract } from "../exercise-contracts";
+import type { ExerciseContract } from "@/examples/learning-platform/llm-learning/lessons/exercise-contracts";
 
 function contract(
   signature: string,

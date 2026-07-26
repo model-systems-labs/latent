@@ -1,7 +1,7 @@
 import vinext from "vinext";
 import { resolve } from "node:path";
 import { defineConfig } from "vite";
-import { sites } from "./build/sites-vite-plugin";
+import { sites } from "#root/build/sites-vite-plugin.ts";
 
 // macOS Seatbelt blocks FSEvents, so Codex previews need polling for HMR.
 const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
@@ -32,7 +32,8 @@ export default defineConfig(async () => {
     },
     resolve: {
       alias: {
-        "../products/product-home": resolve(process.cwd(), productHome),
+        "@/products/product-home": resolve(process.cwd(), productHome),
+        "@": resolve(process.cwd()),
       },
     },
     // Consent-gated and editor-only features are dynamically imported. Explicitly

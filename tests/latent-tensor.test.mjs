@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { createServer } from "vite";
+import { createServer } from "#vite-test-server";
 
 const vite = await createServer({
   root: fileURLToPath(new URL("../", import.meta.url)),

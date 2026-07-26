@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { HarnessWorkbench } from "../../../components/HarnessWorkbench";
+import { HarnessWorkbench } from "@/app/components/HarnessWorkbench";
 
 export const metadata: Metadata = {
   title: "Harness Project · Latent Courses",

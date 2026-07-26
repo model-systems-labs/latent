@@ -1,18 +1,55 @@
 import { readdir, readFile } from "node:fs/promises";
 import { dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import ts from "typescript";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const packageRoot = resolve(root, "packages");
 const sourceExtensions = new Set([".js", ".jsx", ".mjs", ".ts", ".tsx"]);
-const importPattern = /(?:import|export)\s+(?:type\s+)?(?:[\s\S]*?\s+from\s+)?["']([^"']+)["']|import\s*\(\s*["']([^"']+)["']\s*\)/g;
+const styleExtensions = new Set([".css"]);
+const cssImportPattern = /@import\s+(?:url\(\s*)?(?:"([^"]+)"|'([^']+)'|([^'"\s;)]+))/g;
 
-async function filesBelow(directory) {
+function moduleSpecifiers(file, source) {
+  const extension = file.slice(file.lastIndexOf("."));
+  const scriptKind = extension === ".tsx"
+    ? ts.ScriptKind.TSX
+    : extension === ".ts"
+      ? ts.ScriptKind.TS
+      : extension === ".jsx"
+        ? ts.ScriptKind.JSX
+        : ts.ScriptKind.JS;
+  const sourceFile = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, scriptKind);
+  const specifiers = [];
+
+  function addSpecifier(node) {
+    if (node && ts.isStringLiteralLike(node)) specifiers.push(node.text);
+  }
+
+  function visit(node) {
+    if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
+      addSpecifier(node.moduleSpecifier);
+    } else if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference)) {
+      addSpecifier(node.moduleReference.expression);
+    } else if (
+      ts.isCallExpression(node)
+      && node.expression.kind === ts.SyntaxKind.ImportKeyword
+      && node.arguments.length === 1
+    ) {
+      addSpecifier(node.arguments[0]);
+    }
+    ts.forEachChild(node, visit);
+  }
+
+  visit(sourceFile);
+  return specifiers;
+}
+
+async function filesBelow(directory, extensions = sourceExtensions) {
   const output = [];
   for (const entry of await readdir(directory, { withFileTypes: true })) {
     const path = resolve(directory, entry.name);
-    if (entry.isDirectory()) output.push(...await filesBelow(path));
-    else if (sourceExtensions.has(entry.name.slice(entry.name.lastIndexOf(".")))) output.push(path);
+    if (entry.isDirectory()) output.push(...await filesBelow(path, extensions));
+    else if (extensions.has(entry.name.slice(entry.name.lastIndexOf(".")))) output.push(path);
   }
   return output;
 }
@@ -54,9 +91,7 @@ for (const { directory: workspace, manifest } of workspaces) {
   }
   for (const file of await filesBelow(resolve(workspace, "src"))) {
     const source = await readFile(file, "utf8");
-    for (const match of source.matchAll(importPattern)) {
-      const specifier = match[1] ?? match[2];
-      if (!specifier) continue;
+    for (const specifier of moduleSpecifiers(file, source)) {
       if (specifier.startsWith(".")) {
         const destination = resolve(dirname(file), specifier);
         if (relative(workspace, destination).startsWith("..")) {
@@ -106,8 +141,7 @@ for (const directory of [
 ]) {
   for (const file of await filesBelow(directory)) {
     const source = await readFile(file, "utf8");
-    for (const match of source.matchAll(importPattern)) {
-      const specifier = match[1] ?? match[2] ?? "";
+    for (const specifier of moduleSpecifiers(file, source)) {
       if (/^@latent\/[^/]+\/src(?:\/|$)/.test(specifier) || specifier.includes("packages/")) {
         failures.push(`${relative(root, file)} bypasses a workspace public export: ${specifier}`);
       }
@@ -121,10 +155,50 @@ for (const directory of [
 }
 
 const fullLearningExample = resolve(root, "examples/learning-platform/llm-learning");
+for (const [directory, alias] of [
+  [resolve(root, "app"), "@/"],
+  [resolve(root, "products"), "@/"],
+  [fullLearningExample, "@/"],
+  [resolve(root, "scripts"), "#root/"],
+  [resolve(root, "tests"), "#root/"],
+]) {
+  for (const file of await filesBelow(directory)) {
+    const source = await readFile(file, "utf8");
+    for (const specifier of moduleSpecifiers(file, source)) {
+      if (specifier.startsWith(".")) {
+        failures.push(`${relative(root, file)} uses relative module import ${specifier}; use the ${alias} root alias.`);
+      }
+    }
+  }
+}
+
+const viteConfig = resolve(root, "vite.config.ts");
+const viteConfigSource = await readFile(viteConfig, "utf8");
+for (const specifier of moduleSpecifiers(viteConfig, viteConfigSource)) {
+  if (specifier.startsWith(".")) {
+    failures.push(`${relative(root, viteConfig)} uses relative module import ${specifier}; use the #root/ root alias.`);
+  }
+}
+
+for (const directory of [
+  resolve(root, "app"),
+  resolve(root, "products"),
+  fullLearningExample,
+]) {
+  for (const file of await filesBelow(directory, styleExtensions)) {
+    const source = await readFile(file, "utf8");
+    for (const match of source.matchAll(cssImportPattern)) {
+      const specifier = match[1] ?? match[2] ?? match[3] ?? "";
+      if (specifier.startsWith(".")) {
+        failures.push(`${relative(root, file)} uses relative stylesheet import ${specifier}; use the @/ root alias.`);
+      }
+    }
+  }
+}
+
 for (const file of await filesBelow(fullLearningExample)) {
   const source = await readFile(file, "utf8");
-  for (const match of source.matchAll(importPattern)) {
-    const specifier = match[1] ?? match[2] ?? "";
+  for (const specifier of moduleSpecifiers(file, source)) {
     if (specifier.startsWith(".")) {
       const destination = relative(root, resolve(dirname(file), specifier));
       if (

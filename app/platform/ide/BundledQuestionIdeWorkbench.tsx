@@ -7,14 +7,14 @@ import {
   loadQuestionProgress,
   saveQuestionAttempt,
   type QuestionProgressIdentity,
-} from "../../lib/question-progress";
-import { BrowserIdeExtensionWorkbench } from "./BrowserIdeExtensionWorkbench";
+} from "@/app/lib/question-progress";
+import { BrowserIdeExtensionWorkbench } from "@/app/platform/ide/BrowserIdeExtensionWorkbench";
 import {
   bundledMethodQuestionIdeExercise,
   restoreReviewedQuestionSource,
   type BundledMethodQuestionIdeExercise,
-} from "./reviewed-question-extension";
-import styles from "./BrowserIdeExtensionWorkbench.module.css";
+} from "@/app/platform/ide/reviewed-question-extension";
+import styles from "@/app/platform/ide/BrowserIdeExtensionWorkbench.module.css";
 
 const exerciseCache = new Map<string, BundledMethodQuestionIdeExercise>();
 

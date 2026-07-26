@@ -4,7 +4,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { relative } from "node:path";
-import { createServer } from "vite";
+import { createServer } from "#vite-test-server";
 
 import {
   buildStandaloneLearningSite,

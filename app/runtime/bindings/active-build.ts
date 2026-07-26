@@ -1,8 +1,8 @@
 import {
   isValidatedPersistedBuild,
   type ValidatedPersistedBuild,
-} from "../../platform/persistence/pure";
-import type { BuildRecord } from "../../platform/persistence/types";
+} from "@/app/platform/persistence/pure";
+import type { BuildRecord } from "@/app/platform/persistence/types";
 import {
   BrowserLabError,
   hashText,
@@ -19,7 +19,7 @@ import {
   LLM_RUNTIME_CAPABILITIES,
   type CapstoneRuntimeConsumer,
   type LlmRuntimeCapabilityDefinition,
-} from "./manifest";
+} from "@/app/runtime/bindings/manifest";
 
 export type ActiveBuildOrigin = "browser-lab-artifact" | "persisted-build";
 

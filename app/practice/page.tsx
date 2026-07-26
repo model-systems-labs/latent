@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { LearnerHeader } from "../components/LearnerHeader";
-import { PageAtmosphere } from "../components/PageAtmosphere";
-import { PracticeWorkbench } from "./PracticeWorkbench";
-import { methodQuestionGroups, methodQuestions } from "../../examples/learning-platform/llm-learning/content/practice/question-library";
-import styles from "./page.module.css";
+import { LearnerHeader } from "@/app/components/LearnerHeader";
+import { PageAtmosphere } from "@/app/components/PageAtmosphere";
+import { PracticeWorkbench } from "@/app/practice/PracticeWorkbench";
+import { methodQuestionGroups, methodQuestions } from "@/examples/learning-platform/llm-learning/content/practice/question-library";
+import styles from "@/app/practice/page.module.css";
 
 export const metadata: Metadata = {
   title: "Method practice · Latent Courses",

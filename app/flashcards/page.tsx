@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { LearnerHeader } from "../components/LearnerHeader";
-import { FlashcardDeck } from "../components/FlashcardDeck";
-import { flashcards } from "../../examples/learning-platform/llm-learning/content/flashcards";
-import { PageAtmosphere } from "../components/PageAtmosphere";
-import styles from "./page.module.css";
+import { LearnerHeader } from "@/app/components/LearnerHeader";
+import { FlashcardDeck } from "@/app/components/FlashcardDeck";
+import { flashcards } from "@/examples/learning-platform/llm-learning/content/flashcards";
+import { PageAtmosphere } from "@/app/components/PageAtmosphere";
+import styles from "@/app/flashcards/page.module.css";
 
 export const metadata: Metadata = {
   title: "Flash cards · Latent Courses",

@@ -3,9 +3,9 @@
 import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import type { CodeBlock, CourseLesson } from "@latent/course-kit";
-import type { LessonLearningOutcome } from "../../examples/learning-platform/llm-learning/content/llm-systems/learning";
+import type { LessonLearningOutcome } from "@/examples/learning-platform/llm-learning/content/llm-systems/learning";
 import type { ExerciseCase, ExerciseCaseResult, ExerciseContract, HostAssertion, JsonValue } from "@latent/browser-lab";
-import { allRoutedLessons, getLessonCourseHref, getLessonProjectPath } from "../../examples/learning-platform/llm-learning/lessons/course";
+import { allRoutedLessons, getLessonCourseHref, getLessonProjectPath } from "@/examples/learning-platform/llm-learning/lessons/course";
 import {
   discardLearnerRecoveryCandidate,
   emptyPracticeRepetitions,
@@ -19,8 +19,8 @@ import {
   useLearnerPersistenceError,
   useLearnerRecoveryCandidates,
   type PracticeRepetitionProgress,
-} from "../lib/learner-state";
-import { ensureProjectWorkspace, flushProjectPersistence, initializeProjectPersistence, loadProjectState, projectFileSourceIsCurrent, saveLessonProjectFile, useProjectPersistenceError, type LessonProjectSeed, type ProjectCourse } from "../lib/project-workspace";
+} from "@/app/lib/learner-state";
+import { ensureProjectWorkspace, flushProjectPersistence, initializeProjectPersistence, loadProjectState, projectFileSourceIsCurrent, saveLessonProjectFile, useProjectPersistenceError, type LessonProjectSeed, type ProjectCourse } from "@/app/lib/project-workspace";
 import {
   flushHarnessWorkspacePersistence,
   harnessFileSourceIsCurrent,
@@ -28,14 +28,14 @@ import {
   loadHarnessWorkspaceState,
   stageHarnessLessonFile,
   useHarnessWorkspaceState,
-} from "../lib/harness-workspace";
-import { harnessLessonProjectSeed, type HarnessProjectSeed } from "../lib/harness-project";
-import { runPracticeContracts, type PracticeContractRun } from "../features/ide/browser-lab-service";
-import { runPythonLessonContracts } from "../features/ide/python-lesson-service";
-import { ArtifactRuntimePanel } from "../features/artifacts/ArtifactRuntimePanel";
-import { recordValidatedLessonArtifact } from "../features/artifacts/lesson-artifacts";
-import { lessonBlockComment, lessonImplementationPrelude, lessonImplementationSource } from "../../examples/learning-platform/llm-learning/lessons/implementation-source";
-import { canonicalProjectSeeds } from "../lib/canonical-project";
+} from "@/app/lib/harness-workspace";
+import { harnessLessonProjectSeed, type HarnessProjectSeed } from "@/app/lib/harness-project";
+import { runPracticeContracts, type PracticeContractRun } from "@/app/features/ide/browser-lab-service";
+import { runPythonLessonContracts } from "@/app/features/ide/python-lesson-service";
+import { ArtifactRuntimePanel } from "@/app/features/artifacts/ArtifactRuntimePanel";
+import { recordValidatedLessonArtifact } from "@/app/features/artifacts/lesson-artifacts";
+import { lessonBlockComment, lessonImplementationPrelude, lessonImplementationSource } from "@/examples/learning-platform/llm-learning/lessons/implementation-source";
+import { canonicalProjectSeeds } from "@/app/lib/canonical-project";
 import {
   compatiblePracticeDrafts,
   creditableWorkingBlockIds,
@@ -57,18 +57,18 @@ import {
   workingPracticeRepetitionSource,
   workingPracticeSources,
   type PracticeRound,
-} from "../features/ide/practice-state";
-import { contractSuiteForLesson } from "../../examples/learning-platform/llm-learning/lessons/contract-suite";
-import { LessonOutcome } from "./LessonOutcome";
-import { lessonLearningOutcome, moduleCheckpoint } from "../../examples/learning-platform/llm-learning/lessons/learning";
-import { recordLearningEvent } from "../lib/learning-analytics";
-import { SyntaxCode } from "../features/ide/SyntaxCode";
-import { getLessonFlair } from "../../examples/learning-platform/llm-learning/lessons/lesson-flair";
-import { getLessonIllustration } from "../../examples/learning-platform/llm-learning/lessons/lesson-illustrations";
-import { exerciseContractFor } from "../../examples/learning-platform/llm-learning/lessons/exercise-contracts";
-import { lessonGateProgress } from "../../examples/learning-platform/llm-learning/lessons/lesson-progress";
-import { PageAtmosphere } from "./PageAtmosphere";
-import styles from "./PaperLab.module.css";
+} from "@/app/features/ide/practice-state";
+import { contractSuiteForLesson } from "@/examples/learning-platform/llm-learning/lessons/contract-suite";
+import { LessonOutcome } from "@/app/components/LessonOutcome";
+import { lessonLearningOutcome, moduleCheckpoint } from "@/examples/learning-platform/llm-learning/lessons/learning";
+import { recordLearningEvent } from "@/app/lib/learning-analytics";
+import { SyntaxCode } from "@/app/features/ide/SyntaxCode";
+import { getLessonFlair } from "@/examples/learning-platform/llm-learning/lessons/lesson-flair";
+import { getLessonIllustration } from "@/examples/learning-platform/llm-learning/lessons/lesson-illustrations";
+import { exerciseContractFor } from "@/examples/learning-platform/llm-learning/lessons/exercise-contracts";
+import { lessonGateProgress } from "@/examples/learning-platform/llm-learning/lessons/lesson-progress";
+import { PageAtmosphere } from "@/app/components/PageAtmosphere";
+import styles from "@/app/components/PaperLab.module.css";
 
 type CheckResult = { label: string; passed: boolean; detail: string; cases: readonly ExerciseCaseResult[] };
 type CellExecutionOutput = Pick<PracticeContractRun, "output" | "stdout" | "stderr">;
@@ -178,11 +178,11 @@ const editorialIllustrationStyles = {
 } satisfies Record<string, CSSProperties>;
 
 const LessonCodeEditor = lazy(async () => ({
-  default: (await import("../features/ide/CodeEditor")).CodeEditor,
+  default: (await import("@/app/features/ide/CodeEditor")).CodeEditor,
 }));
 
 const LessonExperiment = lazy(async () => ({
-  default: (await import("./LessonExperiment")).LessonExperiment,
+  default: (await import("@/app/components/LessonExperiment")).LessonExperiment,
 }));
 
 function SourceSet({ lesson }: { lesson: CourseLesson }) {

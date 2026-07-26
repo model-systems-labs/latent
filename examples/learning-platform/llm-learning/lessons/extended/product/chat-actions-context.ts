@@ -1,4 +1,4 @@
-import { defineExtendedLesson } from "../define-lesson";
+import { defineExtendedLesson } from "@/examples/learning-platform/llm-learning/lessons/extended/define-lesson";
 
 export const chatActionsContextLesson = defineExtendedLesson({
     id: "chat-actions-context",

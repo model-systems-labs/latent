@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { LearnerHeader } from "../components/LearnerHeader";
-import { coursePrograms } from "../../examples/learning-platform/llm-learning/lessons/course";
-import { PageAtmosphere } from "../components/PageAtmosphere";
+import { LearnerHeader } from "@/app/components/LearnerHeader";
+import { coursePrograms } from "@/examples/learning-platform/llm-learning/lessons/course";
+import { PageAtmosphere } from "@/app/components/PageAtmosphere";
 
 export const metadata: Metadata = {
   title: "Further reading and licenses · Latent Courses",

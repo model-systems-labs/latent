@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { loadPyodide } from "pyodide";
-import { createServer } from "vite";
+import { createServer } from "#vite-test-server";
 
 const root = new URL("../", import.meta.url);
 

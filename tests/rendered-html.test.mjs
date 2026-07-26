@@ -528,7 +528,7 @@ test("the consent-gated local model runtime has a statically prebundled client b
     readFile(new URL("../app/lib/local-transformer-runtime.ts", import.meta.url), "utf8"),
     readFile(new URL("../vite.config.ts", import.meta.url), "utf8"),
   ]);
-  assert.match(experiment, /await import\("\.\.\/lib\/local-transformer-runtime"\)/);
+  assert.match(experiment, /await import\("@\/app\/lib\/local-transformer-runtime"\)/);
   assert.doesNotMatch(experiment, /await import\("@huggingface\/transformers"\)/);
   assert.match(runtimeBoundary, /export \{ pipeline \} from "@huggingface\/transformers"/);
   assert.match(viteConfig, /optimizeDeps:\s*\{/);

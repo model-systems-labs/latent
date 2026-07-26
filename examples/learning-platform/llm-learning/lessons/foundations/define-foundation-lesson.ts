@@ -1,5 +1,5 @@
 import type { CourseLesson, LessonSource } from "@latent/course-kit";
-import { withGuidedExercises } from "../guided-exercises";
+import { withGuidedExercises } from "@/examples/learning-platform/llm-learning/lessons/guided-exercises";
 
 type FoundationLessonInput = Pick<
   CourseLesson,

@@ -12,7 +12,7 @@ import type {
   SettingRecord,
   TestReceiptRecord,
   TestRunRecord,
-} from "./types";
+} from "@/app/platform/persistence/types";
 
 export const DEFAULT_DATABASE_NAME = "latent-browser-lab";
 

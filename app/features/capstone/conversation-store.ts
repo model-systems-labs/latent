@@ -1,8 +1,8 @@
 "use client";
 
-import { getPersistenceContext } from "../../platform/persistence/client";
-import type { JsonValue } from "../../platform/persistence/types";
-import type { CapstoneBackend, PersistedChatMessage } from "../../lib/capstone-contract";
+import { getPersistenceContext } from "@/app/platform/persistence/client";
+import type { JsonValue } from "@/app/platform/persistence/types";
+import type { CapstoneBackend, PersistedChatMessage } from "@/app/lib/capstone-contract";
 
 const CONVERSATION_IDS: Record<CapstoneBackend, string> = {
   student: "capstone:student",

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { after, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import "fake-indexeddb/auto";
-import { createServer } from "vite";
+import { createServer } from "#vite-test-server";
 
 globalThis.window ??= {};
 

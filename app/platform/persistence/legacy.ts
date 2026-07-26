@@ -1,4 +1,4 @@
-import type { BrowserLabDatabase } from "./database";
+import type { BrowserLabDatabase } from "@/app/platform/persistence/database";
 import {
   finiteInteger,
   isRecord,
@@ -6,7 +6,7 @@ import {
   parseBoundedJson,
   projectFileId,
   stableFingerprint,
-} from "./pure";
+} from "@/app/platform/persistence/pure";
 import {
   PERSISTENCE_SCHEMA_VERSION,
   type BuildRecord,
@@ -19,7 +19,7 @@ import {
   type TestReceiptRecord,
   type TestResultRecord,
   type TestRunRecord,
-} from "./types";
+} from "@/app/platform/persistence/types";
 
 export const LEGACY_STORAGE_KEYS = ["latent-learner-v2", "latent-project-v1", "latent-capstone-v2"] as const;
 export type LegacyStorageKey = (typeof LEGACY_STORAGE_KEYS)[number];

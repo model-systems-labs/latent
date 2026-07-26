@@ -3,7 +3,7 @@ import { readdir, readFile, stat } from "node:fs/promises";
 import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
-import { createServer } from "vite";
+import { createServer } from "#vite-test-server";
 
 const templateRoot = new URL("../", import.meta.url);
 const deckSourceUrl = new URL("../app/components/FlashcardDeck.tsx", import.meta.url);
@@ -612,7 +612,7 @@ test("subject and status toggles, reveal, live feedback, and rating controls ret
   assert.match(source, /<legend>Subjects<\/legend>[\s\S]*?aria-pressed=\{allSubjectsActive\}/);
   assert.match(
     source,
-    /flashcards,[\s\S]*?flashcardSubjects,[\s\S]*?from "\.\.\/\.\.\/examples\/learning-platform\/llm-learning\/content\/flashcards"/,
+    /flashcards,[\s\S]*?flashcardSubjects,[\s\S]*?from "@\/examples\/learning-platform\/llm-learning\/content\/flashcards"/,
   );
   assert.match(pageSource, /<FlashcardDeck \/>/);
   assert.doesNotMatch(pageSource, /compactFlashcardDeck|deck=\{/);

@@ -1,5 +1,5 @@
-import { llmSystemsManifest, type LlmSystemsModuleId } from "../../../examples/learning-platform/llm-learning/content/llm-systems";
-import { BROWSER_CHAT_ADAPTER_PATHS } from "../../../examples/learning-platform/llm-learning/content/browser-chat/project-template";
+import { llmSystemsManifest, type LlmSystemsModuleId } from "@/examples/learning-platform/llm-learning/content/llm-systems";
+import { BROWSER_CHAT_ADAPTER_PATHS } from "@/examples/learning-platform/llm-learning/content/browser-chat/project-template";
 import type {
   BindingManifest,
   RuntimeBinding,

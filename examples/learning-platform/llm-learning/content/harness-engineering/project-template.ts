@@ -1,7 +1,7 @@
 import type { CourseLesson } from "@latent/course-kit";
-import { harnessEngineeringManifest } from "./manifest";
-import { harnessEngineeringLessons } from "../../lessons/harness-engineering";
-import { lessonBlockComment, lessonImplementationSource } from "../../lessons/implementation-source";
+import { harnessEngineeringManifest } from "@/examples/learning-platform/llm-learning/content/harness-engineering/manifest";
+import { harnessEngineeringLessons } from "@/examples/learning-platform/llm-learning/lessons/harness-engineering";
+import { lessonBlockComment, lessonImplementationSource } from "@/examples/learning-platform/llm-learning/lessons/implementation-source";
 
 export const HARNESS_PROJECT_ID = "harness-engineering";
 export const HARNESS_PROJECT_TITLE = "Harness Engineering";

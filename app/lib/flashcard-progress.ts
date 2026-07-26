@@ -1,8 +1,8 @@
 "use client";
 
 import { liveQuery } from "dexie";
-import { getPersistenceContext } from "../platform/persistence/client";
-import type { JsonValue } from "../platform/persistence/types";
+import { getPersistenceContext } from "@/app/platform/persistence/client";
+import type { JsonValue } from "@/app/platform/persistence/types";
 
 export const FLASHCARD_PROGRESS_KEY = "flashcards.study-state.v1";
 

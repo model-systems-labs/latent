@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ProjectWorkbench } from "../components/ProjectWorkbench";
+import { ProjectWorkbench } from "@/app/components/ProjectWorkbench";
 
 export const metadata: Metadata = {
   title: "Project IDE · Latent Courses",

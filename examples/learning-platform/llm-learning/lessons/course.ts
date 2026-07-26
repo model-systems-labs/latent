@@ -1,18 +1,18 @@
 import { deriveCurriculum, type CourseLesson, type CourseTrack } from "@latent/course-kit";
-import { llmSystemsManifest } from "../content/llm-systems/manifest";
-import { productLessons, systemsLessons } from "./extended-course";
-import { getLessonSources } from "./sources";
-import { characterRnnsLesson } from "./model/character-rnns";
-import { neuralLanguageModelsLesson } from "./model/neural-language-models";
-import { subwordTokenizationLesson } from "./model/subword-tokenization";
-import { additiveAttentionLesson } from "./model/additive-attention";
-import { transformersLesson } from "./model/transformers";
-import { inContextLearningLesson } from "./model/in-context-learning";
-import { linearAlgebraManifest, machineLearningBasicsManifest } from "../content/foundations/manifests";
-import { linearAlgebraLessons } from "./foundations/linear-algebra";
-import { machineLearningBasicsLessons } from "./foundations/machine-learning-basics";
-import { harnessEngineeringManifest } from "../content/harness-engineering/manifest";
-import { harnessEngineeringLessons } from "./harness-engineering";
+import { llmSystemsManifest } from "@/examples/learning-platform/llm-learning/content/llm-systems/manifest";
+import { productLessons, systemsLessons } from "@/examples/learning-platform/llm-learning/lessons/extended-course";
+import { getLessonSources } from "@/examples/learning-platform/llm-learning/lessons/sources";
+import { characterRnnsLesson } from "@/examples/learning-platform/llm-learning/lessons/model/character-rnns";
+import { neuralLanguageModelsLesson } from "@/examples/learning-platform/llm-learning/lessons/model/neural-language-models";
+import { subwordTokenizationLesson } from "@/examples/learning-platform/llm-learning/lessons/model/subword-tokenization";
+import { additiveAttentionLesson } from "@/examples/learning-platform/llm-learning/lessons/model/additive-attention";
+import { transformersLesson } from "@/examples/learning-platform/llm-learning/lessons/model/transformers";
+import { inContextLearningLesson } from "@/examples/learning-platform/llm-learning/lessons/model/in-context-learning";
+import { linearAlgebraManifest, machineLearningBasicsManifest } from "@/examples/learning-platform/llm-learning/content/foundations/manifests";
+import { linearAlgebraLessons } from "@/examples/learning-platform/llm-learning/lessons/foundations/linear-algebra";
+import { machineLearningBasicsLessons } from "@/examples/learning-platform/llm-learning/lessons/foundations/machine-learning-basics";
+import { harnessEngineeringManifest } from "@/examples/learning-platform/llm-learning/content/harness-engineering/manifest";
+import { harnessEngineeringLessons } from "@/examples/learning-platform/llm-learning/lessons/harness-engineering";
 
 const modelLessons: Array<Omit<CourseLesson, "sources">> = [
   characterRnnsLesson,

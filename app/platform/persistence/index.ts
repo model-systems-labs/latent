@@ -1,14 +1,14 @@
-import { openBrowserLabDatabase, type BrowserLabDatabase } from "./database";
-import { importLegacyLocalStorage, type LegacyStorageReader } from "./legacy";
-import { PersistenceRepositories } from "./repositories";
+import { openBrowserLabDatabase, type BrowserLabDatabase } from "@/app/platform/persistence/database";
+import { importLegacyLocalStorage, type LegacyStorageReader } from "@/app/platform/persistence/legacy";
+import { PersistenceRepositories } from "@/app/platform/persistence/repositories";
 
-export * from "./database";
-export * from "./hash";
-export * from "./legacy";
-export * from "./portable";
-export * from "./pure";
-export * from "./repositories";
-export * from "./types";
+export * from "@/app/platform/persistence/database";
+export * from "@/app/platform/persistence/hash";
+export * from "@/app/platform/persistence/legacy";
+export * from "@/app/platform/persistence/portable";
+export * from "@/app/platform/persistence/pure";
+export * from "@/app/platform/persistence/repositories";
+export * from "@/app/platform/persistence/types";
 
 export type InitializePersistenceOptions = {
   databaseName?: string;

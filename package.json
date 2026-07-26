@@ -90,5 +90,9 @@
     "postcss": "8.5.19",
     "tar": "7.5.22"
   },
-  "type": "module"
+  "type": "module",
+  "imports": {
+    "#root/*": "./*",
+    "#vite-test-server": "./tests/vite-test-server.mjs"
+  }
 }

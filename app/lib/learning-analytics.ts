@@ -1,7 +1,7 @@
 "use client";
 
-import { getPersistenceContext } from "../platform/persistence/client";
-import type { JsonValue } from "../platform/persistence/types";
+import { getPersistenceContext } from "@/app/platform/persistence/client";
+import type { JsonValue } from "@/app/platform/persistence/types";
 
 const ANALYTICS_KEY = "learning.analytics.v1";
 const MAX_EVENTS = 500;

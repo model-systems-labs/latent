@@ -27,14 +27,14 @@ import {
   nextPracticeProgress,
   practiceProgressIdentity,
   progressMatchesIdentity,
-} from "../examples/learning-platform/javascript-array-methods/site/progress.mjs";
+} from "#root/examples/learning-platform/javascript-array-methods/site/progress.mjs";
 import {
   assessCase,
-} from "../examples/learning-platform/javascript-array-methods/site/checker.mjs";
+} from "#root/examples/learning-platform/javascript-array-methods/site/checker.mjs";
 import {
   HOST_RUNTIME_BOUNDS,
   admitRuntimeLimits,
-} from "../examples/learning-platform/javascript-array-methods/site/runtime-policy.mjs";
+} from "#root/examples/learning-platform/javascript-array-methods/site/runtime-policy.mjs";
 
 const repositoryRoot = resolve(import.meta.dirname, "..");
 const exampleRoot = join(

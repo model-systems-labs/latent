@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { BrowserLabTestResult } from "./browser-lab";
-import { getPersistenceContext } from "../platform/persistence/client";
-import type { JsonValue } from "../platform/persistence/types";
+import type { BrowserLabTestResult } from "@/app/lib/browser-lab";
+import { getPersistenceContext } from "@/app/platform/persistence/client";
+import type { JsonValue } from "@/app/platform/persistence/types";
 import { LATENT_TENSOR_PATH, LATENT_TENSOR_SOURCE } from "@latent/tensor/browser-source";
-import { CANONICAL_BROWSER_CHAT_FILES } from "../../examples/learning-platform/llm-learning/content/browser-chat/project-template";
-import { llmSystemsContractSuite } from "../../examples/learning-platform/llm-learning/content/llm-systems/contracts";
-import { hashProjectSnapshotSources, projectSnapshotSourcePayload } from "../features/ide/project-snapshot";
-import type { BuildRecord } from "../platform/persistence/types";
+import { CANONICAL_BROWSER_CHAT_FILES } from "@/examples/learning-platform/llm-learning/content/browser-chat/project-template";
+import { llmSystemsContractSuite } from "@/examples/learning-platform/llm-learning/content/llm-systems/contracts";
+import { hashProjectSnapshotSources, projectSnapshotSourcePayload } from "@/app/features/ide/project-snapshot";
+import type { BuildRecord } from "@/app/platform/persistence/types";
 
 export const PROJECT_STORAGE_KEY = "latent-project-v1";
 export const PROJECT_DRAFT_RECOVERY_KEY = "latent-project-draft-recovery-v2:";

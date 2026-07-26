@@ -9,7 +9,7 @@ import {
   parseArguments,
   sha256,
   verifyRelease,
-} from "../scripts/verify-public-release.mjs";
+} from "#root/scripts/verify-public-release.mjs";
 
 const repositoryRoot = resolve(import.meta.dirname, "..");
 

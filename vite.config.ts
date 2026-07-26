@@ -1,7 +1,7 @@
 import vinext from "vinext";
 import { resolve } from "node:path";
 import { defineConfig } from "vite";
-import { sites } from "#root/build/sites-vite-plugin.ts";
+import { sites } from "#sites-vite-plugin";
 
 // macOS Seatbelt blocks FSEvents, so Codex previews need polling for HMR.
 const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";

@@ -93,6 +93,7 @@
   "type": "module",
   "imports": {
     "#root/*": "./*",
+    "#sites-vite-plugin": "./build/sites-vite-plugin.ts",
     "#vite-test-server": "./tests/vite-test-server.mjs"
   }
 }

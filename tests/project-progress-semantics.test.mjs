@@ -21,10 +21,10 @@ before(async () => {
   });
   [fileStatus, template, workspace, contracts, course] = await Promise.all([
     vite.ssrLoadModule("/app/lib/project-file-status.ts"),
-    vite.ssrLoadModule("/products/courses/reference-curriculum/content/browser-chat/project-template.ts"),
+    vite.ssrLoadModule("/examples/learning-platform/llm-learning/content/browser-chat/project-template.ts"),
     vite.ssrLoadModule("/app/lib/project-workspace.ts"),
-    vite.ssrLoadModule("/products/courses/reference-curriculum/content/llm-systems/contracts.ts"),
-    vite.ssrLoadModule("/products/courses/reference-curriculum/lessons/course.ts"),
+    vite.ssrLoadModule("/examples/learning-platform/llm-learning/content/llm-systems/contracts.ts"),
+    vite.ssrLoadModule("/examples/learning-platform/llm-learning/lessons/course.ts"),
   ]);
 });
 

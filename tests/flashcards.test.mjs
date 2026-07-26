@@ -13,10 +13,10 @@ const flashcardPageStylesUrl = new URL("../app/flashcards/page.module.css", impo
 const learnerHeaderUrl = new URL("../app/components/LearnerHeader.tsx", import.meta.url);
 const progressSourceUrl = new URL("../app/lib/flashcard-progress.ts", import.meta.url);
 const searchSourceUrl = new URL("../app/lib/flashcard-search.ts", import.meta.url);
-const transportSourceUrl = new URL("../products/courses/reference-curriculum/content/flashcard-transport.ts", import.meta.url);
+const transportSourceUrl = new URL("../examples/learning-platform/llm-learning/content/flashcard-transport.ts", import.meta.url);
 const coursePageUrl = new URL("../app/course/page.tsx", import.meta.url);
 const responsiveStylesUrl = new URL("../app/styles/responsive.css", import.meta.url);
-const flashcardLibraryDirectoryUrl = new URL("../products/courses/reference-curriculum/content/flashcard-library/", import.meta.url);
+const flashcardLibraryDirectoryUrl = new URL("../examples/learning-platform/llm-learning/content/flashcard-library/", import.meta.url);
 const flashcardLibraryUrls = (await readdir(flashcardLibraryDirectoryUrl, { withFileTypes: true }))
   .filter((entry) => entry.isFile() && entry.name.endsWith(".ts"))
   .sort((left, right) => left.name.localeCompare(right.name))
@@ -27,8 +27,8 @@ const flashcardContentUrls = [
   progressSourceUrl,
   searchSourceUrl,
   transportSourceUrl,
-  new URL("../products/courses/reference-curriculum/content/flashcard-schema.ts", import.meta.url),
-  new URL("../products/courses/reference-curriculum/content/flashcards.ts", import.meta.url),
+  new URL("../examples/learning-platform/llm-learning/content/flashcard-schema.ts", import.meta.url),
+  new URL("../examples/learning-platform/llm-learning/content/flashcards.ts", import.meta.url),
   ...flashcardLibraryUrls,
   flashcardPageUrl,
   flashcardPageStylesUrl,
@@ -67,8 +67,8 @@ before(async () => {
     logLevel: "silent",
   });
   [content, course, progress, search] = await Promise.all([
-    vite.ssrLoadModule("/products/courses/reference-curriculum/content/flashcards.ts"),
-    vite.ssrLoadModule("/products/courses/reference-curriculum/lessons/course.ts"),
+    vite.ssrLoadModule("/examples/learning-platform/llm-learning/content/flashcards.ts"),
+    vite.ssrLoadModule("/examples/learning-platform/llm-learning/lessons/course.ts"),
     vite.ssrLoadModule("/app/lib/flashcard-progress.ts"),
     vite.ssrLoadModule("/app/lib/flashcard-search.ts"),
   ]);
@@ -392,7 +392,7 @@ test("search ranks concept matches before topic and answer matches", () => {
 });
 
 test("compact server transport round-trips every card while removing repeated lesson context", async () => {
-  const transport = await vite.ssrLoadModule("/products/courses/reference-curriculum/content/flashcard-transport.ts");
+  const transport = await vite.ssrLoadModule("/examples/learning-platform/llm-learning/content/flashcard-transport.ts");
   const deck = transport.compactFlashcardDeck(content.flashcards);
   assert.deepEqual(transport.expandFlashcardDeck(deck), content.flashcards);
   assert.equal(deck[1].length, 638);
@@ -612,7 +612,7 @@ test("subject and status toggles, reveal, live feedback, and rating controls ret
   assert.match(source, /<legend>Subjects<\/legend>[\s\S]*?aria-pressed=\{allSubjectsActive\}/);
   assert.match(
     source,
-    /flashcards,[\s\S]*?flashcardSubjects,[\s\S]*?from "\.\.\/\.\.\/products\/courses\/reference-curriculum\/content\/flashcards"/,
+    /flashcards,[\s\S]*?flashcardSubjects,[\s\S]*?from "\.\.\/\.\.\/examples\/learning-platform\/llm-learning\/content\/flashcards"/,
   );
   assert.match(pageSource, /<FlashcardDeck \/>/);
   assert.doesNotMatch(pageSource, /compactFlashcardDeck|deck=\{/);

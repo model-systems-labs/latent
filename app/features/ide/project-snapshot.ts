@@ -6,7 +6,7 @@ import {
   type SourceHash,
   type VirtualSourceFile,
 } from "@latent/browser-lab";
-import { llmSystemsContractSuite } from "../../../products/courses/reference-curriculum/content/llm-systems/contracts";
+import { llmSystemsContractSuite } from "../../../examples/learning-platform/llm-learning/content/llm-systems/contracts";
 
 export type ProjectSnapshotSource = {
   path: string;

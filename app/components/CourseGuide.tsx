@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { CourseProgram } from "../../products/courses/reference-curriculum/lessons/course";
+import type { CourseProgram } from "../../examples/learning-platform/llm-learning/lessons/course";
 import styles from "./CourseGuide.module.css";
 
 export type CourseGuideLink = {

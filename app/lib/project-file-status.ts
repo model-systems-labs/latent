@@ -1,6 +1,6 @@
 import { RUNTIME_PATHS, type ProjectUnitResult } from "./project-workspace";
-import { llmSystemsContractSuite } from "../../products/courses/reference-curriculum/content/llm-systems/contracts";
-import { CAPSTONE_ENTRY_PATH } from "../../products/courses/reference-curriculum/content/browser-chat/project-template";
+import { llmSystemsContractSuite } from "../../examples/learning-platform/llm-learning/content/llm-systems/contracts";
+import { CAPSTONE_ENTRY_PATH } from "../../examples/learning-platform/llm-learning/content/browser-chat/project-template";
 import {
   CAPSTONE_BEHAVIOR_COMPONENT_PATH,
   CAPSTONE_BEHAVIOR_CONTRACT_ID,

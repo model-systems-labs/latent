@@ -8,7 +8,7 @@ import {
   methodQuestionGroups,
   methodQuestionLibrary,
   methodQuestions,
-} from "../../products/courses/reference-curriculum/content/practice/question-library";
+} from "../../examples/learning-platform/llm-learning/content/practice/question-library";
 import {
   contractVersionForMethodQuestion,
   runMethodQuestion,

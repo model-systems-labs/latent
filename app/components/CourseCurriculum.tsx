@@ -3,8 +3,8 @@
 import Link from "next/link";
 import type { CourseLesson } from "@latent/course-kit";
 import { lessonIsComplete, useLearnerState, useLearnerStateHydrated } from "../lib/learner-state";
-import { lessonLearningOutcome } from "../../products/courses/reference-curriculum/lessons/learning";
-import { contractSuiteForLesson } from "../../products/courses/reference-curriculum/lessons/contract-suite";
+import { lessonLearningOutcome } from "../../examples/learning-platform/llm-learning/lessons/learning";
+import { contractSuiteForLesson } from "../../examples/learning-platform/llm-learning/lessons/contract-suite";
 
 export function CourseCurriculum({
   title,

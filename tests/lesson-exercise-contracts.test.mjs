@@ -20,10 +20,10 @@ before(async () => {
     logLevel: "silent",
   });
   [course, contracts, guidedExercises, progress] = await Promise.all([
-    vite.ssrLoadModule("/products/courses/reference-curriculum/lessons/course.ts"),
-    vite.ssrLoadModule("/products/courses/reference-curriculum/lessons/exercise-contracts.ts"),
-    vite.ssrLoadModule("/products/courses/reference-curriculum/lessons/guided-exercises.ts"),
-    vite.ssrLoadModule("/products/courses/reference-curriculum/lessons/lesson-progress.ts"),
+    vite.ssrLoadModule("/examples/learning-platform/llm-learning/lessons/course.ts"),
+    vite.ssrLoadModule("/examples/learning-platform/llm-learning/lessons/exercise-contracts.ts"),
+    vite.ssrLoadModule("/examples/learning-platform/llm-learning/lessons/guided-exercises.ts"),
+    vite.ssrLoadModule("/examples/learning-platform/llm-learning/lessons/lesson-progress.ts"),
   ]);
 });
 

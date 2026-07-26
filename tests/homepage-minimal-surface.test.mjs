@@ -90,7 +90,7 @@ test("the framework landing leads with local browser execution and agent-ready p
   assert.match(page, /aria-label="Agent-assisted publishing workflow"/);
   assert.match(page, /packages\/course-kit\//);
   assert.match(page, /packages\/python-lab\//);
-  assert.match(page, /products\/courses\/reference-curriculum\//);
+  assert.match(page, /examples\/learning-platform\/llm-learning\//);
   assert.match(page, /href="\/open-learning"/);
   assert.doesNotMatch(page, /Two products, one explicit boundary|The platform is not the course library/);
   assert.doesNotMatch(page, /FirstRunExperience|courseTracks|testimonial|trusted by/i);

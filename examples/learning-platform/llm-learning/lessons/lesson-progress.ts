@@ -1,5 +1,13 @@
 import type { CourseLesson } from "@latent/course-kit";
-import type { LessonLocalState } from "../../../../app/lib/learner-state";
+
+export type LessonProgressSnapshot = {
+  verifiedCells: readonly string[];
+  verifiedSources: Readonly<Record<string, string>>;
+  verifiedContractVersion: string | null;
+  experimentComplete: boolean;
+  answers: Readonly<Record<string, string>>;
+  knowledgeVerified: readonly string[];
+};
 
 export type LessonGate = {
   label: "Code" | "Experiment" | "Check";
@@ -8,7 +16,7 @@ export type LessonGate = {
 
 export function lessonGateProgress(
   lesson: CourseLesson,
-  state: LessonLocalState | undefined,
+  state: LessonProgressSnapshot | undefined,
   expectedContractVersion: string,
   knowledgeCheckId: string,
 ) {

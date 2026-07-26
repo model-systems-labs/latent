@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { coursePrograms, courseTracks, llmSystemsCurriculum } from "../../../products/courses/reference-curriculum/lessons/course";
+import { coursePrograms, courseTracks, llmSystemsCurriculum } from "../../../examples/learning-platform/llm-learning/lessons/course";
 import { CourseGuide } from "../../components/CourseGuide";
 import { CourseResume } from "../../components/CourseResume";
 import { PageAtmosphere } from "../../components/PageAtmosphere";

@@ -55,6 +55,7 @@ test("product builds opt into distinct deployments and the future repository spl
     releaseSource,
     productLlms,
     sitesPlugin,
+    boundaryScript,
     productsReadme,
     coursesReadme,
     courseOwnershipReadme,
@@ -67,11 +68,12 @@ test("product builds opt into distinct deployments and the future repository spl
     read("docs/release-status.json"),
     read("products/courses/llms.txt"),
     read("build/sites-vite-plugin.ts"),
+    read("scripts/check-package-boundaries.mjs"),
     read("products/README.md"),
     read("products/courses/README.md"),
     read("courses/README.md"),
     read("courses/authored/README.md"),
-    read("products/courses/reference-curriculum/README.md"),
+    read("examples/learning-platform/llm-learning/README.md"),
   ]);
   const courseHosting = JSON.parse(courseHostingSource);
   const frameworkHosting = JSON.parse(frameworkHostingSource);
@@ -81,13 +83,14 @@ test("product builds opt into distinct deployments and the future repository spl
   const courseIntent = coursesReadme.replaceAll("**", "");
 
   await Promise.all([
-    access(new URL("products/courses/reference-curriculum/lessons/course.ts", root)),
-    access(new URL("products/courses/reference-curriculum/content/llm-systems/manifest.ts", root)),
+    access(new URL("examples/learning-platform/llm-learning/lessons/course.ts", root)),
+    access(new URL("examples/learning-platform/llm-learning/content/llm-systems/manifest.ts", root)),
     access(new URL("courses/authored/README.md", root)),
   ]);
   await Promise.all([
     assert.rejects(access(new URL("app/lessons/course.ts", root))),
     assert.rejects(access(new URL("app/content/llm-systems/manifest.ts", root))),
+    assert.rejects(access(new URL("products/courses/reference-curriculum", root))),
   ]);
 
   assert.deepEqual(courseHosting, {
@@ -126,14 +129,18 @@ test("product builds opt into distinct deployments and the future repository spl
   assert.match(productIntent, /can later become an\s+independent repository/i);
   assert.match(productIntent, /not a separate\s+repository today/i);
   assert.match(productIntent, /not two fully\s+independent applications/i);
+  assert.match(productIntent, /full reference learning project in `examples\/`/i);
   assert.match(productIntent, /courses\/authored/);
-  assert.match(courseIntent, /moving Latent Courses into\s+its own repository later/i);
-  assert.match(courseIntent, /future architectural option, not the current\s+state/i);
+  assert.match(courseIntent, /Mount the full learning project from/i);
+  assert.match(courseIntent, /not a second copy of the learning project/i);
   assert.match(courseOwnershipReadme, /two kinds of course source deliberately separate/i);
   assert.match(courseOwnershipReadme, /learner progress[\s\S]*learner's browser/i);
   assert.match(authoredCoursesReadme, /does not automatically upload/i);
-  assert.match(referenceCurriculumReadme, /bundled reference library/i);
-  assert.match(referenceCurriculumReadme, /not a storage location[\s\S]*Open Learning/i);
+  assert.match(referenceCurriculumReadme, /Full browser-course example/i);
+  assert.match(referenceCurriculumReadme, /must not\s+import `app\/` or `products\/`/i);
+  assert.match(referenceCurriculumReadme, /not[\s\S]*a storage location[\s\S]*Open Learning/i);
+  assert.match(boundaryScript, /resolve\(root, "examples\/learning-platform\/llm-learning"\)/);
+  assert.match(boundaryScript, /reverses the example boundary/);
 });
 
 test("course and framework routes keep separate social identities", async () => {

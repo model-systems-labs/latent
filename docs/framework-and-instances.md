@@ -14,7 +14,9 @@ model-systems-labs/latent (one public monorepo)
   ├── app/                 route adapters and composed application features
   ├── packages/            public contracts and reviewed runtime packages
   ├── worker/ and build/   trusted application and build boundaries
-  └── shared curriculum, examples, skills, tests, and documentation
+  └── examples/
+      └── learning-platform/
+          └── llm-learning/ full reviewed learning project
 ```
 
 The framework product helps developers and publishers build, validate, and
@@ -40,7 +42,7 @@ Latent Courses is not the framework's canonical homepage.
   own reviewed runtime capabilities. Remote course data cannot import them.
 - `app/platform` contains application-owned adapters, persistence, and IDE
   extension hosts.
-- `products/courses/reference-curriculum` owns the released first-party
+- `examples/learning-platform/llm-learning` owns the released first-party
   curriculum, while `app/lessons/[slug]` and `app/courses` provide its current
   route adapters.
 - `courses/authored` is the optional in-repository workspace for
@@ -68,11 +70,10 @@ learner UI + device-local progress
 Portable content never supplies React, workers, runtime adapters, executable
 tests, or persistence code.
 
-The `products/` boundary does not alter that trust model. Moving a component
-into a product folder does not make remote content executable, and keeping
-shared packages at the root does not grant them authority over one another.
-The application still depends on reviewed leaf packages through explicit
-adapters.
+The full LLM learning project is an explicit example dependency. The
+application and Latent Courses product mount it; the example does not import
+the application or either product. Moving it to `examples/` does not make its
+trusted executable checks portable or remotely loadable.
 
 ## Authoring and editing
 
@@ -105,11 +106,11 @@ needs independent ownership, release history, access policy, or curriculum
 selection, it can move to its own repository and consume reviewed framework
 contracts and runtime packages deliberately.
 
-That split has **not** happened. Today, the learner product still imports
-shared application components, course definitions, runtime packages, and
-content from this monorepo. New work should keep product-specific identity,
-navigation, and deployment metadata under `products/courses` where practical,
-without duplicating shared code merely to simulate a repository boundary.
+That split has **not** happened. Today, the learner product composes shared
+application components, runtime packages, and the example learning project
+from this monorepo. New work should keep product-specific identity, navigation,
+and deployment metadata under `products/courses` without moving the example
+back into product or application source.
 
 The product build commands select distinct homepages, deployment metadata, and
 public identity, but both still compile the shared application route tree.

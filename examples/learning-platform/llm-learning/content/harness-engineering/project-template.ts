@@ -2,7 +2,6 @@ import type { CourseLesson } from "@latent/course-kit";
 import { harnessEngineeringManifest } from "./manifest";
 import { harnessEngineeringLessons } from "../../lessons/harness-engineering";
 import { lessonBlockComment, lessonImplementationSource } from "../../lessons/implementation-source";
-import { starterPracticeSource, workingPracticeBlockSource } from "../../../../../app/features/ide/practice-state";
 
 export const HARNESS_PROJECT_ID = "harness-engineering";
 export const HARNESS_PROJECT_TITLE = "Harness Engineering";
@@ -18,6 +17,17 @@ export type HarnessProjectSeed = {
   lessonId: string;
   verifiedCells: number;
   totalCells: number;
+};
+
+type HarnessCodeBlock = CourseLesson["implementation"]["codeBlocks"][number];
+
+export type HarnessPracticeSourcePolicy = {
+  starterSource(filename: string, block: HarnessCodeBlock): string;
+  workingSource(
+    filename: string,
+    block: HarnessCodeBlock,
+    answers: Readonly<Record<string, string>>,
+  ): string;
 };
 
 const projectPathByLessonId = new Map<string, string>(
@@ -39,7 +49,8 @@ function materializeLesson(
   )));
 }
 
-export function harnessLessonProjectSeed(
+export function createHarnessLessonProjectSeed(
+  sourcePolicy: HarnessPracticeSourcePolicy,
   lesson: CourseLesson,
   answers: Readonly<Record<string, string>> = {},
   verified: readonly string[] = [],
@@ -50,7 +61,7 @@ export function harnessLessonProjectSeed(
     title: lesson.title,
     content: materializeLesson(
       lesson,
-      (block) => workingPracticeBlockSource(lesson.implementation.filename, block, answers),
+      (block) => sourcePolicy.workingSource(lesson.implementation.filename, block, answers),
     ),
     referenceContent: materializeLesson(lesson, (block) => block.code),
     lessonId: lesson.id,
@@ -60,18 +71,22 @@ export function harnessLessonProjectSeed(
 }
 
 /** The complete workbook is visible immediately; lessons replace these TODO scaffolds. */
-export const HARNESS_PROJECT_STARTER_FILES: readonly HarnessProjectSeed[] = harnessEngineeringLessons.map((lesson) => ({
-  path: harnessProjectPathForLesson(lesson),
-  track: "harness" as const,
-  title: lesson.title,
-  content: materializeLesson(
-    lesson,
-    (block) => starterPracticeSource(lesson.implementation.filename, block),
-  ),
-  referenceContent: materializeLesson(lesson, (block) => block.code),
-  lessonId: lesson.id,
-  verifiedCells: 0,
-  totalCells: lesson.implementation.codeBlocks.length,
-}));
+export function createHarnessProjectStarterFiles(
+  sourcePolicy: HarnessPracticeSourcePolicy,
+): readonly HarnessProjectSeed[] {
+  return harnessEngineeringLessons.map((lesson) => ({
+    path: harnessProjectPathForLesson(lesson),
+    track: "harness" as const,
+    title: lesson.title,
+    content: materializeLesson(
+      lesson,
+      (block) => sourcePolicy.starterSource(lesson.implementation.filename, block),
+    ),
+    referenceContent: materializeLesson(lesson, (block) => block.code),
+    lessonId: lesson.id,
+    verifiedCells: 0,
+    totalCells: lesson.implementation.codeBlocks.length,
+  }));
+}
 
-export const HARNESS_PROJECT_PATHS = HARNESS_PROJECT_STARTER_FILES.map((file) => file.path);
+export const HARNESS_PROJECT_PATHS = harnessEngineeringLessons.map(harnessProjectPathForLesson);

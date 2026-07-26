@@ -18,8 +18,8 @@ before(async () => {
   });
   [contractRuntime, contracts, template] = await Promise.all([
     vite.ssrLoadModule("/packages/browser-lab/src/contracts.ts"),
-    vite.ssrLoadModule("/products/courses/reference-curriculum/content/llm-systems/contracts.ts"),
-    vite.ssrLoadModule("/products/courses/reference-curriculum/content/browser-chat/project-template.ts"),
+    vite.ssrLoadModule("/examples/learning-platform/llm-learning/content/llm-systems/contracts.ts"),
+    vite.ssrLoadModule("/examples/learning-platform/llm-learning/content/browser-chat/project-template.ts"),
   ]);
 });
 

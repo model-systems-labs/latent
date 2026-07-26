@@ -49,7 +49,7 @@ test("Harness scenarios invoke the saved Python project without a server or mode
   const [workbench, service, scenarios] = await Promise.all([
     readFile(path.join(root, "app/components/HarnessWorkbench.tsx"), "utf8"),
     readFile(path.join(root, "app/features/ide/python-lesson-service.ts"), "utf8"),
-    readFile(path.join(root, "products/courses/reference-curriculum/content/harness-engineering/scenarios.ts"), "utf8"),
+    readFile(path.join(root, "examples/learning-platform/llm-learning/content/harness-engineering/scenarios.ts"), "utf8"),
   ]);
   const scenarioRun = workbench.slice(workbench.indexOf("const runScenario"), workbench.indexOf("const resultPaths"));
   assert.match(scenarioRun, /harnessRunEvidence\(\)[\s\S]*?runPythonProjectFunction/);

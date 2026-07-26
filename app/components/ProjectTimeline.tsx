@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { courseLessons } from "../../products/courses/reference-curriculum/lessons/course";
+import { courseLessons } from "../../examples/learning-platform/llm-learning/lessons/course";
 import { lessonIsComplete, useLearnerState } from "../lib/learner-state";
 import { expectedProjectContractIdsForPath, projectLessonIsComplete, trustedProjectResults } from "../lib/project-file-status";
 import { useProjectState } from "../lib/project-workspace";
 import { canonicalLessonSeeds } from "../lib/canonical-project";
-import { lessonLearningOutcome } from "../../products/courses/reference-curriculum/content/llm-systems/learning";
-import { llmSystemsContractSuite } from "../../products/courses/reference-curriculum/content/llm-systems/contracts";
+import { lessonLearningOutcome } from "../../examples/learning-platform/llm-learning/content/llm-systems/learning";
+import { llmSystemsContractSuite } from "../../examples/learning-platform/llm-learning/content/llm-systems/contracts";
 
 export function ProjectTimeline() {
   const learner = useLearnerState();

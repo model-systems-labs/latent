@@ -10,16 +10,17 @@ repository today.
   courses.
 - Connect learners to practice, flash cards, sources, projects, and capstones
   without mixing in publisher or platform-maintainer workflows.
-- Own the bundled reference curriculum under `reference-curriculum/`.
 - Own course-product branding and deployment metadata.
+- Mount the full learning project from
+  `examples/learning-platform/llm-learning/` as a reference showcase.
 - Keep learner-facing product decisions separable from framework and
   publishing decisions.
 
 `CoursesLanding.tsx` is mounted at the application root.
-`reference-curriculum/content/` and `reference-curriculum/lessons/` contain the
-bundled, reviewed course source. Course route adapters, runtime adapters, and
-persistence remain shared under root `app/`, `packages/`, and related
-directories for now.
+The bundled curriculum, project templates, and host-owned checks live under
+`examples/learning-platform/llm-learning/`. Course route adapters, runtime
+adapters, and persistence remain under root `app/`; reusable contracts and
+runtimes live under `packages/`.
 
 ## Bundled courses versus your courses
 
@@ -54,12 +55,13 @@ portable-content security rules still apply.
 
 ## Future extraction
 
-This folder is an intended extraction target for moving Latent Courses into
-its own repository later. It is not yet a clean dependency seam. That is a
-future architectural option, not the current state. A real extraction would
-need to make the shared application, runtime, and curriculum dependencies
-explicit while preserving the reviewed-source and portable-data boundary.
+This folder is an intended extraction target for the Latent Courses product
+identity and deployment. It is not a second copy of the learning project. A
+future standalone course repository would adopt the example source and the
+reviewed framework dependencies explicitly while preserving the
+reviewed-source and portable-data boundary.
 
-Until then, prefer product-specific code here and reusable code at the
-repository root. Do not duplicate shared runtimes or weaken the content
-contracts merely to make the folder appear standalone.
+Until then, keep product-specific identity here, the demonstrated learning
+project in `examples/`, and reusable code in `app/` or `packages/`. Do not
+duplicate shared runtimes or weaken the content contracts merely to make the
+folder appear standalone.

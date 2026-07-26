@@ -22,7 +22,7 @@ before(async () => {
     logLevel: "silent",
   });
   const illustrationsModule = await vite.ssrLoadModule(
-    "/products/courses/reference-curriculum/lessons/lesson-illustrations.ts",
+    "/examples/learning-platform/llm-learning/lessons/lesson-illustrations.ts",
   );
   ({
     LESSON_ILLUSTRATION_CHANCE_SCALE,

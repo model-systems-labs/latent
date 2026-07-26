@@ -580,7 +580,7 @@ test("the design kit, simulations, model engines, and artifact runtime remain re
     readFile(new URL("../app/components/PaperLab.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/LessonExperiment.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/BrowserChatCapstone.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../products/courses/reference-curriculum/content/browser-chat/project-template.ts", import.meta.url), "utf8"),
+    readFile(new URL("../examples/learning-platform/llm-learning/content/browser-chat/project-template.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/runtime/capstone/preview-frame.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/components/ProjectWorkbench.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/lib/project-workspace.ts", import.meta.url), "utf8"),
@@ -594,10 +594,10 @@ test("the design kit, simulations, model engines, and artifact runtime remain re
     readFile(new URL("../app/lib/browser-lab/types.ts", import.meta.url), "utf8"),
     readFile(new URL("../packages/model-lab/src/character-rnn.ts", import.meta.url), "utf8"),
     Promise.all([
-      readFile(new URL("../products/courses/reference-curriculum/lessons/extended-course.ts", import.meta.url), "utf8"),
-      readFile(new URL("../products/courses/reference-curriculum/lessons/extended/systems/reliability-observability.ts", import.meta.url), "utf8"),
+      readFile(new URL("../examples/learning-platform/llm-learning/lessons/extended-course.ts", import.meta.url), "utf8"),
+      readFile(new URL("../examples/learning-platform/llm-learning/lessons/extended/systems/reliability-observability.ts", import.meta.url), "utf8"),
     ]).then((parts) => parts.join("\n")),
-    readFile(new URL("../products/courses/reference-curriculum/lessons/sources.ts", import.meta.url), "utf8"),
+    readFile(new URL("../examples/learning-platform/llm-learning/lessons/sources.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
   ]);

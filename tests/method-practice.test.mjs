@@ -22,7 +22,7 @@ before(async () => {
   });
   [adapter, content, courseKit, progressContract, runner] = await Promise.all([
     vite.ssrLoadModule("/app/features/practice/question-adapter.ts"),
-    vite.ssrLoadModule("/products/courses/reference-curriculum/content/practice/question-library.ts"),
+    vite.ssrLoadModule("/examples/learning-platform/llm-learning/content/practice/question-library.ts"),
     vite.ssrLoadModule("/packages/course-kit/src/question-group.ts"),
     vite.ssrLoadModule("/packages/course-kit/src/question-progress.ts"),
     vite.ssrLoadModule("/app/features/practice/question-runner.ts"),

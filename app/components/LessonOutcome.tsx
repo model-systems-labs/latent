@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import type { CourseLesson } from "@latent/course-kit";
-import type { LessonLearningOutcome } from "../../products/courses/reference-curriculum/content/llm-systems/learning";
-import { lessonLearningOutcome } from "../../products/courses/reference-curriculum/lessons/learning";
+import type { LessonLearningOutcome } from "../../examples/learning-platform/llm-learning/content/llm-systems/learning";
+import { lessonLearningOutcome } from "../../examples/learning-platform/llm-learning/lessons/learning";
 import {
   recordKnowledgeCheck,
   useLearnerState,

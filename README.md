@@ -242,8 +242,8 @@ realm.
 - `products/courses/` — product-owned learner landing surface and the course
   deployment's nested hosting profile; designed for possible later extraction,
   but still part of this repository today
-- `products/courses/reference-curriculum/` — bundled, reviewed curriculum
-  compiled into Latent Courses
+- `examples/learning-platform/llm-learning/` — full reviewed learning project
+  mounted by the Latent Courses reference deployment
 - `courses/authored/` — publisher-owned portable Learning Pack workspaces;
   generated sites are hosted independently
 - `packages/course-kit/` — public Learning Pack schemas, validation, CLI, and

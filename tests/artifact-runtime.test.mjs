@@ -18,8 +18,8 @@ const blueprints = await vite.ssrLoadModule("/app/features/artifacts/lesson-blue
 const training = await vite.ssrLoadModule("/app/features/artifacts/training-scenarios/index.ts");
 const artifactService = await vite.ssrLoadModule("/app/features/artifacts/lesson-artifacts.ts");
 const artifactClient = await vite.ssrLoadModule("/packages/artifact-runtime/src/client.ts");
-const contracts = await vite.ssrLoadModule("/products/courses/reference-curriculum/content/llm-systems/contracts.ts");
-const manifest = await vite.ssrLoadModule("/products/courses/reference-curriculum/content/llm-systems/manifest.ts");
+const contracts = await vite.ssrLoadModule("/examples/learning-platform/llm-learning/content/llm-systems/contracts.ts");
+const manifest = await vite.ssrLoadModule("/examples/learning-platform/llm-learning/content/llm-systems/manifest.ts");
 
 after(async () => {
   await vite.close();

@@ -1,8 +1,8 @@
 import { strToU8, zipSync } from "fflate";
 import type { CourseLesson } from "@latent/course-kit";
 import { exposeLessonFunctions } from "@latent/browser-lab/compiler";
-import { llmSystemsContractSuite } from "../../products/courses/reference-curriculum/content/llm-systems/contracts";
-import { lessonLearningOutcome } from "../../products/courses/reference-curriculum/content/llm-systems/learning";
+import { llmSystemsContractSuite } from "../../examples/learning-platform/llm-learning/content/llm-systems/contracts";
+import { lessonLearningOutcome } from "../../examples/learning-platform/llm-learning/content/llm-systems/learning";
 import { lessonIsComplete, type LearnerState } from "./learner-state";
 import type { ProjectFile, ProjectState, ProjectUnitResult } from "./project-workspace";
 import { trustedProjectResults } from "./project-file-status";

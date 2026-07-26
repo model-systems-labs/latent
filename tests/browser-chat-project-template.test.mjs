@@ -16,7 +16,7 @@ before(async () => {
     logLevel: "silent",
   });
   [template, workspace] = await Promise.all([
-    vite.ssrLoadModule("/products/courses/reference-curriculum/content/browser-chat/project-template.ts"),
+    vite.ssrLoadModule("/examples/learning-platform/llm-learning/content/browser-chat/project-template.ts"),
     vite.ssrLoadModule("/app/lib/project-workspace.ts"),
   ]);
 });

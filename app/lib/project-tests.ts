@@ -8,7 +8,7 @@ import {
   type ProjectRuntime,
   type ProjectUnitResult,
 } from "./project-workspace";
-import { CAPSTONE_ENTRY_PATH, CANONICAL_BROWSER_CHAT_FILES } from "../../products/courses/reference-curriculum/content/browser-chat/project-template";
+import { CAPSTONE_ENTRY_PATH, CANONICAL_BROWSER_CHAT_FILES } from "../../examples/learning-platform/llm-learning/content/browser-chat/project-template";
 import {
   CAPSTONE_BEHAVIOR_COMPONENT_PATH,
   CAPSTONE_BEHAVIOR_CONTRACT_ID,

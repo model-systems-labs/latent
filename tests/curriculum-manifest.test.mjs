@@ -24,11 +24,11 @@ before(async () => {
     logLevel: "silent",
   });
   [course, manifestModule, lms, fileStatus, contracts, practiceFeedback, contractRuntime, practiceState, learnerStateModule, artifactBlueprints] = await Promise.all([
-    vite.ssrLoadModule("/products/courses/reference-curriculum/lessons/course.ts"),
-    vite.ssrLoadModule("/products/courses/reference-curriculum/content/llm-systems/manifest.ts"),
+    vite.ssrLoadModule("/examples/learning-platform/llm-learning/lessons/course.ts"),
+    vite.ssrLoadModule("/examples/learning-platform/llm-learning/content/llm-systems/manifest.ts"),
     vite.ssrLoadModule("/packages/course-kit/src/curriculum.ts"),
     vite.ssrLoadModule("/app/lib/project-file-status.ts"),
-    vite.ssrLoadModule("/products/courses/reference-curriculum/content/llm-systems/contracts.ts"),
+    vite.ssrLoadModule("/examples/learning-platform/llm-learning/content/llm-systems/contracts.ts"),
     vite.ssrLoadModule("/app/features/ide/practice-feedback.ts"),
     vite.ssrLoadModule("/packages/browser-lab/src/contracts.ts"),
     vite.ssrLoadModule("/app/features/ide/practice-state.ts"),

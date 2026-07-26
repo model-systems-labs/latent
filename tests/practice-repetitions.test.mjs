@@ -20,7 +20,7 @@ before(async () => {
     logLevel: "silent",
   });
   [course, practiceState] = await Promise.all([
-    vite.ssrLoadModule("/products/courses/reference-curriculum/lessons/course.ts"),
+    vite.ssrLoadModule("/examples/learning-platform/llm-learning/lessons/course.ts"),
     vite.ssrLoadModule("/app/features/ide/practice-state.ts"),
   ]);
 });

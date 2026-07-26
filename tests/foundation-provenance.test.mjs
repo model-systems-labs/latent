@@ -17,9 +17,9 @@ before(async () => {
     logLevel: "silent",
   });
   [linearAlgebra, machineLearning, provenance] = await Promise.all([
-    vite.ssrLoadModule("/products/courses/reference-curriculum/lessons/foundations/linear-algebra.ts"),
-    vite.ssrLoadModule("/products/courses/reference-curriculum/lessons/foundations/machine-learning-basics.ts"),
-    vite.ssrLoadModule("/products/courses/reference-curriculum/content/foundations/provenance.ts"),
+    vite.ssrLoadModule("/examples/learning-platform/llm-learning/lessons/foundations/linear-algebra.ts"),
+    vite.ssrLoadModule("/examples/learning-platform/llm-learning/lessons/foundations/machine-learning-basics.ts"),
+    vite.ssrLoadModule("/examples/learning-platform/llm-learning/content/foundations/provenance.ts"),
   ]);
 });
 

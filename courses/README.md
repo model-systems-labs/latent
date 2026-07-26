@@ -4,7 +4,7 @@ Latent keeps two kinds of course source deliberately separate:
 
 | Folder | What it contains | Where it appears |
 | --- | --- | --- |
-| `products/courses/reference-curriculum/` | Latent's bundled, reviewed curriculum and executable exercise contracts | Compiled into the Latent Courses product |
+| `examples/learning-platform/llm-learning/` | Latent's bundled, reviewed curriculum and executable exercise contracts | Compiled into the Latent Courses product |
 | `courses/authored/` | Portable Learning Packs that you create and own | Published as independent static sites at URLs you control |
 
 Putting a Learning Pack in `courses/authored/` does not add it to the bundled

@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { courseLessons, courseTracks, getTrackLessons } from "../../products/courses/reference-curriculum/lessons/course";
-import { CAPSTONE_COMPONENT_PATH, CAPSTONE_ENTRY_PATH, CANONICAL_BROWSER_CHAT_FILES } from "../../products/courses/reference-curriculum/content/browser-chat/project-template";
+import { courseLessons, courseTracks, getTrackLessons } from "../../examples/learning-platform/llm-learning/lessons/course";
+import { CAPSTONE_COMPONENT_PATH, CAPSTONE_ENTRY_PATH, CANONICAL_BROWSER_CHAT_FILES } from "../../examples/learning-platform/llm-learning/content/browser-chat/project-template";
 import { useLearnerState } from "../lib/learner-state";
 import { RUNTIME_PATHS, useProjectState } from "../lib/project-workspace";
 import { expectedProjectContractIdsForPath, projectFileStatus, projectLessonBuildStatus, projectResultsForFile, projectSourceProgress, projectUsesIntegratedEntryReceipt, trustedProjectResults, type ProjectFileStatus } from "../lib/project-file-status";

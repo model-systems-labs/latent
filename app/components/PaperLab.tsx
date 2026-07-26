@@ -3,9 +3,9 @@
 import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import type { CodeBlock, CourseLesson } from "@latent/course-kit";
-import type { LessonLearningOutcome } from "../../products/courses/reference-curriculum/content/llm-systems/learning";
+import type { LessonLearningOutcome } from "../../examples/learning-platform/llm-learning/content/llm-systems/learning";
 import type { ExerciseCase, ExerciseCaseResult, ExerciseContract, HostAssertion, JsonValue } from "@latent/browser-lab";
-import { allRoutedLessons, getLessonCourseHref, getLessonProjectPath } from "../../products/courses/reference-curriculum/lessons/course";
+import { allRoutedLessons, getLessonCourseHref, getLessonProjectPath } from "../../examples/learning-platform/llm-learning/lessons/course";
 import {
   discardLearnerRecoveryCandidate,
   emptyPracticeRepetitions,
@@ -29,12 +29,12 @@ import {
   stageHarnessLessonFile,
   useHarnessWorkspaceState,
 } from "../lib/harness-workspace";
-import { harnessLessonProjectSeed, type HarnessProjectSeed } from "../../products/courses/reference-curriculum/content/harness-engineering/project-template";
+import { harnessLessonProjectSeed, type HarnessProjectSeed } from "../lib/harness-project";
 import { runPracticeContracts, type PracticeContractRun } from "../features/ide/browser-lab-service";
 import { runPythonLessonContracts } from "../features/ide/python-lesson-service";
 import { ArtifactRuntimePanel } from "../features/artifacts/ArtifactRuntimePanel";
 import { recordValidatedLessonArtifact } from "../features/artifacts/lesson-artifacts";
-import { lessonBlockComment, lessonImplementationPrelude, lessonImplementationSource } from "../../products/courses/reference-curriculum/lessons/implementation-source";
+import { lessonBlockComment, lessonImplementationPrelude, lessonImplementationSource } from "../../examples/learning-platform/llm-learning/lessons/implementation-source";
 import { canonicalProjectSeeds } from "../lib/canonical-project";
 import {
   compatiblePracticeDrafts,
@@ -58,15 +58,15 @@ import {
   workingPracticeSources,
   type PracticeRound,
 } from "../features/ide/practice-state";
-import { contractSuiteForLesson } from "../../products/courses/reference-curriculum/lessons/contract-suite";
+import { contractSuiteForLesson } from "../../examples/learning-platform/llm-learning/lessons/contract-suite";
 import { LessonOutcome } from "./LessonOutcome";
-import { lessonLearningOutcome, moduleCheckpoint } from "../../products/courses/reference-curriculum/lessons/learning";
+import { lessonLearningOutcome, moduleCheckpoint } from "../../examples/learning-platform/llm-learning/lessons/learning";
 import { recordLearningEvent } from "../lib/learning-analytics";
 import { SyntaxCode } from "../features/ide/SyntaxCode";
-import { getLessonFlair } from "../../products/courses/reference-curriculum/lessons/lesson-flair";
-import { getLessonIllustration } from "../../products/courses/reference-curriculum/lessons/lesson-illustrations";
-import { exerciseContractFor } from "../../products/courses/reference-curriculum/lessons/exercise-contracts";
-import { lessonGateProgress } from "../../products/courses/reference-curriculum/lessons/lesson-progress";
+import { getLessonFlair } from "../../examples/learning-platform/llm-learning/lessons/lesson-flair";
+import { getLessonIllustration } from "../../examples/learning-platform/llm-learning/lessons/lesson-illustrations";
+import { exerciseContractFor } from "../../examples/learning-platform/llm-learning/lessons/exercise-contracts";
+import { lessonGateProgress } from "../../examples/learning-platform/llm-learning/lessons/lesson-progress";
 import { PageAtmosphere } from "./PageAtmosphere";
 import styles from "./PaperLab.module.css";
 

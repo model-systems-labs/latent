@@ -4,8 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { CodeEditor } from "../features/ide/CodeEditor";
 import { runPythonProjectContracts, runPythonProjectFunction } from "../features/ide/python-lesson-service";
-import { harnessEngineeringContractSuite } from "../../products/courses/reference-curriculum/content/harness-engineering/contracts";
-import { HARNESS_PROJECT_STARTER_FILES } from "../../products/courses/reference-curriculum/content/harness-engineering/project-template";
+import { harnessEngineeringContractSuite } from "../../examples/learning-platform/llm-learning/content/harness-engineering/contracts";
+import { HARNESS_PROJECT_STARTER_FILES } from "../lib/harness-project";
 import {
   HARNESS_SCENARIO_EXPORT,
   HARNESS_SCENARIO_FIXTURES,
@@ -14,7 +14,7 @@ import {
   harnessScenarioMatchesExpected,
   harnessScenarioTrace,
   type HarnessScenarioTrace,
-} from "../../products/courses/reference-curriculum/content/harness-engineering/scenarios";
+} from "../../examples/learning-platform/llm-learning/content/harness-engineering/scenarios";
 import { initializeLearnerPersistence } from "../lib/learner-state";
 import {
   currentHarnessReceipt,

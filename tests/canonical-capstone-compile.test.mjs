@@ -35,10 +35,10 @@ before(async () => {
     logLevel: "silent",
   });
   [course, implementation, contracts, template, compiler, browserLab, tensor, behaviorRunner] = await Promise.all([
-    vite.ssrLoadModule("/products/courses/reference-curriculum/lessons/course.ts"),
-    vite.ssrLoadModule("/products/courses/reference-curriculum/lessons/implementation-source.ts"),
-    vite.ssrLoadModule("/products/courses/reference-curriculum/content/llm-systems/contracts.ts"),
-    vite.ssrLoadModule("/products/courses/reference-curriculum/content/browser-chat/project-template.ts"),
+    vite.ssrLoadModule("/examples/learning-platform/llm-learning/lessons/course.ts"),
+    vite.ssrLoadModule("/examples/learning-platform/llm-learning/lessons/implementation-source.ts"),
+    vite.ssrLoadModule("/examples/learning-platform/llm-learning/content/llm-systems/contracts.ts"),
+    vite.ssrLoadModule("/examples/learning-platform/llm-learning/content/browser-chat/project-template.ts"),
     vite.ssrLoadModule("/packages/browser-lab/src/compiler/index.ts"),
     vite.ssrLoadModule("/packages/browser-lab/src/index.ts"),
     vite.ssrLoadModule("/packages/tensor/src/browser-source.ts"),

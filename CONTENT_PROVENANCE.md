@@ -58,7 +58,7 @@ Two items were changed during that review:
 No other substantive phrase, figure, dataset, or structurally distinctive code
 reuse was found. Matches were limited to bibliographic titles and necessary
 technical vocabulary. The machine-readable lesson-by-lesson record lives in
-`products/courses/reference-curriculum/lessons/provenance.ts`.
+`examples/learning-platform/llm-learning/lessons/provenance.ts`.
 
 ### Linear Algebra and Machine Learning Basics
 
@@ -71,7 +71,7 @@ prose, figures, worked examples, and source code are not included.
 
 These lessons do not contribute files or requirements to the Browser Chat
 project. Their separate machine-readable record lives in
-`products/courses/reference-curriculum/content/foundations/provenance.ts`,
+`examples/learning-platform/llm-learning/content/foundations/provenance.ts`,
 leaving the fourteen-lesson LLM Systems review inventory unchanged.
 
 ### Harness Engineering
@@ -91,14 +91,14 @@ around course-specific schemas, context priority, and adapter interchangeability
 
 Harness Engineering does not add files, artifacts, checkpoints, or completion
 requirements to Browser Chat. Its machine-readable review record lives in
-`products/courses/reference-curriculum/content/harness-engineering/provenance.ts`.
+`examples/learning-platform/llm-learning/content/harness-engineering/provenance.ts`.
 
 ### Flash-card review library
 
 On 2026-07-18, the review library was expanded from a short lesson recap into
 an atomic technical vocabulary deck. Concept selection was informed by the
 course-authored lessons and summaries, the bibliography in
-`products/courses/reference-curriculum/lessons/sources.ts`, and the source
+`examples/learning-platform/llm-learning/lessons/sources.ts`, and the source
 lists attached to the two foundation courses. The pass also checked the primary
 paper and standard surfaces for established terms that the lesson prose could
 not assume a new learner already understood.

@@ -40,11 +40,11 @@ before(async () => {
   });
 
   [contracts, persistence, projectTemplate, harnessWorkspace, scenarios, { runPythonProjectContracts, runPythonProjectFunction }] = await Promise.all([
-    vite.ssrLoadModule("/products/courses/reference-curriculum/content/harness-engineering/contracts.ts"),
+    vite.ssrLoadModule("/examples/learning-platform/llm-learning/content/harness-engineering/contracts.ts"),
     vite.ssrLoadModule("/app/platform/persistence/index.ts"),
-    vite.ssrLoadModule("/products/courses/reference-curriculum/content/harness-engineering/project-template.ts"),
+    vite.ssrLoadModule("/app/lib/harness-project.ts"),
     vite.ssrLoadModule("/app/lib/harness-workspace.ts"),
-    vite.ssrLoadModule("/products/courses/reference-curriculum/content/harness-engineering/scenarios.ts"),
+    vite.ssrLoadModule("/examples/learning-platform/llm-learning/content/harness-engineering/scenarios.ts"),
     vite.ssrLoadModule("/app/features/ide/python-lesson-service.ts"),
   ]);
 

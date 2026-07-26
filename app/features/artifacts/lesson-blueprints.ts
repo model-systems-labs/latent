@@ -1,4 +1,4 @@
-import { llmSystemsManifest } from "../../../products/courses/reference-curriculum/content/llm-systems/manifest";
+import { llmSystemsManifest } from "../../../examples/learning-platform/llm-learning/content/llm-systems/manifest";
 import type { ArtifactJson, ArtifactReplayFrame } from "@latent/artifact-runtime";
 
 export type LessonArtifactBlueprint = {

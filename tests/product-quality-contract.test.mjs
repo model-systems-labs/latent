@@ -189,7 +189,7 @@ test("a dead or stalled local-model worker is discarded so an explicit retry sta
 
 test("the capstone template and host implement the same safe persistence and status seams", async () => {
   const [template, host, worker, protocol, workspace] = await Promise.all([
-    readFile(new URL("../products/courses/reference-curriculum/content/browser-chat/project-template.ts", import.meta.url), "utf8"),
+    readFile(new URL("../examples/learning-platform/llm-learning/content/browser-chat/project-template.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/components/BrowserChatCapstone.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/runtime/model/model.worker.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/runtime/model/protocol.ts", import.meta.url), "utf8"),

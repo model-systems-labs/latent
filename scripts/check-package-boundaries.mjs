@@ -99,6 +99,7 @@ const rootDeclared = new Set([
 ]);
 for (const directory of [
   resolve(root, "app"),
+  resolve(root, "examples"),
   resolve(root, "products"),
   resolve(root, "scripts"),
   resolve(root, "tests"),
@@ -115,6 +116,34 @@ for (const directory of [
         if (!workspaceByName.has(dependency)) failures.push(`${relative(root, file)} imports unknown private workspace: ${specifier}`);
         else if (!rootDeclared.has(dependency)) failures.push(`${relative(root, file)} uses undeclared root workspace dependency: ${specifier}`);
       }
+    }
+  }
+}
+
+const fullLearningExample = resolve(root, "examples/learning-platform/llm-learning");
+for (const file of await filesBelow(fullLearningExample)) {
+  const source = await readFile(file, "utf8");
+  for (const match of source.matchAll(importPattern)) {
+    const specifier = match[1] ?? match[2] ?? "";
+    if (specifier.startsWith(".")) {
+      const destination = relative(root, resolve(dirname(file), specifier));
+      if (
+        destination === "app"
+        || destination.startsWith("app/")
+        || destination === "products"
+        || destination.startsWith("products/")
+      ) {
+        failures.push(`${relative(root, file)} reverses the example boundary: ${specifier}`);
+      }
+    } else if (
+      specifier === "app"
+      || specifier.startsWith("app/")
+      || specifier === "products"
+      || specifier.startsWith("products/")
+      || specifier.startsWith("@/app/")
+      || specifier.startsWith("@/products/")
+    ) {
+      failures.push(`${relative(root, file)} reverses the example boundary: ${specifier}`);
     }
   }
 }

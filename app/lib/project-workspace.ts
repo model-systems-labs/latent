@@ -5,8 +5,8 @@ import type { BrowserLabTestResult } from "./browser-lab";
 import { getPersistenceContext } from "../platform/persistence/client";
 import type { JsonValue } from "../platform/persistence/types";
 import { LATENT_TENSOR_PATH, LATENT_TENSOR_SOURCE } from "@latent/tensor/browser-source";
-import { CANONICAL_BROWSER_CHAT_FILES } from "../../products/courses/reference-curriculum/content/browser-chat/project-template";
-import { llmSystemsContractSuite } from "../../products/courses/reference-curriculum/content/llm-systems/contracts";
+import { CANONICAL_BROWSER_CHAT_FILES } from "../../examples/learning-platform/llm-learning/content/browser-chat/project-template";
+import { llmSystemsContractSuite } from "../../examples/learning-platform/llm-learning/content/llm-systems/contracts";
 import { hashProjectSnapshotSources, projectSnapshotSourcePayload } from "../features/ide/project-snapshot";
 import type { BuildRecord } from "../platform/persistence/types";
 

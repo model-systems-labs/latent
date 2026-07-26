@@ -50,7 +50,7 @@ before(async () => {
   });
   [adapter, content] = await Promise.all([
     vite.ssrLoadModule("/app/features/practice/question-adapter.ts"),
-    vite.ssrLoadModule("/products/courses/reference-curriculum/content/practice/question-library.ts"),
+    vite.ssrLoadModule("/examples/learning-platform/llm-learning/content/practice/question-library.ts"),
   ]);
 });
 

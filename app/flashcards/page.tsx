@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { LearnerHeader } from "../components/LearnerHeader";
 import { FlashcardDeck } from "../components/FlashcardDeck";
-import { flashcards } from "../../products/courses/reference-curriculum/content/flashcards";
+import { flashcards } from "../../examples/learning-platform/llm-learning/content/flashcards";
 import { PageAtmosphere } from "../components/PageAtmosphere";
 import styles from "./page.module.css";
 

@@ -77,8 +77,8 @@ before(async () => {
     logLevel: "silent",
   });
   const [course, paper] = await Promise.all([
-    vite.ssrLoadModule("/products/courses/reference-curriculum/lessons/course.ts"),
-    vite.ssrLoadModule("/products/courses/reference-curriculum/lessons/neural-text-degeneration.ts"),
+    vite.ssrLoadModule("/examples/learning-platform/llm-learning/lessons/course.ts"),
+    vite.ssrLoadModule("/examples/learning-platform/llm-learning/lessons/neural-text-degeneration.ts"),
   ]);
   lessons = [
     ...course.courseLessons.filter((lesson) => lesson.id in expectedLessons),

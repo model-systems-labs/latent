@@ -33,8 +33,8 @@ project, including:
 
 - lesson explanations, instructional prompts, quiz wording, worked
   explanations, and flash-card text under
-  `products/courses/reference-curriculum/lessons/` and
-  `products/courses/reference-curriculum/content/`;
+  `examples/learning-platform/llm-learning/lessons/` and
+  `examples/learning-platform/llm-learning/content/`;
 - original educational diagrams under `public/lesson-diagrams/`;
 - original explanatory material in `docs/`, excluding JSON Schemas and other
   material that is primarily software or a technical interface; and

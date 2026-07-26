@@ -84,9 +84,9 @@ const repositoryFiles = [
   "packages/browser-lab/       # JavaScript and TypeScript runtime",
   "packages/python-lab/        # CPython and NumPy through WASM",
   "courses/authored/           # your portable Learning Packs",
-  "products/courses/reference-curriculum/ # bundled courses",
+  "examples/learning-platform/llm-learning/ # full reference project",
   "skills/                     # agent author, review, publish flows",
-  "examples/learning-platform/ # complete static starter",
+  "examples/learning-platform/javascript-array-methods/ # tiny static starter",
   "products/framework/         # this product surface",
 ] as const;
 

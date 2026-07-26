@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { LearnerHeader } from "../../app/components/LearnerHeader";
 import { PageAtmosphere } from "../../app/components/PageAtmosphere";
-import { coursePrograms } from "./reference-curriculum/lessons/course";
+import { coursePrograms } from "../../examples/learning-platform/llm-learning/lessons/course";
 import styles from "./courses.module.css";
 
 export const coursesMetadata: Metadata = {

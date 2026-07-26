@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LearnerHeader } from "../components/LearnerHeader";
-import { coursePrograms, type CourseProgram } from "../../products/courses/reference-curriculum/lessons/course";
+import { coursePrograms, type CourseProgram } from "../../examples/learning-platform/llm-learning/lessons/course";
 import { PageAtmosphere } from "../components/PageAtmosphere";
 import styles from "./page.module.css";
 

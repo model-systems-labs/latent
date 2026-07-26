@@ -27,8 +27,8 @@ before(async () => {
     logLevel: "silent",
   });
   [lessons, provenance] = await Promise.all([
-    vite.ssrLoadModule("/products/courses/reference-curriculum/lessons/harness-engineering/index.ts"),
-    vite.ssrLoadModule("/products/courses/reference-curriculum/content/harness-engineering/provenance.ts"),
+    vite.ssrLoadModule("/examples/learning-platform/llm-learning/lessons/harness-engineering/index.ts"),
+    vite.ssrLoadModule("/examples/learning-platform/llm-learning/content/harness-engineering/provenance.ts"),
   ]);
 });
 

@@ -3,10 +3,11 @@
 **Build your own learning platform with agents.**
 
 Latent is an opinionated, open-source framework for courses, browser IDE
-lessons, flash cards, and programming practice. Use any coding agent to extend
-it; the included LLM Learning curriculum is the complete reference
-implementation. Portable Learning Pack sites remain independently hostable on
-any conforming static server.
+lessons, flash cards, and programming practice. The included courses are a
+reviewed reference implementation, not the identity of the framework.
+Production course sites should live in separate downstream repositories with
+their own curriculum, access policy, and deployment history. Portable Learning
+Pack sites remain independently hostable on any conforming static server.
 
 [![Validate](https://github.com/model-systems-labs/latent/actions/workflows/ci.yml/badge.svg)](https://github.com/model-systems-labs/latent/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-blue.svg)](./LICENSE)
@@ -43,12 +44,20 @@ Read the [five-minute guide](./docs/getting-started.md), inspect the
 or use the included agent workflows in `skills/` to author and review each
 layer.
 
-Latent is two things in one repository:
+This public repository contains two layers:
 
 - an open, model-neutral publishing framework for portable lessons, quizzes,
   flash-card decks, and released Question Groups; and
-- an executable reference platform with courses, an IDE, flash cards, and
-  programming practice.
+- a released reference implementation with courses, an IDE, flash cards, and
+  programming practice that exercises those framework boundaries.
+
+A deployed course library is a third thing: a downstream instance. It belongs
+in its own repository and owns its own product name, content choices, access
+controls, and hosting metadata. The framework repository intentionally has no
+`.openai/hosting.json`, so it cannot overwrite an instance deployment.
+
+See [Framework and course instances](./docs/framework-and-instances.md) for
+the code map and the upstream/downstream workflow.
 
 The open framework is the floor. Everything required to author, validate,
 export, read, and self-host a Learning Pack is available here. An optional
@@ -129,8 +138,9 @@ The complete format, hosting, extension, and trust contract is in
 [docs/open-learning.md](./docs/open-learning.md). A production-sized example
 lives at
 [examples/open-learning/reliable-llm-changes](./examples/open-learning/reliable-llm-changes).
-The browser application also exposes a local authoring studio in the
-[public reference platform](https://latent-llm-learning.cswansondeveloper.chatgpt.site/open-learning).
+Run the browser application locally and open `/open-learning/publish` for the
+authoring studio or `/open-learning/read` for the separately scoped hosted-feed
+reader.
 
 Course Kit is not currently published on npm. The GitHub release is the
 official install path and includes a published SHA-256 checksum. The immutable

@@ -128,7 +128,7 @@ npm exec --yes --package "$COURSE_KIT_RELEASE" -- \
   --json
 ```
 
-Then open that feed in Latent's `/open-learning` reader. Confirm the publisher origin, package id, version, digest, lesson, deck, and explicit save behavior.
+Then open that feed in Latent's `/open-learning/read` reader. Confirm the publisher origin, package id, version, digest, lesson, deck, and explicit save behavior.
 
 If no interactive browser is available, report reader rendering and save
 behavior as unverified. A passing `verify-url` result does not prove those

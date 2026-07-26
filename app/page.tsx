@@ -1,227 +1,183 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import {
-  EditableHomepageLink,
-  EditableText,
-  HomepageCopyProvider,
-} from "./components/HomepageCopyEditor";
 import { PageAtmosphere } from "./components/PageAtmosphere";
-import type { SiteCopyKey, SiteCopyValues } from "./content/site-copy";
 import styles from "./page.module.css";
 
 export const metadata: Metadata = {
-  title: "Latent · Build your learning platform with agents",
+  title: "Latent · Open-source learning platform framework",
   description:
-    "An opinionated open-source framework for courses, browser IDE lessons, flash cards, and programming practice.",
+    "Build browser-native courses, coding lessons, flash cards, and practice sites from reviewed source and portable content.",
 };
 
-const architectureStages = [
-  { scope: "Browser input", title: "Prompt + messages", detail: "UTF-8 text" },
-  { scope: "Browser input", title: "Tokenizer", detail: "text → token IDs" },
-  { scope: "Inference runtime", title: "Scheduler", detail: "admit · batch · cancel" },
-  { scope: "Inference runtime", title: "Prefill", detail: "prompt → K,V" },
-  { scope: "Inference runtime", title: "Decode loop", detail: "logits → next token" },
-  { scope: "Streaming transport", title: "SSE stream", detail: "typed token events" },
-  { scope: "Application", title: "React reducer", detail: "events → chat state" },
-  { scope: "Application", title: "Browser Chat", detail: "rendered response" },
+const platformFlow = [
+  {
+    number: "01",
+    title: "Author",
+    detail: "Portable content or reviewed application source",
+  },
+  {
+    number: "02",
+    title: "Validate",
+    detail: "Schemas, quality checks, tests, and deterministic builds",
+  },
+  {
+    number: "03",
+    title: "Publish",
+    detail: "A static site on infrastructure you control",
+  },
+  {
+    number: "04",
+    title: "Learn",
+    detail: "Browser-native lessons with device-local progress",
+  },
 ] as const;
 
-const architectureBoundaries = [
-  "Browser input",
-  "Inference runtime",
-  "Streaming transport",
-  "Application",
+const repositoryFiles = [
+  "packages/course-kit/",
+  "packages/browser-lab/",
+  "skills/author-course/",
+  "examples/open-learning/",
+  "app/  # reference implementation",
 ] as const;
-
-const architectureState = [
-  { className: "stateWeights", title: "Model weights", detail: "used by prefill + decode" },
-  { className: "stateCache", title: "KV cache", detail: "K,V reused at every decode step" },
-  { className: "stateArtifacts", title: "Project artifacts", detail: "lesson files · tests · BrowserChat.tsx" },
-  { className: "statePersistence", title: "Browser persistence", detail: "IndexedDB drafts · checkpoints" },
-] as const;
-
-const architectureMovements = [
-  { number: "01", title: "Model", detail: "Text becomes tokens, then model state." },
-  { number: "02", title: "Runtime", detail: "Prefill, cache, scheduling, and decode." },
-  { number: "03", title: "Product", detail: "Events become a responsive conversation." },
-] as const;
-
-const projectFiles = [
-  "models/character-rnn.py",
-  "systems/inference-runtime.py",
-  "backend/streaming-transport.py",
-  "product/chat-reducer.py",
-  "capstone/BrowserChat.tsx",
-] as const;
-
-const homepageCopyDefaults = {
-  "hero.title": "Build your own learning platform with agents.",
-  "hero.body": "Latent is an opinionated open-source framework for courses, browser IDE lessons, flash cards, and programming practice. Use the LLM systems curriculum as a complete reference implementation, or start with portable lessons and cards you can host anywhere.",
-  "hero.primaryAction": "Create portable content",
-  "hero.secondaryAction": "Explore the LLM course",
-  "system.title": "The reference implementation goes deep.",
-  "system.body": "A paper can explain one mechanism clearly while leaving the surrounding system implicit. These lessons begin with recurrence, tokenization, attention, and causal masking, then continue into prefill and decoding, KV-cache accounting, continuous batching, SSE framing, cancellation, retries, and conversation state. Each example is small enough to inspect and run in a browser.",
-  "architecture.title": "Browser-native LLM system",
-  "architecture.kicker": "One request · three movements",
-  "architecture.description": "Text moves left to right. The lower rail shows state that is loaded, reused, or persisted rather than streamed with each token.",
-  "project.title": "The implementation accumulates.",
-  "project.body": "Each lesson adds a tested file to the same project. The tests isolate the idea under study; the capstone connects browser versions of those pieces into a local chatbot. This is not a production-scale model or serving stack. It is a compact implementation for studying where the boundaries are and how data moves across them.",
-  "closing.body": "Begin with a character-level recurrent model. Continue until the pieces form a browser chat system.",
-  "closing.action": "Open the LLM systems course",
-} satisfies SiteCopyValues;
-
-const copy = (key: SiteCopyKey) => homepageCopyDefaults[key];
 
 export default function Home() {
   return (
-    <HomepageCopyProvider defaults={homepageCopyDefaults}>
-      <main className={styles.page}>
-        <PageAtmosphere />
+    <main className={styles.page}>
+      <PageAtmosphere />
 
-        <header className={`site-header course-header ${styles.header}`}>
-          <Link className="wordmark" href="/"><i />latent</Link>
-          <nav aria-label="Primary navigation">
-            <Link className={styles.headerLink} href="/course">Courses</Link>
-            <Link className={styles.headerLink} href="/practice">Practice</Link>
-            <Link className={styles.headerLink} href="/open-learning">Open learning</Link>
-            <Link className={styles.headerLink} href="/workspace" aria-label="Open coding workspace">Code</Link>
-          </nav>
-        </header>
+      <header className={`site-header course-header ${styles.header}`}>
+        <Link className="wordmark" href="/"><i />latent <small>framework</small></Link>
+        <nav aria-label="Primary navigation">
+          <Link className={styles.headerLink} href="/open-learning">Open learning</Link>
+          <Link className={styles.headerLink} href="/course">Reference courses</Link>
+          <a
+            className={styles.headerLink}
+            href="https://github.com/model-systems-labs/latent"
+            rel="noreferrer"
+            target="_blank"
+          >
+            GitHub
+          </a>
+        </nav>
+      </header>
 
-        <article className={styles.shell}>
-          <section className={styles.hero}>
-            <span className="eyebrow">Open source · agent-friendly · portable content</span>
-            <EditableText as="h1" copyKey="hero.title" fallback={copy("hero.title")} />
-            <EditableText as="p" copyKey="hero.body" fallback={copy("hero.body")} />
-            <div className={styles.actions}>
-              <EditableHomepageLink
-                arrow
-                className={styles.primaryAction}
-                copyKey="hero.primaryAction"
-                fallback={copy("hero.primaryAction")}
-                href="/open-learning"
-              />
-              <EditableHomepageLink
-                className={styles.secondaryAction}
-                copyKey="hero.secondaryAction"
-                fallback={copy("hero.secondaryAction")}
-                href="/courses/llm-systems"
-              />
-            </div>
-          </section>
-
-          <section className={styles.argument} aria-labelledby="system-title">
-            <EditableText as="h2" copyKey="system.title" fallback={copy("system.title")} id="system-title" />
-            <EditableText as="p" copyKey="system.body" fallback={copy("system.body")} />
-            <figure
-              className={styles.architecture}
-              aria-labelledby="architecture-title"
-              aria-describedby="architecture-description"
+      <article className={styles.shell}>
+        <section className={styles.hero}>
+          <span className="eyebrow">Open source · agent-friendly · host it yourself</span>
+          <h1>Build a learning platform you own.</h1>
+          <p>
+            Latent is an open-source framework for browser-native courses, coding
+            lessons, flash cards, and programming practice. Its public contracts
+            keep portable course content separate from the trusted application
+            code that renders and runs it.
+          </p>
+          <div className={styles.actions}>
+            <a
+              className={styles.primaryAction}
+              href="https://github.com/model-systems-labs/latent"
+              rel="noreferrer"
+              target="_blank"
             >
-              <figcaption className={styles.architectureCaption}>
-                <div>
-                  <EditableText
-                    as="strong"
-                    copyKey="architecture.title"
-                    fallback={copy("architecture.title")}
-                    id="architecture-title"
-                  />
-                  <EditableText as="span" copyKey="architecture.kicker" fallback={copy("architecture.kicker")} />
-                </div>
-                <EditableText
-                  as="p"
-                  copyKey="architecture.description"
-                  fallback={copy("architecture.description")}
-                  id="architecture-description"
-                />
-              </figcaption>
+              View the framework source <span aria-hidden="true">↗</span>
+            </a>
+            <Link className={styles.secondaryAction} href="/open-learning">
+              Publish portable content
+            </Link>
+          </div>
+        </section>
 
-              <ol className={styles.architectureOverview} aria-label="Model, runtime, and product path">
-                {architectureMovements.map((movement) => (
-                  <li key={movement.title}>
-                    <span>{movement.number}</span>
-                    <strong>{movement.title}</strong>
-                    <p>{movement.detail}</p>
-                  </li>
-                ))}
-              </ol>
+        <section className={styles.argument} aria-labelledby="boundary-title">
+          <span className="eyebrow">Two products, one explicit boundary</span>
+          <h2 id="boundary-title">The platform is not the course library.</h2>
+          <p>
+            This repository owns the framework, public formats, validation tools,
+            and a reference application. A real course deployment is a separate
+            instance: it chooses its own curriculum, identity, access policy, and
+            release history.
+          </p>
+          <div className={styles.boundaryGrid}>
+            <article className={styles.boundaryCard}>
+              <span>Framework</span>
+              <h3>Build and publish a platform</h3>
+              <p>
+                Fork the source, extend trusted runtime adapters, or publish
+                declarative Learning Packs with Course Kit.
+              </p>
+              <Link href="/open-learning">Open the publishing tools →</Link>
+            </article>
+            <article className={styles.boundaryCard}>
+              <span>Reference content</span>
+              <h3>Inspect courses built with Latent</h3>
+              <p>
+                The bundled math, machine-learning, harness, and LLM courses show
+                what one instance can look like. They are examples, not the
+                platform’s identity.
+              </p>
+              <Link href="/course">Browse the reference courses →</Link>
+            </article>
+          </div>
+        </section>
 
-              <details className="calm-disclosure">
-                <summary>
-                  <span>Follow the generation request, step by step</span>
-                  <small>8 stages · 4 boundaries</small>
-                </summary>
-                <div className={styles.architectureDeepDive}>
-                  <ol className={styles.architectureBoundaries} aria-label="System boundaries">
-                    {architectureBoundaries.map((boundary, index) => (
-                      <li key={boundary}>
-                        <span aria-hidden="true">0{index + 1}</span>
-                        <strong>{boundary}</strong>
-                      </li>
-                    ))}
-                  </ol>
-
-                  <ol className={styles.architectureFlow} aria-label="Request and token event flow">
-                    {architectureStages.map((stage, index) => (
-                      <li key={stage.title}>
-                        <span className={styles.architectureScope}>{stage.scope}</span>
-                        <strong>{stage.title}</strong>
-                        <code>{stage.detail}</code>
-                        {index < architectureStages.length - 1 ? (
-                          <i className={styles.architectureArrow} aria-hidden="true">→</i>
-                        ) : null}
-                      </li>
-                    ))}
-                  </ol>
-
-                  <div
-                    className={styles.architectureState}
-                    role="group"
-                    aria-label="State reused or persisted across the request path"
-                  >
-                    {architectureState.map((state) => (
-                      <div className={styles[state.className]} key={state.title}>
-                        <strong>{state.title}</strong>
-                        <code>{state.detail}</code>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className={styles.architectureLegend} aria-hidden="true">
-                    <span><i className={styles.flowKey} />request + token events</span>
-                    <span><i className={styles.stateKey} />reused or persisted state</span>
-                  </div>
-                </div>
-              </details>
-            </figure>
-          </section>
-
-          <section className={styles.argument} aria-labelledby="project-title">
-            <EditableText as="h2" copyKey="project.title" fallback={copy("project.title")} id="project-title" />
-            <EditableText as="p" copyKey="project.body" fallback={copy("project.body")} />
-            <details className={`${styles.projectDetails} calm-disclosure`}>
-              <summary>See how the five course files come together</summary>
-              <div className={styles.projectTree} role="group" aria-label="Course files accumulating into the Browser Chat capstone">
-                <span>browser-chat/</span>
-                {projectFiles.map((file, index) => (
-                  <code key={file}><i aria-hidden="true">{index === projectFiles.length - 1 ? "└──" : "├──"}</i>{file}</code>
-                ))}
+        <section className={styles.argument} aria-labelledby="flow-title">
+          <h2 id="flow-title">A visible path from source to learner.</h2>
+          <p>
+            Agents help at authoring and build time. The learner runtime never
+            makes a hidden model call and never executes code supplied by a
+            remote course pack.
+          </p>
+          <figure className={styles.architecture} aria-labelledby="pipeline-title">
+            <figcaption className={styles.architectureCaption}>
+              <div>
+                <strong id="pipeline-title">Platform pipeline</strong>
+                <span>Source-controlled behavior · portable content</span>
               </div>
-            </details>
-          </section>
-        </article>
+              <p>
+                Trusted application code and untrusted course data meet only
+                through versioned, validated contracts.
+              </p>
+            </figcaption>
+            <ol className={styles.platformFlow} aria-label="Platform publishing pipeline">
+              {platformFlow.map((stage) => (
+                <li key={stage.title}>
+                  <span>{stage.number}</span>
+                  <strong>{stage.title}</strong>
+                  <p>{stage.detail}</p>
+                </li>
+              ))}
+            </ol>
+          </figure>
+        </section>
 
-        <footer className={styles.footer}>
-          <span>Latent</span>
-          <nav aria-label="Footer navigation">
-            <Link href="/course">Courses</Link>
-            <Link href="/practice">Practice</Link>
-            <Link href="/open-learning">Open learning</Link>
-            <Link href="/workspace">IDE</Link>
-            <Link href="/sources">Further reading</Link>
-          </nav>
-        </footer>
-      </main>
-    </HomepageCopyProvider>
+        <section className={styles.argument} aria-labelledby="repository-title">
+          <h2 id="repository-title">The code is organized around those boundaries.</h2>
+          <p>
+            Leaf packages own portable schemas, browser runtimes, and persistence
+            contracts. The application composes them. Course packs remain bounded
+            data and can be hosted without this repository or a central directory.
+          </p>
+          <div className={styles.projectTree} role="group" aria-label="Framework repository structure">
+            <span>latent/</span>
+            {repositoryFiles.map((file, index) => (
+              <code key={file}>
+                <i aria-hidden="true">{index === repositoryFiles.length - 1 ? "└──" : "├──"}</i>
+                {file}
+              </code>
+            ))}
+          </div>
+        </section>
+      </article>
+
+      <footer className={styles.footer}>
+        <span>Latent framework</span>
+        <nav aria-label="Footer navigation">
+          <Link href="/open-learning">Open learning</Link>
+          <Link href="/course">Reference courses</Link>
+          <Link href="/sources">Sources</Link>
+          <a href="https://github.com/model-systems-labs/latent" rel="noreferrer" target="_blank">
+            GitHub
+          </a>
+        </nav>
+      </footer>
+    </main>
   );
 }

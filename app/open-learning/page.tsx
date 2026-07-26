@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageAtmosphere } from "../components/PageAtmosphere";
-import { OpenLearningStudio } from "./OpenLearningStudio";
 import styles from "./page.module.css";
 
 export const metadata: Metadata = {
@@ -45,12 +44,43 @@ export default function OpenLearningPage() {
         <header className={styles.hero}>
           <span className="eyebrow">An open format · not another content silo</span>
           <h1>Anyone can publish a lesson.</h1>
-          <p>Make a course or a deck with the LLM you choose. Check it locally. Host it on any static site. Learners can use the publisher’s site directly or verify the feed here before saving a copy on their device.</p>
+          <p>
+            Open Learning has two deliberately separate workflows. Publishers
+            author and build portable content. Learners verify and read a
+            publisher-controlled feed. Neither workflow grants remote content
+            new runtime capabilities.
+          </p>
           <div className={styles.heroActions}>
-            <a href="#open-a-feed">Open a learning feed <span aria-hidden="true">↓</span></a>
+            <Link href="/open-learning/read">Read a hosted feed <span aria-hidden="true">→</span></Link>
+            <Link href="/open-learning/publish">Publish a Learning Pack <span aria-hidden="true">→</span></Link>
             <a href="/open-learning/reliable-llm-changes/index.html">View the standalone example <span aria-hidden="true">↗</span></a>
           </div>
         </header>
+
+        <section className={styles.pathChooser} aria-labelledby="choose-path-title">
+          <header>
+            <span className="eyebrow">Choose a role</span>
+            <h2 id="choose-path-title">Reading and publishing are different jobs.</h2>
+          </header>
+          <article>
+            <span>For learners</span>
+            <h3>Verify and read a hosted feed</h3>
+            <p>
+              Check origin, byte count, package identity, and SHA-256 integrity
+              before rendering text or saving progress on this device.
+            </p>
+            <Link href="/open-learning/read">Open the feed reader →</Link>
+          </article>
+          <article>
+            <span>For publishers</span>
+            <h3>Validate and build a portable site</h3>
+            <p>
+              Edit or import declarative JSON, pass the local quality gate, and
+              download a host-ready static site.
+            </p>
+            <Link href="/open-learning/publish">Open the publishing studio →</Link>
+          </article>
+        </section>
 
         <section className={styles.principles} aria-label="Open learning workflow">
           {workflow.map((step) => (
@@ -61,10 +91,6 @@ export default function OpenLearningPage() {
             </article>
           ))}
         </section>
-
-        <div id="open-a-feed">
-          <OpenLearningStudio />
-        </div>
 
         <section className={styles.protocol} aria-labelledby="protocol-title">
           <div>

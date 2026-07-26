@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import test from "node:test";
 
 const root = new URL("../", import.meta.url);
@@ -8,40 +8,37 @@ async function source(path) {
   return readFile(new URL(path, root), "utf8");
 }
 
-test("every lesson route uses the durable lesson copy editor", async () => {
-  const [page, editor, api, database] = await Promise.all([
+test("maintainer copy is reviewed source and lessons render without a mutation wrapper", async () => {
+  const [page, homepage] = await Promise.all([
     source("app/lessons/[slug]/page.tsx"),
-    source("app/components/LessonCopyEditor.tsx"),
-    source("app/api/lesson-copy/route.ts"),
-    source("db/lesson-copy.ts"),
+    source("app/page.tsx"),
   ]);
 
-  assert.match(page, /<LessonCopyEditor lesson=\{lesson\}/);
-  assert.match(editor, />\s*Edit lesson\s*<\/button>/);
-  assert.match(editor, /setTimeout\(\(\) => void persistLatest\(\), 800\)/);
-  assert.match(editor, /<PaperLab lesson=\{editedDocument\.lesson\} outcome=\{editedDocument\.outcome\}/);
-  assert.match(api, /lessonCopyFields\(editableDocument\(lessonId\)\)/);
-  assert.match(api, /saveLessonCopy\(await database\(\), lessonId, edits\)/);
-  assert.match(database, /PRIMARY KEY \(lesson_id, field\)/);
-  assert.match(database, /ON CONFLICT\(lesson_id, field\) DO UPDATE/);
+  assert.match(page, /<PaperLab lesson=\{lesson\} outcome=\{lessonLearningOutcome\(lesson\.id\)\} \/>/);
+  assert.doesNotMatch(page, /LessonCopyEditor/);
+  assert.doesNotMatch(homepage, /HomepageCopyEditor|HomepageCopyProvider|EditableText|fetch\(/);
 });
 
-test("lesson copy fields cover the authored reading and practice surfaces", async () => {
-  const fields = await source("app/content/lesson-copy.ts");
-
+test("the former public copy editors, PUT routes, and D1 tables do not exist", async () => {
   for (const path of [
-    "lesson.title",
-    "lesson.thesis",
-    "lesson.summary.${index}.body",
-    "lesson.diagram.caption",
-    "lesson.sources.${index}.title",
-    "outcome.check.prompt",
-    "lesson.implementation.intro",
-    "lesson.implementation.codeBlocks.${index}.purpose",
-    "lesson.dataset.preview",
+    "app/components/HomepageCopyEditor.tsx",
+    "app/components/LessonCopyEditor.tsx",
+    "app/api/site-copy/route.ts",
+    "app/api/lesson-copy/route.ts",
+    "db/site-copy.ts",
+    "db/lesson-copy.ts",
+    "db/schema.ts",
+    "drizzle.config.ts",
   ]) {
-    assert.ok(fields.includes(path), path);
+    await assert.rejects(access(new URL(path, root)), undefined, path);
   }
 
-  assert.doesNotMatch(fields, /starterCode:\s*copyValue|code:\s*copyValue|checkCode:\s*copyValue/);
+  const [packageJson, worker, vite] = await Promise.all([
+    source("package.json"),
+    source("worker/index.ts"),
+    source("vite.config.ts"),
+  ]);
+  assert.doesNotMatch(packageJson, /drizzle/);
+  assert.doesNotMatch(worker, /\bDB:\s*D1Database/);
+  assert.doesNotMatch(vite, /d1_databases|site-creator-d1/);
 });

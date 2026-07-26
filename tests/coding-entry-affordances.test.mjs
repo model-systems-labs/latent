@@ -13,23 +13,24 @@ function primaryHeader(source) {
   return source.slice(start, end);
 }
 
-test("primary learning pages keep the coding workspace one click away", async () => {
+test("the framework homepage avoids learner-only IDE navigation while course pages retain it", async () => {
   const [landing, catalog, llmCourse] = await Promise.all([
     read("app/page.tsx"),
     read("app/course/page.tsx"),
     read("app/courses/llm-systems/page.tsx"),
   ]);
 
-  for (const page of [landing, catalog, llmCourse]) {
+  assert.doesNotMatch(primaryHeader(landing), /href="\/workspace"/);
+  for (const page of [catalog, llmCourse]) {
     assert.match(primaryHeader(page), /href="\/workspace"/);
   }
   assert.match(llmCourse, /secondaryLink=\{\{ href: "\/workspace", label: "Open coding workspace" \}\}/);
 });
 
 test("lesson exercise rows advertise the editor and leave the coding area unobstructed", async () => {
-  const [paperLab, copyEditor, codingCss] = await Promise.all([
+  const [paperLab, lessonPage, codingCss] = await Promise.all([
     read("app/components/PaperLab.tsx"),
-    read("app/components/LessonCopyEditor.tsx"),
+    read("app/lessons/[slug]/page.tsx"),
     read("app/styles/coding-workspace.css"),
   ]);
 
@@ -37,8 +38,8 @@ test("lesson exercise rows advertise the editor and leave the coding area unobst
   assert.match(paperLab, /`Complete · \$\{completedRounds\}\/3 rounds`/);
   assert.match(paperLab, /"Round 1 of 3"/);
   assert.match(paperLab, />Open coding workspace ↗<\/Link>/);
-  assert.match(copyEditor, /new IntersectionObserver/);
-  assert.match(copyEditor, /!open && !codingVisible/);
+  assert.match(lessonPage, /<PaperLab lesson=\{lesson\}/);
+  assert.doesNotMatch(lessonPage, /CopyEditor/);
   assert.match(codingCss, /\.exercise-summary:hover\s*\{[^}]*background:\s*var\(--violet-wash\)/);
   assert.match(codingCss, /\.exercise-state::after\s*\{[^}]*content:\s*"\+"/);
   assert.match(codingCss, /\.practice-block\.is-active \.exercise-state::after\s*\{[^}]*content:\s*"−"/);

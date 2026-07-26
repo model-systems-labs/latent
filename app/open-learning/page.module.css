@@ -23,6 +23,89 @@
 }
 .heroActions { flex-wrap: wrap; margin-top: 1.5rem; }
 
+.pathChooser {
+  border-block: 1px solid var(--line-strong);
+  display: grid;
+  grid-template-columns: 0.8fr repeat(2, 1fr);
+}
+
+.pathChooser > * {
+  padding: clamp(1.4rem, 3vw, 2.4rem);
+}
+
+.pathChooser > * + * {
+  border-left: 1px solid var(--line);
+}
+
+.pathChooser header {
+  padding-left: 0;
+}
+
+.pathChooser h2,
+.pathChooser h3,
+.toolHero h1 {
+  font-family: var(--serif);
+  font-weight: 400;
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+
+.pathChooser h2 {
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+}
+
+.pathChooser h3 {
+  font-size: clamp(1.55rem, 2.5vw, 2rem);
+  margin: 1.4rem 0 0;
+}
+
+.pathChooser article {
+  display: grid;
+  min-height: 22rem;
+}
+
+.pathChooser article > span {
+  color: var(--violet);
+  font-size: max(0.7rem, 12px);
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pathChooser article p,
+.toolHero p {
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.pathChooser article a {
+  align-self: end;
+  border-bottom: 1px solid var(--line-strong);
+  justify-self: start;
+  min-height: 2.75rem;
+  padding-top: 0.8rem;
+}
+
+.toolShell {
+  padding-bottom: var(--rhythm-major);
+}
+
+.toolHero {
+  padding: clamp(3.5rem, 8vw, 6.5rem) 0 clamp(2.5rem, 6vw, 4.5rem);
+}
+
+.toolHero h1 {
+  font-size: clamp(2.6rem, 5vw, 4.8rem);
+  margin: 0.8rem 0 0;
+  max-width: 58rem;
+}
+
+.toolHero p {
+  font-family: var(--serif);
+  font-size: clamp(1.05rem, 1.7vw, 1.3rem);
+  max-width: 50rem;
+}
+
 .principles {
   border-block: 1px solid var(--line-strong);
   display: grid;
@@ -56,8 +139,19 @@
   .shell,
   .footer { width: calc(100% - 2.2rem); }
   .principles,
-  .protocol { grid-template-columns: 1fr; }
+  .protocol,
+  .pathChooser { grid-template-columns: 1fr; }
   .principles article { padding: 1rem 0; }
   .principles article + article { border-left: 0; border-top: 1px solid var(--line); }
   .protocol nav { grid-column: 1; }
+  .pathChooser > * {
+    padding: 1.5rem 0;
+  }
+  .pathChooser > * + * {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+  .pathChooser article {
+    min-height: 18rem;
+  }
 }

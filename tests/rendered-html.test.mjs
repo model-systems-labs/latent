@@ -19,35 +19,20 @@ test("the landing page presents the framework and its reference course", async (
   const response = await render("/");
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /Build your own learning platform with agents/);
-  assert.match(html, /opinionated open-source framework/);
-  assert.match(html, /browser IDE lessons, flash cards, and programming practice/);
-  assert.match(html, /LLM systems curriculum as a complete reference implementation/);
-  assert.match(html, /Create portable content/);
-  assert.match(html, /Explore the LLM course/);
-  assert.match(html, /The reference implementation goes deep/);
-  assert.match(html, /Browser-native LLM system/);
-  assert.match(html, /Prompt \+ messages/);
-  assert.match(html, /Tokenizer/);
-  assert.match(html, /Prefill/);
-  assert.match(html, /Decode loop/);
-  assert.match(html, /KV cache/);
-  assert.match(html, /Scheduler/);
-  assert.match(html, /SSE stream/);
-  assert.match(html, /Streaming transport/);
-  assert.match(html, /React reducer/);
-  assert.match(html, /Browser persistence/);
-  assert.match(html, /Browser Chat/);
-  assert.match(html, /aria-label="System boundaries"/);
-  assert.match(html, /aria-label="Request and token event flow"/);
-  assert.match(html, /The implementation accumulates/);
-  assert.match(html, /This is not a production-scale model or serving stack/);
-  assert.match(html, /models\/character-rnn\.py/);
-  assert.match(html, /capstone\/BrowserChat\.tsx/);
+  assert.match(html, /Build a learning platform you own/);
+  assert.match(html, /open-source framework for browser-native courses/);
+  assert.match(html, /The platform is not the course library/);
+  assert.match(html, /Build and publish a platform/);
+  assert.match(html, /Inspect courses built with Latent/);
+  assert.match(html, /A visible path from source to learner/);
+  assert.match(html, /aria-label="Platform publishing pipeline"/);
+  assert.match(html, /Portable content or reviewed application source/);
+  assert.match(html, /Schemas, quality checks, tests, and deterministic builds/);
+  assert.match(html, /packages\/course-kit\//);
+  assert.match(html, /app\/  # reference implementation/);
   assert.match(html, /href="\/open-learning"/);
-  assert.match(html, /href="\/courses\/llm-systems"/);
-  assert.doesNotMatch(html, /Open the course|Build the system|Token generation is the midpoint|It is free to use/);
-  assert.doesNotMatch(html, /Character-level RNN training|course-track-card catalog-track-card|Run the first model/);
+  assert.match(html, /href="\/course"/);
+  assert.doesNotMatch(html, /Edit text|Edit lesson|href="\/workspace"/);
 });
 
 test("the course catalog separates foundations, agent systems, and the cumulative LLM project", async () => {
@@ -80,14 +65,30 @@ test("open learning exposes self-hosted feeds and local package authoring", asyn
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /Anyone can publish a lesson/);
-  assert.match(html, /Open a hosted lesson feed/);
-  assert.match(html, /Make your own lesson or flash-card site/);
-  assert.match(html, /learning-feed-url/);
-  assert.match(html, /learning-pack-source/);
-  assert.match(html, /Download host-ready site/);
+  assert.match(html, /Reading and publishing are different jobs/);
+  assert.match(html, /Verify and read a hosted feed/);
+  assert.match(html, /Validate and build a portable site/);
+  assert.match(html, /href="\/open-learning\/read"/);
+  assert.match(html, /href="\/open-learning\/publish"/);
+  assert.doesNotMatch(html, /learning-feed-url|learning-pack-source/);
   assert.match(html, /Portable content\. Constrained runtime/);
   assert.match(html, /Remote JavaScript, HTML, Python, React, iframes, workers/);
   assert.doesNotMatch(html, /Submit for approval|Upload to Latent|central repository/i);
+});
+
+test("open learning gives readers and publishers separate tools", async () => {
+  const readerResponse = await render("/open-learning/read");
+  const publisherResponse = await render("/open-learning/publish");
+  assert.equal(readerResponse.status, 200);
+  assert.equal(publisherResponse.status, 200);
+  const reader = await readerResponse.text();
+  const publisher = await publisherResponse.text();
+  assert.match(reader, /learning-feed-url/);
+  assert.match(reader, /Open a hosted lesson feed/);
+  assert.doesNotMatch(reader, /learning-pack-source|Download host-ready site/);
+  assert.match(publisher, /learning-pack-source/);
+  assert.match(publisher, /Download host-ready site/);
+  assert.doesNotMatch(publisher, /learning-feed-url|Save on this device/);
 });
 
 test("Harness Engineering renders as an eight-lesson applied course with its own project", async () => {

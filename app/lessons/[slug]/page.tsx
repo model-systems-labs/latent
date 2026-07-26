@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { LessonCopyEditor } from "../../components/LessonCopyEditor";
+import { PaperLab } from "../../components/PaperLab";
 import { allRoutedLessons, getLesson } from "../course";
 import { lessonLearningOutcome } from "../learning";
 
@@ -19,5 +19,5 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
   const { slug } = await params;
   const lesson = getLesson(slug);
   if (!lesson) notFound();
-  return <LessonCopyEditor lesson={lesson} outcome={lessonLearningOutcome(lesson.id)} />;
+  return <PaperLab lesson={lesson} outcome={lessonLearningOutcome(lesson.id)} />;
 }

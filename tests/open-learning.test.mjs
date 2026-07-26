@@ -208,22 +208,23 @@ test("the live LLM entrypoint and public workflow documents are self-contained",
 });
 
 test("community rendering stays declarative and outside privileged runtimes", async () => {
-  const [studio, helper] = await Promise.all([
-    readFile(new URL("app/open-learning/OpenLearningStudio.tsx", root), "utf8"),
+  const [reader, publisher, helper] = await Promise.all([
+    readFile(new URL("app/open-learning/HostedLearningReader.tsx", root), "utf8"),
+    readFile(new URL("app/open-learning/LearningPackPublisher.tsx", root), "utf8"),
     readFile(new URL("app/lib/open-learning.ts", root), "utf8"),
   ]);
-  const source = `${studio}\n${helper}`;
+  const source = `${reader}\n${publisher}\n${helper}`;
   assert.doesNotMatch(source, /dangerouslySetInnerHTML|\beval\s*\(|new Function|browser-lab|python-lab|Worker\s*\(/);
-  assert.match(studio, /credentials: "omit"/);
-  assert.match(studio, /referrerPolicy: "no-referrer"/);
-  assert.match(studio, /redirect: "error"/);
-  assert.match(studio, /response\.body\.getReader\(\)/);
-  assert.match(studio, /hostedRequestGeneration/);
-  assert.match(studio, /requestGeneration !== hostedRequestGeneration\.current/);
-  assert.match(studio, /setFeedInput\(parsed\.feedUrl\)/);
-  assert.match(studio, /key=\{`\$\{hostedPreview\.feedUrl\}:\$\{hostedPreview\.sha256\}`\}/);
-  assert.match(studio, /Resolve every quality warning/);
-  assert.match(studio, /Save on this device/);
-  assert.match(studio, /Not reviewed by Latent/);
-  assert.match(studio, /Hosted at \{publisherHost\} · Identity not verified/);
+  assert.match(reader, /credentials: "omit"/);
+  assert.match(reader, /referrerPolicy: "no-referrer"/);
+  assert.match(reader, /redirect: "error"/);
+  assert.match(reader, /response\.body\.getReader\(\)/);
+  assert.match(reader, /hostedRequestGeneration/);
+  assert.match(reader, /requestGeneration !== hostedRequestGeneration\.current/);
+  assert.match(reader, /setFeedInput\(parsed\.feedUrl\)/);
+  assert.match(reader, /key=\{`\$\{hostedPreview\.feedUrl\}:\$\{hostedPreview\.sha256\}`\}/);
+  assert.match(publisher, /Resolve every quality warning/);
+  assert.match(reader, /Save on this device/);
+  assert.match(reader, /Not reviewed by Latent/);
+  assert.match(reader, /Hosted at \{publisherHost\} · Identity not verified/);
 });

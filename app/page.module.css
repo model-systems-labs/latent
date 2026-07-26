@@ -11,6 +11,17 @@
   min-height: 2.75rem;
 }
 
+.header :global(.wordmark small) {
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: max(0.64rem, 11px);
+  font-style: normal;
+  font-weight: 560;
+  letter-spacing: 0.08em;
+  margin-left: 0.4rem;
+  text-transform: uppercase;
+}
+
 .headerLink {
   align-items: center;
   color: var(--muted);
@@ -39,13 +50,12 @@
 .hero {
   align-content: center;
   display: grid;
-  min-height: 0;
   padding: var(--rhythm-landing) 0;
 }
 
 .hero h1 {
   font-family: var(--serif);
-  font-size: clamp(3.1rem, 4.8vw, 4.25rem);
+  font-size: clamp(3.1rem, 5.4vw, 5rem);
   font-weight: 400;
   letter-spacing: -0.065em;
   line-height: 0.96;
@@ -86,90 +96,16 @@
   gap: 1rem;
 }
 
-.primaryAction:hover,
-.primaryAction:focus-visible {
-  border-color: var(--ink);
-}
-
 .secondaryAction {
   color: var(--muted);
 }
 
+.primaryAction:hover,
+.primaryAction:focus-visible,
 .secondaryAction:hover,
 .secondaryAction:focus-visible {
   border-color: var(--ink);
   color: var(--ink);
-}
-
-.copyToolbar {
-  align-items: center;
-  background: rgba(244, 240, 232, 0.9);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  bottom: 1rem;
-  color: var(--muted);
-  display: flex;
-  font-size: max(0.72rem, 12px);
-  gap: 0.5rem;
-  padding: 0.2rem;
-  position: fixed;
-  right: 1rem;
-  z-index: 20;
-}
-
-.copyToolbar button {
-  background: transparent;
-  border: 0;
-  border-radius: 999px;
-  color: var(--ink);
-  cursor: pointer;
-  font: inherit;
-  min-height: 2.75rem;
-  padding: 0 0.9rem;
-}
-
-.copyToolbar button:hover,
-.copyToolbar button:focus-visible,
-.copyToolbar button[aria-pressed="true"] {
-  background: var(--violet-wash);
-}
-
-.copyToolbar span {
-  min-width: 4.8rem;
-  padding-right: 0.65rem;
-}
-
-.copyInput {
-  appearance: none;
-  background: rgba(255, 255, 255, 0.58);
-  border: 1px solid var(--violet);
-  border-radius: 6px;
-  color: inherit;
-  display: block;
-  font: inherit;
-  letter-spacing: inherit;
-  line-height: inherit;
-  margin: -0.25rem 0;
-  overflow: hidden;
-  padding: 0.25rem 0.35rem;
-  resize: none;
-  width: 100%;
-}
-
-.copyInput:focus {
-  border-color: var(--ink);
-  outline: 2px solid var(--violet-wash);
-  outline-offset: 2px;
-}
-
-[data-site-copy-editing="true"] {
-  display: block;
-  max-width: inherit;
-}
-
-[data-site-copy-inline="true"] .copyInput {
-  min-height: 2.1rem;
-  width: min(18rem, 100%);
 }
 
 .argument {
@@ -184,6 +120,7 @@
   letter-spacing: -0.055em;
   line-height: 1;
   margin: 0;
+  max-width: 50rem;
 }
 
 .argument > p {
@@ -193,6 +130,64 @@
   line-height: 1.7;
   margin: 1.1rem 0 0;
   max-width: 53rem;
+}
+
+.argument > :global(.eyebrow) {
+  display: block;
+  margin-bottom: 1.1rem;
+}
+
+.boundaryGrid {
+  display: grid;
+  gap: 1px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: clamp(2.4rem, 4vw, 3.5rem);
+}
+
+.boundaryCard {
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  display: grid;
+  min-height: 21rem;
+  padding: 1.3rem clamp(1.25rem, 3vw, 2.4rem) 1.5rem 0;
+}
+
+.boundaryCard + .boundaryCard {
+  border-left: 1px solid var(--line);
+  padding-left: clamp(1.25rem, 3vw, 2.4rem);
+}
+
+.boundaryCard > span {
+  color: var(--violet);
+  font-size: max(0.7rem, 12px);
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.boundaryCard h3 {
+  font-family: var(--serif);
+  font-size: clamp(1.7rem, 2.7vw, 2.35rem);
+  font-weight: 400;
+  letter-spacing: -0.045em;
+  line-height: 1.05;
+  margin: 1.6rem 0 0;
+  max-width: 24rem;
+}
+
+.boundaryCard p {
+  color: var(--muted);
+  line-height: 1.65;
+  margin: 1rem 0;
+  max-width: 31rem;
+}
+
+.boundaryCard a {
+  align-self: end;
+  border-bottom: 1px solid var(--line-strong);
+  justify-self: start;
+  min-height: 2.75rem;
+  padding-top: 0.8rem;
 }
 
 .architecture {
@@ -218,197 +213,75 @@
 
 .architectureCaption strong {
   font-family: var(--serif);
-  font-size: 1.2rem;
+  font-size: clamp(1.4rem, 2.3vw, 1.8rem);
   font-weight: 400;
 }
 
-.architectureCaption span {
-  color: var(--violet-deep);
-  font-family: var(--mono);
-  font-size: max(0.68rem, 11px);
-  letter-spacing: 0.09em;
-  margin-top: 0.35rem;
-  text-transform: uppercase;
+.architectureCaption span,
+.architectureCaption p {
+  color: var(--muted);
+  font-size: max(0.75rem, 12px);
+  line-height: 1.55;
 }
 
 .architectureCaption p {
-  color: var(--muted);
-  font-size: max(0.72rem, 12px);
-  line-height: 1.55;
   margin: 0;
-  max-width: 34rem;
+  max-width: 35rem;
 }
 
-.architectureOverview {
+.platformFlow {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  list-style: none;
-  margin: clamp(2.1rem, 4.2vw, 3.3rem) 0 clamp(1.75rem, 3.5vw, 2.8rem);
-  padding: 0;
-}
-
-.architectureOverview li {
-  border-top: 1px solid var(--line-strong);
-  display: grid;
-  gap: 0.5rem;
-  padding: 1.15rem 2.5rem 0 0;
-  position: relative;
-}
-
-.architectureOverview li + li {
-  padding-left: 1.5rem;
-}
-
-.architectureOverview li:not(:last-child)::after {
-  color: var(--violet);
-  content: "→";
-  font-family: var(--mono);
-  position: absolute;
-  right: 0.75rem;
-  top: 1.15rem;
-}
-
-.architectureOverview span {
-  color: var(--violet);
-  font-family: var(--mono);
-  font-size: max(0.68rem, 11px);
-  letter-spacing: 0.08em;
-}
-
-.architectureOverview strong {
-  font-family: var(--serif);
-  font-size: clamp(1.5rem, 2.4vw, 2rem);
-  font-weight: 400;
-  letter-spacing: -0.035em;
-}
-
-.architectureOverview p {
-  color: var(--muted);
-  font-size: max(0.72rem, 12px);
-  line-height: 1.55;
-  margin: 0;
-  max-width: 16rem;
-}
-
-.architectureDeepDive {
-  border-top: 1px solid var(--line);
-  padding-top: 0.5rem;
-}
-
-.architectureBoundaries,
-.architectureFlow {
-  display: grid;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.architectureBoundaries {
-  grid-template-columns: repeat(8, minmax(0, 1fr));
-  margin-top: 2rem;
-}
-
-.architectureBoundaries li {
-  border-top: 1px solid var(--line-strong);
-  display: grid;
-  gap: 0.25rem;
-  padding: 0.75rem 0 0;
-}
-
-.architectureBoundaries li:nth-child(1) { grid-column: 1 / span 2; }
-.architectureBoundaries li:nth-child(2) { grid-column: 3 / span 3; }
-.architectureBoundaries li:nth-child(3) { grid-column: 6; }
-.architectureBoundaries li:nth-child(4) { grid-column: 7 / span 2; }
-
-.architectureBoundaries span,
-.architectureBoundaries strong {
-  font-size: max(0.68rem, 11px);
-  font-weight: 500;
-}
-
-.architectureBoundaries span { color: var(--violet); font-family: var(--mono); }
-.architectureBoundaries strong { color: var(--muted); }
-
-.architectureFlow {
-  grid-template-columns: repeat(8, minmax(0, 1fr));
-  margin-top: 1.5rem;
-}
-
-.architectureFlow li {
-  border-top: 1px solid var(--line);
-  display: grid;
-  gap: 0.45rem;
-  min-width: 0;
-  padding: 1rem 0.7rem 1.4rem 0;
-}
-
-.architectureFlow strong {
-  font-family: var(--serif);
-  font-size: clamp(0.9rem, 1.3vw, 1.05rem);
-  font-weight: 400;
-}
-
-.architectureFlow code {
-  color: var(--muted);
-  font-size: max(0.68rem, 11px);
-  overflow-wrap: anywhere;
-  white-space: normal;
-}
-
-.architectureScope { display: none; }
-.architectureArrow { color: var(--violet); font-style: normal; }
-
-.architectureState {
-  border-top: 1px solid var(--line);
-  display: grid;
-  gap: 1.25rem;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  padding: 1.25rem 0;
+  list-style: none;
+  margin: 2rem 0 0;
+  padding: 0;
 }
 
-.architectureState > div {
+.platformFlow li {
+  border-left: 1px solid var(--line);
   display: grid;
-  gap: 0.35rem;
+  min-height: 13rem;
+  padding: 0.85rem 1.15rem 1rem;
 }
 
-.architectureState strong {
-  color: var(--violet-deep);
+.platformFlow li:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
+
+.platformFlow li > span {
+  color: var(--violet);
+  font-family: var(--mono);
   font-size: max(0.68rem, 11px);
-  font-weight: 590;
 }
 
-.architectureState code {
+.platformFlow strong {
+  align-self: end;
+  font-family: var(--serif);
+  font-size: clamp(1.45rem, 2.2vw, 1.9rem);
+  font-weight: 400;
+}
+
+.platformFlow p {
   color: var(--muted);
-  font-size: max(0.68rem, 11px);
-  line-height: 1.45;
-  white-space: normal;
+  font-size: max(0.78rem, 13px);
+  line-height: 1.5;
+  margin: 0.65rem 0 0;
 }
-
-.architectureLegend {
-  border-top: 1px solid var(--line);
-  color: var(--muted);
-  display: flex;
-  font-size: max(0.68rem, 11px);
-  gap: 1.25rem;
-  padding: 1rem 0;
-}
-
-.architectureLegend i { display: none; }
 
 .projectTree {
   border-bottom: 1px solid var(--line);
   border-top: 1px solid var(--line);
   display: grid;
-  font-family: var(--mono);
-  margin: 0;
-  padding: 2rem 0;
+  margin-top: clamp(2.1rem, 4.2vw, 3.15rem);
+  padding: 1.65rem 0;
 }
 
 .projectTree > span {
-  color: var(--violet-deep);
-  font-size: max(0.78rem, 13px);
+  font-family: var(--mono);
+  font-size: max(0.76rem, 13px);
   font-weight: 650;
-  margin-bottom: 0.8rem;
+  margin-bottom: 0.4rem;
 }
 
 .projectTree code {
@@ -423,11 +296,6 @@
   display: inline-block;
   font-style: normal;
   width: 2.4rem;
-}
-
-.projectDetails {
-  border-bottom: 1px solid var(--line);
-  margin-top: clamp(2.1rem, 4.2vw, 3.15rem);
 }
 
 .footer {
@@ -478,20 +346,11 @@
 
   .hero p {
     font-size: 1.06rem;
-    line-height: 1.58;
-    margin-top: 1.5rem;
   }
 
   .actions {
     align-items: flex-start;
     flex-direction: column;
-    margin-top: 1.8rem;
-  }
-
-  .copyToolbar {
-    bottom: 0.7rem;
-    left: auto;
-    right: 0.7rem;
   }
 
   .argument {
@@ -502,8 +361,19 @@
     font-size: clamp(2.15rem, 8.8vw, 2.6rem);
   }
 
-  .architecture {
-    padding-top: 1.25rem;
+  .boundaryGrid,
+  .platformFlow {
+    grid-template-columns: 1fr;
+  }
+
+  .boundaryCard {
+    min-height: 18rem;
+    padding-right: 0;
+  }
+
+  .boundaryCard + .boundaryCard {
+    border-left: 0;
+    padding-left: 0;
   }
 
   .architectureCaption {
@@ -511,77 +381,36 @@
     grid-template-columns: 1fr;
   }
 
-  .architectureCaption p {
-    max-width: 30rem;
-  }
-
-  .architectureOverview {
-    grid-template-columns: 1fr;
-    margin: 1.9rem 0 1.4rem;
-  }
-
-  .architectureOverview li,
-  .architectureOverview li + li {
-    gap: 0.25rem 1rem;
-    grid-template-columns: 2rem 6rem minmax(0, 1fr);
+  .platformFlow li,
+  .platformFlow li:first-child {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    grid-template-columns: 2.5rem minmax(6rem, 0.55fr) 1fr;
+    min-height: 0;
     padding: 1rem 0;
   }
 
-  .architectureOverview li + li {
-    border-top-color: var(--line);
+  .platformFlow strong {
+    align-self: start;
   }
 
-  .architectureOverview li:not(:last-child)::after {
-    display: none;
-  }
-
-  .architectureOverview strong {
-    font-size: 1.35rem;
-  }
-
-  .architectureOverview p {
-    align-self: center;
-    grid-column: 3;
-    grid-row: 1;
-  }
-
-  .architectureBoundaries {
-    display: none;
-  }
-
-  .architectureFlow {
-    grid-template-columns: 1fr;
-    margin-top: 1rem;
-  }
-
-  .architectureFlow li {
-    grid-template-columns: minmax(7rem, 0.7fr) 1fr auto;
-    padding: 0.8rem 0;
-  }
-
-  .architectureScope {
-    color: var(--violet-deep);
-    display: block;
-    font-size: max(0.68rem, 11px);
-  }
-
-  .architectureState {
-    gap: 1rem;
-    grid-template-columns: 1fr;
-  }
-
-  .architectureLegend {
-    flex-direction: column;
-    gap: 0.55rem;
+  .platformFlow p {
+    margin: 0;
   }
 
   .projectTree {
     overflow-x: auto;
-    padding: 1.5rem 0;
   }
 
   .footer {
-    min-height: 3.85rem;
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 1rem 0;
+  }
+
+  .footer nav {
+    flex-wrap: wrap;
+    gap: 0 1.25rem;
   }
 }
 

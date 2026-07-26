@@ -11,7 +11,8 @@ There is no required central upload, account, model provider, database, or appli
 - A provider-neutral command-line tool for initialization, inspection, validation, deterministic builds, local preview, and remote verification.
 - A standalone, responsive learning site generated from the same validated package.
 - An HTTPS feed containing exact package identity, version, byte count, and SHA-256 digest.
-- A browser studio at `/open-learning` that can validate and build locally without the command line.
+- A browser publishing studio at `/open-learning/publish` that can validate and build locally without the command line.
+- A separate hosted-feed reader at `/open-learning/read` that verifies content before rendering it.
 - A hosted-feed reader that verifies content before rendering and can retain an immutable version on the learner's device.
 - Authoring, independent review, and publishing skills that any capable file-editing LLM can follow.
 
@@ -57,7 +58,7 @@ npm exec --yes --package "$COURSE_KIT_RELEASE" -- \
 
 Open `http://127.0.0.1:4173`. The built directory is the deployable artifact.
 
-The browser workflow is simpler: open `/open-learning`, edit or import `learning-pack.json`, and choose **Download host-ready site**.
+The browser workflow is simpler: open `/open-learning/publish`, edit or import `learning-pack.json`, and choose **Download host-ready site**.
 
 When contributing inside the Latent monorepo, the equivalent fallback is:
 

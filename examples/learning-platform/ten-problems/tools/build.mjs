@@ -49,6 +49,8 @@ const pyodideFiles = [
   "pyodide-lock.json",
 ];
 const generatedLintHeader = "/* eslint-disable -- generated third-party runtime */\n";
+const remoteJsDelivrUrlPattern =
+  /(?:https?:)?\/\/cdn\.jsdelivr\.net(?:[/:?#]|$)/u;
 
 function sha256(bytes) {
   return createHash("sha256").update(bytes).digest("hex");
@@ -166,7 +168,7 @@ export const PYODIDE_CDN_URL = new URL("./pyodide/", import.meta.url).href;
   }
   const source = result.outputFiles[0].text;
   if (
-    source.includes("cdn.jsdelivr.net")
+    remoteJsDelivrUrlPattern.test(source)
     || !source.includes('new URL("./pyodide/", import.meta.url).href')
   ) {
     throw new Error("The generated Python worker did not bind Pyodide to same-origin assets.");

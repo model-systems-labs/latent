@@ -86,7 +86,7 @@ test("the learner UI foundation publishes stable tokens, responsive breakpoints,
   );
 });
 
-test("five constrained palettes change semantic color without changing the design grammar", () => {
+test("five constrained palettes change color and atmosphere without changing component grammar", () => {
   assert.deepEqual(
     [...LEARNER_UI_PALETTE_NAMES],
     ["paper", "sage", "cobalt", "plum", "graphite"],
@@ -94,24 +94,59 @@ test("five constrained palettes change semantic color without changing the desig
   assert.deepEqual(Object.keys(LEARNER_UI_PALETTES), [...LEARNER_UI_PALETTE_NAMES]);
 
   const cssByPalette = LEARNER_UI_PALETTE_NAMES.map((palette) => (
-    createLearnerUiCss(resolveLearnerUiTheme({ palette }))
+    createLearnerUiCss(resolveLearnerUiTheme({ palette }), { palette })
   ));
-  const withoutColors = (css) => css.replace(
-    /--learner-color-[a-z-]+: #[0-9a-f]{6};/g,
-    "--learner-color-token: <palette>;",
-  );
-  assert.equal(new Set(cssByPalette.map(withoutColors)).size, 1);
+  const recipes = cssByPalette.map((css) => (
+    css.match(/--learner-background-recipe: ([a-z]+);/)?.[1]
+  ));
+  const images = cssByPalette.map((css) => (
+    css.match(/--learner-background-image: ([^;]+);/)?.[1]
+  ));
+  assert.deepEqual(recipes, [...LEARNER_UI_PALETTE_NAMES]);
+  assert.equal(new Set(images).size, LEARNER_UI_PALETTE_NAMES.length);
+  const withoutPaletteValues = (css) => css
+    .replace(
+      /--learner-color-[a-z-]+: #[0-9a-f]{6};/g,
+      "--learner-color-token: <palette>;",
+    )
+    .replace(
+      /--learner-background-(?:recipe|image|position|repeat|size): [^;]+;/g,
+      "--learner-background-token: <palette>;",
+    );
+  assert.equal(new Set(cssByPalette.map(withoutPaletteValues)).size, 1);
   assert.match(cssByPalette[0], /--learner-color-canvas: #f4f0e8;/);
   assert.match(cssByPalette[0], /--learner-color-accent: #78667d;/);
   assert.match(cssByPalette[0], /--learner-font-reading: "Iowan Old Style"/);
+  assert.match(cssByPalette[0], /--learner-background-recipe: paper;/);
   assert.match(cssByPalette[1], /--learner-color-accent: #47705d;/);
+  assert.match(cssByPalette[1], /--learner-color-canvas: #eaf1e8;/);
   assert.match(cssByPalette[2], /--learner-color-accent: #42629b;/);
+  assert.match(cssByPalette[2], /--learner-color-canvas: #eaf0fa;/);
+  assert.doesNotMatch(cssByPalette.join("\n"), /url\(|https?:/);
 
   const legacyCss = createLearnerUiCss({ accent: "#123abc" });
   assert.match(legacyCss, /--learner-color-accent: #123abc;/);
+  assert.match(legacyCss, /--learner-background-recipe: paper;/);
+  const sageOverrideCss = createLearnerUiCss(
+    resolveLearnerUiTheme({
+      palette: "sage",
+      theme: { accent: "#123abc" },
+    }),
+    { palette: "sage" },
+  );
+  assert.match(sageOverrideCss, /--learner-color-accent: #123abc;/);
+  assert.match(sageOverrideCss, /--learner-background-recipe: sage;/);
   assert.throws(
     () => resolveLearnerUiTheme({ palette: "neon" }),
     /Unknown learner UI palette/,
+  );
+  assert.throws(
+    () => createLearnerUiCss({}, { palette: "neon" }),
+    /Unknown learner UI palette/,
+  );
+  assert.throws(
+    () => createLearnerUiCss({}, { pattern: "grid" }),
+    /Unknown learner UI CSS option/,
   );
   assert.throws(
     () => resolveLearnerUiTheme({ palette: "paper", spacing: "loose" }),

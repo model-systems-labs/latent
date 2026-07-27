@@ -431,11 +431,14 @@ section nav after the lesson introduction rather than another full-width bar.
 
 The reviewed palettes are `paper`, `sage`, `cobalt`, `plum`, and `graphite`;
 `paper` is the default. Ten Problems supplies only
-`appearance.palette: "cobalt"`. Palette choice changes color identity while
-the editorial type system, layout, components, focus treatment, and responsive
-contract remain shared. A low-level trusted token override remains for
-compatibility, but the reviewed examples do not use it and the builder rejects
-combining `ui.appearance` with the legacy top-level `ui.theme`.
+`appearance.palette: "cobalt"`. Palette choice changes semantic color and the
+reviewed CSS-only background atmosphere—Cobalt uses a quiet blueprint
+grid—while the editorial type system, layout, components, focus treatment,
+and responsive contract remain shared. Learning Studio uses Paper, the
+original course uses Plum, and Interview Loop uses Sage. A low-level trusted
+token override remains for compatibility, but the reviewed examples do not
+use it and the builder rejects combining `ui.appearance` with the legacy
+top-level `ui.theme`.
 
 No portable Question Group or Learning Pack contract changed. Canonical bytes,
 digest-bound drafts/progress, public declarative cases, trusted Python checks,
@@ -464,7 +467,7 @@ feedback, progress, focus, and mobile language.
 | --- | --- | --- |
 | Design ownership | Three shells approximated a family with local CSS. | Course Kit owns one exact foundation consumed by static and React builds. |
 | Headers | Family, product, and activity bars created stacked header-like rows. | One global header; problem, lesson, and editor navigation remains contextual. |
-| Theme choice | Raw token maps could recreate unrelated products. | Five reviewed palettes vary color while framework geometry and behavior stay invariant. |
+| Theme choice | Raw token maps could recreate unrelated products. | Five reviewed palettes vary the background atmosphere and semantic color while framework geometry and behavior stay invariant. |
 | Coding surfaces | Ten Problems and Interview's IDE used different control and result languages. | Both inherit shared editor framing, actions, status, and feedback while preserving different workspace flows. |
 | Customization | Generated output was patched to establish the product interface. | `site-config.mjs` and the builder establish identity, labels, routes, palette, and runtime before rendering. |
 | Mobile/a11y | Products reconciled menus, landmarks, focus, and short viewports independently. | Shared compact disclosure, skip target, Escape restoration, visible focus, live regions, and breakpoints form the baseline. |

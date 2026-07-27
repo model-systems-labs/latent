@@ -728,11 +728,13 @@ the site header.
 
 The reviewed palettes are `paper`, `sage`, `cobalt`, `plum`, and `graphite`;
 `paper` is the default. Interview Loop supplies only
-`appearance.palette: "sage"`. Palette choice changes color identity while the
-editorial type system, layout, components, focus treatment, and responsive
-contract remain shared. A low-level trusted token override is retained for
-compatibility, but it is not used by the examples and cannot be combined with
-the legacy top-level `theme` input.
+`appearance.palette: "sage"`. Palette choice changes semantic color and the
+reviewed CSS-only background atmosphere—Sage uses an organic Field Notes
+composition—while the editorial type system, layout, components, focus
+treatment, and responsive contract remain shared. Learning Studio uses Paper,
+the original course uses Plum, and Ten Problems uses Cobalt. A low-level
+trusted token override is retained for compatibility, but it is not used by
+the examples and cannot be combined with the legacy top-level `theme` input.
 
 No portable Learning Pack or Question Group contract changed. Canonical bytes,
 digest-bound resume/progress, module/quiz/card state, public declarative cases,
@@ -761,7 +763,7 @@ feedback, progress, focus, and mobile language.
 | --- | --- | --- |
 | Design ownership | Three shells approximated a family with local CSS. | Course Kit owns one exact foundation consumed by static and React builds. |
 | Headers | Site navigation and activity bars stacked into multiple header-like rows. | One global header; sectional and editor navigation lives within content. |
-| Theme choice | Raw token maps could recreate different products. | Five reviewed palettes vary color while framework geometry and behavior stay invariant. |
+| Theme choice | Raw token maps could recreate different products. | Five reviewed palettes vary the background atmosphere and semantic color while framework geometry and behavior stay invariant. |
 | Course vs. practice | Different typography, controls, progress, and feedback amplified the layout difference. | Specialized information architecture sits on shared editorial components and states. |
 | Customization | Generated output and example-local shell code carried primary presentation. | Trusted builder config supplies identity, labels, routes, palette, and footer before rendering. |
 | Mobile/a11y | Each product reconciled menus, landmarks, focus, and short viewports independently. | Shared compact disclosure, skip target, Escape restoration, visible focus, live regions, and breakpoints form the baseline. |

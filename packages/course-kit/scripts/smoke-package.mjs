@@ -120,7 +120,7 @@ try {
   await run(process.execPath, [
     "--input-type=module",
     "--eval",
-    "import { LEARNER_UI_VERSION, LEARNER_UI_BREAKPOINTS, createLearnerUiCss, renderLearnerHeader, resolveLearnerUiTheme } from '@latent/course-kit/learner-ui'; const css = createLearnerUiCss(resolveLearnerUiTheme({ palette: 'paper' })); const header = renderLearnerHeader({ productName: 'Practice', homeHref: './', navigationLabel: 'Practice navigation', navigation: [{ label: 'Problems', href: './', current: true }] }); if (LEARNER_UI_VERSION !== 2 || LEARNER_UI_BREAKPOINTS.compact !== 760 || !css.includes('--learner-color-accent:') || !header.includes('aria-current=\"page\"')) process.exit(1);",
+    "import { LEARNER_UI_VERSION, LEARNER_UI_BREAKPOINTS, createLearnerUiCss, renderLearnerHeader, resolveLearnerUiTheme } from '@latent/course-kit/learner-ui'; const css = createLearnerUiCss(resolveLearnerUiTheme({ palette: 'plum' }), { palette: 'plum' }); const header = renderLearnerHeader({ productName: 'Practice', homeHref: './', navigationLabel: 'Practice navigation', navigation: [{ label: 'Problems', href: './', current: true }] }); if (LEARNER_UI_VERSION !== 2 || LEARNER_UI_BREAKPOINTS.compact !== 760 || !css.includes('--learner-color-accent:') || !css.includes('--learner-background-recipe: plum') || !header.includes('aria-current=\"page\"')) process.exit(1);",
   ], { cwd: consumer });
   await run(process.execPath, [
     "--input-type=module",

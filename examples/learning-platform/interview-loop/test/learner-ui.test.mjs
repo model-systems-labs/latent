@@ -41,7 +41,10 @@ test("build-time learner UI config renders the shared shell and local assets", a
     ...platform.learnerUi.header,
   });
   const footer = renderLearnerFooter(platform.learnerUi.footer);
-  const css = createLearnerUiCss(resolveLearnerUiTheme(platform.learnerUi.appearance));
+  const css = createLearnerUiCss(
+    resolveLearnerUiTheme(platform.learnerUi.appearance),
+    { palette: platform.learnerUi.appearance.palette },
+  );
   assert.match(header, /class="learner-header"/);
   assert.match(header, /class="learner-global-nav"/);
   assert.match(header, /href="\.\.\/">Learning Studio<\/a>/);
@@ -53,8 +56,10 @@ test("build-time learner UI config renders the shared shell and local assets", a
   assert.match(header, /href="#review"[^>]*data-view="cards"/);
   assert.match(header, /href="#coding-lab"[^>]*data-view="ide"/);
   assert.match(footer, /Built with Latent\./);
-  assert.match(css, /--learner-color-canvas: #f2f4ed/);
+  assert.match(css, /--learner-color-canvas: #eaf1e8/);
   assert.match(css, /--learner-color-accent: #47705d/);
+  assert.match(css, /--learner-background-recipe: sage/);
+  assert.match(css, /ellipse 46rem 62rem at -14% 58%/);
   assert.match(css, /--learner-font-reading: "Iowan Old Style"/);
   assert.match(css, /:focus-visible/);
   assert.match(css, /@media \(max-width: 760px\)/);
@@ -64,6 +69,7 @@ test("build-time learner UI config renders the shared shell and local assets", a
   for (const asset of ["index.html", "learner-ui.css", "learner-ui.js"]) {
     assert.match(buildSource, new RegExp(asset.replace(".", "\\.")));
   }
+  assert.match(buildSource, /\{ palette: platform\.learnerUi\.appearance\.palette \}/);
   assert.doesNotMatch(buildSource, /replaceExact|replaceAll\(before/);
 });
 

@@ -253,7 +253,10 @@ try {
   await writeFile(join(temporary, "404.html"), renderLanding(), "utf8");
   await writeFile(
     join(temporary, "assets/learner-ui.css"),
-    createLearnerUiCss(resolveLearnerUiTheme({ palette: "paper" })),
+    createLearnerUiCss(
+      resolveLearnerUiTheme({ palette: "paper" }),
+      { palette: "paper" },
+    ),
     "utf8",
   );
   await writeFile(join(temporary, "assets/learner-ui.js"), learnerUiJavaScript, "utf8");

@@ -76,9 +76,9 @@ if (!appOnly) {
   outputs.push([moduleOutput, await generatedSource(), "Vendored learner UI"]);
 }
 if (!customModuleOutput) {
-  const theme = resolveLearnerUiTheme({ palette: "paper" });
+  const theme = resolveLearnerUiTheme({ palette: "plum" });
   outputs.push(
-    [appCssOutput, `${createLearnerUiCss(theme).trim()}\n`, "React learner UI stylesheet"],
+    [appCssOutput, `${createLearnerUiCss(theme, { palette: "plum" }).trim()}\n`, "React learner UI stylesheet"],
     [appJavaScriptOutput, `${learnerUiJavaScript.trim()}\n`, "React learner UI behavior"],
   );
 }

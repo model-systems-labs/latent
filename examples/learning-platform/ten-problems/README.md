@@ -24,8 +24,9 @@ truth, `packages/course-kit/src/question-group-site.ts` composes the
 coding-practice layout, and `site-config.mjs` explicitly supplies this
 product's labels, review route, `cobalt` appearance palette, footer, and
 favicon at build time. The other reviewed palette choices are `paper`, `sage`,
-`plum`, and `graphite`; palette selection does not replace the shared layout,
-typography, controls, or responsive behavior.
+`plum`, and `graphite`; Cobalt supplies the distinct blueprint-grid background,
+while palette selection does not replace the shared layout, typography,
+controls, or responsive behavior.
 `security-config.mjs` supplies the custom document meta CSP passed to the
 builder and the full static-host page/Python-worker header policies for both
 standalone and `/practice/` hosting. Supporting hosts may apply `_headers` for

@@ -14,6 +14,7 @@ import {
   renderLearnerHeader,
   resolveLearnerUiTheme,
   type LearnerUiAppearance,
+  type LearnerUiPaletteName,
   type LearnerUiTheme,
 } from "./learner-ui.js";
 
@@ -32,18 +33,25 @@ export type StandaloneLearningSiteUi = Readonly<{
   theme?: LearnerUiTheme;
 }>;
 
-function resolveStandaloneLearnerUiTheme(
+function resolveStandaloneLearnerUi(
   ui: StandaloneLearningSiteUi = {},
-): Required<LearnerUiTheme> {
+): Readonly<{
+  palette: LearnerUiPaletteName;
+  theme: Required<LearnerUiTheme>;
+}> {
   if (ui.appearance !== undefined && ui.theme !== undefined) {
     throw new Error(
       "Standalone Learning site ui.appearance and ui.theme cannot be configured together.",
     );
   }
-  return resolveLearnerUiTheme(
-    ui.appearance
-      ?? (ui.theme === undefined ? {} : { theme: ui.theme }),
-  );
+  const appearance = ui.appearance
+    ?? (ui.theme === undefined ? {} : { theme: ui.theme });
+  return Object.freeze({
+    palette: appearance.palette ?? "paper",
+    theme: resolveLearnerUiTheme(
+      appearance,
+    ),
+  });
 }
 
 function escapeHtml(value: string) {
@@ -460,7 +468,7 @@ export async function buildStandaloneLearningSite(
   }
   const pack = validation.pack;
   const ui = options.ui ?? {};
-  const learnerUiTheme = resolveStandaloneLearnerUiTheme(ui);
+  const learnerUi = resolveStandaloneLearnerUi(ui);
   const packageJson = canonicalLearningPackJson(pack);
   const packageBytes = new TextEncoder().encode(packageJson);
   const sha256 = await sha256Hex(packageBytes);
@@ -475,7 +483,7 @@ export async function buildStandaloneLearningSite(
     "learning-pack.json": packageJson,
     "learning-feed.json": `${JSON.stringify(feed, null, 2)}\n`,
     "assets/player.js": standalonePlayerJavaScript,
-    "assets/player.css": `${createLearnerUiCss(learnerUiTheme)}\n${standaloneLearningLayoutCss}`,
+    "assets/player.css": `${createLearnerUiCss(learnerUi.theme, { palette: learnerUi.palette })}\n${standaloneLearningLayoutCss}`,
     "assets/learner-ui.js": learnerUiJavaScript,
     "_headers": `/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: no-referrer\n  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()\n  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'\n\n/learning-feed.json\n  Access-Control-Allow-Origin: *\n  Cache-Control: no-cache\n\n/learning-pack.json\n  Access-Control-Allow-Origin: *\n  Cache-Control: no-cache\n`,
     "README.txt": `This is a Latent Open Learning static site.\n\nPublish this entire directory on any static web host. Share learning-feed.json with learners who want to verify or install the pack. Progress stays in each learner's browser and is namespaced to ${pack.package.id}@${pack.package.version}.\n`,

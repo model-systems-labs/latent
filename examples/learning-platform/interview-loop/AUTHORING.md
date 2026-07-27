@@ -800,5 +800,17 @@ feedback, progress, focus, and mobile language.
 
 This evidence is local Chromium emulation and keyboard inspection, not a
 physical-device or formal screen-reader certification. The final full-root
-`npm run validate` gate passed with 606 tests and zero failures. No v2 live
-commit or workflow result is claimed until deployment verification completes.
+`npm run validate` gate passed with 606 tests and zero failures.
+
+PR `#36` was squash-merged as
+`c9e86158a6b56882d098691d416d1c6001b7d698`; GitHub Actions Validate run
+`30277729862` and Deploy Learning Examples run `30277729464` completed
+successfully. Live Chromium checks at 1440 × 900 and 390 × 844 covered
+`/latent/`, `/latent/llm-systems/`, `/latent/interview-loop/`,
+`/latent/practice/`, and `/latent/practice/leeches/`. Each route exposed one
+global learner header, loaded its shared assets from the Pages origin, fit
+without horizontal overflow, and recorded zero browser-console warnings or
+errors. Interview restored its digest-bound one-of-three module resume. The
+live practice smoke produced expected/received failure feedback, then passed
+the public example and all four checks, and preserved three-of-ten progress
+after reload. Keyboard focus used the shared visible three-pixel indicator.

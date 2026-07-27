@@ -4,6 +4,36 @@
 .lessonShell[data-flair-tone="blue"] { --lesson-accent: #4c6279; }
 .lessonShell[data-flair-tone="slate"] { --lesson-accent: #58636d; }
 
+.lessonShell :global(.lesson-section-header) {
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  margin: 0 auto;
+  max-width: 60rem;
+  min-height: 3.35rem;
+  position: relative;
+  width: calc(100% - 5rem);
+  z-index: 1;
+}
+
+.lessonShell :global(.lesson-section-header nav) {
+  display: flex;
+  gap: 1.35rem;
+}
+
+.lessonShell :global(.lesson-section-header nav a) {
+  align-items: center;
+  display: inline-flex;
+  min-height: 2.75rem;
+}
+
+@media (max-width: 940px) {
+  .lessonShell :global(.lesson-section-header) {
+    width: calc(100% - 2.5rem);
+  }
+}
+
 .lessonShell[data-flair-tone] :global(.eyebrow) {
   color: var(--lesson-accent);
 }
@@ -226,10 +256,17 @@
 }
 
 @media (max-width: 650px), (max-width: 940px) and (max-height: 500px) {
+  .lessonShell :global(.lesson-section-header) {
+    min-height: 3rem;
+    width: calc(100% - 1.5rem);
+  }
+
   .lessonShell :global(.lesson-header nav) {
+    display: grid;
     gap: 0;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     justify-self: stretch;
+    width: 100%;
   }
 
   .lessonShell :global(.lesson-header nav a) { letter-spacing: 0.035em; }

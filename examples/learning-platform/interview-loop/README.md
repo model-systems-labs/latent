@@ -1,17 +1,29 @@
 # Interview Loop Lab
 
-A Python-first Latent example for experienced software engineers preparing
-behavioral stories, coding practice, and reusable system-architecture
-discussions. The technical exercises share a webhook-delivery scenario so
-coding decisions can be carried into failure-mode, scaling, observability, and
-tradeoff analysis. All learner-visible code—the lesson sketch, three portable
-questions, and the trusted IDE exercise—is Python.
+A Python-first, three-module course for experienced software engineers preparing behavioral
+stories, coding solutions, and reusable system-architecture discussions. The
+technical exercises share a webhook-delivery scenario so coding decisions can
+be carried into failure-mode, scaling, observability, and tradeoff analysis.
+All learner-visible code—the lesson sketch, three portable questions, and the
+trusted coding-lab exercise—is Python.
+
+Learners move among **Modules**, **Practice**, **Review**, and **Coding lab**,
+see module progress, and resume device-local work. Interview Loop keeps its
+course-specific lesson, quiz, card, and IDE layouts while using the same
+typography, navigation, controls, feedback, progress, focus treatment, and
+responsive shell as
+[Ten Problems](../ten-problems/).
 
 This is original, transferable preparation. It does not reproduce or predict
 the private interview process, rubric, or questions of Stripe, OpenAI,
 Anthropic, or any other employer.
 
 [Open the hosted course](https://model-systems-labs.github.io/latent/interview-loop/).
+
+The shared learner UI revision described here was verified with the combined
+local Pages preview, including its `/latent/` production-base aliases. Live
+deployment and verification are pending; local evidence is recorded in
+[AUTHORING.md](./AUTHORING.md).
 
 ```bash
 npm run validate
@@ -30,11 +42,18 @@ input check compares values when the call returns; it does not claim to detect
 transient mutate-then-restore operations. Python Lab is not a hostile-code
 security sandbox.
 
-Read [GUIDE.md](./GUIDE.md) for the project map and practice sequence. Read
-[AGENTS.md](./AGENTS.md) before asking a coding agent to change the platform.
-The originating prompt and validated first-pass handoff are preserved in
-[AUTHORING.md](./AUTHORING.md).
+The reviewed source of truth for the shared presentation is
+`packages/course-kit/src/learner-ui.ts`. This dependency-free example consumes
+the generated build-time copy at `tools/vendor/learner-ui.mjs`;
+`platform.json` explicitly supplies its product name, navigation labels and
+hash routes, theme, and footer. It has no runtime dependency on a hosted
+stylesheet, JavaScript service, framework CDN, or model API.
 
-Platform source is licensed under Apache-2.0; see [LICENSE](./LICENSE) and
+Read [GUIDE.md](./GUIDE.md) for the course map, shared/specialized source
+boundaries, and practice sequence. Read [AGENTS.md](./AGENTS.md) before asking
+a coding agent to change the learner experience. The originating prompt and
+revision handoffs are preserved in [AUTHORING.md](./AUTHORING.md).
+
+Application source is licensed under Apache-2.0; see [LICENSE](./LICENSE) and
 [NOTICE.md](./NOTICE.md). Teaching and practice content is licensed separately
 under CC-BY-4.0; see [CONTENT_LICENSE.md](./CONTENT_LICENSE.md).

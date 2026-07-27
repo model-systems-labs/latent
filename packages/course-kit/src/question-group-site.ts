@@ -6,9 +6,31 @@ import {
   type QuestionGroupLibrary,
   validateQuestionGroupLibrary,
 } from "./question-group.js";
+import {
+  LEARNER_UI_BREAKPOINTS,
+  LEARNER_UI_VERSION,
+  createLearnerUiCss,
+  learnerUiJavaScript,
+  renderLearnerFooter,
+  renderLearnerHeader,
+  type LearnerUiNavigationItem,
+  type LearnerUiTheme,
+} from "./learner-ui.js";
 
 export const QUESTION_GROUP_BUILD_MARKER = "latent-question-groups-static-build-v1";
 export const QUESTION_GROUP_PLAYER_VERSION = 1 as const;
+export const QUESTION_GROUP_DEFAULT_META_CONTENT_SECURITY_POLICY = [
+  "default-src 'none'",
+  "script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'",
+  "worker-src 'self' blob:",
+  "style-src 'self'",
+  "connect-src 'self'",
+  "img-src 'self' data:",
+  "font-src 'self'",
+  "base-uri 'none'",
+  "form-action 'none'",
+  "object-src 'none'",
+].join("; ");
 export const QUESTION_GROUP_LEARNER_TRANSFORM_OPTIONS = Object.freeze({
   format: "iife",
   platform: "browser",
@@ -22,6 +44,101 @@ export const QUESTION_GROUP_LEARNER_TRANSFORM_OPTIONS = Object.freeze({
 export type QuestionGroupSiteFile = string | Uint8Array;
 export type QuestionGroupSiteFiles = Record<string, QuestionGroupSiteFile>;
 
+export type QuestionGroupSiteCopy = Readonly<{
+  allNavigationLabel: string;
+  reviewNavigationLabel: string;
+  allEyebrow: string;
+  reviewEyebrow: string;
+  emptyAll: string;
+  emptyReview: string;
+  loading: string;
+  runExamples: string;
+  checkSolution: string;
+  cancelRun: string;
+  runCanceled: string;
+  publicExamplesHeading: string;
+  inputLabel: string;
+  expectedLabel: string;
+  initialResults: string;
+  running: string;
+  passedHeading: string;
+  failedHeading: string;
+  problemSingular: string;
+  problemPlural: string;
+  continueLabel: string;
+  editorLabel: string;
+  draftSaved: string;
+  draftRestored: string;
+  draftSessionOnly: string;
+  runtimeUnavailable: string;
+}>;
+
+export type QuestionGroupSiteUi = Readonly<{
+  productName?: string;
+  headerMeta?: string;
+  globalNavigationLabel?: string;
+  globalNavigation?: readonly LearnerUiNavigationItem[];
+  navigationLabel?: string;
+  menuLabel?: string;
+  reviewDirectory?: string;
+  copy?: Partial<QuestionGroupSiteCopy>;
+  footerSummary?: string;
+  attribution?: string;
+  theme?: LearnerUiTheme;
+  faviconSvg?: string;
+}>;
+
+export type QuestionGroupSiteOptions = Readonly<{
+  runtimeAdapterJavaScript?: string;
+  bundledBrowserRuntime?: boolean;
+  metaContentSecurityPolicy?: string;
+  ui?: QuestionGroupSiteUi;
+}>;
+
+const defaultQuestionGroupSiteCopy = Object.freeze({
+  allNavigationLabel: "Practice",
+  reviewNavigationLabel: "Review",
+  allEyebrow: "Practice",
+  reviewEyebrow: "Repeated-miss review",
+  emptyAll: "No practice problems are available.",
+  emptyReview: "No repeated misses yet. A problem appears here after three attempts and two misses, and leaves when solved.",
+  loading: "Loading practice…",
+  runExamples: "Run examples",
+  checkSolution: "Check solution",
+  cancelRun: "Cancel",
+  runCanceled: "Run canceled. Your draft is unchanged.",
+  publicExamplesHeading: "Public example",
+  inputLabel: "Input",
+  expectedLabel: "Expected",
+  initialResults: "Run the examples, then check the full solution.",
+  running: "Running your code…",
+  passedHeading: "All checks passed",
+  failedHeading: "Keep working",
+  problemSingular: "problem",
+  problemPlural: "problems",
+  continueLabel: "Continue",
+  editorLabel: "Solution editor",
+  draftSaved: "Draft saved",
+  draftRestored: "Draft restored",
+  draftSessionOnly: "Draft kept for this visit",
+  runtimeUnavailable: "This practice environment is unavailable right now. You can keep editing your draft.",
+} satisfies QuestionGroupSiteCopy);
+
+type NormalizedQuestionGroupSiteUi = Readonly<{
+  productName: string;
+  headerMeta: string;
+  globalNavigationLabel: string;
+  globalNavigation?: readonly LearnerUiNavigationItem[];
+  navigationLabel: string;
+  menuLabel: string;
+  reviewDirectory: string;
+  copy: QuestionGroupSiteCopy;
+  footerSummary: string;
+  attribution: string;
+  theme: LearnerUiTheme;
+  faviconSvg?: string;
+}>;
+
 function escapeHtml(value: string) {
   return value
     .replaceAll("&", "&amp;")
@@ -31,113 +148,387 @@ function escapeHtml(value: string) {
     .replaceAll("'", "&#039;");
 }
 
+function siteText(value: string, label: string, maximum = 300) {
+  if (
+    typeof value !== "string"
+    || value.trim().length === 0
+    || value.length > maximum
+    || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value)
+  ) {
+    throw new Error(`${label} must be non-empty text no longer than ${maximum} characters.`);
+  }
+  return value.trim();
+}
+
+function normalizeMetaContentSecurityPolicy(value?: string) {
+  if (value === undefined) return QUESTION_GROUP_DEFAULT_META_CONTENT_SECURITY_POLICY;
+  const policy = siteText(value, "metaContentSecurityPolicy", 2_048);
+  if (/[\r\n]/.test(policy)) {
+    throw new Error("metaContentSecurityPolicy must be a single line.");
+  }
+  return policy;
+}
+
+function escapeHtmlAttribute(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+function normalizeQuestionGroupSiteUi(
+  library: QuestionGroupLibrary,
+  input: QuestionGroupSiteUi = {},
+): NormalizedQuestionGroupSiteUi {
+  const supportedUiFields = new Set([
+    "productName",
+    "headerMeta",
+    "globalNavigationLabel",
+    "globalNavigation",
+    "navigationLabel",
+    "menuLabel",
+    "reviewDirectory",
+    "copy",
+    "footerSummary",
+    "attribution",
+    "theme",
+    "faviconSvg",
+  ]);
+  const unknownUiFields = Object.keys(input).filter((key) => !supportedUiFields.has(key));
+  if (unknownUiFields.length) {
+    throw new Error(`Unknown Question Group site field: ${unknownUiFields[0]}`);
+  }
+  const reviewDirectory = input.reviewDirectory ?? "leeches";
+  const reservedDirectories = new Set([
+    "assets",
+    "index.html",
+    "question-group-library.json",
+    "build-report.json",
+    "_headers",
+  ]);
+  if (
+    !/^[a-z0-9][a-z0-9._-]{0,79}$/.test(reviewDirectory)
+    || reservedDirectories.has(reviewDirectory)
+  ) {
+    throw new Error("Question Group reviewDirectory must be one safe relative directory name.");
+  }
+  const unknownCopyKeys = Object.keys(input.copy ?? {}).filter(
+    (key) => !(key in defaultQuestionGroupSiteCopy),
+  );
+  if (unknownCopyKeys.length) {
+    throw new Error(`Unknown Question Group site copy field: ${unknownCopyKeys[0]}`);
+  }
+  const copy = Object.fromEntries(
+    Object.entries(defaultQuestionGroupSiteCopy).map(([key, fallback]) => [
+      key,
+      siteText(
+        input.copy?.[key as keyof QuestionGroupSiteCopy] ?? fallback,
+        `ui.copy.${key}`,
+        key.startsWith("empty") ? 500 : 200,
+      ),
+    ]),
+  ) as unknown as QuestionGroupSiteCopy;
+  const faviconSvg = input.faviconSvg;
+  if (
+    faviconSvg !== undefined
+    && (
+      typeof faviconSvg !== "string"
+      || faviconSvg.length > 10_000
+      || !/^\s*<svg\b[\s\S]*<\/svg>\s*$/i.test(faviconSvg)
+      || /<script\b|<foreignObject\b|\son[a-z]+\s*=|\bhref\s*=|\burl\s*\(/i.test(faviconSvg)
+    )
+  ) {
+    throw new Error("ui.faviconSvg must be a bounded, inert inline SVG.");
+  }
+  createLearnerUiCss(input.theme);
+  const globalNavigation = input.globalNavigation?.map((item, index) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      throw new Error(`ui.globalNavigation[${index}] must be a navigation item.`);
+    }
+    const unknownKeys = Object.keys(item).filter(
+      (key) => !new Set(["label", "href", "current", "dataView"]).has(key),
+    );
+    if (unknownKeys.length) {
+      throw new Error(`Unknown ui.globalNavigation[${index}] field: ${unknownKeys[0]}`);
+    }
+    if (typeof item.current !== "undefined" && typeof item.current !== "boolean") {
+      throw new Error(`ui.globalNavigation[${index}].current must be a boolean.`);
+    }
+    return Object.freeze({
+      label: siteText(item.label, `ui.globalNavigation[${index}].label`, 120),
+      href: siteText(item.href, `ui.globalNavigation[${index}].href`, 500),
+      ...(item.current === undefined ? {} : { current: item.current }),
+      ...(item.dataView === undefined
+        ? {}
+        : { dataView: siteText(item.dataView, `ui.globalNavigation[${index}].dataView`, 80) }),
+    });
+  });
+  if (globalNavigation && globalNavigation.length === 0) {
+    throw new Error("ui.globalNavigation must include at least one item when configured.");
+  }
+  return Object.freeze({
+    productName: siteText(input.productName ?? library.library.title, "ui.productName", 160),
+    headerMeta: siteText(input.headerMeta ?? library.library.version, "ui.headerMeta", 160),
+    globalNavigationLabel: siteText(
+      input.globalNavigationLabel ?? "Learning experiences",
+      "ui.globalNavigationLabel",
+      160,
+    ),
+    ...(globalNavigation === undefined
+      ? {}
+      : { globalNavigation: Object.freeze(globalNavigation) }),
+    navigationLabel: siteText(input.navigationLabel ?? "Practice navigation", "ui.navigationLabel", 160),
+    menuLabel: siteText(input.menuLabel ?? "Menu", "ui.menuLabel", 80),
+    reviewDirectory,
+    copy: Object.freeze(copy),
+    footerSummary: siteText(
+      input.footerSummary ?? "Progress is saved on this device for this exact problem set.",
+      "ui.footerSummary",
+      240,
+    ),
+    attribution: siteText(input.attribution ?? "Built with Latent.", "ui.attribution", 160),
+    theme: Object.freeze({ ...(input.theme ?? {}) }),
+    ...(faviconSvg === undefined ? {} : { faviconSvg }),
+  });
+}
+
 function renderIndex(
   library: QuestionGroupLibrary,
   digest: string,
   initialQuery: "all" | "leeches",
+  ui: NormalizedQuestionGroupSiteUi,
+  bundledBrowserRuntime: boolean,
+  metaContentSecurityPolicy: string,
 ) {
+  const root = initialQuery === "leeches" ? "../" : "./";
   const description = initialQuery === "leeches"
     ? `Review repeatedly missed questions from ${library.library.title}.`
     : library.library.description;
+  const globalNavigation = ui.globalNavigation?.map((item) => ({
+    ...item,
+    href: root === "./"
+      ? item.href
+      : root + (item.href.startsWith("./") ? item.href.slice(2) : item.href),
+  }));
+  const header = renderLearnerHeader({
+    productName: ui.productName,
+    homeHref: root,
+    globalNavigationLabel: ui.globalNavigationLabel,
+    ...(globalNavigation === undefined ? {} : { globalNavigation }),
+    navigationLabel: ui.navigationLabel,
+    menuLabel: ui.menuLabel,
+    meta: ui.headerMeta,
+    navigation: [
+      {
+        label: ui.copy.allNavigationLabel,
+        href: root,
+        current: initialQuery === "all",
+      },
+      {
+        label: ui.copy.reviewNavigationLabel,
+        href: initialQuery === "leeches" ? "./" : `./${ui.reviewDirectory}/`,
+        current: initialQuery === "leeches",
+      },
+    ],
+  });
+  const footer = renderLearnerFooter({
+    summary: ui.footerSummary,
+    attribution: ui.attribution,
+  });
   return `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="${escapeHtml(description)}">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self'; connect-src 'self'; img-src 'self' data:; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
-  <title>${escapeHtml(initialQuery === "leeches" ? `Leech review · ${library.library.title}` : library.library.title)}</title>
-  <link rel="icon" href="${initialQuery === "leeches" ? "../" : "./"}assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="${initialQuery === "leeches" ? "../" : "./"}assets/player.css">
+  <meta http-equiv="Content-Security-Policy" content="${escapeHtmlAttribute(metaContentSecurityPolicy)}">
+  <title>${escapeHtml(initialQuery === "leeches" ? `${ui.copy.reviewNavigationLabel} · ${library.library.title}` : library.library.title)}</title>
+  <link rel="icon" href="${root}assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="${root}assets/player.css">
 </head>
-<body
-  data-library-url="${initialQuery === "leeches" ? "../" : "./"}question-group-library.json"
+<body class="learner-ui"
+  data-library-url="${root}question-group-library.json"
   data-library-digest="${escapeHtml(digest)}"
   data-initial-query="${initialQuery}"
-  data-asset-root="${initialQuery === "leeches" ? "../" : "./"}assets/"
+  data-asset-root="${root}assets/"
 >
-  <a class="skip-link" href="#question">Skip to the active question</a>
-  <header class="site-header">
-    <a class="wordmark" href="${initialQuery === "leeches" ? "../" : "./"}">latent practice</a>
-    <nav aria-label="Practice views">
-      <a ${initialQuery === "all" ? 'aria-current="page"' : ""} href="${initialQuery === "leeches" ? "../" : "./"}">All questions</a>
-      <a ${initialQuery === "leeches" ? 'aria-current="page"' : ""} href="${initialQuery === "leeches" ? "./" : "./leeches/"}">Leech review</a>
-    </nav>
-  </header>
-  <main id="app" aria-busy="true">
-    <p class="loading">Loading validated practice content…</p>
+  <a class="learner-skip-link" href="#app">Skip to practice</a>
+  <div class="learner-page">
+  ${header}
+  <main id="app" class="learner-main" tabindex="-1" aria-busy="true">
+    <p class="learner-empty loading">${escapeHtml(ui.copy.loading)}</p>
   </main>
-  <script src="${initialQuery === "leeches" ? "../" : "./"}assets/esbuild.js" defer></script>
-  <script src="${initialQuery === "leeches" ? "../" : "./"}assets/runtime-adapter.js" defer></script>
-  <script src="${initialQuery === "leeches" ? "../" : "./"}assets/player.js" defer></script>
+  ${footer}
+  </div>
+  <script src="${root}assets/learner-ui.js" defer></script>
+  ${bundledBrowserRuntime ? `<script src="${root}assets/esbuild.js" defer></script>` : ""}
+  <script src="${root}assets/runtime-adapter.js" defer></script>
+  <script src="${root}assets/player.js" defer></script>
 </body>
 </html>
 `;
 }
 
-export const questionGroupPlayerCss = `:root {
-  color-scheme: light;
-  --paper: #f5f1e9;
-  --panel: #fffdf8;
-  --ink: #282322;
-  --muted: #6c635e;
-  --line: rgba(70,54,63,.18);
-  --violet: #675674;
-  --green: #41664c;
-  font-family: Inter,ui-sans-serif,system-ui,sans-serif;
+const questionGroupLayoutCss = `
+#app { max-width: none; }
+.practice-layout {
+  display: grid;
+  grid-template-columns: minmax(15rem, 19rem) minmax(18rem, .78fr) minmax(28rem, 1.22fr);
+  min-height: calc(100vh - var(--learner-header-height) - 3.5rem);
 }
-* { box-sizing: border-box; }
-html { background: var(--paper); color: var(--ink); }
-body { margin: 0; min-height: 100vh; }
-button,textarea { font: inherit; }
-a { color: inherit; }
-.skip-link { background: var(--ink); color: white; left: 1rem; padding: .7rem 1rem; position: fixed; top: -5rem; z-index: 5; }
-.skip-link:focus { top: 1rem; }
-.site-header { align-items: center; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; min-height: 4.25rem; padding: 0 clamp(1rem,4vw,3.5rem); }
-.wordmark { font-size: .75rem; font-weight: 700; letter-spacing: .1em; text-decoration: none; text-transform: uppercase; }
-.site-header nav { display: flex; gap: 1rem; }
-.site-header nav a { color: var(--muted); font-size: .75rem; text-underline-offset: .25rem; }
-.site-header nav a[aria-current="page"] { color: var(--ink); font-weight: 650; }
-.loading,.empty { color: var(--muted); margin: 4rem auto; max-width: 40rem; padding: 1rem; text-align: center; }
-.layout { display: grid; grid-template-columns: minmax(14rem,20rem) minmax(20rem,.8fr) minmax(26rem,1.2fr); height: calc(100vh - 4.25rem); min-height: 42rem; }
-.library { border-right: 1px solid var(--line); overflow: auto; padding: 1.2rem; }
-.library header { margin-bottom: 1.5rem; }
-.library h1 { font-family: Georgia,serif; font-size: 1.9rem; font-weight: 400; letter-spacing: -.04em; line-height: 1.05; margin: .4rem 0; }
-.library p,.question-copy p { color: var(--muted); line-height: 1.55; }
-.eyebrow { color: var(--violet); font-size: .66rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-.group + .group { border-top: 1px solid var(--line); margin-top: 1rem; padding-top: 1rem; }
-.group h2 { font-size: .75rem; margin: 0 0 .5rem; }
-.group ol { display: grid; gap: .3rem; list-style: none; margin: 0; padding: 0; }
-.question-link { align-items: center; background: transparent; border: 0; border-radius: .3rem; color: var(--muted); cursor: pointer; display: flex; gap: .5rem; min-height: 2.8rem; padding: .5rem; text-align: left; width: 100%; }
-.question-link[aria-current="true"] { background: rgba(105,86,116,.13); color: var(--ink); }
-.status-dot { border: 1px solid #948b86; border-radius: 50%; flex: 0 0 auto; height: .5rem; width: .5rem; }
-.status-dot[data-status="attempted"] { background: #b77851; border-color: #b77851; }
-.status-dot[data-status="solved"] { background: var(--green); border-color: var(--green); }
-.question-copy { background: var(--panel); border-right: 1px solid var(--line); overflow: auto; padding: clamp(1.2rem,3vw,2.4rem); }
-.question-copy h2 { font-family: Georgia,serif; font-size: clamp(2rem,4vw,3.4rem); font-weight: 400; letter-spacing: -.05em; line-height: 1; margin: .7rem 0 1rem; }
-.question-copy li { color: var(--muted); font-size: .82rem; line-height: 1.5; margin-bottom: .4rem; }
-.workspace { display: grid; grid-template-rows: auto minmax(18rem,1fr) auto minmax(9rem,.55fr); min-width: 0; }
-.workspace header,.actions { align-items: center; background: var(--panel); border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; min-height: 3.5rem; padding: .65rem .85rem; }
-.workspace code { font-size: .75rem; }
-textarea { background: #fcfaf5; border: 0; color: #2e2928; font: 14px/1.55 ui-monospace,SFMono-Regular,monospace; min-height: 100%; outline: none; padding: 1rem; resize: none; tab-size: 2; width: 100%; }
-textarea:focus { box-shadow: inset 0 0 0 3px rgba(103,86,116,.35); }
-.actions { border-top: 1px solid var(--line); gap: .5rem; justify-content: flex-end; }
-.actions button { background: transparent; border: 1px solid #aaa09a; border-radius: .35rem; cursor: pointer; min-height: 2.6rem; padding: .5rem .8rem; }
-.actions button.primary { background: var(--violet); border-color: var(--violet); color: white; }
-.actions button:disabled { cursor: wait; opacity: .5; }
-.results { background: #f8f4ed; overflow: auto; padding: 1rem; }
-.results h3 { font-size: .75rem; letter-spacing: .07em; text-transform: uppercase; }
-.results ol { display: grid; gap: .45rem; list-style: none; padding: 0; }
-.results li { background: rgba(255,255,255,.55); border-left: 3px solid #a35c50; font-size: .78rem; line-height: 1.45; padding: .65rem; }
-.results li[data-passed="true"] { border-color: var(--green); }
-.error { color: #8b403b; }
-:focus-visible { outline: 3px solid var(--violet); outline-offset: 2px; }
-@media (max-width: 900px) {
-  .layout { display: block; height: auto; }
-  .library,.question-copy { border-bottom: 1px solid var(--line); border-right: 0; }
+.library {
+  overflow: auto;
+  padding: clamp(1rem, 2vw, 1.5rem);
+}
+.library h1 {
+  font-size: clamp(1.55rem, 2.4vw, 2.15rem);
+  letter-spacing: -.04em;
+  line-height: 1.08;
+  margin: .35rem 0 .75rem;
+}
+.library-header > p,
+.question-copy > p {
+  color: var(--learner-color-muted);
+  line-height: 1.6;
+}
+.problem-navigation { margin-top: var(--learner-space-4); }
+.problem-navigation > summary { margin-bottom: var(--learner-space-3); }
+.group + .group {
+  border-top: var(--learner-border);
+  margin-top: var(--learner-space-4);
+  padding-top: var(--learner-space-4);
+}
+.group h2 {
+  font-size: .75rem;
+  letter-spacing: .04em;
+  margin: 0 0 var(--learner-space-2);
+  text-transform: uppercase;
+}
+.question-link {
+  font-size: .84rem;
+  line-height: 1.35;
+}
+.question-copy {
+  border-right: var(--learner-border);
+  overflow: auto;
+  padding: clamp(1.5rem, 3.5vw, 3rem);
+}
+.question-copy h2 {
+  font-size: clamp(2rem, 4vw, 3.6rem);
+  letter-spacing: -.055em;
+  line-height: 1;
+  margin: .65rem 0 1rem;
+}
+.question-copy h3 {
+  font-size: .82rem;
+  letter-spacing: .06em;
+  margin-top: var(--learner-space-6);
+  text-transform: uppercase;
+}
+.question-copy li {
+  color: var(--learner-color-muted);
+  font-size: .84rem;
+  line-height: 1.55;
+  margin-bottom: .45rem;
+}
+.example-cases {
+  display: grid;
+  gap: var(--learner-space-3);
+  list-style: none;
+  padding: 0;
+}
+.example-cases li {
+  background: var(--learner-color-surface-muted);
+  border: var(--learner-border);
+  border-radius: var(--learner-radius-sm);
+  padding: var(--learner-space-3);
+}
+.example-cases code {
+  display: block;
+  font: .78rem/1.55 var(--learner-font-mono);
+  overflow-wrap: anywhere;
+}
+.workspace {
+  border: 0;
+  border-radius: 0;
+  display: grid;
+  grid-template-rows: auto minmax(19rem, 1fr) auto minmax(10rem, .55fr);
+  min-width: 0;
+}
+.workspace .learner-editor-toolbar { border-radius: 0; }
+.draft-status {
+  color: var(--learner-color-muted);
+  font-size: .75rem;
+  margin-left: var(--learner-space-3);
+  text-align: right;
+}
+.workspace code { font: .75rem/1.4 var(--learner-font-mono); }
+.workspace .learner-editor {
+  min-height: 100%;
+  resize: none;
+}
+.actions {
+  background: var(--learner-color-surface);
+  border-bottom: var(--learner-border);
+  border-top: var(--learner-border);
+  justify-content: flex-end;
+  margin: 0;
+  min-height: 4rem;
+  padding: .65rem .85rem;
+}
+.workspace .learner-results {
+  border: 0;
+  border-radius: 0;
+  margin: 0;
+  overflow: auto;
+}
+.case-evidence {
+  display: block;
+  font: .76rem/1.5 var(--learner-font-mono);
+  margin-top: var(--learner-space-1);
+  overflow-wrap: anywhere;
+}
+.error { color: var(--learner-color-danger); }
+@media (max-width: 1120px) {
+  .practice-layout {
+    grid-template-columns: minmax(15rem, 19rem) minmax(0, 1fr);
+  }
+  .question-copy {
+    border-bottom: var(--learner-border);
+    border-right: 0;
+  }
+  .workspace {
+    grid-column: 2;
+    grid-row: 2;
+    min-height: 46rem;
+  }
+  .library { grid-row: 1 / span 2; }
+}
+@media (max-width: ${LEARNER_UI_BREAKPOINTS.stacked}px) {
+  .practice-layout { display: block; }
+  .library,
+  .question-copy {
+    border-bottom: var(--learner-border);
+    border-right: 0;
+  }
   .workspace { min-height: 46rem; }
+  .problem-navigation .learner-nav-list { columns: 2; column-gap: var(--learner-space-5); }
+}
+@media (max-width: ${LEARNER_UI_BREAKPOINTS.compact}px) {
+  .library { padding: var(--learner-space-4); }
+  .library-header > p { display: none; }
+  .question-copy { padding: var(--learner-space-5) var(--learner-space-4); }
+  .question-copy h2 { font-size: clamp(1.9rem, 10vw, 2.7rem); }
+  .workspace {
+    grid-template-rows: auto minmax(22rem, 1fr) auto minmax(10rem, .55fr);
+  }
+  .actions .learner-button { flex: 1 1 9rem; }
+  .problem-navigation .learner-nav-list { columns: 1; }
 }
 `;
+
+export const questionGroupPlayerCss = `${createLearnerUiCss()}\n${questionGroupLayoutCss}`;
 
 export const questionGroupSandboxWorkerJavaScript = `(() => {
   "use strict";
@@ -534,12 +925,18 @@ export function createQuestionGroupRunGuard() {
   });
 }
 
-export const questionGroupPlayerJavaScript = `(() => {
+function renderQuestionGroupPlayerJavaScript(
+  copy: QuestionGroupSiteCopy,
+  bundledBrowserRuntime: boolean,
+) {
+  return `(() => {
   "use strict";
   const app = document.getElementById("app");
   const assetRoot = document.body.dataset.assetRoot;
   const libraryDigest = document.body.dataset.libraryDigest;
   const initialQuery = document.body.dataset.initialQuery;
+  const copy = ${JSON.stringify(copy)};
+  const bundledBrowserRuntime = ${JSON.stringify(bundledBrowserRuntime)};
   const learnerTransformOptions = ${JSON.stringify(QUESTION_GROUP_LEARNER_TRANSFORM_OPTIONS)};
   const runGuard = (${createQuestionGroupRunGuard.toString()})();
   const leechPolicy = { minimumAttempts: 3, minimumFailures: 2 };
@@ -562,6 +959,7 @@ export const questionGroupPlayerJavaScript = `(() => {
     },
     async run(request) {
       if (!globalThis.esbuild) throw new Error("The TypeScript compiler did not load.");
+      if (request.signal?.aborted) throw new Error("Run canceled.");
       if (request.source.length > 200000) {
         throw new Error("Question source may not exceed 200,000 characters.");
       }
@@ -595,6 +993,7 @@ export const questionGroupPlayerJavaScript = `(() => {
           }, request.runtime.limits.timeoutMs);
         }),
       ]).finally(() => clearTimeout(compilationTimer));
+      if (request.signal?.aborted) throw new Error("Run canceled.");
       const worker = new Worker(assetRoot + "sandbox.worker.js");
       const id = crypto.randomUUID();
       const cases = request.mode === "examples"
@@ -605,14 +1004,24 @@ export const questionGroupPlayerJavaScript = `(() => {
           1,
           request.runtime.limits.timeoutMs - (performance.now() - startedAt),
         );
-        const timer = setTimeout(() => {
+        let timer;
+        const cleanup = () => {
+          clearTimeout(timer);
+          request.signal?.removeEventListener("abort", cancel);
           worker.terminate();
+        };
+        const cancel = () => {
+          cleanup();
+          reject(new Error("Run canceled."));
+        };
+        timer = setTimeout(() => {
+          cleanup();
           reject(new Error("The browser runtime exceeded its " + request.runtime.limits.timeoutMs + " ms limit."));
         }, remainingTime);
+        request.signal?.addEventListener("abort", cancel, { once: true });
         worker.addEventListener("message", (event) => {
           if (event.data?.id !== id) return;
-          clearTimeout(timer);
-          worker.terminate();
+          cleanup();
           if (!event.data.ok) {
             reject(new Error(event.data.error || "The browser runtime failed."));
             return;
@@ -661,8 +1070,7 @@ export const questionGroupPlayerJavaScript = `(() => {
           });
         });
         worker.addEventListener("error", () => {
-          clearTimeout(timer);
-          worker.terminate();
+          cleanup();
           reject(new Error("The isolated browser runtime failed."));
         }, { once: true });
         worker.postMessage({
@@ -677,7 +1085,14 @@ export const questionGroupPlayerJavaScript = `(() => {
   const injected = globalThis.LatentQuestionPlayerRuntime;
   const runtimeAdapter = injected && typeof injected.supports === "function" && typeof injected.run === "function"
     ? injected
-    : browserRuntime;
+    : bundledBrowserRuntime
+      ? browserRuntime
+      : {
+          supports() { return false; },
+          async run() {
+            throw new Error("This build requires a trusted host runtime adapter.");
+          },
+        };
   let progressDatabase;
   const openProgressDatabase = () => {
     if (progressDatabase) return progressDatabase;
@@ -700,6 +1115,8 @@ export const questionGroupPlayerJavaScript = `(() => {
   };
   const progressPrefix = (library) => "latent.question-groups.progress.v1:" + library.library.id + "@" + library.library.version + ":" + libraryDigest + ":";
   const progressStorageKey = (library, group, question) => progressPrefix(library) + group.id + "/" + question.id;
+  const draftPrefix = (library) => "latent.question-groups.draft.v1:" + library.library.id + "@" + library.library.version + ":" + libraryDigest + ":";
+  const draftStorageKey = (library, group, question) => draftPrefix(library) + group.id + "/" + question.id;
   const validStoredProgress = (entry, library, group, question) => entry
     && entry.format === "latent-question-group-progress"
     && entry.schemaVersion === 1
@@ -715,6 +1132,19 @@ export const questionGroupPlayerJavaScript = `(() => {
     && Number.isSafeInteger(entry.failureCount)
     && entry.failureCount >= 0
     && entry.failureCount <= entry.attemptCount;
+  const validStoredDraft = (entry, library, group, question) => entry
+    && entry.format === "latent-question-group-draft"
+    && entry.schemaVersion === 1
+    && entry.libraryId === library.library.id
+    && entry.libraryVersion === library.library.version
+    && entry.libraryDigest === libraryDigest
+    && entry.groupId === group.id
+    && entry.questionId === question.id
+    && entry.contractVersion === contractVersion(library, group, question)
+    && typeof entry.source === "string"
+    && entry.source.length <= 200000
+    && Number.isSafeInteger(entry.updatedAt)
+    && entry.updatedAt > 0;
   const transactionDone = (transaction) => new Promise((resolve, reject) => {
     transaction.addEventListener("complete", () => resolve());
     transaction.addEventListener("abort", () => reject(transaction.error || new Error("Practice progress transaction was aborted.")));
@@ -739,6 +1169,25 @@ export const questionGroupPlayerJavaScript = `(() => {
         }
       }
       return progress;
+    } catch {
+      return {};
+    }
+  };
+  const readDrafts = async (library) => {
+    try {
+      const database = await openProgressDatabase();
+      const transaction = database.transaction("progress", "readonly");
+      const values = await requestValue(transaction.objectStore("progress").getAll());
+      await transactionDone(transaction);
+      const drafts = {};
+      for (const entry of values) {
+        const group = library.groups.find((candidate) => candidate.id === entry?.groupId);
+        const question = group?.questions.find((candidate) => candidate.id === entry?.questionId);
+        if (group && question && validStoredDraft(entry, library, group, question)) {
+          drafts[questionKey(group, question)] = entry;
+        }
+      }
+      return drafts;
     } catch {
       return {};
     }
@@ -781,6 +1230,33 @@ export const questionGroupPlayerJavaScript = `(() => {
       return createNext(fallback[key]);
     }
   };
+  const writeDraft = async (library, group, question, source) => {
+    const entry = {
+      format: "latent-question-group-draft",
+      schemaVersion: 1,
+      libraryId: library.library.id,
+      libraryVersion: library.library.version,
+      libraryDigest,
+      groupId: group.id,
+      questionId: question.id,
+      contractVersion: contractVersion(library, group, question),
+      source,
+      updatedAt: Date.now(),
+    };
+    if (source.length > 200000) return { entry, persisted: false };
+    try {
+      const database = await openProgressDatabase();
+      const transaction = database.transaction("progress", "readwrite");
+      transaction.objectStore("progress").put(
+        entry,
+        draftStorageKey(library, group, question),
+      );
+      await transactionDone(transaction);
+      return { entry, persisted: true };
+    } catch {
+      return { entry, persisted: false };
+    }
+  };
   const isLeech = (entry) => entry
     && entry.status !== "solved"
     && entry.attemptCount >= leechPolicy.minimumAttempts
@@ -796,20 +1272,34 @@ export const questionGroupPlayerJavaScript = `(() => {
   };
   const load = async () => {
     const response = await fetch(document.body.dataset.libraryUrl, { credentials: "omit", redirect: "error" });
-    if (!response.ok) throw new Error("Could not load the Question Group library.");
+    if (!response.ok) throw new Error("Could not load this practice set.");
     const bytes = await response.arrayBuffer();
     if (await sha256(bytes) !== libraryDigest) {
-      throw new Error("Question Group library bytes do not match this built player.");
+      throw new Error("This practice set did not pass its integrity check.");
     }
     const library = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
-    const progress = await readProgress(library);
+    const [progress, drafts] = await Promise.all([
+      readProgress(library),
+      readDrafts(library),
+    ]);
     const all = library.groups.flatMap((group) => group.questions.map((question) => ({ group, question })));
+    const draftSourceFor = (group, question) => (
+      drafts[questionKey(group, question)]?.source ?? question.starterCode
+    );
     const visibleEntries = () => initialQuery === "leeches"
       ? all.filter(({ group, question }) => isLeech(progress[questionKey(group, question)]))
       : all;
-    const emptyView = () => text("section", initialQuery === "leeches"
-      ? "No leeches yet. A question appears here after at least three attempts and two misses, and leaves when solved."
-      : "This library has no questions.", "empty");
+    const emptyView = () => {
+      const empty = text(
+        "section",
+        initialQuery === "leeches" ? copy.emptyReview : copy.emptyAll,
+        "learner-empty",
+      );
+      empty.tabIndex = -1;
+      empty.setAttribute("role", "status");
+      empty.setAttribute("aria-live", "polite");
+      return empty;
+    };
     const initialVisible = visibleEntries();
     app.replaceChildren();
     app.removeAttribute("aria-busy");
@@ -817,45 +1307,140 @@ export const questionGroupPlayerJavaScript = `(() => {
       app.append(emptyView());
       return;
     }
-    let active = initialVisible[0];
-    let source = active.question.starterCode;
+    let active = initialVisible.find(({ group, question }) => (
+      statusFor(progress, questionKey(group, question)) !== "solved"
+    )) || initialVisible[0];
+    let source = draftSourceFor(active.group, active.question);
     let running = false;
+    let activeRunController = null;
+    let draftWriteActive = false;
+    const pendingDraftWrites = new Map();
     const layout = document.createElement("div");
-    layout.className = "layout";
+    layout.className = "practice-layout";
     const sidebar = document.createElement("aside");
-    sidebar.className = "library";
+    sidebar.className = "learner-sidebar library";
     const libraryHeader = document.createElement("header");
-    libraryHeader.append(text("span", initialQuery === "leeches" ? "Progress query · leeches" : "Question Group library", "eyebrow"));
+    libraryHeader.className = "library-header";
+    libraryHeader.append(text("span", initialQuery === "leeches" ? copy.reviewEyebrow : copy.allEyebrow, "learner-eyebrow"));
     libraryHeader.append(text("h1", library.library.title));
     libraryHeader.append(text("p", library.library.description));
+    const progressSummary = document.createElement("div");
+    progressSummary.className = "learner-progress-summary";
+    const progressText = text("strong", "");
+    const progressBar = document.createElement("progress");
+    progressBar.className = "learner-progress";
+    progressBar.max = all.length;
+    const resume = document.createElement("p");
+    resume.className = "learner-resume";
+    progressSummary.append(progressText, progressBar, resume);
+    libraryHeader.append(progressSummary);
     sidebar.append(libraryHeader);
     const questionCopy = document.createElement("section");
-    questionCopy.className = "question-copy";
+    questionCopy.className = "learner-content question-copy";
     questionCopy.id = "question";
     const workspace = document.createElement("section");
-    workspace.className = "workspace";
+    workspace.className = "learner-editor-frame workspace";
     const workspaceHeader = document.createElement("header");
+    workspaceHeader.className = "learner-editor-toolbar";
     const sourcePath = text("code", active.question.path);
-    workspaceHeader.append(sourcePath);
+    const draftStatus = text("span", "", "draft-status");
+    draftStatus.setAttribute("role", "status");
+    draftStatus.setAttribute("aria-live", "polite");
+    draftStatus.setAttribute("aria-atomic", "true");
+    workspaceHeader.append(sourcePath, draftStatus);
     const editor = document.createElement("textarea");
-    editor.setAttribute("aria-label", "Learner source");
+    editor.className = "learner-editor";
+    editor.setAttribute("aria-label", copy.editorLabel);
     editor.spellcheck = false;
+    const persistDraftWrites = async () => {
+      if (draftWriteActive) return;
+      draftWriteActive = true;
+      try {
+        while (pendingDraftWrites.size) {
+          const pending = Array.from(pendingDraftWrites.values());
+          pendingDraftWrites.clear();
+          for (const request of pending) {
+            const { entry, persisted } = await writeDraft(
+              library,
+              request.group,
+              request.question,
+              request.source,
+            );
+            if (drafts[request.key]?.source === request.source) {
+              drafts[request.key] = entry;
+            }
+            if (
+              questionKey(active.group, active.question) === request.key
+              && editor.value === request.source
+            ) {
+              draftStatus.textContent = persisted
+                ? copy.draftSaved
+                : copy.draftSessionOnly;
+            }
+          }
+        }
+      } finally {
+        draftWriteActive = false;
+      }
+    };
     const actions = document.createElement("div");
-    actions.className = "actions";
-    const examplesButton = text("button", "Run examples");
+    actions.className = "learner-button-row actions";
+    const examplesButton = text("button", copy.runExamples, "learner-button");
     examplesButton.type = "button";
-    const checkButton = text("button", "Check solution", "primary");
+    const checkButton = text("button", copy.checkSolution, "learner-button");
     checkButton.type = "button";
-    actions.append(examplesButton, checkButton);
+    checkButton.dataset.variant = "primary";
+    checkButton.title = copy.checkSolution + " (Ctrl/Command+Enter)";
+    const cancelButton = text("button", copy.cancelRun, "learner-button");
+    cancelButton.type = "button";
+    cancelButton.dataset.variant = "secondary";
+    cancelButton.hidden = true;
+    actions.append(examplesButton, checkButton, cancelButton);
     const results = document.createElement("section");
-    results.className = "results";
+    results.className = "learner-results";
+    results.setAttribute("role", "status");
     results.setAttribute("aria-live", "polite");
+    results.setAttribute("aria-atomic", "true");
     workspace.append(workspaceHeader, editor, actions, results);
     layout.append(sidebar, questionCopy, workspace);
     app.append(layout);
+    const navigation = document.createElement("details");
+    navigation.className = "learner-mobile-panel problem-navigation";
+    navigation.dataset.learnerCollapseAt = "stacked";
+    navigation.open = true;
+    const navigationSummary = text("summary", "");
+    const navigationContent = document.createElement("div");
+    navigationContent.className = "learner-mobile-panel__content";
+    navigation.append(navigationSummary, navigationContent);
+    sidebar.append(navigation);
+    const updateProgressSummary = () => {
+      const solved = all.filter(({ group, question }) => (
+        statusFor(progress, questionKey(group, question)) === "solved"
+      )).length;
+      const itemLabel = all.length === 1 ? copy.problemSingular : copy.problemPlural;
+      progressText.textContent = solved + " of " + all.length + " " + itemLabel + " solved";
+      progressBar.value = solved;
+      progressBar.setAttribute("aria-label", progressText.textContent);
+      const next = all.find(({ group, question }) => (
+        statusFor(progress, questionKey(group, question)) !== "solved"
+      ));
+      resume.replaceChildren();
+      if (next) {
+        resume.append(
+          text("strong", copy.continueLabel + ":"),
+          document.createTextNode(" " + next.question.title),
+        );
+      } else {
+        resume.append(text("strong", "Complete"), document.createTextNode(" All " + itemLabel + " solved."));
+      }
+    };
     const renderNavigation = () => {
-      sidebar.querySelectorAll(".group").forEach((node) => node.remove());
+      navigationContent.replaceChildren();
       const visible = visibleEntries();
+      const visibleIndex = Math.max(0, visible.findIndex((entry) => entry === active));
+      navigationSummary.textContent = copy.problemSingular.charAt(0).toUpperCase()
+        + copy.problemSingular.slice(1)
+        + " " + (visibleIndex + 1) + " of " + visible.length + ": " + active.question.title;
       for (const group of library.groups) {
         const groupQuestions = visible.filter((entry) => entry.group.id === group.id);
         if (!groupQuestions.length) continue;
@@ -863,30 +1448,43 @@ export const questionGroupPlayerJavaScript = `(() => {
         section.className = "group";
         section.append(text("h2", group.title));
         const list = document.createElement("ol");
+        list.className = "learner-nav-list";
         for (const entry of groupQuestions) {
           const item = document.createElement("li");
-          const button = text("button", entry.question.title, "question-link");
+          const button = text("button", entry.question.title, "learner-nav-item question-link");
           button.type = "button";
           button.disabled = running;
           button.setAttribute("aria-current", String(entry === active));
           const dot = document.createElement("i");
-          dot.className = "status-dot";
-          dot.dataset.status = statusFor(progress, questionKey(entry.group, entry.question));
+          dot.className = "learner-status-dot";
+          const status = statusFor(progress, questionKey(entry.group, entry.question));
+          dot.dataset.status = status;
+          dot.setAttribute("aria-hidden", "true");
+          const statusText = text(
+            "span",
+            status === "solved" ? " · Solved" : status === "attempted" ? " · Attempted" : " · Not attempted",
+            "learner-sr-only",
+          );
           button.prepend(dot);
+          button.append(statusText);
           button.addEventListener("click", () => {
             runGuard.invalidate();
             running = false;
             active = entry;
-            source = entry.question.starterCode;
-            renderActive();
+            source = draftSourceFor(entry.group, entry.question);
+            renderActive(true);
             renderNavigation();
+            if (globalThis.matchMedia("(max-width: ${LEARNER_UI_BREAKPOINTS.stacked}px)").matches) {
+              navigation.removeAttribute("open");
+            }
           });
           item.append(button);
           list.append(item);
         }
         section.append(list);
-        sidebar.append(section);
+        navigationContent.append(section);
       }
+      updateProgressSummary();
     };
     const updateActionAvailability = () => {
       const runtime = library.runtimes.find((entry) => entry.id === active.question.runtimeId);
@@ -894,26 +1492,60 @@ export const questionGroupPlayerJavaScript = `(() => {
       editor.disabled = running || !supported;
       examplesButton.disabled = running || !supported;
       checkButton.disabled = running || !supported;
+      cancelButton.hidden = !running;
+      cancelButton.disabled = !running;
       return supported;
     };
-    const renderActive = () => {
+    const renderActive = (moveFocus = false) => {
       const { group, question } = active;
+      const heading = text("h2", question.title);
+      heading.tabIndex = -1;
       questionCopy.replaceChildren(
-        text("span", group.title + " · " + question.difficulty, "eyebrow"),
-        text("h2", question.title),
+        text("span", group.title + " · " + question.difficulty, "learner-eyebrow"),
+        heading,
         text("p", question.prompt),
       );
       const constraintsTitle = text("h3", "Constraints");
       const constraints = document.createElement("ul");
       question.constraints.forEach((entry) => constraints.append(text("li", entry)));
       questionCopy.append(constraintsTitle, constraints);
+      const examples = question.cases.filter((entry) => entry.visibility === "example");
+      if (examples.length) {
+        questionCopy.append(text("h3", copy.publicExamplesHeading));
+        const exampleList = document.createElement("ul");
+        exampleList.className = "example-cases";
+        for (const example of examples) {
+          const expected = example.assertions.map((assertion) => (
+            Object.hasOwn(assertion, "expected")
+              ? assertion.expected
+              : assertion.label
+          ));
+          const item = document.createElement("li");
+          item.append(
+            text("strong", example.label),
+            text("code", copy.inputLabel + ": " + JSON.stringify(example.args)),
+            text(
+              "code",
+              copy.expectedLabel + ": " + JSON.stringify(
+                expected.length === 1 ? expected[0] : expected,
+              ),
+            ),
+          );
+          exampleList.append(item);
+        }
+        questionCopy.append(exampleList);
+      }
       sourcePath.textContent = question.path;
       editor.value = source;
-      results.replaceChildren(text("p", "Run the examples, then check all visible cases."));
+      draftStatus.textContent = drafts[questionKey(group, question)]
+        ? copy.draftRestored
+        : "";
+      results.replaceChildren(text("p", copy.initialResults));
       const supported = updateActionAvailability();
       if (!supported) {
-        results.replaceChildren(text("p", "This trusted host did not inject a compatible runtime. Portable data cannot load one.", "error"));
+        results.replaceChildren(text("p", copy.runtimeUnavailable, "error"));
       }
+      if (moveFocus) heading.focus({ preventScroll: true });
     };
     const run = async (mode) => {
       const { group, question } = active;
@@ -923,6 +1555,8 @@ export const questionGroupPlayerJavaScript = `(() => {
       const runSource = source;
       const runQuestionKey = questionKey(group, question);
       const runToken = runGuard.begin(runQuestionKey, runSource);
+      const controller = new AbortController();
+      activeRunController = controller;
       running = true;
       updateActionAvailability();
       renderNavigation();
@@ -934,7 +1568,7 @@ export const questionGroupPlayerJavaScript = `(() => {
         )
         && editor.value === runSource
       );
-      results.replaceChildren(text("p", "Running in an isolated browser worker…"));
+      results.replaceChildren(text("p", copy.running));
       try {
         const outcome = await runtimeAdapter.run({
           library,
@@ -944,16 +1578,46 @@ export const questionGroupPlayerJavaScript = `(() => {
           contractVersion: contractVersion(library, group, question),
           source,
           mode,
+          signal: controller.signal,
         });
         if (!isCurrentRun()) return;
-        const heading = text("h3", outcome.passed ? "All checks passed" : "Keep working");
+        const heading = text("h3", outcome.passed ? copy.passedHeading : copy.failedHeading);
         const list = document.createElement("ol");
         for (const exerciseCase of outcome.cases) {
           const detail = exerciseCase.assertions
             ? exerciseCase.assertions.map((entry) => entry.label + ": " + entry.detail).join(" ")
             : exerciseCase.detail || exerciseCase.id;
-          const item = text("li", detail);
+          const item = document.createElement("li");
           item.dataset.passed = String(exerciseCase.passed);
+          item.append(
+            text("strong", exerciseCase.passed ? "Pass · " : "Fail · "),
+            document.createTextNode((exerciseCase.label || exerciseCase.id) + ". " + detail),
+          );
+          if (Object.hasOwn(exerciseCase, "input")) {
+            item.append(text(
+              "code",
+              copy.inputLabel + ": " + JSON.stringify(exerciseCase.input),
+              "case-evidence",
+            ));
+          }
+          if (Object.hasOwn(exerciseCase, "expected")) {
+            item.append(text(
+              "code",
+              copy.expectedLabel + ": " + JSON.stringify(
+                exerciseCase.expected.length === 1
+                  ? exerciseCase.expected[0]
+                  : exerciseCase.expected,
+              ),
+              "case-evidence",
+            ));
+          }
+          if (Object.hasOwn(exerciseCase, "actual")) {
+            item.append(text(
+              "code",
+              "Received: " + JSON.stringify(exerciseCase.actual),
+              "case-evidence",
+            ));
+          }
           list.append(item);
         }
         results.replaceChildren(heading, list);
@@ -968,17 +1632,20 @@ export const questionGroupPlayerJavaScript = `(() => {
           );
           if (!isCurrentRun()) return;
           progress[key] = nextProgress;
+          updateProgressSummary();
           if (initialQuery === "leeches" && !isLeech(progress[key])) {
             const remaining = visibleEntries();
             runGuard.invalidate();
             running = false;
             if (!remaining.length) {
-              app.replaceChildren(emptyView());
+              const empty = emptyView();
+              app.replaceChildren(empty);
+              empty.focus({ preventScroll: true });
               return;
             }
             active = remaining[0];
-            source = active.question.starterCode;
-            renderActive();
+            source = draftSourceFor(active.group, active.question);
+            renderActive(true);
           }
           renderNavigation();
         }
@@ -986,6 +1653,7 @@ export const questionGroupPlayerJavaScript = `(() => {
         if (!isCurrentRun()) return;
         results.replaceChildren(text("p", error?.message || String(error), "error"));
       } finally {
+        if (activeRunController === controller) activeRunController = null;
         if (isCurrentRun()) {
           running = false;
           updateActionAvailability();
@@ -995,7 +1663,16 @@ export const questionGroupPlayerJavaScript = `(() => {
     };
     editor.addEventListener("input", () => {
       source = editor.value;
+      const { group, question } = active;
+      const key = questionKey(group, question);
+      const draftSource = source;
+      drafts[key] = { ...(drafts[key] || {}), source: draftSource };
+      draftStatus.textContent = "";
+      pendingDraftWrites.set(key, { group, question, key, source: draftSource });
+      void persistDraftWrites();
       if (running) {
+        activeRunController?.abort();
+        activeRunController = null;
         runGuard.invalidate();
         running = false;
         updateActionAvailability();
@@ -1004,14 +1681,37 @@ export const questionGroupPlayerJavaScript = `(() => {
     });
     examplesButton.addEventListener("click", () => run("examples"));
     checkButton.addEventListener("click", () => run("check"));
+    cancelButton.addEventListener("click", () => {
+      if (!running) return;
+      activeRunController?.abort();
+      activeRunController = null;
+      runGuard.invalidate();
+      running = false;
+      results.replaceChildren(text("p", copy.runCanceled));
+      updateActionAvailability();
+      renderNavigation();
+      editor.focus({ preventScroll: true });
+    });
+    editor.addEventListener("keydown", (event) => {
+      if (!(event.ctrlKey || event.metaKey) || event.key !== "Enter") return;
+      event.preventDefault();
+      if (running) return;
+      void run(event.shiftKey ? "examples" : "check");
+    });
     renderNavigation();
     renderActive();
   };
   load().catch((error) => {
     app.removeAttribute("aria-busy");
-    app.replaceChildren(text("p", error?.message || String(error), "empty error"));
+    app.replaceChildren(text("p", error?.message || String(error), "learner-empty error"));
   });
 })();\n`;
+}
+
+export const questionGroupPlayerJavaScript = renderQuestionGroupPlayerJavaScript(
+  defaultQuestionGroupSiteCopy,
+  true,
+);
 
 async function sha256Hex(bytes: Uint8Array) {
   const buffer = new ArrayBuffer(bytes.byteLength);
@@ -1045,9 +1745,7 @@ function bundledRuntimeSupported(
 
 export async function buildStandaloneQuestionGroupSite(
   input: QuestionGroupLibrary,
-  options: {
-    runtimeAdapterJavaScript?: string;
-  } = {},
+  options: QuestionGroupSiteOptions = {},
 ): Promise<QuestionGroupSiteFiles> {
   const validation = validateQuestionGroupLibrary(input);
   if (!validation.valid) {
@@ -1059,65 +1757,111 @@ export async function buildStandaloneQuestionGroupSite(
   const libraryJson = canonicalQuestionGroupLibraryJson(library);
   const libraryBytes = new TextEncoder().encode(libraryJson);
   const sha256 = await sha256Hex(libraryBytes);
-  const compiler = await compilerAssets();
+  const ui = normalizeQuestionGroupSiteUi(library, options.ui);
+  const bundledBrowserRuntime = options.bundledBrowserRuntime !== false;
+  const metaContentSecurityPolicy = normalizeMetaContentSecurityPolicy(
+    options.metaContentSecurityPolicy,
+  );
+  const compiler = bundledBrowserRuntime ? await compilerAssets() : undefined;
   const runtimeAdapter = options.runtimeAdapterJavaScript
     ?? "/* Build-time injection seam. Leave undefined to use the bundled JavaScript/TypeScript browser worker. */\n";
   const files: QuestionGroupSiteFiles = {
     ".latent-build": `${QUESTION_GROUP_BUILD_MARKER}\n`,
-    "index.html": renderIndex(library, sha256, "all").replace(/[ \t]+$/gm, ""),
-    "leeches/index.html": renderIndex(library, sha256, "leeches").replace(/[ \t]+$/gm, ""),
+    "index.html": renderIndex(
+      library,
+      sha256,
+      "all",
+      ui,
+      bundledBrowserRuntime,
+      metaContentSecurityPolicy,
+    ).replace(/[ \t]+$/gm, ""),
+    [`${ui.reviewDirectory}/index.html`]: renderIndex(
+      library,
+      sha256,
+      "leeches",
+      ui,
+      bundledBrowserRuntime,
+      metaContentSecurityPolicy,
+    ).replace(/[ \t]+$/gm, ""),
     "question-group-library.json": libraryJson,
-    "assets/player.css": questionGroupPlayerCss,
-    "assets/player.js": questionGroupPlayerJavaScript,
+    "assets/learner-ui.js": learnerUiJavaScript,
+    "assets/player.css": `${createLearnerUiCss(ui.theme)}\n${questionGroupLayoutCss}`,
+    "assets/player.js": renderQuestionGroupPlayerJavaScript(
+      ui.copy,
+      bundledBrowserRuntime,
+    ),
     "assets/runtime-adapter.js": runtimeAdapter,
-    "assets/sandbox.worker.js": questionGroupSandboxWorkerJavaScript,
-    "assets/esbuild.js": compiler.javascript,
-    "assets/esbuild.wasm": compiler.wasm,
-    "assets/favicon.svg": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#f5f1e9"/><circle cx="32" cy="32" r="15" fill="#675674"/></svg>\n`,
+    ...(bundledBrowserRuntime && compiler ? {
+      "assets/sandbox.worker.js": questionGroupSandboxWorkerJavaScript,
+      "assets/esbuild.js": compiler.javascript,
+      "assets/esbuild.wasm": compiler.wasm,
+    } : {}),
+    "assets/favicon.svg": ui.faviconSvg
+      ? `${ui.faviconSvg.trim()}\n`
+      : `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#17211d"/><path d="M20 21h24v7H20zm0 15h16v7H20z" fill="#fff"/></svg>\n`,
     "_headers": `/*
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=()
   Content-Security-Policy: default-src 'none'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self'; connect-src 'self'; img-src 'self' data:; font-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'
 
-/assets/sandbox.worker.js
+${bundledBrowserRuntime ? `/assets/sandbox.worker.js
   Content-Security-Policy: default-src 'none'; script-src 'self' 'unsafe-eval'; connect-src 'none'; object-src 'none'
 
-/question-group-library.json
+` : ""}/question-group-library.json
   Access-Control-Allow-Origin: *
   Cache-Control: no-cache
 `,
     "README.txt": `This is a self-hosted Latent Question Group practice site.
 
-Publish this entire directory on a static host. The bundled adapter runs only
-declared JavaScript and TypeScript browser-worker requirements. Learner code
-runs in a disposable worker with time and output limits. The checker captures
-and freezes its grading intrinsics before learner evaluation, accepts only
-structured-cloneable finite JSON results with plain prototypes, follows only
-own result properties, and revalidates worker messages. It lowers native
-dynamic-import syntax before worker evaluation, removes known browser network
-capabilities, and fails closed if one cannot be disabled. The worker provides
-no module loader or string-evaluating timer APIs. Apply the included _headers
-policy as defense in depth when your static host supports it. Python and
-host-managed requirements remain disabled unless trusted platform code is
-injected at build time.
+Publish this entire directory on a static host.
 
-The leech-only view is /leeches/. It queries device-local progress and does not
-introduce another content format. Checks update progress in an atomic IndexedDB
-transaction, so concurrent tabs do not discard attempts.
+${bundledBrowserRuntime
+    ? `The bundled adapter runs only declared JavaScript and TypeScript
+browser-worker requirements. Learner code runs in a disposable worker with
+time and output limits. The checker captures and freezes its grading
+intrinsics before learner evaluation, accepts only structured-cloneable finite
+JSON results with plain prototypes, follows only own result properties, and
+revalidates worker messages. It lowers native dynamic-import syntax before
+worker evaluation, removes known browser network capabilities, and fails
+closed if one cannot be disabled. The worker provides no module loader or
+string-evaluating timer APIs. Python and host-managed requirements remain disabled
+unless trusted platform code is injected at build time.`
+    : `This build intentionally omits the bundled JavaScript and TypeScript
+compiler and sandbox assets. Its reviewed, build-time-injected host adapter
+owns runtime admission, isolation, timeouts, and bounded result validation.
+Portable JSON cannot select, load, or replace that adapter.`}
+
+Apply the included _headers policy as defense in depth when your static host
+supports it.
+
+The repeated-miss review is /${ui.reviewDirectory}/. It queries device-local
+progress and does not introduce another content format. Checks update progress
+in an atomic IndexedDB transaction, so concurrent tabs do not discard attempts.
+Editor drafts use separate digest- and contract-bound records in the trusted
+browser database. They are not part of portable Question Group JSON or the
+portable progress format.
 `,
   };
   files["build-report.json"] = `${JSON.stringify({
     format: "latent-question-group-build-report",
     schemaVersion: 1,
     playerVersion: QUESTION_GROUP_PLAYER_VERSION,
+    learnerUiVersion: LEARNER_UI_VERSION,
     libraryId: library.library.id,
     version: library.library.version,
     sha256,
     libraryBytes: libraryBytes.byteLength,
-    browserRuntimes: library.runtimes
-      .filter(bundledRuntimeSupported)
-      .map((runtime) => runtime.id),
+    reviewDirectory: ui.reviewDirectory,
+    bundledBrowserRuntime,
+    metaContentSecurityPolicy: options.metaContentSecurityPolicy === undefined
+      ? "default"
+      : "custom",
+    browserRuntimes: bundledBrowserRuntime
+      ? library.runtimes
+        .filter(bundledRuntimeSupported)
+        .map((runtime) => runtime.id)
+      : [],
     files: [...Object.keys(files), "build-report.json"].sort(),
   }, null, 2)}\n`;
   return files;

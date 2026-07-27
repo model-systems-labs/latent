@@ -5,8 +5,27 @@ import {
   type LearningPack,
   validateLearningPack,
 } from "./learning-pack.js";
+import {
+  LEARNER_UI_VERSION,
+  createLearnerUiCss,
+  learnerUiJavaScript,
+  renderLearnerFooter,
+  renderLearnerHeader,
+  type LearnerUiTheme,
+} from "./learner-ui.js";
 
 export const STANDALONE_PLAYER_VERSION = 1 as const;
+
+export type StandaloneLearningSiteUi = Readonly<{
+  productName?: string;
+  navigationLabel?: string;
+  modulesLabel?: string;
+  reviewLabel?: string;
+  menuLabel?: string;
+  footerSummary?: string;
+  attribution?: string;
+  theme?: LearnerUiTheme;
+}>;
 
 function escapeHtml(value: string) {
   return value
@@ -35,14 +54,14 @@ function renderBlock(block: LearningBlock, lessonId: string) {
   }
   const fieldName = `${lessonId}-${block.id}`;
   return [
-    `<form class="quiz" data-answer="${escapeHtml(block.correctChoiceId)}">`,
+    `<form class="learner-form quiz" data-answer="${escapeHtml(block.correctChoiceId)}">`,
     `<fieldset><legend>${escapeHtml(block.prompt)}</legend>`,
     block.choices.map((choice) => (
       `<label><input type="radio" name="${escapeHtml(fieldName)}" value="${escapeHtml(choice.id)}"> <span>${escapeHtml(choice.text)}</span></label>`
     )).join(""),
     `</fieldset>`,
-    `<button type="submit">Check answer</button>`,
-    `<p class="quiz-result" role="status" aria-live="polite"></p>`,
+    `<button class="learner-button" data-variant="primary" type="submit">Check answer</button>`,
+    `<p class="learner-status quiz-result" role="status" aria-live="polite"></p>`,
     `<p class="quiz-explanation" hidden>${escapeHtml(block.explanation)}</p>`,
     `</form>`,
   ].join("");
@@ -57,7 +76,11 @@ function sourceLinks(pack: LearningPack, sourceIds: readonly string[]) {
     .join("");
 }
 
-function renderIndex(pack: LearningPack, sha256: string) {
+function renderIndex(
+  pack: LearningPack,
+  sha256: string,
+  ui: StandaloneLearningSiteUi,
+) {
   const lessons = [...pack.lessons].sort((left, right) => left.order - right.order);
   const decks = [...pack.flashcardDecks].sort((left, right) => left.order - right.order);
   const firstView = lessons[0] ? `lesson-${lessons[0].id}` : `deck-${decks[0]?.id ?? ""}`;
@@ -74,6 +97,32 @@ function renderIndex(pack: LearningPack, sha256: string) {
       title: deck.title,
     })),
   ];
+  const primaryNavigation = [
+    ...(lessons[0] ? [{
+      label: ui.modulesLabel ?? "Modules",
+      href: `#lesson-${lessons[0].id}`,
+      current: true,
+      dataView: `lesson-${lessons[0].id}`,
+    }] : []),
+    ...(decks[0] ? [{
+      label: ui.reviewLabel ?? "Review",
+      href: `#deck-${decks[0].id}`,
+      current: lessons.length === 0,
+      dataView: `deck-${decks[0].id}`,
+    }] : []),
+  ];
+  const header = renderLearnerHeader({
+    productName: ui.productName ?? pack.package.title,
+    homeHref: "./",
+    navigationLabel: ui.navigationLabel ?? "Learning navigation",
+    navigation: primaryNavigation,
+    menuLabel: ui.menuLabel,
+    meta: `Version ${pack.package.version}`,
+  });
+  const footer = renderLearnerFooter({
+    summary: ui.footerSummary ?? `${pack.package.license} · Progress stays on this device.`,
+    attribution: ui.attribution ?? "Built with Latent.",
+  });
 
   const lessonSections = lessons.map((lesson) => `
     <section class="learning-view" id="lesson-${escapeHtml(lesson.id)}" data-view="lesson-${escapeHtml(lesson.id)}" ${`lesson-${lesson.id}` === firstView ? "" : "hidden"}>
@@ -92,7 +141,7 @@ function renderIndex(pack: LearningPack, sha256: string) {
           ...lesson.blocks.flatMap((block) => block.type === "quiz" ? block.sourceIds : []),
         ])}</ul>
       </section>
-      <button class="complete-button" type="button" data-complete="${escapeHtml(lesson.id)}">Mark lesson complete</button>
+      <button class="learner-button complete-button" data-variant="primary" type="button" data-complete="${escapeHtml(lesson.id)}">Mark lesson complete</button>
     </section>
   `).join("");
 
@@ -106,7 +155,7 @@ function renderIndex(pack: LearningPack, sha256: string) {
       <div class="deck-status" role="status" aria-live="polite"></div>
       <ol class="cards">
         ${deck.cards.map((card, index) => `
-          <li class="card" data-card="${escapeHtml(card.id)}">
+          <li class="learner-card card" data-card="${escapeHtml(card.id)}">
             <span class="card-count">Card ${index + 1} of ${deck.cards.length}</span>
             <button class="card-face" type="button" aria-expanded="false">
               <span class="card-prompt">${escapeHtml(card.front)}</span>
@@ -114,8 +163,8 @@ function renderIndex(pack: LearningPack, sha256: string) {
               <em>Reveal answer</em>
             </button>
             <div class="card-actions" hidden>
-              <button type="button" data-rating="review">Needs review</button>
-              <button type="button" data-rating="know">Know it</button>
+              <button class="learner-button" type="button" data-rating="review">Needs review</button>
+              <button class="learner-button" data-variant="primary" type="button" data-rating="know">Know it</button>
             </div>
           </li>
         `).join("")}
@@ -140,27 +189,28 @@ function renderIndex(pack: LearningPack, sha256: string) {
   <title>${escapeHtml(pack.package.title)}</title>
   <link rel="stylesheet" href="./assets/player.css">
 </head>
-<body data-storage-key="${escapeHtml(storageKey)}">
-  <a class="skip-link" href="#content">Skip to learning content</a>
-  <header class="site-header">
-    <a class="wordmark" href="./" aria-label="${escapeHtml(pack.package.title)} home"><i></i>latent open learning</a>
-    <span>Self-hosted · ${escapeHtml(pack.package.version)}</span>
-  </header>
-  <div class="layout">
-    <aside class="sidebar">
-      <p class="eyebrow">Published by ${escapeHtml(pack.package.authors[0]?.name ?? "Independent publisher")}</p>
+<body class="learner-ui" data-storage-key="${escapeHtml(storageKey)}">
+  <a class="learner-skip-link" href="#content">Skip to learning content</a>
+  <div class="learner-page">
+  ${header}
+  <div class="learner-main learner-layout layout">
+    <aside class="learner-sidebar sidebar">
+      <p class="learner-eyebrow eyebrow">Published by ${escapeHtml(pack.package.authors[0]?.name ?? "Independent publisher")}</p>
       <h2>${escapeHtml(pack.package.title)}</h2>
       <p>${escapeHtml(pack.package.description)}</p>
       <nav aria-label="Learning pack contents">
-        ${navigation.map((entry) => `<button type="button" data-open-view="${escapeHtml(entry.id)}" aria-current="${entry.id === firstView ? "page" : "false"}"><small>${escapeHtml(entry.eyebrow)}</small><span>${escapeHtml(entry.title)}</span></button>`).join("")}
+        ${navigation.map((entry) => `<button class="learner-nav-item" type="button" data-open-view="${escapeHtml(entry.id)}" aria-current="${entry.id === firstView ? "page" : "false"}"><small>${escapeHtml(entry.eyebrow)}</small><span>${escapeHtml(entry.title)}</span></button>`).join("")}
       </nav>
       <footer>
         <span>${escapeHtml(pack.package.license)}</span>
         <a href="./learning-pack.json">View source JSON</a>
       </footer>
     </aside>
-    <main id="content">${lessonSections}${deckSections}</main>
+    <main class="learner-content" id="content" tabindex="-1">${lessonSections}${deckSections}</main>
   </div>
+  ${footer}
+  </div>
+  <script src="./assets/learner-ui.js" defer></script>
   <script src="./assets/player.js" defer></script>
 </body>
 </html>
@@ -181,6 +231,13 @@ export const standalonePlayerJavaScript = `(() => {
     }
   };
   let state = readState();
+  const viewFamily = (view) => (
+    view.startsWith("lesson-")
+      ? "lesson"
+      : view.startsWith("deck-")
+        ? "deck"
+        : view
+  );
   const save = () => {
     try { localStorage.setItem(storageKey, JSON.stringify(state)); } catch {}
   };
@@ -203,17 +260,26 @@ export const standalonePlayerJavaScript = `(() => {
       });
     });
   };
+  const openView = (view, moveFocus = true) => {
+    document.querySelectorAll(".learning-view[data-view]").forEach((section) => { section.hidden = section.dataset.view !== view; });
+    document.querySelectorAll("[data-open-view]").forEach((entry) => entry.setAttribute("aria-current", entry.dataset.openView === view ? "page" : "false"));
+    document.querySelectorAll(".learner-primary-nav [data-view]").forEach((entry) => {
+      entry.setAttribute("aria-current", viewFamily(entry.dataset.view) === viewFamily(view) ? "page" : "false");
+    });
+    const target = document.getElementById(view);
+    if (target) {
+      history.replaceState(null, "", "#" + view);
+      if (moveFocus) target.querySelector("h1")?.focus({ preventScroll: true });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
   document.querySelectorAll("[data-open-view]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const view = button.dataset.openView;
-      document.querySelectorAll("[data-view]").forEach((section) => { section.hidden = section.dataset.view !== view; });
-      document.querySelectorAll("[data-open-view]").forEach((entry) => entry.setAttribute("aria-current", entry === button ? "page" : "false"));
-      const target = document.getElementById(view);
-      if (target) {
-        history.replaceState(null, "", "#" + view);
-        target.querySelector("h1")?.focus({ preventScroll: true });
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      }
+    button.addEventListener("click", () => openView(button.dataset.openView));
+  });
+  document.querySelectorAll(".learner-primary-nav [data-view]").forEach((link) => {
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      openView(link.dataset.view);
     });
   });
   document.querySelectorAll(".quiz").forEach((quiz) => {
@@ -228,12 +294,15 @@ export const standalonePlayerJavaScript = `(() => {
       }
       const correct = selected.value === quiz.dataset.answer;
       result.textContent = correct ? "Correct." : "Not yet. Read the explanation and try again.";
-      result.className = "quiz-result " + (correct ? "correct" : "incorrect");
+      result.className = "learner-status quiz-result " + (correct ? "correct" : "incorrect");
+      result.dataset.tone = correct ? "success" : "danger";
       explanation.hidden = false;
     });
     quiz.querySelectorAll("input[type='radio']").forEach((input) => {
       input.addEventListener("change", () => {
-        quiz.querySelector(".quiz-result").textContent = "";
+        const result = quiz.querySelector(".quiz-result");
+        result.textContent = "";
+        delete result.dataset.tone;
         quiz.querySelector(".quiz-explanation").hidden = true;
       });
     });
@@ -269,22 +338,22 @@ export const standalonePlayerJavaScript = `(() => {
     });
   });
   const initial = location.hash.slice(1);
-  if (initial) document.querySelector('[data-open-view="' + CSS.escape(initial) + '"]')?.click();
+  if (initial && document.querySelector('[data-open-view="' + CSS.escape(initial) + '"]')) {
+    openView(initial, false);
+  }
   updateCompleteButtons();
   updateDeckStatus();
 })();\n`;
 
-export const standalonePlayerCss = `:root {
-  color-scheme: light;
-  --paper: #f4f0e8;
-  --bright: #fffdf8;
-  --ink: #282322;
-  --muted: #665e59;
-  --line: rgba(73,55,66,.16);
-  --violet: #695a78;
-  --wash: rgba(204,188,204,.24);
-  --green: #486750;
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+const standaloneLearningLayoutCss = `:root {
+  --paper: var(--learner-color-canvas);
+  --bright: var(--learner-color-surface);
+  --ink: var(--learner-color-ink);
+  --muted: var(--learner-color-muted);
+  --line: var(--learner-color-border);
+  --violet: var(--learner-color-accent);
+  --wash: var(--learner-color-accent-soft);
+  --green: var(--learner-color-success);
 }
 * { box-sizing: border-box; }
 html { background: var(--paper); color: var(--ink); }
@@ -358,6 +427,8 @@ code { font-family: ui-monospace,SFMono-Regular,monospace; font-size: .86rem; li
   main { padding-top: 3rem; }
 }\n`;
 
+export const standalonePlayerCss = `${createLearnerUiCss()}\n${standaloneLearningLayoutCss}`;
+
 export type StandaloneSiteFiles = Record<string, string>;
 
 async function sha256Hex(bytes: Uint8Array) {
@@ -382,6 +453,7 @@ export async function buildStandaloneLearningSite(
   options: {
     packageUrl?: string;
     siteUrl?: string;
+    ui?: StandaloneLearningSiteUi;
   } = {},
 ): Promise<StandaloneSiteFiles> {
   const validation = validateLearningPack(input);
@@ -399,11 +471,12 @@ export async function buildStandaloneLearningSite(
   });
   const files: StandaloneSiteFiles = {
     ".latent-build": `${LEARNING_BUILD_MARKER}\n`,
-    "index.html": renderIndex(pack, sha256).replace(/[ \t]+$/gm, ""),
+    "index.html": renderIndex(pack, sha256, options.ui ?? {}).replace(/[ \t]+$/gm, ""),
     "learning-pack.json": packageJson,
     "learning-feed.json": `${JSON.stringify(feed, null, 2)}\n`,
     "assets/player.js": standalonePlayerJavaScript,
-    "assets/player.css": standalonePlayerCss,
+    "assets/player.css": `${createLearnerUiCss(options.ui?.theme)}\n${standaloneLearningLayoutCss}`,
+    "assets/learner-ui.js": learnerUiJavaScript,
     "_headers": `/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: no-referrer\n  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()\n  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'\n\n/learning-feed.json\n  Access-Control-Allow-Origin: *\n  Cache-Control: no-cache\n\n/learning-pack.json\n  Access-Control-Allow-Origin: *\n  Cache-Control: no-cache\n`,
     "README.txt": `This is a Latent Open Learning static site.\n\nPublish this entire directory on any static web host. Share learning-feed.json with learners who want to verify or install the pack. Progress stays in each learner's browser and is namespaced to ${pack.package.id}@${pack.package.version}.\n`,
   };
@@ -411,6 +484,7 @@ export async function buildStandaloneLearningSite(
     format: "latent-learning-build-report",
     schemaVersion: 1,
     playerVersion: STANDALONE_PLAYER_VERSION,
+    learnerUiVersion: LEARNER_UI_VERSION,
     packageId: pack.package.id,
     version: pack.package.version,
     sha256,

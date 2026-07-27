@@ -8,6 +8,8 @@ const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
 const githubPagesBasePath = process.env.LATENT_GITHUB_PAGES_BASE_PATH?.trim() || "";
 const productHome = process.env.LATENT_PRODUCT_HOME === "framework"
   ? "products/framework/home.ts"
+  : process.env.LATENT_COURSE_HOME === "llm-systems"
+    ? "products/courses/llm-systems-home.ts"
   : "products/courses/home.ts";
 
 const localBindingConfig = {
@@ -29,6 +31,12 @@ export default defineConfig(async () => {
     define: {
       "process.env.LATENT_PRODUCT_HOME": JSON.stringify(
         process.env.LATENT_PRODUCT_HOME ?? "courses",
+      ),
+      "process.env.LATENT_COURSE_HOME": JSON.stringify(
+        process.env.LATENT_COURSE_HOME ?? "",
+      ),
+      "process.env.LATENT_LEARNING_SUITE_BASE_PATH": JSON.stringify(
+        process.env.LATENT_LEARNING_SUITE_BASE_PATH ?? "",
       ),
     },
     resolve: {

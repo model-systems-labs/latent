@@ -204,9 +204,28 @@ test("standalone builds derive integrity, are deterministic, self-contained, and
   assert.equal(feed.packages[0].bytes, Buffer.byteLength(packageJson));
   assert.equal(report.sha256, expectedDigest);
   assert.equal(report.packageBytes, Buffer.byteLength(packageJson));
+  assert.equal(report.learnerUiVersion, 1);
   assert.match(first["index.html"], /Content-Security-Policy/);
+  assert.match(first["index.html"], /<body class="learner-ui"/);
+  assert.match(first["index.html"], /class="learner-skip-link"/);
+  assert.match(first["index.html"], /<main class="learner-content" id="content" tabindex="-1">/);
+  assert.match(first["index.html"], /class="learner-header"/);
+  assert.match(first["index.html"], /src="\.\/assets\/learner-ui\.js"/);
   assert.doesNotMatch(first["index.html"], /<img src=x onerror=/);
   assert.match(first["index.html"], /&lt;img src=x onerror=alert\(1\)&gt;/);
+  assert.match(first["assets/player.css"], /--learner-font-sans:/);
+  assert.match(first["assets/player.css"], /\.learner-ui :focus-visible/);
+  assert.match(first["assets/learner-ui.js"], /event\.key !== "Escape"/);
+  assert.match(first["assets/player.js"], /localStorage\.getItem\(storageKey\)/);
+  assert.match(first["assets/player.js"], /focus\(\{ preventScroll: true \}\)/);
+  assert.match(
+    first["assets/player.js"],
+    /querySelectorAll\("\.learning-view\[data-view\]"\)/,
+  );
+  assert.doesNotMatch(
+    first["assets/player.js"],
+    /querySelectorAll\("\[data-view\]"\)/,
+  );
   assert.doesNotMatch(first["assets/player.js"], /\beval\s*\(|new Function|dangerouslySetInnerHTML/);
   assert.match(first["_headers"], /Access-Control-Allow-Origin: \*/);
   assert.match(first["_headers"], /Content-Security-Policy:/);
@@ -226,6 +245,46 @@ test("standalone builds derive integrity, are deterministic, self-contained, and
   quiz.sourceIds.push("nested-only");
   const nestedFiles = await buildStandaloneLearningSite(nestedCitation);
   assert.match(nestedFiles["index.html"], /A source cited only by a quiz/);
+});
+
+test("standalone Learning Pack UI configuration changes presentation without changing canonical content identity", async () => {
+  const baseline = await buildStandaloneLearningSite(example);
+  const configured = await buildStandaloneLearningSite(copy(example), {
+    ui: {
+      productName: "Interview <Loop>",
+      navigationLabel: "Course navigation",
+      modulesLabel: "Modules & lessons",
+      reviewLabel: "Review cards",
+      menuLabel: "Browse course",
+      footerSummary: "Progress stays on this device.",
+      attribution: "A quiet attribution.",
+      theme: {
+        accent: "#345ABC",
+        focus: "#FEDCBA",
+      },
+    },
+  });
+
+  assert.match(configured["index.html"], /Interview &lt;Loop&gt;/);
+  assert.doesNotMatch(configured["index.html"], /Interview <Loop>/);
+  assert.match(configured["index.html"], /aria-label="Course navigation"/);
+  assert.match(configured["index.html"], />Browse course<\/summary>/);
+  assert.match(configured["index.html"], /Modules &amp; lessons/);
+  assert.match(configured["index.html"], /Review cards/);
+  assert.match(configured["index.html"], /Progress stays on this device\./);
+  assert.match(configured["index.html"], /A quiet attribution\./);
+  assert.match(configured["assets/player.css"], /--learner-color-accent: #345abc;/);
+  assert.match(configured["assets/player.css"], /--learner-color-focus: #fedcba;/);
+  assert.equal(
+    configured["assets/learner-ui.js"],
+    baseline["assets/learner-ui.js"],
+  );
+  assert.equal(configured["learning-pack.json"], baseline["learning-pack.json"]);
+  assert.equal(configured["learning-feed.json"], baseline["learning-feed.json"]);
+  assert.equal(
+    JSON.parse(configured["build-report.json"]).sha256,
+    JSON.parse(baseline["build-report.json"]).sha256,
+  );
 });
 
 test("JSON parsing enforces the two-megabyte package limit", () => {

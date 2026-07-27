@@ -126,6 +126,29 @@ main {
   height: 4.9rem;
 }
 
+.site-skip-link {
+  background: var(--ink);
+  border-radius: 0.4rem;
+  color: var(--paper-bright);
+  font-family: var(--sans);
+  font-size: 0.82rem;
+  font-weight: 700;
+  left: 1rem;
+  padding: 0.7rem 1rem;
+  position: fixed;
+  text-decoration: none;
+  top: -6rem;
+  z-index: 100;
+}
+
+.site-skip-link:focus {
+  outline: 3px solid #2259c7;
+  outline-offset: 3px;
+  top: 1rem;
+}
+
+#main-content:focus { outline: none; }
+
 .wordmark {
   align-items: center;
   display: inline-flex;

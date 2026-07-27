@@ -27,12 +27,6 @@ function element(tag, options = {}, children = []) {
   return node;
 }
 
-async function loadJson(path) {
-  const response = await fetch(path, { credentials: "omit" });
-  if (!response.ok) throw new Error(`Could not load ${path}.`);
-  return response.json();
-}
-
 async function loadJsonWithDigest(path) {
   const response = await fetch(path, { credentials: "omit" });
   if (!response.ok) throw new Error(`Could not load ${path}.`);
@@ -53,13 +47,24 @@ function setStatus(node, message, tone = "neutral") {
   announce(message);
 }
 
-async function runPythonChecks(
-  source,
-  path,
-  entrypoint,
-  cases,
-  requirement,
-) {
+function focusRendered(selector) {
+  requestAnimationFrame(() => {
+    $(selector)?.focus({ preventScroll: true });
+  });
+}
+
+function mobilePanel(label, children) {
+  return element("details", { className: "learner-mobile-panel", open: "" }, [
+    element("summary", { text: label }),
+    element(
+      "div",
+      { className: "learner-mobile-panel__content" },
+      Array.isArray(children) ? children : [children],
+    ),
+  ]);
+}
+
+async function runPythonChecks(source, path, entrypoint, cases, requirement) {
   if (!interviewPythonRuntime.supports(requirement)) {
     throw new Error("This exercise does not declare the supported Python runtime.");
   }
@@ -104,7 +109,7 @@ function renderBlock(block, quizContext) {
     return wrapper;
   }
   if (block.type === "callout") {
-    return element("aside", { className: "callout" }, [
+    return element("aside", { className: "learner-card callout" }, [
       element("strong", { text: block.title }),
       element("p", { text: block.text }),
     ]);
@@ -118,7 +123,7 @@ function renderBlock(block, quizContext) {
       if (quizContext.records[block.id]?.selected === choice.id) input.checked = true;
       fieldset.append(element("label", { htmlFor: id }, [input, element("span", { text: choice.text })]));
     }
-    const status = element("p", { className: "status", "aria-live": "polite" });
+    const status = element("p", { className: "learner-status", "aria-live": "polite" });
     const restored = quizContext.records[block.id];
     if (restored) {
       setStatus(
@@ -127,7 +132,12 @@ function renderBlock(block, quizContext) {
         restored.correct ? "success" : "danger",
       );
     }
-    const check = element("button", { className: "primary-button", type: "button", text: "Check answer" });
+    const check = element("button", {
+      className: "learner-button",
+      "data-variant": "primary",
+      type: "button",
+      text: "Check answer",
+    });
     check.addEventListener("click", () => {
       const selected = $(`input[name="quiz-${block.id}"]:checked`, fieldset)?.value;
       if (!selected) {
@@ -139,14 +149,18 @@ function renderBlock(block, quizContext) {
       quizContext.store.write("quiz-progress", quizContext.records);
       setStatus(status, `${correct ? "Correct." : "Try again."} ${block.explanation}`, correct ? "success" : "danger");
     });
-    return element("div", { className: "quiz" }, [fieldset, check, status]);
+    return element("div", { className: "learner-card learner-form quiz" }, [
+      fieldset,
+      check,
+      status,
+    ]);
   }
   return element("p", { text: "Unsupported lesson block." });
 }
 
 function renderLesson(pack, state) {
   const root = $("#lesson-root");
-  root.className = "view-grid";
+  root.className = "learner-layout view-grid";
   root.replaceChildren();
   const lessons = [...pack.lessons].sort((left, right) => left.order - right.order);
   const activeIndex = Math.max(
@@ -157,47 +171,70 @@ function renderLesson(pack, state) {
   const completed = new Set(state.module.completedIds);
   const quizCount = lesson.blocks.filter((block) => block.type === "quiz").length;
   const progress = element("progress", {
-    className: "module-progress",
+    className: "learner-progress module-progress",
     max: String(lessons.length),
     value: String(completed.size),
     "aria-label": `${completed.size} of ${lessons.length} modules completed`,
   });
-  const rail = element("aside", { className: "rail" }, [
-    element("p", { className: "kicker", text: `Module ${activeIndex + 1} of ${lessons.length} · ${lesson.durationMinutes} minutes` }),
+  const rail = element("aside", { className: "learner-sidebar rail" }, [
+    element("p", { className: "learner-eyebrow", text: `Module ${activeIndex + 1} of ${lessons.length} · ${lesson.durationMinutes} minutes` }),
     element("h2", { id: "lesson-heading", tabindex: "-1", text: lesson.title }),
-    element("p", { className: "summary", text: lesson.summary }),
-    element("div", { className: "progress-summary" }, [
+    element("p", { className: "learner-summary", text: lesson.summary }),
+    element("div", { className: "learner-progress-summary" }, [
       element("strong", { text: `${completed.size} / ${lessons.length} modules complete` }),
       progress,
-      element("small", { text: "Completion is self-marked and saved on this device." }),
+      element("p", { className: "learner-resume" }, [
+        element("strong", { text: completed.size === lessons.length ? "Complete:" : "Continue:" }),
+        element("span", {
+          text: completed.size === lessons.length
+            ? "All modules finished. You can revisit any module."
+            : `${lesson.title}. Position and completion are saved on this device.`,
+        }),
+      ]),
     ]),
   ]);
-  const moduleList = element("ol", { className: "module-list", "aria-label": "Course modules" });
+  const moduleList = element("ol", {
+    className: "learner-nav-list module-list",
+    "aria-label": "Course modules",
+  });
   for (const [index, candidate] of lessons.entries()) {
     const isComplete = completed.has(candidate.id);
     const button = element("button", {
+      className: "learner-nav-item",
       type: "button",
       "aria-current": String(candidate.id === lesson.id),
-      text: `${String(index + 1).padStart(2, "0")} · ${candidate.title}${isComplete ? " · Complete" : ""}`,
-    });
+      "aria-label": `Module ${index + 1}: ${candidate.title}${isComplete ? ", complete" : ""}`,
+    }, [
+      element("span", {
+        className: "learner-status-dot",
+        "data-status": isComplete ? "solved" : "not-started",
+        "aria-hidden": "true",
+      }),
+      element("span", {
+        text: `${String(index + 1).padStart(2, "0")} · ${candidate.title}${isComplete ? " · Complete" : ""}`,
+      }),
+    ]);
     button.addEventListener("click", () => {
       state.module.activeId = candidate.id;
       state.store.write("module-progress", state.module);
       renderLesson(pack, state);
-      $("#lesson-heading").focus({ preventScroll: true });
+      focusRendered("#lesson-heading");
       announce(`Module ${index + 1} opened: ${candidate.title}.`);
     });
     moduleList.append(element("li", {}, button));
   }
+  const moduleDetails = element("ul", { className: "meta-list" }, [
+    element("li", {}, [element("span", { text: "Objectives" }), element("strong", { text: String(lesson.objectiveIds.length) })]),
+    element("li", {}, [element("span", { text: "Source links" }), element("strong", { text: String(lesson.sourceIds.length) })]),
+    element("li", {}, [element("span", { text: "Knowledge checks" }), element("strong", { text: String(quizCount) })]),
+  ]);
   rail.append(
-    moduleList,
-    element("ul", { className: "meta-list" }, [
-      element("li", {}, [element("span", { text: "Objectives" }), element("strong", { text: String(lesson.objectiveIds.length) })]),
-      element("li", {}, [element("span", { text: "Source links" }), element("strong", { text: String(lesson.sourceIds.length) })]),
-      element("li", {}, [element("span", { text: "Knowledge checks" }), element("strong", { text: String(quizCount) })]),
+    mobilePanel("Choose module", [
+      moduleList,
+      moduleDetails,
     ]),
   );
-  const prose = element("article", { className: "work prose" });
+  const prose = element("article", { className: "learner-content work prose" });
   for (const block of lesson.blocks) {
     prose.append(renderBlock(block, { records: state.quiz, store: state.store }));
   }
@@ -220,24 +257,36 @@ function renderLesson(pack, state) {
     })),
   ]));
   const completeButton = element("button", {
-    className: completed.has(lesson.id) ? "secondary-button" : "primary-button",
+    id: "module-complete-action",
+    className: "learner-button",
+    "data-variant": completed.has(lesson.id) ? "secondary" : "primary",
     type: "button",
     text: completed.has(lesson.id) ? "Mark module incomplete" : "Mark module complete",
   });
   completeButton.addEventListener("click", () => {
     if (completed.has(lesson.id)) completed.delete(lesson.id);
-    else completed.add(lesson.id);
+    else {
+      completed.add(lesson.id);
+      const nextIncomplete = lessons.find((candidate) => !completed.has(candidate.id));
+      if (nextIncomplete) state.module.activeId = nextIncomplete.id;
+    }
     state.module.completedIds = lessons
       .filter((candidate) => completed.has(candidate.id))
       .map((candidate) => candidate.id);
     state.store.write("module-progress", state.module);
     renderLesson(pack, state);
+    focusRendered("#module-complete-action");
     announce(`${lesson.title} marked ${completed.has(lesson.id) ? "complete" : "incomplete"}.`);
   });
-  const moduleControls = element("div", { className: "module-controls" }, completeButton);
+  const moduleControls = element(
+    "div",
+    { className: "learner-button-row module-controls" },
+    completeButton,
+  );
   if (activeIndex > 0) {
     const previous = element("button", {
-      className: "quiet-button",
+      className: "learner-button",
+      "data-variant": "quiet",
       type: "button",
       text: "Previous module",
     });
@@ -245,13 +294,14 @@ function renderLesson(pack, state) {
       state.module.activeId = lessons[activeIndex - 1].id;
       state.store.write("module-progress", state.module);
       renderLesson(pack, state);
+      focusRendered("#lesson-heading");
       announce(`Previous module opened: ${lessons[activeIndex - 1].title}.`);
     });
     moduleControls.prepend(previous);
   }
   if (activeIndex < lessons.length - 1) {
     const next = element("button", {
-      className: "secondary-button",
+      className: "learner-button",
       type: "button",
       text: "Next module",
     });
@@ -259,6 +309,7 @@ function renderLesson(pack, state) {
       state.module.activeId = lessons[activeIndex + 1].id;
       state.store.write("module-progress", state.module);
       renderLesson(pack, state);
+      focusRendered("#lesson-heading");
       announce(`Next module opened: ${lessons[activeIndex + 1].title}.`);
     });
     moduleControls.append(next);
@@ -269,42 +320,49 @@ function renderLesson(pack, state) {
 
 function renderCards(pack, state) {
   const root = $("#cards-root");
-  root.className = "view-grid";
+  root.className = "learner-layout view-grid";
   root.replaceChildren();
   const deck = pack.flashcardDecks[0];
   const card = deck.cards[state.card.index];
-  const rail = element("aside", { className: "rail" }, [
-    element("p", { className: "kicker", text: "Retrieval practice" }),
-    element("h2", { id: "cards-heading", text: deck.title }),
-    element("p", { className: "summary", text: deck.description }),
+  const rail = element("aside", { className: "learner-sidebar rail" }, [
+    element("p", { className: "learner-eyebrow", text: "Review" }),
+    element("h2", { id: "cards-heading", tabindex: "-1", text: deck.title }),
+    element("p", { className: "learner-summary", text: deck.description }),
     element("ul", { className: "meta-list" }, [
       element("li", {}, [element("span", { text: "Card" }), element("strong", { text: `${state.card.index + 1} / ${deck.cards.length}` })]),
       element("li", {}, [element("span", { text: "Reviewed" }), element("strong", { text: String(Object.keys(state.card.ratings).length) })]),
     ]),
   ]);
 
-  const stage = element("div", { className: "work card-stage" });
-  const cardNode = element("article", { className: "flash-card" }, [
-    element("p", { className: "kicker", text: state.card.revealed ? "Answer" : "Prompt" }),
-    element("h3", { text: card.front }),
+  const stage = element("div", { className: "learner-content work card-stage" });
+  const cardNode = element("article", { className: "learner-card flash-card" }, [
+    element("p", { className: "learner-eyebrow", text: state.card.revealed ? "Answer" : "Prompt" }),
+    element("h3", { id: "active-card-heading", tabindex: "-1", text: card.front }),
   ]);
   const controls = element("div");
   if (!state.card.revealed) {
-    const reveal = element("button", { className: "primary-button", type: "button", text: "Reveal answer" });
+    const reveal = element("button", {
+      className: "learner-button",
+      "data-variant": "primary",
+      type: "button",
+      text: "Reveal answer",
+    });
     reveal.addEventListener("click", () => {
       state.card.revealed = true;
       renderCards(pack, state);
+      focusRendered(".answer");
       announce("Answer revealed.");
     });
     controls.append(reveal);
   } else {
-    cardNode.append(element("div", { className: "answer" }, [
+    cardNode.append(element("div", { className: "answer", tabindex: "-1" }, [
       element("strong", { text: card.back }),
       element("p", { text: card.explanation }),
     ]));
     for (const [rating, label] of [["again", "Again"], ["good", "Got it"]]) {
       const button = element("button", {
-        className: rating === "good" ? "primary-button" : "secondary-button",
+        className: "learner-button",
+        "data-variant": rating === "good" ? "primary" : "secondary",
         type: "button",
         text: label,
       });
@@ -313,13 +371,15 @@ function renderCards(pack, state) {
         state.store.write("card-ratings", state.card.ratings);
         state.card.index = (state.card.index + 1) % deck.cards.length;
         state.card.revealed = false;
+        state.store.write("card-progress", { index: state.card.index });
         renderCards(pack, state);
+        focusRendered("#active-card-heading");
         announce(`${label} saved. Next card.`);
       });
       controls.append(button);
     }
   }
-  controls.className = "button-row";
+  controls.className = "learner-button-row";
   cardNode.append(controls);
   stage.append(cardNode);
   root.append(rail, stage);
@@ -344,7 +404,7 @@ function currentQuestionProgress(library, state, question) {
 }
 
 function renderCaseResults(results) {
-  const list = element("ul", { className: "case-list" });
+  const list = element("ul", { className: "case-list", "aria-label": "Check results" });
   for (const result of results) {
     const details = result.assertions.map((assertion) => (
       `${assertion.label}: ${assertion.passed ? "passed" : `expected ${JSON.stringify(assertion.expected)}, received ${JSON.stringify(assertion.actual)}`}`
@@ -359,7 +419,7 @@ function renderCaseResults(results) {
 
 function renderPractice(library, state) {
   const root = $("#practice-root");
-  root.className = "view-grid";
+  root.className = "learner-layout view-grid";
   root.replaceChildren();
   const allQuestions = library.groups.flatMap((group) => group.questions.map((question) => ({
     ...question,
@@ -391,60 +451,95 @@ function renderPractice(library, state) {
   toggle.addEventListener("change", () => {
     state.practice.leechesOnly = toggle.checked;
     renderPractice(library, state);
+    focusRendered("#leeches-only");
+    announce(toggle.checked ? "Showing repeated misses." : "Showing all practice problems.");
   });
-  const rail = element("aside", { className: "rail" }, [
-    element("p", { className: "kicker", text: "Portable Question Groups" }),
-    element("h2", { id: "practice-heading", text: "Practice" }),
-    element("p", { className: "summary", text: "Run declarative cases with Python in a fresh browser worker. Repeated misses become leeches in your device progress." }),
-    element("label", { className: "filter", htmlFor: toggleId }, [toggle, element("span", { text: "Leeches only" })]),
+  const rail = element("aside", { className: "learner-sidebar rail" }, [
+    element("p", { className: "learner-eyebrow", text: "Practice" }),
+    element("h2", { id: "practice-heading", tabindex: "-1", text: "Coding practice" }),
+    element("p", {
+      className: "learner-summary",
+      text: "Work through the public examples and checks. Questions with repeated misses move into Review.",
+    }),
   ]);
-  const list = element("ul", { className: "question-list" });
+  const list = element("ul", {
+    className: "learner-nav-list question-list",
+    "aria-label": "Practice problems",
+  });
   if (!visibleQuestions.length) {
-    list.append(element("li", { className: "empty-state", text: "No leeches. Questions appear here after at least three attempts and two misses." }));
+    list.append(element("li", {
+      className: "learner-empty",
+      text: "No repeated misses. Problems appear here after at least three attempts and two misses.",
+    }));
   }
   for (const entry of visibleQuestions) {
     const sequence = allQuestions.findIndex((questionEntry) => (
       questionKey(questionEntry) === questionKey(entry)
     )) + 1;
+    const entryProgress = currentQuestionProgress(library, state, entry);
+    const progressStatus = entryProgress?.status ?? "not-started";
+    const progressLabel = progressStatus === "solved"
+      ? "solved"
+      : progressStatus === "attempted"
+        ? "attempted"
+        : "not started";
     const button = element("button", {
+      className: "learner-nav-item",
       type: "button",
       "aria-current": String(questionKey(entry) === questionKey(question)),
-      text: `${String(sequence).padStart(2, "0")} · ${entry.title}`,
-    });
+      "aria-label": `Problem ${sequence}: ${entry.title}, ${progressLabel}`,
+    }, [
+      element("span", {
+        className: "learner-status-dot",
+        "data-status": progressStatus,
+        "aria-hidden": "true",
+      }),
+      element("span", { text: `${String(sequence).padStart(2, "0")} · ${entry.title}` }),
+    ]);
     button.addEventListener("click", () => {
       state.practice.activeKey = questionKey(entry);
       renderPractice(library, state);
+      focusRendered("#practice-question-heading");
+      announce(`Problem ${sequence} opened: ${entry.title}.`);
     });
     list.append(element("li", {}, button));
   }
-  rail.append(list);
+  const filter = element("label", { className: "filter", htmlFor: toggleId }, [
+    toggle,
+    element("span", { text: "Review repeated misses" }),
+  ]);
+  rail.append(mobilePanel("Choose problem", [filter, list]));
   if (state.practice.leechesOnly && visibleQuestions.length === 0) {
     root.append(
       rail,
-      element("div", { className: "work" }, element("p", {
-        className: "empty-state",
-        text: "Nothing needs leech review yet. Return to all questions to keep practicing.",
+      element("div", { className: "learner-content work" }, element("p", {
+        className: "learner-empty",
+        text: "Nothing needs review yet. Turn off repeated-miss review to keep practicing.",
       })),
     );
     return;
   }
 
-  const work = element("div", { className: "work" }, [
+  const work = element("div", { className: "learner-content work" }, [
     element("p", {
-      className: "kicker",
+      className: "learner-eyebrow",
       text: `Coding ladder step ${questionIndex + 1} of ${allQuestions.length + 1} · ${question.groupTitle} · ${question.difficulty}`,
     }),
-    element("h3", { text: question.title }),
-    element("p", { className: "summary", text: question.prompt }),
-    element("p", { className: "kicker constraint-heading", text: "Contract and complexity" }),
+    element("h3", { id: "practice-question-heading", tabindex: "-1", text: question.title }),
+    element("p", { className: "learner-summary", text: question.prompt }),
+    element("p", { className: "learner-eyebrow constraint-heading", text: "Contract and complexity" }),
     element("ul", { className: "constraints-list" }, question.constraints.map((constraint) => (
       element("li", { text: constraint })
     ))),
   ]);
-  const label = element("label", { htmlFor: "practice-editor", className: "kicker", text: question.path });
+  const label = element("label", {
+    htmlFor: "practice-editor",
+    className: "learner-eyebrow",
+    text: question.path,
+  });
   const editor = element("textarea", {
     id: "practice-editor",
-    className: "editor",
+    className: "learner-editor",
     spellcheck: "false",
     "aria-label": `${question.title} source`,
   });
@@ -453,12 +548,21 @@ function renderPractice(library, state) {
     state.practice.drafts[identity.contractVersion] = editor.value;
     state.runtimeStore.write(`practice-draft:${identity.contractVersion}`, editor.value);
   });
-  const status = element("p", { className: "status", "aria-live": "polite" });
-  const results = element("div");
-  const run = element("button", { className: "primary-button", type: "button", text: "Check solution" });
+  const editorFrame = element("div", { className: "learner-editor-frame" }, [
+    element("div", { className: "learner-editor-toolbar" }, label),
+    editor,
+  ]);
+  const status = element("p", { className: "learner-status", "aria-live": "polite" });
+  const results = element("div", { className: "learner-results" });
+  const run = element("button", {
+    className: "learner-button",
+    "data-variant": "primary",
+    type: "button",
+    text: "Check solution",
+  });
   run.addEventListener("click", async () => {
     run.disabled = true;
-    setStatus(status, "Starting Python checks in a fresh browser worker…");
+    setStatus(status, "Checking your solution…");
     try {
       const submittedSource = editor.value;
       const runtime = library.runtimes.find((entry) => entry.id === question.runtimeId);
@@ -486,9 +590,9 @@ function renderPractice(library, state) {
       setStatus(
         status,
         passed
-          ? "All checks passed. This question left the leech queue."
+          ? "All checks passed. This problem no longer needs repeated-miss review."
           : isLeechProgress(next)
-            ? "Some checks failed. Repeated misses put this question in the leech queue."
+            ? "Some checks failed. This problem is now in repeated-miss review."
             : "Some checks failed. Review the cases and try again.",
         passed ? "success" : "danger",
       );
@@ -498,32 +602,46 @@ function renderPractice(library, state) {
       run.disabled = false;
     }
   });
-  work.append(label, editor, element("div", { className: "button-row" }, run), status, results);
+  work.append(
+    editorFrame,
+    element("div", { className: "learner-button-row practice-actions" }, run),
+    status,
+    results,
+  );
   root.append(rail, work);
 }
 
 function renderIde(exercises, state) {
   const root = $("#ide-root");
-  root.className = "view-grid";
+  root.className = "learner-layout view-grid";
   root.replaceChildren();
   const exercise = exercises[0];
   const saved = state.ide.draft ?? exercise.files[0].content;
-  const rail = element("aside", { className: "rail" }, [
-    element("p", { className: "kicker", text: "Trusted browser exercise" }),
-    element("h2", { id: "ide-heading", text: "IDE" }),
-    element("p", { className: "summary", text: exercise.summary }),
+  const progressValue = element("strong", {
+    text: state.ide.result?.passed ? "Complete" : "In progress",
+  });
+  const rail = element("aside", { className: "learner-sidebar rail" }, [
+    element("p", { className: "learner-eyebrow", text: "Coding lab · Step 4 of 4" }),
+    element("h2", { id: "ide-heading", tabindex: "-1", text: "Retry scheduling" }),
+    element("p", { className: "learner-summary", text: exercise.summary }),
     element("ul", { className: "meta-list" }, [
       element("li", {}, [element("span", { text: "Runtime" }), element("strong", { text: "Python 3.14 · browser worker" })]),
       element("li", {}, [element("span", { text: "Language" }), element("strong", { text: exercise.language })]),
-      element("li", {}, [element("span", { text: "Contract" }), element("strong", { text: exercise.contractVersion })]),
+      element("li", {}, [element("span", { text: "Checks" }), element("strong", { text: String(exercise.checks.length) })]),
+      element("li", {}, [element("span", { text: "Progress" }), progressValue]),
     ]),
   ]);
-  const work = element("div", { className: "work" }, [
-    element("p", { className: "kicker", text: exercise.files[0].path }),
+  const work = element("div", { className: "learner-content work" }, [
     element("h3", { text: exercise.title }),
   ]);
+  const editorLabel = element("label", {
+    className: "learner-eyebrow",
+    htmlFor: "ide-editor",
+    text: exercise.files[0].path,
+  });
   const editor = element("textarea", {
-    className: "editor",
+    id: "ide-editor",
+    className: "learner-editor",
     spellcheck: "false",
     "aria-label": `${exercise.title} source`,
   });
@@ -532,8 +650,12 @@ function renderIde(exercises, state) {
     state.ide.draft = editor.value;
     state.runtimeStore.write(`ide-draft:${exercise.id}:${exercise.contractVersion}`, editor.value);
   });
-  const status = element("p", { className: "status", "aria-live": "polite" });
-  const results = element("div");
+  const editorFrame = element("div", { className: "learner-editor-frame" }, [
+    element("div", { className: "learner-editor-toolbar" }, editorLabel),
+    editor,
+  ]);
+  const status = element("p", { className: "learner-status", "aria-live": "polite" });
+  const results = element("div", { className: "learner-results" });
   if (
     state.ide.result?.exerciseId === exercise.id
     && state.ide.result?.contractVersion === exercise.contractVersion
@@ -544,15 +666,20 @@ function renderIde(exercises, state) {
     setStatus(
       status,
       state.ide.result.passed
-        ? "Restored a passing result for this exact source and contract."
-        : "Restored the latest failing result for this exact source and contract.",
+        ? "Your latest saved solution passed every check."
+        : "Your latest saved solution still has failing checks.",
       state.ide.result.passed ? "success" : "danger",
     );
   }
-  const run = element("button", { className: "primary-button", type: "button", text: "Run IDE checks" });
+  const run = element("button", {
+    className: "learner-button",
+    "data-variant": "primary",
+    type: "button",
+    text: "Check solution",
+  });
   run.addEventListener("click", async () => {
     run.disabled = true;
-    setStatus(status, "Starting host-owned Python checks…");
+    setStatus(status, "Checking your solution…");
     try {
       const submittedSource = editor.value;
       const cases = exercise.checks.map((check) => ({ ...check, assertions: [{
@@ -586,6 +713,7 @@ function renderIde(exercises, state) {
         `ide-result:${exercise.id}:${exercise.contractVersion}`,
         state.ide.result,
       );
+      progressValue.textContent = passed ? "Complete" : "In progress";
       setStatus(status, passed ? "Every IDE check passed." : "One or more IDE checks failed.", passed ? "success" : "danger");
     } catch (error) {
       setStatus(status, error.message, "danger");
@@ -593,7 +721,11 @@ function renderIde(exercises, state) {
       run.disabled = false;
     }
   });
-  const reset = element("button", { className: "secondary-button", type: "button", text: "Reset starter" });
+  const reset = element("button", {
+    className: "learner-button",
+    type: "button",
+    text: "Reset starter",
+  });
   reset.addEventListener("click", () => {
     editor.value = exercise.files[0].content;
     state.ide.draft = editor.value;
@@ -601,42 +733,55 @@ function renderIde(exercises, state) {
     state.ide.result = null;
     state.runtimeStore.remove(`ide-result:${exercise.id}:${exercise.contractVersion}`);
     results.replaceChildren();
+    progressValue.textContent = "In progress";
     setStatus(status, "Starter restored.");
   });
-  work.append(editor, element("div", { className: "button-row" }, [run, reset]), status, results);
+  work.append(
+    editorFrame,
+    element("div", { className: "learner-button-row practice-actions" }, [run, reset]),
+    status,
+    results,
+  );
   root.append(rail, work);
 }
 
 function configureNavigation() {
-  for (const button of $$(".primitive-nav button")) {
-    button.addEventListener("click", () => {
-      const view = button.dataset.view;
-      for (const candidate of $$(".primitive-nav button")) {
-        if (candidate === button) candidate.setAttribute("aria-current", "page");
-        else candidate.removeAttribute("aria-current");
-      }
-      for (const panel of $$("[data-panel]")) panel.hidden = panel.dataset.panel !== view;
-      $("#learning-surface").focus({ preventScroll: true });
-      announce(`${button.textContent.trim()} view opened.`);
+  const links = $$(".learner-primary-nav [data-view]");
+  const open = (link, { focus = false, announceView = false, updateHistory = false } = {}) => {
+    const view = link.dataset.view;
+    for (const candidate of links) {
+      if (candidate === link) candidate.setAttribute("aria-current", "page");
+      else candidate.removeAttribute("aria-current");
+    }
+    for (const panel of $$("[data-panel]")) panel.hidden = panel.dataset.panel !== view;
+    if (updateHistory && location.hash !== link.getAttribute("href")) {
+      history.pushState(null, "", link.getAttribute("href"));
+    }
+    if (focus) $("#learning-surface").focus({ preventScroll: true });
+    if (announceView) announce(`${link.textContent.trim()} opened.`);
+  };
+  for (const link of links) {
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      open(link, { focus: true, announceView: true, updateHistory: true });
     });
   }
+  const openFromLocation = ({ focus = false } = {}) => {
+    const requested = links.find((link) => link.getAttribute("href") === location.hash);
+    open(requested ?? links[0], { focus });
+  };
+  globalThis.addEventListener("popstate", () => openFromLocation({ focus: true }));
+  openFromLocation();
 }
 
 try {
-  const [platform, packRecord, libraryRecord, hostModule] = await Promise.all([
-    loadJson("./platform.json"),
+  const [packRecord, libraryRecord, hostModule] = await Promise.all([
     loadJsonWithDigest("./content/learning-pack.json"),
     loadJsonWithDigest("./content/question-groups.json"),
     import("./trusted/ide-exercises.mjs"),
   ]);
   const pack = packRecord.data;
   const library = libraryRecord.data;
-  document.documentElement.style.setProperty("--accent", platform.brand.accent);
-  document.documentElement.style.setProperty("--ink", platform.brand.ink);
-  document.documentElement.style.setProperty("--paper", platform.brand.paper);
-  document.title = platform.brand.name;
-  $("#brand-name").textContent = platform.brand.name;
-  $("#brand-tagline").textContent = platform.brand.tagline;
 
   const learningState = createLearningPackStateStore(
     localStorage,
@@ -653,9 +798,20 @@ try {
   const completedIds = Array.isArray(storedModule.completedIds)
     ? storedModule.completedIds.filter((id) => lessonIds.has(id))
     : [];
-  const activeId = lessonIds.has(storedModule.activeId)
+  const storedActiveIsIncomplete = (
+    lessonIds.has(storedModule.activeId)
+    && !completedIds.includes(storedModule.activeId)
+  );
+  const activeId = storedActiveIsIncomplete
     ? storedModule.activeId
     : pack.lessons.find((lesson) => !completedIds.includes(lesson.id))?.id ?? pack.lessons[0].id;
+  const storedCardProgress = store.read("card-progress", {});
+  const cardCount = pack.flashcardDecks[0]?.cards.length ?? 0;
+  const cardIndex = (
+    Number.isInteger(storedCardProgress.index)
+    && storedCardProgress.index >= 0
+    && storedCardProgress.index < cardCount
+  ) ? storedCardProgress.index : 0;
   const practiceQuestions = library.groups.flatMap((group) => (
     group.questions.map((question) => ({ ...question, groupId: group.id }))
   ));
@@ -685,7 +841,7 @@ try {
     },
     quiz: store.read("quiz-progress", {}),
     card: {
-      index: 0,
+      index: cardIndex,
       revealed: false,
       ratings: store.read("card-ratings", {}),
     },
@@ -705,12 +861,12 @@ try {
     },
   };
 
-  configureNavigation();
   renderLesson(pack, state);
   renderCards(pack, state);
   renderPractice(library, state);
   renderIde(hostModule.ideExercises, state);
-  announce(`${platform.brand.name} is ready.`);
+  configureNavigation();
+  announce("Interview Loop Lab is ready.");
 } catch (error) {
   for (const root of $$(".loading")) {
     root.textContent = error instanceof Error ? error.message : "The platform could not load.";

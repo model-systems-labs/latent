@@ -362,126 +362,211 @@ counted.
 - `test/invocation-contract.test.mjs`
 - `test/learning-state.test.mjs`
 
-## Python revision feedback (verbatim)
+## Shared learner UI revision
 
-> i still see JS there
+### Why the examples diverged
 
-## Python revision decisions
+Interview Loop grew from an example-local application shell. Its header,
+navigation, course rail, controls, feedback, responsive rules, and page layout
+were implemented directly in `site/`. Ten Problems later started from Course
+Kit's standalone Question Group player and used post-build string and CSS
+patches to turn framework-oriented generated output into a focused Python
+product. The two sites therefore had different owners for the same
+learner-facing concerns.
 
-- Converted every learner-visible coding surface to Python: the coding-module
-  lesson sketch, all three portable Question Group exercises, and the trusted
-  step-4 IDE exercise. Function names, file names, starter code, examples, and
-  learner-facing runtime labels now use Python consistently.
-- Bumped both the Learning Pack and Question Group library to version 2.0.0.
-  The trusted IDE contract is now `interview-loop.retry-plan.v3`, so saved
-  JavaScript drafts cannot cross into the Python exercise.
-- Declared the portable Python runtime as `host-managed` and added a reviewed,
-  example-local adapter to Python Lab. The deterministic build packages
-  Pyodide 314.0.2 and its worker assets at the same origin for offline learner
-  use. This example builds inside the Latent monorepo with its installed
-  workspace dependencies; it is not dependency-free or Node-only.
-- Moved the input-ownership and fresh-output enforcement into the trusted
-  Python harness. Before result normalization, the harness snapshots the
-  arguments, requires them to equal their original values when the call
-  returns, and rejects any nested output list or dictionary that aliases a
-  nested input list or dictionary. Because ordinary Python lists and
-  dictionaries cannot be made fully read-only without changing their learner
-  contract, the prompts state the exact post-call equality guarantee and do
-  not claim to detect a transient mutate-then-restore sequence. Host source
-  still owns the expected-value assertions.
-- Removed the old learner JavaScript executor, invocation-contract, and runner
-  workers. JavaScript remains only as trusted platform implementation source,
-  not as code the learner is asked to read or write.
-- Kept the company-neutral disclaimer, behavioral and architecture content,
-  digest-bound progress, four-step coding ladder, and separate 24-minute
-  architecture preparation / 45-minute take-away mock unchanged.
-- Documented Python Lab accurately as a trusted browser execution boundary,
-  not a hostile-code security sandbox, and added Pyodide's MPL-2.0 attribution
-  to `NOTICE.md`.
+This revision treats learner presentation as reviewed trusted framework source,
+not portable content and not generated-output customization. It does not make
+the two products identical: it gives them one visual and interaction language
+while preserving the course and coding-workspace layouts appropriate to each.
 
-### Before / after counts for the Python revision
+### Architectural decisions
 
-| Course, runtime, or build element | Third revision | Python revision |
-| --- | ---: | ---: |
-| Navigable lesson modules | 3 | 3 |
-| Deterministic lesson quizzes | 6 | 6 |
-| Learner-visible Python lesson sketches | 0 | 1 |
-| Learner-visible JavaScript lesson sketches | 1 | 0 |
-| Portable Python questions | 0 | 3 |
-| Portable JavaScript questions | 3 | 0 |
-| Portable authored cases | 9 | 9 |
-| Trusted Python IDE exercises | 0 | 1 |
-| Trusted JavaScript IDE exercises | 1 | 0 |
-| Host-owned IDE cases | 4 | 4 |
-| Total authored coding cases | 13 | 13 |
-| Focused tests | 4 | 7 |
-| Old learner JavaScript worker files | 3 | 0 |
-| Built files, including two hidden markers | 21 | 26 |
+- `packages/course-kit/src/learner-ui.ts` is the canonical learner UI
+  foundation. It owns typography and color tokens, spacing, borders, focus
+  states, responsive breakpoints, global widths and shell, header and primary
+  navigation, buttons, forms, cards, progress/resume, statuses, result panels,
+  empty states, editor framing, screen-reader helpers, and local mobile-menu
+  behavior.
+- `packages/course-kit/src/static-site.ts` consumes the foundation for
+  standalone Learning Pack lesson/card sites.
+- `packages/course-kit/src/question-group-site.ts` consumes it for standalone
+  problem navigation, editor, run/check feedback, progress, resume, and
+  repeated-miss review. Product copy, navigation labels, the review directory,
+  theme, footer, favicon, and a trusted runtime adapter are typed build inputs
+  rather than generated-output patches.
+- `scripts/generate-learning-platform-learner-ui.mjs` generates
+  `examples/learning-platform/interview-loop/tools/vendor/learner-ui.mjs` from
+  the canonical Course Kit module. Interview Loop uses that checked,
+  dependency-free build input so an extracted example still builds without a
+  runtime package or hosted asset.
+- `examples/learning-platform/interview-loop/platform.json` explicitly owns
+  the Interview Loop product name, navigation labels and hash routes, header
+  metadata, theme values, and footer copy.
+- `examples/learning-platform/interview-loop/tools/build.mjs` renders the
+  shared header/footer and emits the shared CSS and local menu script alongside
+  the existing trusted application. `site/app.mjs` and `site/styles.css`
+  remain responsible for the specialized module, quiz, flash-card, portable
+  practice, and IDE experiences.
+- `examples/learning-platform/ten-problems/site-config.mjs` owns the parallel
+  Ten Problems configuration, and its build passes that configuration directly
+  to the Question Group builder.
+- `examples/learning-platform/ten-problems/security-config.mjs` owns the
+  reviewed custom document meta CSP passed into the Question Group builder and
+  the full static-host page/Python-worker header policies for standalone and
+  `/practice/` subpath hosting. The previous post-build HTML/JavaScript string
+  replacements and generated-CSS patches are removed.
+- `scripts/build-learning-example-pages.mjs` atomically assembles the
+  content-first Learning Studio index, the original Build an LLM System course
+  at `/llm-systems/`, Interview Loop at `/interview-loop/`, and Ten Problems
+  at `/practice/`. `app/components/LearnerHeader.tsx` and
+  `app/components/LearnerHeader.module.css` carry the family navigation and
+  presentation across the React course, module, lesson, checkpoint, project,
+  workspace, and capstone routes.
+- No Learning Pack, Learning Feed, or Question Group field was added or
+  changed. Branding and navigation remain trusted build configuration.
+  Canonical content bytes, digest-bound progress identities, and portable
+  execution authority are unaffected.
+- Every deployed asset remains self-hosted. The revision adds no hosted
+  stylesheet, JavaScript service, framework CDN, model API, remote executable
+  extension, or implicit learner-time agent call. Existing CSP, same-origin
+  static hosting, relative asset URLs, subpath routes, and marker-owned build
+  directories remain in force. Supporting hosts can apply `_headers` as
+  defense in depth for worker isolation and anti-framing; anti-framing depends
+  on those response headers. The combined local preview mirrors the
+  Python-worker response CSP during QA. GitHub Pages does not honor `_headers`;
+  the generated document meta CSP remains active there and restricts script
+  sources, same-origin workers/connections, styles, and other assets.
 
-## Python revision evidence and handoff
+### What remains intentionally specialized
 
-- The Learning Pack and Question Group metadata both declare version 2.0.0.
-  All three portable questions declare Python, `.py` paths, Python
-  entrypoints, and the host-managed Pyodide 314.0.2 runtime. The trusted IDE
-  declares the same runtime and contract
-  `interview-loop.retry-plan.v3`.
-- The nine portable cases plus four trusted IDE cases provide 13 authored
-  coding cases. The focused suite now contains seven tests covering
-  digest-bound state, Python runtime admission and transport, mutation
-  that changes the post-call input value, nested-alias rejection, pure
-  implementation acceptance,
-  fail-closed cleanup, and the authored reference solutions.
-- The trusted Python harness performs post-call input-equality and nested-alias
-  checks against live Python objects before JSON normalization. The previous
-  `site/executor.worker.mjs`, `site/invocation-contract.mjs`, and
-  `site/runner.worker.mjs` learner-JavaScript path has been removed.
-- The generated static artifact contains 26 files, including its two hidden
-  marker files and same-origin Pyodide runtime assets.
-- Canonical strict validation passed with zero warnings: the Learning Pack
-  reports 3 lessons, 6 quizzes, 1 deck, 14 cards, 5 objectives, and 9 sources;
-  the Question Group library reports 2 groups, 3 questions, and 9 cases.
-  `npm run validate`, `npm run build`, the combined two-example Pages build,
-  and the complete repository `npm run validate` all passed.
-- Local browser QA at both combined Pages routes observed Python `.py`
-  starters and no JavaScript or ECMAScript learner label. Interview Loop Lab
-  produced the expected starter failure and pure-solution pass in both
-  Practice and IDE; a value-correct nested alias failed only freshness, and a
-  value-correct mutator that left a changed input value failed the post-call
-  input-equality assertion. Ten Problems loaded all ten Python problems and
-  ran its representative failing starter.
-- Final portable source SHA-256:
-  `content/learning-pack.json` =
-  `6e9b5120aa6242ef25be58cceaa6c141a353ae09ec661bebf2ca4d756b4609c0`;
-  `content/question-groups.json` =
-  `0c196d662d8068dec803d5354f24019d9dadd88c3bb763fde4e0cc88962f7ea5`.
+Interview Loop remains a navigable three-module course with deterministic
+quizzes, a flash-card deck, three portable Python practice questions, and one
+trusted Python coding-lab exercise. It retains its module rail, reading-focused content,
+lesson completion controls, card review flow, host-owned Python contracts, and
+same-origin pinned Pyodide runtime.
 
-### Exact files revised for the Python conversion
+Ten Problems remains a focused Python workspace with a problem list, contract
+copy, editor, public examples and checks, exact-library progress, continue
+behavior, and repeated-miss review. Its Python adapter, worker policy,
+timeouts, output limits, and same-origin Pyodide assets remain trusted source.
 
-- `AGENTS.md`
-- `AUTHORING.md`
-- `GUIDE.md`
-- `NOTICE.md`
-- `README.md`
-- `content/learning-pack.json`
-- `content/question-groups.json`
-- `site/app.mjs`
-- `site/checker.mjs`
-- `site/index.html`
-- `site/runtime-policy.mjs`
-- `tools/build.mjs`
-- `tools/serve.mjs`
-- `tools/validate.mjs`
-- `trusted/ide-exercises.mjs`
+### Concise visual comparison
 
-### Exact files added for the Python conversion
+| Concern | Before | After |
+| --- | --- | --- |
+| Page shell and header | Interview used an example-local shell; Ten used the standalone player's unrelated shell. | Both use the shared bounded page shell, wordmark treatment, primary navigation, footer, and content-width tokens. |
+| Navigation | Course tabs and practice/review links had different markup, labels, and responsive behavior. | Both use content-oriented navigation such as Modules, Practice, Review, and Coding lab, with one mobile-menu interaction and current-page semantics. |
+| Controls and feedback | Buttons, forms, progress, results, and empty states were styled independently. | Shared component contracts provide consistent geometry, focus rings, success/failure tones, progress, resume, and empty states. |
+| Coding surfaces | The IDE and Question Group editor looked unrelated. | Both use the shared editor frame, toolbar, monospaced treatment, actions, and result language while retaining different workspace layouts and runtimes. |
+| Product identity | Ten's primary identity depended on output rewrites; Interview's lived in bespoke shell markup. | Each product supplies explicit trusted build-time configuration; Latent attribution is quiet footer metadata. |
+| Mobile and accessibility | Responsive and focus behavior evolved separately. | Shared breakpoints, skip links, visible `:focus-visible`, screen-reader status regions, reduced-motion handling, and menu behavior establish one baseline. |
 
-- `test/python-runtime.test.mjs`
-- `test/reference-solutions.test.mjs`
-- `trusted/python-exercise-runtime.ts`
+### Validation and browser evidence for this revision
 
-### Exact files removed for the Python conversion
+The historical evidence above belongs to the revisions in which it was
+recorded. The following evidence belongs to the shared learner UI revision.
 
-- `site/executor.worker.mjs`
-- `site/invocation-contract.mjs`
-- `site/runner.worker.mjs`
-- `test/invocation-contract.test.mjs`
+- Course Kit built-package tests passed 55 of 55, including learner UI and
+  configured standalone-builder coverage.
+- Course Kit's smoke-package check passed an isolated tarball installation and
+  CLI smoke test.
+- Interview Loop's shared-source/vendor check, local validation, nine focused
+  tests, and production build passed. All 13 authored cases also passed real
+  Python execution, including mutation and nested-alias checks. Its
+  marker-owned artifact contains 28 files and self-hosts Pyodide 314.0.2.
+- Ten Problems strict Question Group validation passed with 4 groups,
+  10 questions, 39 cases, and zero warnings. Its six tests passed, including
+  real CPython reference execution across all 39 cases and configured build
+  output. The production artifact contains 21 files.
+- The combined local Pages build contains 437 files and the routes `/`,
+  `/llm-systems/`, `/interview-loop/`, `/practice/`, and
+  `/practice/leeches/`.
+- `npm run build:pages-course` passed with 95 rendered routes, 27 verified
+  course routes, and 4 verified assets.
+- `npm run build:web && npm run test:performance` passed; the largest emitted
+  stylesheet is 179.8 KiB against the 180 KiB budget.
+- Desktop browser inspection at 1440 × 900 covered Interview Loop module
+  navigation and resume, wrong and correct quiz feedback, card reveal/rating
+  persistence, Python coding-starter failure, a four-check passing solution,
+  and source/progress persistence after reload. It also covered Ten Problems
+  problem navigation, Python example and check failure/success, cancellation,
+  saved drafts, progress after reload, and removal from repeated-miss
+  **Review** after success.
+- Compact browser and keyboard inspection at 390 × 844 covered the shared
+  menus and collapsible panels, Escape focus restoration, the visible
+  three-pixel focus indicator, skip-link focus transfer, and no horizontal
+  overflow.
+- Direct local navigation verified same-origin subpath asset URLs for `/`,
+  `/llm-systems/`, `/interview-loop/`, `/practice/`, and
+  `/practice/leeches/`. The browser console recorded zero warnings or errors
+  during the inspected flows.
+- The accessibility evidence is browser and keyboard inspection, not a formal
+  screen-reader audit.
+- Final full-root `npm run validate` passed, including 470 of 470 application
+  tests, the workspace and package test suites, and both learning-example
+  validations.
+- Live GitHub Pages deployment and verification remain pending for this
+  revision.
+
+### Express beginner and advanced user-testing loop
+
+- The beginning-learner pass started from the Learning Studio at 1440 × 900
+  and 390 × 844, then entered the original course, Interview Loop, and Ten
+  Problems without repository context. It exposed platform-showcase wording,
+  a misleading resume target, hidden-before-run example expectations, and a
+  crowded intermediate-width navigation state. The revision replaced that
+  framing with content-oriented labels, made **Continue** choose the next
+  incomplete item, exposed public input/expected output before execution, and
+  added the shared compact menu and collapsible problem panels.
+- The advanced-learner pass exercised direct problem/module navigation,
+  Control/Command+Enter checking, Shift+Control/Command+Enter example runs,
+  cancellation, detailed expected/received feedback, Python success and
+  failure states, repeated-miss review, and persistence after reload. It also
+  caught the need to preserve Interview Loop's Python-first runtime, restore
+  course project/workspace context links, resolve extensionless static-course
+  URLs, mirror the Python-worker CSP, and keep the shared header below the CSS
+  performance budget; each issue was fixed before the final validation pass.
+- Both personas repeated their route checks through the production-base local
+  aliases `/latent/`, `/latent/llm-systems/`, `/latent/interview-loop/`,
+  `/latent/practice/`, and `/latent/practice/leeches/`. Desktop and mobile
+  passes finished without horizontal overflow or browser-console warnings or
+  errors. This is local static-artifact evidence, not live deployment
+  evidence.
+
+The table above is the concise before/after visual record for this revision.
+
+## Python-first revision integrated with the shared learner UI
+
+- Every learner-visible coding surface now uses Python: the module sketch,
+  three declarative Question Group exercises, and the trusted step-four coding
+  lab. Function names, `.py` paths, starter code, source guidance, and runtime
+  labels were converted together.
+- The Learning Pack and Question Group library are version 2.0.0. The trusted
+  coding-lab contract is `interview-loop.retry-plan.v3`, preventing saved
+  JavaScript drafts from carrying into the Python exercise.
+- Portable content declares only a `host-managed` Pyodide 314.0.2 requirement.
+  `trusted/python-exercise-runtime.ts` is the reviewed adapter from the shared
+  learner application to Python Lab. The marker-owned build bundles that
+  adapter and worker, copies the pinned Pyodide assets to the same origin, and
+  records their byte counts and SHA-256 digests in `build-report.json`.
+- Host-owned checks compare returned values and inspect Python object
+  ownership before JSON normalization. They require the input values to equal
+  their originals when the call returns and reject nested output lists or
+  dictionaries that alias nested inputs. This does not claim to detect a
+  transient mutate-then-restore operation.
+- The obsolete `site/executor.worker.mjs`,
+  `site/invocation-contract.mjs`, `site/runner.worker.mjs`, and
+  `test/invocation-contract.test.mjs` JavaScript execution path was removed.
+  JavaScript remains trusted application implementation source, not learner
+  exercise code.
+- The shared Course Kit shell, build-configured family navigation, accessible
+  mobile panels, digest-bound module/card state, and content-focused copy are
+  retained. The Python migration changes the coding runtime, not the portable
+  formats or the shared learner design contract.
+
+Validation evidence for the integrated revision: `npm run validate` passed
+strict Learning Pack and Question Group validation with zero warnings and all
+9 focused tests. The real-Python suite passed all 13 authored coding cases,
+mutation detection, nested-alias rejection, runtime admission, and fail-closed
+cleanup. `npm run build` passed and emitted 28 files, including the shared
+learner assets and eight recorded same-origin Python runtime assets.

@@ -52,7 +52,7 @@ review and validation as human-written code.
 
 | Layer | Owns | Must not own |
 | --- | --- | --- |
-| Course Kit | Portable schemas, framework-neutral types, canonicalization, validation, deterministic Learning Pack builds, and feed verification | React UI, persistence, compiler workers, sandbox policy, course copy, or remote execution authority |
+| Course Kit | Portable schemas, framework-neutral types, canonicalization, validation, deterministic standalone builds, feed verification, and the static learner UI foundation used by those builds | React application UI, application persistence, privileged compiler workers, course copy, or remote execution authority |
 | Application adapters | Mapping validated content into host-owned view models and exercise contracts | Redefining or silently weakening the portable schema |
 | Host-owned contracts | Trusted behavioral checks, contract versions, and result interpretation | Publisher-authored executable test strings |
 | Browser Lab and Python Lab | Learner-source execution outside the page realm, resource controls, and bounded runtime results | Navigation, course progress, authored curriculum, application persistence, or a shared receipt format they do not implement |
@@ -87,8 +87,9 @@ dependency cycles.
 - Python Lab owns guarded Pyodide worker execution. It is not a hostile-code
   security sandbox and is not enabled for arbitrary remote content.
 - Mock Services owns simulated network behavior, not LMS navigation or progress.
-- Course Kit owns framework-neutral Learning Pack and Question Group schemas,
-  not authored course text, React UI, progress, or runtime authorization.
+- Course Kit owns framework-neutral Learning Pack and Question Group schemas
+  plus its generated static-player foundation, not authored course text, React
+  application UI, application progress orchestration, or runtime authorization.
 - Model Lab owns deterministic educational training and inference engines, not
   course UI, persistence, worker orchestration, or recorded replay.
 - Latent Tensor owns numerical operations; the application generates lesson
@@ -107,6 +108,51 @@ Pure libraries compile to `dist/` with declarations before the web build.
 Browser Lab is intentionally source-exported inside the private workspace so
 Vite can discover its compiler and sandbox worker URLs; publishing it outside
 the monorepo would require a dedicated worker-bundling build.
+
+## Shared learner presentation
+
+The standalone Learning Pack player, standalone Question Group player, and
+reviewed learning-platform examples share one trusted, build-time presentation
+layer:
+
+```text
+packages/course-kit/src/learner-ui.ts
+        |
+        +-- design tokens and responsive breakpoints
+        +-- page shell, header, navigation, and footer renderers
+        +-- controls, progress, feedback, empty-state, and editor contracts
+        +-- local mobile-navigation behavior
+        |
+        +-- static-site.ts                 (lesson/card specialization)
+        +-- question-group-site.ts         (coding-practice specialization)
+        +-- example build inputs           (course/IDE specialization)
+```
+
+Branding, route labels, theme choices, and product-specific copy are trusted
+build configuration. They are not Learning Pack or Question Group fields and
+do not affect canonical content bytes, integrity digests, runtime authority,
+or progress identities. Generated sites copy the shared CSS and JavaScript
+into their own static artifact; they never depend on a hosted stylesheet,
+framework CDN, JavaScript service, or model API.
+
+An example designed to be extracted from the monorepo may check in a generated
+build-time copy of this module beside other vendored build tooling. The
+repository validates that copy against the reviewed Course Kit source. There
+is still one source of truth, and the deployed learner runtime remains
+self-hosted.
+
+The repository Pages artifact is assembled by
+`scripts/build-learning-example-pages.mjs`. It creates a shared, content-first
+Learning Studio index and copies three independently built learner products
+into stable subpaths: the React Build an LLM System course at `/llm-systems/`,
+Interview Loop Lab at `/interview-loop/`, and Ten Problems at `/practice/`.
+The course uses the reusable React `app/components/LearnerHeader.tsx` and
+`app/components/LearnerHeader.module.css` across course, lesson, checkpoint,
+project, workspace, and capstone pages; Interview Loop and Ten Problems
+consume the Course Kit foundation described above. All three expose the same
+family navigation while retaining product-appropriate reading, course, and
+coding layouts. `scripts/prepare-pages-course-export.mjs` verifies the static
+course export before the atomic suite assembly.
 
 ## Question Group execution
 
@@ -138,6 +184,13 @@ runtimes in v0.2.
 Practice progress is separate from lesson completion, the cumulative course
 project, and flash-card ratings. A leech-focused practice view is a query over
 Question Group progress; it is not a fifth content primitive.
+
+Standalone Question Group editor drafts are also separate from portable
+progress. The trusted player stores them under the exact library digest and
+question contract identity/version, restores them on navigation and reload,
+and falls back to visit-local memory when durable storage is unavailable.
+Run and check operations are cancelable by the host adapter; cancellation
+terminates the disposable worker without changing progress or the saved draft.
 
 Browser Lab can emit a source- and contract-bound receipt directly. Python Lab
 returns guarded runtime observations and results; the application performs the

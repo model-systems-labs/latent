@@ -92,6 +92,8 @@ try {
     "bin/latent-learning.mjs",
     "dist/index.js",
     "dist/index.d.ts",
+    "dist/learner-ui.js",
+    "dist/learner-ui.d.ts",
     "dist/question-group.js",
     "dist/question-group.d.ts",
     "dist/question-player.js",
@@ -114,6 +116,11 @@ try {
     "--input-type=module",
     "--eval",
     "import { QUESTION_GROUP_LIBRARY_SCHEMA_VERSION, questionGroupLibraryJsonSchema } from '@latent/course-kit/question-group'; if (QUESTION_GROUP_LIBRARY_SCHEMA_VERSION !== 1 || !questionGroupLibraryJsonSchema?.properties?.groups) process.exit(1);",
+  ], { cwd: consumer });
+  await run(process.execPath, [
+    "--input-type=module",
+    "--eval",
+    "import { LEARNER_UI_VERSION, LEARNER_UI_BREAKPOINTS, createLearnerUiCss, renderLearnerHeader } from '@latent/course-kit/learner-ui'; const css = createLearnerUiCss(); const header = renderLearnerHeader({ productName: 'Practice', homeHref: './', navigationLabel: 'Practice navigation', navigation: [{ label: 'Problems', href: './', current: true }] }); if (LEARNER_UI_VERSION !== 1 || LEARNER_UI_BREAKPOINTS.compact !== 760 || !css.includes('--learner-color-accent:') || !header.includes('aria-current=\"page\"')) process.exit(1);",
   ], { cwd: consumer });
   await run(process.execPath, [
     "--input-type=module",

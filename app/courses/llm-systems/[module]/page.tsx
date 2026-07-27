@@ -5,6 +5,7 @@ import { courseTracks, getTrack, getTrackLessons } from "@/examples/learning-pla
 import { CourseCurriculum } from "@/app/components/CourseCurriculum";
 import { moduleCheckpoint } from "@/examples/learning-platform/llm-learning/content/llm-systems/learning";
 import { PageAtmosphere } from "@/app/components/PageAtmosphere";
+import { LearnerHeader } from "@/app/components/LearnerHeader";
 
 export function generateStaticParams() {
   return courseTracks.map((track) => ({ module: track.id }));
@@ -14,7 +15,7 @@ export async function generateMetadata({ params }: { params: Promise<{ module: s
   const { module } = await params;
   const track = getTrack(module);
   if (!track) return {};
-  return { title: `${track.title} · Build an LLM System · Latent Courses`, description: track.thesis };
+  return { title: `${track.title} · Build an LLM System`, description: track.thesis };
 }
 
 export default async function LlmSystemsModulePage({ params }: { params: Promise<{ module: string }> }) {
@@ -28,7 +29,14 @@ export default async function LlmSystemsModulePage({ params }: { params: Promise
   return (
     <main>
       <PageAtmosphere />
-      <header className="site-header course-header"><Link className="wordmark" href="/" aria-label="Latent Courses home"><i />latent courses</Link><nav><Link href="/courses/llm-systems">LLM Systems</Link><Link href="/project">Project</Link><Link href="/workspace">IDE</Link></nav></header>
+      <LearnerHeader current="courses" />
+      <header className="site-header course-header" style={{ height: "auto", minHeight: "3.35rem" }}>
+        <Link href="/courses/llm-systems">Course</Link>
+        <nav aria-label="Course tools">
+          <Link href="/project">Project</Link>
+          <Link href="/workspace">Coding workspace</Link>
+        </nav>
+      </header>
       <article className="course-page track-page">
         <header className="course-hero track-hero catalog-track-hero">
           <p className="eyebrow">Build an LLM System</p>

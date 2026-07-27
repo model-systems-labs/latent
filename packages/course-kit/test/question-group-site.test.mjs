@@ -31,10 +31,47 @@ test("Question Group builds are complete static practice sites with a leech quer
   assert.ok(files["assets/esbuild.wasm"].byteLength > 1_000_000);
   assert.match(files["index.html"], /data-initial-query="all"/);
   assert.match(files["leeches/index.html"], /data-initial-query="leeches"/);
+  assert.match(files["index.html"], /<body class="learner-ui"/);
+  assert.match(files["index.html"], /class="learner-skip-link"/);
+  assert.match(files["index.html"], /class="learner-header"/);
+  assert.match(files["index.html"], /src="\.\/assets\/learner-ui\.js"/);
+  assert.match(files["leeches/index.html"], /src="\.\.\/assets\/learner-ui\.js"/);
+  assert.match(files["assets/player.css"], /--learner-font-sans:/);
+  assert.match(files["assets/player.css"], /\.learner-ui :focus-visible/);
+  assert.match(files["assets/learner-ui.js"], /event\.key !== "Escape"/);
   assert.match(files["assets/player.js"], /isLeech/);
   assert.match(files["assets/player.js"], /new Worker/);
   assert.match(files["assets/player.js"], /indexedDB\.open\("latent-question-groups"/);
   assert.match(files["assets/player.js"], /transaction\("progress", "readwrite"\)/);
+  assert.match(files["assets/player.js"], /libraryDigest/);
+  assert.match(files["assets/player.js"], /latent\.question-groups\.draft\.v1:/);
+  assert.match(files["assets/player.js"], /format: "latent-question-group-draft"/);
+  assert.match(
+    files["assets/player.js"],
+    /entry\.libraryDigest === libraryDigest[\s\S]*entry\.contractVersion === contractVersion/,
+  );
+  assert.match(files["assets/player.js"], /const \[progress, drafts\] = await Promise\.all/);
+  assert.match(files["assets/player.js"], /draftSourceFor\(entry\.group, entry\.question\)/);
+  assert.match(files["assets/player.js"], /draftStatus\.setAttribute\("aria-live", "polite"\)/);
+  assert.match(files["assets/player.js"], /copy\.draftSessionOnly/);
+  assert.match(files["assets/player.js"], /learner-progress-summary/);
+  assert.match(files["assets/player.js"], /learner-resume/);
+  assert.match(files["assets/player.js"], /publicExamplesHeading/);
+  assert.match(files["assets/player.js"], /example-cases/);
+  assert.match(files["assets/player.js"], /new AbortController\(\)/);
+  assert.match(files["assets/player.js"], /activeRunController\?\.abort\(\)/);
+  assert.match(files["assets/player.js"], /event\.ctrlKey \|\| event\.metaKey/);
+  assert.match(files["assets/player.js"], /event\.shiftKey \? "examples" : "check"/);
+  assert.match(files["assets/player.js"], /copy\.runCanceled/);
+  assert.match(files["assets/player.js"], /navigation\.open = true/);
+  assert.match(files["assets/player.js"], /navigation\.dataset\.learnerCollapseAt = "stacked"/);
+  assert.match(files["assets/player.js"], /matchMedia\("\(max-width: 980px\)"\)/);
+  assert.match(files["assets/player.js"], /learner-sr-only/);
+  assert.match(files["assets/player.js"], /results\.setAttribute\("aria-live", "polite"\)/);
+  assert.match(files["assets/player.js"], /exerciseCase\.passed \? "Pass · " : "Fail · "/);
+  assert.match(files["assets/player.js"], /empty\.setAttribute\("role", "status"\)/);
+  assert.match(files["assets/player.js"], /app\.replaceChildren\(empty\);\s*empty\.focus\(\{ preventScroll: true \}\)/);
+  assert.match(files["assets/player.js"], /heading\.focus\(\{ preventScroll: true \}\)/);
   assert.doesNotMatch(files["assets/player.js"], /localStorage/);
   assert.match(files["assets/player.js"], /returned an inconsistent case result/);
   assert.match(files["assets/player.js"], /const visibleEntries = \(\) =>/);
@@ -42,9 +79,9 @@ test("Question Group builds are complete static practice sites with a leech quer
     files["assets/player.js"],
     /initialQuery === "leeches" && !isLeech\(progress\[key\]\)/,
   );
-  assert.match(files["assets/player.js"], /app\.replaceChildren\(emptyView\(\)\)/);
   assert.match(files["assets/player.js"], /const runGuard =/);
   assert.match(files["assets/player.js"], /button\.disabled = running/);
+  assert.match(files["assets/player.js"], /signal: controller\.signal/);
   assert.match(files["assets/player.js"], /runGuard\.isCurrent/);
   assert.match(files["assets/player.js"], /if \(!isCurrentRun\(\)\) return/);
   assert.match(
@@ -61,11 +98,18 @@ test("Question Group builds are complete static practice sites with a leech quer
 
   const report = JSON.parse(files["build-report.json"]);
   assert.equal(report.playerVersion, QUESTION_GROUP_PLAYER_VERSION);
+  assert.equal(report.learnerUiVersion, 1);
+  assert.equal(report.reviewDirectory, "leeches");
+  assert.equal(report.bundledBrowserRuntime, true);
   assert.deepEqual(report.browserRuntimes, ["browser-javascript"]);
   assert.equal(report.files.includes("leeches/index.html"), true);
   assert.match(
     files["README.txt"],
     /Python and\s+host-managed requirements remain disabled/,
+  );
+  assert.match(
+    files["README.txt"],
+    /Editor drafts use separate digest- and contract-bound records/,
   );
   assert.equal(repeated["question-group-library.json"], files["question-group-library.json"]);
   assert.equal(repeated["build-report.json"], files["build-report.json"]);
@@ -125,6 +169,176 @@ test("runtime injection is a build-time host option, never a content field", asy
   assert.equal(
     files["assets/runtime-adapter.js"],
     "globalThis.LatentQuestionPlayerRuntime = trustedAdapter;\n",
+  );
+});
+
+test("Question Group UI configuration controls branding, routes, copy, and runtime assets without changing portable identity", async () => {
+  const library = await exampleLibrary();
+  const baseline = await buildStandaloneQuestionGroupSite(library, {
+    bundledBrowserRuntime: false,
+  });
+  const configured = await buildStandaloneQuestionGroupSite(
+    structuredClone(library),
+    {
+      bundledBrowserRuntime: false,
+      metaContentSecurityPolicy: "default-src 'none'; worker-src 'self'",
+      ui: {
+        productName: "Python <Practice>",
+        headerMeta: "Ten focused exercises",
+        globalNavigationLabel: "Learning products",
+        globalNavigation: [
+          { label: "Course", href: "../llm-systems/" },
+          { label: "Practice", href: "./", current: true },
+        ],
+        navigationLabel: "Problem navigation",
+        menuLabel: "Browse practice",
+        reviewDirectory: "review",
+        copy: {
+          allNavigationLabel: "Problems",
+          reviewNavigationLabel: "Review misses",
+          allEyebrow: "Focused practice",
+          reviewEyebrow: "Try these again",
+          runExamples: "Run public examples",
+          checkSolution: "Check full solution",
+          continueLabel: "Continue next",
+          editorLabel: "Python answer",
+          draftSaved: "Answer saved",
+          runtimeUnavailable: "Practice is taking a break.",
+        },
+        footerSummary: "Progress stays with this exact set.",
+        attribution: "A quiet attribution.",
+        theme: {
+          accent: "#123ABC",
+          focus: "#FEDCBA",
+        },
+      },
+    },
+  );
+
+  assert.equal("review/index.html" in configured, true);
+  assert.equal("leeches/index.html" in configured, false);
+  assert.match(configured["index.html"], /Python &lt;Practice&gt;/);
+  assert.doesNotMatch(configured["index.html"], /Python <Practice>/);
+  assert.match(configured["index.html"], /learner-header__meta">Ten focused exercises/);
+  assert.match(configured["index.html"], /aria-label="Learning products"/);
+  assert.match(configured["index.html"], /href="\.\.\/llm-systems\/">Course<\/a>/);
+  assert.match(
+    configured["review/index.html"],
+    /href="\.\.\/\.\.\/llm-systems\/">Course<\/a>/,
+  );
+  assert.match(
+    configured["review/index.html"],
+    /href="\.\.\/" aria-current="page">Practice<\/a>/,
+  );
+  assert.match(configured["index.html"], /aria-label="Problem navigation"/);
+  assert.match(configured["index.html"], />Browse practice<\/summary>/);
+  assert.match(configured["index.html"], /href="\.\/" aria-current="page">Problems<\/a>/);
+  assert.match(configured["index.html"], /href="\.\/review\/">Review misses<\/a>/);
+  assert.match(configured["review/index.html"], /href="\.\.\/">Problems<\/a>/);
+  assert.match(
+    configured["review/index.html"],
+    /href="\.\/" aria-current="page">Review misses<\/a>/,
+  );
+  assert.match(configured["review/index.html"], /href="\.\.\/assets\/player\.css"/);
+  assert.match(
+    configured["review/index.html"],
+    /data-library-url="\.\.\/question-group-library\.json"/,
+  );
+  assert.match(configured["review/index.html"], /src="\.\.\/assets\/learner-ui\.js"/);
+  assert.match(configured["assets/player.css"], /--learner-color-accent: #123abc;/);
+  assert.match(configured["assets/player.css"], /--learner-color-focus: #fedcba;/);
+  assert.match(configured["assets/player.js"], /"runExamples":"Run public examples"/);
+  assert.match(configured["assets/player.js"], /"checkSolution":"Check full solution"/);
+  assert.match(configured["assets/player.js"], /"continueLabel":"Continue next"/);
+  assert.match(configured["assets/player.js"], /"cancelRun":"Cancel"/);
+  assert.match(configured["assets/player.js"], /"editorLabel":"Python answer"/);
+  assert.match(configured["assets/player.js"], /"draftSaved":"Answer saved"/);
+  assert.match(
+    configured["assets/player.js"],
+    /"runtimeUnavailable":"Practice is taking a break\."/,
+  );
+  assert.match(configured["index.html"], /Progress stays with this exact set\./);
+  assert.match(configured["index.html"], /A quiet attribution\./);
+  assert.match(
+    configured["index.html"],
+    /Content-Security-Policy" content="default-src 'none'; worker-src 'self'"/,
+  );
+  assert.match(
+    configured["review/index.html"],
+    /Content-Security-Policy" content="default-src 'none'; worker-src 'self'"/,
+  );
+  assert.match(baseline["index.html"], /worker-src 'self' blob:/);
+
+  for (const compilerAsset of [
+    "assets/esbuild.js",
+    "assets/esbuild.wasm",
+    "assets/sandbox.worker.js",
+  ]) {
+    assert.equal(compilerAsset in configured, false, compilerAsset);
+  }
+  assert.doesNotMatch(configured["index.html"], /assets\/esbuild\.js/);
+  assert.doesNotMatch(configured["review/index.html"], /assets\/esbuild\.js/);
+  assert.equal("assets/runtime-adapter.js" in configured, true);
+  assert.match(
+    configured["assets/player.js"],
+    /const bundledBrowserRuntime = false;/,
+  );
+  assert.match(
+    configured["assets/player.js"],
+    /: bundledBrowserRuntime\s*\? browserRuntime\s*: \{/,
+  );
+  assert.match(
+    configured["assets/player.js"],
+    /supports\(\) \{ return false; \}/,
+  );
+
+  const baselineReport = JSON.parse(baseline["build-report.json"]);
+  const configuredReport = JSON.parse(configured["build-report.json"]);
+  assert.equal(configuredReport.reviewDirectory, "review");
+  assert.equal(configuredReport.bundledBrowserRuntime, false);
+  assert.equal(configuredReport.metaContentSecurityPolicy, "custom");
+  assert.equal(baselineReport.metaContentSecurityPolicy, "default");
+  assert.deepEqual(configuredReport.browserRuntimes, []);
+  assert.equal(configuredReport.sha256, baselineReport.sha256);
+  assert.equal(
+    configured["question-group-library.json"],
+    baseline["question-group-library.json"],
+  );
+});
+
+test("Question Group UI configuration rejects unsafe directories and unknown copy fields", async () => {
+  const library = await exampleLibrary();
+  await assert.rejects(
+    buildStandaloneQuestionGroupSite(library, {
+      bundledBrowserRuntime: false,
+      ui: { reviewDirectory: "../review" },
+    }),
+    /one safe relative directory name/,
+  );
+  await assert.rejects(
+    buildStandaloneQuestionGroupSite(library, {
+      bundledBrowserRuntime: false,
+      ui: { copy: { unreviewedConcept: "Surprise" } },
+    }),
+    /Unknown Question Group site copy field/,
+  );
+  await assert.rejects(
+    buildStandaloneQuestionGroupSite(library, {
+      bundledBrowserRuntime: false,
+      ui: {
+        globalNavigation: [
+          { label: "Remote", href: "https://example.invalid/" },
+        ],
+      },
+    }),
+    /same-origin relative path/,
+  );
+  await assert.rejects(
+    buildStandaloneQuestionGroupSite(library, {
+      bundledBrowserRuntime: false,
+      metaContentSecurityPolicy: "default-src 'none'\nscript-src 'self'",
+    }),
+    /must be a single line/,
   );
 });
 

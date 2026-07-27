@@ -47,6 +47,18 @@ quality checks, canonical JSON, and standalone renderer are data-only and
 browser-safe. Community content cannot reach Latent's privileged code or Python
 runtimes.
 
+Current repository builds use the same self-hosted learner UI foundation from
+`@latent/course-kit/learner-ui`. It owns reviewed tokens, page width,
+header and mobile navigation, progress, controls, feedback, empty states, and
+editor framing. Builder-only configuration may select product labels, a safe
+relative review route, theme tokens, and a bounded document meta CSP without
+adding fields to portable Learning Pack or Question Group JSON. Response-header
+policies remain a static-host responsibility. Those presentation choices never
+change canonical content bytes, integrity digests, or progress identities.
+Standalone coding builds keep editor drafts in separate digest- and
+contract-bound trusted records, provide cancelable host-runtime calls, and
+render public example values plus structured run/check feedback.
+
 Read [`docs/open-learning.md`](./docs/open-learning.md) for the full contract
 and [`docs/learning-pack-quality-rubric.md`](./docs/learning-pack-quality-rubric.md)
 for the independent review standard.

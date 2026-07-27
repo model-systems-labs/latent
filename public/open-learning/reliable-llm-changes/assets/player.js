@@ -12,6 +12,13 @@
     }
   };
   let state = readState();
+  const viewFamily = (view) => (
+    view.startsWith("lesson-")
+      ? "lesson"
+      : view.startsWith("deck-")
+        ? "deck"
+        : view
+  );
   const save = () => {
     try { localStorage.setItem(storageKey, JSON.stringify(state)); } catch {}
   };
@@ -34,17 +41,26 @@
       });
     });
   };
+  const openView = (view, moveFocus = true) => {
+    document.querySelectorAll(".learning-view[data-view]").forEach((section) => { section.hidden = section.dataset.view !== view; });
+    document.querySelectorAll("[data-open-view]").forEach((entry) => entry.setAttribute("aria-current", entry.dataset.openView === view ? "page" : "false"));
+    document.querySelectorAll(".learner-primary-nav [data-view]").forEach((entry) => {
+      entry.setAttribute("aria-current", viewFamily(entry.dataset.view) === viewFamily(view) ? "page" : "false");
+    });
+    const target = document.getElementById(view);
+    if (target) {
+      history.replaceState(null, "", "#" + view);
+      if (moveFocus) target.querySelector("h1")?.focus({ preventScroll: true });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
   document.querySelectorAll("[data-open-view]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const view = button.dataset.openView;
-      document.querySelectorAll("[data-view]").forEach((section) => { section.hidden = section.dataset.view !== view; });
-      document.querySelectorAll("[data-open-view]").forEach((entry) => entry.setAttribute("aria-current", entry === button ? "page" : "false"));
-      const target = document.getElementById(view);
-      if (target) {
-        history.replaceState(null, "", "#" + view);
-        target.querySelector("h1")?.focus({ preventScroll: true });
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      }
+    button.addEventListener("click", () => openView(button.dataset.openView));
+  });
+  document.querySelectorAll(".learner-primary-nav [data-view]").forEach((link) => {
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      openView(link.dataset.view);
     });
   });
   document.querySelectorAll(".quiz").forEach((quiz) => {
@@ -59,12 +75,15 @@
       }
       const correct = selected.value === quiz.dataset.answer;
       result.textContent = correct ? "Correct." : "Not yet. Read the explanation and try again.";
-      result.className = "quiz-result " + (correct ? "correct" : "incorrect");
+      result.className = "learner-status quiz-result " + (correct ? "correct" : "incorrect");
+      result.dataset.tone = correct ? "success" : "danger";
       explanation.hidden = false;
     });
     quiz.querySelectorAll("input[type='radio']").forEach((input) => {
       input.addEventListener("change", () => {
-        quiz.querySelector(".quiz-result").textContent = "";
+        const result = quiz.querySelector(".quiz-result");
+        result.textContent = "";
+        delete result.dataset.tone;
         quiz.querySelector(".quiz-explanation").hidden = true;
       });
     });
@@ -100,7 +119,9 @@
     });
   });
   const initial = location.hash.slice(1);
-  if (initial) document.querySelector('[data-open-view="' + CSS.escape(initial) + '"]')?.click();
+  if (initial && document.querySelector('[data-open-view="' + CSS.escape(initial) + '"]')) {
+    openView(initial, false);
+  }
   updateCompleteButtons();
   updateDeckStatus();
 })();

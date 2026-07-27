@@ -12,6 +12,7 @@ const valueAfter = (flag, fallback) => {
 };
 const host = valueAfter("--host", "127.0.0.1");
 const port = Number(valueAfter("--port", "4173"));
+const productionBasePath = "/latent";
 
 if (!Number.isInteger(port) || port < 0 || port > 65_535) {
   throw new Error("Port must be an integer from 0 to 65535.");
@@ -56,7 +57,12 @@ const server = createServer(async (request, response) => {
   try {
     const url = new URL(request.url ?? "/", "http://localhost");
     const decoded = decodeURIComponent(url.pathname);
-    const requested = decoded.endsWith("/") ? `${decoded}index.html` : decoded;
+    const localPath = decoded === productionBasePath
+      ? "/"
+      : decoded.startsWith(`${productionBasePath}/`)
+        ? decoded.slice(productionBasePath.length)
+        : decoded;
+    const requested = localPath.endsWith("/") ? `${localPath}index.html` : localPath;
     const requestedPath = resolve(canonicalRoot, `.${requested}`);
     if (
       requestedPath !== canonicalRoot
@@ -66,6 +72,9 @@ const server = createServer(async (request, response) => {
       return;
     }
     let path = await regularFileInsideRoot(requestedPath);
+    if (!path && !extname(localPath)) {
+      path = await regularFileInsideRoot(join(requestedPath, "index.html"));
+    }
     if (!path) {
       path = await regularFileInsideRoot(join(canonicalRoot, "404.html"));
       if (!path) throw new Error("The preview 404 page is unavailable.");
@@ -79,6 +88,14 @@ const server = createServer(async (request, response) => {
       response.setHeader(
         "Content-Security-Policy",
         "default-src 'none'; script-src 'self' 'unsafe-eval'; connect-src 'none'; object-src 'none'",
+      );
+    } else if (
+      path.endsWith(`${sep}assets${sep}python-question.worker.js`)
+      || path.endsWith(`${sep}assets${sep}python-exercise.worker.js`)
+    ) {
+      response.setHeader(
+        "Content-Security-Policy",
+        "default-src 'none'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; connect-src 'self'; object-src 'none'",
       );
     }
     if (extname(path) === ".json") {
@@ -101,6 +118,8 @@ const actualPort = address && typeof address === "object" ? address.port : port;
 console.log(`Preview: http://${host === "::1" ? "[::1]" : host}:${actualPort}/`);
 console.log(`Interview Loop: http://${host === "::1" ? "[::1]" : host}:${actualPort}/interview-loop/`);
 console.log(`Ten Problems: http://${host === "::1" ? "[::1]" : host}:${actualPort}/practice/`);
+console.log(`LLM Systems: http://${host === "::1" ? "[::1]" : host}:${actualPort}/llm-systems/`);
+console.log(`Production-base mirror: http://${host === "::1" ? "[::1]" : host}:${actualPort}${productionBasePath}/`);
 
 const close = () => server.close(() => process.exit(0));
 process.on("SIGINT", close);

@@ -1,9 +1,10 @@
 # Interview Loop Lab
 
-This small Latent platform uses all four learning primitives for one connected
-preparation loop. The platform stays behind the practice: every
-learner-visible coding surface uses Python, including the lesson sketch, three
-portable questions, and the trusted IDE exercise.
+Interview Loop Lab is a 58-minute course with three connected modules:
+Behavioral Evidence, Progressive Coding, and Webhook Delivery Architecture.
+Its navigation and feedback belong to the same learner UI family as Ten
+Problems, while its lesson, quiz, flash-card, and trusted IDE surfaces remain
+course-specific.
 
 - `content/learning-pack.json` owns three navigable modules totaling 58
   minutes, six quizzes, and one fourteen-card retrieval deck.
@@ -14,24 +15,68 @@ portable questions, and the trusted IDE exercise.
   host-owned checks for bounded webhook retry scheduling.
 - `trusted/python-exercise-runtime.ts` owns the reviewed adapter between the
   player, Python Lab, and the host-owned value and ownership checks.
-- `site/` owns the static player, exact-digest Learning Pack state, and the
-  trusted post-call-input-equality/fresh-output coding contract.
+- `site/` owns the specialized course, quiz, card, practice, and IDE rendering;
+  exact-digest Learning Pack state; and the trusted
+  post-call-input-equality/fresh-output coding contract.
 - `tools/` owns canonical offline validation, focused contract tests,
-  deterministic build, same-origin Pyodide packaging, and preview.
+  deterministic build, same-origin Pyodide packaging, preview, and composition
+  with the generated shared learner UI.
 
 The first two files are untrusted declarative content. The IDE definition,
-Python adapter, worker, UI, and tools are trusted repository source. The
-Learning Pack and Question Group library are both version 2.0.0; the IDE uses
-contract `interview-loop.retry-plan.v3`. Read `AGENTS.md` before asking any
-coding agent to edit the project.
+Python adapter, worker, state logic, specialized UI, and tools are trusted
+repository source. The Learning Pack and Question Group library are both
+version 2.0.0; the IDE uses contract `interview-loop.retry-plan.v3`. Read
+`AGENTS.md` before asking any coding agent to edit the project.
+
+## Shared learner UI
+
+The two examples previously diverged because Interview Loop owned a bespoke
+page shell, while Ten Problems used Course Kit's standalone Question Group
+player and customized the generated output. Primary navigation, responsive
+behavior, control styling, and feedback therefore had different owners.
+
+The current ownership is explicit:
+
+- `packages/course-kit/src/learner-ui.ts` is the reviewed source of truth for
+  typography and color tokens, spacing, borders, focus states, responsive
+  breakpoints, the global shell, header, primary navigation, content widths,
+  buttons, forms, cards, progress, status/results, empty states, editor
+  framing, screen-reader utilities, and mobile navigation behavior.
+- `packages/course-kit/src/static-site.ts` composes that foundation with the
+  standalone lesson/card player.
+- `packages/course-kit/src/question-group-site.ts` composes it with the
+  standalone coding-practice player.
+- `scripts/generate-learning-platform-learner-ui.mjs` produces
+  `tools/vendor/learner-ui.mjs` for this extractable, dependency-free example.
+  The generated file is build input, not a second hand-maintained theme.
+- `platform.json` provides Interview Loop's explicit product name, header
+  labels, hash routes, theme, metadata, and footer. `tools/build.mjs` renders
+  the shared header and footer and copies the shared CSS and local navigation
+  behavior into `dist/`.
+- `../ten-problems/site-config.mjs` provides the corresponding Ten Problems UI
+  inputs, while `../ten-problems/security-config.mjs` provides its reviewed CSP
+  configuration: the custom document meta policy passed to the builder and the
+  full static-host page/worker header policies for standalone and `/practice/`
+  hosting.
+
+Interview Loop intentionally keeps its two-column module rail, reading layout,
+quizzes, cards, portable Python practice, and trusted IDE workflow in
+`site/app.mjs` and `site/styles.css`. Those specializations use the shared
+tokens and component classes. Ten Problems instead keeps its dense
+problem/copy/editor workspace. The products are related, not identical.
+
+Neither portable format changed for this presentation work. Learning Pack and
+Question Group JSON remain declarative, while UI behavior, runtime adapters,
+executable checks, and persistence remain trusted source.
 
 ## Run it
 
 Run this example from a Latent monorepo checkout with its workspace
-dependencies installed; Node 22.13 or newer is required. The build uses the
-installed Course Kit, Python Lab, esbuild, and Pyodide packages. It copies
-Pyodide 314.0.2 and the Python worker into `dist/`, so the built course can run
-learner Python offline without fetching a runtime from a CDN.
+dependencies installed; Node 22.13 or newer is required. The canonical Course
+Kit validator is checked in as one deterministic generated artifact. The build
+uses the installed Course Kit, Python Lab, esbuild, and Pyodide packages, then
+copies the pinned runtime and worker into `dist/`; the learner runtime does not
+load Python from a CDN.
 
 ```bash
 npm run validate
@@ -49,17 +94,17 @@ the loaded Learning Pack, so changed bytes do not inherit state even if the
 package id and version are unchanged.
 
 The host-managed Python runtime checks each case's returned value and, before
-normalizing that value, verifies that every input equals its original value
-when the call returns and that no nested output list or dictionary aliases a
-nested input list or dictionary. It does not claim to detect a
-mutate-then-restore sequence that leaves the final input value unchanged.
-Python Lab provides containment and cancellation for this trusted browser
-integration; it is not a hostile-code security sandbox.
+normalizing it, verifies that every input equals its original value when the
+call returns and that no nested output list or dictionary aliases a nested
+input list or dictionary. It does not claim to detect a mutate-then-restore
+sequence that leaves the final input value unchanged. Python Lab provides
+containment and cancellation for this trusted browser integration; it is not a
+hostile-code security sandbox.
 
 After at least three attempts and two misses, a question appears in the
-**Leeches only** view. Question progress is separately bound to the exact
-Question Group library digest and submitted-source digest; leeches are a
-progress query, not a content type.
+**Review repeated misses** view. Question progress is separately bound to the
+exact Question Group library digest and submitted-source digest; repeated-miss
+review is a progress query, not a content type.
 
 ## Suggested practice sequence
 
@@ -76,15 +121,36 @@ progress query, not a content type.
 
 ## Publish it on GitHub Pages
 
-The Latent repository's root Pages workflow validates and builds this course,
-then publishes it at `/latent/interview-loop/` alongside the separate
-`/latent/practice/` problem site. To host the course elsewhere, build it from
-a Latent monorepo checkout and upload only this example's generated `dist/`
-directory.
+For this directory by itself, create a repository from the directory, push the
+`main` branch, and select **GitHub Actions** as the Pages source. The checked-in
+`.github/workflows/deploy-pages.yml` validates and builds the course before
+uploading only `dist/`.
 
-The deterministic build contains 26 files, including its two hidden marker
-files and the same-origin Python runtime assets. No Latent account, database,
-model provider, or application server is required after the static artifact
-is built. The platform code is Apache-2.0-compatible; the original teaching
-and practice content is offered under CC-BY-4.0 as declared in its content
-files.
+In the Latent repository, run the combined Pages layout instead:
+
+```bash
+npm run learning-examples:preview
+```
+
+It serves the same static artifacts as the production suite:
+
+- `/` — the content-first Learning Studio index
+- `/llm-systems/` — the original 14-lesson Build an LLM System course
+- `/interview-loop/` — Interview Loop Lab
+- `/practice/` — Ten Problems
+- `/practice/leeches/` — repeated-miss review
+
+The root
+`.github/workflows/deploy-interview-loop-pages.yml` builds that combined
+artifact atomically for GitHub Pages. Local build and browser evidence is
+recorded in `AUTHORING.md`; live deployment and verification remain pending.
+GitHub Pages does not honor Ten Problems' generated `_headers` file. Its
+builder-injected document meta CSP remains active there and restricts script
+sources, workers and connections to same-origin, plus styles and other assets.
+The fuller page/worker headers remain defense in depth on supporting static
+hosts; anti-framing depends on those response headers. The combined local
+preview mirrors the Python-worker response CSP during QA.
+
+No Latent account, database, model provider, or application server is
+required. Application code is Apache-2.0-compatible; the original teaching and
+practice content is offered under CC-BY-4.0 as declared in its content files.

@@ -13,7 +13,10 @@ async function sourceFiles(directory = root) {
   const entries = await readdir(directory, { withFileTypes: true });
   const files = [];
   for (const entry of entries) {
-    if (entry.isDirectory() && ignoredDirectories.has(entry.name)) continue;
+    if (
+      entry.isDirectory()
+      && (ignoredDirectories.has(entry.name) || entry.name.startsWith(".pages-site"))
+    ) continue;
     const absolute = path.join(directory, entry.name);
     if (entry.isDirectory()) files.push(...await sourceFiles(absolute));
     else if (entry.isFile() && checkedExtensions.has(path.extname(entry.name))) files.push(absolute);

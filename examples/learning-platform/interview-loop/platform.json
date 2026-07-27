@@ -1,11 +1,78 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "brand": {
     "name": "Interview Loop Lab",
-    "tagline": "Build clear stories, robust code, and defensible system designs for demanding engineering interviews.",
-    "accent": "#5eead4",
-    "ink": "#182019",
-    "paper": "#f6f3e8"
+    "tagline": "Build clear stories, robust code, and defensible system designs for demanding engineering interviews."
+  },
+  "learnerUi": {
+    "theme": {
+      "canvas": "#f4f7f5",
+      "surface": "#ffffff",
+      "surfaceMuted": "#edf2ef",
+      "ink": "#17211d",
+      "muted": "#5d6a64",
+      "border": "#ced8d2",
+      "accent": "#176b5a",
+      "accentStrong": "#0f5144",
+      "accentSoft": "#dff2ec",
+      "accentContrast": "#ffffff",
+      "success": "#1d704e",
+      "successSoft": "#def3e8",
+      "danger": "#a33d3d",
+      "dangerSoft": "#fae7e5",
+      "warning": "#8b5a15",
+      "focus": "#2259c7"
+    },
+    "header": {
+      "homeHref": "./",
+      "homeLabel": "Interview Loop Lab home",
+      "globalNavigationLabel": "Learning experiences",
+      "globalNavigation": [
+        {
+          "label": "LLM Systems",
+          "href": "../llm-systems/"
+        },
+        {
+          "label": "Interview Loop",
+          "href": "./",
+          "current": true
+        },
+        {
+          "label": "Ten Problems",
+          "href": "../practice/"
+        }
+      ],
+      "navigationLabel": "Learning areas",
+      "menuLabel": "Learning areas",
+      "meta": "3 modules · 58 minutes",
+      "navigation": [
+        {
+          "label": "Modules",
+          "href": "#modules",
+          "dataView": "lesson",
+          "current": true
+        },
+        {
+          "label": "Practice",
+          "href": "#practice",
+          "dataView": "practice"
+        },
+        {
+          "label": "Review",
+          "href": "#review",
+          "dataView": "cards"
+        },
+        {
+          "label": "Coding lab",
+          "href": "#coding-lab",
+          "dataView": "ide"
+        }
+      ]
+    },
+    "footer": {
+      "summary": "Interview preparation and progress stay on this device.",
+      "attribution": "Built with Latent."
+    }
   },
   "content": {
     "learningPack": "content/learning-pack.json",

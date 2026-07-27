@@ -5,12 +5,19 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { build } from "esbuild";
+import {
+  createLearnerUiCss,
+  learnerUiJavaScript,
+  resolveLearnerUiTheme,
+} from "@latent/course-kit/learner-ui";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const defaultOutput = resolve(
+const defaultModuleOutput = resolve(
   repositoryRoot,
   "examples/learning-platform/interview-loop/tools/vendor/learner-ui.mjs",
 );
+const appCssOutput = resolve(repositoryRoot, "public/assets/learner-ui.css");
+const appJavaScriptOutput = resolve(repositoryRoot, "public/assets/learner-ui.js");
 const packageManifest = JSON.parse(await readFile(
   resolve(repositoryRoot, "packages/course-kit/package.json"),
   "utf8",
@@ -22,11 +29,14 @@ async function generatedSource() {
       contents: `
         export {
           LEARNER_UI_BREAKPOINTS,
+          LEARNER_UI_PALETTE_NAMES,
+          LEARNER_UI_PALETTES,
           LEARNER_UI_VERSION,
           createLearnerUiCss,
           learnerUiJavaScript,
           renderLearnerFooter,
           renderLearnerHeader,
+          resolveLearnerUiTheme,
         } from "@latent/course-kit/learner-ui";
       `,
       resolveDir: repositoryRoot,
@@ -53,23 +63,43 @@ ${normalizedSource}`;
 
 const args = process.argv.slice(2);
 const check = args.includes("--check");
+const appOnly = args.includes("--app-only");
 const outIndex = args.indexOf("--out");
-const output = outIndex >= 0
+const moduleOutput = outIndex >= 0
   ? resolve(args[outIndex + 1] ?? "")
-  : defaultOutput;
-if (!output) throw new Error("--out requires a path.");
-const source = await generatedSource();
+  : defaultModuleOutput;
+if (!moduleOutput) throw new Error("--out requires a path.");
+const customModuleOutput = outIndex >= 0;
+const outputs = [];
+
+if (!appOnly) {
+  outputs.push([moduleOutput, await generatedSource(), "Vendored learner UI"]);
+}
+if (!customModuleOutput) {
+  const theme = resolveLearnerUiTheme({ palette: "paper" });
+  outputs.push(
+    [appCssOutput, `${createLearnerUiCss(theme).trim()}\n`, "React learner UI stylesheet"],
+    [appJavaScriptOutput, `${learnerUiJavaScript.trim()}\n`, "React learner UI behavior"],
+  );
+}
 
 if (check) {
-  const existing = await readFile(output, "utf8").catch(() => "");
-  if (existing !== source) {
-    throw new Error(
-      "Vendored learner UI is stale. Run node scripts/generate-learning-platform-learner-ui.mjs.",
-    );
+  const stale = [];
+  for (const [output, source, label] of outputs) {
+    const existing = await readFile(output, "utf8").catch(() => "");
+    if (existing !== source) stale.push(`${label}: ${output}`);
   }
-  console.log(`Vendored learner UI matches @latent/course-kit ${packageManifest.version}.`);
+  if (stale.length > 0) {
+    throw new Error([
+      "Generated learner UI assets are stale. Run node scripts/generate-learning-platform-learner-ui.mjs.",
+      ...stale,
+    ].join("\n"));
+  }
+  console.log(`Generated learner UI assets match @latent/course-kit ${packageManifest.version}.`);
 } else {
-  await mkdir(dirname(output), { recursive: true });
-  await writeFile(output, source, "utf8");
-  console.log(output);
+  for (const [output, source] of outputs) {
+    await mkdir(dirname(output), { recursive: true });
+    await writeFile(output, source, "utf8");
+    console.log(output);
+  }
 }

@@ -38,6 +38,10 @@ test("Question Group builds are complete static practice sites with a leech quer
   assert.match(files["leeches/index.html"], /src="\.\.\/assets\/learner-ui\.js"/);
   assert.match(files["assets/player.css"], /--learner-font-sans:/);
   assert.match(files["assets/player.css"], /\.learner-ui :focus-visible/);
+  assert.match(
+    files["assets/player.css"],
+    /\.question-copy h2\s*\{[^}]*font-family: var\(--learner-font-reading\)/,
+  );
   assert.match(files["assets/learner-ui.js"], /event\.key !== "Escape"/);
   assert.match(files["assets/player.js"], /isLeech/);
   assert.match(files["assets/player.js"], /new Worker/);
@@ -56,6 +60,14 @@ test("Question Group builds are complete static practice sites with a leech quer
   assert.match(files["assets/player.js"], /copy\.draftSessionOnly/);
   assert.match(files["assets/player.js"], /learner-progress-summary/);
   assert.match(files["assets/player.js"], /learner-resume/);
+  assert.match(
+    files["assets/player.js"],
+    /const libraryHeader = document\.createElement\("div"\)/,
+  );
+  assert.match(
+    files["assets/player.js"],
+    /const workspaceHeader = document\.createElement\("div"\)/,
+  );
   assert.match(files["assets/player.js"], /publicExamplesHeading/);
   assert.match(files["assets/player.js"], /example-cases/);
   assert.match(files["assets/player.js"], /new AbortController\(\)/);
@@ -135,7 +147,7 @@ test("Question Group builds are complete static practice sites with a leech quer
 
   const report = JSON.parse(files["build-report.json"]);
   assert.equal(report.playerVersion, QUESTION_GROUP_PLAYER_VERSION);
-  assert.equal(report.learnerUiVersion, 1);
+  assert.equal(report.learnerUiVersion, 2);
   assert.equal(report.reviewDirectory, "leeches");
   assert.equal(report.bundledBrowserRuntime, true);
   assert.deepEqual(report.browserRuntimes, ["browser-javascript"]);
@@ -244,9 +256,23 @@ test("Question Group UI configuration controls branding, routes, copy, and runti
         },
         footerSummary: "Progress stays with this exact set.",
         attribution: "A quiet attribution.",
+        appearance: {
+          palette: "cobalt",
+          theme: {
+            accent: "#123ABC",
+            focus: "#FEDCBA",
+          },
+        },
+      },
+    },
+  );
+  const legacyTheme = await buildStandaloneQuestionGroupSite(
+    structuredClone(library),
+    {
+      bundledBrowserRuntime: false,
+      ui: {
         theme: {
-          accent: "#123ABC",
-          focus: "#FEDCBA",
+          accent: "#234567",
         },
       },
     },
@@ -282,8 +308,10 @@ test("Question Group UI configuration controls branding, routes, copy, and runti
     /data-library-url="\.\.\/question-group-library\.json"/,
   );
   assert.match(configured["review/index.html"], /src="\.\.\/assets\/learner-ui\.js"/);
+  assert.match(configured["assets/player.css"], /--learner-color-canvas: #f1f3f7;/);
   assert.match(configured["assets/player.css"], /--learner-color-accent: #123abc;/);
   assert.match(configured["assets/player.css"], /--learner-color-focus: #fedcba;/);
+  assert.match(legacyTheme["assets/player.css"], /--learner-color-accent: #234567;/);
   assert.match(configured["assets/player.js"], /"runExamples":"Run public examples"/);
   assert.match(configured["assets/player.js"], /"checkSolution":"Check full solution"/);
   assert.match(configured["assets/player.js"], /"continueLabel":"Continue next"/);
@@ -341,6 +369,10 @@ test("Question Group UI configuration controls branding, routes, copy, and runti
     configured["question-group-library.json"],
     baseline["question-group-library.json"],
   );
+  assert.equal(
+    JSON.parse(legacyTheme["build-report.json"]).sha256,
+    baselineReport.sha256,
+  );
 });
 
 test("Question Group UI configuration rejects unsafe directories and unknown copy fields", async () => {
@@ -358,6 +390,16 @@ test("Question Group UI configuration rejects unsafe directories and unknown cop
       ui: { copy: { unreviewedConcept: "Surprise" } },
     }),
     /Unknown Question Group site copy field/,
+  );
+  await assert.rejects(
+    buildStandaloneQuestionGroupSite(library, {
+      bundledBrowserRuntime: false,
+      ui: {
+        appearance: { palette: "sage" },
+        theme: { accent: "#234567" },
+      },
+    }),
+    /ui\.appearance and ui\.theme cannot be configured together/,
   );
   await assert.rejects(
     buildStandaloneQuestionGroupSite(library, {

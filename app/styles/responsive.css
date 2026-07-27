@@ -36,29 +36,6 @@
     min-height: 2.75rem;
   }
 
-  .lesson-header {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-
-  .lesson-header nav {
-    display: flex;
-    gap: 1.25rem;
-    grid-column: 1 / -1;
-    justify-self: end;
-    max-width: 100%;
-    overflow-x: auto;
-    padding: 0.75rem 0;
-    scrollbar-width: none;
-  }
-
-  .lesson-header nav::-webkit-scrollbar {
-    display: none;
-  }
-
-  .lesson-header > span {
-    display: none;
-  }
-
   .paper-hero h1 {
     white-space: normal;
   }
@@ -783,9 +760,6 @@
   }
 
   .project-page-hero > p:nth-of-type(2) { font-size: 0.98rem; line-height: 1.55; margin-top: 0.85rem; }
-  .project-page-hero .hero-actions { margin-top: 1rem; }
-  .project-page-hero .hero-actions a:nth-child(2) { display: none; }
-
   .project-history-disclosure > summary {
     gap: 0.35rem 0.75rem;
     grid-template-columns: minmax(0, 1fr) auto;

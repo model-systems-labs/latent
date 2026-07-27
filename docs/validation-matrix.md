@@ -120,3 +120,52 @@ workspace, strict example, type, lint, build, boundary, and performance gate.
 This evidence is Chromium emulation and keyboard inspection. It does not mark
 iOS Safari, Android Chrome, physical software keyboards, or a formal
 screen-reader audit as verified.
+
+## Learner UI v2 local evidence — 2026-07-27
+
+This pass replaced the suite's parallel presentation layers with the
+opinionated Course Kit learner UI v2 foundation. The latest local combined
+Pages build contains 441 files and exposes `/`, `/llm-systems/`,
+`/interview-loop/`, `/practice/`, and `/practice/leeches/`. The React course
+export prerendered 96 routes and verified 95 rendered course routes, 27
+required routes, and 4 assets.
+
+Automated evidence completed for this revision:
+
+- Course Kit built successfully and all 57 package tests passed.
+- The 70 focused application regression tests passed.
+- Interview Loop strict validation passed with all 13 focused tests and all
+  authored Python cases. Ten Problems strict validation passed with 4 groups,
+  10 questions, 39 cases, and zero warnings; all 6 example tests passed.
+- `npm run open-learning:validate`, `npm run open-learning:schema`, and
+  `npm run open-learning:generate` passed.
+- TypeScript (`npx tsc --noEmit`), ESLint, the production course export, and
+  the combined learning-suite build passed.
+
+In-app Chromium at 1440 × 900 verified the one-header presentation and
+product-appropriate layouts for Learning Studio, the original LLM course,
+Interview Loop, and Ten Problems. The beginning-learner flow covered product
+choice, module/problem navigation, Continue, public examples, and saved
+progress. The advanced flow covered:
+
+- Interview module navigation and resume after reload, wrong/correct quiz
+  feedback, flash-card reveal/rating persistence, and Python IDE failure then
+  four-check success.
+- Ten Problems example failure/success, full-check failure/success,
+  five-of-ten solved progress after reload, repeated-miss appearance, and
+  removal from Review after a passing solution.
+- Keyboard opening and Escape focus restoration for **Explore**, with the
+  shared visible three-pixel focus indicator.
+
+At 390 × 844, Interview, Ten Problems, the original course, and a
+representative original-course lesson fit without horizontal document
+overflow. The compact header exposes product identity plus one **Explore**
+disclosure; local navigation moves into that disclosure instead of creating a
+second header. Ten Problems retains its stacked practice workspace and
+Interview retains its collapsible module navigation.
+
+This is local Chromium emulation and keyboard inspection, not physical-device
+or formal screen-reader certification. The combined local route sweep recorded
+zero browser-console warnings or errors. The full `npm run validate` gate
+passed with 606 tests and zero failures. Live GitHub Pages verification remains
+pending.

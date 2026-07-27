@@ -52,9 +52,11 @@ const requiredAssets = [
   "emscripten-module.wasm",
   "og.png",
 ];
+const learningSuiteBasePath = basePath.slice(0, basePath.lastIndexOf("/"));
 const learningSuiteRoutes = new Set([
-  "/latent/interview-loop/",
-  "/latent/practice/",
+  `${learningSuiteBasePath}/`,
+  `${learningSuiteBasePath}/interview-loop/`,
+  `${learningSuiteBasePath}/practice/`,
 ]);
 
 async function collectHtml(directory) {

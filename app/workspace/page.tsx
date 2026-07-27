@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default function WorkspacePage() {
   return (
     <>
-      <LearnerHeader current="courses" />
+      <LearnerHeader current="practice" experience="llm-systems" />
       <WorkspaceShell />
     </>
   );

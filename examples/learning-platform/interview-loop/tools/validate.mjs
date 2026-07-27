@@ -15,6 +15,7 @@ import {
   learnerUiJavaScript,
   renderLearnerFooter,
   renderLearnerHeader,
+  resolveLearnerUiTheme,
 } from "./vendor/learner-ui.mjs";
 import { learningPackProgressIdentity } from "../site/progress.mjs";
 import { admitRuntimeLimits } from "../site/runtime-policy.mjs";
@@ -343,16 +344,21 @@ expect(platform?.schemaVersion === 2, "platform.schemaVersion", "Expected schema
 expect(nonempty(platform?.brand?.name), "platform.brand.name", "Add a platform name.");
 expect(nonempty(platform?.brand?.tagline), "platform.brand.tagline", "Add a platform promise.");
 expect(
-  LEARNER_UI_VERSION === 1
+  LEARNER_UI_VERSION === 2
     && LEARNER_UI_BREAKPOINTS.compact === 760
     && nonempty(learnerUiJavaScript),
   "platform.learnerUi.version",
-  "Use the reviewed learner UI v1 bundle.",
+  "Use the reviewed learner UI v2 bundle.",
 );
 expect(
-  isRecord(platform?.learnerUi?.theme),
-  "platform.learnerUi.theme",
-  "Declare the learner UI theme at build time.",
+  isRecord(platform?.learnerUi?.appearance),
+  "platform.learnerUi.appearance",
+  "Declare a reviewed learner UI palette at build time.",
+);
+expect(
+  platform?.learnerUi?.appearance?.palette === "sage",
+  "platform.learnerUi.appearance.palette",
+  "Interview Loop uses the shared sage palette.",
 );
 expect(
   isRecord(platform?.learnerUi?.header),
@@ -365,7 +371,7 @@ expect(
   "Declare the quiet learner footer at build time.",
 );
 try {
-  createLearnerUiCss(platform?.learnerUi?.theme);
+  createLearnerUiCss(resolveLearnerUiTheme(platform?.learnerUi?.appearance));
   renderLearnerHeader({
     productName: platform?.brand?.name,
     ...platform?.learnerUi?.header,

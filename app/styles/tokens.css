@@ -1,28 +1,28 @@
 :root {
-  --paper: #f4f0e8;
-  --paper-bright: #fffdf8;
-  --ink: #282322;
-  --muted: #665e59;
-  --faint: #716761;
-  --line: rgba(73, 55, 66, 0.1);
-  --line-strong: rgba(73, 55, 66, 0.17);
-  --violet: #78667d;
-  --violet-deep: #554653;
-  --violet-wash: rgba(204, 188, 204, 0.24);
-  --diagram-label: #625b66;
-  --diagram-accent: #695a78;
-  --diagram-positive: #486750;
-  --amber: #b97952;
-  --green: #54735d;
-  --red: #8d5a54;
+  /* Legacy course names are aliases, not a second design-token source. */
+  --paper: var(--learner-color-canvas, #f4f0e8);
+  --paper-bright: var(--learner-color-surface, #fffdf8);
+  --ink: var(--learner-color-ink, #282322);
+  --muted: var(--learner-color-muted, #665e59);
+  --faint: var(--learner-color-muted, #665e59);
+  --line: color-mix(in srgb, var(--learner-color-border, #d8d0c7) 68%, transparent);
+  --line-strong: var(--learner-color-border, #d8d0c7);
+  --violet: var(--learner-color-accent, #78667d);
+  --violet-deep: var(--learner-color-accent-strong, #554653);
+  --violet-wash: color-mix(in srgb, var(--learner-color-accent-soft, #eee8ef) 72%, transparent);
+  --diagram-label: var(--learner-color-muted, #665e59);
+  --diagram-accent: var(--learner-color-accent-strong, #554653);
+  --diagram-positive: var(--learner-color-success, #54735d);
+  --amber: var(--learner-color-warning, #9a6342);
+  --green: var(--learner-color-success, #54735d);
+  --red: var(--learner-color-danger, #8d5a54);
   --code: #211f22;
-  /* Macro rhythm at roughly 70% of the original spacing. Type and controls stay full-size. */
-  --rhythm-landing: clamp(3.85rem, 7vw, 5.6rem);
-  --rhythm-major: clamp(3.15rem, 5.6vw, 4.9rem);
-  --rhythm-section: clamp(2.1rem, 4.2vw, 3.5rem);
-  --rhythm-group: clamp(2.8rem, 5.6vw, 4.55rem);
-  --rhythm-intro: clamp(1.75rem, 3.5vw, 2.8rem);
-  --serif: "Iowan Old Style", "Baskerville", "Times New Roman", serif;
-  --sans: var(--font-geist-sans), "Helvetica Neue", sans-serif;
-  --mono: var(--font-geist-mono), "SFMono-Regular", monospace;
+  --rhythm-landing: var(--learner-rhythm-major, clamp(3.15rem, 5.6vw, 4.9rem));
+  --rhythm-major: var(--learner-rhythm-major, clamp(3.15rem, 5.6vw, 4.9rem));
+  --rhythm-section: var(--learner-rhythm-section, clamp(2.1rem, 4.2vw, 3.5rem));
+  --rhythm-group: var(--learner-rhythm-major, clamp(3.15rem, 5.6vw, 4.9rem));
+  --rhythm-intro: var(--learner-rhythm-section, clamp(2.1rem, 4.2vw, 3.5rem));
+  --serif: var(--learner-font-reading, "Iowan Old Style", "Baskerville", "Times New Roman", serif);
+  --sans: var(--learner-font-sans, var(--font-geist-sans), "Helvetica Neue", sans-serif);
+  --mono: var(--learner-font-mono, var(--font-geist-mono), "SFMono-Regular", monospace);
 }

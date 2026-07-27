@@ -204,7 +204,7 @@ test("standalone builds derive integrity, are deterministic, self-contained, and
   assert.equal(feed.packages[0].bytes, Buffer.byteLength(packageJson));
   assert.equal(report.sha256, expectedDigest);
   assert.equal(report.packageBytes, Buffer.byteLength(packageJson));
-  assert.equal(report.learnerUiVersion, 1);
+  assert.equal(report.learnerUiVersion, 2);
   assert.match(first["index.html"], /Content-Security-Policy/);
   assert.match(first["index.html"], /<body class="learner-ui"/);
   assert.match(first["index.html"], /class="learner-skip-link"/);
@@ -215,6 +215,14 @@ test("standalone builds derive integrity, are deterministic, self-contained, and
   assert.match(first["index.html"], /&lt;img src=x onerror=alert\(1\)&gt;/);
   assert.match(first["assets/player.css"], /--learner-font-sans:/);
   assert.match(first["assets/player.css"], /\.learner-ui :focus-visible/);
+  assert.match(first["assets/player.css"], /font-family: var\(--learner-font-reading\)/);
+  assert.doesNotMatch(first["assets/player.css"], /\.site-header|\.wordmark|\.skip-link/);
+  assert.doesNotMatch(first["assets/player.css"], /font-family: Georgia|font-family: ui-monospace/);
+  assert.doesNotMatch(
+    first["assets/player.css"],
+    /\n:focus-visible\s*\{/,
+    "the Learning Pack layout must not override the shared focus state",
+  );
   assert.match(first["assets/learner-ui.js"], /event\.key !== "Escape"/);
   assert.match(first["assets/player.js"], /localStorage\.getItem\(storageKey\)/);
   assert.match(first["assets/player.js"], /focus\(\{ preventScroll: true \}\)/);
@@ -258,9 +266,19 @@ test("standalone Learning Pack UI configuration changes presentation without cha
       menuLabel: "Browse course",
       footerSummary: "Progress stays on this device.",
       attribution: "A quiet attribution.",
+      appearance: {
+        palette: "cobalt",
+        theme: {
+          accent: "#345ABC",
+          focus: "#FEDCBA",
+        },
+      },
+    },
+  });
+  const legacyTheme = await buildStandaloneLearningSite(copy(example), {
+    ui: {
       theme: {
-        accent: "#345ABC",
-        focus: "#FEDCBA",
+        accent: "#234567",
       },
     },
   });
@@ -273,8 +291,10 @@ test("standalone Learning Pack UI configuration changes presentation without cha
   assert.match(configured["index.html"], /Review cards/);
   assert.match(configured["index.html"], /Progress stays on this device\./);
   assert.match(configured["index.html"], /A quiet attribution\./);
+  assert.match(configured["assets/player.css"], /--learner-color-canvas: #f1f3f7;/);
   assert.match(configured["assets/player.css"], /--learner-color-accent: #345abc;/);
   assert.match(configured["assets/player.css"], /--learner-color-focus: #fedcba;/);
+  assert.match(legacyTheme["assets/player.css"], /--learner-color-accent: #234567;/);
   assert.equal(
     configured["assets/learner-ui.js"],
     baseline["assets/learner-ui.js"],
@@ -284,6 +304,22 @@ test("standalone Learning Pack UI configuration changes presentation without cha
   assert.equal(
     JSON.parse(configured["build-report.json"]).sha256,
     JSON.parse(baseline["build-report.json"]).sha256,
+  );
+  assert.equal(
+    JSON.parse(legacyTheme["build-report.json"]).sha256,
+    JSON.parse(baseline["build-report.json"]).sha256,
+  );
+});
+
+test("standalone Learning Pack UI rejects ambiguous appearance configuration", async () => {
+  await assert.rejects(
+    buildStandaloneLearningSite(example, {
+      ui: {
+        appearance: { palette: "sage" },
+        theme: { accent: "#234567" },
+      },
+    }),
+    /ui\.appearance and ui\.theme cannot be configured together/,
   );
 });
 

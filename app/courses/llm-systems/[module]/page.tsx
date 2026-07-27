@@ -28,34 +28,29 @@ export default async function LlmSystemsModulePage({ params }: { params: Promise
   const next = courseTracks[track.number];
   const checkpoint = moduleCheckpoint(track.id);
   return (
-    <main>
-      <PageAtmosphere />
-      <LearnerHeader current="courses" />
-      <header className="site-header course-header" style={{ height: "auto", minHeight: "3.35rem" }}>
-        <LearnerActionLink href="/courses/llm-systems">Course</LearnerActionLink>
-        <nav aria-label="Course tools">
-          <Link href="/project">Project</Link>
-          <Link href="/workspace">Coding workspace</Link>
-        </nav>
-      </header>
-      <article className="course-page track-page" id="main-content" tabIndex={-1}>
-        <header className="course-hero track-hero catalog-track-hero">
-          <p className="eyebrow">Build an LLM System</p>
-          <h1>{track.title}</h1>
-          <p className="course-thesis">{track.thesis}</p>
-        </header>
-        <CourseCurriculum title={track.title} lessons={lessons} />
-        {checkpoint ? (
-          <Link className="module-checkpoint-card module-checkpoint-card-simple" href={`/checkpoints/${track.id}`}>
-            <div><strong>{checkpoint.title}</strong><p>Optional integration check. {checkpoint.objective}</p></div>
-            <span aria-hidden="true">→</span>
-          </Link>
-        ) : null}
-        <footer className="track-navigation">
-          {previous ? <LearnerActionLink href={`/courses/llm-systems/${previous.id}`}>← {previous.title}</LearnerActionLink> : <LearnerActionLink href="/courses/llm-systems">← Course home</LearnerActionLink>}
-          {next ? <LearnerActionLink href={`/courses/llm-systems/${next.id}`}>{next.title} →</LearnerActionLink> : <LearnerActionLink href="/capstone">Build the capstone →</LearnerActionLink>}
-        </footer>
-      </article>
-    </main>
+    <>
+      <LearnerHeader current="courses" experience="llm-systems" />
+      <main>
+        <PageAtmosphere />
+        <article className="course-page track-page" id="main-content" tabIndex={-1}>
+          <header className="course-hero track-hero catalog-track-hero">
+            <p className="eyebrow">Build an LLM System</p>
+            <h1>{track.title}</h1>
+            <p className="course-thesis">{track.thesis}</p>
+          </header>
+          <CourseCurriculum title={track.title} lessons={lessons} />
+          {checkpoint ? (
+            <Link className="module-checkpoint-card module-checkpoint-card-simple" href={`/checkpoints/${track.id}`}>
+              <div><strong>{checkpoint.title}</strong><p>Optional integration check. {checkpoint.objective}</p></div>
+              <span aria-hidden="true">→</span>
+            </Link>
+          ) : null}
+          <footer className="track-navigation">
+            {previous ? <LearnerActionLink href={`/courses/llm-systems/${previous.id}`}>← {previous.title}</LearnerActionLink> : <LearnerActionLink href="/courses/llm-systems">← Course home</LearnerActionLink>}
+            {next ? <LearnerActionLink href={`/courses/llm-systems/${next.id}`}>{next.title} →</LearnerActionLink> : <LearnerActionLink href="/capstone">Build the capstone →</LearnerActionLink>}
+          </footer>
+        </article>
+      </main>
+    </>
   );
 }

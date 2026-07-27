@@ -41,10 +41,11 @@ const flashcardReferenceShelves = {
 
 export default function SourcesPage() {
   return (
-    <main>
-      <PageAtmosphere />
+    <>
       <LearnerHeader current="reading" />
-      <article className="sources-page" id="main-content" tabIndex={-1}>
+      <main>
+        <PageAtmosphere />
+        <article className="sources-page" id="main-content" tabIndex={-1}>
         <header className="sources-hero"><h1>Further reading</h1><p>References, datasets, models, and software used across the four courses.</p></header>
 
         <p className="source-policy-note">Further reading establishes the research, equations, standards, and APIs behind each lesson. Its prose, figures, tutorial code, and datasets are not republished here; Latent&apos;s explanations, diagrams, exercises, implementations, and synthetic fixtures are course-authored.</p>
@@ -76,7 +77,8 @@ export default function SourcesPage() {
             </details>
           ))}
         </section>
-      </article>
-    </main>
+        </article>
+      </main>
+    </>
   );
 }

@@ -21,10 +21,12 @@ export default async function CheckpointPage({ params }: { params: Promise<{ mod
   const track = getTrack(module);
   if (!track) notFound();
   return (
-    <main>
-      <PageAtmosphere />
-      <LearnerHeader current="courses" />
-      <ModuleCheckpoint courseId={track.id} />
-    </main>
+    <>
+      <LearnerHeader current="courses" experience="llm-systems" />
+      <main>
+        <PageAtmosphere />
+        <ModuleCheckpoint courseId={track.id} />
+      </main>
+    </>
   );
 }

@@ -18,6 +18,7 @@ import {
   learnerUiJavaScript,
   renderLearnerFooter,
   renderLearnerHeader,
+  resolveLearnerUiTheme,
 } from "@latent/course-kit/learner-ui";
 import { renderTenProblemsHeaders } from "#root/examples/learning-platform/ten-problems/security-config.mjs";
 
@@ -146,8 +147,24 @@ const studioCss = `
   margin: 0 auto;
   max-width: var(--learner-width-content);
 }
-.studio-card { display: flex; flex-direction: column; min-height: 27rem; }
-.studio-card h2 { font-size: 1.55rem; letter-spacing: -.035em; margin: .35rem 0 .75rem; }
+.studio-card {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  border-top: var(--learner-border);
+  display: flex;
+  flex-direction: column;
+  min-height: 25rem;
+  padding: var(--learner-space-5) 0 0;
+}
+.studio-card h2 {
+  font-family: var(--learner-font-reading);
+  font-size: clamp(1.7rem, 3vw, 2.2rem);
+  font-weight: 500;
+  letter-spacing: -.04em;
+  line-height: 1.05;
+  margin: .35rem 0 .75rem;
+}
 .studio-card ul { color: var(--learner-color-muted); line-height: 1.7; padding-left: 1.2rem; }
 .studio-card .learner-button { align-self: flex-start; margin-top: auto; text-decoration: none; }
 @media (max-width: 980px) { .studio-grid { grid-template-columns: 1fr; } .studio-card { min-height: 0; } }
@@ -236,14 +253,7 @@ try {
   await writeFile(join(temporary, "404.html"), renderLanding(), "utf8");
   await writeFile(
     join(temporary, "assets/learner-ui.css"),
-    createLearnerUiCss({
-      canvas: "#f4f5f7",
-      surfaceMuted: "#eceff3",
-      accent: "#5c4d7d",
-      accentStrong: "#463861",
-      accentSoft: "#ece8f5",
-      focus: "#2259c7",
-    }),
+    createLearnerUiCss(resolveLearnerUiTheme({ palette: "paper" })),
     "utf8",
   );
   await writeFile(join(temporary, "assets/learner-ui.js"), learnerUiJavaScript, "utf8");

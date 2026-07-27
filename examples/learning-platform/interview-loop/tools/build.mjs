@@ -21,6 +21,7 @@ import {
   learnerUiJavaScript,
   renderLearnerFooter,
   renderLearnerHeader,
+  resolveLearnerUiTheme,
 } from "./vendor/learner-ui.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -151,7 +152,7 @@ try {
     writeFile(join(temporary, "404.html"), index, "utf8"),
     writeFile(
       join(temporary, "learner-ui.css"),
-      createLearnerUiCss(platform.learnerUi.theme),
+      createLearnerUiCss(resolveLearnerUiTheme(platform.learnerUi.appearance)),
       "utf8",
     ),
     writeFile(join(temporary, "learner-ui.js"), learnerUiJavaScript, "utf8"),

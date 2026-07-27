@@ -33,7 +33,7 @@ function contrast(foreground, background) {
 }
 
 function token(source, name) {
-  return source.match(new RegExp(`--${name}:\\s*(#[0-9a-f]{6})`, "i"))?.[1];
+  return source.match(new RegExp(`--${name}:\\s*[^;]*(#[0-9a-f]{6})`, "i"))?.[1];
 }
 
 function assertReadableFloor(styles, selectors) {
@@ -227,7 +227,8 @@ test("top-level navigation fits phones, preserves tablet scrolling, and keeps to
   assert.match(narrowHeader, /\.ide-topbar nav a:last-child,[\s\S]*?\.capstone-topbar nav a:last-child \{[^}]*min-height: 2\.75rem/);
   assert.match(narrowHeader, /\.compiled-capstone-runtime \{[\s\S]*?height: calc\(100dvh - 3\.75rem\)/);
   assert.match(narrowHeader, /@media \(max-width: 940px\) and \(max-height: 500px\)[\s\S]*?height: calc\(100dvh - 2\.75rem\)/);
-  assert.match(lessonMobile, /\.lessonShell :global\(\.lesson-header nav\) \{[^}]*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
+  assert.match(lessonMobile, /\.lessonSectionNav \{[^}]*display: flex;[^}]*flex-wrap: wrap;/);
+  assert.match(lessonMobile, /\.lessonSectionNav a \{[^}]*flex: 1 1 6rem;/);
   assert.doesNotMatch(lessonMobile, /nav-label-short/);
 });
 

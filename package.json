@@ -9,13 +9,13 @@
     "node": ">=22.13.0"
   },
   "scripts": {
-    "predev": "npm run packages:build && npm run runtime:generate",
+    "predev": "npm run packages:build && npm run runtime:generate && npm run learner-ui:app-generate",
     "dev": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext dev",
     "build": "npm run packages:build && npm run open-learning:generate && npm run build:web",
     "build:courses": "LATENT_PRODUCT_HOME=courses LATENT_HOSTING_CONFIG=products/courses/.openai/hosting.json npm run build",
     "build:pages-course": "npm run packages:build && LATENT_PRODUCT_HOME=courses LATENT_COURSE_HOME=llm-systems LATENT_LEARNING_SUITE_BASE_PATH=/latent LATENT_GITHUB_PAGES_BASE_PATH=/latent/llm-systems LATENT_STATIC_EXPORT_ORIGIN=https://model-systems-labs.github.io/latent/llm-systems npm run build:web && node scripts/prepare-pages-course-export.mjs /latent/llm-systems",
     "build:framework": "LATENT_PRODUCT_HOME=framework LATENT_HOSTING_CONFIG=products/framework/.openai/hosting.json npm run build",
-    "build:web": "npm run runtime:generate && WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext build && node scripts/prune-browser-only-ssr-assets.mjs",
+    "build:web": "npm run runtime:generate && npm run learner-ui:app-generate && WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext build && node scripts/prune-browser-only-ssr-assets.mjs",
     "start": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext start",
     "test": "npm run packages:test && npm run build:web && npm run test:performance && npm run test:app",
     "test:app": "node --test tests/*.test.mjs",
@@ -28,6 +28,7 @@
     "open-learning:schema": "node packages/course-kit/bin/latent-learning.mjs schema docs/learning-pack.schema.json --force && node packages/course-kit/bin/latent-learning.mjs schema docs/learning-feed.schema.json --feed --force",
     "open-learning:validate": "npm run build --workspace @latent/course-kit && node packages/course-kit/bin/latent-learning.mjs validate examples/open-learning/reliable-llm-changes/learning-pack.json --strict",
     "learner-ui:generate": "npm run build --workspace @latent/course-kit && node scripts/generate-learning-platform-learner-ui.mjs",
+    "learner-ui:app-generate": "node scripts/generate-learning-platform-learner-ui.mjs --app-only",
     "learner-ui:check": "npm run build --workspace @latent/course-kit && node scripts/generate-learning-platform-learner-ui.mjs --check",
     "learning-examples:validate": "npm run learner-ui:check && npm run validate --prefix examples/learning-platform/interview-loop && npm run validate --prefix examples/learning-platform/ten-problems",
     "learning-examples:build": "npm run learner-ui:generate && npm run build:pages-course && npm run test:performance && node scripts/build-learning-example-pages.mjs",

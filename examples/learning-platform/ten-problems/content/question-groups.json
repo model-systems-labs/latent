@@ -1,0 +1,1366 @@
+{
+  "format": "latent-question-group-library",
+  "schemaVersion": 1,
+  "library": {
+    "id": "latent-demos/ten-problems",
+    "version": "1.0.0",
+    "title": "Ten Problems",
+    "description": "Ten original JavaScript problems arranged as a compact progression through core interview patterns.",
+    "authors": [
+      {
+        "name": "Latent Project Contributors",
+        "url": "https://github.com/model-systems-labs/latent"
+      }
+    ],
+    "license": {
+      "expression": "CC-BY-4.0",
+      "url": "https://creativecommons.org/licenses/by/4.0/"
+    },
+    "provenance": {
+      "sourceUrl": "https://github.com/model-systems-labs/latent/tree/main/examples/learning-platform/ten-problems",
+      "revision": "1.0.0-original-practice-set"
+    }
+  },
+  "objectives": [
+    {
+      "id": "scan-and-index",
+      "title": "Scan and index sequences",
+      "description": "Use sets, maps, and moving windows to solve sequence problems without unnecessary nested scans."
+    },
+    {
+      "id": "organize-state",
+      "title": "Organize state with core structures",
+      "description": "Choose stacks, sorted intervals, and linked structures that make the required invariant explicit."
+    },
+    {
+      "id": "traverse-frontiers",
+      "title": "Traverse grid and graph frontiers",
+      "description": "Use breadth-first traversal to measure minimum time, distance, and reachability."
+    },
+    {
+      "id": "optimize-recurrences",
+      "title": "Optimize a recurrence",
+      "description": "Turn repeated subproblems into a compact dynamic program with a clear state transition."
+    },
+    {
+      "id": "search-the-answer",
+      "title": "Search a monotonic answer space",
+      "description": "Combine a greedy feasibility check with binary search to find the smallest valid capacity."
+    }
+  ],
+  "sources": [
+    {
+      "id": "original-practice-set",
+      "title": "Ten Problems authoring record",
+      "url": "https://github.com/model-systems-labs/latent/blob/main/examples/learning-platform/ten-problems/AUTHORING.md",
+      "note": "Original problem statements and synthetic cases written for this example; no proprietary question wording or test data was copied.",
+      "license": {
+        "expression": "CC-BY-4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    }
+  ],
+  "runtimes": [
+    {
+      "id": "browser-javascript",
+      "language": "javascript",
+      "environment": "browser-worker",
+      "engine": "esbuild-wasm",
+      "engineVersion": "0.28.1",
+      "capabilities": [
+        "function"
+      ],
+      "limits": {
+        "timeoutMs": 1500,
+        "maxOutputBytes": 100000
+      }
+    }
+  ],
+  "groups": [
+    {
+      "id": "sequences",
+      "order": 1,
+      "title": "Sequences",
+      "description": "Warm up with one-pass lookup, stack, and sliding-window invariants.",
+      "objectiveIds": [
+        "scan-and-index",
+        "organize-state"
+      ],
+      "tags": [
+        "arrays",
+        "strings",
+        "maps",
+        "stacks",
+        "sliding-window"
+      ],
+      "questions": [
+        {
+          "id": "first-echo",
+          "order": 1,
+          "title": "First Echo",
+          "prompt": "Implement firstEcho(values). Scan from left to right and return the first value whose repeat you encounter. Return null when no value repeats.",
+          "difficulty": "easy",
+          "language": "javascript",
+          "path": "first-echo.js",
+          "starterCode": "function firstEcho(values) {\n  // Return the first value encountered for a second time.\n  return null;\n}\n",
+          "entrypoint": {
+            "kind": "function",
+            "functionName": "firstEcho"
+          },
+          "objectiveIds": [
+            "scan-and-index"
+          ],
+          "sourceIds": [
+            "original-practice-set"
+          ],
+          "runtimeId": "browser-javascript",
+          "constraints": [
+            "values contains zero or more safe integers.",
+            "Return the value whose second occurrence appears earliest in the scan.",
+            "Expected complexity: O(n) time and O(n) space."
+          ],
+          "tags": [
+            "set",
+            "one-pass"
+          ],
+          "cases": [
+            {
+              "id": "interleaved-repeats",
+              "label": "finds the repeat encountered first",
+              "visibility": "example",
+              "args": [
+                [
+                  4,
+                  1,
+                  7,
+                  1,
+                  4
+                ]
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns one",
+                  "kind": "deep-equal",
+                  "expected": 1
+                }
+              ]
+            },
+            {
+              "id": "empty",
+              "label": "handles an empty sequence",
+              "visibility": "check",
+              "args": [
+                []
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns null",
+                  "kind": "deep-equal",
+                  "expected": null
+                }
+              ]
+            },
+            {
+              "id": "all-distinct",
+              "label": "handles distinct values",
+              "visibility": "check",
+              "args": [
+                [
+                  5,
+                  -2,
+                  9
+                ]
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns null",
+                  "kind": "deep-equal",
+                  "expected": null
+                }
+              ]
+            },
+            {
+              "id": "zero-and-negative",
+              "label": "does not confuse zero with absence",
+              "visibility": "check",
+              "args": [
+                [
+                  0,
+                  -2,
+                  3,
+                  0,
+                  -2
+                ]
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns zero",
+                  "kind": "deep-equal",
+                  "expected": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "tunnel-gates",
+          "order": 2,
+          "title": "Tunnel Gates",
+          "prompt": "Implement gatesCloseCleanly(events). Uppercase A, B, and C open three gate types; the matching lowercase letter closes one. A close is valid only when it matches the most recently opened gate. Return whether every gate closes cleanly.",
+          "difficulty": "easy",
+          "language": "javascript",
+          "path": "tunnel-gates.js",
+          "starterCode": "function gatesCloseCleanly(events) {\n  // Match each close with the most recently opened gate.\n  return false;\n}\n",
+          "entrypoint": {
+            "kind": "function",
+            "functionName": "gatesCloseCleanly"
+          },
+          "objectiveIds": [
+            "organize-state"
+          ],
+          "sourceIds": [
+            "original-practice-set"
+          ],
+          "runtimeId": "browser-javascript",
+          "constraints": [
+            "events contains only A, a, B, b, C, and c.",
+            "An empty event string is clean.",
+            "Expected complexity: O(n) time and O(n) space in the deepest nesting."
+          ],
+          "tags": [
+            "stack",
+            "strings"
+          ],
+          "cases": [
+            {
+              "id": "nested",
+              "label": "accepts properly nested gates",
+              "visibility": "example",
+              "args": [
+                "ABba"
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns true",
+                  "kind": "deep-equal",
+                  "expected": true
+                }
+              ]
+            },
+            {
+              "id": "empty",
+              "label": "accepts no gates",
+              "visibility": "check",
+              "args": [
+                ""
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns true",
+                  "kind": "deep-equal",
+                  "expected": true
+                }
+              ]
+            },
+            {
+              "id": "crossed",
+              "label": "rejects crossed closes",
+              "visibility": "check",
+              "args": [
+                "ABab"
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns false",
+                  "kind": "deep-equal",
+                  "expected": false
+                }
+              ]
+            },
+            {
+              "id": "left-open",
+              "label": "rejects an unclosed gate",
+              "visibility": "check",
+              "args": [
+                "AaB"
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns false",
+                  "kind": "deep-equal",
+                  "expected": false
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "quietest-window",
+          "order": 3,
+          "title": "Quietest Window",
+          "prompt": "Implement quietestWindow(readings, width). Return the starting index of the contiguous window of exactly width readings with the smallest total. If several windows tie, return the earliest starting index.",
+          "difficulty": "easy",
+          "language": "javascript",
+          "path": "quietest-window.js",
+          "starterCode": "function quietestWindow(readings, width) {\n  // Reuse the previous window total.\n  return 0;\n}\n",
+          "entrypoint": {
+            "kind": "function",
+            "functionName": "quietestWindow"
+          },
+          "objectiveIds": [
+            "scan-and-index"
+          ],
+          "sourceIds": [
+            "original-practice-set"
+          ],
+          "runtimeId": "browser-javascript",
+          "constraints": [
+            "readings is a non-empty array of safe integers.",
+            "width is an integer from 1 through readings.length.",
+            "Expected complexity: O(n) time and O(1) auxiliary space."
+          ],
+          "tags": [
+            "sliding-window",
+            "arrays"
+          ],
+          "cases": [
+            {
+              "id": "middle-window",
+              "label": "finds a minimum window in the middle",
+              "visibility": "example",
+              "args": [
+                [
+                  6,
+                  1,
+                  3,
+                  2,
+                  8,
+                  1
+                ],
+                3
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns index one",
+                  "kind": "deep-equal",
+                  "expected": 1
+                }
+              ]
+            },
+            {
+              "id": "whole-array",
+              "label": "handles a full-width window",
+              "visibility": "check",
+              "args": [
+                [
+                  4,
+                  -1,
+                  2
+                ],
+                3
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns index zero",
+                  "kind": "deep-equal",
+                  "expected": 0
+                }
+              ]
+            },
+            {
+              "id": "earliest-tie",
+              "label": "keeps the earliest tied window",
+              "visibility": "check",
+              "args": [
+                [
+                  2,
+                  1,
+                  2,
+                  1
+                ],
+                2
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns index zero",
+                  "kind": "deep-equal",
+                  "expected": 0
+                }
+              ]
+            },
+            {
+              "id": "width-one",
+              "label": "handles width one",
+              "visibility": "check",
+              "args": [
+                [
+                  9,
+                  4,
+                  7
+                ],
+                1
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns index one",
+                  "kind": "deep-equal",
+                  "expected": 1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "longest-unique-span",
+          "order": 4,
+          "title": "Longest Unique Span",
+          "prompt": "Implement longestUniqueSpan(text). Return the length of the longest contiguous span with no repeated character.",
+          "difficulty": "medium",
+          "language": "javascript",
+          "path": "longest-unique-span.js",
+          "starterCode": "function longestUniqueSpan(text) {\n  // Move a left boundary past repeats without moving it backward.\n  return 0;\n}\n",
+          "entrypoint": {
+            "kind": "function",
+            "functionName": "longestUniqueSpan"
+          },
+          "objectiveIds": [
+            "scan-and-index"
+          ],
+          "sourceIds": [
+            "original-practice-set"
+          ],
+          "runtimeId": "browser-javascript",
+          "constraints": [
+            "text contains lowercase ASCII letters.",
+            "The empty string has a longest unique span of zero.",
+            "Expected complexity: O(n) time and O(a) space for the alphabet entries seen."
+          ],
+          "tags": [
+            "sliding-window",
+            "map",
+            "strings"
+          ],
+          "cases": [
+            {
+              "id": "mixed",
+              "label": "finds a span across a late repeat",
+              "visibility": "example",
+              "args": [
+                "trailmix"
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns six",
+                  "kind": "deep-equal",
+                  "expected": 6
+                }
+              ]
+            },
+            {
+              "id": "empty",
+              "label": "handles an empty string",
+              "visibility": "check",
+              "args": [
+                ""
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns zero",
+                  "kind": "deep-equal",
+                  "expected": 0
+                }
+              ]
+            },
+            {
+              "id": "one-character",
+              "label": "handles one repeated character",
+              "visibility": "check",
+              "args": [
+                "aaaa"
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns one",
+                  "kind": "deep-equal",
+                  "expected": 1
+                }
+              ]
+            },
+            {
+              "id": "left-edge",
+              "label": "never moves the left edge backward",
+              "visibility": "check",
+              "args": [
+                "abcaefbg"
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns six",
+                  "kind": "deep-equal",
+                  "expected": 6
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "structures",
+      "order": 2,
+      "title": "Structures",
+      "description": "Work with linked nodes and intervals whose representation drives the solution.",
+      "objectiveIds": [
+        "organize-state"
+      ],
+      "tags": [
+        "linked-list",
+        "intervals",
+        "sorting"
+      ],
+      "questions": [
+        {
+          "id": "reverse-chain",
+          "order": 1,
+          "title": "Reverse a Linked Chain",
+          "prompt": "Implement reverseChain(head). A chain is null or a finite nested object shaped as { value, next }. Return an equivalent chain with the node order reversed.",
+          "difficulty": "easy",
+          "language": "javascript",
+          "path": "reverse-chain.js",
+          "starterCode": "function reverseChain(head) {\n  // Each node has { value, next }; next is another node or null.\n  return null;\n}\n",
+          "entrypoint": {
+            "kind": "function",
+            "functionName": "reverseChain"
+          },
+          "objectiveIds": [
+            "organize-state"
+          ],
+          "sourceIds": [
+            "original-practice-set"
+          ],
+          "runtimeId": "browser-javascript",
+          "constraints": [
+            "head is null or a finite acyclic chain of nodes with safe-integer values.",
+            "Return null for an empty chain.",
+            "Expected complexity: O(n) time."
+          ],
+          "tags": [
+            "linked-list",
+            "pointers"
+          ],
+          "cases": [
+            {
+              "id": "three-nodes",
+              "label": "reverses three linked nodes",
+              "visibility": "example",
+              "args": [
+                {
+                  "value": 1,
+                  "next": {
+                    "value": 2,
+                    "next": {
+                      "value": 3,
+                      "next": null
+                    }
+                  }
+                }
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns three two one",
+                  "kind": "deep-equal",
+                  "expected": {
+                    "value": 3,
+                    "next": {
+                      "value": 2,
+                      "next": {
+                        "value": 1,
+                        "next": null
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "id": "empty",
+              "label": "handles an empty chain",
+              "visibility": "check",
+              "args": [
+                null
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns null",
+                  "kind": "deep-equal",
+                  "expected": null
+                }
+              ]
+            },
+            {
+              "id": "single",
+              "label": "handles one linked node",
+              "visibility": "check",
+              "args": [
+                {
+                  "value": -4,
+                  "next": null
+                }
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns the single node",
+                  "kind": "deep-equal",
+                  "expected": {
+                    "value": -4,
+                    "next": null
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "condense-calendar",
+          "order": 2,
+          "title": "Condense Calendar Windows",
+          "prompt": "Implement condenseWindows(windows). Return sorted, non-overlapping windows covering the same points as the input. Merge windows when they overlap or share an endpoint.",
+          "difficulty": "medium",
+          "language": "javascript",
+          "path": "condense-calendar.js",
+          "starterCode": "function condenseWindows(windows) {\n  // Return sorted, merged [start, end] pairs.\n  return [];\n}\n",
+          "entrypoint": {
+            "kind": "function",
+            "functionName": "condenseWindows"
+          },
+          "objectiveIds": [
+            "organize-state"
+          ],
+          "sourceIds": [
+            "original-practice-set"
+          ],
+          "runtimeId": "browser-javascript",
+          "constraints": [
+            "Every window is [start, end] with safe integers and start less than or equal to end.",
+            "Input windows may be unsorted, nested, or empty.",
+            "Expected complexity: O(n log n) time for sorting."
+          ],
+          "tags": [
+            "intervals",
+            "sorting"
+          ],
+          "cases": [
+            {
+              "id": "unsorted-touching",
+              "label": "merges unsorted and touching windows",
+              "visibility": "example",
+              "args": [
+                [
+                  [
+                    5,
+                    8
+                  ],
+                  [
+                    1,
+                    3
+                  ],
+                  [
+                    3,
+                    4
+                  ],
+                  [
+                    10,
+                    12
+                  ]
+                ]
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns three condensed windows",
+                  "kind": "deep-equal",
+                  "expected": [
+                    [
+                      1,
+                      4
+                    ],
+                    [
+                      5,
+                      8
+                    ],
+                    [
+                      10,
+                      12
+                    ]
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "empty",
+              "label": "handles no windows",
+              "visibility": "check",
+              "args": [
+                []
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns an empty array",
+                  "kind": "deep-equal",
+                  "expected": []
+                }
+              ]
+            },
+            {
+              "id": "contained",
+              "label": "absorbs contained windows",
+              "visibility": "check",
+              "args": [
+                [
+                  [
+                    1,
+                    10
+                  ],
+                  [
+                    2,
+                    3
+                  ],
+                  [
+                    4,
+                    8
+                  ]
+                ]
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns the containing window",
+                  "kind": "deep-equal",
+                  "expected": [
+                    [
+                      1,
+                      10
+                    ]
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "negative-and-point",
+              "label": "handles negative values and a point window",
+              "visibility": "check",
+              "args": [
+                [
+                  [
+                    -3,
+                    -1
+                  ],
+                  [
+                    -2,
+                    2
+                  ],
+                  [
+                    7,
+                    7
+                  ]
+                ]
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "merges only overlapping windows",
+                  "kind": "deep-equal",
+                  "expected": [
+                    [
+                      -3,
+                      2
+                    ],
+                    [
+                      7,
+                      7
+                    ]
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "frontiers",
+      "order": 3,
+      "title": "Frontiers",
+      "description": "Use breadth-first search when every edge or minute has equal cost.",
+      "objectiveIds": [
+        "traverse-frontiers"
+      ],
+      "tags": [
+        "grid",
+        "graph",
+        "breadth-first-search"
+      ],
+      "questions": [
+        {
+          "id": "disease-spread-clock",
+          "order": 1,
+          "title": "Disease Spread Clock",
+          "prompt": "Implement minutesToReachAll(grid). Each cell is S (sick), H (healthy), or # (blocked). Each minute, sickness spreads from sick cells to orthogonally adjacent healthy cells. Return the minutes until no healthy cell remains, -1 if some can never be reached, or 0 when none are initially healthy.",
+          "difficulty": "medium",
+          "language": "javascript",
+          "path": "disease-spread-clock.js",
+          "starterCode": "function minutesToReachAll(grid) {\n  // Begin one breadth-first frontier from every S cell.\n  return 0;\n}\n",
+          "entrypoint": {
+            "kind": "function",
+            "functionName": "minutesToReachAll"
+          },
+          "objectiveIds": [
+            "traverse-frontiers"
+          ],
+          "sourceIds": [
+            "original-practice-set"
+          ],
+          "runtimeId": "browser-javascript",
+          "constraints": [
+            "grid is a non-empty rectangular array containing only S, H, and #.",
+            "Spread is simultaneous and orthogonal; diagonal cells are not adjacent.",
+            "Expected complexity: O(rows × columns) time and space."
+          ],
+          "tags": [
+            "grid",
+            "breadth-first-search",
+            "multi-source"
+          ],
+          "cases": [
+            {
+              "id": "around-block",
+              "label": "spreads around a blocked cell",
+              "visibility": "example",
+              "args": [
+                [
+                  [
+                    "S",
+                    "H",
+                    "H"
+                  ],
+                  [
+                    "H",
+                    "#",
+                    "H"
+                  ],
+                  [
+                    "H",
+                    "H",
+                    "H"
+                  ]
+                ]
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns four minutes",
+                  "kind": "deep-equal",
+                  "expected": 4
+                }
+              ]
+            },
+            {
+              "id": "nothing-to-spread",
+              "label": "handles no healthy cells",
+              "visibility": "check",
+              "args": [
+                [
+                  [
+                    "S"
+                  ]
+                ]
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns zero",
+                  "kind": "deep-equal",
+                  "expected": 0
+                }
+              ]
+            },
+            {
+              "id": "unreachable",
+              "label": "detects an unreachable healthy cell",
+              "visibility": "check",
+              "args": [
+                [
+                  [
+                    "S",
+                    "#",
+                    "H"
+                  ]
+                ]
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns negative one",
+                  "kind": "deep-equal",
+                  "expected": -1
+                }
+              ]
+            },
+            {
+              "id": "two-sources",
+              "label": "uses simultaneous sources",
+              "visibility": "check",
+              "args": [
+                [
+                  [
+                    "S",
+                    "H",
+                    "H",
+                    "S"
+                  ]
+                ]
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns one minute",
+                  "kind": "deep-equal",
+                  "expected": 1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "fewest-relay-hops",
+          "order": 2,
+          "title": "Fewest Relay Hops",
+          "prompt": "Implement fewestRelayHops(nodeCount, links, start, goal). Nodes are numbered 0 through nodeCount - 1 and every link is undirected. Return the minimum number of links needed to reach goal, or -1 when it is unreachable.",
+          "difficulty": "easy",
+          "language": "javascript",
+          "path": "fewest-relay-hops.js",
+          "starterCode": "function fewestRelayHops(nodeCount, links, start, goal) {\n  // Breadth-first search measures distance in equal-cost links.\n  return -1;\n}\n",
+          "entrypoint": {
+            "kind": "function",
+            "functionName": "fewestRelayHops"
+          },
+          "objectiveIds": [
+            "traverse-frontiers"
+          ],
+          "sourceIds": [
+            "original-practice-set"
+          ],
+          "runtimeId": "browser-javascript",
+          "constraints": [
+            "nodeCount is positive and every node id is valid.",
+            "links contains zero or more two-node undirected connections.",
+            "Expected complexity: O(nodes + links) time and space."
+          ],
+          "tags": [
+            "graph",
+            "breadth-first-search"
+          ],
+          "cases": [
+            {
+              "id": "two-routes",
+              "label": "finds the shorter route",
+              "visibility": "example",
+              "args": [
+                6,
+                [
+                  [
+                    0,
+                    1
+                  ],
+                  [
+                    1,
+                    2
+                  ],
+                  [
+                    0,
+                    3
+                  ],
+                  [
+                    3,
+                    4
+                  ],
+                  [
+                    4,
+                    2
+                  ],
+                  [
+                    2,
+                    5
+                  ]
+                ],
+                0,
+                5
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns three hops",
+                  "kind": "deep-equal",
+                  "expected": 3
+                }
+              ]
+            },
+            {
+              "id": "same-node",
+              "label": "handles identical endpoints",
+              "visibility": "check",
+              "args": [
+                1,
+                [],
+                0,
+                0
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns zero",
+                  "kind": "deep-equal",
+                  "expected": 0
+                }
+              ]
+            },
+            {
+              "id": "disconnected",
+              "label": "detects disconnected components",
+              "visibility": "check",
+              "args": [
+                4,
+                [
+                  [
+                    0,
+                    1
+                  ],
+                  [
+                    2,
+                    3
+                  ]
+                ],
+                0,
+                3
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns negative one",
+                  "kind": "deep-equal",
+                  "expected": -1
+                }
+              ]
+            },
+            {
+              "id": "cycle",
+              "label": "does not loop forever on a cycle",
+              "visibility": "check",
+              "args": [
+                5,
+                [
+                  [
+                    0,
+                    1
+                  ],
+                  [
+                    1,
+                    2
+                  ],
+                  [
+                    2,
+                    0
+                  ],
+                  [
+                    2,
+                    3
+                  ],
+                  [
+                    3,
+                    4
+                  ]
+                ],
+                1,
+                4
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns three hops",
+                  "kind": "deep-equal",
+                  "expected": 3
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "optimization",
+      "order": 4,
+      "title": "Optimization",
+      "description": "Finish with compact dynamic programming and binary search over a monotonic answer.",
+      "objectiveIds": [
+        "optimize-recurrences",
+        "search-the-answer"
+      ],
+      "tags": [
+        "dynamic-programming",
+        "binary-search",
+        "greedy"
+      ],
+      "questions": [
+        {
+          "id": "minimum-climb-energy",
+          "order": 1,
+          "title": "Minimum Climb Energy",
+          "prompt": "Implement minimumClimbEnergy(heights). Start at index 0 and reach the final index by jumping forward one or two positions. A jump costs the absolute height difference between departure and landing. Return the minimum total energy.",
+          "difficulty": "medium",
+          "language": "javascript",
+          "path": "minimum-climb-energy.js",
+          "starterCode": "function minimumClimbEnergy(heights) {\n  // Keep the minimum cost to reach each of the last two positions.\n  return 0;\n}\n",
+          "entrypoint": {
+            "kind": "function",
+            "functionName": "minimumClimbEnergy"
+          },
+          "objectiveIds": [
+            "optimize-recurrences"
+          ],
+          "sourceIds": [
+            "original-practice-set"
+          ],
+          "runtimeId": "browser-javascript",
+          "constraints": [
+            "heights is a non-empty array of safe integers.",
+            "A one-element route costs zero energy.",
+            "Expected complexity: O(n) time and O(1) auxiliary space."
+          ],
+          "tags": [
+            "dynamic-programming",
+            "recurrence"
+          ],
+          "cases": [
+            {
+              "id": "mixed-heights",
+              "label": "chooses a mixed sequence of jumps",
+              "visibility": "example",
+              "args": [
+                [
+                  5,
+                  11,
+                  3,
+                  8,
+                  14
+                ]
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns thirteen",
+                  "kind": "deep-equal",
+                  "expected": 13
+                }
+              ]
+            },
+            {
+              "id": "already-there",
+              "label": "handles one position",
+              "visibility": "check",
+              "args": [
+                [
+                  7
+                ]
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns zero",
+                  "kind": "deep-equal",
+                  "expected": 0
+                }
+              ]
+            },
+            {
+              "id": "skip-middle",
+              "label": "skips an expensive middle position",
+              "visibility": "check",
+              "args": [
+                [
+                  1,
+                  100,
+                  2
+                ]
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns one",
+                  "kind": "deep-equal",
+                  "expected": 1
+                }
+              ]
+            },
+            {
+              "id": "single-jump",
+              "label": "handles one required jump",
+              "visibility": "check",
+              "args": [
+                [
+                  2,
+                  9
+                ]
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns seven",
+                  "kind": "deep-equal",
+                  "expected": 7
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "workday-capacity",
+          "order": 2,
+          "title": "Workday Capacity",
+          "prompt": "Implement minimumDailyCapacity(loads, days). Process loads in order, assigning each day one contiguous batch whose sum cannot exceed the chosen capacity. Return the smallest integer capacity that finishes within days.",
+          "difficulty": "medium",
+          "language": "javascript",
+          "path": "workday-capacity.js",
+          "starterCode": "function minimumDailyCapacity(loads, days) {\n  // Binary-search capacities and test each one with a greedy scan.\n  return 0;\n}\n",
+          "entrypoint": {
+            "kind": "function",
+            "functionName": "minimumDailyCapacity"
+          },
+          "objectiveIds": [
+            "search-the-answer"
+          ],
+          "sourceIds": [
+            "original-practice-set"
+          ],
+          "runtimeId": "browser-javascript",
+          "constraints": [
+            "loads is a non-empty array of positive safe integers.",
+            "days is an integer from 1 through loads.length.",
+            "Expected complexity: O(n log s) time for total load s and O(1) auxiliary space."
+          ],
+          "tags": [
+            "binary-search",
+            "greedy",
+            "answer-space"
+          ],
+          "cases": [
+            {
+              "id": "three-days",
+              "label": "finds capacity for three ordered batches",
+              "visibility": "example",
+              "args": [
+                [
+                  4,
+                  2,
+                  7,
+                  3,
+                  5
+                ],
+                3
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns eight",
+                  "kind": "deep-equal",
+                  "expected": 8
+                }
+              ]
+            },
+            {
+              "id": "one-load",
+              "label": "handles one load",
+              "visibility": "check",
+              "args": [
+                [
+                  9
+                ],
+                1
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns nine",
+                  "kind": "deep-equal",
+                  "expected": 9
+                }
+              ]
+            },
+            {
+              "id": "one-per-day",
+              "label": "uses the largest load with enough days",
+              "visibility": "check",
+              "args": [
+                [
+                  5,
+                  1,
+                  4
+                ],
+                3
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns five",
+                  "kind": "deep-equal",
+                  "expected": 5
+                }
+              ]
+            },
+            {
+              "id": "even-batches",
+              "label": "splits equal loads evenly",
+              "visibility": "check",
+              "args": [
+                [
+                  3,
+                  3,
+                  3,
+                  3
+                ],
+                2
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns six",
+                  "kind": "deep-equal",
+                  "expected": 6
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

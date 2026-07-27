@@ -575,7 +575,8 @@ export const questionGroupPlayerJavaScript = `(() => {
       await browserRuntime.initialized;
       const question = request.question;
       const invoke = question.entrypoint.kind === "function"
-        ? "(...__latent_args) => " + question.entrypoint.functionName + "(...__latent_args)"
+        ? "(__latent_constructor_args, __latent_method_args) => "
+          + question.entrypoint.functionName + "(...__latent_method_args)"
         : "(__latent_constructor_args, __latent_method_args) => { const __latent_instance = new "
           + question.entrypoint.className + "(...__latent_constructor_args); return __latent_instance."
           + question.entrypoint.methodName + "(...__latent_method_args); }";

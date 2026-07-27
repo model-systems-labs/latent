@@ -78,6 +78,10 @@ presentation does not change canonical library JSON, its SHA-256 digest,
 contract versions, or progress keys. The generated CSS and navigation behavior
 come from `packages/course-kit/src/learner-ui.ts`; the deployed site has no
 hosted stylesheet, framework CDN, JavaScript service, or model dependency.
+Product configuration and trusted runtime adapters must be passed to the
+builder before rendering; renaming framework concepts or establishing the
+primary interface by patching generated HTML, JavaScript, or CSS is not a
+supported customization seam.
 
 Latent's built-in practice site uses the shared CodeMirror editor, Browser Lab
 for JavaScript and TypeScript, and a separate practice progress store. It does

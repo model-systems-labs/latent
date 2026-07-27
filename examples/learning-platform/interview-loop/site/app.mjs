@@ -58,6 +58,15 @@ function mobilePanel(label, children) {
   ]);
 }
 
+function referenceSolutionDisclosure(source, title) {
+  const createSolutionDisclosure =
+    globalThis.LearnerUiComponents?.createSolutionDisclosure;
+  if (typeof createSolutionDisclosure !== "function") {
+    throw new Error("The shared learner solution component is unavailable.");
+  }
+  return createSolutionDisclosure({ source, title });
+}
+
 async function runPythonChecks(source, path, entrypoint, cases, requirement) {
   if (!interviewPythonRuntime.supports(requirement)) {
     throw new Error("This exercise does not declare the supported Python runtime.");
@@ -98,12 +107,15 @@ function renderBlock(block, quizContext) {
   }
   if (block.type === "code") {
     const wrapper = element("div");
-    wrapper.append(element("pre", {}, element("code", { text: block.code })));
+    wrapper.append(element("pre", {
+      tabindex: "0",
+      "aria-label": block.caption ? `${block.caption} code example` : `${block.language} code example`,
+    }, element("code", { text: block.code })));
     if (block.caption) wrapper.append(element("p", { className: "caption", text: block.caption }));
     return wrapper;
   }
   if (block.type === "callout") {
-    return element("aside", { className: "learner-card callout" }, [
+    return element("div", { className: "learner-card callout", role: "note" }, [
       element("strong", { text: block.title }),
       element("p", { text: block.text }),
     ]);
@@ -170,9 +182,9 @@ function renderLesson(pack, state) {
     value: String(completed.size),
     "aria-label": `${completed.size} of ${lessons.length} modules completed`,
   });
-  const rail = element("aside", { className: "learner-sidebar rail" }, [
+  const rail = element("div", { className: "learner-sidebar rail" }, [
     element("p", { className: "learner-eyebrow", text: `Module ${activeIndex + 1} of ${lessons.length} · ${lesson.durationMinutes} minutes` }),
-    element("h2", { id: "lesson-heading", tabindex: "-1", text: lesson.title }),
+    element("h1", { id: "lesson-heading", tabindex: "-1", text: lesson.title }),
     element("p", { className: "learner-summary", text: lesson.summary }),
     element("div", { className: "learner-progress-summary" }, [
       element("strong", { text: `${completed.size} / ${lessons.length} modules complete` }),
@@ -322,9 +334,9 @@ function renderCards(pack, state) {
   root.replaceChildren();
   const deck = pack.flashcardDecks[0];
   const card = deck.cards[state.card.index];
-  const rail = element("aside", { className: "learner-sidebar rail" }, [
+  const rail = element("div", { className: "learner-sidebar rail" }, [
     element("p", { className: "learner-eyebrow", text: "Review" }),
-    element("h2", { id: "cards-heading", tabindex: "-1", text: deck.title }),
+    element("h1", { id: "cards-heading", tabindex: "-1", text: deck.title }),
     element("p", { className: "learner-summary", text: deck.description }),
     element("ul", { className: "meta-list" }, [
       element("li", {}, [element("span", { text: "Card" }), element("strong", { text: `${state.card.index + 1} / ${deck.cards.length}` })]),
@@ -335,7 +347,7 @@ function renderCards(pack, state) {
   const stage = element("div", { className: "learner-content work card-stage" });
   const cardNode = element("article", { className: "learner-card flash-card" }, [
     element("p", { className: "learner-eyebrow", text: state.card.revealed ? "Answer" : "Prompt" }),
-    element("h3", { id: "active-card-heading", tabindex: "-1", text: card.front }),
+    element("h2", { id: "active-card-heading", tabindex: "-1", text: card.front }),
   ]);
   const controls = element("div");
   if (!state.card.revealed) {
@@ -452,9 +464,9 @@ function renderPractice(library, state) {
     focusRendered("#leeches-only", { revealMobilePanel: true, scroll: true });
     announce(toggle.checked ? "Showing repeated misses." : "Showing all practice problems.");
   });
-  const rail = element("aside", { className: "learner-sidebar rail" }, [
+  const rail = element("div", { className: "learner-sidebar rail" }, [
     element("p", { className: "learner-eyebrow", text: "Practice" }),
-    element("h2", { id: "practice-heading", tabindex: "-1", text: "Coding practice" }),
+    element("h1", { id: "practice-heading", tabindex: "-1", text: "Coding practice" }),
     element("p", {
       className: "learner-summary",
       text: "Work through the public examples and checks. Questions with repeated misses move into Review.",
@@ -523,7 +535,7 @@ function renderPractice(library, state) {
       className: "learner-eyebrow",
       text: `Coding ladder step ${questionIndex + 1} of ${allQuestions.length + 1} · ${question.groupTitle} · ${question.difficulty}`,
     }),
-    element("h3", { id: "practice-question-heading", tabindex: "-1", text: question.title }),
+    element("h2", { id: "practice-question-heading", tabindex: "-1", text: question.title }),
     element("p", { className: "learner-summary", text: question.prompt }),
     element("p", { className: "learner-eyebrow constraint-heading", text: "Contract and complexity" }),
     element("ul", { className: "constraints-list" }, question.constraints.map((constraint) => (
@@ -552,6 +564,12 @@ function renderPractice(library, state) {
   ]);
   const status = element("p", { className: "learner-status", "aria-live": "polite" });
   const results = element("div", { className: "learner-results" });
+  const referenceSolution = state.referenceSolutions.practice.find((entry) => (
+    entry.groupId === question.groupId && entry.questionId === question.id
+  ));
+  if (!referenceSolution) {
+    throw new Error(`Missing trusted reference solution for ${question.groupId}/${question.id}.`);
+  }
   const run = element("button", {
     className: "learner-button",
     "data-variant": "primary",
@@ -603,6 +621,7 @@ function renderPractice(library, state) {
   work.append(
     editorFrame,
     element("div", { className: "learner-button-row practice-actions" }, run),
+    referenceSolutionDisclosure(referenceSolution.source, question.title),
     status,
     results,
   );
@@ -618,9 +637,9 @@ function renderIde(exercises, state) {
   const progressValue = element("strong", {
     text: state.ide.result?.passed ? "Complete" : "In progress",
   });
-  const rail = element("aside", { className: "learner-sidebar rail" }, [
-    element("p", { className: "learner-eyebrow", text: "Coding lab · Step 4 of 4" }),
-    element("h2", { id: "ide-heading", tabindex: "-1", text: "Retry scheduling" }),
+  const rail = element("div", { className: "learner-sidebar rail" }, [
+    element("p", { className: "learner-eyebrow", text: "Coding lab · Interview follow-up" }),
+    element("h1", { id: "ide-heading", tabindex: "-1", text: "Coding follow-up" }),
     element("p", { className: "learner-summary", text: exercise.summary }),
     element("ul", { className: "meta-list" }, [
       element("li", {}, [element("span", { text: "Runtime" }), element("strong", { text: "Python 3.14 · browser worker" })]),
@@ -630,7 +649,7 @@ function renderIde(exercises, state) {
     ]),
   ]);
   const work = element("div", { className: "learner-content work" }, [
-    element("h3", { text: exercise.title }),
+    element("h2", { text: exercise.title }),
   ]);
   const editorLabel = element("label", {
     className: "learner-eyebrow",
@@ -654,6 +673,13 @@ function renderIde(exercises, state) {
   ]);
   const status = element("p", { className: "learner-status", "aria-live": "polite" });
   const results = element("div", { className: "learner-results" });
+  const referenceSolution = state.referenceSolutions.ide.find((entry) => (
+    entry.exerciseId === exercise.id
+    && entry.contractVersion === exercise.contractVersion
+  ));
+  if (!referenceSolution) {
+    throw new Error(`Missing trusted reference solution for ${exercise.id}@${exercise.contractVersion}.`);
+  }
   if (
     state.ide.result?.exerciseId === exercise.id
     && state.ide.result?.contractVersion === exercise.contractVersion
@@ -737,6 +763,7 @@ function renderIde(exercises, state) {
   work.append(
     editorFrame,
     element("div", { className: "learner-button-row practice-actions" }, [run, reset]),
+    referenceSolutionDisclosure(referenceSolution.source, exercise.title),
     status,
     results,
   );
@@ -748,7 +775,7 @@ function configureNavigation() {
   const open = (link, { focus = false, announceView = false, updateHistory = false } = {}) => {
     const view = link.dataset.view;
     for (const candidate of links) {
-      if (candidate === link) candidate.setAttribute("aria-current", "page");
+      if (candidate.dataset.view === view) candidate.setAttribute("aria-current", "page");
       else candidate.removeAttribute("aria-current");
     }
     for (const panel of $$("[data-panel]")) panel.hidden = panel.dataset.panel !== view;
@@ -773,10 +800,11 @@ function configureNavigation() {
 }
 
 try {
-  const [packRecord, libraryRecord, hostModule] = await Promise.all([
+  const [packRecord, libraryRecord, hostModule, referenceModule] = await Promise.all([
     loadJsonWithDigest("./content/learning-pack.json"),
     loadJsonWithDigest("./content/question-groups.json"),
     import("./trusted/ide-exercises.mjs"),
+    import("./trusted/reference-solutions.mjs"),
   ]);
   const pack = packRecord.data;
   const library = libraryRecord.data;
@@ -856,6 +884,10 @@ try {
     ide: {
       draft: ideDraft,
       result: ideResult,
+    },
+    referenceSolutions: {
+      practice: referenceModule.interviewPracticeReferenceSolutions,
+      ide: referenceModule.interviewIdeReferenceSolutions,
     },
   };
 

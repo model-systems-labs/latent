@@ -4,6 +4,7 @@ import { test } from "node:test";
 
 import {
   LEARNER_UI_BREAKPOINTS,
+  LEARNER_UI_FAVICON_SVG,
   LEARNER_UI_VERSION,
   createLearnerUiCss,
   learnerUiJavaScript,
@@ -11,6 +12,7 @@ import {
   renderLearnerHeader,
   resolveLearnerUiTheme,
 } from "../tools/vendor/learner-ui.mjs";
+import { createInterviewLoopHeader } from "../site-config.mjs";
 
 const platform = JSON.parse(await readFile(
   new URL("../platform.json", import.meta.url),
@@ -22,6 +24,9 @@ test("build-time learner UI config renders the shared shell and local assets", a
   assert.equal(LEARNER_UI_VERSION, 2);
   assert.deepEqual(platform.learnerUi.appearance, { palette: "sage" });
   assert.equal(LEARNER_UI_BREAKPOINTS.compact, 760);
+  assert.equal(platform.learnerUi.header.menuLabel, "Learning suite");
+  assert.match(platform.brand.tagline, /one webhook-delivery scenario/);
+  assert.match(LEARNER_UI_FAVICON_SVG, /^<svg/);
   assert.deepEqual(
     platform.learnerUi.header.navigation.map(({ label, href, dataView }) => ({
       label,
@@ -38,7 +43,7 @@ test("build-time learner UI config renders the shared shell and local assets", a
 
   const header = renderLearnerHeader({
     productName: platform.brand.name,
-    ...platform.learnerUi.header,
+    ...createInterviewLoopHeader(platform.learnerUi.header),
   });
   const footer = renderLearnerFooter(platform.learnerUi.footer);
   const css = createLearnerUiCss(
@@ -51,6 +56,7 @@ test("build-time learner UI config renders the shared shell and local assets", a
   assert.match(header, /href="\.\.\/llm-systems\/">LLM Systems<\/a>/);
   assert.match(header, /href="\.\/" aria-current="page">Interview Loop<\/a>/);
   assert.match(header, /href="\.\.\/practice\/">Ten Problems<\/a>/);
+  assert.equal(platform.learnerUi.header.globalNavigation, undefined);
   assert.match(header, /href="#modules"[^>]*data-view="lesson"/);
   assert.match(header, /href="#practice"[^>]*data-view="practice"/);
   assert.match(header, /href="#review"[^>]*data-view="cards"/);
@@ -59,14 +65,16 @@ test("build-time learner UI config renders the shared shell and local assets", a
   assert.match(css, /--learner-color-canvas: #eaf1e8/);
   assert.match(css, /--learner-color-accent: #47705d/);
   assert.match(css, /--learner-background-recipe: sage/);
-  assert.match(css, /ellipse 46rem 62rem at -14% 58%/);
+  assert.match(css, /\.learner-atmosphere__line--3/);
+  assert.match(css, /--learner-atmosphere-line:/);
+  assert.doesNotMatch(css, /radial-gradient|repeating-linear-gradient/);
   assert.match(css, /--learner-font-reading: "Iowan Old Style"/);
   assert.match(css, /:focus-visible/);
   assert.match(css, /@media \(max-width: 760px\)/);
   assert.match(learnerUiJavaScript, /Escape/);
 
   const buildSource = await readFile(new URL("../tools/build.mjs", import.meta.url), "utf8");
-  for (const asset of ["index.html", "learner-ui.css", "learner-ui.js"]) {
+  for (const asset of ["index.html", "learner-ui.css", "learner-ui.js", "favicon.svg"]) {
     assert.match(buildSource, new RegExp(asset.replace(".", "\\.")));
   }
   assert.match(buildSource, /\{ palette: platform\.learnerUi\.appearance\.palette \}/);
@@ -79,6 +87,7 @@ test("learner-facing source contains no primitive-showcase advertising", async (
     "../site/app.mjs",
     "../site/styles.css",
     "../tools/build.mjs",
+    "../site-config.mjs",
   ].map((path) => readFile(new URL(path, import.meta.url), "utf8")));
   const learnerSource = sources.join("\n");
   assert.doesNotMatch(
@@ -114,6 +123,20 @@ test("Interview interactions preserve compact focus, touch targets, and wrapped 
     appSource,
     /openedAnotherModule \? "#lesson-heading" : "#module-complete-action"/,
   );
+  assert.equal(appSource.match(/element\("h1", \{ id: ".*-heading"/g)?.length, 4);
+  assert.match(appSource, /element\("h2", \{ id: "active-card-heading"/);
+  assert.match(appSource, /element\("h2", \{ id: "practice-question-heading"/);
+  assert.match(appSource, /element\("h2", \{ text: exercise\.title \}\)/);
+  assert.equal(
+    appSource.match(/element\("div", \{ className: "learner-sidebar rail"/g)?.length,
+    4,
+  );
+  assert.doesNotMatch(appSource, /element\("aside", \{ className: "learner-sidebar rail"/);
+  assert.match(appSource, /element\("div", \{ className: "learner-card callout", role: "note" \}/);
+  assert.doesNotMatch(appSource, /element\("aside"/);
+  assert.match(appSource, /candidate\.dataset\.view === view/);
+  assert.match(appSource, /tabindex: "0"/);
+  assert.match(appSource, /globalThis\.LearnerUiComponents\?\.createSolutionDisclosure/);
   const setStatusBody = appSource.match(
     /function setStatus\(node, message, tone = "neutral"\) \{([\s\S]*?)\n\}/,
   )?.[1];
@@ -121,6 +144,9 @@ test("Interview interactions preserve compact focus, touch targets, and wrapped 
   assert.doesNotMatch(setStatusBody, /\bannounce\(/);
 
   assert.match(styles, /\.filter \{[\s\S]*min-height: 2\.75rem;/);
+  assert.match(styles, /\.work > h2,/);
+  assert.match(styles, /\.flash-card h2 \{/);
+  assert.doesNotMatch(styles, /\.work > h3,|\.flash-card h3 \{/);
   assert.match(
     styles,
     /\.learner-editor-toolbar \.learner-eyebrow \{[\s\S]*overflow-wrap: anywhere;/,

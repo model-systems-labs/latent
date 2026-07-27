@@ -1,4 +1,8 @@
 import Link from "next/link";
+import {
+  createLearningSuiteHeaderNavigation,
+  learningSuite,
+} from "@/examples/learning-platform/learning-suite.mjs";
 
 type LearnerDestination =
   | "courses"
@@ -8,6 +12,7 @@ type LearnerDestination =
   | "reading";
 
 type LearnerExperience = "llm-systems";
+type LearningSuiteExperience = Readonly<{ id: string; navLabel: string }>;
 
 const destinations = [
   { id: "courses", href: "/course", label: "Courses" },
@@ -17,12 +22,13 @@ const destinations = [
 ] as const;
 
 const learningSuiteBasePath = process.env.LATENT_LEARNING_SUITE_BASE_PATH ?? "";
-const suiteDestinations = [
-  { id: "learning-studio", href: `${learningSuiteBasePath}/`, label: "Learning Studio" },
-  { id: "llm-systems", href: `${learningSuiteBasePath}/llm-systems/`, label: "LLM Systems" },
-  { id: "interview-loop", href: `${learningSuiteBasePath}/interview-loop/`, label: "Interview Loop" },
-  { id: "ten-problems", href: `${learningSuiteBasePath}/practice/`, label: "Ten Problems" },
-] as const;
+const suiteDestinations = createLearningSuiteHeaderNavigation({
+  rootHref: `${learningSuiteBasePath}/`,
+  currentId: "llm-systems",
+});
+const llmSystemsExperience = learningSuite.experiences.find(
+  (experience: LearningSuiteExperience) => experience.id === "llm-systems",
+)!;
 
 const suiteNavigation = [
   { id: "courses", href: "/courses/llm-systems", label: "Modules" },
@@ -70,7 +76,7 @@ export function LearnerHeader({
 }) {
   const suiteMode = experience === "llm-systems"
     || process.env.LATENT_COURSE_HOME === "llm-systems";
-  const productName = suiteMode ? "LLM Systems" : "Latent Courses";
+  const productName = suiteMode ? llmSystemsExperience.navLabel : "Latent Courses";
   const navigation = suiteMode ? suiteNavigation : destinations;
   return (
     <header
@@ -93,15 +99,15 @@ export function LearnerHeader({
         <details
           className={`learner-nav-menu${suiteMode ? "" : " learner-nav-menu--local-only"}`}
         >
-          <summary>{suiteMode ? "Explore" : "Menu"}</summary>
+          <summary>{suiteMode ? "Learning suite" : "Menu"}</summary>
           <div className="learner-nav-menu__panel">
             {suiteMode ? (
-              <nav className="learner-global-nav" aria-label="Learning experiences">
+              <nav className="learner-global-nav" aria-label={learningSuite.navigationLabel}>
                 {suiteDestinations.map((destination) => (
                   <a
-                    aria-current={destination.id === "llm-systems" ? "page" : undefined}
+                    aria-current={destination.current ? "page" : undefined}
                     href={destination.href}
-                    key={destination.id}
+                    key={destination.href}
                   >
                     {destination.label}
                   </a>

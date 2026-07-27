@@ -14,12 +14,20 @@ import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
+  LEARNER_UI_FAVICON_SVG,
   createLearnerUiCss,
   learnerUiJavaScript,
+  renderLearnerAtmosphere,
   renderLearnerFooter,
   renderLearnerHeader,
   resolveLearnerUiTheme,
 } from "@latent/course-kit/learner-ui";
+import {
+  createLearningSuiteHeaderNavigation,
+  createLearningSuiteNavigation,
+  learningSuite,
+  learningSuiteRouteReport,
+} from "#root/examples/learning-platform/learning-suite.mjs";
 import { renderTenProblemsHeaders } from "#root/examples/learning-platform/ten-problems/security-config.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -38,79 +46,59 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
-const familyNavigation = [
-  { label: "LLM Systems", href: "./llm-systems/" },
-  { label: "Interview Loop", href: "./interview-loop/" },
-  { label: "Ten Problems", href: "./practice/" },
-];
-
 function renderLanding() {
+  const navigationOptions = {
+    rootHref: "./",
+    currentId: learningSuite.home.id,
+    includeHome: false,
+  };
+  const familyDestinations = createLearningSuiteNavigation(navigationOptions);
+  const familyNavigation = createLearningSuiteHeaderNavigation(navigationOptions);
+  const hrefByExperience = new Map(
+    familyDestinations.map((destination) => [destination.id, destination.href]),
+  );
   const header = renderLearnerHeader({
-    productName: "Learning Studio",
+    productName: learningSuite.title,
     homeHref: "./",
-    homeLabel: "Learning Studio home",
-    navigationLabel: "Learning experiences",
+    homeLabel: `${learningSuite.title} home`,
+    navigationLabel: learningSuite.navigationLabel,
     navigation: familyNavigation,
     menuLabel: "Experiences",
-    meta: "Courses and focused practice",
+    meta: learningSuite.headerMeta,
   });
   const footer = renderLearnerFooter({
-    summary: "Progress stays in this browser and remains bound to each exact learning artifact.",
+    summary: learningSuite.footerSummary,
     attribution: "Built with Latent.",
   });
-  const experiences = [
-    {
-      eyebrow: "Project course · 14 lessons",
-      title: "Build an LLM System",
-      description: "Build model foundations, an inference runtime, reliable serving, and a streaming React chatbot.",
-      details: ["Lessons and checkpoints", "Browser coding workspace", "Cumulative capstone"],
-      href: "./llm-systems/",
-      action: "Continue course",
-    },
-    {
-      eyebrow: "Interview course · 3 modules",
-      title: "Interview Loop Lab",
-      description: "Practice behavioral stories, coding decisions, and architecture explanations for engineering interviews.",
-      details: ["Modules and quizzes", "Flash-card review", "Focused coding lab"],
-      href: "./interview-loop/",
-      action: "Continue modules",
-    },
-    {
-      eyebrow: "Python practice · 10 problems",
-      title: "Ten Problems",
-      description: "Solve a focused set of Python problems with public examples, complete checks, and repeated-miss review.",
-      details: ["Saved drafts", "Run and check feedback", "Progress and review"],
-      href: "./practice/",
-      action: "Start practice",
-    },
-  ];
-  const cards = experiences.map((experience) => `<article class="learner-card studio-card">
+  const cards = learningSuite.experiences.map((experience) => `<article class="learner-card studio-card">
   <p class="learner-eyebrow">${escapeHtml(experience.eyebrow)}</p>
   <h2>${escapeHtml(experience.title)}</h2>
   <p class="learner-summary">${escapeHtml(experience.description)}</p>
   <ul>${experience.details.map((detail) => `<li>${escapeHtml(detail)}</li>`).join("")}</ul>
-  <a class="learner-button" data-variant="primary" href="${escapeHtml(experience.href)}">${escapeHtml(experience.action)}</a>
+  <a class="learner-button" data-variant="primary" href="${escapeHtml(hrefByExperience.get(experience.id))}">${escapeHtml(experience.action)}</a>
 </article>`).join("");
   return `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Choose an LLM systems course, interview preparation, or focused Python practice.">
+  <meta name="description" content="${escapeHtml(learningSuite.intro.description)}">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'none'">
-  <title>Learning Studio</title>
+  <title>${escapeHtml(learningSuite.title)}</title>
+  <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./assets/learner-ui.css">
   <link rel="stylesheet" href="./assets/studio.css">
 </head>
 <body class="learner-ui">
   <a class="learner-skip-link" href="#experiences">Skip to learning experiences</a>
+  ${renderLearnerAtmosphere()}
   <div class="learner-page">
     ${header}
     <main class="learner-main studio-main" id="experiences" tabindex="-1">
       <section class="studio-intro" aria-labelledby="studio-title">
-        <p class="learner-eyebrow">Choose your next session</p>
-        <h1 id="studio-title">Learn by building, explaining, and practicing.</h1>
-        <p>Pick up a complete systems course, prepare for an interview loop, or work through a compact Python problem set. Each experience saves progress on this device.</p>
+        <p class="learner-eyebrow">${escapeHtml(learningSuite.intro.eyebrow)}</p>
+        <h1 id="studio-title">${escapeHtml(learningSuite.intro.heading)}</h1>
+        <p>${escapeHtml(learningSuite.intro.description)}</p>
       </section>
       <section class="studio-grid" aria-label="Learning experiences">${cards}</section>
     </main>
@@ -141,21 +129,16 @@ const studioCss = `
   max-width: 47rem;
 }
 .studio-grid {
-  display: grid;
-  gap: var(--learner-space-5);
-  grid-template-columns: repeat(3, minmax(0, 1fr));
   margin: 0 auto;
-  max-width: var(--learner-width-content);
+  max-width: 52rem;
 }
 .studio-card {
   background: transparent;
   border: 0;
   border-radius: 0;
   border-top: var(--learner-border);
-  display: flex;
-  flex-direction: column;
-  min-height: 25rem;
-  padding: var(--learner-space-5) 0 0;
+  min-height: 0;
+  padding: clamp(2rem, 5vw, 3.5rem) 0;
 }
 .studio-card h2 {
   font-family: var(--learner-font-reading);
@@ -166,8 +149,7 @@ const studioCss = `
   margin: .35rem 0 .75rem;
 }
 .studio-card ul { color: var(--learner-color-muted); line-height: 1.7; padding-left: 1.2rem; }
-.studio-card .learner-button { align-self: flex-start; margin-top: auto; text-decoration: none; }
-@media (max-width: 980px) { .studio-grid { grid-template-columns: 1fr; } .studio-card { min-height: 0; } }
+.studio-card .learner-button { margin-top: var(--learner-space-4); text-decoration: none; }
 `;
 
 function run(command, args, cwd) {
@@ -260,6 +242,7 @@ try {
     "utf8",
   );
   await writeFile(join(temporary, "assets/learner-ui.js"), learnerUiJavaScript, "utf8");
+  await writeFile(join(temporary, "assets/favicon.svg"), `${LEARNER_UI_FAVICON_SVG}\n`, "utf8");
   await writeFile(join(temporary, "assets/studio.css"), studioCss, "utf8");
   await writeFile(
     join(temporary, "_headers"),
@@ -277,15 +260,11 @@ ${renderTenProblemsHeaders({
   await writeFile(join(temporary, ".nojekyll"), "", "utf8");
 
   const files = await collectFiles(temporary);
+  const routes = learningSuiteRouteReport();
   await writeFile(join(temporary, "learning-examples-report.json"), `${JSON.stringify({
     format: "latent-learning-examples-pages",
     schemaVersion: 1,
-    routes: {
-      home: ["/"],
-      interviewLoop: ["/interview-loop/"],
-      practice: ["/practice/", "/practice/leeches/"],
-      llmSystems: ["/llm-systems/"],
-    },
+    routes,
     fileCount: files.length + 1,
   }, null, 2)}\n`, "utf8");
 
@@ -294,7 +273,7 @@ ${renderTenProblemsHeaders({
   console.log(JSON.stringify({
     ok: true,
     output,
-    routes: ["/", "/interview-loop/", "/practice/", "/practice/leeches/", "/llm-systems/"],
+    routes: Object.values(routes).flat(),
     files: files.length + 1,
   }, null, 2));
 } catch (error) {

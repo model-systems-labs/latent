@@ -2,12 +2,15 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+  LEARNER_UI_ATMOSPHERE_TRACE_COUNT,
   LEARNER_UI_BREAKPOINTS,
+  LEARNER_UI_FAVICON_SVG,
   LEARNER_UI_PALETTE_NAMES,
   LEARNER_UI_PALETTES,
   LEARNER_UI_VERSION,
   createLearnerUiCss,
   learnerUiJavaScript,
+  renderLearnerAtmosphere,
   renderLearnerFooter,
   renderLearnerHeader,
   resolveLearnerUiTheme,
@@ -15,6 +18,7 @@ import {
 
 test("the learner UI foundation publishes stable tokens, responsive breakpoints, and accessible states", () => {
   assert.equal(LEARNER_UI_VERSION, 2);
+  assert.match(LEARNER_UI_FAVICON_SVG, /^<svg[\s\S]*rotate\(-7 32 32\)[\s\S]*<\/svg>$/);
   assert.deepEqual(
     { ...LEARNER_UI_BREAKPOINTS },
     { compact: 760, stacked: 980, wide: 1280 },
@@ -31,6 +35,8 @@ test("the learner UI foundation publishes stable tokens, responsive breakpoints,
   assert.match(css, /--learner-color-focus: #fedcba;/);
   assert.match(css, /--learner-space-8:/);
   assert.match(css, /--learner-border:/);
+  assert.match(css, /\.learner-nav-menu \{ margin-left: auto; \}/);
+  assert.match(css, /data-learner-collapse-at="always"/);
   assert.match(css, /--learner-width-reading:/);
   assert.match(css, /--learner-width-wide:/);
   assert.match(
@@ -46,6 +52,9 @@ test("the learner UI foundation publishes stable tokens, responsive breakpoints,
     /\.learner-results \{[\s\S]*?overflow-wrap: anywhere;/,
   );
   assert.match(css, /\.learner-empty/);
+  assert.match(css, /\.learner-solution > summary \{[\s\S]*?min-height: 2\.75rem;/);
+  assert.match(css, /\.learner-solution pre \{[\s\S]*?overflow: auto;/);
+  assert.match(css, /\.learner-solution pre \{[\s\S]*?background: transparent;/);
   assert.match(css, /\.learner-editor-frame/);
   assert.match(
     css,
@@ -75,6 +84,12 @@ test("the learner UI foundation publishes stable tokens, responsive breakpoints,
   assert.match(css, /\.learner-editor \{ font-size: 1rem; \}/);
   assert.doesNotMatch(css, /\.learner-nav-menu > \.learner-nav-menu__panel \{ display: flex !important; \}/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
+  assert.match(
+    css,
+    /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*?\.learner-atmosphere__line \{[\s\S]*?opacity: 0 !important;/,
+  );
+  assert.match(css, /@media \(forced-colors: active\)[\s\S]*?\.learner-atmosphere \{ display: none; \}/);
+  assert.match(css, /@media print[\s\S]*?\.learner-atmosphere \{ display: none; \}/);
 
   assert.throws(
     () => createLearnerUiCss({ accent: "rebeccapurple" }),
@@ -86,7 +101,7 @@ test("the learner UI foundation publishes stable tokens, responsive breakpoints,
   );
 });
 
-test("five constrained palettes change color and atmosphere without changing component grammar", () => {
+test("five constrained palettes change color without changing the shared ethereal geometry", () => {
   assert.deepEqual(
     [...LEARNER_UI_PALETTE_NAMES],
     ["paper", "sage", "cobalt", "plum", "graphite"],
@@ -103,7 +118,7 @@ test("five constrained palettes change color and atmosphere without changing com
     css.match(/--learner-background-image: ([^;]+);/)?.[1]
   ));
   assert.deepEqual(recipes, [...LEARNER_UI_PALETTE_NAMES]);
-  assert.equal(new Set(images).size, LEARNER_UI_PALETTE_NAMES.length);
+  assert.equal(new Set(images).size, 1);
   const withoutPaletteValues = (css) => css
     .replace(
       /--learner-color-[a-z-]+: #[0-9a-f]{6};/g,
@@ -122,6 +137,10 @@ test("five constrained palettes change color and atmosphere without changing com
   assert.match(cssByPalette[1], /--learner-color-canvas: #eaf1e8;/);
   assert.match(cssByPalette[2], /--learner-color-accent: #42629b;/);
   assert.match(cssByPalette[2], /--learner-color-canvas: #eaf0fa;/);
+  assert.match(cssByPalette[0], /--learner-atmosphere-line:/);
+  assert.match(cssByPalette[0], /\.learner-atmosphere__line--intro/);
+  assert.match(cssByPalette[0], /\.learner-atmosphere__line--3/);
+  assert.doesNotMatch(cssByPalette.join("\n"), /radial-gradient|conic-gradient|repeating-linear-gradient/);
   assert.doesNotMatch(cssByPalette.join("\n"), /url\(|https?:/);
 
   const legacyCss = createLearnerUiCss({ accent: "#123abc" });
@@ -152,6 +171,24 @@ test("five constrained palettes change color and atmosphere without changing com
     () => resolveLearnerUiTheme({ palette: "paper", spacing: "loose" }),
     /Unknown learner UI appearance field/,
   );
+});
+
+test("the shared atmosphere renderer emits inert CSP-safe line markup", () => {
+  const atmosphere = renderLearnerAtmosphere();
+  assert.equal(LEARNER_UI_ATMOSPHERE_TRACE_COUNT, 3);
+  assert.match(
+    atmosphere,
+    /^<div class="learner-atmosphere" data-learner-atmosphere aria-hidden="true">/,
+  );
+  assert.match(atmosphere, /data-learner-atmosphere-intro/);
+  assert.equal(
+    atmosphere.match(/data-learner-atmosphere-trace/g)?.length,
+    LEARNER_UI_ATMOSPHERE_TRACE_COUNT,
+  );
+  assert.match(atmosphere, /learner-atmosphere__line--1/);
+  assert.match(atmosphere, /learner-atmosphere__line--2/);
+  assert.match(atmosphere, /learner-atmosphere__line--3/);
+  assert.doesNotMatch(atmosphere, /\sstyle=|<script|\son[a-z]+=/i);
 });
 
 test("the shared header escapes authored labels and accepts only same-origin relative links", () => {
@@ -250,6 +287,7 @@ test("the learner UI behavior closes compact menus and restores keyboard focus",
   );
   assert.match(learnerUiJavaScript, /matchMedia\("\(max-width: 980px\)"\)/);
   assert.match(learnerUiJavaScript, /learnerCollapseAt === "stacked"/);
+  assert.match(learnerUiJavaScript, /learnerCollapseAt === "always"/);
   assert.match(learnerUiJavaScript, /event\.key !== "Escape"/);
   assert.match(learnerUiJavaScript, /disclosure\.removeAttribute\("open"\)/);
   assert.match(learnerUiJavaScript, /summary\?\.focus\(\)/);
@@ -258,6 +296,27 @@ test("the learner UI behavior closes compact menus and restores keyboard focus",
   assert.match(learnerUiJavaScript, /!menu\.contains\(event\.target\)/);
   assert.match(learnerUiJavaScript, /new MutationObserver/);
   assert.match(learnerUiJavaScript, /disclosure\.setAttribute\("open", ""\)/);
+  assert.match(learnerUiJavaScript, /matchMedia\("\(prefers-reduced-motion: reduce\)"\)/);
+  assert.match(learnerUiJavaScript, /const traceInterval = 1\.45/);
+  assert.match(learnerUiJavaScript, /const traceFadeWidth = 0\.92/);
+  assert.match(learnerUiJavaScript, /const traceStart = viewportHeight \* 0\.55/);
+  assert.match(
+    learnerUiJavaScript,
+    /const traceIntroduction = Math\.min\(1, traceScroll \/ \(viewportHeight \* 0\.45\)\)/,
+  );
+  assert.match(learnerUiJavaScript, /Math\.cos\(\(wrappedDistance \/ traceFadeWidth\) \* Math\.PI\)/);
+  assert.match(learnerUiJavaScript, /requestAnimationFrame\(updateAtmospheres\)/);
+  assert.match(learnerUiJavaScript, /createSolutionDisclosure/);
+  assert.match(learnerUiJavaScript, /code\.textContent = trustedSource/);
+  assert.doesNotMatch(learnerUiJavaScript, /\.innerHTML/);
+  assert.match(
+    learnerUiJavaScript,
+    /addEventListener\("scroll", scheduleAtmospheres, \{ passive: true \}\)/,
+  );
+  assert.match(
+    learnerUiJavaScript,
+    /reducedMotion\.matches\s*\? 0[\s\S]*?traceOpacity\(tracePhase, index, traces\.length\)/,
+  );
   assert.match(
     learnerUiJavaScript,
     /querySelectorAll\("\.learner-nav-menu"\)\.forEach\(\(menu\) => menu\.removeAttribute\("open"\)\)/,

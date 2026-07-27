@@ -98,6 +98,20 @@ grant or a substitute for access controls. A private course deployment also
 does not make this public repository or previously released CC BY 4.0
 curriculum private.
 
+The public learning-examples Pages deployment is a smaller composition
+boundary. `examples/learning-platform/learning-suite.mjs` is its trusted
+build-time directory: it defines the three mounted experiences and derives
+their same-origin navigation and root cards. It is not a portable learning
+format, an enrollment record, or a learner-owned “My courses” list.
+
+The original LLM Systems course, Interview Loop Lab, and Ten Problems are
+built independently, copy the reviewed learner UI into their own static
+artifacts, and keep separate device-local progress bound to their own content
+identity. The root Learning Studio neither reads nor combines those stores.
+Adding accounts, enrollment, or cross-product progress would require an
+explicit application contract and is not implied by putting the artifacts in
+one GitHub Pages deployment.
+
 ## Intended future repository split
 
 `products/courses` is an organizational boundary and intended extraction

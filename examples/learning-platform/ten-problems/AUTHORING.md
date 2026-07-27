@@ -422,23 +422,23 @@ the shell.
 | `scripts/build-learning-example-pages.mjs` | Builds the Paper-palette Learning Studio and assembles all three products at stable Pages subpaths. |
 
 The one global header has a stable anatomy: product identity and optional
-metadata, local primary navigation, and one **Explore** disclosure for the
+metadata, local primary navigation, and one **Learning suite** disclosure for the
 product family. Compact layouts put Practice/Review navigation inside
-**Explore** rather than adding a second header. The problem list, progress
+**Learning suite** rather than adding a second header. The problem list, progress
 summary, editor actions, and results stay inside the practice workspace. In
 the original course, **Read / Code / Results** is now a quiet “In this lesson”
 section nav after the lesson introduction rather than another full-width bar.
 
 The reviewed palettes are `paper`, `sage`, `cobalt`, `plum`, and `graphite`;
 `paper` is the default. Ten Problems supplies only
-`appearance.palette: "cobalt"`. Palette choice changes semantic color and the
-reviewed CSS-only background atmosphere—Cobalt uses a quiet blueprint
-grid—while the editorial type system, layout, components, focus treatment,
-and responsive contract remain shared. Learning Studio uses Paper, the
-original course uses Plum, and Interview Loop uses Sage. A low-level trusted
-token override remains for compatibility, but the reviewed examples do not
-use it and the builder rejects combining `ui.appearance` with the legacy
-top-level `ui.theme`.
+`appearance.palette: "cobalt"`. Palette choice changes semantic color and line
+tint, while every palette uses the same sparse, scroll-reactive partial-line
+atmosphere. The editorial type system, single vertical flow, components, focus
+treatment, and responsive contract remain shared. Learning Studio and the
+original course use Paper, Interview Loop uses Sage, and Ten Problems uses
+Cobalt. A low-level trusted token override remains for compatibility, but the
+reviewed examples do not use it and the builder rejects combining
+`ui.appearance` with the legacy top-level `ui.theme`.
 
 No portable Question Group or Learning Pack contract changed. Canonical bytes,
 digest-bound drafts/progress, public declarative cases, trusted Python checks,
@@ -452,8 +452,9 @@ palette, footer, runtime adapter, and CSP are explicit trusted build inputs.
 
 Ten Problems remains a focused Python practice product: problem list, prompt
 and contract, editor, public examples, full visible checks, progress,
-Continue, and repeated-miss Review. Its three-column desktop workspace and
-stacked compact workspace are not forced into a course page.
+Continue, and repeated-miss Review. These sections now follow a centered
+single-column document on desktop and compact screens rather than independent
+full-height panes.
 
 Interview Loop remains a navigable course with behavioral and architecture
 modules, quizzes, flash cards, portable practice, and a trusted Python IDE.
@@ -498,8 +499,8 @@ feedback, progress, focus, and mobile language.
 - The parallel Interview pass verified module navigation/resume,
   wrong/correct quiz feedback, card rating persistence, and Python IDE failure
   then four-check success.
-- At 390 × 844, the three-panel practice workspace stacked to the viewport
-  width without horizontal document overflow. **Explore** opened with local
+- At 390 × 844, the single vertical practice flow fit the viewport width
+  without horizontal document overflow. **Learning suite** opened with local
   and family navigation, and Escape restored focus with the shared
   three-pixel visible indicator.
 - The combined local route sweep recorded zero browser-console warnings or
@@ -522,3 +523,101 @@ feedback, then passed the public example and all four published checks.
 Solved progress advanced from two to three problems, remained three after
 reload, and moved **Continue** to the next unfinished problem. Keyboard focus
 used the shared visible three-pixel indicator.
+
+## Ethereal one-plane refinement — 2026-07-27
+
+This section supersedes the presentation and local-evidence portions of the
+v2 handoff above. Its PR and deployment records remain historical evidence for
+the previously published revision.
+
+The final framework is intentionally opinionated rather than a collection of
+loosely related themes. It fixes one global header, one vertical content
+plane, editorial typography and measure, component geometry, feedback,
+focus, responsive behavior, and a sparse scroll-reactive line atmosphere.
+Products choose one reviewed palette. LLM Systems uses warm `paper`,
+Interview Loop uses `sage`, and Ten Problems uses `cobalt`; the background
+colors and line tint differ, but geometry and motion do not.
+
+### Exact shared and specialized sources
+
+| Source | Final responsibility |
+| --- | --- |
+| `packages/course-kit/src/learner-ui.ts` | Canonical tokens, five palettes, open-line atmosphere, shell, header/footer, navigation, controls, progress, focus, screen-reader helpers, compact behavior, and trusted example-solution disclosure. |
+| `packages/course-kit/src/static-site.ts` | Standalone Learning Pack composition over the shared foundation. |
+| `packages/course-kit/src/question-group-site.ts` | Single-column problem flow, chooser, editor, Run examples/Check solution feedback, Continue, repeated-miss Review, and accessible empty state. |
+| `scripts/generate-learning-platform-learner-ui.mjs` | Generates React assets and Interview's drift-checked build input from Course Kit source. |
+| `app/components/PageAtmosphere.tsx` and `app/components/LearnerHeader.tsx` | Thin React markup adapters for the original course. |
+| `examples/learning-platform/learning-suite.mjs` | Trusted suite catalog, sibling navigation, route report, and device-local progress explanation. |
+| `examples/learning-platform/ten-problems/site-config.mjs` | Explicit Cobalt identity, labels, routes, footer, favicon, runtime assets, and security-adjacent build configuration. |
+| `examples/learning-platform/ten-problems/trusted/reference-solutions.mjs` | Ten reviewed Python references keyed to exact trusted question identities. |
+| `examples/learning-platform/interview-loop/site-config.mjs`, `site/app.mjs`, and `trusted/reference-solutions.mjs` | Specialized Sage course composition and reviewed coding references. |
+
+Ten Problems remains a focused Python product with a problem chooser, prompt,
+editor, public examples, full checks, progress, Continue, and repeated-miss
+Review. Interview remains a three-module course using one webhook-delivery
+scenario across behavioral, coding, and system-design rounds. The original
+course keeps its lesson, workspace, project, and capstone layouts. These
+content structures are intentionally different inside one navigation,
+typography, control, feedback, progress, solution, and mobile language.
+
+The suite catalog is a directory of independently built static experiences,
+not an account, enrollment system, or aggregate **My courses** dashboard.
+Each experience keeps exact-content-bound progress separately on the current
+device.
+
+No portable Question Group or Learning Pack contract changed. References,
+runtime adapters, executable checks, Python workers, state logic, and UI
+behavior remain trusted source. The shared solution disclosure renders
+bounded text only; opening it does not execute source, replace a draft, or
+change progress. Digest-bound persistence, public declarative cases, complete
+trusted checks, timeouts, output limits, CSP, same-origin Pyodide, and
+subpath-safe routing remain intact.
+
+The primary interface is still produced from `site-config.mjs` and Course Kit
+at build time. The removed HTML/JavaScript string replacements, concept
+renaming, and generated-CSS patches have not returned. The obsolete nested
+Interview-only Pages workflow was also removed; combined deployment depends
+on reviewed monorepo sources and is owned by the root Pages build.
+
+### Concise visual comparison
+
+| Before this refinement | After this refinement |
+| --- | --- |
+| Ten Problems exposed multiple adjacent work surfaces and an unrelated player hierarchy. | One centered vertical flow with a collapsed chooser, prompt, editor, actions, solution, and feedback in reading order. |
+| Similar accent colors masked different backgrounds, headers, controls, and responsive behavior. | Paper, Sage, and Cobalt retain distinct atmospheres over identical geometry, shell, components, and breakpoints. |
+| Coding experiences offered no consistent reference answer. | Interview and Ten use one reviewed read-only solution disclosure after actions. |
+| Empty repeated-miss Review was only a status sentence. | Review preserves the product H1, context label, live message, and programmatic focus. |
+
+### Current local validation and user evidence
+
+- Course Kit passed all 62 package tests. Ten Problems passed strict
+  validation and all 6 focused tests: 4 groups, 10 questions, 39 cases, 10
+  public examples, and 29 complete checks. Interview passed strict validation
+  and all 16 focused tests: 3 lessons, 14 cards, 3 practice questions, 1 IDE
+  exercise, and all 13 authored Python cases.
+- `npm run open-learning:validate`, `npm run open-learning:schema`, and
+  `npm run open-learning:generate` passed with unchanged public contracts.
+  The production course build stayed within CSS/runtime budgets, and the
+  combined Pages artifact contains 444 files.
+- The final root `npm run validate` gate passed package builds/tests,
+  boundaries, TypeScript, ESLint, the 480-test application suite, performance
+  budgets, and both strict example validations.
+- The beginner pass covered product choice, the collapsed problem chooser,
+  prompt/constraint reading, public examples, Run examples, Continue, and the
+  optional example solution. The advanced pass covered problem switching,
+  example failure/success, full-check failure/success with expected/received
+  evidence, saved progress after reload, repeated-miss appearance and removal,
+  and confirmation that opening a solution mutates neither draft nor progress.
+- Desktop checks at 1280 × 720 covered `/`, `/llm-systems/`,
+  `/interview-loop/`, `/practice/`, `/practice/leeches/`, and all `/latent/`
+  equivalents. Mobile checks at 390 × 844 covered the same product routes.
+  Every checked route had one global header, a visible H1, same-origin assets,
+  no horizontal document overflow, and zero console warnings or errors.
+- Keyboard checks covered skip-target routing, compact-menu Escape focus
+  restoration, current-page state, focusable code/reference regions, and the
+  shared three-pixel visible focus indicator. Automated accessibility
+  inspection found no WCAG-tagged issue in representative Interview,
+  Practice, or empty Review states.
+
+This is local Chromium emulation and keyboard inspection, not a physical
+device or formal screen-reader certification.

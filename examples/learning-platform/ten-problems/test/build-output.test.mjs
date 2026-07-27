@@ -11,6 +11,7 @@ import {
   tenProblemsMetaContentSecurityPolicy,
 } from "../security-config.mjs";
 import { tenProblemsSiteUi } from "../site-config.mjs";
+import { tenProblemsReferenceSolutions } from "../trusted/reference-solutions.mjs";
 
 const library = JSON.parse(await readFile(
   new URL("../content/question-groups.json", import.meta.url),
@@ -23,6 +24,7 @@ test("the trusted build input configures a Python-only learner site without outp
     runtimeAdapterJavaScript,
     bundledBrowserRuntime: false,
     metaContentSecurityPolicy: tenProblemsMetaContentSecurityPolicy,
+    referenceSolutions: tenProblemsReferenceSolutions,
     ui: tenProblemsSiteUi,
   });
 
@@ -57,10 +59,28 @@ test("the trusted build input configures a Python-only learner site without outp
   assert.match(files["assets/player.js"], /Run the public example, then check every published case/);
   assert.match(files["assets/player.js"], /new AbortController/);
   assert.match(files["assets/player.js"], /publicExamplesHeading/);
+  assert.match(files["assets/player.js"], /View example solution/);
+  assert.match(files["assets/player.js"], /def first_echo\(values\)/);
+  assert.match(files["assets/player.js"], /def minimum_daily_capacity\(loads, days\)/);
+  assert.match(files["assets/player.js"], /LearnerUiComponents\?\.createSolutionDisclosure/);
+  assert.match(files["assets/learner-ui.js"], /code\.textContent = trustedSource/);
+  assert.match(
+    files["assets/learner-ui.js"],
+    /Compare the control flow and boundary cases with your draft\. Opening this reference does not replace your work or update progress\./,
+  );
+  assert.doesNotMatch(
+    files["question-group-library.json"],
+    /seen = set\(\)|low = max\(loads\)/,
+  );
+  assert.doesNotMatch(
+    files["assets/runtime-adapter.js"],
+    /seen = set\(\)|low = max\(loads\)/,
+  );
   assert.match(files["assets/player.css"], /--learner-color-canvas: #eaf0fa/);
   assert.match(files["assets/player.css"], /--learner-color-accent: #42629b/);
   assert.match(files["assets/player.css"], /--learner-background-recipe: cobalt/);
-  assert.match(files["assets/player.css"], /2rem 2rem, 2rem 2rem/);
+  assert.match(files["assets/player.css"], /--learner-background-size: 100% 42rem/);
+  assert.match(files["assets/player.css"], /\.learner-atmosphere__line--intro/);
   assert.match(files["assets/player.css"], /--learner-font-reading: "Iowan Old Style"/);
   assert.match(files["assets/favicon.svg"], /M25 20 14 32l11 12/);
 
@@ -72,6 +92,9 @@ test("the trusted build input configures a Python-only learner site without outp
   assert.equal(report.reviewDirectory, "leeches");
   assert.equal(report.bundledBrowserRuntime, false);
   assert.equal(report.metaContentSecurityPolicy, "custom");
+  assert.equal(report.playerVersion, 2);
+  assert.equal(report.referenceSolutions.count, 10);
+  assert.match(report.referenceSolutions.sha256, /^[a-f0-9]{64}$/);
   assert.deepEqual(report.browserRuntimes, []);
 
   const buildSource = await readFile(
@@ -80,6 +103,7 @@ test("the trusted build input configures a Python-only learner site without outp
   );
   assert.doesNotMatch(buildSource, /replaceExact|navigationReplacements/);
   assert.doesNotMatch(buildSource, /assets\/esbuild\.js|assets\/sandbox\.worker\.js/);
+  assert.match(buildSource, /referenceSolutions: tenProblemsReferenceSolutions/);
 
   const combinedHeaders = renderTenProblemsHeaders({
     pagePattern: "/practice/*",

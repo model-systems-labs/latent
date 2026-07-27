@@ -50,55 +50,6 @@ main {
   position: relative;
 }
 
-.page-atmosphere {
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-  position: fixed;
-  z-index: 0;
-}
-
-.orbit {
-  border: 1px solid rgba(107, 91, 133, 0.08);
-  border-radius: 50%;
-  position: absolute;
-  right: -13rem;
-  top: -10rem;
-  transform: rotate(-18deg);
-}
-
-.orbit-one {
-  height: 30rem;
-  width: 57rem;
-}
-
-.node,
-.warm-star {
-  border-radius: 999px;
-  position: absolute;
-}
-
-.node {
-  background: #8d7ba0;
-  box-shadow: 0 0 0 5px rgba(141, 123, 160, 0.05);
-  height: 5px;
-  width: 5px;
-}
-
-.node-one {
-  right: 25%;
-  top: 5.4rem;
-}
-
-.warm-star {
-  background: rgba(224, 158, 101, 0.72);
-  box-shadow: 0 0 20px 8px rgba(224, 185, 145, 0.1);
-  height: 6px;
-  right: 16%;
-  top: 13rem;
-  width: 6px;
-}
-
 .site-header,
 .paper-page {
   margin: 0 auto;

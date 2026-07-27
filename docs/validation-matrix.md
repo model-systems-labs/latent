@@ -185,3 +185,43 @@ The live Interview route restored its digest-bound one-of-three module resume,
 and the original course loaded its generated shared CSS and JavaScript through
 the `/latent/llm-systems/` base path. Keyboard focus used the shared visible
 three-pixel indicator.
+
+## Ethereal one-plane learner UI evidence — 2026-07-27
+
+This evidence supersedes the local learner-UI counts above. Earlier PR and live
+run identifiers remain historical records for their published revisions.
+
+- Course Kit passed 62 tests. Interview strict validation and 16 focused tests
+  covered 3 lessons, 14 cards, 3 practice questions, 1 IDE exercise, and all
+  13 authored Python cases. Ten Problems strict validation and 6 focused tests
+  covered 4 groups, 10 questions, 39 cases, 10 public examples, and 29 complete
+  checks.
+- Open Learning validation, schema generation, and committed-site generation
+  passed without changing the portable contracts. The course production build
+  stayed within CSS and deferred-runtime budgets. The combined Pages artifact
+  contains 444 files.
+- The final root `npm run validate` gate passed package builds/tests,
+  boundaries, TypeScript, ESLint, the 480-test application suite, performance
+  budgets, and both strict example validations.
+- Desktop Chromium at 1280 × 720 covered `/`, `/llm-systems/`,
+  `/interview-loop/`, `/practice/`, `/practice/leeches/`, and every
+  `/latent/` equivalent. Mobile Chromium at 390 × 844 covered the same product
+  routes. All checked routes had one global header, a visible H1, same-origin
+  assets, no horizontal overflow, and zero console warnings or errors.
+- Interview checks covered module navigation/resume, wrong and correct quiz
+  states, card reveal/rating persistence, portable practice and IDE states,
+  and a trusted example solution that does not replace a draft or update
+  progress.
+- Ten Problems checks covered problem switching and chooser collapse, public
+  example failure/success, complete-check failure/success, progress after
+  reload, repeated-miss appearance/removal, and the accessible empty Review
+  state.
+- Keyboard checks covered the skip target, compact-menu Escape restoration,
+  synchronized current-page state, focusable code/reference regions, and the
+  shared three-pixel focus indicator. Automated inspection found no
+  WCAG-tagged issue in representative Interview, Practice, or empty Review
+  states.
+
+This is local Chromium emulation and keyboard inspection, not physical-device
+or formal screen-reader certification. Live Pages verification for this
+revision belongs to the release handoff after deployment.

@@ -4,7 +4,14 @@ Ten original Python interview-practice problems in one focused workspace.
 Choose a problem, read the contract, write code, run the example, and check the
 full visible case set. Use **Practice** for the problem path, **Review** for
 repeated misses, and **Continue** to resume the next unsolved problem. Progress
-stays on the learner's device.
+stays on the learner's device. The problem list, prompt, editor, actions, and
+results follow one centered vertical document instead of separate full-height
+panes.
+
+Every problem also has a closed, read-only **View example solution**
+disclosure. The reviewed source is a trusted build input and is rendered as
+text; it is absent from portable Question Group JSON and does not replace the
+draft, run code, or update progress.
 
 ```bash
 npm run validate
@@ -24,9 +31,10 @@ truth, `packages/course-kit/src/question-group-site.ts` composes the
 coding-practice layout, and `site-config.mjs` explicitly supplies this
 product's labels, review route, `cobalt` appearance palette, footer, and
 favicon at build time. The other reviewed palette choices are `paper`, `sage`,
-`plum`, and `graphite`; Cobalt supplies the distinct blueprint-grid background,
-while palette selection does not replace the shared layout, typography,
-controls, or responsive behavior.
+`plum`, and `graphite`; Cobalt supplies a distinct cool color atmosphere while
+using the same sparse, scroll-reactive line geometry as every product. Palette
+selection does not replace the shared layout, typography, controls, or
+responsive behavior.
 `security-config.mjs` supplies the custom document meta CSP passed to the
 builder and the full static-host page/Python-worker header policies for both
 standalone and `/practice/` hosting. Supporting hosts may apply `_headers` for
@@ -39,12 +47,16 @@ generated HTML, JavaScript, or CSS and does not load a hosted stylesheet,
 framework CDN, JavaScript service, or model API.
 
 The page has one learner header: Ten Problems identity, local Practice/Review
-navigation, and one **Explore** disclosure for the learning suite. On mobile,
+navigation, and one **Learning suite** disclosure for the learning suite. On mobile,
 local navigation moves into that disclosure while the problem list remains a
 specialized practice control. The current learner UI v2 revision has local
 production-build, desktop, mobile, keyboard, Python execution, and persistence
 evidence recorded in [AUTHORING.md](./AUTHORING.md). Live evidence is recorded
 there only after a deployment has been verified.
+
+Learning Studio is a build-time directory for three independent experiences,
+not an account or enrollment dashboard. Each artifact owns its own
+exact-content-bound, device-local progress.
 
 Read [GUIDE.md](./GUIDE.md) for the problem map, shared/specialized source
 boundaries, and local/Pages routes. Read [AGENTS.md](./AGENTS.md) before asking

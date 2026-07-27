@@ -58,6 +58,7 @@ That configuration is build input, not part of the Question Group library:
 const files = await buildStandaloneQuestionGroupSite(library, {
   bundledBrowserRuntime: false,
   runtimeAdapterJavaScript: reviewedHostAdapter,
+  referenceSolutions: reviewedReferenceSolutions,
   metaContentSecurityPolicy: reviewedPageCsp,
   ui: {
     productName: "Python Practice",
@@ -71,13 +72,20 @@ const files = await buildStandaloneQuestionGroupSite(library, {
 });
 ```
 
+`referenceSolutions` is optional reviewed repository source keyed to existing
+group/question identities. It is serialized only into the self-hosted player,
+rendered as text in a closed native disclosure, and never added to canonical
+Question Group JSON, its digest, runtime adapter, worker, or progress identity.
+Opening a reference does not execute it, replace the draft, or record an
+attempt.
+
 The shared v2 appearance model defaults to `paper` and offers five named
 palettes: `paper`, `sage`, `cobalt`, `plum`, and `graphite`. A palette changes
-the semantic colors and reviewed CSS-only background atmosphere. Typography,
-spacing, borders, page width, one-header anatomy, controls, focus states,
-feedback, and responsive behavior remain framework invariants. Ten Problems
-uses Cobalt's blueprint-grid atmosphere; the original course, Interview Loop,
-and Learning Studio use Plum, Sage, and Paper respectively. The legacy
+semantic colors and atmosphere tint. Typography, spacing, borders, page width,
+one-header anatomy, controls, focus states, feedback, responsive behavior, and
+the sparse scroll-reactive partial-line geometry remain framework invariants.
+Ten Problems uses Cobalt, Interview Loop uses Sage, and the original course and
+Learning Studio use Paper. The legacy
 top-level `ui.theme` token map remains a trusted compatibility input, but it
 is deprecated, cannot be combined with `ui.appearance`, and is not used by the
 reviewed examples. New product configuration should select a named palette
@@ -97,7 +105,7 @@ primary interface by patching generated HTML, JavaScript, or CSS is not a
 supported customization seam.
 
 The generated page has one global learner header: product identity, local
-primary navigation, and one **Explore** disclosure for the product family. On
+primary navigation, and one **Learning suite** disclosure for the product family. On
 compact screens the disclosure includes local navigation, so the player does
 not add a second header. Problem navigation, editor actions, and result
 controls remain specialized content regions while inheriting the shared

@@ -40,7 +40,9 @@ async function generatedSource() {
   });
   const source = result.outputFiles[0]?.text;
   if (!source) throw new Error("esbuild did not produce the Course Kit validator.");
-  const normalizedSource = source.replace(/[ \t]+$/gm, "");
+  const normalizedSource = source
+    .replace(/^\/\/ .*\/node_modules\//gm, "// node_modules/")
+    .replace(/[ \t]+$/gm, "");
   return `/* eslint-disable */\n// Generated from @latent/course-kit ${packageManifest.version}; do not edit.\n${normalizedSource}`;
 }
 

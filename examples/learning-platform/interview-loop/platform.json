@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "brand": {
     "name": "Interview Loop Lab",
-    "tagline": "Build clear stories, robust code, and defensible system designs for demanding engineering interviews."
+    "tagline": "Practice one webhook-delivery scenario across behavioral, coding, and system-design interview rounds."
   },
   "learnerUi": {
     "appearance": {
@@ -11,29 +11,9 @@
     "header": {
       "homeHref": "./",
       "homeLabel": "Interview Loop Lab home",
-      "globalNavigationLabel": "Learning experiences",
-      "globalNavigation": [
-        {
-          "label": "Learning Studio",
-          "href": "../"
-        },
-        {
-          "label": "LLM Systems",
-          "href": "../llm-systems/"
-        },
-        {
-          "label": "Interview Loop",
-          "href": "./",
-          "current": true
-        },
-        {
-          "label": "Ten Problems",
-          "href": "../practice/"
-        }
-      ],
       "navigationLabel": "Learning areas",
-      "menuLabel": "Explore",
-      "meta": "3 modules · 58 minutes",
+      "menuLabel": "Learning suite",
+      "meta": "Webhook scenario · 3 modules",
       "navigation": [
         {
           "label": "Modules",

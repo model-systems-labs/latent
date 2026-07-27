@@ -2,8 +2,8 @@ export const ideExercises = [
   {
     id: "bounded-webhook-retries",
     contractVersion: "interview-loop.retry-plan.v3",
-    title: "Schedule bounded webhook retries",
-    summary: "Step 4 of 4. Turn retry semantics into a deterministic plan with terminal-state and retry-budget boundaries. Target O(r) time and O(r) output space for r deliveries.",
+    title: "Coding follow-up: schedule bounded retries",
+    summary: "A system-design interview can narrow into an implementation follow-up. Turn retry semantics into a deterministic plan with terminal-state and retry-budget boundaries. Target O(r) time and O(r) output space for r deliveries.",
     language: "python",
     runtime: {
       language: "python",

@@ -9,13 +9,19 @@ trusted coding-lab exercise—is Python.
 
 Learners move among **Modules**, **Practice**, **Review**, and **Coding lab**,
 see module progress, and resume device-local work. Interview Loop keeps its
-course-specific lesson, quiz, card, and IDE layouts while using the same
+course-specific lesson, quiz, card, and IDE sections in one vertical document
+flow while using the same
 typography, navigation, controls, feedback, progress, focus treatment, and
 responsive shell as
 [Ten Problems](../ten-problems/).
 
+The portable practice questions and trusted coding follow-up each include a
+closed, read-only **View example solution** disclosure. Reference source is
+reviewed repository input, not Learning Pack or Question Group data; opening
+it neither replaces the learner draft nor changes progress.
+
 The page has one learner header: Interview Loop identity, local navigation,
-and one **Explore** disclosure for the learning suite. On mobile, local
+and one **Learning suite** disclosure for the learning suite. On mobile, local
 navigation moves into that disclosure; module controls remain inside the
 course layout instead of becoming another site header.
 
@@ -48,13 +54,14 @@ transient mutate-then-restore operations. Python Lab is not a hostile-code
 security sandbox.
 
 The reviewed source of truth for the shared presentation is
-`packages/course-kit/src/learner-ui.ts`. This dependency-free example consumes
-the generated build-time copy at `tools/vendor/learner-ui.mjs`;
+`packages/course-kit/src/learner-ui.ts`. The example consumes its generated,
+dependency-free browser bundle at `tools/vendor/learner-ui.mjs` during a
+monorepo build;
 `platform.json` explicitly supplies its product name, navigation labels and
 hash routes, `sage` appearance palette, and footer. The palette changes color
-identity and the organic Field Notes background atmosphere, not layout or
-component behavior; the other reviewed choices are `paper`, `cobalt`, `plum`,
-and `graphite`. The example has no runtime
+identity and line tint, while every palette shares the same sparse,
+scroll-reactive ethereal atmosphere and component behavior; the other reviewed
+choices are `paper`, `cobalt`, `plum`, and `graphite`. The example has no runtime
 dependency on a hosted stylesheet, JavaScript service, framework CDN, or model
 API.
 

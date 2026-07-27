@@ -3,7 +3,7 @@
   "schemaVersion": 1,
   "package": {
     "id": "latent-demos/interview-loop",
-    "version": "2.0.0",
+    "version": "2.1.0",
     "title": "Interview Loop Lab",
     "description": "A compact preparation lab for experienced software engineers practicing behavioral stories, coding communication, and defensible system-architecture decisions.",
     "language": "en-US",
@@ -15,7 +15,7 @@
       }
     ],
     "homepage": "https://github.com/model-systems-labs/latent/tree/main/examples/learning-platform/interview-loop",
-    "publishedAt": "2026-07-26T12:00:00Z"
+    "publishedAt": "2026-07-27T12:00:00Z"
   },
   "objectives": [
     {
@@ -137,7 +137,7 @@
       "id": "behavioral-evidence",
       "order": 1,
       "title": "Behavioral evidence under follow-up",
-      "summary": "Turn one vague incident answer into a factual, decision-rich story, then pressure-test it with likely follow-ups and a five-part self-review.",
+      "summary": "Use one webhook-delivery incident to build a factual, decision-rich story, then pressure-test it with interview follow-ups and a five-part self-review.",
       "durationMinutes": 16,
       "objectiveIds": [
         "build-story-bank",
@@ -151,7 +151,7 @@
       "blocks": [
         {
           "type": "paragraph",
-          "text": "This course has three modules: behavioral evidence, progressive coding, and a webhook-delivery architecture mock. Start here with one real incident you can discuss without inventing scope or metrics."
+          "text": "One webhook-delivery scenario runs through all three modules: behavioral evidence, progressive coding, and system design. Start here with one real incident you can discuss without inventing scope or metrics."
         },
         {
           "type": "callout",
@@ -286,7 +286,7 @@
       "id": "coding-under-constraints",
       "order": 2,
       "title": "Progressive coding under constraints",
-      "summary": "Move from first-seen deduplication through unsorted windows and per-tenant admission, with an explicit invariant, boundary case, and complexity target at every step.",
+      "summary": "Solve four webhook-delivery coding steps, from first-seen deduplication through per-tenant admission and bounded retries, with explicit invariants and complexity targets.",
       "durationMinutes": 18,
       "objectiveIds": [
         "solve-code-aloud"
@@ -307,7 +307,7 @@
         },
         {
           "type": "paragraph",
-          "text": "The Practice tab contains the first three steps as portable Question Groups; the IDE tab contains the host-owned retry exercise. Public OpenAI and Anthropic guidance supports making reasoning, correctness, testing, and performance visible."
+          "text": "The shared webhook-delivery scenario continues in code. The Practice tab contains the first three steps as portable Question Groups; the Coding lab contains the host-owned retry exercise. Public OpenAI and Anthropic guidance supports making reasoning, correctness, testing, and performance visible."
         },
         {
           "type": "list",
@@ -393,8 +393,8 @@
     {
       "id": "architecture-webhook-delivery",
       "order": 3,
-      "title": "Webhook delivery architecture",
-      "summary": "Use this 24-minute module to prepare a separate 45-minute take-away mock: walk a multi-tenant webhook system through seven decision stages, then use targeted interviewer follow-ups.",
+      "title": "System design interview: webhook delivery",
+      "summary": "Use this 24-minute module to rehearse a reusable system-design interview method with webhook delivery as the worked prompt; then pressure-test it in a separate 45-minute mock with targeted follow-ups.",
       "durationMinutes": 24,
       "objectiveIds": [
         "frame-architecture",
@@ -414,11 +414,11 @@
         {
           "type": "heading",
           "level": 2,
-          "text": "Webhook delivery: seven explicit passes"
+          "text": "A system-design interview in seven explicit passes"
         },
         {
           "type": "paragraph",
-          "text": "Use R-C-I-F-S-O-T as a coverage checklist, not a speech. Move forward when the current detail can change a decision; move back when a new constraint invalidates an earlier choice. The sequence is an original synthesis for this lab, informed by public reliability, observability, and tradeoff guidance."
+          "text": "Use R-C-I-F-S-O-T as a reusable interview coverage checklist, not a memorized speech. Move forward when the current detail can change a decision; move back when a new constraint invalidates an earlier choice. Webhook delivery is the worked prompt in this module, but the method applies to other system-design questions. The sequence is an original synthesis for this lab, informed by public reliability, observability, and tradeoff guidance."
         },
         {
           "type": "list",
@@ -436,7 +436,7 @@
         {
           "type": "heading",
           "level": 3,
-          "text": "A concrete pass: multi-tenant webhook delivery"
+          "text": "Worked interview prompt: multi-tenant webhook delivery"
         },
         {
           "type": "paragraph",

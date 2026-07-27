@@ -8,6 +8,8 @@ import {
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { createLearningSuiteNavigation } from "#root/examples/learning-platform/learning-suite.mjs";
+
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const clientRoot = join(root, "dist/client");
 const basePath = process.argv[2]?.trim() ?? "";
@@ -53,11 +55,10 @@ const requiredAssets = [
   "og.png",
 ];
 const learningSuiteBasePath = basePath.slice(0, basePath.lastIndexOf("/"));
-const learningSuiteRoutes = new Set([
-  `${learningSuiteBasePath}/`,
-  `${learningSuiteBasePath}/interview-loop/`,
-  `${learningSuiteBasePath}/practice/`,
-]);
+const learningSuiteRoutes = new Set(createLearningSuiteNavigation({
+  rootHref: `${learningSuiteBasePath}/`,
+  currentId: "llm-systems",
+}).map((destination) => destination.href));
 
 async function collectHtml(directory) {
   const files = [];

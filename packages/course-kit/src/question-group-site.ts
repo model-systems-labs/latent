@@ -11,6 +11,7 @@ import {
   LEARNER_UI_VERSION,
   createLearnerUiCss,
   learnerUiJavaScript,
+  renderLearnerAtmosphere,
   renderLearnerFooter,
   renderLearnerHeader,
   resolveLearnerUiTheme,
@@ -21,7 +22,7 @@ import {
 } from "./learner-ui.js";
 
 export const QUESTION_GROUP_BUILD_MARKER = "latent-question-groups-static-build-v1";
-export const QUESTION_GROUP_PLAYER_VERSION = 1 as const;
+export const QUESTION_GROUP_PLAYER_VERSION = 2 as const;
 export const QUESTION_GROUP_DEFAULT_META_CONTENT_SECURITY_POLICY = [
   "default-src 'none'",
   "script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'",
@@ -46,6 +47,12 @@ export const QUESTION_GROUP_LEARNER_TRANSFORM_OPTIONS = Object.freeze({
 
 export type QuestionGroupSiteFile = string | Uint8Array;
 export type QuestionGroupSiteFiles = Record<string, QuestionGroupSiteFile>;
+
+export type QuestionGroupSiteReferenceSolution = Readonly<{
+  groupId: string;
+  questionId: string;
+  source: string;
+}>;
 
 export type QuestionGroupSiteCopy = Readonly<{
   allNavigationLabel: string;
@@ -74,7 +81,10 @@ export type QuestionGroupSiteCopy = Readonly<{
   draftRestored: string;
   draftSessionOnly: string;
   runtimeUnavailable: string;
+  viewExampleSolution?: string;
 }>;
+
+type NormalizedQuestionGroupSiteCopy = Required<QuestionGroupSiteCopy>;
 
 export type QuestionGroupSiteUi = Readonly<{
   productName?: string;
@@ -98,6 +108,7 @@ export type QuestionGroupSiteOptions = Readonly<{
   bundledBrowserRuntime?: boolean;
   metaContentSecurityPolicy?: string;
   ui?: QuestionGroupSiteUi;
+  referenceSolutions?: readonly QuestionGroupSiteReferenceSolution[];
 }>;
 
 const defaultQuestionGroupSiteCopy = Object.freeze({
@@ -127,7 +138,8 @@ const defaultQuestionGroupSiteCopy = Object.freeze({
   draftRestored: "Draft restored",
   draftSessionOnly: "Draft kept for this visit",
   runtimeUnavailable: "This practice environment is unavailable right now. You can keep editing your draft.",
-} satisfies QuestionGroupSiteCopy);
+  viewExampleSolution: "View example solution",
+} satisfies NormalizedQuestionGroupSiteCopy);
 
 type NormalizedQuestionGroupSiteUi = Readonly<{
   productName: string;
@@ -137,7 +149,7 @@ type NormalizedQuestionGroupSiteUi = Readonly<{
   navigationLabel: string;
   menuLabel: string;
   reviewDirectory: string;
-  copy: QuestionGroupSiteCopy;
+  copy: NormalizedQuestionGroupSiteCopy;
   footerSummary: string;
   attribution: string;
   palette: LearnerUiPaletteName;
@@ -230,12 +242,12 @@ function normalizeQuestionGroupSiteUi(
     Object.entries(defaultQuestionGroupSiteCopy).map(([key, fallback]) => [
       key,
       siteText(
-        input.copy?.[key as keyof QuestionGroupSiteCopy] ?? fallback,
+        input.copy?.[key as keyof NormalizedQuestionGroupSiteCopy] ?? fallback,
         `ui.copy.${key}`,
         key.startsWith("empty") ? 500 : 200,
       ),
     ]),
-  ) as unknown as QuestionGroupSiteCopy;
+  ) as unknown as NormalizedQuestionGroupSiteCopy;
   const faviconSvg = input.faviconSvg;
   if (
     faviconSvg !== undefined
@@ -308,6 +320,77 @@ function normalizeQuestionGroupSiteUi(
   });
 }
 
+function normalizeReferenceSolutions(
+  library: QuestionGroupLibrary,
+  input: readonly QuestionGroupSiteReferenceSolution[] | undefined,
+): readonly QuestionGroupSiteReferenceSolution[] {
+  if (input === undefined) return Object.freeze([]);
+  if (!Array.isArray(input)) {
+    throw new Error("Question Group referenceSolutions must be an array.");
+  }
+  const questionKeys = new Set<string>(library.groups.flatMap((group) => (
+    group.questions.map((question) => `${group.id}\u0000${question.id}`)
+  )));
+  const seen = new Set<string>();
+  const supportedFields = new Set(["groupId", "questionId", "source"]);
+  const normalized = input.map((entry, index) => {
+    if (
+      !entry
+      || typeof entry !== "object"
+      || Array.isArray(entry)
+      || ![Object.prototype, null].includes(Object.getPrototypeOf(entry))
+    ) {
+      throw new Error(`referenceSolutions[${index}] must be a plain object.`);
+    }
+    const unknownFields = Object.keys(entry).filter((key) => !supportedFields.has(key));
+    if (unknownFields.length) {
+      throw new Error(
+        `Unknown referenceSolutions[${index}] field: ${unknownFields[0]}`,
+      );
+    }
+    if (typeof entry.groupId !== "string" || entry.groupId.length === 0) {
+      throw new Error(`referenceSolutions[${index}].groupId must be a non-empty string.`);
+    }
+    if (typeof entry.questionId !== "string" || entry.questionId.length === 0) {
+      throw new Error(`referenceSolutions[${index}].questionId must be a non-empty string.`);
+    }
+    const key = `${entry.groupId}\u0000${entry.questionId}`;
+    if (!questionKeys.has(key)) {
+      throw new Error(
+        `referenceSolutions[${index}] does not match a Question Group question: `
+        + `${entry.groupId}/${entry.questionId}`,
+      );
+    }
+    if (seen.has(key)) {
+      throw new Error(
+        `Duplicate Question Group reference solution: ${entry.groupId}/${entry.questionId}`,
+      );
+    }
+    seen.add(key);
+    if (
+      typeof entry.source !== "string"
+      || entry.source.trim().length === 0
+      || entry.source.length > 50_000
+      || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(entry.source)
+    ) {
+      throw new Error(
+        `referenceSolutions[${index}].source must be non-empty source text `
+        + "no longer than 50,000 characters.",
+      );
+    }
+    return Object.freeze({
+      groupId: entry.groupId,
+      questionId: entry.questionId,
+      source: entry.source,
+    });
+  });
+  normalized.sort((left, right) => (
+    left.groupId.localeCompare(right.groupId)
+    || left.questionId.localeCompare(right.questionId)
+  ));
+  return Object.freeze(normalized);
+}
+
 function renderIndex(
   library: QuestionGroupLibrary,
   digest: string,
@@ -351,6 +434,7 @@ function renderIndex(
     summary: ui.footerSummary,
     attribution: ui.attribution,
   });
+  const atmosphere = renderLearnerAtmosphere();
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -368,6 +452,7 @@ function renderIndex(
   data-initial-query="${initialQuery}"
   data-asset-root="${root}assets/"
 >
+  ${atmosphere}
   <a class="learner-skip-link" href="#app">Skip to practice</a>
   <div class="learner-page">
   ${header}
@@ -386,35 +471,54 @@ function renderIndex(
 }
 
 const questionGroupLayoutCss = `
-#app { max-width: none; }
+#app { max-width: var(--learner-width-wide); }
 .practice-layout {
   display: grid;
-  grid-template-columns: minmax(15rem, 19rem) minmax(18rem, .78fr) minmax(28rem, 1.22fr);
-  min-height: calc(100vh - var(--learner-header-height) - 3.5rem);
+  gap: var(--learner-rhythm-section);
+  margin: 0 auto;
+  max-width: 72rem;
+  padding: clamp(1.25rem, 4vw, 3.5rem);
 }
 .library {
-  overflow: auto;
-  padding: clamp(1rem, 2vw, 1.5rem);
+  background: transparent;
+  border: 0;
+  overflow: visible;
+  padding: 0;
+}
+.library-header {
+  max-width: var(--learner-width-reading);
 }
 .library h1 {
   font-family: var(--learner-font-reading);
-  font-size: clamp(1.55rem, 2.4vw, 2.15rem);
+  font-size: clamp(2.1rem, 5vw, 4rem);
   font-weight: 500;
-  letter-spacing: -.04em;
-  line-height: 1.08;
-  margin: .35rem 0 .75rem;
+  letter-spacing: -.055em;
+  line-height: 1;
+  margin: .45rem 0 1rem;
 }
 .library-header > p,
 .question-copy > p {
   color: var(--learner-color-muted);
   line-height: 1.6;
 }
-.problem-navigation { margin-top: var(--learner-space-4); }
-.problem-navigation > summary { margin-bottom: var(--learner-space-3); }
-.group + .group {
+.problem-navigation {
+  margin-top: var(--learner-space-5);
+}
+.problem-navigation > summary {
+  display: flex;
+  margin-bottom: var(--learner-space-3);
+}
+.problem-navigation > .learner-mobile-panel__content {
   border-top: var(--learner-border);
-  margin-top: var(--learner-space-4);
+  display: grid;
+  gap: var(--learner-space-5);
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
   padding-top: var(--learner-space-4);
+}
+.group + .group {
+  border: 0;
+  margin: 0;
+  padding: 0;
 }
 .group h2 {
   font-size: .75rem;
@@ -427,9 +531,11 @@ const questionGroupLayoutCss = `
   line-height: 1.35;
 }
 .question-copy {
-  border-right: var(--learner-border);
-  overflow: auto;
-  padding: clamp(1.5rem, 3.5vw, 3rem);
+  background: transparent;
+  border-right: 0;
+  border-top: var(--learner-border);
+  overflow: visible;
+  padding: var(--learner-rhythm-section) 0 0;
 }
 .question-copy h2 {
   font-family: var(--learner-font-reading);
@@ -469,13 +575,11 @@ const questionGroupLayoutCss = `
   overflow-wrap: anywhere;
 }
 .workspace {
-  border: 0;
-  border-radius: 0;
-  display: grid;
-  grid-template-rows: auto minmax(19rem, 1fr) auto minmax(10rem, .55fr);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   min-width: 0;
 }
-.workspace .learner-editor-toolbar { border-radius: 0; }
 .draft-status {
   color: var(--learner-color-muted);
   font-size: .75rem;
@@ -484,8 +588,9 @@ const questionGroupLayoutCss = `
 }
 .workspace code { font: .75rem/1.4 var(--learner-font-mono); }
 .workspace .learner-editor {
-  min-height: 100%;
-  resize: none;
+  min-height: 26rem;
+  overflow: auto;
+  resize: vertical;
 }
 .actions {
   background: var(--learner-color-surface);
@@ -500,7 +605,7 @@ const questionGroupLayoutCss = `
   border: 0;
   border-radius: 0;
   margin: 0;
-  overflow: auto;
+  overflow: visible;
 }
 .case-evidence {
   display: block;
@@ -509,39 +614,18 @@ const questionGroupLayoutCss = `
   overflow-wrap: anywhere;
 }
 .error { color: var(--learner-color-danger); }
-@media (max-width: 1120px) {
-  .practice-layout {
-    grid-template-columns: minmax(15rem, 19rem) minmax(0, 1fr);
-  }
-  .question-copy {
-    border-bottom: var(--learner-border);
-    border-right: 0;
-  }
-  .workspace {
-    grid-column: 2;
-    grid-row: 2;
-    min-height: 46rem;
-  }
-  .library { grid-row: 1 / span 2; }
-}
 @media (max-width: ${LEARNER_UI_BREAKPOINTS.stacked}px) {
-  .practice-layout { display: block; }
-  .library,
-  .question-copy {
-    border-bottom: var(--learner-border);
-    border-right: 0;
-  }
-  .workspace { min-height: 46rem; }
   .problem-navigation .learner-nav-list { columns: 2; column-gap: var(--learner-space-5); }
 }
 @media (max-width: ${LEARNER_UI_BREAKPOINTS.compact}px) {
-  .library { padding: var(--learner-space-4); }
-  .library-header > p { display: none; }
-  .question-copy { padding: var(--learner-space-5) var(--learner-space-4); }
-  .question-copy h2 { font-size: clamp(1.9rem, 10vw, 2.7rem); }
-  .workspace {
-    grid-template-rows: auto minmax(22rem, 1fr) auto minmax(10rem, .55fr);
+  .practice-layout {
+    gap: var(--learner-space-6);
+    padding: var(--learner-space-5) var(--learner-space-4);
   }
+  .library-header > p { display: none; }
+  .question-copy { padding-top: var(--learner-space-6); }
+  .question-copy h2 { font-size: clamp(1.9rem, 10vw, 2.7rem); }
+  .workspace .learner-editor { min-height: 22rem; }
   .actions .learner-button { flex: 1 1 9rem; }
   .problem-navigation .learner-nav-list { columns: 1; }
 }
@@ -945,8 +1029,9 @@ export function createQuestionGroupRunGuard() {
 }
 
 function renderQuestionGroupPlayerJavaScript(
-  copy: QuestionGroupSiteCopy,
+  copy: NormalizedQuestionGroupSiteCopy,
   bundledBrowserRuntime: boolean,
+  referenceSolutions: readonly QuestionGroupSiteReferenceSolution[],
 ) {
   return `(() => {
   "use strict";
@@ -956,6 +1041,11 @@ function renderQuestionGroupPlayerJavaScript(
   const initialQuery = document.body.dataset.initialQuery;
   const copy = ${JSON.stringify(copy)};
   const bundledBrowserRuntime = ${JSON.stringify(bundledBrowserRuntime)};
+  const referenceSolutions = ${JSON.stringify(referenceSolutions)};
+  const referenceSolutionByQuestion = new Map(referenceSolutions.map((entry) => [
+    entry.groupId + "/" + entry.questionId,
+    entry.source,
+  ]));
   const learnerTransformOptions = ${JSON.stringify(QUESTION_GROUP_LEARNER_TRANSFORM_OPTIONS)};
   const runGuard = (${createQuestionGroupRunGuard.toString()})();
   const leechPolicy = { minimumAttempts: 3, minimumFailures: 2 };
@@ -1309,14 +1399,24 @@ function renderQuestionGroupPlayerJavaScript(
       ? all.filter(({ group, question }) => isLeech(progress[questionKey(group, question)]))
       : all;
     const emptyView = () => {
-      const empty = text(
-        "section",
-        initialQuery === "leeches" ? copy.emptyReview : copy.emptyAll,
-        "learner-empty",
-      );
+      const empty = document.createElement("section");
+      empty.className = "learner-empty";
       empty.tabIndex = -1;
-      empty.setAttribute("role", "status");
-      empty.setAttribute("aria-live", "polite");
+      empty.append(
+        text(
+          "p",
+          initialQuery === "leeches" ? copy.reviewEyebrow : copy.allEyebrow,
+          "learner-eyebrow",
+        ),
+        text("h1", library.library.title),
+      );
+      const message = text(
+        "p",
+        initialQuery === "leeches" ? copy.emptyReview : copy.emptyAll,
+      );
+      message.setAttribute("role", "status");
+      message.setAttribute("aria-live", "polite");
+      empty.append(message);
       return empty;
     };
     const initialVisible = visibleEntries();
@@ -1336,7 +1436,7 @@ function renderQuestionGroupPlayerJavaScript(
     const pendingDraftWrites = new Map();
     const layout = document.createElement("div");
     layout.className = "practice-layout";
-    const sidebar = document.createElement("aside");
+    const sidebar = document.createElement("div");
     sidebar.className = "learner-sidebar library";
     const libraryHeader = document.createElement("div");
     libraryHeader.className = "library-header";
@@ -1415,6 +1515,8 @@ function renderQuestionGroupPlayerJavaScript(
     cancelButton.dataset.variant = "secondary";
     cancelButton.hidden = true;
     actions.append(examplesButton, checkButton, cancelButton);
+    const solutionHost = document.createElement("div");
+    solutionHost.className = "learner-solution-host";
     const resultAnnouncement = text(
       "p",
       "",
@@ -1427,16 +1529,20 @@ function renderQuestionGroupPlayerJavaScript(
     results.className = "learner-results";
     results.setAttribute("aria-label", copy.initialResults);
     results.tabIndex = 0;
-    workspace.append(workspaceHeader, editor, actions, resultAnnouncement, results);
+    workspace.append(
+      workspaceHeader,
+      editor,
+      actions,
+      solutionHost,
+      resultAnnouncement,
+      results,
+    );
     layout.append(sidebar, questionCopy, workspace);
     app.append(layout);
     const navigation = document.createElement("details");
     navigation.className = "learner-mobile-panel problem-navigation";
-    navigation.dataset.learnerCollapseAt = "stacked";
-    const navigationBreakpoint = globalThis.matchMedia(
-      "(max-width: ${LEARNER_UI_BREAKPOINTS.stacked}px)",
-    );
-    navigation.open = !navigationBreakpoint.matches;
+    navigation.dataset.learnerCollapseAt = "always";
+    navigation.open = false;
     const navigationSummary = text("summary", "");
     const navigationContent = document.createElement("div");
     navigationContent.className = "learner-mobile-panel__content";
@@ -1501,9 +1607,7 @@ function renderQuestionGroupPlayerJavaScript(
             running = false;
             active = entry;
             source = draftSourceFor(entry.group, entry.question);
-            if (navigationBreakpoint.matches) {
-              navigation.removeAttribute("open");
-            }
+            navigation.removeAttribute("open");
             renderActive(true);
             renderNavigation();
           });
@@ -1573,6 +1677,22 @@ function renderQuestionGroupPlayerJavaScript(
       }
       sourcePath.textContent = question.path;
       editor.value = source;
+      const referenceSolution = referenceSolutionByQuestion.get(
+        questionKey(group, question),
+      );
+      solutionHost.replaceChildren();
+      if (typeof referenceSolution === "string") {
+        const createSolutionDisclosure =
+          globalThis.LearnerUiComponents?.createSolutionDisclosure;
+        if (typeof createSolutionDisclosure !== "function") {
+          throw new Error("The shared learner solution component is unavailable.");
+        }
+        solutionHost.append(createSolutionDisclosure({
+          label: copy.viewExampleSolution,
+          source: referenceSolution,
+          title: question.title,
+        }));
+      }
       draftStatus.textContent = drafts[questionKey(group, question)]
         ? copy.draftRestored
         : "";
@@ -1755,6 +1875,7 @@ function renderQuestionGroupPlayerJavaScript(
 export const questionGroupPlayerJavaScript = renderQuestionGroupPlayerJavaScript(
   defaultQuestionGroupSiteCopy,
   true,
+  [],
 );
 
 async function sha256Hex(bytes: Uint8Array) {
@@ -1802,6 +1923,13 @@ export async function buildStandaloneQuestionGroupSite(
   const libraryBytes = new TextEncoder().encode(libraryJson);
   const sha256 = await sha256Hex(libraryBytes);
   const ui = normalizeQuestionGroupSiteUi(library, options.ui);
+  const referenceSolutions = normalizeReferenceSolutions(
+    library,
+    options.referenceSolutions,
+  );
+  const referenceSolutionsSha256 = await sha256Hex(
+    new TextEncoder().encode(JSON.stringify(referenceSolutions)),
+  );
   const bundledBrowserRuntime = options.bundledBrowserRuntime !== false;
   const metaContentSecurityPolicy = normalizeMetaContentSecurityPolicy(
     options.metaContentSecurityPolicy,
@@ -1833,6 +1961,7 @@ export async function buildStandaloneQuestionGroupSite(
     "assets/player.js": renderQuestionGroupPlayerJavaScript(
       ui.copy,
       bundledBrowserRuntime,
+      referenceSolutions,
     ),
     "assets/runtime-adapter.js": runtimeAdapter,
     ...(bundledBrowserRuntime && compiler ? {
@@ -1901,6 +2030,10 @@ portable progress format.
     metaContentSecurityPolicy: options.metaContentSecurityPolicy === undefined
       ? "default"
       : "custom",
+    referenceSolutions: {
+      count: referenceSolutions.length,
+      sha256: referenceSolutionsSha256,
+    },
     browserRuntimes: bundledBrowserRuntime
       ? library.runtimes
         .filter(bundledRuntimeSupported)

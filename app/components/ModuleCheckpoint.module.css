@@ -1,0 +1,11 @@
+.console button,
+.repair a,
+.navigation a {
+  min-height: 2.75rem;
+}
+
+.repair a,
+.navigation a {
+  align-items: center;
+  display: inline-flex;
+}

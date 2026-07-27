@@ -92,3 +92,31 @@ not substitute for them.
 | cancel SSE and reject late events | automated contracts pass; pending browser observation |
 | export and build the portable project | verified with clean install and Vite build |
 | reduced motion, keyboard, and assistive technology | pending human verification |
+
+## Learning-suite mobile evidence — 2026-07-27
+
+The production Pages artifact for Learning Studio, LLM Systems, Interview Loop,
+and Ten Problems was inspected in the in-app Chromium browser at 320 × 800,
+360 × 800, 390 × 844, 430 × 932, and 844 × 390. Eleven representative routes
+at each viewport produced 55 route/viewport checks with no horizontal document
+overflow or off-origin assets; the final 390 × 844 route sweep recorded no
+console warnings or errors.
+
+The beginner flow covered product choice, compact navigation, Continue,
+reading a first lesson/problem, public examples, and saved progress. The
+advanced flow covered direct module/problem navigation, visible keyboard
+focus, wrong/correct quiz states, card reveal/rating persistence, Python
+example/check failure and success, source/progress reload, repeated-miss
+entry/removal, Transformer matrix keyboard scrolling, IDE viewport sizing,
+capstone sizing, and skip-link transfer past family navigation.
+
+The exact 441-file Pages build rendered 95 original-course routes. Aggregate
+route CSS was 175.8 KiB for the course, 185.1 KiB for the representative
+lesson, 176.4 KiB for the IDE shell, and 176.5 KiB for the capstone against
+220 KiB per-route ceilings; all intended deferred runtime boundaries remained
+deferred. `npm run validate` passed 475 application tests plus every package,
+workspace, strict example, type, lint, build, boundary, and performance gate.
+
+This evidence is Chromium emulation and keyboard inspection. It does not mark
+iOS Safari, Android Chrome, physical software keyboards, or a formal
+screen-reader audit as verified.

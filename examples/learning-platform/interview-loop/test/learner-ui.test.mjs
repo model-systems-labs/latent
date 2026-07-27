@@ -79,3 +79,43 @@ test("learner-facing source contains no primitive-showcase advertising", async (
     /progressValue\.textContent = passed \? "Complete" : "In progress"/,
   );
 });
+
+test("Interview interactions preserve compact focus, touch targets, and wrapped feedback", async () => {
+  const [appSource, styles] = await Promise.all([
+    readFile(new URL("../site/app.mjs", import.meta.url), "utf8"),
+    readFile(new URL("../site/styles.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(appSource, /scheduleFocus as focusRendered/);
+  assert.match(
+    appSource,
+    /focusRendered\("#leeches-only", \{ revealMobilePanel: true, scroll: true \}\)/,
+  );
+  assert.equal(
+    appSource.match(/focusRendered\("#lesson-heading", \{ scroll: true \}\)/g)?.length,
+    3,
+  );
+  assert.match(
+    appSource,
+    /focusRendered\("#practice-question-heading", \{ scroll: true \}\)/,
+  );
+  assert.match(
+    appSource,
+    /openedAnotherModule \? "#lesson-heading" : "#module-complete-action"/,
+  );
+  const setStatusBody = appSource.match(
+    /function setStatus\(node, message, tone = "neutral"\) \{([\s\S]*?)\n\}/,
+  )?.[1];
+  assert.ok(setStatusBody);
+  assert.doesNotMatch(setStatusBody, /\bannounce\(/);
+
+  assert.match(styles, /\.filter \{[\s\S]*min-height: 2\.75rem;/);
+  assert.match(
+    styles,
+    /\.learner-editor-toolbar \.learner-eyebrow \{[\s\S]*overflow-wrap: anywhere;/,
+  );
+  assert.match(
+    styles,
+    /\.learner-status,[\s\S]*\.case-list p \{[\s\S]*overflow-wrap: anywhere;/,
+  );
+});

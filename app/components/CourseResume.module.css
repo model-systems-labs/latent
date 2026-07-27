@@ -14,7 +14,7 @@
 .storage,
 .loading > p { color: var(--muted); font-size: 0.78rem; line-height: 1.55; margin: 0; }
 .actions { align-content: center; display: grid; gap: 0.65rem; justify-items: end; }
-.actions a { color: var(--muted); font-size: max(0.68rem, 11px); }
+.actions a { align-items: center; color: var(--muted); display: inline-flex; font-size: max(0.68rem, 11px); min-height: 2.75rem; }
 .actions a:first-child { color: var(--violet-deep); }
 .storage { border-top: 1px solid var(--line); grid-column: 1 / -1; padding-top: 0.85rem; }
 .loading { display: block; min-height: 4.8rem; }

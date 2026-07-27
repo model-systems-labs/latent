@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import styles from "@/app/components/ModuleCheckpoint.module.css";
 import { consumeSse, createMockServingStream } from "@latent/mock-services/sse";
 import { sampleCharacterRnn } from "@latent/model-lab/character-rnn";
 import { moduleCheckpoint } from "@/examples/learning-platform/llm-learning/content/llm-systems/learning";
@@ -235,14 +236,14 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
   };
 
   return (
-    <article className="module-checkpoint-page">
+    <article className="module-checkpoint-page" id="main-content" tabIndex={-1}>
       <header className="module-checkpoint-hero">
         <h1>{definition.title}</h1>
         <p>{definition.objective}</p>
         <p>This optional integration check reruns the module files together. Each lesson is complete only after its code, experiment, and knowledge check are complete.</p>
       </header>
 
-      <section className="checkpoint-console" aria-live="polite" aria-busy={status === "verifying" || status === "running"}>
+      <section className={`checkpoint-console ${styles.console}`} aria-live="polite" aria-busy={status === "verifying" || status === "running"}>
         <header>
           {status !== "idle" ? <strong className={`status-${status}`} role="status">{status}</strong> : null}
           <div>
@@ -254,7 +255,7 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
         </header>
         {detail ? <p className="checkpoint-detail">{detail}</p> : null}
         {failures.length ? (
-          <aside className="checkpoint-repair" aria-label="First failing module check">
+          <aside className={`checkpoint-repair ${styles.repair}`} aria-label="First failing module check">
             <div>
               <span>First failing check</span>
               <code>{failures[0].path}</code>
@@ -289,7 +290,7 @@ export function ModuleCheckpoint({ courseId }: { courseId: "models" | "systems" 
         ))}</div>
       </details>
 
-      <footer className="checkpoint-navigation">
+      <footer className={`checkpoint-navigation ${styles.navigation}`}>
         <Link href={`/courses/llm-systems/${courseId}`}>← Review module</Link>
         {courseId === "product" ? <Link href="/workspace?file=capstone%2FBrowserChat.tsx">Build the complete project →</Link> : (() => {
           const index = llmSystemsCurriculum.modules.findIndex((candidate) => candidate.routeSlug === courseId);

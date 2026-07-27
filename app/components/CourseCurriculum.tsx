@@ -5,6 +5,7 @@ import type { CourseLesson } from "@latent/course-kit";
 import { lessonIsComplete, useLearnerState, useLearnerStateHydrated } from "@/app/lib/learner-state";
 import { lessonLearningOutcome } from "@/examples/learning-platform/llm-learning/lessons/learning";
 import { contractSuiteForLesson } from "@/examples/learning-platform/llm-learning/lessons/contract-suite";
+import styles from "@/app/components/CourseCurriculum.module.css";
 
 export function CourseCurriculum({
   title,
@@ -35,7 +36,7 @@ export function CourseCurriculum({
         <i aria-hidden="true"><b style={{ width: hydrated ? `${completionPercentage}%` : "0%" }} /></i>
       </div>
       {hydrated ? (
-        <div className="course-progress-next">
+        <div className={`course-progress-next ${styles.nextAction}`}>
           {nextLesson
             ? <Link href={`/lessons/${nextLesson.id}`}>{hasProgress ? "Continue" : "Start"} {nextLesson.title} →</Link>
             : <span>{completionLabel}</span>}

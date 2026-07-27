@@ -72,7 +72,7 @@ export default function CourseCatalogPage() {
     <main>
       <PageAtmosphere />
       <LearnerHeader current="courses" />
-      <article className={`course-page ${styles.catalogPage}`}>
+      <article className={`course-page ${styles.catalogPage}`} id="main-content" tabIndex={-1}>
         <header className={`course-hero ${styles.catalogHero}`}>
           <h1>Courses</h1>
           <p className="course-thesis">These are Latent&apos;s four bundled reference courses. Pick the starting point that matches what you already know. The foundation courses are optional refreshers, Harness Engineering stands on its own, and the LLM Systems course builds one cumulative browser project.</p>

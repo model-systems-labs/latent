@@ -5,6 +5,7 @@ import { ProjectTimeline } from "@/app/components/ProjectTimeline";
 import { LearningDataPanel } from "@/app/components/LearningDataPanel";
 import { PageAtmosphere } from "@/app/components/PageAtmosphere";
 import { LearnerHeader } from "@/app/components/LearnerHeader";
+import { LearnerActionLink } from "@/app/components/LearnerActionLink";
 
 export const metadata: Metadata = {
   title: "Project structure · Build an LLM System",
@@ -17,13 +18,13 @@ export default function ProjectPage() {
       <PageAtmosphere />
       <LearnerHeader current="courses" />
       <header className="site-header course-header" style={{ height: "auto", minHeight: "3.35rem" }}>
-        <Link href="/courses/llm-systems">Course</Link>
+        <LearnerActionLink href="/courses/llm-systems">Course</LearnerActionLink>
         <nav aria-label="Project tools">
           <Link href="/workspace">Coding workspace</Link>
           <Link href="/capstone">Capstone</Link>
         </nav>
       </header>
-      <article className="project-page">
+      <article className="project-page" id="main-content" tabIndex={-1}>
         <header className="project-page-hero">
           <h1>Project structure</h1>
           <p>See which lesson files are ready for the final browser build.</p>

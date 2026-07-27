@@ -63,15 +63,52 @@ test("Question Group builds are complete static practice sites with a leech quer
   assert.match(files["assets/player.js"], /event\.ctrlKey \|\| event\.metaKey/);
   assert.match(files["assets/player.js"], /event\.shiftKey \? "examples" : "check"/);
   assert.match(files["assets/player.js"], /copy\.runCanceled/);
-  assert.match(files["assets/player.js"], /navigation\.open = true/);
+  assert.match(
+    files["assets/player.js"],
+    /navigation\.open = !navigationBreakpoint\.matches/,
+  );
   assert.match(files["assets/player.js"], /navigation\.dataset\.learnerCollapseAt = "stacked"/);
-  assert.match(files["assets/player.js"], /matchMedia\("\(max-width: 980px\)"\)/);
+  assert.match(files["assets/player.js"], /"\(max-width: 980px\)"/);
   assert.match(files["assets/player.js"], /learner-sr-only/);
-  assert.match(files["assets/player.js"], /results\.setAttribute\("aria-live", "polite"\)/);
+  assert.match(files["assets/player.js"], /question-result-announcement/);
+  assert.match(
+    files["assets/player.js"],
+    /resultAnnouncement\.setAttribute\("aria-live", "polite"\)/,
+  );
+  assert.doesNotMatch(
+    files["assets/player.js"],
+    /results\.setAttribute\("aria-live", "polite"\)/,
+  );
+  assert.match(
+    files["assets/player.js"],
+    /results\.setAttribute\("aria-label", copy\.initialResults\)/,
+  );
+  assert.match(files["assets/player.js"], /results\.tabIndex = 0/);
   assert.match(files["assets/player.js"], /exerciseCase\.passed \? "Pass · " : "Fail · "/);
   assert.match(files["assets/player.js"], /empty\.setAttribute\("role", "status"\)/);
   assert.match(files["assets/player.js"], /app\.replaceChildren\(empty\);\s*empty\.focus\(\{ preventScroll: true \}\)/);
-  assert.match(files["assets/player.js"], /heading\.focus\(\{ preventScroll: true \}\)/);
+  assert.match(
+    files["assets/player.js"],
+    /navigation\.removeAttribute\("open"\);[\s\S]*?renderActive\(true\)/,
+  );
+  assert.match(
+    files["assets/player.js"],
+    /target\.focus\(\{ preventScroll: true \}\);[\s\S]*?target\.scrollIntoView/,
+  );
+  assert.match(files["assets/player.js"], /focusAndReveal\(heading, "center"\)/);
+  assert.match(files["assets/player.js"], /focusAndReveal\(editor, "center"\)/);
+  assert.match(
+    files["assets/player.js"],
+    /announceResult\(outcome\.passed \? copy\.passedHeading : copy\.failedHeading\)/,
+  );
+  assert.doesNotMatch(
+    files["assets/player.js"],
+    /"Detailed results"|passedCaseCount|checkLabel|Review the detailed results/,
+  );
+  assert.match(
+    files["assets/player.js"],
+    /if \(running\) \{[\s\S]*?results\.replaceChildren\(text\("p", copy\.initialResults\)\);[\s\S]*?announceResult\(copy\.initialResults\)/,
+  );
   assert.doesNotMatch(files["assets/player.js"], /localStorage/);
   assert.match(files["assets/player.js"], /returned an inconsistent case result/);
   assert.match(files["assets/player.js"], /const visibleEntries = \(\) =>/);

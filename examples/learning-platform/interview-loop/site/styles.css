@@ -197,14 +197,18 @@
 .filter {
   align-items: center;
   color: var(--learner-color-muted);
+  cursor: pointer;
   display: flex;
   font-size: .85rem;
   gap: var(--learner-space-2);
   margin: var(--learner-space-4) 0;
+  min-height: 2.75rem;
+  padding: var(--learner-space-2) 0;
 }
 
 .filter input {
   accent-color: var(--learner-color-accent);
+  flex: 0 0 auto;
   height: 1rem;
   width: 1rem;
 }
@@ -230,8 +234,14 @@
   margin-top: var(--learner-space-2);
 }
 
+.learner-editor-toolbar {
+  min-width: 0;
+}
+
 .learner-editor-toolbar .learner-eyebrow {
   margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .practice-actions {
@@ -240,6 +250,22 @@
 
 .learner-results:empty {
   display: none;
+}
+
+.learner-results,
+.case-list,
+.case-list li {
+  min-width: 0;
+}
+
+.case-list {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.learner-status,
+.case-list strong,
+.case-list p {
+  overflow-wrap: anywhere;
 }
 
 .case-list p {

@@ -8,6 +8,7 @@ import {
   sha256Hex,
 } from "./progress.mjs";
 import { interviewPythonRuntime } from "./assets/python-runtime.mjs";
+import { scheduleFocus as focusRendered } from "./focus.mjs";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -44,13 +45,6 @@ function announce(message) {
 function setStatus(node, message, tone = "neutral") {
   node.textContent = message;
   node.dataset.tone = tone;
-  announce(message);
-}
-
-function focusRendered(selector) {
-  requestAnimationFrame(() => {
-    $(selector)?.focus({ preventScroll: true });
-  });
 }
 
 function mobilePanel(label, children) {
@@ -218,7 +212,7 @@ function renderLesson(pack, state) {
       state.module.activeId = candidate.id;
       state.store.write("module-progress", state.module);
       renderLesson(pack, state);
-      focusRendered("#lesson-heading");
+      focusRendered("#lesson-heading", { scroll: true });
       announce(`Module ${index + 1} opened: ${candidate.title}.`);
     });
     moduleList.append(element("li", {}, button));
@@ -270,12 +264,16 @@ function renderLesson(pack, state) {
       const nextIncomplete = lessons.find((candidate) => !completed.has(candidate.id));
       if (nextIncomplete) state.module.activeId = nextIncomplete.id;
     }
+    const openedAnotherModule = state.module.activeId !== lesson.id;
     state.module.completedIds = lessons
       .filter((candidate) => completed.has(candidate.id))
       .map((candidate) => candidate.id);
     state.store.write("module-progress", state.module);
     renderLesson(pack, state);
-    focusRendered("#module-complete-action");
+    focusRendered(
+      openedAnotherModule ? "#lesson-heading" : "#module-complete-action",
+      { scroll: true },
+    );
     announce(`${lesson.title} marked ${completed.has(lesson.id) ? "complete" : "incomplete"}.`);
   });
   const moduleControls = element(
@@ -294,7 +292,7 @@ function renderLesson(pack, state) {
       state.module.activeId = lessons[activeIndex - 1].id;
       state.store.write("module-progress", state.module);
       renderLesson(pack, state);
-      focusRendered("#lesson-heading");
+      focusRendered("#lesson-heading", { scroll: true });
       announce(`Previous module opened: ${lessons[activeIndex - 1].title}.`);
     });
     moduleControls.prepend(previous);
@@ -309,7 +307,7 @@ function renderLesson(pack, state) {
       state.module.activeId = lessons[activeIndex + 1].id;
       state.store.write("module-progress", state.module);
       renderLesson(pack, state);
-      focusRendered("#lesson-heading");
+      focusRendered("#lesson-heading", { scroll: true });
       announce(`Next module opened: ${lessons[activeIndex + 1].title}.`);
     });
     moduleControls.append(next);
@@ -451,7 +449,7 @@ function renderPractice(library, state) {
   toggle.addEventListener("change", () => {
     state.practice.leechesOnly = toggle.checked;
     renderPractice(library, state);
-    focusRendered("#leeches-only");
+    focusRendered("#leeches-only", { revealMobilePanel: true, scroll: true });
     announce(toggle.checked ? "Showing repeated misses." : "Showing all practice problems.");
   });
   const rail = element("aside", { className: "learner-sidebar rail" }, [
@@ -499,7 +497,7 @@ function renderPractice(library, state) {
     button.addEventListener("click", () => {
       state.practice.activeKey = questionKey(entry);
       renderPractice(library, state);
-      focusRendered("#practice-question-heading");
+      focusRendered("#practice-question-heading", { scroll: true });
       announce(`Problem ${sequence} opened: ${entry.title}.`);
     });
     list.append(element("li", {}, button));

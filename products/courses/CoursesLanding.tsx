@@ -51,7 +51,7 @@ export function CoursesLanding() {
       <PageAtmosphere />
       <LearnerHeader current="courses" />
 
-      <article className={styles.shell}>
+      <article className={styles.shell} id="main-content" tabIndex={-1}>
         <section className={styles.hero}>
           <span className="eyebrow">Bundled reference courses · run in your browser</span>
           <h1>Learn how language-model systems actually work.</h1>

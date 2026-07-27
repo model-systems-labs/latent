@@ -30,7 +30,7 @@
     "learner-ui:generate": "npm run build --workspace @latent/course-kit && node scripts/generate-learning-platform-learner-ui.mjs",
     "learner-ui:check": "npm run build --workspace @latent/course-kit && node scripts/generate-learning-platform-learner-ui.mjs --check",
     "learning-examples:validate": "npm run learner-ui:check && npm run validate --prefix examples/learning-platform/interview-loop && npm run validate --prefix examples/learning-platform/ten-problems",
-    "learning-examples:build": "npm run learner-ui:generate && npm run build:pages-course && node scripts/build-learning-example-pages.mjs",
+    "learning-examples:build": "npm run learner-ui:generate && npm run build:pages-course && npm run test:performance && node scripts/build-learning-example-pages.mjs",
     "learning-examples:preview": "npm run learning-examples:build && node scripts/serve-learning-example-pages.mjs",
     "typecheck": "npm run packages:build && tsc --noEmit",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",

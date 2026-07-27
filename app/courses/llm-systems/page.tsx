@@ -4,6 +4,7 @@ import { coursePrograms, courseTracks, llmSystemsCurriculum } from "@/examples/l
 import { CourseGuide } from "@/app/components/CourseGuide";
 import { CourseResume } from "@/app/components/CourseResume";
 import { LearnerHeader } from "@/app/components/LearnerHeader";
+import { LearnerActionLink } from "@/app/components/LearnerActionLink";
 import { PageAtmosphere } from "@/app/components/PageAtmosphere";
 
 export const metadata: Metadata = {
@@ -18,14 +19,14 @@ export default function LlmSystemsCoursePage() {
       <PageAtmosphere />
       <LearnerHeader current="courses" />
       <header className="site-header course-header" style={{ height: "auto", minHeight: "3.35rem" }}>
-        <Link href="/courses/llm-systems">Course</Link>
+        <LearnerActionLink href="/courses/llm-systems">Course</LearnerActionLink>
         <nav aria-label="Course tools">
           <Link href="/workspace">Coding workspace</Link>
           <Link href="/project">Project</Link>
           <Link href="/sources">Further reading</Link>
         </nav>
       </header>
-      <article className="course-page full-course-page">
+      <article className="course-page full-course-page" id="main-content" tabIndex={-1}>
         <header className="course-hero full-course-hero home-course-hero">
           <p className="eyebrow">Project course · {llmSystemsCurriculum.lessonCount} lessons · 4 modules</p>
           <h1>{llmSystemsCurriculum.title}</h1>

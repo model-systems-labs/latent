@@ -16,7 +16,7 @@ export default function LeechPracticePage() {
       <PageAtmosphere />
       <LearnerHeader className={styles.topbar} current="practice" />
 
-      <article className={styles.page}>
+      <article className={styles.page} id="main-content" tabIndex={-1}>
         <header className={styles.hero}>
           <span className="eyebrow">Focused review · saved on this device</span>
           <h1>Retry the problems you keep missing.</h1>

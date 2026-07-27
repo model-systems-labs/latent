@@ -32,14 +32,11 @@ export function LearnerHeader({
   useEffect(() => {
     const menu = menuRef.current;
     if (!menu || !suiteMode) return;
-    const compact = globalThis.matchMedia("(max-width: 760px)");
-    const synchronize = () => {
-      if (compact.matches) menu.removeAttribute("open");
-      else menu.setAttribute("open", "");
-    };
+    const compact = globalThis.matchMedia("(max-width: 760px), (max-height: 500px)");
+    const closeMenu = () => menu.removeAttribute("open");
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || !compact.matches || !menu.open) return;
-      menu.removeAttribute("open");
+      closeMenu();
       menu.querySelector("summary")?.focus();
     };
     const onDocumentClick = (event: MouseEvent) => {
@@ -49,26 +46,37 @@ export function LearnerHeader({
         && event.target instanceof Node
         && !menu.contains(event.target)
       ) {
-        menu.removeAttribute("open");
+        closeMenu();
       }
     };
-    synchronize();
-    compact.addEventListener("change", synchronize);
+    closeMenu();
+    compact.addEventListener("change", closeMenu);
     menu.addEventListener("keydown", onKeyDown);
     document.addEventListener("click", onDocumentClick);
     return () => {
-      compact.removeEventListener("change", synchronize);
+      compact.removeEventListener("change", closeMenu);
       menu.removeEventListener("keydown", onKeyDown);
       document.removeEventListener("click", onDocumentClick);
     };
   }, [suiteMode]);
   if (suiteMode) {
     return (
-      <header className={`site-header course-header ${styles.familyHeader}${className ? ` ${className}` : ""}`}>
-        <Link className="wordmark" href="/" aria-label="LLM Systems home"><i /><span>LLM Systems</span></Link>
-        <details className={styles.menu} open ref={menuRef}>
+      <header className={`site-header course-header ${styles.familyHeader}${className ? ` ${className}` : ""}`} data-learner-family-header="true">
+        <Link className="wordmark" href="/" aria-label="LLM Systems home" style={{ minHeight: "2.75rem" }}><i /><span>LLM Systems</span></Link>
+        <nav className={styles.desktopNav} aria-label="Learning experiences">
+          {suiteDestinations.map((destination) => (
+            <a
+              aria-current={destination.id === "llm-systems" ? "page" : undefined}
+              href={destination.href}
+              key={destination.id}
+            >
+              {destination.label}
+            </a>
+          ))}
+        </nav>
+        <details className={styles.menu} ref={menuRef}>
           <summary>Menu</summary>
-          <nav aria-label="Learning experiences">
+          <nav aria-label="Mobile learning experiences">
             {suiteDestinations.map((destination) => (
               <a
                 aria-current={destination.id === "llm-systems" ? "page" : undefined}

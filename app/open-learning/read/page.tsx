@@ -15,7 +15,7 @@ export default function HostedFeedReaderPage() {
     <main>
       <PageAtmosphere />
       <FrameworkHeader current="read" />
-      <article className={`${styles.shell} ${styles.toolShell}`}>
+      <article className={`${styles.shell} ${styles.toolShell}`} id="main-content" tabIndex={-1}>
         <header className={styles.toolHero}>
           <span className="eyebrow">Learner workflow</span>
           <h1>Verify a publisher’s feed before you read it.</h1>

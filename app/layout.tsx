@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { headers } from "next/headers";
 import "@/app/globals.css";
+import { SkipLink } from "@/app/components/SkipLink";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -92,8 +93,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         </head>
       ) : null}
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <a className="site-skip-link" href="#main-content">Skip to learning content</a>
-        <div id="main-content" tabIndex={-1}>{children}</div>
+        <SkipLink />
+        {children}
       </body>
     </html>
   );

@@ -38,6 +38,10 @@ test("the learner UI foundation publishes stable tokens, responsive breakpoints,
   assert.match(css, /\.learner-form label:has\(input:checked\)/);
   assert.match(css, /\.learner-status\[data-tone="success"\]/);
   assert.match(css, /\.learner-results/);
+  assert.match(
+    css,
+    /\.learner-results \{[\s\S]*?overflow-wrap: anywhere;/,
+  );
   assert.match(css, /\.learner-empty/);
   assert.match(css, /\.learner-editor-frame/);
   assert.match(
@@ -46,11 +50,28 @@ test("the learner UI foundation publishes stable tokens, responsive breakpoints,
   );
   assert.match(css, /\.learner-progress-summary/);
   assert.match(css, /\.learner-sr-only/);
+  assert.match(
+    css,
+    /\.learner-wordmark \{[\s\S]*?min-height: 2\.75rem;/,
+  );
+  assert.match(
+    css,
+    /\.learner-nav-menu > summary \{[\s\S]*?min-height: 2\.75rem;/,
+  );
+  assert.match(
+    css,
+    /\.learner-global-nav a,[\s\S]*?\.learner-primary-nav a \{[\s\S]*?min-height: 2\.75rem;/,
+  );
   assert.match(css, /@media \(max-width: 980px\)/);
   assert.match(css, /data-learner-collapse-at="stacked"/);
   assert.match(css, /@media \(max-width: 760px\)/);
   assert.match(css, /\.learner-nav-menu > summary \{ display: flex; \}/);
   assert.match(css, /\.learner-mobile-panel > summary \{ display: flex; \}/);
+  assert.match(css, /\.learner-editor \{ font-size: 1rem; \}/);
+  assert.match(
+    css,
+    /@media \(min-width: 761px\) \{[\s\S]*?\.learner-nav-menu > \.learner-nav-menu__panel \{ display: flex !important; \}/,
+  );
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
 
   assert.throws(
@@ -100,7 +121,8 @@ test("the shared header escapes authored labels and accepts only same-origin rel
   assert.match(header, /href="\.\.\/course\/">Course<\/a>/);
   assert.match(header, /Problems &lt;all&gt;/);
   assert.match(header, /Review &amp; retry/);
-  assert.match(header, /<details class="learner-nav-menu" open>/);
+  assert.match(header, /<details class="learner-nav-menu">/);
+  assert.doesNotMatch(header, /<details class="learner-nav-menu" open>/);
   assert.match(header, /class="learner-nav-menu__panel"/);
   assert.match(header, /href="\.\.\/"/);
   assert.match(header, /href="\.\/review\/"/);

@@ -18,7 +18,7 @@ export default function FlashcardsPage() {
 
       <LearnerHeader className={styles.header} current="cards" />
 
-      <article className="course-page">
+      <article className="course-page" id="main-content" tabIndex={-1}>
         <header className={`course-hero ${styles.hero}`}>
           <p className="eyebrow">Review library · {flashcards.length} cards</p>
           <h1>Make the ideas stick.</h1>

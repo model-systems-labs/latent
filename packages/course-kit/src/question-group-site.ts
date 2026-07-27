@@ -1396,18 +1396,28 @@ function renderQuestionGroupPlayerJavaScript(
     cancelButton.dataset.variant = "secondary";
     cancelButton.hidden = true;
     actions.append(examplesButton, checkButton, cancelButton);
+    const resultAnnouncement = text(
+      "p",
+      "",
+      "learner-sr-only question-result-announcement",
+    );
+    resultAnnouncement.setAttribute("role", "status");
+    resultAnnouncement.setAttribute("aria-live", "polite");
+    resultAnnouncement.setAttribute("aria-atomic", "true");
     const results = document.createElement("section");
     results.className = "learner-results";
-    results.setAttribute("role", "status");
-    results.setAttribute("aria-live", "polite");
-    results.setAttribute("aria-atomic", "true");
-    workspace.append(workspaceHeader, editor, actions, results);
+    results.setAttribute("aria-label", copy.initialResults);
+    results.tabIndex = 0;
+    workspace.append(workspaceHeader, editor, actions, resultAnnouncement, results);
     layout.append(sidebar, questionCopy, workspace);
     app.append(layout);
     const navigation = document.createElement("details");
     navigation.className = "learner-mobile-panel problem-navigation";
     navigation.dataset.learnerCollapseAt = "stacked";
-    navigation.open = true;
+    const navigationBreakpoint = globalThis.matchMedia(
+      "(max-width: ${LEARNER_UI_BREAKPOINTS.stacked}px)",
+    );
+    navigation.open = !navigationBreakpoint.matches;
     const navigationSummary = text("summary", "");
     const navigationContent = document.createElement("div");
     navigationContent.className = "learner-mobile-panel__content";
@@ -1472,11 +1482,11 @@ function renderQuestionGroupPlayerJavaScript(
             running = false;
             active = entry;
             source = draftSourceFor(entry.group, entry.question);
-            renderActive(true);
-            renderNavigation();
-            if (globalThis.matchMedia("(max-width: ${LEARNER_UI_BREAKPOINTS.stacked}px)").matches) {
+            if (navigationBreakpoint.matches) {
               navigation.removeAttribute("open");
             }
+            renderActive(true);
+            renderNavigation();
           });
           item.append(button);
           list.append(item);
@@ -1495,6 +1505,13 @@ function renderQuestionGroupPlayerJavaScript(
       cancelButton.hidden = !running;
       cancelButton.disabled = !running;
       return supported;
+    };
+    const announceResult = (message) => {
+      resultAnnouncement.textContent = message;
+    };
+    const focusAndReveal = (target, block = "nearest") => {
+      target.focus({ preventScroll: true });
+      target.scrollIntoView({ block, inline: "nearest" });
     };
     const renderActive = (moveFocus = false) => {
       const { group, question } = active;
@@ -1540,12 +1557,14 @@ function renderQuestionGroupPlayerJavaScript(
       draftStatus.textContent = drafts[questionKey(group, question)]
         ? copy.draftRestored
         : "";
+      announceResult("");
       results.replaceChildren(text("p", copy.initialResults));
       const supported = updateActionAvailability();
       if (!supported) {
         results.replaceChildren(text("p", copy.runtimeUnavailable, "error"));
+        announceResult(copy.runtimeUnavailable);
       }
-      if (moveFocus) heading.focus({ preventScroll: true });
+      if (moveFocus) focusAndReveal(heading, "center");
     };
     const run = async (mode) => {
       const { group, question } = active;
@@ -1569,6 +1588,7 @@ function renderQuestionGroupPlayerJavaScript(
         && editor.value === runSource
       );
       results.replaceChildren(text("p", copy.running));
+      announceResult(copy.running);
       try {
         const outcome = await runtimeAdapter.run({
           library,
@@ -1621,6 +1641,7 @@ function renderQuestionGroupPlayerJavaScript(
           list.append(item);
         }
         results.replaceChildren(heading, list);
+        announceResult(outcome.passed ? copy.passedHeading : copy.failedHeading);
         if (mode === "check") {
           const key = questionKey(group, question);
           const nextProgress = await writeProgress(
@@ -1652,6 +1673,7 @@ function renderQuestionGroupPlayerJavaScript(
       } catch (error) {
         if (!isCurrentRun()) return;
         results.replaceChildren(text("p", error?.message || String(error), "error"));
+        announceResult(copy.failedHeading);
       } finally {
         if (activeRunController === controller) activeRunController = null;
         if (isCurrentRun()) {
@@ -1675,6 +1697,8 @@ function renderQuestionGroupPlayerJavaScript(
         activeRunController = null;
         runGuard.invalidate();
         running = false;
+        results.replaceChildren(text("p", copy.initialResults));
+        announceResult(copy.initialResults);
         updateActionAvailability();
         renderNavigation();
       }
@@ -1688,9 +1712,10 @@ function renderQuestionGroupPlayerJavaScript(
       runGuard.invalidate();
       running = false;
       results.replaceChildren(text("p", copy.runCanceled));
+      announceResult(copy.runCanceled);
       updateActionAvailability();
       renderNavigation();
-      editor.focus({ preventScroll: true });
+      focusAndReveal(editor, "center");
     });
     editor.addEventListener("keydown", (event) => {
       if (!(event.ctrlKey || event.metaKey) || event.key !== "Enter") return;

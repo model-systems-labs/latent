@@ -1,4 +1,9 @@
+.familyHeader > .desktopNav {
+  display: flex;
+}
+
 .menu {
+  display: none;
   justify-self: end;
   position: relative;
 }
@@ -12,13 +17,11 @@
   font-family: var(--sans);
   font-size: max(0.72rem, 12px);
   font-weight: 700;
-  min-height: 2.65rem;
+  min-height: 2.75rem;
   padding: 0.55rem 0.8rem;
 }
 
 .menu > summary::marker { content: ""; }
-.menu > nav { display: flex; }
-
 .familyHeader :global(.wordmark) {
   font-family: var(--sans);
   font-size: 0.94rem;
@@ -40,12 +43,19 @@
   padding-right: 0.8rem;
 }
 
-@media (max-width: 760px) {
+.familyHeader :global(:focus-visible) {
+  outline: 2px solid var(--violet-deep);
+  outline-offset: 3px;
+}
+
+@media (max-width: 760px), (max-height: 500px) {
   .familyHeader {
     min-height: 4rem;
     padding: 0;
   }
 
+  .familyHeader > .desktopNav { display: none; }
+  .menu { display: block; }
   .menu > summary { display: flex; }
 
   .menu > nav {

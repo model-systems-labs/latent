@@ -14,10 +14,12 @@ never grants a capability.
 
 ## Trusted build source
 
-`tools/build.mjs` invokes the reviewed Course Kit static player and applies
-presentation-only learner-facing labels and colors. It must not weaken
-validation, alter portable cases, or move executable tests into JSON. Do not
-describe the browser worker as a hostile-code security sandbox.
+`tools/build.mjs` invokes the reviewed Course Kit static player, bundles the
+example-local adapter in `trusted/`, reuses the repository's reviewed Python
+Lab worker, copies the npm-locked Pyodide core to same-origin assets, and
+applies learner-facing labels and colors. Trusted source may interpret the
+portable assertion vocabulary; executable checks must never move into JSON.
+Do not describe the browser worker as a hostile-code security sandbox.
 
 Run `npm run validate` after every change. Run `npm run build` before handoff.
 Never hand-edit `dist/`.

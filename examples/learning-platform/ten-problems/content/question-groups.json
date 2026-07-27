@@ -3,9 +3,9 @@
   "schemaVersion": 1,
   "library": {
     "id": "latent-demos/ten-problems",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "title": "Ten Problems",
-    "description": "Ten original JavaScript problems arranged as a compact progression through core interview patterns.",
+    "description": "Ten original Python problems arranged as a compact progression through core interview patterns.",
     "authors": [
       {
         "name": "Latent Project Contributors",
@@ -18,14 +18,14 @@
     },
     "provenance": {
       "sourceUrl": "https://github.com/model-systems-labs/latent/tree/main/examples/learning-platform/ten-problems",
-      "revision": "1.0.0-original-practice-set"
+      "revision": "2.0.0-python-practice-set"
     }
   },
   "objectives": [
     {
       "id": "scan-and-index",
       "title": "Scan and index sequences",
-      "description": "Use sets, maps, and moving windows to solve sequence problems without unnecessary nested scans."
+      "description": "Use sets, dictionaries, and moving windows to solve sequence problems without unnecessary nested scans."
     },
     {
       "id": "organize-state",
@@ -62,16 +62,16 @@
   ],
   "runtimes": [
     {
-      "id": "browser-javascript",
-      "language": "javascript",
-      "environment": "browser-worker",
-      "engine": "esbuild-wasm",
-      "engineVersion": "0.28.1",
+      "id": "host-python",
+      "language": "python",
+      "environment": "host-managed",
+      "engine": "pyodide",
+      "engineVersion": "314.0.2",
       "capabilities": [
         "function"
       ],
       "limits": {
-        "timeoutMs": 1500,
+        "timeoutMs": 10000,
         "maxOutputBytes": 100000
       }
     }
@@ -87,9 +87,9 @@
         "organize-state"
       ],
       "tags": [
-        "arrays",
-        "strings",
-        "maps",
+        "lists",
+        "text",
+        "dictionaries",
         "stacks",
         "sliding-window"
       ],
@@ -98,14 +98,14 @@
           "id": "first-echo",
           "order": 1,
           "title": "First Echo",
-          "prompt": "Implement firstEcho(values). Scan from left to right and return the first value whose repeat you encounter. Return null when no value repeats.",
+          "prompt": "Implement first_echo(values). Scan from left to right and return the first value whose repeat you encounter. Return None when no value repeats.",
           "difficulty": "easy",
-          "language": "javascript",
-          "path": "first-echo.js",
-          "starterCode": "function firstEcho(values) {\n  // Return the first value encountered for a second time.\n  return null;\n}\n",
+          "language": "python",
+          "path": "first-echo.py",
+          "starterCode": "def first_echo(values):\n    # Return the first value encountered for a second time.\n    return None\n",
           "entrypoint": {
             "kind": "function",
-            "functionName": "firstEcho"
+            "functionName": "first_echo"
           },
           "objectiveIds": [
             "scan-and-index"
@@ -113,9 +113,9 @@
           "sourceIds": [
             "original-practice-set"
           ],
-          "runtimeId": "browser-javascript",
+          "runtimeId": "host-python",
           "constraints": [
-            "values contains zero or more safe integers.",
+            "values contains zero or more integers.",
             "Return the value whose second occurrence appears earliest in the scan.",
             "Expected complexity: O(n) time and O(n) space."
           ],
@@ -156,7 +156,7 @@
               "assertions": [
                 {
                   "id": "result",
-                  "label": "returns null",
+                  "label": "returns None",
                   "kind": "deep-equal",
                   "expected": null
                 }
@@ -176,7 +176,7 @@
               "assertions": [
                 {
                   "id": "result",
-                  "label": "returns null",
+                  "label": "returns None",
                   "kind": "deep-equal",
                   "expected": null
                 }
@@ -210,14 +210,14 @@
           "id": "tunnel-gates",
           "order": 2,
           "title": "Tunnel Gates",
-          "prompt": "Implement gatesCloseCleanly(events). Uppercase A, B, and C open three gate types; the matching lowercase letter closes one. A close is valid only when it matches the most recently opened gate. Return whether every gate closes cleanly.",
+          "prompt": "Implement gates_close_cleanly(events). Uppercase A, B, and C open three gate types; the matching lowercase letter closes one. A close is valid only when it matches the most recently opened gate. Return whether every gate closes cleanly.",
           "difficulty": "easy",
-          "language": "javascript",
-          "path": "tunnel-gates.js",
-          "starterCode": "function gatesCloseCleanly(events) {\n  // Match each close with the most recently opened gate.\n  return false;\n}\n",
+          "language": "python",
+          "path": "tunnel-gates.py",
+          "starterCode": "def gates_close_cleanly(events):\n    # Match each close with the most recently opened gate.\n    return False\n",
           "entrypoint": {
             "kind": "function",
-            "functionName": "gatesCloseCleanly"
+            "functionName": "gates_close_cleanly"
           },
           "objectiveIds": [
             "organize-state"
@@ -225,7 +225,7 @@
           "sourceIds": [
             "original-practice-set"
           ],
-          "runtimeId": "browser-javascript",
+          "runtimeId": "host-python",
           "constraints": [
             "events contains only A, a, B, b, C, and c.",
             "An empty event string is clean.",
@@ -233,7 +233,7 @@
           ],
           "tags": [
             "stack",
-            "strings"
+            "text"
           ],
           "cases": [
             {
@@ -306,14 +306,14 @@
           "id": "quietest-window",
           "order": 3,
           "title": "Quietest Window",
-          "prompt": "Implement quietestWindow(readings, width). Return the starting index of the contiguous window of exactly width readings with the smallest total. If several windows tie, return the earliest starting index.",
+          "prompt": "Implement quietest_window(readings, width). Return the starting index of the contiguous window of exactly width readings with the smallest total. If several windows tie, return the earliest starting index.",
           "difficulty": "easy",
-          "language": "javascript",
-          "path": "quietest-window.js",
-          "starterCode": "function quietestWindow(readings, width) {\n  // Reuse the previous window total.\n  return 0;\n}\n",
+          "language": "python",
+          "path": "quietest-window.py",
+          "starterCode": "def quietest_window(readings, width):\n    # Reuse the previous window total.\n    return 0\n",
           "entrypoint": {
             "kind": "function",
-            "functionName": "quietestWindow"
+            "functionName": "quietest_window"
           },
           "objectiveIds": [
             "scan-and-index"
@@ -321,15 +321,15 @@
           "sourceIds": [
             "original-practice-set"
           ],
-          "runtimeId": "browser-javascript",
+          "runtimeId": "host-python",
           "constraints": [
-            "readings is a non-empty array of safe integers.",
-            "width is an integer from 1 through readings.length.",
+            "readings is a non-empty list of integers.",
+            "width is an integer from 1 through len(readings).",
             "Expected complexity: O(n) time and O(1) auxiliary space."
           ],
           "tags": [
             "sliding-window",
-            "arrays"
+            "lists"
           ],
           "cases": [
             {
@@ -426,14 +426,14 @@
           "id": "longest-unique-span",
           "order": 4,
           "title": "Longest Unique Span",
-          "prompt": "Implement longestUniqueSpan(text). Return the length of the longest contiguous span with no repeated character.",
+          "prompt": "Implement longest_unique_span(text). Return the length of the longest contiguous span with no repeated character.",
           "difficulty": "medium",
-          "language": "javascript",
-          "path": "longest-unique-span.js",
-          "starterCode": "function longestUniqueSpan(text) {\n  // Move a left boundary past repeats without moving it backward.\n  return 0;\n}\n",
+          "language": "python",
+          "path": "longest-unique-span.py",
+          "starterCode": "def longest_unique_span(text):\n    # Move a left boundary past repeats without moving it backward.\n    return 0\n",
           "entrypoint": {
             "kind": "function",
-            "functionName": "longestUniqueSpan"
+            "functionName": "longest_unique_span"
           },
           "objectiveIds": [
             "scan-and-index"
@@ -441,7 +441,7 @@
           "sourceIds": [
             "original-practice-set"
           ],
-          "runtimeId": "browser-javascript",
+          "runtimeId": "host-python",
           "constraints": [
             "text contains lowercase ASCII letters.",
             "The empty string has a longest unique span of zero.",
@@ -449,8 +449,8 @@
           ],
           "tags": [
             "sliding-window",
-            "map",
-            "strings"
+            "dictionary",
+            "text"
           ],
           "cases": [
             {
@@ -539,14 +539,14 @@
           "id": "reverse-chain",
           "order": 1,
           "title": "Reverse a Linked Chain",
-          "prompt": "Implement reverseChain(head). A chain is null or a finite nested object shaped as { value, next }. Return an equivalent chain with the node order reversed.",
+          "prompt": "Implement reverse_chain(head). A chain is None or a finite nested dictionary with keys value and next. Return an equivalent chain with the node order reversed.",
           "difficulty": "easy",
-          "language": "javascript",
-          "path": "reverse-chain.js",
-          "starterCode": "function reverseChain(head) {\n  // Each node has { value, next }; next is another node or null.\n  return null;\n}\n",
+          "language": "python",
+          "path": "reverse-chain.py",
+          "starterCode": "def reverse_chain(head):\n    # Each node is a dict with \"value\" and \"next\"; next is another node or None.\n    return None\n",
           "entrypoint": {
             "kind": "function",
-            "functionName": "reverseChain"
+            "functionName": "reverse_chain"
           },
           "objectiveIds": [
             "organize-state"
@@ -554,15 +554,15 @@
           "sourceIds": [
             "original-practice-set"
           ],
-          "runtimeId": "browser-javascript",
+          "runtimeId": "host-python",
           "constraints": [
-            "head is null or a finite acyclic chain of nodes with safe-integer values.",
-            "Return null for an empty chain.",
+            "head is None or a finite acyclic chain of dictionaries with integer values.",
+            "Return None for an empty chain.",
             "Expected complexity: O(n) time."
           ],
           "tags": [
             "linked-list",
-            "pointers"
+            "dictionaries"
           ],
           "cases": [
             {
@@ -609,7 +609,7 @@
               "assertions": [
                 {
                   "id": "result",
-                  "label": "returns null",
+                  "label": "returns None",
                   "kind": "deep-equal",
                   "expected": null
                 }
@@ -643,14 +643,14 @@
           "id": "condense-calendar",
           "order": 2,
           "title": "Condense Calendar Windows",
-          "prompt": "Implement condenseWindows(windows). Return sorted, non-overlapping windows covering the same points as the input. Merge windows when they overlap or share an endpoint.",
+          "prompt": "Implement condense_windows(windows). Return sorted, non-overlapping windows covering the same points as the input. Merge windows when they overlap or share an endpoint.",
           "difficulty": "medium",
-          "language": "javascript",
-          "path": "condense-calendar.js",
-          "starterCode": "function condenseWindows(windows) {\n  // Return sorted, merged [start, end] pairs.\n  return [];\n}\n",
+          "language": "python",
+          "path": "condense-calendar.py",
+          "starterCode": "def condense_windows(windows):\n    # Return sorted, merged [start, end] pairs.\n    return []\n",
           "entrypoint": {
             "kind": "function",
-            "functionName": "condenseWindows"
+            "functionName": "condense_windows"
           },
           "objectiveIds": [
             "organize-state"
@@ -658,9 +658,9 @@
           "sourceIds": [
             "original-practice-set"
           ],
-          "runtimeId": "browser-javascript",
+          "runtimeId": "host-python",
           "constraints": [
-            "Every window is [start, end] with safe integers and start less than or equal to end.",
+            "Every window is [start, end] with integers and start less than or equal to end.",
             "Input windows may be unsorted, nested, or empty.",
             "Expected complexity: O(n log n) time for sorting."
           ],
@@ -725,7 +725,7 @@
               "assertions": [
                 {
                   "id": "result",
-                  "label": "returns an empty array",
+                  "label": "returns an empty list",
                   "kind": "deep-equal",
                   "expected": []
                 }
@@ -825,14 +825,14 @@
           "id": "disease-spread-clock",
           "order": 1,
           "title": "Disease Spread Clock",
-          "prompt": "Implement minutesToReachAll(grid). Each cell is S (sick), H (healthy), or # (blocked). Each minute, sickness spreads from sick cells to orthogonally adjacent healthy cells. Return the minutes until no healthy cell remains, -1 if some can never be reached, or 0 when none are initially healthy.",
+          "prompt": "Implement minutes_to_reach_all(grid). Each cell is S (sick), H (healthy), or # (blocked). Each minute, sickness spreads from sick cells to orthogonally adjacent healthy cells. Return the minutes until no healthy cell remains, -1 if some can never be reached, or 0 when none are initially healthy.",
           "difficulty": "medium",
-          "language": "javascript",
-          "path": "disease-spread-clock.js",
-          "starterCode": "function minutesToReachAll(grid) {\n  // Begin one breadth-first frontier from every S cell.\n  return 0;\n}\n",
+          "language": "python",
+          "path": "disease-spread-clock.py",
+          "starterCode": "def minutes_to_reach_all(grid):\n    # Begin one breadth-first frontier from every S cell.\n    return 0\n",
           "entrypoint": {
             "kind": "function",
-            "functionName": "minutesToReachAll"
+            "functionName": "minutes_to_reach_all"
           },
           "objectiveIds": [
             "traverse-frontiers"
@@ -840,9 +840,9 @@
           "sourceIds": [
             "original-practice-set"
           ],
-          "runtimeId": "browser-javascript",
+          "runtimeId": "host-python",
           "constraints": [
-            "grid is a non-empty rectangular array containing only S, H, and #.",
+            "grid is a non-empty rectangular list of lists containing only S, H, and #.",
             "Spread is simultaneous and orthogonal; diagonal cells are not adjacent.",
             "Expected complexity: O(rows × columns) time and space."
           ],
@@ -955,14 +955,14 @@
           "id": "fewest-relay-hops",
           "order": 2,
           "title": "Fewest Relay Hops",
-          "prompt": "Implement fewestRelayHops(nodeCount, links, start, goal). Nodes are numbered 0 through nodeCount - 1 and every link is undirected. Return the minimum number of links needed to reach goal, or -1 when it is unreachable.",
+          "prompt": "Implement fewest_relay_hops(node_count, links, start, goal). Nodes are numbered 0 through node_count - 1 and every link is undirected. Return the minimum number of links needed to reach goal, or -1 when it is unreachable.",
           "difficulty": "easy",
-          "language": "javascript",
-          "path": "fewest-relay-hops.js",
-          "starterCode": "function fewestRelayHops(nodeCount, links, start, goal) {\n  // Breadth-first search measures distance in equal-cost links.\n  return -1;\n}\n",
+          "language": "python",
+          "path": "fewest-relay-hops.py",
+          "starterCode": "def fewest_relay_hops(node_count, links, start, goal):\n    # Breadth-first search measures distance in equal-cost links.\n    return -1\n",
           "entrypoint": {
             "kind": "function",
-            "functionName": "fewestRelayHops"
+            "functionName": "fewest_relay_hops"
           },
           "objectiveIds": [
             "traverse-frontiers"
@@ -970,9 +970,9 @@
           "sourceIds": [
             "original-practice-set"
           ],
-          "runtimeId": "browser-javascript",
+          "runtimeId": "host-python",
           "constraints": [
-            "nodeCount is positive and every node id is valid.",
+            "node_count is positive and every node id is valid.",
             "links contains zero or more two-node undirected connections.",
             "Expected complexity: O(nodes + links) time and space."
           ],
@@ -1135,14 +1135,14 @@
           "id": "minimum-climb-energy",
           "order": 1,
           "title": "Minimum Climb Energy",
-          "prompt": "Implement minimumClimbEnergy(heights). Start at index 0 and reach the final index by jumping forward one or two positions. A jump costs the absolute height difference between departure and landing. Return the minimum total energy.",
+          "prompt": "Implement minimum_climb_energy(heights). Start at index 0 and reach the final index by jumping forward one or two positions. A jump costs the absolute height difference between departure and landing. Return the minimum total energy.",
           "difficulty": "medium",
-          "language": "javascript",
-          "path": "minimum-climb-energy.js",
-          "starterCode": "function minimumClimbEnergy(heights) {\n  // Keep the minimum cost to reach each of the last two positions.\n  return 0;\n}\n",
+          "language": "python",
+          "path": "minimum-climb-energy.py",
+          "starterCode": "def minimum_climb_energy(heights):\n    # Keep the minimum cost to reach each of the last two positions.\n    return 0\n",
           "entrypoint": {
             "kind": "function",
-            "functionName": "minimumClimbEnergy"
+            "functionName": "minimum_climb_energy"
           },
           "objectiveIds": [
             "optimize-recurrences"
@@ -1150,9 +1150,9 @@
           "sourceIds": [
             "original-practice-set"
           ],
-          "runtimeId": "browser-javascript",
+          "runtimeId": "host-python",
           "constraints": [
-            "heights is a non-empty array of safe integers.",
+            "heights is a non-empty list of integers.",
             "A one-element route costs zero energy.",
             "Expected complexity: O(n) time and O(1) auxiliary space."
           ],
@@ -1246,14 +1246,14 @@
           "id": "workday-capacity",
           "order": 2,
           "title": "Workday Capacity",
-          "prompt": "Implement minimumDailyCapacity(loads, days). Process loads in order, assigning each day one contiguous batch whose sum cannot exceed the chosen capacity. Return the smallest integer capacity that finishes within days.",
+          "prompt": "Implement minimum_daily_capacity(loads, days). Process loads in order, assigning each day one contiguous batch whose sum cannot exceed the chosen capacity. Return the smallest integer capacity that finishes within days.",
           "difficulty": "medium",
-          "language": "javascript",
-          "path": "workday-capacity.js",
-          "starterCode": "function minimumDailyCapacity(loads, days) {\n  // Binary-search capacities and test each one with a greedy scan.\n  return 0;\n}\n",
+          "language": "python",
+          "path": "workday-capacity.py",
+          "starterCode": "def minimum_daily_capacity(loads, days):\n    # Binary-search capacities and test each one with a greedy scan.\n    return 0\n",
           "entrypoint": {
             "kind": "function",
-            "functionName": "minimumDailyCapacity"
+            "functionName": "minimum_daily_capacity"
           },
           "objectiveIds": [
             "search-the-answer"
@@ -1261,10 +1261,10 @@
           "sourceIds": [
             "original-practice-set"
           ],
-          "runtimeId": "browser-javascript",
+          "runtimeId": "host-python",
           "constraints": [
-            "loads is a non-empty array of positive safe integers.",
-            "days is an integer from 1 through loads.length.",
+            "loads is a non-empty list of positive integers.",
+            "days is an integer from 1 through len(loads).",
             "Expected complexity: O(n log s) time for total load s and O(1) auxiliary space."
           ],
           "tags": [

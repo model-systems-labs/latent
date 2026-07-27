@@ -13,6 +13,7 @@ import {
   type ExerciseContract,
 } from "@latent/browser-lab";
 import type { ProjectUnitResult } from "@/app/lib/project-workspace";
+import { publicAssetPath } from "@/app/lib/public-asset-path";
 
 const CAPSTONE_BEHAVIOR_FRAME_TIMEOUT_MS = 12_000;
 const MAX_BEHAVIOR_ASSET_BYTES = 2_000_000;
@@ -599,7 +600,10 @@ async function sha256(source: string): Promise<string> {
 
 function createCapstonePreflightWorker(): BrowserLabWorkerPort {
   if (typeof Worker === "undefined") throw new Error("The isolated capstone check needs a Web Worker.");
-  return new Worker("/capstone-sandbox-worker.js", { type: "module", name: "capstone-behavior-preflight" });
+  return new Worker(publicAssetPath("/capstone-sandbox-worker.js"), {
+    type: "module",
+    name: "capstone-behavior-preflight",
+  });
 }
 
 async function runCapstoneBehaviorPreflight(bundle: BehaviorBundle, signal?: AbortSignal): Promise<ProjectUnitResult | null> {
@@ -700,7 +704,7 @@ function isBehaviorFrameResult(value: unknown, channelId: string): value is Beha
 let cachedRuntimeSource: Promise<string> | null = null;
 
 async function trustedRuntimeSource(signal?: AbortSignal): Promise<string> {
-  cachedRuntimeSource ??= fetch("/capstone-react-runtime.js", {
+  cachedRuntimeSource ??= fetch(publicAssetPath("/capstone-react-runtime.js"), {
     cache: "force-cache",
     credentials: "same-origin",
   }).then(async (response) => {

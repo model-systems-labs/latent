@@ -72,63 +72,69 @@ export type LessonIllustration = {
   alt: string;
 };
 
+const courseBasePath = process.env.__NEXT_ROUTER_BASEPATH ?? "";
+
+function coursePublicAsset(path: `/${string}`): string {
+  return courseBasePath ? `${courseBasePath}${path}` : path;
+}
+
 export const lessonIllustrations = {
   "batches-and-broadcasting": {
-    src: "/lesson-diagrams/batches-and-broadcasting.jpg",
+    src: coursePublicAsset("/lesson-diagrams/batches-and-broadcasting.jpg"),
     title: "Shared math, repeated across the batch",
     caption: "Every row uses the same learned transformation, and broadcasting adds the same bias without copying it by hand.",
     alt: "Five rows of input cubes pass through one shared violet transformation, then each output row receives the same three coral bias beads.",
   },
   "ml-linear-regression": {
-    src: "/lesson-diagrams/ml-linear-regression.jpg",
+    src: coursePublicAsset("/lesson-diagrams/ml-linear-regression.jpg"),
     title: "A fitted line turns distance into loss",
     caption: "Each residual measures how far one prediction misses. Training looks for weights that make those misses smaller together.",
     alt: "Purple observations sit above and below a fitted diagonal line, with coral residual lines gathering into a loss vessel.",
   },
   "ml-binary-classification": {
-    src: "/lesson-diagrams/ml-binary-classification.jpg",
+    src: coursePublicAsset("/lesson-diagrams/ml-binary-classification.jpg"),
     title: "A score becomes a bounded probability",
     caption: "The sigmoid squeezes any real-valued score into a probability; a confident mismatch then receives the larger penalty.",
     alt: "A row of score beads enters an S-shaped channel, emerges on a bounded rail, and branches toward small and large penalty vessels.",
   },
   "agent-loop": {
-    src: "/lesson-diagrams/agent-loop.jpg",
+    src: coursePublicAsset("/lesson-diagrams/agent-loop.jpg"),
     title: "Actions become the next observation",
     caption: "The model proposes, the harness validates, the tool runs, and the result returns as evidence for the next turn—or the loop stops.",
     alt: "A model core, validation gate, tool mechanism, and observation card form a circular loop, with a separate branch ending at a stop marker.",
   },
   "permissions-and-sandboxes": {
-    src: "/lesson-diagrams/permissions-and-sandboxes.jpg",
+    src: coursePublicAsset("/lesson-diagrams/permissions-and-sandboxes.jpg"),
     title: "Policy decides what the sandbox can reach",
     caption: "Normalization and permission checks happen before execution, while protected resources remain outside the enforced boundary.",
     alt: "An action passes through a sieve and branching policy gate into a sandbox containing file, process, and network mechanisms; a credential vault remains separate.",
   },
   "task-orchestration": {
-    src: "/lesson-diagrams/task-orchestration.jpg",
+    src: coursePublicAsset("/lesson-diagrams/task-orchestration.jpg"),
     title: "Ready work fans out; dependent work waits",
     caption: "Independent tasks can run together, but their results converge through one coordinator and return in a predictable order.",
     alt: "A dependency graph fans into three parallel worker lanes, then converges through one coral coordinator into an ordered row of result tiles.",
   },
   "additive-attention": {
-    src: "/lesson-diagrams/additive-attention.jpg",
+    src: coursePublicAsset("/lesson-diagrams/additive-attention.jpg"),
     title: "Attention builds a fresh context for each output",
     caption: "Instead of squeezing the whole source into one fixed summary, the decoder can place a different weight on every source memory at every step.",
     alt: "A decoder query shines weighted beams over source-memory cubes and gathers them into a context, contrasted with a second sequence squeezed through one fixed bottle-shaped bottleneck.",
   },
   transformers: {
-    src: "/lesson-diagrams/transformers.jpg",
+    src: coursePublicAsset("/lesson-diagrams/transformers.jpg"),
     title: "Causal attention mixes only the past",
     caption: "Each position can gather useful earlier information in parallel, while the causal mask keeps future tokens out of view.",
     alt: "Token blocks sit beneath a triangular backward-visibility canopy, split into parallel attention streams, and recombine through stacked residual blocks.",
   },
   "inference-runtime": {
-    src: "/lesson-diagrams/inference-runtime.jpg",
+    src: coursePublicAsset("/lesson-diagrams/inference-runtime.jpg"),
     title: "Prefill is wide; decoding is one step at a time",
     caption: "The prompt can be processed in parallel, but generated tokens arrive serially while the key-value cache grows with the sequence.",
     alt: "Several rows of prompt cubes enter a processor together, narrow into a single-file token stream, and fill an expanding shelf of cache pages below.",
   },
   "chat-actions-context": {
-    src: "/lesson-diagrams/chat-actions-context.jpg",
+    src: coursePublicAsset("/lesson-diagrams/chat-actions-context.jpg"),
     title: "History branches; each request stays bounded",
     caption: "Stop, retry, and edit preserve different branches, while the next model request projects only valid paired messages that fit the context window.",
     alt: "A conversation spine branches into stopped, retried, and edited paths, while a bounded frame admits paired message tiles and leaves stale or oversized tiles outside.",

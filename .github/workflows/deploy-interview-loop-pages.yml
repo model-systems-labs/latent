@@ -6,15 +6,22 @@ on:
     paths:
       - ".github/workflows/deploy-interview-loop-pages.yml"
       - ".github/workflows/release-course-kit.yml"
+      - "app/**"
+      - "build/**"
       - "examples/learning-platform/interview-loop/**"
+      - "examples/learning-platform/llm-learning/**"
       - "examples/learning-platform/ten-problems/**"
+      - "next.config.ts"
       - "package-lock.json"
       - "package.json"
-      - "packages/course-kit/**"
-      - "public/open-learning/**"
-      - "public/question-groups/**"
-      - "scripts/build-learning-example-pages.mjs"
-      - "scripts/serve-learning-example-pages.mjs"
+      - "packages/**"
+      - "postcss.config.mjs"
+      - "products/**"
+      - "public/**"
+      - "scripts/**"
+      - "tsconfig.json"
+      - "vite.config.ts"
+      - "worker/**"
   workflow_dispatch:
 
 permissions:
@@ -48,6 +55,12 @@ jobs:
           git diff --exit-code -- docs public
       - name: Build both validated learner experiences
         run: npm run learning-examples:build
+      - name: Export the original LLM Systems course
+        run: npm run build:pages-course
+      - name: Add the original LLM Systems course
+        run: |
+          mkdir -p .pages-site/llm-systems
+          cp -R dist/client/. .pages-site/llm-systems/
       - name: Refuse to replace published version 1 schema bytes
         run: |
           for schema_path in \

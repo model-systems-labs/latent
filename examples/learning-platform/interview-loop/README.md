@@ -20,10 +20,12 @@ Anthropic, or any other employer.
 
 [Open the hosted course](https://model-systems-labs.github.io/latent/interview-loop/).
 
-The shared learner UI revision described here was verified with the combined
-local Pages preview, including its `/latent/` production-base aliases. Live
-deployment and verification are pending; local evidence is recorded in
-[AUTHORING.md](./AUTHORING.md).
+The shared learner UI revision described here was verified in the combined
+local Pages preview and in the
+[live learning suite](https://model-systems-labs.github.io/latent/) at merge
+commit `778994638801b2599c9691c98d0d7183b5a97463`. Desktop, mobile, keyboard,
+Python execution, persistence, subpath assets, and console evidence are
+recorded in [AUTHORING.md](./AUTHORING.md).
 
 ```bash
 npm run validate

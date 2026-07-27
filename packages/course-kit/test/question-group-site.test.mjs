@@ -47,6 +47,14 @@ test("Question Group builds are complete static practice sites with a leech quer
   assert.match(files["assets/player.js"], /button\.disabled = running/);
   assert.match(files["assets/player.js"], /runGuard\.isCurrent/);
   assert.match(files["assets/player.js"], /if \(!isCurrentRun\(\)\) return/);
+  assert.match(
+    files["assets/player.js"],
+    /question\.entrypoint\.kind === "function"[\s\S]*\(__latent_constructor_args, __latent_method_args\) => [\s\S]*\(\.\.\.__latent_method_args\)/,
+  );
+  assert.doesNotMatch(
+    files["assets/player.js"],
+    /\(\.\.\.__latent_args\) => [\s\S]*\(\.\.\.__latent_args\)/,
+  );
   assert.match(files["assets/sandbox.worker.js"], /"fetch",[\s\S]*"WebSocket"/);
   assert.match(files["_headers"], /connect-src 'none'/);
   assert.doesNotMatch(files["question-group-library.json"], /runtime-adapter\.js/);

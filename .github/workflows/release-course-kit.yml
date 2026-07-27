@@ -124,10 +124,14 @@ jobs:
           cp -R public/open-learning/. _schema-site/open-learning/
           cp -R public/question-groups/. _schema-site/question-groups/
           touch _schema-site/.nojekyll
-      - name: Add the validated course to the Pages root
+      - name: Add both validated learner experiences
         run: |
           npm run build --prefix examples/learning-platform/interview-loop
+          npm run build --prefix examples/learning-platform/ten-problems
           cp -R examples/learning-platform/interview-loop/dist/. _schema-site/
+          mkdir -p _schema-site/interview-loop _schema-site/practice
+          cp -R examples/learning-platform/interview-loop/dist/. _schema-site/interview-loop/
+          cp -R examples/learning-platform/ten-problems/dist/. _schema-site/practice/
       - name: Refuse to replace published version 1 schema bytes
         run: |
           for schema in learning-pack.schema.json learning-feed.schema.json; do

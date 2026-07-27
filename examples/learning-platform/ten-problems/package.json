@@ -1,0 +1,17 @@
+{
+  "name": "ten-problems",
+  "version": "1.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "course-kit:build": "npm --prefix ../../.. run build --workspace @latent/course-kit",
+    "test": "node --test test/*.test.mjs",
+    "validate": "npm run course-kit:build && node ../../../packages/course-kit/bin/latent-learning.mjs questions validate content/question-groups.json --strict --json && npm test",
+    "build": "npm run validate && node tools/build.mjs",
+    "preview": "npm run build && node ../../../packages/course-kit/bin/latent-learning.mjs questions serve dist --port 4174"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  }
+}

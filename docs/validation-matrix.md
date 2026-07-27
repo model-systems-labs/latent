@@ -167,5 +167,21 @@ Interview retains its collapsible module navigation.
 This is local Chromium emulation and keyboard inspection, not physical-device
 or formal screen-reader certification. The combined local route sweep recorded
 zero browser-console warnings or errors. The full `npm run validate` gate
-passed with 606 tests and zero failures. Live GitHub Pages verification remains
-pending.
+passed with 606 tests and zero failures.
+
+PR `#36` was squash-merged as
+`c9e86158a6b56882d098691d416d1c6001b7d698`. GitHub Actions Validate run
+`30277729862` and Deploy Learning Examples run `30277729464` completed
+successfully. Live Chromium checks at 1440 × 900 and 390 × 844 verified
+`/latent/`, `/latent/llm-systems/`, `/latent/interview-loop/`,
+`/latent/practice/`, and `/latent/practice/leeches/`: every product exposed
+one global learner header, loaded its shared assets from the Pages origin,
+fit without horizontal overflow, and recorded zero browser-console warnings
+or errors. Live Ten Problems execution produced actionable expected/received
+failure feedback, then passed the public example and all four published
+checks; solved progress advanced from two to three problems and remained
+three after reload, with **Continue** moving to the next unfinished problem.
+The live Interview route restored its digest-bound one-of-three module resume,
+and the original course loaded its generated shared CSS and JavaScript through
+the `/latent/llm-systems/` base path. Keyboard focus used the shared visible
+three-pixel indicator.

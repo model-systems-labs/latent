@@ -132,6 +132,11 @@ jobs:
           mkdir -p _schema-site/interview-loop _schema-site/practice
           cp -R examples/learning-platform/interview-loop/dist/. _schema-site/interview-loop/
           cp -R examples/learning-platform/ten-problems/dist/. _schema-site/practice/
+      - name: Add the original LLM Systems course
+        run: |
+          npm run build:pages-course
+          mkdir -p _schema-site/llm-systems
+          cp -R dist/client/. _schema-site/llm-systems/
       - name: Refuse to replace published version 1 schema bytes
         run: |
           for schema in learning-pack.schema.json learning-feed.schema.json; do

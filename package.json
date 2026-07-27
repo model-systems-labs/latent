@@ -13,6 +13,7 @@
     "dev": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext dev",
     "build": "npm run packages:build && npm run open-learning:generate && npm run build:web",
     "build:courses": "LATENT_PRODUCT_HOME=courses LATENT_HOSTING_CONFIG=products/courses/.openai/hosting.json npm run build",
+    "build:pages-course": "npm run packages:build && LATENT_PRODUCT_HOME=courses LATENT_GITHUB_PAGES_BASE_PATH=/latent/llm-systems LATENT_STATIC_EXPORT_ORIGIN=https://model-systems-labs.github.io/latent/llm-systems npm run build:web && node scripts/prepare-pages-course-export.mjs /latent/llm-systems",
     "build:framework": "LATENT_PRODUCT_HOME=framework LATENT_HOSTING_CONFIG=products/framework/.openai/hosting.json npm run build",
     "build:web": "npm run runtime:generate && WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext build && node scripts/prune-browser-only-ssr-assets.mjs",
     "start": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext start",

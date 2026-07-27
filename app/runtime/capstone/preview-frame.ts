@@ -4,9 +4,10 @@ import {
   isSourceHash,
   type SourceHash,
 } from "@latent/browser-lab";
+import { publicAssetPath } from "@/app/lib/public-asset-path";
 
 export const PREVIEW_FRAME_SANDBOX = "allow-scripts" as const;
-export const PREVIEW_REACT_RUNTIME_PATH = "/capstone-react-runtime.js" as const;
+export const PREVIEW_REACT_RUNTIME_PATH = publicAssetPath("/capstone-react-runtime.js");
 export const PREVIEW_HOST_GLOBAL = "__LATENT_PREVIEW_HOST__" as const;
 
 export type PreviewJson =

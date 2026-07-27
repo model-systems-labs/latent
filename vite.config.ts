@@ -5,6 +5,7 @@ import { sites } from "#sites-vite-plugin";
 
 // macOS Seatbelt blocks FSEvents, so Codex previews need polling for HMR.
 const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
+const githubPagesBasePath = process.env.LATENT_GITHUB_PAGES_BASE_PATH?.trim() || "";
 const productHome = process.env.LATENT_PRODUCT_HOME === "framework"
   ? "products/framework/home.ts"
   : "products/courses/home.ts";
@@ -54,6 +55,19 @@ export default defineConfig(async () => {
     },
     plugins: [
       vinext(),
+      {
+        name: "github-pages-base-path",
+        enforce: "post",
+        config() {
+          if (!githubPagesBasePath) return {};
+          return {
+            base: `${githubPagesBasePath}/`,
+            define: {
+              "process.env.__NEXT_ROUTER_BASEPATH": JSON.stringify(githubPagesBasePath),
+            },
+          };
+        },
+      },
       sites(),
       cloudflare({
         viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },

@@ -38,6 +38,28 @@
   color: var(--lesson-accent);
 }
 
+.causalMatrixScroll {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-gutter: stable;
+}
+
+.causalMatrixScroll:focus-visible {
+  outline: 2px solid var(--violet-deep);
+  outline-offset: 3px;
+}
+
+.causalMatrixScroll table {
+  min-width: 36rem;
+}
+
+.lessonShell :global(.paper-footer a) {
+  align-items: center;
+  display: inline-flex;
+  min-height: 2.75rem;
+}
+
 .lessonShell :global(.implementation-section .implementation-intro) {
   margin: -0.35rem 0 1.5rem;
 }
@@ -274,6 +296,8 @@
   .lessonShell :global(.paper-hero) { min-height: 0; padding: 1.1rem 0 0; }
   .lessonShell :global(.paper-hero h1) { font-size: clamp(2.15rem, 9vw, 2.65rem); white-space: normal; }
   .lessonShell :global(.paper-thesis) { margin-top: 0.85rem; }
+  .lessonShell :global(.transformer-stages li > div) { align-items: start; gap: 0.3rem; grid-template-columns: 1fr; }
+  .lessonShell :global(.transformer-stages code) { text-align: left; }
 
   .lessonShell :global(.source-set) { align-items: flex-start; display: grid; gap: 0.35rem; margin-top: 1.2rem; }
   .lessonShell :global(.source-set .source-list) { gap: 0 0.8rem; }

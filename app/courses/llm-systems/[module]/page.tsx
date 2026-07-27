@@ -6,6 +6,7 @@ import { CourseCurriculum } from "@/app/components/CourseCurriculum";
 import { moduleCheckpoint } from "@/examples/learning-platform/llm-learning/content/llm-systems/learning";
 import { PageAtmosphere } from "@/app/components/PageAtmosphere";
 import { LearnerHeader } from "@/app/components/LearnerHeader";
+import { LearnerActionLink } from "@/app/components/LearnerActionLink";
 
 export function generateStaticParams() {
   return courseTracks.map((track) => ({ module: track.id }));
@@ -31,13 +32,13 @@ export default async function LlmSystemsModulePage({ params }: { params: Promise
       <PageAtmosphere />
       <LearnerHeader current="courses" />
       <header className="site-header course-header" style={{ height: "auto", minHeight: "3.35rem" }}>
-        <Link href="/courses/llm-systems">Course</Link>
+        <LearnerActionLink href="/courses/llm-systems">Course</LearnerActionLink>
         <nav aria-label="Course tools">
           <Link href="/project">Project</Link>
           <Link href="/workspace">Coding workspace</Link>
         </nav>
       </header>
-      <article className="course-page track-page">
+      <article className="course-page track-page" id="main-content" tabIndex={-1}>
         <header className="course-hero track-hero catalog-track-hero">
           <p className="eyebrow">Build an LLM System</p>
           <h1>{track.title}</h1>
@@ -51,8 +52,8 @@ export default async function LlmSystemsModulePage({ params }: { params: Promise
           </Link>
         ) : null}
         <footer className="track-navigation">
-          {previous ? <Link href={`/courses/llm-systems/${previous.id}`}>← {previous.title}</Link> : <Link href="/courses/llm-systems">← Course home</Link>}
-          {next ? <Link href={`/courses/llm-systems/${next.id}`}>{next.title} →</Link> : <Link href="/capstone">Build the capstone →</Link>}
+          {previous ? <LearnerActionLink href={`/courses/llm-systems/${previous.id}`}>← {previous.title}</LearnerActionLink> : <LearnerActionLink href="/courses/llm-systems">← Course home</LearnerActionLink>}
+          {next ? <LearnerActionLink href={`/courses/llm-systems/${next.id}`}>{next.title} →</LearnerActionLink> : <LearnerActionLink href="/capstone">Build the capstone →</LearnerActionLink>}
         </footer>
       </article>
     </main>

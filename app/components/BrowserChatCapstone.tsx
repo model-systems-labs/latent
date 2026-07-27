@@ -37,6 +37,7 @@ import { CAPSTONE_COMPONENT_PATH as CANONICAL_CAPSTONE_COMPONENT_PATH } from "@/
 import { PYTHON_CHARACTER_RNN_PATH } from "@/app/features/python/character-rnn-source";
 import { courseLessons, getLesson } from "@/examples/learning-platform/llm-learning/lessons/course";
 import { portfolioReadiness } from "@/app/lib/portfolio-export";
+import styles from "@/app/components/BrowserChatCapstone.module.css";
 
 const ALLOWED_METHODS = new Set(["initialize", "load-local", "generate", "cancel", "persist"]);
 
@@ -977,20 +978,20 @@ export function BrowserChatCapstone() {
   );
 
   return (
-    <main className="compiled-capstone-shell">
-      <header className="capstone-topbar">
+    <main className={`compiled-capstone-shell ${styles.shell}`} id="main-content" tabIndex={-1}>
+      <header className={`capstone-topbar ${styles.topbar}`}>
         <Link href="/courses/llm-systems">LLM Systems</Link>
         <div><strong>Browser Chat</strong></div>
         <nav><Link href="/courses/llm-systems">LLM Systems</Link><Link href="/project">Project</Link><Link href="/workspace">IDE</Link></nav>
       </header>
       {presentedStatus === "ready" && bundle && reactRuntime && buildRuntime && runRequested ? (
-        <section className="compiled-capstone-runtime">
+        <section className={`compiled-capstone-runtime ${styles.runtime}`}>
           <header><strong role="status" aria-live="polite" aria-atomic="true">{detail}</strong><button ref={resetPreviewButtonRef} type="button" onClick={() => { restoreRunFocusRef.current = true; setRunRequested(false); }}>Reset preview</button></header>
           <iframe ref={iframeRef} title="Browser Chat compiled project" sandbox="allow-scripts" />
         </section>
       ) : (
         <section
-          className={`capstone-build-gate ${presentedStatus}`}
+          className={`capstone-build-gate ${styles.gate} ${presentedStatus}`}
           aria-labelledby="capstone-gate-title"
           aria-busy={presentedStatus === "loading"}
         >

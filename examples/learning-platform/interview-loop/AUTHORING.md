@@ -579,3 +579,94 @@ strict Learning Pack and Question Group validation with zero warnings and all
 mutation detection, nested-alias rejection, runtime admission, and fail-closed
 cleanup. `npm run build` passed and emitted 28 files, including the shared
 learner assets and eight recorded same-origin Python runtime assets.
+
+## Mobile learning-suite follow-up — 2026-07-27
+
+This follow-up tested the three published learning products as one mobile
+suite, rather than treating responsive CSS as a per-example concern.
+`packages/course-kit/src/learner-ui.ts` remains the common token, shell,
+navigation, control, progress, feedback, editor, focus, and breakpoint source.
+`packages/course-kit/src/question-group-site.ts` now also owns centered,
+visible focus transfer after a mobile problem change and separates detailed
+keyboard-scrollable results from concise live announcements.
+
+Interview Loop keeps its course-specific module, quiz, flash-card, practice,
+and IDE composition in `site/app.mjs` and `site/styles.css`.
+`site/focus.mjs` is the reviewed focus/reveal helper used after rerenders:
+module and practice navigation close their compact disclosure, reveal the new
+heading, scroll it into view, and only then focus it. Repeated-miss filtering
+reopens the compact problem panel before returning focus to the checkbox.
+The helper and its test are explicit validation inputs in
+`tools/validate.mjs`.
+
+The original React course consumes the same family language through these
+trusted sources:
+
+- `app/components/LearnerHeader.tsx` and
+  `app/components/LearnerHeader.module.css` provide separate, semantically
+  truthful desktop navigation and a compact disclosure.
+- `app/components/SkipLink.tsx` links to server-rendered `#main-content`
+  targets placed after learner navigation; no hydration-time mutation is
+  required.
+- `app/components/LearnerActionLink.tsx`, `CourseCurriculum.module.css`,
+  `CourseResume.module.css`, and `ModuleCheckpoint.module.css` keep contextual
+  actions at least 44 pixels high.
+- `app/components/PaperLab.module.css` contains the bounded,
+  keyboard-scrollable Transformer matrix and narrow-screen lesson treatment.
+- `app/components/WorkspaceShell.tsx`,
+  `WorkspaceShell.module.css`, and
+  `BrowserChatCapstone.module.css` account for the family header at portrait
+  and short-landscape breakpoints. The workspace server-renders a readable
+  loading state and does not stream the deferred workbench before its styles.
+- `scripts/check-performance-budget.mjs` now measures aggregate CSS referenced
+  by representative exported course, lesson, IDE, and capstone routes, not
+  only the largest individual stylesheet.
+
+No portable format or runtime authority changed. Interview Loop still owns
+its digest-bound module/card state and trusted Python IDE contracts; Ten
+Problems still owns its Question Group progress and Python worker; the
+original course still owns its cumulative project, checkpoints, workspace,
+and capstone.
+
+### Mobile visual comparison
+
+| Concern | Before this follow-up | After |
+| --- | --- | --- |
+| Family navigation | At some compact widths the React course could paint desktop links beside the Menu control; the closed disclosure also disagreed with desktop accessibility semantics before hydration. | Desktop and compact navigation have separate stable markup, and exactly one is visible and exposed at each breakpoint. |
+| Focus after navigation | A newly selected Interview module or Ten Problems problem could receive focus above the viewport, with its focus outline clipped. | Selection closes the panel and centers the new heading; repeated-miss focus remains visible inside its reopened panel. |
+| Full-height coding | IDE and capstone height rules did not consistently subtract the family header, especially between 651 and 760 pixels or in short landscape. | The workspace and capstone share the 760-pixel/500-pixel-height compact contract and fill the remaining viewport when their content fits. |
+| Dense output | Long code, case output, and narrow Transformer tables could make the document feel cramped. | Text wraps within result panels, editors retain readable 16-pixel compact type, and wide tables scroll inside a labelled focused region without document overflow. |
+
+### Validation and express user evidence
+
+- `npm run validate` passed 475 application tests plus every workspace and
+  package suite, strict example validation, TypeScript, ESLint, production
+  build, boundaries, and performance gates.
+- `npm run learning-examples:build` produced the exact 441-file Pages artifact
+  with 95 rendered original-course routes and `/`, `/llm-systems/`,
+  `/interview-loop/`, `/practice/`, and `/practice/leeches/`.
+- Route CSS measured 175.8 KiB for the course, 185.1 KiB for a representative
+  lesson, 176.4 KiB for the IDE shell, and 176.5 KiB for the capstone, each
+  below the 220 KiB aggregate route ceiling. The IDE, editor, lesson
+  experiment, and local Transformer remain deferred.
+- In-app Chromium covered 11 combined Pages routes at 320 × 800, 360 × 800,
+  390 × 844, 430 × 932, and 844 × 390: 55 route/viewport checks with no
+  horizontal document overflow or off-origin assets. A final 390 × 844 sweep
+  recorded no console warnings or errors.
+- The beginning-learner pass moved from Learning Studio into each product,
+  found Continue, opened compact navigation, read a first lesson/problem, and
+  understood public examples and saved progress without framework knowledge.
+- The advanced pass covered direct Interview module navigation, wrong/correct
+  quiz feedback, card rating and reload, Python IDE failure/success and reload,
+  repeated-miss filtering, Ten Problems problem navigation, Python example
+  and full-check failure/success, automatic continuation, draft/progress
+  persistence, repeated-miss entry/removal, keyboard menu Escape restoration,
+  skip-link transfer, Transformer matrix scrolling, and original-course
+  lesson quiz/card/IDE/capstone states.
+- Focused browser measurements confirmed the compact workspace occupies the
+  exact remaining viewport (`64 px` family header plus a `780 px` shell in a
+  `390 × 844` viewport), and the capstone gate ends at the same viewport
+  boundary when its content fits.
+- This evidence is Chromium emulation and keyboard inspection, not a physical
+  iOS/Android or formal screen-reader certification. Those surfaces remain
+  external manual checks.

@@ -17,7 +17,7 @@ export default function PracticePage() {
       <PageAtmosphere />
       <LearnerHeader className={styles.topbar} current="practice" />
 
-      <article className={styles.page}>
+      <article className={styles.page} id="main-content" tabIndex={-1}>
         <header className={styles.hero}>
           <span className="eyebrow">Method practice · runs on this device</span>
           <h1>Read it. Write it. Check it.</h1>

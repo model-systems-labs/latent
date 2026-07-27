@@ -300,3 +300,76 @@ The following evidence belongs to the shared learner UI revision.
   Python execution and persistence after reload.
 
 The table above is the concise before/after visual record.
+
+## Mobile learning-suite follow-up — 2026-07-27
+
+The final mobile pass treated Ten Problems, Interview Loop, and the original
+LLM Systems course as one learning suite. The shared source remains
+`packages/course-kit/src/learner-ui.ts`; Ten Problems consumes it directly
+through `packages/course-kit/src/question-group-site.ts` and
+`site-config.mjs`, with no generated-output renaming or styling patch.
+
+The Question Group player now closes compact problem navigation before
+rerendering, centers and visibly focuses the replacement problem heading,
+keeps detailed results keyboard-focusable, and uses a separate concise live
+announcement. Editing an active run aborts its identity and clears the stale
+Running state. These behaviors remain trusted player source; the portable
+Question Group JSON and digest-bound progress contract are unchanged.
+
+The wider suite uses the following reviewed mobile sources:
+
+- `packages/course-kit/src/learner-ui.ts` and
+  `packages/course-kit/src/question-group-site.ts` for shared tokens, shell,
+  header, controls, editor, results, progress, compact problem navigation, and
+  focus behavior.
+- `examples/learning-platform/interview-loop/site/focus.mjs`,
+  `site/app.mjs`, and `site/styles.css` for the specialized course rerender and
+  compact module/practice flows.
+- `app/components/LearnerHeader.tsx`,
+  `LearnerHeader.module.css`, and `SkipLink.tsx` for truthful desktop/mobile
+  family navigation and server-rendered post-navigation skip targets in the
+  original React course.
+- `app/components/PaperLab.module.css`, `WorkspaceShell.tsx`,
+  `WorkspaceShell.module.css`, and `BrowserChatCapstone.module.css` for the
+  specialized lesson, IDE, and capstone mobile layouts.
+- `scripts/check-performance-budget.mjs` for aggregate CSS budgets on
+  representative exported suite routes.
+
+### Mobile visual comparison
+
+| Concern | Before this follow-up | After |
+| --- | --- | --- |
+| Problem changes | Focus could land at the viewport edge after the compact list collapsed. | The new heading is centered with a visible 3-pixel outline and the list remains closed. |
+| Results and output | Long expected/received values could be difficult to inspect by keyboard. | Results wrap within the panel, the detailed region is focusable, and concise pass/fail text is announced separately. |
+| Suite navigation | The React course could show desktop family links beside its compact Menu and expose a different semantic state before hydration. | All three products expose one truthful desktop or compact family navigation at a time. |
+| Coding layout | Header subtraction, editor type, and dense feedback differed across products. | Compact editors use readable 16-pixel type, primary targets are at least 44 pixels, and IDE/capstone shells account for the family header. |
+
+### Validation and express user evidence
+
+- `npm run validate` passed 475 application tests plus all package/workspace
+  suites, strict learning-example validation, TypeScript, ESLint, the
+  production build, boundaries, and performance gates.
+- Strict Ten Problems validation passed 4 groups, 10 questions, 39 cases, and
+  zero warnings; all six example tests passed, including all 39 cases in real
+  CPython. Interview Loop passed its 13 focused tests and all 13 real-Python
+  authored cases.
+- `npm run learning-examples:build` produced 441 files and 95 rendered
+  original-course routes. Aggregate route CSS was 175.8–185.1 KiB against the
+  220 KiB ceilings, and all intended runtime/editor boundaries remained
+  deferred.
+- In-app Chromium checked 11 routes at 320 × 800, 360 × 800, 390 × 844,
+  430 × 932, and 844 × 390: 55 combinations with no horizontal document
+  overflow or off-origin assets. A final 390 × 844 route sweep recorded no
+  console warnings or errors.
+- The beginning-learner pass verified the Studio handoff, compact Menu,
+  Continue destination, visible public example, plain-language failure, and
+  automatic move to the next unsolved problem.
+- The advanced pass verified problem-list focus, example failure/success,
+  complete-check failure/success, focusable detailed results, saved source and
+  solved progress after reload, repeated-miss appearance after three attempts
+  and two misses, removal after success, and keyboard Escape focus
+  restoration. Parallel passes covered Interview quiz/card/IDE states and the
+  original course lesson quiz, flash-card persistence, scrollable Transformer
+  matrix, IDE, skip link, and capstone viewport.
+- This is browser emulation and keyboard inspection, not a physical
+  iOS/Android or formal screen-reader certification.

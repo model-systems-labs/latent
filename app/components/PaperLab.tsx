@@ -409,17 +409,19 @@ export function DiagramSection({ lesson }: { lesson: CourseLesson }) {
           </ol>
           <div className="causal-matrix-block">
             <div className="matrix-heading">
-              <span>Rows are queries · columns are keys</span>
+              <span id="causal-matrix-heading">Rows are queries · columns are keys</span>
               <code>P = softmax(mask(QKᵀ / √d_k))</code>
             </div>
-            <table aria-label="Three-token causal attention probability matrix">
-              <thead><tr><th scope="col">query ↓ / key →</th><th scope="col">the</th><th scope="col">receiver</th><th scope="col">decoded</th><th scope="col">‖context‖</th></tr></thead>
-              <tbody>
-                <tr><th scope="row">the</th><td>1.00</td><td className="masked-cell">0</td><td className="masked-cell">0</td><td>1.00</td></tr>
-                <tr><th scope="row">receiver</th><td>0.20</td><td>0.80</td><td className="masked-cell">0</td><td>0.82</td></tr>
-                <tr><th scope="row">decoded</th><td>0.20</td><td>0.33</td><td>0.46</td><td>0.60</td></tr>
-              </tbody>
-            </table>
+            <div className={styles.causalMatrixScroll} role="region" aria-labelledby="causal-matrix-heading" tabIndex={0}>
+              <table aria-label="Three-token causal attention probability matrix">
+                <thead><tr><th scope="col">query ↓ / key →</th><th scope="col">the</th><th scope="col">receiver</th><th scope="col">decoded</th><th scope="col">‖context‖</th></tr></thead>
+                <tbody>
+                  <tr><th scope="row">the</th><td>1.00</td><td className="masked-cell">0</td><td className="masked-cell">0</td><td>1.00</td></tr>
+                  <tr><th scope="row">receiver</th><td>0.20</td><td>0.80</td><td className="masked-cell">0</td><td>0.82</td></tr>
+                  <tr><th scope="row">decoded</th><td>0.20</td><td>0.33</td><td>0.46</td><td>0.60</td></tr>
+                </tbody>
+              </table>
+            </div>
             <p><span>Before softmax</span> every cell above the diagonal is −Infinity. <span>In this small example</span> the values use unit basis rows, so each probability row, rounded to two decimals, is also its context vector and gives the norm shown here.</p>
           </div>
           <div className="transformer-block-boundary">
@@ -1632,7 +1634,7 @@ export function PaperLab({
         <span>{lesson.courseTitle ?? "Model Foundations"}</span>
       </div>
       {persistenceError ? <p className="persistence-warning lesson-persistence-warning" role="alert">Storage warning: {persistenceError}</p> : null}
-      <article className="paper-page" id="top">
+      <article className="paper-page" id="main-content" tabIndex={-1}>
         <HeaderSection lesson={lesson} />
         <EditorialLessonIllustration lesson={lesson} />
         <EvidenceAndLimits lesson={lesson} />

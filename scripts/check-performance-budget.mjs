@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 
 const clientRoot = join(process.cwd(), "dist", "client");
 const assetRoot = join(clientRoot, "assets");
@@ -45,6 +45,49 @@ function enforceLargestCss(maximum) {
   if (bytes > maximum) failures.push(`Largest stylesheet exceeds its budget by ${kib(bytes - maximum)}`);
 }
 
+function enforceExportedRouteCss(route, label, maximum, options = {}) {
+  const htmlPath = join(clientRoot, route, "index.html");
+  if (!existsSync(htmlPath)) return;
+  const html = readFileSync(htmlPath, "utf8");
+  if (!html.includes("data-learner-family-header")) {
+    failures.push(`${label}: exported route is missing the learning-suite header`);
+    return;
+  }
+  const stylesheets = [...html.matchAll(/<link\b[^>]*>/g)]
+    .filter((match) => /\brel="stylesheet"/.test(match[0]))
+    .map((match) => match[0].match(/\bhref="([^"]+\.css)"/)?.[1])
+    .filter((href) => href !== undefined)
+    .map((href) => basename(new URL(href, "https://static.invalid").pathname));
+  const uniqueStylesheets = [...new Set(stylesheets)];
+  if (uniqueStylesheets.length === 0) {
+    failures.push(`${label}: exported route has no linked stylesheets`);
+    return;
+  }
+  let bytes = 0;
+  for (const asset of uniqueStylesheets) {
+    const path = join(assetRoot, asset);
+    if (!existsSync(path)) {
+      failures.push(`${label}: linked stylesheet ${asset} is missing`);
+      continue;
+    }
+    bytes += statSync(path).size;
+  }
+  measurements.push(`${label} route CSS: ${kib(bytes)} / ${kib(maximum)}`);
+  if (bytes > maximum) {
+    failures.push(`${label} route CSS exceeds its aggregate budget by ${kib(bytes - maximum)}`);
+  }
+  for (const forbidden of options.forbid ?? []) {
+    if (uniqueStylesheets.some((asset) => forbidden.test(asset))) {
+      failures.push(`${label}: deferred stylesheet unexpectedly entered server HTML (${forbidden})`);
+    }
+  }
+  for (const required of options.require ?? []) {
+    if (!uniqueStylesheets.some((asset) => required.test(asset))) {
+      failures.push(`${label}: required stylesheet is missing from server HTML (${required})`);
+    }
+  }
+}
+
 function manifestEntryForSource(source) {
   if (manifest[source]) return [source, manifest[source]];
 
@@ -85,7 +128,15 @@ function requireDeferredModule(source, label) {
 
 // These are regression ceilings, not performance targets. They protect the
 // reading path from accidentally absorbing the IDE, compiler, or local model.
-enforceLargestCss(180 * 1024);
+// The project workspace now server-renders its useful first frame and therefore
+// includes the editor's structural CSS in the initial document.
+enforceLargestCss(181 * 1024);
+enforceExportedRouteCss("courses/llm-systems", "Course home", 220 * 1024);
+enforceExportedRouteCss("lessons/transformers", "Representative lesson", 220 * 1024);
+enforceExportedRouteCss("workspace", "Project IDE shell", 220 * 1024, {
+  require: [/^ProjectWorkbench-.*\.css$/],
+});
+enforceExportedRouteCss("capstone", "Capstone shell", 220 * 1024);
 enforceAsset("Lesson runtime", /^PaperLab-.*\.js$/, 150 * 1024);
 enforceAsset("Project IDE", /^ProjectWorkbench-.*\.js$/, 560 * 1024);
 enforceAsset("Local Transformer runtime", /^local-transformer-runtime-.*\.js$/, 900 * 1024);

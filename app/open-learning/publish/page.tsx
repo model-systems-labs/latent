@@ -15,7 +15,7 @@ export default function LearningPackPublisherPage() {
     <main>
       <PageAtmosphere />
       <FrameworkHeader current="publish" />
-      <article className={`${styles.shell} ${styles.toolShell}`}>
+      <article className={`${styles.shell} ${styles.toolShell}`} id="main-content" tabIndex={-1}>
         <header className={styles.toolHero}>
           <span className="eyebrow">Publisher workflow</span>
           <h1>Build a portable Learning Pack you host.</h1>

@@ -96,7 +96,7 @@ export function FrameworkLanding() {
       <PageAtmosphere />
       <FrameworkHeader current="overview" />
 
-      <article className={styles.shell}>
+      <article className={styles.shell} id="main-content" tabIndex={-1}>
         <section className={styles.hero}>
           <span className="eyebrow">Open source · local-first · built for agents</span>
           <h1>Build learning software that runs in the browser.</h1>

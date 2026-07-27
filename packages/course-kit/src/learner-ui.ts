@@ -265,6 +265,7 @@ body.learner-ui {
   gap: .65rem;
   letter-spacing: -.015em;
   line-height: 1.1;
+  min-height: 2.75rem;
   text-decoration: none;
 }
 .learner-wordmark__mark {
@@ -291,7 +292,7 @@ body.learner-ui {
   display: none;
   font-size: .82rem;
   font-weight: 700;
-  min-height: 2.6rem;
+  min-height: 2.75rem;
   padding: .5rem .8rem;
 }
 .learner-nav-menu > summary::marker { content: ""; }
@@ -314,11 +315,13 @@ body.learner-ui {
 }
 .learner-global-nav a,
 .learner-primary-nav a {
+  align-items: center;
   border-radius: var(--learner-radius-sm);
   color: var(--learner-color-muted);
+  display: inline-flex;
   font-size: .82rem;
   font-weight: 680;
-  min-height: 2.5rem;
+  min-height: 2.75rem;
   padding: .58rem .8rem;
   text-decoration: none;
 }
@@ -458,6 +461,8 @@ body.learner-ui {
   border-radius: var(--learner-radius-md);
   margin-top: var(--learner-space-4);
   min-height: 5rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
   padding: var(--learner-space-4);
 }
 .learner-results h3 {
@@ -692,11 +697,12 @@ body.learner-ui {
   }
   .learner-nav-menu__panel nav + nav { padding-top: var(--learner-space-1); }
   .learner-global-nav a,
-  .learner-primary-nav a { display: block; }
+  .learner-primary-nav a { display: flex; }
   .learner-mobile-panel > summary { display: flex; }
   .learner-mobile-panel:not([open]) > .learner-mobile-panel__content { display: none; }
   .learner-content { padding: var(--learner-space-5) var(--learner-space-4); }
   .learner-button { min-height: 2.9rem; }
+  .learner-editor { font-size: 1rem; }
   .learner-footer__inner { flex-direction: column; }
 }
 @media (min-width: ${LEARNER_UI_BREAKPOINTS.compact + 1}px) {
@@ -772,7 +778,7 @@ export function renderLearnerHeader(options: LearnerUiHeaderOptions) {
   <div class="learner-header__inner">
     <a class="learner-wordmark" href="${escapeHtml(homeHref)}" aria-label="${escapeHtml(homeLabel)}"><i class="learner-wordmark__mark" aria-hidden="true"></i><span>${escapeHtml(productName)}</span></a>
     ${meta}
-    <details class="learner-nav-menu" open>
+    <details class="learner-nav-menu">
       <summary>${escapeHtml(menuLabel)}</summary>
       <div class="learner-nav-menu__panel">
         ${globalNavigation}

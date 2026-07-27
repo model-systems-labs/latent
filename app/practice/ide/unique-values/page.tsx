@@ -15,7 +15,7 @@ export default function UniqueValuesIdePage() {
       <PageAtmosphere />
       <LearnerHeader className={styles.topbar} current="practice" />
 
-      <article className={styles.page}>
+      <article className={styles.page} id="main-content" tabIndex={-1}>
         <header className={styles.hero}>
           <span className="eyebrow">Method practice · TypeScript</span>
           <h1>Keep unique values.</h1>

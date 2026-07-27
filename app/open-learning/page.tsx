@@ -33,7 +33,7 @@ export default function OpenLearningPage() {
       <PageAtmosphere />
       <FrameworkHeader current="open-learning" />
 
-      <article className={styles.shell}>
+      <article className={styles.shell} id="main-content" tabIndex={-1}>
         <header className={styles.hero}>
           <span className="eyebrow">An open format · not another content silo</span>
           <h1>Anyone can publish a lesson.</h1>

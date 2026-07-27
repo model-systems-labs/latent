@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { coursePrograms, courseTracks, getCourseProgram } from "@/examples/learning-platform/llm-learning/lessons/course";
 import { CourseGuide } from "@/app/components/CourseGuide";
 import { CourseCurriculum } from "@/app/components/CourseCurriculum";
 import { LearnerHeader } from "@/app/components/LearnerHeader";
+import { LearnerActionLink } from "@/app/components/LearnerActionLink";
 import { PageAtmosphere } from "@/app/components/PageAtmosphere";
 
 export function generateStaticParams() {
@@ -40,7 +40,7 @@ export default async function StandaloneCoursePage({ params }: { params: Promise
     <main>
       <PageAtmosphere />
       <LearnerHeader current="courses" />
-      <article className="course-page track-page standalone-course-page">
+      <article className="course-page track-page standalone-course-page" id="main-content" tabIndex={-1}>
         <header className="course-hero track-hero catalog-track-hero">
           <p className="eyebrow">{courseKind} course · {program.lessons.length} lessons</p>
           <h1>{program.title}</h1>
@@ -55,8 +55,8 @@ export default async function StandaloneCoursePage({ params }: { params: Promise
         />
         <CourseCurriculum title={program.title} lessons={program.lessons} completionLabel="Course lessons complete" />
         <footer className="track-navigation">
-          {previous ? <Link href={previous.href}>← {previous.title}</Link> : <Link href="/course">← All courses</Link>}
-          {next ? <Link href={next.href}>{next.title} →</Link> : <Link href="/course">All courses ↑</Link>}
+          {previous ? <LearnerActionLink href={previous.href}>← {previous.title}</LearnerActionLink> : <LearnerActionLink href="/course">← All courses</LearnerActionLink>}
+          {next ? <LearnerActionLink href={next.href}>{next.title} →</LearnerActionLink> : <LearnerActionLink href="/course">All courses ↑</LearnerActionLink>}
         </footer>
       </article>
     </main>

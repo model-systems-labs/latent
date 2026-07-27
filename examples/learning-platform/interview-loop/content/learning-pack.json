@@ -3,7 +3,7 @@
   "schemaVersion": 1,
   "package": {
     "id": "latent-demos/interview-loop",
-    "version": "1.2.0",
+    "version": "2.0.0",
     "title": "Interview Loop Lab",
     "description": "A compact preparation lab for experienced software engineers practicing behavioral stories, coding communication, and defensible system-architecture decisions.",
     "language": "en-US",
@@ -122,14 +122,14 @@
       "note": "Firsthand SRE material supporting symptom-oriented monitoring and the latency, traffic, errors, and saturation signals used in the architecture framework."
     },
     {
-      "id": "ecma-map",
+      "id": "python-dict",
       "kind": "specification",
-      "title": "ECMAScript keyed collections",
-      "url": "https://tc39.es/ecma262/multipage/keyed-collections.html#sec-map-objects",
+      "title": "Python built-in mapping types: dict",
+      "url": "https://docs.python.org/3/library/stdtypes.html#mapping-types-dict",
       "authors": [
-        "Ecma International"
+        "Python Software Foundation"
       ],
-      "note": "The language specification for Map and Set behavior used by the JavaScript coding examples and practice exercises."
+      "note": "Official Python documentation for dictionaries, the keyed collection used by the Python coding examples and practice exercises."
     }
   ],
   "lessons": [
@@ -294,7 +294,7 @@
       "sourceIds": [
         "openai-interview-guide",
         "anthropic-careers",
-        "ecma-map"
+        "python-dict"
       ],
       "prerequisiteLessonIds": [
         "behavioral-evidence"
@@ -316,14 +316,14 @@
             "Step 1 of 4 — Collapse attempts: preserve the first record for each key in first-seen order. Target O(n) time and O(u) space for n attempts and u unique keys.",
             "Step 2 of 4 — Summarize an unsorted window: count matching signals without sorting or early exit. Target O(n) time and O(1) auxiliary space.",
             "Step 3 of 4 — Enforce per-tenant admission: preserve global arrival order while applying independent limits. Target O(n) time and O(t) space for t tenants.",
-            "Step 4 of 4 — Schedule bounded retries in the IDE: return a fresh delay sequence without mutating policy input. Target O(r) time and O(r) output space for r admitted retries."
+            "Step 4 of 4 — Schedule bounded retries in the IDE: return a fresh delay sequence and leave policy input equal to its original value when the function returns. Target O(r) time and O(r) output space for r admitted retries."
           ]
         },
         {
           "type": "code",
-          "language": "javascript",
-          "caption": "Display-only sketch: a Map can make the deduplication invariant explicit.",
-          "code": "function firstResultPerKey(results) {\n  const first = new Map();\n  for (const result of results) {\n    if (!first.has(result.key)) first.set(result.key, result);\n  }\n  return [...first.values()];\n}"
+          "language": "python",
+          "caption": "Display-only sketch: a dictionary can make the deduplication invariant explicit.",
+          "code": "def first_result_per_key(results):\n    first = {}\n    for result in results:\n        if result[\"key\"] not in first:\n            first[result[\"key\"]] = dict(result)\n    return list(first.values())"
         },
         {
           "type": "callout",
@@ -357,7 +357,7 @@
           "sourceIds": [
             "openai-interview-guide",
             "anthropic-careers",
-            "ecma-map"
+            "python-dict"
           ]
         },
         {
@@ -375,16 +375,16 @@
             },
             {
               "id": "set",
-              "text": "Scan once, append only keys absent from a Set, and retain the first record in O(n) time and O(u) space."
+              "text": "Scan once, append only keys absent from a set, and retain the first record in O(n) time and O(u) space."
             }
           ],
           "correctChoiceId": "set",
-          "explanation": "The Set records every previously seen key, including non-adjacent duplicates, while a single left-to-right scan preserves first-seen order.",
+          "explanation": "The set records every previously seen key, including non-adjacent duplicates, while a single left-to-right scan preserves first-seen order.",
           "objectiveIds": [
             "solve-code-aloud"
           ],
           "sourceIds": [
-            "ecma-map",
+            "python-dict",
             "openai-interview-guide"
           ]
         }
@@ -592,7 +592,7 @@
         "aws-reliability",
         "aws-tradeoffs",
         "google-sre-monitoring",
-        "ecma-map"
+        "python-dict"
       ],
       "cards": [
         {
@@ -672,7 +672,7 @@
           ],
           "sourceIds": [
             "openai-interview-guide",
-            "ecma-map"
+            "python-dict"
           ],
           "tags": [
             "coding",

@@ -7,7 +7,7 @@ import {
   progressMatchesIdentity,
   sha256Hex,
 } from "./progress.mjs";
-import { admitRuntimeLimits } from "./runtime-policy.mjs";
+import { interviewPythonRuntime } from "./assets/python-runtime.mjs";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -53,43 +53,40 @@ function setStatus(node, message, tone = "neutral") {
   announce(message);
 }
 
-async function runInWorker(source, entrypoint, cases, limits = {}) {
-  const admittedLimits = admitRuntimeLimits(limits);
-  const worker = new Worker("./runner.worker.mjs", { type: "module" });
-  const id = crypto.randomUUID();
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      worker.terminate();
-      reject(new Error("The bounded browser run exceeded its total time budget and was stopped."));
-    }, admittedLimits.timeoutMs * Math.max(cases.length, 1) + 250);
-    worker.addEventListener("message", (event) => {
-      if (event.data?.id !== id) return;
-      clearTimeout(timer);
-      worker.terminate();
-      if (
-        event.data.ok
-        && Array.isArray(event.data.results)
-        && event.data.results.every((result) => (
-          result
-          && typeof result.id === "string"
-          && typeof result.passed === "boolean"
-          && Array.isArray(result.assertions)
-          && result.assertions.every((assertion) => (
-            assertion
-            && typeof assertion.id === "string"
-            && typeof assertion.passed === "boolean"
-          ))
-        ))
-      ) resolve(event.data.results);
-      else reject(new Error(event.data.error ?? "The browser worker returned an invalid result."));
-    });
-    worker.addEventListener("error", () => {
-      clearTimeout(timer);
-      worker.terminate();
-      reject(new Error("The browser worker could not run this source."));
-    });
-    worker.postMessage({ id, source, entrypoint, cases, limits: admittedLimits });
+async function runPythonChecks(
+  source,
+  path,
+  entrypoint,
+  cases,
+  requirement,
+) {
+  if (!interviewPythonRuntime.supports(requirement)) {
+    throw new Error("This exercise does not declare the supported Python runtime.");
+  }
+  const results = await interviewPythonRuntime.run({
+    source,
+    path,
+    entrypoint,
+    cases,
+    requirement,
   });
+  if (
+    !Array.isArray(results)
+    || !results.every((result) => (
+      result
+      && typeof result.id === "string"
+      && typeof result.passed === "boolean"
+      && Array.isArray(result.assertions)
+      && result.assertions.every((assertion) => (
+        assertion
+        && typeof assertion.id === "string"
+        && typeof assertion.passed === "boolean"
+      ))
+    ))
+  ) {
+    throw new Error("The Python worker returned an invalid result.");
+  }
+  return results;
 }
 
 function renderBlock(block, quizContext) {
@@ -398,7 +395,7 @@ function renderPractice(library, state) {
   const rail = element("aside", { className: "rail" }, [
     element("p", { className: "kicker", text: "Portable Question Groups" }),
     element("h2", { id: "practice-heading", text: "Practice" }),
-    element("p", { className: "summary", text: "Run declarative cases in a fresh browser worker. Repeated misses become leeches in your device progress." }),
+    element("p", { className: "summary", text: "Run declarative cases with Python in a fresh browser worker. Repeated misses become leeches in your device progress." }),
     element("label", { className: "filter", htmlFor: toggleId }, [toggle, element("span", { text: "Leeches only" })]),
   ]);
   const list = element("ul", { className: "question-list" });
@@ -461,15 +458,16 @@ function renderPractice(library, state) {
   const run = element("button", { className: "primary-button", type: "button", text: "Check solution" });
   run.addEventListener("click", async () => {
     run.disabled = true;
-    setStatus(status, "Running bounded browser checks…");
+    setStatus(status, "Starting Python checks in a fresh browser worker…");
     try {
       const submittedSource = editor.value;
       const runtime = library.runtimes.find((entry) => entry.id === question.runtimeId);
-      const runResults = await runInWorker(
+      const runResults = await runPythonChecks(
         submittedSource,
+        question.path,
         question.entrypoint,
         question.cases,
-        runtime?.limits,
+        runtime,
       );
       if (editor.value !== submittedSource) {
         throw new Error("Source changed while checks ran. Run the current source again.");
@@ -515,7 +513,7 @@ function renderIde(exercises, state) {
     element("h2", { id: "ide-heading", text: "IDE" }),
     element("p", { className: "summary", text: exercise.summary }),
     element("ul", { className: "meta-list" }, [
-      element("li", {}, [element("span", { text: "Runtime" }), element("strong", { text: "Browser worker" })]),
+      element("li", {}, [element("span", { text: "Runtime" }), element("strong", { text: "Python 3.14 · browser worker" })]),
       element("li", {}, [element("span", { text: "Language" }), element("strong", { text: exercise.language })]),
       element("li", {}, [element("span", { text: "Contract" }), element("strong", { text: exercise.contractVersion })]),
     ]),
@@ -554,7 +552,7 @@ function renderIde(exercises, state) {
   const run = element("button", { className: "primary-button", type: "button", text: "Run IDE checks" });
   run.addEventListener("click", async () => {
     run.disabled = true;
-    setStatus(status, "Running host-owned checks…");
+    setStatus(status, "Starting host-owned Python checks…");
     try {
       const submittedSource = editor.value;
       const cases = exercise.checks.map((check) => ({ ...check, assertions: [{
@@ -563,11 +561,12 @@ function renderIde(exercises, state) {
         kind: "deep-equal",
         expected: check.expected,
       }] }));
-      const runResults = await runInWorker(
+      const runResults = await runPythonChecks(
         submittedSource,
+        exercise.files[0].path,
         exercise.entrypoint,
         cases,
-        exercise.limits,
+        exercise.runtime,
       );
       if (editor.value !== submittedSource) {
         throw new Error("Source changed while checks ran. Run the current source again.");

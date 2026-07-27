@@ -38,14 +38,14 @@ export function assessCase(exerciseCase, value, purity = {}) {
   assertions.push(
     Object.freeze({
       id: "platform-input-unchanged",
-      label: "leaves all input arguments unchanged",
+      label: "returns with all input arguments equal to their original values",
       passed: purity.inputUnchanged === true,
       expected: true,
       actual: purity.inputUnchanged === true,
     }),
     Object.freeze({
       id: "platform-output-fresh",
-      label: "returns output without aliasing an input object or array",
+      label: "returns output without aliasing an input dictionary or list",
       passed: purity.outputFresh === true,
       expected: true,
       actual: purity.outputFresh === true,

@@ -361,3 +361,127 @@ counted.
 - `site/invocation-contract.mjs`
 - `test/invocation-contract.test.mjs`
 - `test/learning-state.test.mjs`
+
+## Python revision feedback (verbatim)
+
+> i still see JS there
+
+## Python revision decisions
+
+- Converted every learner-visible coding surface to Python: the coding-module
+  lesson sketch, all three portable Question Group exercises, and the trusted
+  step-4 IDE exercise. Function names, file names, starter code, examples, and
+  learner-facing runtime labels now use Python consistently.
+- Bumped both the Learning Pack and Question Group library to version 2.0.0.
+  The trusted IDE contract is now `interview-loop.retry-plan.v3`, so saved
+  JavaScript drafts cannot cross into the Python exercise.
+- Declared the portable Python runtime as `host-managed` and added a reviewed,
+  example-local adapter to Python Lab. The deterministic build packages
+  Pyodide 314.0.2 and its worker assets at the same origin for offline learner
+  use. This example builds inside the Latent monorepo with its installed
+  workspace dependencies; it is not dependency-free or Node-only.
+- Moved the input-ownership and fresh-output enforcement into the trusted
+  Python harness. Before result normalization, the harness snapshots the
+  arguments, requires them to equal their original values when the call
+  returns, and rejects any nested output list or dictionary that aliases a
+  nested input list or dictionary. Because ordinary Python lists and
+  dictionaries cannot be made fully read-only without changing their learner
+  contract, the prompts state the exact post-call equality guarantee and do
+  not claim to detect a transient mutate-then-restore sequence. Host source
+  still owns the expected-value assertions.
+- Removed the old learner JavaScript executor, invocation-contract, and runner
+  workers. JavaScript remains only as trusted platform implementation source,
+  not as code the learner is asked to read or write.
+- Kept the company-neutral disclaimer, behavioral and architecture content,
+  digest-bound progress, four-step coding ladder, and separate 24-minute
+  architecture preparation / 45-minute take-away mock unchanged.
+- Documented Python Lab accurately as a trusted browser execution boundary,
+  not a hostile-code security sandbox, and added Pyodide's MPL-2.0 attribution
+  to `NOTICE.md`.
+
+### Before / after counts for the Python revision
+
+| Course, runtime, or build element | Third revision | Python revision |
+| --- | ---: | ---: |
+| Navigable lesson modules | 3 | 3 |
+| Deterministic lesson quizzes | 6 | 6 |
+| Learner-visible Python lesson sketches | 0 | 1 |
+| Learner-visible JavaScript lesson sketches | 1 | 0 |
+| Portable Python questions | 0 | 3 |
+| Portable JavaScript questions | 3 | 0 |
+| Portable authored cases | 9 | 9 |
+| Trusted Python IDE exercises | 0 | 1 |
+| Trusted JavaScript IDE exercises | 1 | 0 |
+| Host-owned IDE cases | 4 | 4 |
+| Total authored coding cases | 13 | 13 |
+| Focused tests | 4 | 7 |
+| Old learner JavaScript worker files | 3 | 0 |
+| Built files, including two hidden markers | 21 | 26 |
+
+## Python revision evidence and handoff
+
+- The Learning Pack and Question Group metadata both declare version 2.0.0.
+  All three portable questions declare Python, `.py` paths, Python
+  entrypoints, and the host-managed Pyodide 314.0.2 runtime. The trusted IDE
+  declares the same runtime and contract
+  `interview-loop.retry-plan.v3`.
+- The nine portable cases plus four trusted IDE cases provide 13 authored
+  coding cases. The focused suite now contains seven tests covering
+  digest-bound state, Python runtime admission and transport, mutation
+  that changes the post-call input value, nested-alias rejection, pure
+  implementation acceptance,
+  fail-closed cleanup, and the authored reference solutions.
+- The trusted Python harness performs post-call input-equality and nested-alias
+  checks against live Python objects before JSON normalization. The previous
+  `site/executor.worker.mjs`, `site/invocation-contract.mjs`, and
+  `site/runner.worker.mjs` learner-JavaScript path has been removed.
+- The generated static artifact contains 26 files, including its two hidden
+  marker files and same-origin Pyodide runtime assets.
+- Canonical strict validation passed with zero warnings: the Learning Pack
+  reports 3 lessons, 6 quizzes, 1 deck, 14 cards, 5 objectives, and 9 sources;
+  the Question Group library reports 2 groups, 3 questions, and 9 cases.
+  `npm run validate`, `npm run build`, the combined two-example Pages build,
+  and the complete repository `npm run validate` all passed.
+- Local browser QA at both combined Pages routes observed Python `.py`
+  starters and no JavaScript or ECMAScript learner label. Interview Loop Lab
+  produced the expected starter failure and pure-solution pass in both
+  Practice and IDE; a value-correct nested alias failed only freshness, and a
+  value-correct mutator that left a changed input value failed the post-call
+  input-equality assertion. Ten Problems loaded all ten Python problems and
+  ran its representative failing starter.
+- Final portable source SHA-256:
+  `content/learning-pack.json` =
+  `6e9b5120aa6242ef25be58cceaa6c141a353ae09ec661bebf2ca4d756b4609c0`;
+  `content/question-groups.json` =
+  `0c196d662d8068dec803d5354f24019d9dadd88c3bb763fde4e0cc88962f7ea5`.
+
+### Exact files revised for the Python conversion
+
+- `AGENTS.md`
+- `AUTHORING.md`
+- `GUIDE.md`
+- `NOTICE.md`
+- `README.md`
+- `content/learning-pack.json`
+- `content/question-groups.json`
+- `site/app.mjs`
+- `site/checker.mjs`
+- `site/index.html`
+- `site/runtime-policy.mjs`
+- `tools/build.mjs`
+- `tools/serve.mjs`
+- `tools/validate.mjs`
+- `trusted/ide-exercises.mjs`
+
+### Exact files added for the Python conversion
+
+- `test/python-runtime.test.mjs`
+- `test/reference-solutions.test.mjs`
+- `trusted/python-exercise-runtime.ts`
+
+### Exact files removed for the Python conversion
+
+- `site/executor.worker.mjs`
+- `site/invocation-contract.mjs`
+- `site/runner.worker.mjs`
+- `test/invocation-contract.test.mjs`

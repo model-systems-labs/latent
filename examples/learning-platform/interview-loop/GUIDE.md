@@ -1,30 +1,37 @@
 # Interview Loop Lab
 
-This small, dependency-free Latent platform uses all four learning primitives
-for one connected preparation loop.
+This small Latent platform uses all four learning primitives for one connected
+preparation loop. The platform stays behind the practice: every
+learner-visible coding surface uses Python, including the lesson sketch, three
+portable questions, and the trusted IDE exercise.
 
 - `content/learning-pack.json` owns three navigable modules totaling 58
   minutes, six quizzes, and one fourteen-card retrieval deck.
-- `content/question-groups.json` owns three original JavaScript questions in
+- `content/question-groups.json` owns three original Python questions in
   two groups: retry deduplication, observation-window aggregation, and
   per-tenant admission.
-- `trusted/ide-exercises.mjs` owns one reviewed browser IDE exercise with four
+- `trusted/ide-exercises.mjs` owns one reviewed Python IDE exercise with four
   host-owned checks for bounded webhook retry scheduling.
+- `trusted/python-exercise-runtime.ts` owns the reviewed adapter between the
+  player, Python Lab, and the host-owned value and ownership checks.
 - `site/` owns the static player, exact-digest Learning Pack state, and the
-  trusted read-only-input/fresh-output coding contract.
+  trusted post-call-input-equality/fresh-output coding contract.
 - `tools/` owns canonical offline validation, focused contract tests,
-  deterministic build, and preview.
+  deterministic build, same-origin Pyodide packaging, and preview.
 
 The first two files are untrusted declarative content. The IDE definition,
-worker, UI, and tools are trusted repository source. Read `AGENTS.md` before
-asking any coding agent to edit the project.
+Python adapter, worker, UI, and tools are trusted repository source. The
+Learning Pack and Question Group library are both version 2.0.0; the IDE uses
+contract `interview-loop.retry-plan.v3`. Read `AGENTS.md` before asking any
+coding agent to edit the project.
 
 ## Run it
 
-Node 22.13 or newer is the only prerequisite. The canonical Course Kit
-validator and its required Zod code are checked in as one deterministic
-generated artifact, so validation and Pages builds do not install packages or
-use the network.
+Run this example from a Latent monorepo checkout with its workspace
+dependencies installed; Node 22.13 or newer is required. The build uses the
+installed Course Kit, Python Lab, esbuild, and Pyodide packages. It copies
+Pyodide 314.0.2 and the Python worker into `dist/`, so the built course can run
+learner Python offline without fetching a runtime from a CDN.
 
 ```bash
 npm run validate
@@ -40,6 +47,14 @@ IDE checks. Progress stays on this device. Module position, module completion,
 quiz answers, and card ratings are namespaced by the exact SHA-256 digest of
 the loaded Learning Pack, so changed bytes do not inherit state even if the
 package id and version are unchanged.
+
+The host-managed Python runtime checks each case's returned value and, before
+normalizing that value, verifies that every input equals its original value
+when the call returns and that no nested output list or dictionary aliases a
+nested input list or dictionary. It does not claim to detect a
+mutate-then-restore sequence that leaves the final input value unchanged.
+Python Lab provides containment and cancellation for this trusted browser
+integration; it is not a hostile-code security sandbox.
 
 After at least three attempts and two misses, a question appears in the
 **Leeches only** view. Question progress is separately bound to the exact
@@ -61,13 +76,15 @@ progress query, not a content type.
 
 ## Publish it on GitHub Pages
 
-Create a repository from this directory, push the `main` branch, and select
-**GitHub Actions** as the Pages source. The checked-in
-`.github/workflows/deploy-pages.yml` validates and builds the platform before
-uploading only `dist/`.
+The Latent repository's root Pages workflow validates and builds this course,
+then publishes it at `/latent/interview-loop/` alongside the separate
+`/latent/practice/` problem site. To host the course elsewhere, build it from
+a Latent monorepo checkout and upload only this example's generated `dist/`
+directory.
 
-The deterministic build contains 21 files, including its two hidden marker
-files. No Latent account, database, model provider, or application server is
-required. The platform code is Apache-2.0-compatible; the original teaching
+The deterministic build contains 26 files, including its two hidden marker
+files and the same-origin Python runtime assets. No Latent account, database,
+model provider, or application server is required after the static artifact
+is built. The platform code is Apache-2.0-compatible; the original teaching
 and practice content is offered under CC-BY-4.0 as declared in its content
 files.

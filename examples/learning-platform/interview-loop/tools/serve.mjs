@@ -42,6 +42,8 @@ const contentTypes = {
   ".json": "application/json; charset=utf-8",
   ".mjs": "text/javascript; charset=utf-8",
   ".txt": "text/plain; charset=utf-8",
+  ".wasm": "application/wasm",
+  ".zip": "application/zip",
 };
 
 const server = createServer(async (request, response) => {

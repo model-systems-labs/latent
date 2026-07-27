@@ -1,32 +1,39 @@
 export const ideExercises = [
   {
     id: "bounded-webhook-retries",
-    contractVersion: "interview-loop.retry-plan.v2",
+    contractVersion: "interview-loop.retry-plan.v3",
     title: "Schedule bounded webhook retries",
     summary: "Step 4 of 4. Turn retry semantics into a deterministic plan with terminal-state and retry-budget boundaries. Target O(r) time and O(r) output space for r deliveries.",
-    language: "javascript",
+    language: "python",
+    runtime: {
+      language: "python",
+      environment: "host-managed",
+      engine: "pyodide",
+      engineVersion: "314.0.2",
+      capabilities: ["function"],
+      limits: {
+        timeoutMs: 10000,
+        maxOutputBytes: 50000,
+      },
+    },
     files: [
       {
-        path: "schedule-retries.js",
-        content: `function scheduleRetries(deliveries, nowMs) {
-  // Return { deliveryId, runAtMs } for retryable deliveries only.
-  // attempt is the number of the attempt that just finished.
-  // Retry attempts 1, 2, and 3 after 1s, 2s, and 4s respectively.
-  // Attempt 4 exhausts the retry budget. Preserve input order.
-  // Return a fresh array and fresh result objects. Do not mutate deliveries.
-  // Target O(r) time and O(r) output space.
-  return [];
-}
+        path: "schedule_retries.py",
+        content: `def schedule_retries(deliveries, now_ms):
+    # Return dictionaries with "deliveryId" and "runAtMs" keys for retryable deliveries only.
+    # attempt is the number of the attempt that just finished.
+    # Retry attempts 1, 2, and 3 after 1s, 2s, and 4s respectively.
+    # Attempt 4 exhausts the retry budget. Preserve input order.
+    # Return a fresh list and fresh result dictionaries.
+    # When this function returns, deliveries must equal its original value.
+    # Target O(r) time and O(r) output space.
+    return []
 `,
       },
     ],
     entrypoint: {
       kind: "function",
-      functionName: "scheduleRetries",
-    },
-    limits: {
-      timeoutMs: 1500,
-      maxOutputBytes: 50000,
+      functionName: "schedule_retries",
     },
     checks: [
       {

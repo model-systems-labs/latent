@@ -3,9 +3,9 @@
   "schemaVersion": 1,
   "library": {
     "id": "latent-demos/interview-loop",
-    "version": "1.2.0",
+    "version": "2.0.0",
     "title": "Interview Loop Lab coding practice",
-    "description": "Original JavaScript interview drills connecting duplicate handling, observable event windows, and fair admission to the course architecture scenario.",
+    "description": "Original Python interview drills connecting duplicate handling, observable event windows, and fair admission to the course architecture scenario.",
     "authors": [
       {
         "name": "Latent Project Contributors",
@@ -18,7 +18,7 @@
     },
     "provenance": {
       "sourceUrl": "https://github.com/model-systems-labs/latent/tree/main/examples/learning-platform/interview-loop",
-      "revision": "1.2.0-agent-revision"
+      "revision": "2.0.0-python-revision"
     }
   },
   "objectives": [
@@ -64,24 +64,24 @@
       "note": "Official guidance grounding the exercise discussion about fairness, throughput, resource use, and customer impact."
     },
     {
-      "id": "ecma-map",
-      "title": "ECMAScript keyed collections",
-      "url": "https://tc39.es/ecma262/multipage/keyed-collections.html#sec-map-objects",
-      "note": "The language specification for keyed collections suitable for tracking identifiers and per-tenant counts."
+      "id": "python-dict",
+      "title": "Python built-in mapping types: dict",
+      "url": "https://docs.python.org/3/library/stdtypes.html#mapping-types-dict",
+      "note": "Official Python documentation for dictionaries, the keyed collection used to track identifiers and per-tenant counts."
     }
   ],
   "runtimes": [
     {
-      "id": "interview-browser-javascript",
-      "language": "javascript",
-      "environment": "browser-worker",
-      "engine": "native-javascript",
-      "engineVersion": "ES2024",
+      "id": "interview-host-python",
+      "language": "python",
+      "environment": "host-managed",
+      "engine": "pyodide",
+      "engineVersion": "314.0.2",
       "capabilities": [
         "function"
       ],
       "limits": {
-        "timeoutMs": 1500,
+        "timeoutMs": 10000,
         "maxOutputBytes": 50000
       }
     }
@@ -106,31 +106,31 @@
           "id": "collapse-attempts",
           "order": 1,
           "title": "Collapse repeated delivery attempts",
-          "prompt": "Step 1 of 4. Implement collapseAttempts(attempts). Each attempt has a string deliveryId and string status. Return one new object with only deliveryId and status for each logical delivery. Return a fresh array. Keep the first attempt for a deliveryId and preserve the order in which distinct identifiers first appeared. Meet O(n) time and O(u) space for n attempts and u unique identifiers. Treat the input as read-only.",
+          "prompt": "Step 1 of 4. Implement collapse_attempts(attempts). Each attempt is a dictionary with string deliveryId and status values. Return one new dictionary with only deliveryId and status for each logical delivery. Return a fresh list. Keep the first attempt for a deliveryId and preserve the order in which distinct identifiers first appeared. Meet O(n) time and O(u) space for n attempts and u unique identifiers. When the function returns, the input list and its dictionaries must equal their original values.",
           "difficulty": "easy",
-          "language": "javascript",
-          "path": "collapse-attempts.js",
-          "starterCode": "function collapseAttempts(attempts) {\n  // Keep the first result for each deliveryId in first-seen order.\n  return [];\n}\n",
+          "language": "python",
+          "path": "collapse_attempts.py",
+          "starterCode": "def collapse_attempts(attempts):\n    # Keep the first result for each deliveryId in first-seen order.\n    return []\n",
           "entrypoint": {
             "kind": "function",
-            "functionName": "collapseAttempts"
+            "functionName": "collapse_attempts"
           },
           "objectiveIds": [
             "dedupe-retries"
           ],
           "sourceIds": [
             "stripe-idempotency",
-            "ecma-map"
+            "python-dict"
           ],
-          "runtimeId": "interview-browser-javascript",
+          "runtimeId": "interview-host-python",
           "constraints": [
-            "attempts contains zero or more plain JSON objects with string deliveryId and status fields.",
-            "Return one new { deliveryId, status } object for each distinct deliveryId.",
-            "Return a fresh result array that does not reuse the input array.",
+            "attempts contains zero or more JSON-compatible dictionaries with string deliveryId and status values.",
+            "Return one new dictionary with deliveryId and status keys for each distinct deliveryId.",
+            "Return a fresh result list that does not reuse the input list.",
             "The first occurrence wins and distinct identifiers retain first-seen order.",
             "A duplicate may be non-adjacent; comparing only neighboring records is not sufficient.",
             "Expected complexity: O(n) time and O(u) space for u unique delivery identifiers.",
-            "Do not mutate the input array or its objects."
+            "When the function returns, the input list and its dictionaries must equal their original values."
           ],
           "tags": [
             "maps",
@@ -186,7 +186,7 @@
               "assertions": [
                 {
                   "id": "result",
-                  "label": "returns an empty array",
+                  "label": "returns an empty list",
                   "kind": "deep-equal",
                   "expected": []
                 }
@@ -240,14 +240,14 @@
           "id": "summarize-window",
           "order": 2,
           "title": "Summarize an observation window",
-          "prompt": "Step 2 of 4. Implement summarizeWindow(events, startMs). Events are not guaranteed to be sorted. Include each event whose atMs is greater than or equal to startMs. Return a fresh { traffic, errors, maxLatencyMs } object, where errors counts events whose outcome is \"error\". Return zero for all fields when the window is empty. Meet O(n) time and O(1) auxiliary space. Treat inputs as read-only.",
+          "prompt": "Step 2 of 4. Implement summarize_window(events, start_ms). Events are not guaranteed to be sorted. Include each event whose atMs is greater than or equal to start_ms. Return a fresh dictionary with traffic, errors, and maxLatencyMs keys, where errors counts events whose outcome is \"error\". Return zero for all fields when the window is empty. Meet O(n) time and O(1) auxiliary space. When the function returns, the events list and its dictionaries must equal their original values.",
           "difficulty": "medium",
-          "language": "javascript",
-          "path": "summarize-window.js",
-          "starterCode": "function summarizeWindow(events, startMs) {\n  // Aggregate the inclusive window without assuming input order.\n  return { traffic: 0, errors: 0, maxLatencyMs: 0 };\n}\n",
+          "language": "python",
+          "path": "summarize_window.py",
+          "starterCode": "def summarize_window(events, start_ms):\n    # Aggregate the inclusive window without assuming input order.\n    return {\"traffic\": 0, \"errors\": 0, \"maxLatencyMs\": 0}\n",
           "entrypoint": {
             "kind": "function",
-            "functionName": "summarizeWindow"
+            "functionName": "summarize_window"
           },
           "objectiveIds": [
             "aggregate-signals"
@@ -255,15 +255,15 @@
           "sourceIds": [
             "google-sre-monitoring"
           ],
-          "runtimeId": "interview-browser-javascript",
+          "runtimeId": "interview-host-python",
           "constraints": [
             "Each event has finite numeric atMs and latencyMs fields plus a string outcome.",
             "Input order is arbitrary and the start boundary is inclusive.",
             "An old event may appear before a later in-window event, so early exit on timestamp is incorrect.",
             "Expected complexity: O(n) time and O(1) auxiliary space; do not sort.",
             "Only the exact outcome string error increments errors.",
-            "Return a fresh summary object that does not reuse an input object.",
-            "Do not mutate the events array or its objects."
+            "Return a fresh summary dictionary that does not reuse an input dictionary.",
+            "When the function returns, the events list and its dictionaries must equal their original values."
           ],
           "tags": [
             "aggregation",
@@ -394,14 +394,14 @@
           "id": "admit-per-tenant",
           "order": 1,
           "title": "Apply a per-tenant limit",
-          "prompt": "Step 3 of 4. Implement admitPerTenant(jobs, limit). Each job has string id and tenant fields. Walk jobs in arrival order and return a fresh array containing the ids of admitted jobs. Admit at most limit jobs for each tenant, while preserving the global order of every job that is admitted. A zero limit admits nothing. Meet O(n) time and O(t) space for n jobs and t tenants. Treat inputs as read-only.",
+          "prompt": "Step 3 of 4. Implement admit_per_tenant(jobs, limit). Each job is a dictionary with string id and tenant values. Walk jobs in arrival order and return a fresh list containing the ids of admitted jobs. Admit at most limit jobs for each tenant, while preserving the global order of every job that is admitted. A zero limit admits nothing. Meet O(n) time and O(t) space for n jobs and t tenants. When the function returns, the jobs list and its dictionaries must equal their original values.",
           "difficulty": "medium",
-          "language": "javascript",
-          "path": "admit-per-tenant.js",
-          "starterCode": "function admitPerTenant(jobs, limit) {\n  // Preserve global arrival order while enforcing each tenant's cap.\n  return [];\n}\n",
+          "language": "python",
+          "path": "admit_per_tenant.py",
+          "starterCode": "def admit_per_tenant(jobs, limit):\n    # Preserve global arrival order while enforcing each tenant's cap.\n    return []\n",
           "entrypoint": {
             "kind": "function",
-            "functionName": "admitPerTenant"
+            "functionName": "admit_per_tenant"
           },
           "objectiveIds": [
             "enforce-fairness"
@@ -409,16 +409,16 @@
           "sourceIds": [
             "aws-reliability",
             "aws-tradeoffs",
-            "ecma-map"
+            "python-dict"
           ],
-          "runtimeId": "interview-browser-javascript",
+          "runtimeId": "interview-host-python",
           "constraints": [
-            "jobs contains plain JSON objects with unique string id and string tenant fields.",
+            "jobs contains JSON-compatible dictionaries with unique string id and tenant values.",
             "limit is a non-negative integer applied independently to each tenant.",
             "Return admitted job ids in their original global arrival order.",
-            "Return a fresh result array that does not reuse the jobs array.",
+            "Return a fresh result list that does not reuse the jobs list.",
             "Expected complexity: O(n) time and O(t) space for t distinct tenants.",
-            "Do not mutate the jobs array or its objects."
+            "When the function returns, the jobs list and its dictionaries must equal their original values."
           ],
           "tags": [
             "maps",

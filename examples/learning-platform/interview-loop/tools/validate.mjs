@@ -23,6 +23,12 @@ const expectedModuleIds = Object.freeze([
   "coding-under-constraints",
   "architecture-webhook-delivery",
 ]);
+const expectedPythonRuntime = Object.freeze({
+  language: "python",
+  environment: "host-managed",
+  engine: "pyodide",
+  engineVersion: "314.0.2",
+});
 
 function fail(path, message) {
   issues.push({ path, message });
@@ -139,9 +145,14 @@ function validateTinyQuestionPlayer(library) {
     for (const [questionIndex, question] of (group.questions ?? []).entries()) {
       const path = `content.questionGroups.groups.${groupIndex}.questions.${questionIndex}`;
       expect(
-        question.language === "javascript",
+        question.language === "python",
         `${path}.language`,
-        "The dependency-free tiny player supports JavaScript questions only.",
+        "Interview Loop Lab supports Python questions only.",
+      );
+      expect(
+        typeof question.path === "string" && /^[A-Za-z0-9_-]+\.py$/.test(question.path),
+        `${path}.path`,
+        "Every learner source file must be a local .py file.",
       );
       expect(
         question.entrypoint?.kind === "function",
@@ -159,9 +170,13 @@ function validateTinyQuestionPlayer(library) {
       const runtime = runtimeById.get(question.runtimeId);
       if (!runtime) continue;
       expect(
-        runtime.environment === "browser-worker" && runtime.language === "javascript",
+        runtime.language === expectedPythonRuntime.language
+          && runtime.environment === expectedPythonRuntime.environment
+          && runtime.engine === expectedPythonRuntime.engine
+          && runtime.engineVersion === expectedPythonRuntime.engineVersion
+          && runtime.capabilities?.includes("function"),
         `${path}.runtimeId`,
-        "The tiny player admits only its JavaScript browser-worker runtime.",
+        "The player admits only its pinned host-managed Python runtime.",
       );
       try {
         admitRuntimeLimits(runtime.limits);
@@ -205,9 +220,19 @@ function validateIdeExercises(exercises) {
       "Exercise summary must be a non-empty string.",
     );
     expect(
-      exercise.language === "javascript",
+      exercise.language === "python",
       `${path}.language`,
-      "The dependency-free tiny player uses JavaScript.",
+      "The trusted coding lab uses Python.",
+    );
+    expect(
+      isRecord(exercise.runtime)
+        && exercise.runtime.language === expectedPythonRuntime.language
+        && exercise.runtime.environment === expectedPythonRuntime.environment
+        && exercise.runtime.engine === expectedPythonRuntime.engine
+        && exercise.runtime.engineVersion === expectedPythonRuntime.engineVersion
+        && exercise.runtime.capabilities?.includes("function"),
+      `${path}.runtime`,
+      "The trusted coding lab must declare the pinned host-managed Python runtime.",
     );
 
     if (!Array.isArray(exercise.files)) {
@@ -236,6 +261,11 @@ function validateIdeExercises(exercises) {
           `${filePath}.content`,
           "File content must be a non-empty string.",
         );
+        expect(
+          typeof file.path === "string" && /^[A-Za-z0-9_-]+\.py$/.test(file.path),
+          `${filePath}.path`,
+          "The trusted coding lab source must be a local .py file.",
+        );
       }
     }
 
@@ -249,9 +279,9 @@ function validateIdeExercises(exercises) {
       );
       expect(
         typeof exercise.entrypoint.functionName === "string"
-          && /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(exercise.entrypoint.functionName),
+          && /^[A-Za-z_][A-Za-z0-9_]*$/.test(exercise.entrypoint.functionName),
         `${path}.entrypoint.functionName`,
-        "Entrypoint functionName must be a JavaScript identifier.",
+        "Entrypoint functionName must be a Python identifier.",
       );
     }
 
@@ -290,7 +320,7 @@ function validateIdeExercises(exercises) {
     }
 
     try {
-      admitRuntimeLimits(exercise.limits);
+      admitRuntimeLimits(exercise.runtime?.limits);
     } catch (error) {
       fail(
         `${path}.limits`,
@@ -336,14 +366,14 @@ await Promise.all([
   "site/styles.css",
   "site/app.mjs",
   "site/checker.mjs",
-  "site/executor.worker.mjs",
-  "site/invocation-contract.mjs",
-  "site/runner.worker.mjs",
   "site/runtime-policy.mjs",
   "site/progress.mjs",
-  "test/invocation-contract.test.mjs",
+  "test/python-runtime.test.mjs",
+  "test/reference-solutions.test.mjs",
   "test/learning-state.test.mjs",
+  "tools/build.mjs",
   "tools/vendor/course-kit-validator.mjs",
+  "trusted/python-exercise-runtime.ts",
 ].map((path) => typeof path === "string" ? safeProjectFile(path, path) : path));
 
 const learningPack = await readJson(expectedPaths.learningPack);
@@ -408,6 +438,15 @@ if (learningValidation.valid) {
     "content.learningPack.lessons.2.summary",
     "Architecture timing must distinguish the 24-minute module from its separate 45-minute take-away mock.",
   );
+  const codingExamples = lessons[1].blocks.filter((block) => block.type === "code");
+  expect(
+    codingExamples.some((block) => (
+      block.language === "python"
+      && /^def [a-z_][a-z0-9_]*\(/.test(block.code)
+    )),
+    "content.learningPack.lessons.1.blocks",
+    "The learner-visible coding example must use Python.",
+  );
 }
 expect(
   learningValidation.valid && learningValidation.pack.flashcardDecks.length === 1,
@@ -430,6 +469,12 @@ const idePath = resolve(root, expectedPaths.ideExercises);
 try {
   const loadedModule = await import(`${pathToFileURL(idePath).href}?validate=${Date.now()}`);
   validateIdeExercises(loadedModule.ideExercises);
+  const learnerFacingIde = JSON.stringify(loadedModule.ideExercises);
+  expect(
+    !/javascript|ecmascript|\.js"/i.test(learnerFacingIde),
+    "hostOwned.ideExercises",
+    "The learner-visible coding lab must not retain JavaScript source or labels.",
+  );
 } catch (error) {
   fail(
     "hostOwned.ideExercises",
@@ -438,6 +483,13 @@ try {
 }
 
 const portableSource = JSON.stringify({ learningPack, questionGroups }).toLowerCase();
+expect(
+  !portableSource.includes("\"language\":\"javascript\"")
+    && !portableSource.includes("ecmascript")
+    && !portableSource.includes(".js\""),
+  "content",
+  "Portable learner content must not retain JavaScript source or labels.",
+);
 for (const marker of ["<script", "javascript:", "data:text/html", "importscripts("]) {
   expect(
     !portableSource.includes(marker),

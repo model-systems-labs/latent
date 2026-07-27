@@ -2,7 +2,7 @@ const numberIsInteger = Number.isInteger.bind(Number);
 
 export const HOST_RUNTIME_BOUNDS = Object.freeze({
   minimumTimeoutMs: 100,
-  maximumTimeoutMs: 2_000,
+  maximumTimeoutMs: 10_000,
   minimumOutputBytes: 1_024,
   maximumOutputBytes: 100_000,
 });

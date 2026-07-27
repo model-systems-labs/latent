@@ -505,8 +505,15 @@ recorded. The following evidence belongs to the shared learner UI revision.
 - Final full-root `npm run validate` passed, including 470 of 470 application
   tests, the workspace and package test suites, and both learning-example
   validations.
-- Live GitHub Pages deployment and verification remain pending for this
-  revision.
+- GitHub Pages workflow run `30238407331` deployed merge commit
+  `778994638801b2599c9691c98d0d7183b5a97463` on 2026-07-27. Live browser QA
+  at 1440 × 900 and 390 × 844 verified `/latent/`,
+  `/latent/llm-systems/`, `/latent/interview-loop/`, `/latent/practice/`, and
+  `/latent/practice/leeches/` with no horizontal overflow, off-origin loaded
+  assets, or console warnings/errors. The live interaction pass repeated
+  Interview module/quiz/card/IDE failure and success states, Ten Problems
+  example/check failure and success, saved progress/drafts, repeated-miss
+  review, and keyboard-driven mobile-menu focus restoration.
 
 ### Express beginner and advanced user-testing loop
 
@@ -530,8 +537,10 @@ recorded. The following evidence belongs to the shared learner UI revision.
   aliases `/latent/`, `/latent/llm-systems/`, `/latent/interview-loop/`,
   `/latent/practice/`, and `/latent/practice/leeches/`. Desktop and mobile
   passes finished without horizontal overflow or browser-console warnings or
-  errors. This is local static-artifact evidence, not live deployment
-  evidence.
+  errors. The same persona flows were then repeated against the deployed
+  GitHub Pages routes at merge commit
+  `778994638801b2599c9691c98d0d7183b5a97463`, including live same-origin
+  Python execution and persistence after reload.
 
 The table above is the concise before/after visual record for this revision.
 

@@ -142,8 +142,9 @@ It serves the same static artifacts as the production suite:
 
 The root
 `.github/workflows/deploy-interview-loop-pages.yml` builds that combined
-artifact atomically for GitHub Pages. Local build and browser evidence is
-recorded in `AUTHORING.md`; live deployment and verification remain pending.
+artifact atomically for GitHub Pages. Local and live browser evidence for
+merge commit `778994638801b2599c9691c98d0d7183b5a97463` is recorded in
+`AUTHORING.md`.
 GitHub Pages does not honor Ten Problems' generated `_headers` file. Its
 builder-injected document meta CSP remains active there and restricts script
 sources, workers and connections to same-origin, plus styles and other assets.

@@ -110,9 +110,9 @@ This assembles the same route layout used by GitHub Pages:
 GitHub provides one Pages deployment per repository. The three learner
 experiences are served from stable routes in that deployment. The root
 `.github/workflows/deploy-interview-loop-pages.yml` validates and builds the
-combined static artifact before GitHub Pages deployment. Local build and
-browser evidence is recorded in `AUTHORING.md`; live deployment and
-verification remain pending.
+combined static artifact before GitHub Pages deployment. Local and live
+browser evidence for merge commit
+`778994638801b2599c9691c98d0d7183b5a97463` is recorded in `AUTHORING.md`.
 
 GitHub Pages does not honor generated `_headers` files. On Pages, the document
 meta CSP still restricts script sources, workers and connections to

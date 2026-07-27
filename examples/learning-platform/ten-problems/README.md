@@ -34,10 +34,12 @@ workers/connections, styles, and other assets. The build does not patch
 generated HTML, JavaScript, or CSS and does not load a hosted stylesheet,
 framework CDN, JavaScript service, or model API.
 
-The shared learner UI revision was verified with the combined local Pages
-preview, including its `/latent/` production-base aliases. Live deployment and
-verification are pending; local evidence is recorded in
-[AUTHORING.md](./AUTHORING.md).
+The shared learner UI revision was verified in the combined local Pages
+preview and in the
+[live learning suite](https://model-systems-labs.github.io/latent/) at merge
+commit `778994638801b2599c9691c98d0d7183b5a97463`. Desktop, mobile, keyboard,
+Python execution, persistence, subpath assets, and console evidence are
+recorded in [AUTHORING.md](./AUTHORING.md).
 
 Read [GUIDE.md](./GUIDE.md) for the problem map, shared/specialized source
 boundaries, and local/Pages routes. Read [AGENTS.md](./AGENTS.md) before asking

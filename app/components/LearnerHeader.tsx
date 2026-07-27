@@ -1,110 +1,117 @@
-"use client";
-
 import Link from "next/link";
-import { useEffect, useRef } from "react";
-import styles from "@/app/components/LearnerHeader.module.css";
 
-type LearnerDestination = "courses" | "practice" | "cards" | "reading";
+type LearnerDestination =
+  | "courses"
+  | "practice"
+  | "cards"
+  | "project"
+  | "reading";
+
+type LearnerExperience = "llm-systems";
 
 const destinations = [
   { id: "courses", href: "/course", label: "Courses" },
   { id: "practice", href: "/practice", label: "Practice" },
-  { id: "cards", href: "/flashcards", label: "Cards" },
+  { id: "cards", href: "/flashcards", label: "Review" },
   { id: "reading", href: "/sources", label: "Reading" },
 ] as const;
 
 const learningSuiteBasePath = process.env.LATENT_LEARNING_SUITE_BASE_PATH ?? "";
 const suiteDestinations = [
+  { id: "learning-studio", href: `${learningSuiteBasePath}/`, label: "Learning Studio" },
   { id: "llm-systems", href: `${learningSuiteBasePath}/llm-systems/`, label: "LLM Systems" },
   { id: "interview-loop", href: `${learningSuiteBasePath}/interview-loop/`, label: "Interview Loop" },
   { id: "ten-problems", href: `${learningSuiteBasePath}/practice/`, label: "Ten Problems" },
 ] as const;
 
+const suiteNavigation = [
+  { id: "courses", href: "/courses/llm-systems", label: "Modules" },
+  { id: "practice", href: "/workspace", label: "Practice" },
+  { id: "cards", href: "/flashcards", label: "Review" },
+  { id: "project", href: "/project", label: "Project" },
+  { id: "reading", href: "/sources", label: "Reading" },
+] as const;
+
+function PrimaryNavigation({
+  current,
+  items,
+  mobile = false,
+}: {
+  current?: LearnerDestination;
+  items: typeof destinations | typeof suiteNavigation;
+  mobile?: boolean;
+}) {
+  return (
+    <nav
+      className={`learner-primary-nav learner-primary-nav--${mobile ? "mobile" : "desktop"}`}
+      aria-label="Learning navigation"
+    >
+      {items.map((destination) => (
+        <Link
+          aria-current={current === destination.id ? "page" : undefined}
+          href={destination.href}
+          key={destination.id}
+        >
+          {destination.label}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
 export function LearnerHeader({
   className,
   current,
+  experience,
 }: {
   className?: string;
   current?: LearnerDestination;
+  experience?: LearnerExperience;
 }) {
-  const suiteMode = process.env.LATENT_COURSE_HOME === "llm-systems";
-  const menuRef = useRef<HTMLDetailsElement>(null);
-  useEffect(() => {
-    const menu = menuRef.current;
-    if (!menu || !suiteMode) return;
-    const compact = globalThis.matchMedia("(max-width: 760px), (max-height: 500px)");
-    const closeMenu = () => menu.removeAttribute("open");
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape" || !compact.matches || !menu.open) return;
-      closeMenu();
-      menu.querySelector("summary")?.focus();
-    };
-    const onDocumentClick = (event: MouseEvent) => {
-      if (
-        compact.matches
-        && menu.open
-        && event.target instanceof Node
-        && !menu.contains(event.target)
-      ) {
-        closeMenu();
-      }
-    };
-    closeMenu();
-    compact.addEventListener("change", closeMenu);
-    menu.addEventListener("keydown", onKeyDown);
-    document.addEventListener("click", onDocumentClick);
-    return () => {
-      compact.removeEventListener("change", closeMenu);
-      menu.removeEventListener("keydown", onKeyDown);
-      document.removeEventListener("click", onDocumentClick);
-    };
-  }, [suiteMode]);
-  if (suiteMode) {
-    return (
-      <header className={`site-header course-header ${styles.familyHeader}${className ? ` ${className}` : ""}`} data-learner-family-header="true">
-        <Link className="wordmark" href="/" aria-label="LLM Systems home" style={{ minHeight: "2.75rem" }}><i /><span>LLM Systems</span></Link>
-        <nav className={styles.desktopNav} aria-label="Learning experiences">
-          {suiteDestinations.map((destination) => (
-            <a
-              aria-current={destination.id === "llm-systems" ? "page" : undefined}
-              href={destination.href}
-              key={destination.id}
-            >
-              {destination.label}
-            </a>
-          ))}
-        </nav>
-        <details className={styles.menu} ref={menuRef}>
-          <summary>Menu</summary>
-          <nav aria-label="Mobile learning experiences">
-            {suiteDestinations.map((destination) => (
-              <a
-                aria-current={destination.id === "llm-systems" ? "page" : undefined}
-                href={destination.href}
-                key={destination.id}
-              >
-                {destination.label}
-              </a>
-            ))}
-          </nav>
-        </details>
-      </header>
-    );
-  }
+  const suiteMode = experience === "llm-systems"
+    || process.env.LATENT_COURSE_HOME === "llm-systems";
+  const productName = suiteMode ? "LLM Systems" : "Latent Courses";
+  const navigation = suiteMode ? suiteNavigation : destinations;
   return (
-    <header className={`site-header course-header${className ? ` ${className}` : ""}`}>
-      <Link className="wordmark" href="/" aria-label="Latent Courses home"><i />latent courses</Link>
-      <nav aria-label="Primary navigation">
-        {destinations.map((destination) => (
+    <header
+      className={`learner-header${className ? ` ${className}` : ""}`}
+      data-learner-family-header={suiteMode ? "true" : undefined}
+    >
+      <div className="learner-header__inner">
+        <div className="learner-header__identity">
           <Link
-            aria-current={current === destination.id ? "page" : undefined}
-            href={destination.href}
-            key={destination.id}
+            className="learner-wordmark"
+            href={suiteMode ? "/courses/llm-systems" : "/"}
+            aria-label={`${productName} home`}
           >
-            {destination.label}
+            <i className="learner-wordmark__mark" aria-hidden="true" />
+            <span>{productName}</span>
           </Link>
-        ))}
-      </nav>
+          {suiteMode ? <span className="learner-header__meta">Build the system</span> : null}
+        </div>
+        <PrimaryNavigation current={current} items={navigation} />
+        <details
+          className={`learner-nav-menu${suiteMode ? "" : " learner-nav-menu--local-only"}`}
+        >
+          <summary>{suiteMode ? "Explore" : "Menu"}</summary>
+          <div className="learner-nav-menu__panel">
+            {suiteMode ? (
+              <nav className="learner-global-nav" aria-label="Learning experiences">
+                {suiteDestinations.map((destination) => (
+                  <a
+                    aria-current={destination.id === "llm-systems" ? "page" : undefined}
+                    href={destination.href}
+                    key={destination.id}
+                  >
+                    {destination.label}
+                  </a>
+                ))}
+              </nav>
+            ) : null}
+            <PrimaryNavigation current={current} items={navigation} mobile />
+          </div>
+        </details>
+      </div>
     </header>
   );
 }

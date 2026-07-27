@@ -111,29 +111,59 @@ the monorepo would require a dedicated worker-bundling build.
 
 ## Shared learner presentation
 
-The standalone Learning Pack player, standalone Question Group player, and
-reviewed learning-platform examples share one trusted, build-time presentation
-layer:
+Learner UI is an opinionated trusted framework layer, not a property of
+portable content. The standalone Learning Pack player, standalone Question
+Group player, original React course, and reviewed learning-platform examples
+consume the same build-time foundation:
 
 ```text
 packages/course-kit/src/learner-ui.ts
         |
-        +-- design tokens and responsive breakpoints
-        +-- page shell, header, navigation, and footer renderers
+        +-- v2 design tokens, five named palettes, and breakpoints
+        +-- shell, one-header anatomy, navigation, and footer renderers
         +-- controls, progress, feedback, empty-state, and editor contracts
-        +-- local mobile-navigation behavior
+        +-- focus, screen-reader, reduced-motion, and mobile behavior
         |
         +-- static-site.ts                 (lesson/card specialization)
         +-- question-group-site.ts         (coding-practice specialization)
-        +-- example build inputs           (course/IDE specialization)
+        +-- generate-learning-platform-learner-ui.mjs
+        |       +-- public/assets/learner-ui.css
+        |       +-- public/assets/learner-ui.js
+        |               +-- app/layout.tsx (subpath-safe links)
+        +-- app/styles/tokens.css          (legacy React-token aliases)
+        +-- app/components/LearnerHeader.tsx
+        +-- example build inputs           (product configuration)
 ```
 
-Branding, route labels, theme choices, and product-specific copy are trusted
-build configuration. They are not Learning Pack or Question Group fields and
-do not affect canonical content bytes, integrity digests, runtime authority,
-or progress identities. Generated sites copy the shared CSS and JavaScript
-into their own static artifact; they never depend on a hosted stylesheet,
-framework CDN, JavaScript service, or model API.
+The default `paper` palette carries the warm editorial principles established
+by the original Build an LLM System course: serif display type, quiet
+hairlines, restrained depth, readable measure, and content-first hierarchy.
+Trusted product configuration may select one of five reviewed palettes:
+`paper`, `sage`, `cobalt`, `plum`, or `graphite`. Layout, typography,
+components, focus behavior, and responsive rules do not change with the
+palette. A low-level token override remains available to trusted callers for
+compatibility, but the reviewed examples use palette-only `appearance`
+configuration and may not combine it with the legacy `theme` input.
+
+Each learner product has exactly one page-level header. Its stable anatomy is
+product identity and optional metadata, local primary navigation, and one
+**Explore** disclosure for movement between products. On compact screens the
+same disclosure also exposes the local navigation rather than adding another
+header. Lesson section links, problem controls, and editor toolbars remain
+inside their content regions and use the appropriate `nav` or `div` landmark;
+they are not additional site headers. Escape closes the disclosure and
+restores focus, the skip link transfers focus to main content, and a
+three-pixel visible focus indicator is shared across products.
+
+Branding, routes, navigation labels, palette choice, and product-specific copy
+are trusted build configuration. They are not Learning Pack or Question Group
+fields and do not affect canonical content bytes, integrity digests, runtime
+authority, or progress identities. Generated sites copy the shared CSS and
+JavaScript into their own static artifact. For React,
+`scripts/generate-learning-platform-learner-ui.mjs` derives
+`public/assets/learner-ui.css` and `public/assets/learner-ui.js` from the same
+reviewed Course Kit source before the web build. No learner product depends on
+a hosted stylesheet, framework CDN, JavaScript service, or model API.
 
 An example designed to be extracted from the monorepo may check in a generated
 build-time copy of this module beside other vendored build tooling. The
@@ -146,13 +176,19 @@ The repository Pages artifact is assembled by
 Learning Studio index and copies three independently built learner products
 into stable subpaths: the React Build an LLM System course at `/llm-systems/`,
 Interview Loop Lab at `/interview-loop/`, and Ten Problems at `/practice/`.
-The course uses the reusable React `app/components/LearnerHeader.tsx` and
-`app/components/LearnerHeader.module.css` across course, lesson, checkpoint,
-project, workspace, and capstone pages; Interview Loop and Ten Problems
-consume the Course Kit foundation described above. All three expose the same
-family navigation while retaining product-appropriate reading, course, and
-coding layouts. `scripts/prepare-pages-course-export.mjs` verifies the static
-course export before the atomic suite assembly.
+The root `build:web` script regenerates the two self-hosted learner assets
+before compiling the application. `app/layout.tsx` links them through the
+active base path rather than inlining package source; `LearnerHeader.tsx` is a
+thin adapter over the shared markup contract, and `app/styles/tokens.css` maps
+older course variables to the canonical tokens. Interview Loop consumes the
+generated, drift-checked
+`examples/learning-platform/interview-loop/tools/vendor/learner-ui.mjs`.
+Ten Problems consumes the foundation through
+`packages/course-kit/src/question-group-site.ts`. All three expose the same
+family navigation while retaining product-appropriate reading, module,
+flash-card, IDE, and coding-practice layouts.
+`scripts/prepare-pages-course-export.mjs` verifies the static course export
+before the atomic suite assembly.
 
 ## Question Group execution
 

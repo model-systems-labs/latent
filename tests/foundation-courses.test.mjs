@@ -285,11 +285,13 @@ test("foundation manifests own only prerequisite files and do not declare an adv
 test("foundation routes stay independent while legacy advanced aliases redirect to nested module URLs", async () => {
   const standaloneRoute = await readFile(new URL("../app/courses/[course]/page.tsx", import.meta.url), "utf8");
   const advancedRoute = await readFile(new URL("../app/courses/llm-systems/[module]/page.tsx", import.meta.url), "utf8");
+  const learnerHeader = await readFile(new URL("../app/components/LearnerHeader.tsx", import.meta.url), "utf8");
   assert.match(standaloneRoute, /program\.kind !== "project"/);
   assert.match(standaloneRoute, /redirect\(`\/courses\/llm-systems\/\$\{legacyTrack\.id\}`\)/);
   assert.doesNotMatch(standaloneRoute, /href="\/(?:project|workspace|capstone)"/);
-  assert.match(advancedRoute, /href="\/project"/);
-  assert.match(advancedRoute, /href="\/workspace"/);
+  assert.match(advancedRoute, /<LearnerHeader current="courses" experience="llm-systems" \/>/);
+  assert.match(learnerHeader, /\{ id: "project", href: "\/project", label: "Project" \}/);
+  assert.match(learnerHeader, /\{ id: "practice", href: "\/workspace", label: "Practice" \}/);
   assert.deepEqual(course.courseTracks.map((track) => track.id), ["models", "systems", "backend", "product"]);
   for (const track of course.courseTracks) {
     assert.equal(`/courses/${track.id}`.startsWith("/courses/llm-systems/"), false);

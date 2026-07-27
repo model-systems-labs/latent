@@ -13,22 +13,22 @@ export const metadata: Metadata = {
 
 export default function FlashcardsPage() {
   return (
-    <main>
-      <PageAtmosphere />
-
+    <>
       <LearnerHeader className={styles.header} current="cards" />
+      <main>
+        <PageAtmosphere />
+        <article className="course-page" id="main-content" tabIndex={-1}>
+          <header className={`course-hero ${styles.hero}`}>
+            <p className="eyebrow">Review library · {flashcards.length} cards</p>
+            <h1>Make the ideas stick.</h1>
+            <p className="course-thesis">
+              Pick a subject, search, or mix the deck. Mark what sticks; progress stays on this device.
+            </p>
+          </header>
 
-      <article className="course-page" id="main-content" tabIndex={-1}>
-        <header className={`course-hero ${styles.hero}`}>
-          <p className="eyebrow">Review library · {flashcards.length} cards</p>
-          <h1>Make the ideas stick.</h1>
-          <p className="course-thesis">
-            Pick a subject, search, or mix the deck. Mark what sticks; progress stays on this device.
-          </p>
-        </header>
-
-        <FlashcardDeck />
-      </article>
-    </main>
+          <FlashcardDeck />
+        </article>
+      </main>
+    </>
   );
 }

@@ -23,6 +23,18 @@ function contrastRatio(foreground, background) {
   return (light + 0.05) / (dark + 0.05);
 }
 
+function reviewableTokenPalette(source) {
+  return Object.fromEntries(
+    [...source.matchAll(/--([\w-]+):\s*([^;]+);/gi)]
+      .map((match) => {
+        const direct = match[2].trim().match(/^#[0-9a-f]{6}$/i)?.[0];
+        const fallback = match[2].match(/,\s*(#[0-9a-f]{6})\s*\)$/i)?.[1];
+        return [match[1], direct ?? fallback];
+      })
+      .filter((entry) => entry[1] !== undefined),
+  );
+}
+
 function cssRules(source) {
   return [...source.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((match) => ({
     selectors: match[1].split(",").map((selector) => selector.trim()),
@@ -146,9 +158,7 @@ test("technical diagram labels keep an 11px floor and AA text contrast", async (
   );
   assert.match(responsive, /\.icl-measurement-table\s*\{[^}]*font-size:\s*max\(0\.68rem, 11px\)/);
 
-  const palette = Object.fromEntries(
-    [...tokens.matchAll(/--([\w-]+):\s*(#[0-9a-f]{6});/gi)].map((match) => [match[1], match[2]]),
-  );
+  const palette = reviewableTokenPalette(tokens);
   const foregroundTokens = new Set(
     [...diagrams.matchAll(/color:\s*var\(--([\w-]+)\)/g)].map((match) => match[1]),
   );
@@ -188,9 +198,7 @@ test("visible async status copy remains readable as well as announced", async ()
     readFile(tokensUrl, "utf8"),
     readFile(codingWorkspaceUrl, "utf8"),
   ]);
-  const palette = Object.fromEntries(
-    [...tokens.matchAll(/--([\w-]+):\s*(#[0-9a-f]{6});/gi)].map((match) => [match[1], match[2]]),
-  );
+  const palette = reviewableTokenPalette(tokens);
   assert.ok(contrastRatio(palette.muted, palette.paper) >= 4.5, "contextual help copy must clear AA contrast");
   for (const selector of [".cell-feedback", ".editor-footer p"]) {
     const statusRule = cssRules(codingWorkspace).find((rule) => rule.selectors.includes(selector));

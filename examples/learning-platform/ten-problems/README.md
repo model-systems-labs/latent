@@ -22,7 +22,10 @@ navigation, controls, editor framing, feedback, progress, focus treatment, and
 mobile behavior. `packages/course-kit/src/learner-ui.ts` is the source of
 truth, `packages/course-kit/src/question-group-site.ts` composes the
 coding-practice layout, and `site-config.mjs` explicitly supplies this
-product's labels, review route, theme, footer, and favicon at build time.
+product's labels, review route, `cobalt` appearance palette, footer, and
+favicon at build time. The other reviewed palette choices are `paper`, `sage`,
+`plum`, and `graphite`; palette selection does not replace the shared layout,
+typography, controls, or responsive behavior.
 `security-config.mjs` supplies the custom document meta CSP passed to the
 builder and the full static-host page/Python-worker header policies for both
 standalone and `/practice/` hosting. Supporting hosts may apply `_headers` for
@@ -34,12 +37,13 @@ workers/connections, styles, and other assets. The build does not patch
 generated HTML, JavaScript, or CSS and does not load a hosted stylesheet,
 framework CDN, JavaScript service, or model API.
 
-The shared learner UI revision was verified in the combined local Pages
-preview and in the
-[live learning suite](https://model-systems-labs.github.io/latent/) at merge
-commit `778994638801b2599c9691c98d0d7183b5a97463`. Desktop, mobile, keyboard,
-Python execution, persistence, subpath assets, and console evidence are
-recorded in [AUTHORING.md](./AUTHORING.md).
+The page has one learner header: Ten Problems identity, local Practice/Review
+navigation, and one **Explore** disclosure for the learning suite. On mobile,
+local navigation moves into that disclosure while the problem list remains a
+specialized practice control. The current learner UI v2 revision has local
+production-build, desktop, mobile, keyboard, Python execution, and persistence
+evidence recorded in [AUTHORING.md](./AUTHORING.md). Live evidence is recorded
+there only after a deployment has been verified.
 
 Read [GUIDE.md](./GUIDE.md) for the problem map, shared/specialized source
 boundaries, and local/Pages routes. Read [AGENTS.md](./AGENTS.md) before asking

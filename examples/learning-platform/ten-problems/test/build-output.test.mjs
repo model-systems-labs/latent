@@ -40,6 +40,7 @@ test("the trusted build input configures a Python-only learner site without outp
   assert.match(files["index.html"], />Practice</);
   assert.match(files["index.html"], />Review</);
   assert.match(files["index.html"], /href="\.\/leeches\/"/);
+  assert.match(files["index.html"], /href="\.\.\/">Learning Studio<\/a>/);
   assert.match(files["index.html"], /href="\.\.\/llm-systems\/">LLM Systems<\/a>/);
   assert.match(files["index.html"], /learner-header__meta">10 Python problems/);
   assert.match(files["index.html"], /Built with Latent\./);
@@ -56,7 +57,9 @@ test("the trusted build input configures a Python-only learner site without outp
   assert.match(files["assets/player.js"], /Run the public example, then check every published case/);
   assert.match(files["assets/player.js"], /new AbortController/);
   assert.match(files["assets/player.js"], /publicExamplesHeading/);
-  assert.match(files["assets/player.css"], /--learner-color-accent: #3159d9/);
+  assert.match(files["assets/player.css"], /--learner-color-canvas: #f1f3f7/);
+  assert.match(files["assets/player.css"], /--learner-color-accent: #42629b/);
+  assert.match(files["assets/player.css"], /--learner-font-reading: "Iowan Old Style"/);
   assert.match(files["assets/favicon.svg"], /M25 20 14 32l11 12/);
 
   const report = JSON.parse(files["build-report.json"]);

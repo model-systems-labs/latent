@@ -3,15 +3,18 @@ import { test } from "node:test";
 
 import {
   LEARNER_UI_BREAKPOINTS,
+  LEARNER_UI_PALETTE_NAMES,
+  LEARNER_UI_PALETTES,
   LEARNER_UI_VERSION,
   createLearnerUiCss,
   learnerUiJavaScript,
   renderLearnerFooter,
   renderLearnerHeader,
+  resolveLearnerUiTheme,
 } from "../dist/learner-ui.js";
 
 test("the learner UI foundation publishes stable tokens, responsive breakpoints, and accessible states", () => {
-  assert.equal(LEARNER_UI_VERSION, 1);
+  assert.equal(LEARNER_UI_VERSION, 2);
   assert.deepEqual(
     { ...LEARNER_UI_BREAKPOINTS },
     { compact: 760, stacked: 980, wide: 1280 },
@@ -26,7 +29,7 @@ test("the learner UI foundation publishes stable tokens, responsive breakpoints,
   assert.match(css, /--learner-font-mono:/);
   assert.match(css, /--learner-color-accent: #123abc;/);
   assert.match(css, /--learner-color-focus: #fedcba;/);
-  assert.match(css, /--learner-space-7:/);
+  assert.match(css, /--learner-space-8:/);
   assert.match(css, /--learner-border:/);
   assert.match(css, /--learner-width-reading:/);
   assert.match(css, /--learner-width-wide:/);
@@ -65,13 +68,12 @@ test("the learner UI foundation publishes stable tokens, responsive breakpoints,
   assert.match(css, /@media \(max-width: 980px\)/);
   assert.match(css, /data-learner-collapse-at="stacked"/);
   assert.match(css, /@media \(max-width: 760px\)/);
+  assert.match(css, /\.learner-primary-nav--desktop \{ display: none; \}/);
   assert.match(css, /\.learner-nav-menu > summary \{ display: flex; \}/);
+  assert.match(css, /\.learner-primary-nav--mobile \{[\s\S]*?display: grid;/);
   assert.match(css, /\.learner-mobile-panel > summary \{ display: flex; \}/);
   assert.match(css, /\.learner-editor \{ font-size: 1rem; \}/);
-  assert.match(
-    css,
-    /@media \(min-width: 761px\) \{[\s\S]*?\.learner-nav-menu > \.learner-nav-menu__panel \{ display: flex !important; \}/,
-  );
+  assert.doesNotMatch(css, /\.learner-nav-menu > \.learner-nav-menu__panel \{ display: flex !important; \}/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
 
   assert.throws(
@@ -81,6 +83,39 @@ test("the learner UI foundation publishes stable tokens, responsive breakpoints,
   assert.throws(
     () => createLearnerUiCss({ unknownToken: "#000000" }),
     /Unknown learner UI theme token/,
+  );
+});
+
+test("five constrained palettes change semantic color without changing the design grammar", () => {
+  assert.deepEqual(
+    [...LEARNER_UI_PALETTE_NAMES],
+    ["paper", "sage", "cobalt", "plum", "graphite"],
+  );
+  assert.deepEqual(Object.keys(LEARNER_UI_PALETTES), [...LEARNER_UI_PALETTE_NAMES]);
+
+  const cssByPalette = LEARNER_UI_PALETTE_NAMES.map((palette) => (
+    createLearnerUiCss(resolveLearnerUiTheme({ palette }))
+  ));
+  const withoutColors = (css) => css.replace(
+    /--learner-color-[a-z-]+: #[0-9a-f]{6};/g,
+    "--learner-color-token: <palette>;",
+  );
+  assert.equal(new Set(cssByPalette.map(withoutColors)).size, 1);
+  assert.match(cssByPalette[0], /--learner-color-canvas: #f4f0e8;/);
+  assert.match(cssByPalette[0], /--learner-color-accent: #78667d;/);
+  assert.match(cssByPalette[0], /--learner-font-reading: "Iowan Old Style"/);
+  assert.match(cssByPalette[1], /--learner-color-accent: #47705d;/);
+  assert.match(cssByPalette[2], /--learner-color-accent: #42629b;/);
+
+  const legacyCss = createLearnerUiCss({ accent: "#123abc" });
+  assert.match(legacyCss, /--learner-color-accent: #123abc;/);
+  assert.throws(
+    () => resolveLearnerUiTheme({ palette: "neon" }),
+    /Unknown learner UI palette/,
+  );
+  assert.throws(
+    () => resolveLearnerUiTheme({ palette: "paper", spacing: "loose" }),
+    /Unknown learner UI appearance field/,
   );
 });
 
@@ -124,6 +159,8 @@ test("the shared header escapes authored labels and accepts only same-origin rel
   assert.match(header, /<details class="learner-nav-menu">/);
   assert.doesNotMatch(header, /<details class="learner-nav-menu" open>/);
   assert.match(header, /class="learner-nav-menu__panel"/);
+  assert.match(header, /learner-primary-nav learner-primary-nav--desktop/);
+  assert.match(header, /learner-primary-nav learner-primary-nav--mobile/);
   assert.match(header, /href="\.\.\/"/);
   assert.match(header, /href="\.\/review\/"/);
   assert.match(header, /aria-current="page"/);
@@ -172,7 +209,10 @@ test("the shared header escapes authored labels and accepts only same-origin rel
 });
 
 test("the learner UI behavior closes compact menus and restores keyboard focus", () => {
-  assert.match(learnerUiJavaScript, /matchMedia\("\(max-width: 760px\)"\)/);
+  assert.match(
+    learnerUiJavaScript,
+    /matchMedia\("\(max-width: 760px\), \(max-height: 500px\)"\)/,
+  );
   assert.match(learnerUiJavaScript, /matchMedia\("\(max-width: 980px\)"\)/);
   assert.match(learnerUiJavaScript, /learnerCollapseAt === "stacked"/);
   assert.match(learnerUiJavaScript, /event\.key !== "Escape"/);
@@ -183,4 +223,8 @@ test("the learner UI behavior closes compact menus and restores keyboard focus",
   assert.match(learnerUiJavaScript, /!menu\.contains\(event\.target\)/);
   assert.match(learnerUiJavaScript, /new MutationObserver/);
   assert.match(learnerUiJavaScript, /disclosure\.setAttribute\("open", ""\)/);
+  assert.match(
+    learnerUiJavaScript,
+    /querySelectorAll\("\.learner-nav-menu"\)\.forEach\(\(menu\) => menu\.removeAttribute\("open"\)\)/,
+  );
 });

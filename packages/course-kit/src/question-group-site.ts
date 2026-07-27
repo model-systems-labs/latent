@@ -13,6 +13,8 @@ import {
   learnerUiJavaScript,
   renderLearnerFooter,
   renderLearnerHeader,
+  resolveLearnerUiTheme,
+  type LearnerUiAppearance,
   type LearnerUiNavigationItem,
   type LearnerUiTheme,
 } from "./learner-ui.js";
@@ -84,6 +86,8 @@ export type QuestionGroupSiteUi = Readonly<{
   copy?: Partial<QuestionGroupSiteCopy>;
   footerSummary?: string;
   attribution?: string;
+  appearance?: LearnerUiAppearance;
+  /** @deprecated Prefer appearance.theme for trusted color overrides. */
   theme?: LearnerUiTheme;
   faviconSvg?: string;
 }>;
@@ -135,7 +139,7 @@ type NormalizedQuestionGroupSiteUi = Readonly<{
   copy: QuestionGroupSiteCopy;
   footerSummary: string;
   attribution: string;
-  theme: LearnerUiTheme;
+  theme: Required<LearnerUiTheme>;
   faviconSvg?: string;
 }>;
 
@@ -192,6 +196,7 @@ function normalizeQuestionGroupSiteUi(
     "copy",
     "footerSummary",
     "attribution",
+    "appearance",
     "theme",
     "faviconSvg",
   ]);
@@ -241,7 +246,15 @@ function normalizeQuestionGroupSiteUi(
   ) {
     throw new Error("ui.faviconSvg must be a bounded, inert inline SVG.");
   }
-  createLearnerUiCss(input.theme);
+  if (input.appearance !== undefined && input.theme !== undefined) {
+    throw new Error(
+      "Question Group site ui.appearance and ui.theme cannot be configured together.",
+    );
+  }
+  const theme = resolveLearnerUiTheme(
+    input.appearance
+      ?? (input.theme === undefined ? {} : { theme: input.theme }),
+  );
   const globalNavigation = input.globalNavigation?.map((item, index) => {
     if (!item || typeof item !== "object" || Array.isArray(item)) {
       throw new Error(`ui.globalNavigation[${index}] must be a navigation item.`);
@@ -288,7 +301,7 @@ function normalizeQuestionGroupSiteUi(
       240,
     ),
     attribution: siteText(input.attribution ?? "Built with Latent.", "ui.attribution", 160),
-    theme: Object.freeze({ ...(input.theme ?? {}) }),
+    theme,
     ...(faviconSvg === undefined ? {} : { faviconSvg }),
   });
 }
@@ -382,7 +395,9 @@ const questionGroupLayoutCss = `
   padding: clamp(1rem, 2vw, 1.5rem);
 }
 .library h1 {
+  font-family: var(--learner-font-reading);
   font-size: clamp(1.55rem, 2.4vw, 2.15rem);
+  font-weight: 500;
   letter-spacing: -.04em;
   line-height: 1.08;
   margin: .35rem 0 .75rem;
@@ -415,7 +430,9 @@ const questionGroupLayoutCss = `
   padding: clamp(1.5rem, 3.5vw, 3rem);
 }
 .question-copy h2 {
+  font-family: var(--learner-font-reading);
   font-size: clamp(2rem, 4vw, 3.6rem);
+  font-weight: 500;
   letter-spacing: -.055em;
   line-height: 1;
   margin: .65rem 0 1rem;
@@ -1319,7 +1336,7 @@ function renderQuestionGroupPlayerJavaScript(
     layout.className = "practice-layout";
     const sidebar = document.createElement("aside");
     sidebar.className = "learner-sidebar library";
-    const libraryHeader = document.createElement("header");
+    const libraryHeader = document.createElement("div");
     libraryHeader.className = "library-header";
     libraryHeader.append(text("span", initialQuery === "leeches" ? copy.reviewEyebrow : copy.allEyebrow, "learner-eyebrow"));
     libraryHeader.append(text("h1", library.library.title));
@@ -1340,7 +1357,7 @@ function renderQuestionGroupPlayerJavaScript(
     questionCopy.id = "question";
     const workspace = document.createElement("section");
     workspace.className = "learner-editor-frame workspace";
-    const workspaceHeader = document.createElement("header");
+    const workspaceHeader = document.createElement("div");
     workspaceHeader.className = "learner-editor-toolbar";
     const sourcePath = text("code", active.question.path);
     const draftStatus = text("span", "", "draft-status");

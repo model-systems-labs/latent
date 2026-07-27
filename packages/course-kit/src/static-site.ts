@@ -6,11 +6,14 @@ import {
   validateLearningPack,
 } from "./learning-pack.js";
 import {
+  LEARNER_UI_BREAKPOINTS,
   LEARNER_UI_VERSION,
   createLearnerUiCss,
   learnerUiJavaScript,
   renderLearnerFooter,
   renderLearnerHeader,
+  resolveLearnerUiTheme,
+  type LearnerUiAppearance,
   type LearnerUiTheme,
 } from "./learner-ui.js";
 
@@ -24,8 +27,24 @@ export type StandaloneLearningSiteUi = Readonly<{
   menuLabel?: string;
   footerSummary?: string;
   attribution?: string;
+  appearance?: LearnerUiAppearance;
+  /** @deprecated Prefer appearance.theme for trusted color overrides. */
   theme?: LearnerUiTheme;
 }>;
+
+function resolveStandaloneLearnerUiTheme(
+  ui: StandaloneLearningSiteUi = {},
+): Required<LearnerUiTheme> {
+  if (ui.appearance !== undefined && ui.theme !== undefined) {
+    throw new Error(
+      "Standalone Learning site ui.appearance and ui.theme cannot be configured together.",
+    );
+  }
+  return resolveLearnerUiTheme(
+    ui.appearance
+      ?? (ui.theme === undefined ? {} : { theme: ui.theme }),
+  );
+}
 
 function escapeHtml(value: string) {
   return value
@@ -125,9 +144,9 @@ function renderIndex(
   });
 
   const lessonSections = lessons.map((lesson) => `
-    <section class="learning-view" id="lesson-${escapeHtml(lesson.id)}" data-view="lesson-${escapeHtml(lesson.id)}" ${`lesson-${lesson.id}` === firstView ? "" : "hidden"}>
+    <section class="learner-reading learning-view" id="lesson-${escapeHtml(lesson.id)}" data-view="lesson-${escapeHtml(lesson.id)}" ${`lesson-${lesson.id}` === firstView ? "" : "hidden"}>
       <header class="view-header">
-        <span class="eyebrow">${lesson.durationMinutes} minute lesson</span>
+        <span class="learner-eyebrow">${lesson.durationMinutes} minute lesson</span>
         <h1 tabindex="-1">${escapeHtml(lesson.title)}</h1>
         <p>${escapeHtml(lesson.summary)}</p>
       </header>
@@ -146,9 +165,9 @@ function renderIndex(
   `).join("");
 
   const deckSections = decks.map((deck) => `
-    <section class="learning-view" id="deck-${escapeHtml(deck.id)}" data-view="deck-${escapeHtml(deck.id)}" ${`deck-${deck.id}` === firstView ? "" : "hidden"}>
+    <section class="learner-reading learning-view" id="deck-${escapeHtml(deck.id)}" data-view="deck-${escapeHtml(deck.id)}" ${`deck-${deck.id}` === firstView ? "" : "hidden"}>
       <header class="view-header">
-        <span class="eyebrow">${deck.cards.length} flash cards</span>
+        <span class="learner-eyebrow">${deck.cards.length} flash cards</span>
         <h1 tabindex="-1">${escapeHtml(deck.title)}</h1>
         <p>${escapeHtml(deck.description)}</p>
       </header>
@@ -195,7 +214,7 @@ function renderIndex(
   ${header}
   <div class="learner-main learner-layout layout">
     <aside class="learner-sidebar sidebar">
-      <p class="learner-eyebrow eyebrow">Published by ${escapeHtml(pack.package.authors[0]?.name ?? "Independent publisher")}</p>
+      <p class="learner-eyebrow">Published by ${escapeHtml(pack.package.authors[0]?.name ?? "Independent publisher")}</p>
       <h2>${escapeHtml(pack.package.title)}</h2>
       <p>${escapeHtml(pack.package.description)}</p>
       <nav aria-label="Learning pack contents">
@@ -345,86 +364,65 @@ export const standalonePlayerJavaScript = `(() => {
   updateDeckStatus();
 })();\n`;
 
-const standaloneLearningLayoutCss = `:root {
-  --paper: var(--learner-color-canvas);
-  --bright: var(--learner-color-surface);
-  --ink: var(--learner-color-ink);
-  --muted: var(--learner-color-muted);
-  --line: var(--learner-color-border);
-  --violet: var(--learner-color-accent);
-  --wash: var(--learner-color-accent-soft);
-  --green: var(--learner-color-success);
+const standaloneLearningLayoutCss = `.sidebar h2 {
+  font-family: var(--learner-font-reading);
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  font-weight: 500;
+  letter-spacing: -.04em;
+  line-height: 1.05;
+  margin: var(--learner-space-3) 0 var(--learner-space-4);
 }
-* { box-sizing: border-box; }
-html { background: var(--paper); color: var(--ink); }
-body { margin: 0; min-height: 100vh; }
-button, input { font: inherit; }
-button, a { -webkit-tap-highlight-color: transparent; }
-a { color: inherit; }
-.skip-link { background: var(--ink); color: white; left: 1rem; padding: .75rem 1rem; position: fixed; top: -5rem; z-index: 10; }
-.skip-link:focus { top: 1rem; }
-.site-header { align-items: center; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; min-height: 4.5rem; padding: 0 clamp(1.25rem,4vw,4rem); }
-.site-header span { color: var(--muted); font-size: .75rem; }
-.wordmark { align-items: center; display: flex; font-size: .78rem; font-weight: 650; gap: .7rem; letter-spacing: .08em; text-decoration: none; text-transform: uppercase; }
-.wordmark i { background: var(--violet); border-radius: 50%; height: .7rem; width: .7rem; }
-.layout { display: grid; grid-template-columns: minmax(17rem, 24rem) minmax(0, 1fr); margin: 0 auto; max-width: 1200px; min-height: calc(100vh - 4.5rem); }
-.sidebar { border-right: 1px solid var(--line); padding: clamp(2rem,5vw,4.5rem) clamp(1.25rem,3vw,2.5rem); }
-.eyebrow { color: var(--violet); font-size: .7rem; font-weight: 650; letter-spacing: .09em; text-transform: uppercase; }
-.sidebar h2 { font-family: Georgia,serif; font-size: clamp(1.8rem,3vw,2.5rem); font-weight: 400; letter-spacing: -.04em; line-height: 1.05; margin: .8rem 0 1rem; }
-.sidebar > p:not(.eyebrow), .view-header p { color: var(--muted); line-height: 1.65; }
-.sidebar nav { border-top: 1px solid var(--line); margin-top: 2.5rem; }
-.sidebar nav button { background: transparent; border: 0; border-bottom: 1px solid var(--line); color: var(--muted); cursor: pointer; display: grid; gap: .25rem; padding: 1rem 0; text-align: left; width: 100%; }
-.sidebar nav button[aria-current="page"] { color: var(--ink); }
-.sidebar nav button[aria-current="page"] span::after { color: var(--violet); content: " →"; }
+.sidebar > p:not(.learner-eyebrow),
+.view-header p { color: var(--learner-color-muted); line-height: 1.65; }
+.sidebar nav { border-top: var(--learner-border); margin-top: var(--learner-space-6); }
+.sidebar nav button { border-bottom-color: var(--learner-color-border); border-radius: 0; display: grid; gap: var(--learner-space-1); padding: var(--learner-space-4) 0; }
+.sidebar nav button[aria-current="page"] span::after { color: var(--learner-color-accent-strong); content: " →"; }
 .sidebar nav small { font-size: .68rem; text-transform: uppercase; }
-.sidebar footer { color: var(--muted); display: flex; flex-wrap: wrap; font-size: .7rem; gap: .75rem; justify-content: space-between; margin-top: 2rem; }
-main { padding: clamp(2.5rem,7vw,6.5rem) clamp(1.25rem,7vw,6rem); }
-.learning-view { margin: 0 auto; max-width: 760px; }
-.view-header { border-bottom: 1px solid var(--line); padding-bottom: 2rem; }
-.view-header h1 { font-family: Georgia,serif; font-size: clamp(2.6rem,6vw,4.8rem); font-weight: 400; letter-spacing: -.06em; line-height: .98; margin: .75rem 0 1.2rem; }
-.view-header p { font-family: Georgia,serif; font-size: 1.2rem; margin: 0; }
-.lesson-body { padding: 2rem 0; }
-.lesson-body > p, .lesson-body li { font-family: Georgia,serif; font-size: 1.08rem; line-height: 1.75; }
-.lesson-body h2, .lesson-body h3, .sources h2 { font-family: Georgia,serif; font-weight: 400; letter-spacing: -.03em; margin-top: 2.5rem; }
-.callout { background: var(--wash); border-left: 3px solid var(--violet); margin: 2rem 0; padding: 1.25rem 1.4rem; }
+.sidebar footer { color: var(--learner-color-muted); display: flex; flex-wrap: wrap; font-size: .7rem; gap: var(--learner-space-3); justify-content: space-between; margin-top: var(--learner-space-6); }
+.view-header { border-bottom: var(--learner-border); padding-bottom: var(--learner-space-6); }
+.view-header h1 { font-size: clamp(2.6rem, 6vw, 4.8rem); font-weight: 500; letter-spacing: -.06em; line-height: .98; margin: var(--learner-space-3) 0 var(--learner-space-5); }
+.view-header p { font-family: var(--learner-font-reading); font-size: 1.2rem; margin: 0; }
+.lesson-body { padding: var(--learner-space-6) 0; }
+.lesson-body > p,
+.lesson-body li { font-family: var(--learner-font-reading); font-size: 1.08rem; line-height: 1.75; }
+.lesson-body h2,
+.lesson-body h3,
+.sources h2 { font-family: var(--learner-font-reading); font-weight: 500; letter-spacing: -.03em; margin-top: var(--learner-space-7); }
+.callout { background: var(--learner-color-accent-soft); border-left: 3px solid var(--learner-color-accent); margin: var(--learner-space-6) 0; padding: var(--learner-space-5); }
 .callout p { line-height: 1.6; margin-bottom: 0; }
-.code-block { margin: 2rem 0; }
-.code-block figcaption { color: var(--muted); font-size: .75rem; margin-bottom: .5rem; }
-pre { background: #211f22; border-radius: .35rem; color: #f8f3ed; overflow-x: auto; padding: 1.25rem; }
-code { font-family: ui-monospace,SFMono-Regular,monospace; font-size: .86rem; line-height: 1.6; }
-.quiz { border-bottom: 1px solid var(--line); border-top: 1px solid var(--line); margin: 2.5rem 0; padding: 1.5rem 0; }
-.quiz fieldset { border: 0; display: grid; gap: .75rem; margin: 0; padding: 0; }
-.quiz legend { font-family: Georgia,serif; font-size: 1.25rem; margin-bottom: 1rem; }
-.quiz label { align-items: start; background: rgba(255,255,255,.35); border: 1px solid var(--line); cursor: pointer; display: flex; gap: .75rem; padding: .9rem; }
-.quiz button, .complete-button, .card-actions button { background: var(--ink); border: 1px solid var(--ink); color: white; cursor: pointer; margin-top: 1rem; min-height: 2.75rem; padding: .65rem 1rem; }
+.code-block { margin: var(--learner-space-6) 0; }
+.code-block figcaption { color: var(--learner-color-muted); font-size: .75rem; margin-bottom: var(--learner-space-2); }
+pre { background: #211f22; border-radius: var(--learner-radius-sm); color: #f8f3ed; overflow-x: auto; padding: var(--learner-space-5); }
+code { font-family: var(--learner-font-mono); font-size: .86rem; line-height: 1.6; }
+.quiz { border-bottom: var(--learner-border); border-top: var(--learner-border); margin: var(--learner-space-7) 0; padding: var(--learner-space-5) 0; }
+.quiz fieldset { display: grid; gap: var(--learner-space-3); }
+.quiz legend { font-family: var(--learner-font-reading); font-size: 1.25rem; margin-bottom: var(--learner-space-4); }
+.quiz button,
+.complete-button,
+.card-actions button { margin-top: var(--learner-space-4); }
 .quiz-result { font-weight: 650; }
-.quiz-result.correct { color: var(--green); }
-.quiz-explanation { color: var(--muted); line-height: 1.6; }
-.sources { border-top: 1px solid var(--line); margin-top: 3rem; padding-top: 1rem; }
+.quiz-result.correct { color: var(--learner-color-success); }
+.quiz-explanation { color: var(--learner-color-muted); line-height: 1.6; }
+.sources { border-top: var(--learner-border); margin-top: var(--learner-space-7); padding-top: var(--learner-space-4); }
 .sources h2 { font-size: 1.35rem; margin-top: 0; }
 .sources ul { list-style: none; padding: 0; }
-.sources li { display: grid; gap: .3rem; padding: .7rem 0; }
-.sources li span { color: var(--muted); font-size: .75rem; line-height: 1.5; }
-.cards { display: grid; gap: 1rem; list-style: none; padding: 1.5rem 0; }
-.card { border: 1px solid var(--line); padding: 1rem; }
-.card-count, .deck-status { color: var(--muted); font-size: .72rem; }
-.deck-status { margin-top: 1.5rem; }
-.card-face { background: var(--bright); border: 0; cursor: pointer; display: grid; gap: 1rem; margin-top: .6rem; min-height: 12rem; padding: 1.5rem; text-align: left; width: 100%; }
-.card-prompt, .card-answer strong { font-family: Georgia,serif; font-size: 1.35rem; font-weight: 400; line-height: 1.35; }
-.card-answer { display: grid; gap: .7rem; }
-.card-answer small { color: var(--muted); line-height: 1.5; }
-.card-face em { align-self: end; color: var(--violet); font-size: .72rem; font-style: normal; }
-.card-actions { display: flex; gap: .5rem; }
-.card-actions button:first-child { background: transparent; color: var(--ink); }
-:focus-visible { outline: 3px solid var(--violet); outline-offset: 3px; }
-[hidden] { display: none !important; }
-@media (max-width: 760px) {
-  .site-header { align-items: flex-start; flex-direction: column; gap: .3rem; justify-content: center; }
-  .layout { grid-template-columns: 1fr; }
-  .sidebar { border-bottom: 1px solid var(--line); border-right: 0; padding-bottom: 1.5rem; }
-  .sidebar nav { display: flex; gap: .5rem; overflow-x: auto; }
-  .sidebar nav button { border: 1px solid var(--line); flex: 0 0 12rem; padding: .75rem; }
-  main { padding-top: 3rem; }
+.sources li { display: grid; gap: var(--learner-space-1); padding: var(--learner-space-3) 0; }
+.sources li span { color: var(--learner-color-muted); font-size: .75rem; line-height: 1.5; }
+.cards { display: grid; gap: var(--learner-space-4); list-style: none; padding: var(--learner-space-5) 0; }
+.card-count,
+.deck-status { color: var(--learner-color-muted); font-size: .72rem; }
+.deck-status { margin-top: var(--learner-space-5); }
+.card-face { background: var(--learner-color-surface); border: 0; border-radius: var(--learner-radius-sm); color: var(--learner-color-ink); cursor: pointer; display: grid; gap: var(--learner-space-4); margin-top: var(--learner-space-3); min-height: 12rem; padding: var(--learner-space-5); text-align: left; width: 100%; }
+.card-prompt,
+.card-answer strong { font-family: var(--learner-font-reading); font-size: 1.35rem; font-weight: 500; line-height: 1.35; }
+.card-answer { display: grid; gap: var(--learner-space-3); }
+.card-answer small { color: var(--learner-color-muted); line-height: 1.5; }
+.card-face em { align-self: end; color: var(--learner-color-accent-strong); font-size: .72rem; font-style: normal; }
+.card-actions { display: flex; gap: var(--learner-space-2); }
+@media (max-width: ${LEARNER_UI_BREAKPOINTS.stacked}px) {
+  .sidebar { padding-bottom: var(--learner-space-5); }
+  .sidebar nav { display: flex; gap: var(--learner-space-2); overflow-x: auto; }
+  .sidebar nav button { border: var(--learner-border); border-radius: var(--learner-radius-sm); flex: 0 0 12rem; padding: var(--learner-space-3); }
 }\n`;
 
 export const standalonePlayerCss = `${createLearnerUiCss()}\n${standaloneLearningLayoutCss}`;
@@ -461,6 +459,8 @@ export async function buildStandaloneLearningSite(
     throw new Error(`Cannot build an invalid learning pack: ${validation.errors[0]?.message ?? "unknown error"}`);
   }
   const pack = validation.pack;
+  const ui = options.ui ?? {};
+  const learnerUiTheme = resolveStandaloneLearnerUiTheme(ui);
   const packageJson = canonicalLearningPackJson(pack);
   const packageBytes = new TextEncoder().encode(packageJson);
   const sha256 = await sha256Hex(packageBytes);
@@ -471,11 +471,11 @@ export async function buildStandaloneLearningSite(
   });
   const files: StandaloneSiteFiles = {
     ".latent-build": `${LEARNING_BUILD_MARKER}\n`,
-    "index.html": renderIndex(pack, sha256, options.ui ?? {}).replace(/[ \t]+$/gm, ""),
+    "index.html": renderIndex(pack, sha256, ui).replace(/[ \t]+$/gm, ""),
     "learning-pack.json": packageJson,
     "learning-feed.json": `${JSON.stringify(feed, null, 2)}\n`,
     "assets/player.js": standalonePlayerJavaScript,
-    "assets/player.css": `${createLearnerUiCss(options.ui?.theme)}\n${standaloneLearningLayoutCss}`,
+    "assets/player.css": `${createLearnerUiCss(learnerUiTheme)}\n${standaloneLearningLayoutCss}`,
     "assets/learner-ui.js": learnerUiJavaScript,
     "_headers": `/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: no-referrer\n  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()\n  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'\n\n/learning-feed.json\n  Access-Control-Allow-Origin: *\n  Cache-Control: no-cache\n\n/learning-pack.json\n  Access-Control-Allow-Origin: *\n  Cache-Control: no-cache\n`,
     "README.txt": `This is a Latent Open Learning static site.\n\nPublish this entire directory on any static web host. Share learning-feed.json with learners who want to verify or install the pack. Progress stays in each learner's browser and is namespaced to ${pack.package.id}@${pack.package.version}.\n`,

@@ -19,6 +19,7 @@ export const viewport: Viewport = {
 };
 
 const isLlmSystemsCourseExport = process.env.LATENT_COURSE_HOME === "llm-systems";
+const learnerUiAssetBasePath = process.env.__NEXT_ROUTER_BASEPATH ?? "";
 const llmSystemsCourseCsp = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: https://cdn.jsdelivr.net",
@@ -87,14 +88,24 @@ export async function generateMetadata(): Promise<Metadata> {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      {isLlmSystemsCourseExport ? (
-        <head>
+      <head>
+        {isLlmSystemsCourseExport ? (
           <meta httpEquiv="Content-Security-Policy" content={llmSystemsCourseCsp} />
-        </head>
-      ) : null}
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
+        ) : null}
+        <link
+          data-learner-ui-foundation="course-kit"
+          href={`${learnerUiAssetBasePath}/assets/learner-ui.css`}
+          rel="stylesheet"
+        />
+      </head>
+      <body className={`${geistSans.variable} ${geistMono.variable} learner-ui`}>
         <SkipLink />
         {children}
+        <script
+          data-learner-ui-behavior="course-kit"
+          defer
+          src={`${learnerUiAssetBasePath}/assets/learner-ui.js`}
+        />
       </body>
     </html>
   );

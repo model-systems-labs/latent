@@ -1,4 +1,4 @@
-.header > a {
+.header :global(.learner-wordmark) {
   align-items: center;
   display: inline-flex;
   min-height: 2.75rem;

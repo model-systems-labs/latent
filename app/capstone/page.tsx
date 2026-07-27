@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default function CapstonePage() {
   return (
     <>
-      <LearnerHeader current="courses" />
+      <LearnerHeader current="project" experience="llm-systems" />
       <BrowserChatCapstone />
     </>
   );

@@ -3,12 +3,13 @@ export const tenProblemsSiteUi = Object.freeze({
   headerMeta: "10 Python problems",
   globalNavigationLabel: "Learning experiences",
   globalNavigation: Object.freeze([
+    Object.freeze({ label: "Learning Studio", href: "../" }),
     Object.freeze({ label: "LLM Systems", href: "../llm-systems/" }),
     Object.freeze({ label: "Interview Loop", href: "../interview-loop/" }),
     Object.freeze({ label: "Ten Problems", href: "./", current: true }),
   ]),
   navigationLabel: "Ten Problems navigation",
-  menuLabel: "Menu",
+  menuLabel: "Explore",
   reviewDirectory: "leeches",
   copy: Object.freeze({
     allNavigationLabel: "Practice",
@@ -28,12 +29,7 @@ export const tenProblemsSiteUi = Object.freeze({
     problemPlural: "problems",
     continueLabel: "Continue",
   }),
-  theme: Object.freeze({
-    accent: "#3159d9",
-    accentStrong: "#2344ad",
-    accentSoft: "#e8edff",
-    focus: "#3159d9",
-  }),
+  appearance: Object.freeze({ palette: "cobalt" }),
   footerSummary: "Progress is saved on this device for this exact problem set.",
   attribution: "Built with Latent.",
   faviconSvg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">

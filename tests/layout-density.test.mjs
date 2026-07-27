@@ -5,19 +5,22 @@ import test from "node:test";
 const root = new URL("../", import.meta.url);
 const read = (path) => readFile(new URL(path, root), "utf8");
 
-test("macro layout rhythm is tuned to roughly seventy percent", async () => {
-  const [tokens, landing, lessons, catalog, course] = await Promise.all([
+test("macro layout rhythm is tuned once in the shared learner foundation", async () => {
+  const [tokens, learnerUi, landing, lessons, catalog, course] = await Promise.all([
     read("app/styles/tokens.css"),
+    read("packages/course-kit/src/learner-ui.ts"),
     read("products/courses/courses.module.css"),
     read("app/styles/learning-flow.css"),
     read("app/styles/course-catalog.css"),
     read("app/course/page.module.css"),
   ]);
 
-  assert.match(tokens, /--rhythm-landing:\s*clamp\(3\.85rem, 7vw, 5\.6rem\)/);
-  assert.match(tokens, /--rhythm-major:\s*clamp\(3\.15rem, 5\.6vw, 4\.9rem\)/);
-  assert.match(tokens, /--rhythm-section:\s*clamp\(2\.1rem, 4\.2vw, 3\.5rem\)/);
-  assert.match(tokens, /--rhythm-group:\s*clamp\(2\.8rem, 5\.6vw, 4\.55rem\)/);
+  assert.match(learnerUi, /--learner-rhythm-major:\s*clamp\(3\.15rem, 5\.6vw, 4\.9rem\)/);
+  assert.match(learnerUi, /--learner-rhythm-section:\s*clamp\(2\.1rem, 4\.2vw, 3\.5rem\)/);
+  assert.match(tokens, /--rhythm-landing:\s*var\(--learner-rhythm-major/);
+  assert.match(tokens, /--rhythm-major:\s*var\(--learner-rhythm-major/);
+  assert.match(tokens, /--rhythm-section:\s*var\(--learner-rhythm-section/);
+  assert.match(tokens, /--rhythm-group:\s*var\(--learner-rhythm-major/);
   assert.match(landing, /\.hero\s*\{[^}]*padding:\s*var\(--rhythm-landing\) 0/);
   assert.match(landing, /\.startingPoint,[^{]*\{[^}]*padding:\s*var\(--rhythm-major\) 0/);
   assert.match(lessons, /\.paper-page \.paper-section\s*\{\s*padding:\s*var\(--rhythm-section\) 0/);

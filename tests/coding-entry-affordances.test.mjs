@@ -6,14 +6,7 @@ const root = new URL("../", import.meta.url);
 
 const read = (path) => readFile(new URL(path, root), "utf8");
 
-function primaryHeader(source) {
-  const start = source.indexOf('<header className=');
-  const end = source.indexOf("</header>", start);
-  assert.ok(start >= 0 && end > start, "page must expose a primary header");
-  return source.slice(start, end);
-}
-
-test("learner-wide navigation omits publishing and IDE links while the project course retains its contextual workspace", async () => {
+test("learner navigation keeps the workspace contextual to the LLM Systems artifact", async () => {
   const [learnerHeader, landing, catalog, frameworkLanding, frameworkHeader, llmCourse] = await Promise.all([
     read("app/components/LearnerHeader.tsx"),
     read("products/courses/CoursesLanding.tsx"),
@@ -23,7 +16,12 @@ test("learner-wide navigation omits publishing and IDE links while the project c
     read("app/courses/llm-systems/page.tsx"),
   ]);
 
-  assert.doesNotMatch(primaryHeader(learnerHeader), /href="\/(?:workspace|open-learning)"/);
+  const generalDestinations = learnerHeader.slice(
+    learnerHeader.indexOf("const destinations"),
+    learnerHeader.indexOf("const learningSuiteBasePath"),
+  );
+  assert.doesNotMatch(generalDestinations, /href: "\/(?:workspace|open-learning)"/);
+  assert.match(learnerHeader, /\{ id: "practice", href: "\/workspace", label: "Practice" \}/);
   for (const page of [landing, catalog]) {
     assert.match(page, /<LearnerHeader current="courses" \/>/);
     assert.doesNotMatch(page, /href="\/(?:workspace|open-learning)"/);
@@ -31,7 +29,7 @@ test("learner-wide navigation omits publishing and IDE links while the project c
   assert.match(frameworkLanding, /<FrameworkHeader current="overview" \/>/);
   assert.match(frameworkHeader, /href: "\/open-learning"/);
   assert.doesNotMatch(frameworkHeader, /href="\/workspace"|href: "\/workspace"/);
-  assert.match(primaryHeader(llmCourse), /href="\/workspace"/);
+  assert.doesNotMatch(llmCourse, /aria-label="Course tools"/);
   assert.match(llmCourse, /secondaryLink=\{\{ href: "\/workspace", label: "Open coding workspace" \}\}/);
 });
 
@@ -55,14 +53,14 @@ test("lesson exercise rows advertise the editor and leave the coding area unobst
 });
 
 test("coding entry links retain full-size click targets", async () => {
-  const [siteCss, codingCss, guideCss, projectCss] = await Promise.all([
-    read("app/styles/learning-flow.css"),
+  const [learnerUi, codingCss, guideCss, projectCss] = await Promise.all([
+    read("packages/course-kit/src/learner-ui.ts"),
     read("app/styles/coding-workspace.css"),
     read("app/components/CourseGuide.module.css"),
     read("app/styles/project-structure.css"),
   ]);
 
-  assert.match(siteCss, /\.site-header nav a\s*\{[^}]*min-height:\s*2\.75rem/);
+  assert.match(learnerUi, /\.learner-primary-nav a\s*\{[^}]*min-height:\s*2\.75rem/);
   assert.match(codingCss, /\.open-ide-link\s*\{[^}]*min-height:\s*2\.75rem/);
   assert.match(guideCss, /\.actions a\s*\{[^}]*display:\s*inline-flex/);
   assert.match(projectCss, /\.project-hero-link\s*\{[^}]*min-height:\s*2\.75rem/);

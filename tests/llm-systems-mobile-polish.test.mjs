@@ -26,26 +26,35 @@ test("the server-rendered skip link targets content after learner navigation", a
   assert.match(lesson, /<LearnerHeader[\s\S]*?<article[^>]*id="main-content"/);
 });
 
-test("the learner family header has separate truthful desktop and mobile navigation", async () => {
-  const [header, styles] = await Promise.all([
+test("the learner family header is a server adapter for the shared learner UI", async () => {
+  const [layout, header, styles] = await Promise.all([
+    read("app/layout.tsx"),
     read("app/components/LearnerHeader.tsx"),
-    read("app/components/LearnerHeader.module.css"),
+    read("packages/course-kit/src/learner-ui.ts"),
   ]);
 
+  assert.doesNotMatch(header, /"use client"|useEffect|useRef|matchMedia/);
   assert.match(header, /data-learner-family-header/);
-  assert.match(header, /<nav className=\{styles\.desktopNav\} aria-label="Learning experiences">/);
-  assert.match(header, /<details className=\{styles\.menu\} ref=\{menuRef\}>/);
+  assert.match(header, /className="learner-header__inner"/);
+  assert.match(header, /className="learner-wordmark"/);
+  assert.match(header, /learner-primary-nav--\$\{mobile \? "mobile" : "desktop"\}/);
+  assert.match(header, /className="learner-global-nav" aria-label="Learning experiences"/);
+  assert.match(header, /className="learner-nav-menu__panel"/);
   assert.doesNotMatch(header, /<details[^>]*\sopen(?:\s|=)/);
-  assert.match(header, /const closeMenu = \(\) => menu\.removeAttribute\("open"\)/);
-  assert.match(header, /matchMedia\("\(max-width: 760px\), \(max-height: 500px\)"\)/);
-  assert.match(styles, /\.familyHeader > \.desktopNav\s*\{[^}]*display:\s*flex/);
-  assert.match(styles, /\.menu\s*\{[^}]*display:\s*none/);
-  assert.doesNotMatch(styles, /\.menu:not\(\[open\]\) > nav \{ display: flex; \}/);
-  assert.match(styles, /@media \(max-width: 760px\)[\s\S]*?\.familyHeader > \.desktopNav \{ display: none; \}[\s\S]*?\.menu \{ display: block; \}/);
-  assert.match(styles, /@media \(max-width: 760px\)[\s\S]*?\.menu:not\(\[open\]\) > nav \{ display: none; \}/);
-  assert.match(styles, /\.menu > summary\s*\{[^}]*min-height:\s*2\.75rem/);
-  assert.match(header, /aria-label="LLM Systems home" style=\{\{ minHeight: "2\.75rem" \}\}/);
-  assert.match(styles, /\.familyHeader :global\(:focus-visible\)\s*\{[^}]*outline:\s*2px solid var\(--violet-deep\)/);
+  assert.match(header, /label: "Modules"/);
+  assert.match(header, /label: "Practice"/);
+  assert.match(header, /label: "Review"/);
+  assert.match(header, /label: "Project"/);
+  assert.match(header, /label: "Reading"/);
+  assert.match(header, /<summary>\{suiteMode \? "Explore" : "Menu"\}<\/summary>/);
+  assert.match(layout, /href=\{`\$\{learnerUiAssetBasePath\}\/assets\/learner-ui\.css`\}/);
+  assert.match(layout, /src=\{`\$\{learnerUiAssetBasePath\}\/assets\/learner-ui\.js`\}/);
+  assert.doesNotMatch(layout, /dangerouslySetInnerHTML/);
+  assert.match(layout, /learner-ui/);
+  assert.match(styles, /\.learner-primary-nav--desktop\s*\{[\s\S]*?margin-left:\s*auto/);
+  assert.match(styles, /\.learner-nav-menu > summary\s*\{[^}]*min-height:\s*2\.75rem/);
+  assert.match(styles, /@media \(max-width: \$\{LEARNER_UI_BREAKPOINTS\.compact\}px\)[\s\S]*?\.learner-primary-nav--desktop \{ display: none; \}[\s\S]*?\.learner-primary-nav--mobile/);
+  assert.match(styles, /\.learner-ui :focus-visible\s*\{[^}]*outline:\s*3px solid var\(--learner-color-focus\)/);
 });
 
 test("full-height workspaces account for the family header at every compact breakpoint", async () => {
@@ -61,17 +70,21 @@ test("full-height workspaces account for the family header at every compact brea
   assert.match(workspace, /import \{ ProjectWorkbench \} from "@\/app\/components\/ProjectWorkbench"/);
   assert.match(workspace, /<ProjectWorkbench \/>/);
   assert.doesNotMatch(workspace, /lazy|Suspense|WorkspaceLoading/);
-  assert.match(workspaceStyles, /@media \(max-width: 760px\)[\s\S]*?:global\(\[data-learner-family-header\]\) \+ \.shell\s*\{[^}]*height:\s*calc\(100dvh - 4rem\)/);
+  assert.match(workspaceStyles, /\.shell\s*\{[^}]*height:\s*calc\(100dvh - var\(--learner-header-height\)\)/);
+  assert.match(workspaceStyles, /\.shell\s*\{[^}]*min-height:\s*0/);
+  assert.doesNotMatch(workspaceStyles, /data-learner-family-header|course-header|4\.9rem/);
   assert.match(workspaceStyles, /\.topbar\s*\{[^}]*column-gap:\s*0\.5rem/);
   assert.match(workspaceStyles, /\.topbar > a:first-child\s*\{[^}]*min-height:\s*2\.75rem/);
 
   assert.match(capstone, /compiled-capstone-shell \$\{styles\.shell\}/);
   assert.match(capstone, /compiled-capstone-runtime \$\{styles\.runtime\}/);
   assert.match(capstone, /capstone-build-gate \$\{styles\.gate\}/);
-  assert.match(capstoneStyles, /\.shell\s*\{[^}]*--external-header-height:\s*4\.9rem/);
-  assert.match(capstoneStyles, /@media \(max-width: 760px\)[\s\S]*?--external-header-height:\s*4rem/);
-  assert.match(capstoneStyles, /\.runtime\s*\{[^}]*height:\s*calc\(100dvh - var\(--external-header-height\) - 4\.8rem\)/);
-  assert.match(capstoneStyles, /\.gate\s*\{[^}]*min-height:\s*calc\(100dvh - var\(--external-header-height\) - 4\.8rem\)/);
+  assert.match(capstoneStyles, /\.shell\s*\{[^}]*min-height:\s*calc\(100dvh - var\(--learner-header-height\)\)/);
+  assert.match(capstoneStyles, /\.runtime\s*\{[^}]*height:\s*calc\(100dvh - var\(--learner-header-height\) - 4\.8rem\)/);
+  assert.match(capstoneStyles, /\.gate\s*\{[^}]*min-height:\s*calc\(100dvh - var\(--learner-header-height\) - 4\.8rem\)/);
+  assert.match(capstoneStyles, /@media \(max-width: 650px\)[\s\S]*?\.runtime\s*\{[^}]*3\.75rem/);
+  assert.match(capstoneStyles, /@media \(max-width: 940px\) and \(max-height: 500px\)[\s\S]*?\.runtime\s*\{[^}]*2\.75rem/);
+  assert.doesNotMatch(capstoneStyles, /external-header-height|data-learner-family-header|course-header/);
 });
 
 test("the transformer matrix is a labelled keyboard-scrollable region", async () => {

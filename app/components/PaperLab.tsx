@@ -1622,32 +1622,35 @@ export function PaperLab({
   const flair = getLessonFlair(lesson.id);
   const [recoveryRevision, setRecoveryRevision] = useState(0);
   return (
-    <main className={styles.lessonShell} data-flair-tone={flair?.tone}>
-      <PageAtmosphere />
-      <LearnerHeader current="courses" />
-      <div className="lesson-header lesson-section-header">
-        <nav aria-label="Lesson navigation">
-          <a href="#summary">Read</a>
-          <a href="#implementation">Code</a>
-          {contributesToBrowserChat ? <a href="#artifacts">Results</a> : null}
-        </nav>
-        <span>{lesson.courseTitle ?? "Model Foundations"}</span>
-      </div>
-      {persistenceError ? <p className="persistence-warning lesson-persistence-warning" role="alert">Storage warning: {persistenceError}</p> : null}
-      <article className="paper-page" id="main-content" tabIndex={-1}>
-        <HeaderSection lesson={lesson} />
-        <EditorialLessonIllustration lesson={lesson} />
-        <EvidenceAndLimits lesson={lesson} />
-        <LessonProgress lesson={lesson} />
-        <ParagraphSection lesson={lesson} />
-        <LessonOutcome lesson={lesson} outcome={outcome} />
-        <LessonRecoveryCandidates lessonId={lesson.id} onLoaded={() => setRecoveryRevision((revision) => revision + 1)} />
-        <CodingSection key={`${lesson.id}:${recoveryRevision}`} lesson={lesson} />
-        <footer className="paper-footer lesson-footer">
-          {previous ? <Link href={`/lessons/${previous.id}`}>← {previous.title}</Link> : <Link href={courseHref}>← {contributesToBrowserChat ? "Module" : "Course"}</Link>}
-          {next ? <Link href={`/lessons/${next.id}`}>{next.title} →</Link> : checkpoint ? <Link href={`/checkpoints/${checkpoint.courseId}`}>Module checkpoint →</Link> : <Link href={courseHref}>{contributesToBrowserChat ? "Module" : "Course"} ↑</Link>}
-        </footer>
-      </article>
-    </main>
+    <>
+      <LearnerHeader
+        current="courses"
+        experience={contributesToBrowserChat ? "llm-systems" : undefined}
+      />
+      <main className={styles.lessonShell} data-flair-tone={flair?.tone}>
+        <PageAtmosphere />
+        {persistenceError ? <p className="persistence-warning lesson-persistence-warning" role="alert">Storage warning: {persistenceError}</p> : null}
+        <article className="paper-page" id="main-content" tabIndex={-1}>
+          <HeaderSection lesson={lesson} />
+          <nav className={styles.lessonSectionNav} aria-label="Lesson sections">
+            <span>In this lesson</span>
+            <a href="#summary">Read</a>
+            <a href="#implementation">Code</a>
+            {contributesToBrowserChat ? <a href="#artifacts">Results</a> : null}
+          </nav>
+          <EditorialLessonIllustration lesson={lesson} />
+          <EvidenceAndLimits lesson={lesson} />
+          <LessonProgress lesson={lesson} />
+          <ParagraphSection lesson={lesson} />
+          <LessonOutcome lesson={lesson} outcome={outcome} />
+          <LessonRecoveryCandidates lessonId={lesson.id} onLoaded={() => setRecoveryRevision((revision) => revision + 1)} />
+          <CodingSection key={`${lesson.id}:${recoveryRevision}`} lesson={lesson} />
+          <footer className="paper-footer lesson-footer">
+            {previous ? <Link href={`/lessons/${previous.id}`}>← {previous.title}</Link> : <Link href={courseHref}>← {contributesToBrowserChat ? "Module" : "Course"}</Link>}
+            {next ? <Link href={`/lessons/${next.id}`}>{next.title} →</Link> : checkpoint ? <Link href={`/checkpoints/${checkpoint.courseId}`}>Module checkpoint →</Link> : <Link href={courseHref}>{contributesToBrowserChat ? "Module" : "Course"} ↑</Link>}
+          </footer>
+        </article>
+      </main>
+    </>
   );
 }

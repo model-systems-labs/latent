@@ -9,6 +9,7 @@ import {
   learnerUiJavaScript,
   renderLearnerFooter,
   renderLearnerHeader,
+  resolveLearnerUiTheme,
 } from "./vendor/learner-ui.mjs";
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -48,14 +49,15 @@ if (generatorStats?.isFile() && !generatorStats.isSymbolicLink()) {
   );
 } else {
   if (
-    LEARNER_UI_VERSION !== 1
+    LEARNER_UI_VERSION !== 2
     || typeof createLearnerUiCss !== "function"
     || typeof renderLearnerHeader !== "function"
     || typeof renderLearnerFooter !== "function"
+    || typeof resolveLearnerUiTheme !== "function"
     || typeof learnerUiJavaScript !== "string"
     || learnerUiJavaScript.length === 0
   ) {
-    throw new Error("The checked-in standalone learner UI bundle is invalid.");
+    throw new Error("The checked-in standalone learner UI v2 bundle is invalid.");
   }
-  console.log("Using the checked-in learner UI v1 bundle for this extracted platform.");
+  console.log("Using the checked-in learner UI v2 bundle for this extracted platform.");
 }

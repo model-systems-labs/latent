@@ -1,218 +1,24 @@
-// Generated from @latent/course-kit 0.2.0; do not edit.
-// packages/course-kit/dist/learner-ui.js
-var LEARNER_UI_VERSION = 2;
-var LEARNER_UI_BREAKPOINTS = Object.freeze({
-  compact: 760,
-  stacked: 980,
-  wide: 1280
-});
-var LEARNER_UI_PALETTE_NAMES = Object.freeze([
-  "paper",
-  "sage",
-  "cobalt",
-  "plum",
-  "graphite"
-]);
-var LEARNER_UI_PALETTES = Object.freeze({
-  paper: Object.freeze({
-    canvas: "#f4f0e8",
-    surface: "#fffdf8",
-    surfaceMuted: "#eee9df",
-    ink: "#282322",
-    muted: "#665e59",
-    border: "#d8d0c7",
-    accent: "#78667d",
-    accentStrong: "#554653",
-    accentSoft: "#eee8ef",
-    accentContrast: "#fffdf8",
-    success: "#54735d",
-    successSoft: "#e2ebe4",
-    danger: "#8d5a54",
-    dangerSoft: "#f3e5e2",
-    warning: "#9a6342",
-    focus: "#3159b7"
-  }),
-  sage: Object.freeze({
-    canvas: "#f2f4ed",
-    surface: "#fffdf8",
-    surfaceMuted: "#e8ede3",
-    ink: "#252a25",
-    muted: "#61685f",
-    border: "#cfd6ca",
-    accent: "#47705d",
-    accentStrong: "#315342",
-    accentSoft: "#dfebe4",
-    accentContrast: "#fffdf8",
-    success: "#47705d",
-    successSoft: "#dfebe4",
-    danger: "#8d5a54",
-    dangerSoft: "#f3e5e2",
-    warning: "#92613f",
-    focus: "#3159b7"
-  }),
-  cobalt: Object.freeze({
-    canvas: "#f1f3f7",
-    surface: "#fffdf8",
-    surfaceMuted: "#e8edf5",
-    ink: "#24272e",
-    muted: "#606773",
-    border: "#cdd4df",
-    accent: "#42629b",
-    accentStrong: "#2d4979",
-    accentSoft: "#e1e8f4",
-    accentContrast: "#fffdf8",
-    success: "#4c705c",
-    successSoft: "#e0ebe4",
-    danger: "#935853",
-    dangerSoft: "#f4e4e2",
-    warning: "#93613c",
-    focus: "#3159b7"
-  }),
-  plum: Object.freeze({
-    canvas: "#f3eff3",
-    surface: "#fffdf8",
-    surfaceMuted: "#ebe5eb",
-    ink: "#292329",
-    muted: "#6a5e68",
-    border: "#d9cfd8",
-    accent: "#765b75",
-    accentStrong: "#563f56",
-    accentSoft: "#eee4ed",
-    accentContrast: "#fffdf8",
-    success: "#55715f",
-    successSoft: "#e2ebe5",
-    danger: "#915955",
-    dangerSoft: "#f4e4e2",
-    warning: "#97603f",
-    focus: "#3159b7"
-  }),
-  graphite: Object.freeze({
-    canvas: "#f1f0ed",
-    surface: "#fffdf8",
-    surfaceMuted: "#e7e6e2",
-    ink: "#242525",
-    muted: "#626665",
-    border: "#ced1ce",
-    accent: "#59666b",
-    accentStrong: "#3f4b50",
-    accentSoft: "#e2e7e8",
-    accentContrast: "#fffdf8",
-    success: "#52705d",
-    successSoft: "#e0ebe4",
-    danger: "#915955",
-    dangerSoft: "#f4e4e2",
-    warning: "#916240",
-    focus: "#3159b7"
-  })
-});
-var DEFAULT_THEME = LEARNER_UI_PALETTES.paper;
-function escapeHtml(value) {
-  return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
-}
-function boundedText(value, label, maximum = 200) {
-  if (typeof value !== "string" || value.trim().length === 0 || value.length > maximum || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value)) {
-    throw new Error(`${label} must be a non-empty text value no longer than ${maximum} characters.`);
-  }
-  return value.trim();
-}
-function safeRelativeHref(value, label) {
-  const href = boundedText(value, label, 500);
-  if (/^#[A-Za-z][A-Za-z0-9._-]*$/.test(href))
-    return href;
-  if (href.startsWith("/") || href.startsWith("//") || href.includes("\\") || href.includes(":") || href.includes("?") || href.includes("#") || href.includes("\0")) {
-    throw new Error(`${label} must be a same-origin relative path or fragment.`);
-  }
-  const segments = href.split("/");
-  let contentStarted = false;
-  for (const [index, segment] of segments.entries()) {
-    if (segment === "" && segments.length === 1) {
-      throw new Error(`${label} must not be empty.`);
-    }
-    if (segment === "" && index !== segments.length - 1) {
-      throw new Error(`${label} must not contain an empty path segment.`);
-    }
-    if (segment === ".") {
-      if (contentStarted)
-        throw new Error(`${label} may use "." only as a leading segment.`);
-      continue;
-    }
-    if (segment === "..") {
-      if (contentStarted)
-        throw new Error(`${label} may use ".." only as a leading segment.`);
-      continue;
-    }
-    if (segment === "")
-      continue;
-    contentStarted = true;
-    if (!/^[A-Za-z0-9._~-]+$/.test(segment)) {
-      throw new Error(`${label} contains an unsupported path segment.`);
-    }
-  }
-  return href;
-}
-function navigationToken(value) {
-  const token = boundedText(value, "Navigation data view", 80);
-  if (!/^[A-Za-z][A-Za-z0-9._-]*$/.test(token)) {
-    throw new Error("Navigation data view must be a simple identifier.");
-  }
-  return token;
-}
-function themeValue(value, label) {
-  if (!/^#[0-9a-f]{6}$/i.test(value)) {
-    throw new Error(`${label} must be a six-digit hexadecimal color.`);
-  }
-  return value.toLowerCase();
-}
-function resolveLearnerUiTheme(appearance = {}) {
-  const unknownKeys = Object.keys(appearance).filter((key) => key !== "palette" && key !== "theme");
-  if (unknownKeys.length) {
-    throw new Error(`Unknown learner UI appearance field: ${unknownKeys[0]}`);
-  }
-  const palette = appearance.palette ?? "paper";
-  if (!LEARNER_UI_PALETTE_NAMES.includes(palette)) {
-    throw new Error(`Unknown learner UI palette: ${String(palette)}`);
-  }
-  const theme = appearance.theme ?? {};
-  const unknownThemeKeys = Object.keys(theme).filter((key) => !(key in DEFAULT_THEME));
-  if (unknownThemeKeys.length) {
-    throw new Error(`Unknown learner UI theme token: ${unknownThemeKeys[0]}`);
-  }
-  const base = LEARNER_UI_PALETTES[palette];
-  return Object.freeze(Object.fromEntries(Object.entries(base).map(([key, fallback]) => [
-    key,
-    themeValue(theme[key] ?? fallback, `appearance.theme.${key}`)
-  ])));
-}
-function createLearnerUiCss(theme = {}) {
-  const unknownKeys = Object.keys(theme).filter((key) => !(key in DEFAULT_THEME));
-  if (unknownKeys.length) {
-    throw new Error(`Unknown learner UI theme token: ${unknownKeys[0]}`);
-  }
-  const colors = Object.fromEntries(Object.entries(DEFAULT_THEME).map(([key, fallback]) => [
-    key,
-    themeValue(theme[key] ?? fallback, `theme.${key}`)
-  ]));
-  return `:root {
+:root {
   color-scheme: light;
   --learner-font-sans: var(--font-geist-sans, "Helvetica Neue"), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --learner-font-reading: "Iowan Old Style", Baskerville, "Times New Roman", serif;
   --learner-font-mono: var(--font-geist-mono, "SFMono-Regular"), ui-monospace, Consolas, "Liberation Mono", monospace;
-  --learner-color-canvas: ${colors.canvas};
-  --learner-color-surface: ${colors.surface};
-  --learner-color-surface-muted: ${colors.surfaceMuted};
-  --learner-color-ink: ${colors.ink};
-  --learner-color-muted: ${colors.muted};
-  --learner-color-border: ${colors.border};
-  --learner-color-accent: ${colors.accent};
-  --learner-color-accent-strong: ${colors.accentStrong};
-  --learner-color-accent-soft: ${colors.accentSoft};
-  --learner-color-accent-contrast: ${colors.accentContrast};
-  --learner-color-success: ${colors.success};
-  --learner-color-success-soft: ${colors.successSoft};
-  --learner-color-danger: ${colors.danger};
-  --learner-color-danger-soft: ${colors.dangerSoft};
-  --learner-color-warning: ${colors.warning};
-  --learner-color-focus: ${colors.focus};
+  --learner-color-canvas: #f4f0e8;
+  --learner-color-surface: #fffdf8;
+  --learner-color-surface-muted: #eee9df;
+  --learner-color-ink: #282322;
+  --learner-color-muted: #665e59;
+  --learner-color-border: #d8d0c7;
+  --learner-color-accent: #78667d;
+  --learner-color-accent-strong: #554653;
+  --learner-color-accent-soft: #eee8ef;
+  --learner-color-accent-contrast: #fffdf8;
+  --learner-color-success: #54735d;
+  --learner-color-success-soft: #e2ebe4;
+  --learner-color-danger: #8d5a54;
+  --learner-color-danger-soft: #f3e5e2;
+  --learner-color-warning: #9a6342;
+  --learner-color-focus: #3159b7;
   --learner-space-1: .25rem;
   --learner-space-2: .5rem;
   --learner-space-3: .75rem;
@@ -742,7 +548,7 @@ body.learner-ui {
   width: 1px;
 }
 .learner-nav-menu--local-only > summary { display: none; }
-@media (max-width: ${LEARNER_UI_BREAKPOINTS.stacked}px) {
+@media (max-width: 980px) {
   .learner-layout { grid-template-columns: 1fr; }
   .learner-sidebar {
     border-bottom: var(--learner-border);
@@ -751,7 +557,7 @@ body.learner-ui {
   .learner-mobile-panel[data-learner-collapse-at="stacked"] > summary { display: flex; }
   .learner-mobile-panel[data-learner-collapse-at="stacked"]:not([open]) > .learner-mobile-panel__content { display: none; }
 }
-@media (max-width: ${LEARNER_UI_BREAKPOINTS.compact}px), (max-height: 500px) {
+@media (max-width: 760px), (max-height: 500px) {
   :root { --learner-header-height: 4rem; }
   html { scroll-behavior: auto; }
   .learner-header__inner {
@@ -780,13 +586,13 @@ body.learner-ui {
   .learner-editor { font-size: 1rem; }
   .learner-footer__inner { flex-direction: column; }
 }
-@media (min-width: ${LEARNER_UI_BREAKPOINTS.compact + 1}px) and (min-height: 501px) {
+@media (min-width: 761px) and (min-height: 501px) {
   .learner-mobile-panel > .learner-mobile-panel__content { display: block !important; }
 }
-@media (min-width: ${LEARNER_UI_BREAKPOINTS.compact + 1}px) and (min-height: 501px) and (max-width: ${LEARNER_UI_BREAKPOINTS.stacked}px) {
+@media (min-width: 761px) and (min-height: 501px) and (max-width: 980px) {
   .learner-mobile-panel[data-learner-collapse-at="stacked"]:not([open]) > .learner-mobile-panel__content { display: none !important; }
 }
-@media (min-width: ${LEARNER_UI_BREAKPOINTS.stacked + 1}px) and (min-height: 501px) {
+@media (min-width: 981px) and (min-height: 501px) {
   .learner-mobile-panel[data-learner-collapse-at="stacked"] > .learner-mobile-panel__content { display: block !important; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -800,143 +606,3 @@ body.learner-ui {
 @media (forced-colors: active) {
   .learner-status-dot[data-status] { forced-color-adjust: none; }
 }
-`;
-}
-function renderLearnerHeader(options) {
-  const productName = boundedText(options.productName, "Product name", 160);
-  const homeHref = safeRelativeHref(options.homeHref, "Header home path");
-  const homeLabel = boundedText(options.homeLabel ?? `${productName} home`, "Header home label", 200);
-  const navigationLabel = boundedText(options.navigationLabel, "Navigation label", 160);
-  const menuLabel = boundedText(options.menuLabel ?? (options.globalNavigation ? "Explore" : "Menu"), "Menu label", 80);
-  if (!Array.isArray(options.navigation) || options.navigation.length === 0) {
-    throw new Error("Learner header navigation must include at least one item.");
-  }
-  const renderNavigation = (items, itemLabel) => items.map((item, index) => {
-    const label = boundedText(item.label, `${itemLabel} item ${index + 1} label`, 120);
-    const href = safeRelativeHref(item.href, `Navigation item ${index + 1} path`);
-    const dataView = item.dataView === void 0 ? "" : ` data-view="${escapeHtml(navigationToken(item.dataView))}"`;
-    const current = item.current ? ' aria-current="page"' : "";
-    return `<a href="${escapeHtml(href)}"${current}${dataView}>${escapeHtml(label)}</a>`;
-  }).join("");
-  const navigation = renderNavigation(options.navigation, "Navigation");
-  const globalNavigation = options.globalNavigation === void 0 ? "" : (() => {
-    if (!Array.isArray(options.globalNavigation) || options.globalNavigation.length === 0) {
-      throw new Error("Global learner navigation must include at least one item when configured.");
-    }
-    const label = boundedText(options.globalNavigationLabel ?? "Learning experiences", "Global navigation label", 160);
-    return `<nav class="learner-global-nav" aria-label="${escapeHtml(label)}">${renderNavigation(options.globalNavigation, "Global navigation")}</nav>`;
-  })();
-  const meta = options.meta === void 0 ? "" : `<span class="learner-header__meta">${escapeHtml(boundedText(options.meta, "Header metadata", 160))}</span>`;
-  const menuClass = globalNavigation ? "learner-nav-menu" : "learner-nav-menu learner-nav-menu--local-only";
-  return `<header class="learner-header">
-  <div class="learner-header__inner">
-    <div class="learner-header__identity">
-      <a class="learner-wordmark" href="${escapeHtml(homeHref)}" aria-label="${escapeHtml(homeLabel)}"><i class="learner-wordmark__mark" aria-hidden="true"></i><span>${escapeHtml(productName)}</span></a>
-      ${meta}
-    </div>
-    <nav class="learner-primary-nav learner-primary-nav--desktop" aria-label="${escapeHtml(navigationLabel)}">${navigation}</nav>
-    <details class="${menuClass}">
-      <summary>${escapeHtml(menuLabel)}</summary>
-      <div class="learner-nav-menu__panel">
-        ${globalNavigation}
-        <nav class="learner-primary-nav learner-primary-nav--mobile" aria-label="${escapeHtml(navigationLabel)}">${navigation}</nav>
-      </div>
-    </details>
-  </div>
-</header>`;
-}
-function renderLearnerFooter(options = {}) {
-  const summary = options.summary === void 0 ? "" : `<span>${escapeHtml(boundedText(options.summary, "Footer summary", 240))}</span>`;
-  const attribution = options.attribution === void 0 ? "" : `<span>${escapeHtml(boundedText(options.attribution, "Footer attribution", 160))}</span>`;
-  if (!summary && !attribution)
-    return "";
-  return `<footer class="learner-footer"><div class="learner-footer__inner">${summary}${attribution}</div></footer>`;
-}
-var learnerUiJavaScript = `(() => {
-  "use strict";
-  const compact = globalThis.matchMedia("(max-width: ${LEARNER_UI_BREAKPOINTS.compact}px), (max-height: 500px)");
-  const stacked = globalThis.matchMedia("(max-width: ${LEARNER_UI_BREAKPOINTS.stacked}px)");
-  const disclosureSelector = ".learner-nav-menu, .learner-mobile-panel";
-  const prepared = new WeakSet();
-  const preparedSkipLinks = new WeakSet();
-  const synchronize = (disclosure) => {
-    const breakpoint = disclosure.dataset.learnerCollapseAt === "stacked"
-      ? stacked
-      : compact;
-    const viewport = breakpoint.matches ? "compact" : "wide";
-    if (disclosure.dataset.learnerViewport === viewport) return;
-    disclosure.dataset.learnerViewport = viewport;
-    if (breakpoint.matches) disclosure.removeAttribute("open");
-    else disclosure.setAttribute("open", "");
-  };
-  const prepare = (disclosure) => {
-    if (prepared.has(disclosure)) return;
-    prepared.add(disclosure);
-    const summary = disclosure.querySelector(":scope > summary");
-    if (disclosure.matches(".learner-nav-menu")) {
-      disclosure.querySelectorAll("a").forEach((link) => {
-        link.addEventListener("click", () => disclosure.removeAttribute("open"));
-      });
-    }
-    disclosure.addEventListener("keydown", (event) => {
-      const isNavigationMenu = disclosure.matches(".learner-nav-menu");
-      const breakpoint = disclosure.dataset.learnerCollapseAt === "stacked"
-        ? stacked
-        : compact;
-      if (
-        event.key !== "Escape"
-        || !disclosure.open
-        || (!isNavigationMenu && !breakpoint.matches)
-      ) return;
-      disclosure.removeAttribute("open");
-      summary?.focus();
-    });
-    if (disclosure.matches(".learner-mobile-panel")) synchronize(disclosure);
-  };
-  const prepareWithin = (root) => {
-    if (root instanceof Element && root.matches(disclosureSelector)) prepare(root);
-    root.querySelectorAll?.(disclosureSelector).forEach(prepare);
-    const prepareSkipLink = (link) => {
-      if (preparedSkipLinks.has(link)) return;
-      preparedSkipLinks.add(link);
-      link.addEventListener("click", () => {
-        const target = document.getElementById(link.hash.slice(1));
-        target?.focus();
-      });
-    };
-    if (root instanceof Element && root.matches(".learner-skip-link")) prepareSkipLink(root);
-    root.querySelectorAll?.(".learner-skip-link").forEach(prepareSkipLink);
-  };
-  prepareWithin(document);
-  new MutationObserver((records) => {
-    for (const record of records) {
-      record.addedNodes.forEach((node) => {
-        if (node instanceof Element) prepareWithin(node);
-      });
-    }
-  }).observe(document.documentElement, { childList: true, subtree: true });
-  compact.addEventListener("change", () => {
-    document.querySelectorAll(".learner-nav-menu").forEach((menu) => menu.removeAttribute("open"));
-    document.querySelectorAll(".learner-mobile-panel:not([data-learner-collapse-at='stacked'])").forEach(synchronize);
-  });
-  stacked.addEventListener("change", () => {
-    document.querySelectorAll('[data-learner-collapse-at="stacked"]').forEach(synchronize);
-  });
-  document.addEventListener("click", (event) => {
-    for (const menu of document.querySelectorAll(".learner-nav-menu[open]")) {
-      if (!menu.contains(event.target)) menu.removeAttribute("open");
-    }
-  });
-})();
-`;
-export {
-  LEARNER_UI_BREAKPOINTS,
-  LEARNER_UI_PALETTES,
-  LEARNER_UI_PALETTE_NAMES,
-  LEARNER_UI_VERSION,
-  createLearnerUiCss,
-  learnerUiJavaScript,
-  renderLearnerFooter,
-  renderLearnerHeader,
-  resolveLearnerUiTheme
-};

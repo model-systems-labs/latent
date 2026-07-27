@@ -5,29 +5,18 @@
     "tagline": "Build clear stories, robust code, and defensible system designs for demanding engineering interviews."
   },
   "learnerUi": {
-    "theme": {
-      "canvas": "#f4f7f5",
-      "surface": "#ffffff",
-      "surfaceMuted": "#edf2ef",
-      "ink": "#17211d",
-      "muted": "#5d6a64",
-      "border": "#ced8d2",
-      "accent": "#176b5a",
-      "accentStrong": "#0f5144",
-      "accentSoft": "#dff2ec",
-      "accentContrast": "#ffffff",
-      "success": "#1d704e",
-      "successSoft": "#def3e8",
-      "danger": "#a33d3d",
-      "dangerSoft": "#fae7e5",
-      "warning": "#8b5a15",
-      "focus": "#2259c7"
+    "appearance": {
+      "palette": "sage"
     },
     "header": {
       "homeHref": "./",
       "homeLabel": "Interview Loop Lab home",
       "globalNavigationLabel": "Learning experiences",
       "globalNavigation": [
+        {
+          "label": "Learning Studio",
+          "href": "../"
+        },
         {
           "label": "LLM Systems",
           "href": "../llm-systems/"
@@ -43,7 +32,7 @@
         }
       ],
       "navigationLabel": "Learning areas",
-      "menuLabel": "Learning areas",
+      "menuLabel": "Explore",
       "meta": "3 modules · 58 minutes",
       "navigation": [
         {

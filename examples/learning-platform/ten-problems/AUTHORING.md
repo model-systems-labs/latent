@@ -168,9 +168,10 @@ a focused Python practice workspace; it is not reshaped into a course.
 - `scripts/build-learning-example-pages.mjs` atomically assembles the
   content-first Learning Studio index, the original Build an LLM System course
   at `/llm-systems/`, Interview Loop at `/interview-loop/`, and Ten Problems
-  at `/practice/`. The React course shares family navigation and presentation
-  through `app/components/LearnerHeader.tsx` and
-  `app/components/LearnerHeader.module.css`.
+  at `/practice/`. `scripts/generate-learning-platform-learner-ui.mjs`
+  derives the React course's self-hosted learner CSS and behavior from Course
+  Kit, `app/layout.tsx` links those assets, and
+  `app/components/LearnerHeader.tsx` adapts the shared markup contract.
 - No portable Learning Pack, Learning Feed, or Question Group contract changed.
   Question cases remain public declarative data. Runtime admission, executable
   checks, Python execution, timeouts, output limits, state logic, and UI
@@ -325,10 +326,13 @@ The wider suite uses the following reviewed mobile sources:
 - `examples/learning-platform/interview-loop/site/focus.mjs`,
   `site/app.mjs`, and `site/styles.css` for the specialized course rerender and
   compact module/practice flows.
-- `app/components/LearnerHeader.tsx`,
-  `LearnerHeader.module.css`, and `SkipLink.tsx` for truthful desktop/mobile
-  family navigation and server-rendered post-navigation skip targets in the
-  original React course.
+- `scripts/generate-learning-platform-learner-ui.mjs`,
+  `public/assets/learner-ui.css`, `public/assets/learner-ui.js`, and
+  `app/layout.tsx` for build-generated, subpath-safe shared presentation in
+  the original React course.
+- `app/components/LearnerHeader.tsx` and `SkipLink.tsx` for truthful
+  desktop/mobile family navigation and server-rendered post-navigation skip
+  targets.
 - `app/components/PaperLab.module.css`, `WorkspaceShell.tsx`,
   `WorkspaceShell.module.css`, and `BrowserChatCapstone.module.css` for the
   specialized lesson, IDE, and capstone mobile layouts.
@@ -373,3 +377,132 @@ The wider suite uses the following reviewed mobile sources:
   matrix, IDE, skip link, and capstone viewport.
 - This is browser emulation and keyboard inspection, not a physical
   iOS/Android or formal screen-reader certification.
+
+## Learner UI v2 — opinionated framework follow-up
+
+This section supersedes the presentation architecture in the earlier shared-UI
+handoffs. Their commit, deployment, file-count, and learner UI v1 evidence
+remains historical; it is not evidence for v2.
+
+### Why another framework revision was necessary
+
+The first shared-UI pass removed Ten Problems' generated-output patches and
+introduced common tokens, but the suite still had parallel shell owners.
+Interview Loop rendered a bespoke application header, Ten Problems composed
+the standalone Question Group player, and the original React course used a
+separate header stylesheet. Activity toolbars could also read as additional
+site headers. Similar accent colors did not reconcile hierarchy, typography,
+navigation, focus, or responsive behavior.
+
+V2 promotes the warm editorial principles of the original course into Course
+Kit's default learner framework. The system is intentionally opinionated:
+typography, measure, spacing, borders, component geometry, focus, feedback,
+and responsive behavior are shared. A product chooses its content,
+information architecture, and one reviewed color palette; it does not rebuild
+the shell.
+
+### Exact shared and specialized sources
+
+| Source | Responsibility |
+| --- | --- |
+| `packages/course-kit/src/learner-ui.ts` | Canonical v2 tokens, five palettes, CSS, one-header renderer, footer, focus behavior, screen-reader utilities, and compact navigation script. |
+| `packages/course-kit/src/static-site.ts` | Shared foundation composed with standalone Learning Pack lessons and cards. |
+| `packages/course-kit/src/question-group-site.ts` | Shared foundation composed with problem navigation, editor, Run examples/Check solution feedback, progress, Continue, and repeated-miss Review. |
+| `scripts/generate-learning-platform-learner-ui.mjs` | Derives `public/assets/learner-ui.css`, `public/assets/learner-ui.js`, and the dependency-free Interview build input from reviewed Course Kit source. |
+| `public/assets/learner-ui.css` and `public/assets/learner-ui.js` | Generated, self-hosted React assets; `build:web` regenerates them rather than treating them as another design source. |
+| `app/layout.tsx` | Links the generated stylesheet and behavior through the active base path for the original React course. |
+| `app/styles/tokens.css` | Aliases older course variables to the canonical learner tokens. |
+| `app/components/LearnerHeader.tsx` | Thin React adapter over the shared header markup contract. |
+| `examples/learning-platform/ten-problems/site-config.mjs` | Product identity, content-oriented labels, review route, footer, favicon, and `cobalt` palette. |
+| `examples/learning-platform/ten-problems/tools/build.mjs` | Passes the reviewed configuration and Python adapter into the builder before rendering. |
+| `examples/learning-platform/ten-problems/security-config.mjs` | Document meta CSP and static-host page/worker response policy. |
+| `examples/learning-platform/ten-problems/trusted/python-question-runtime.ts` | Maps validated declarative cases to the reviewed Python worker and host-owned assertions. |
+| `examples/learning-platform/interview-loop/tools/vendor/learner-ui.mjs` | Generated, drift-checked build input used by the extracted Interview example. |
+| `scripts/generate-learning-platform-learner-ui.mjs` | Generates that vendored copy from Course Kit rather than creating another design source. |
+| `scripts/build-learning-example-pages.mjs` | Builds the Paper-palette Learning Studio and assembles all three products at stable Pages subpaths. |
+
+The one global header has a stable anatomy: product identity and optional
+metadata, local primary navigation, and one **Explore** disclosure for the
+product family. Compact layouts put Practice/Review navigation inside
+**Explore** rather than adding a second header. The problem list, progress
+summary, editor actions, and results stay inside the practice workspace. In
+the original course, **Read / Code / Results** is now a quiet “In this lesson”
+section nav after the lesson introduction rather than another full-width bar.
+
+The reviewed palettes are `paper`, `sage`, `cobalt`, `plum`, and `graphite`;
+`paper` is the default. Ten Problems supplies only
+`appearance.palette: "cobalt"`. Palette choice changes color identity while
+the editorial type system, layout, components, focus treatment, and responsive
+contract remain shared. A low-level trusted token override remains for
+compatibility, but the reviewed examples do not use it and the builder rejects
+combining `ui.appearance` with the legacy top-level `ui.theme`.
+
+No portable Question Group or Learning Pack contract changed. Canonical bytes,
+digest-bound drafts/progress, public declarative cases, trusted Python checks,
+runtime timeouts/output limits, same-origin Pyodide assets, CSP, and Pages
+subpath routing retain their existing ownership and security boundaries. The
+old post-build HTML/JavaScript replacements, framework-concept renaming, and
+generated-CSS patches remain removed. Product identity, routes, labels,
+palette, footer, runtime adapter, and CSP are explicit trusted build inputs.
+
+### What remains intentionally specialized
+
+Ten Problems remains a focused Python practice product: problem list, prompt
+and contract, editor, public examples, full visible checks, progress,
+Continue, and repeated-miss Review. Its three-column desktop workspace and
+stacked compact workspace are not forced into a course page.
+
+Interview Loop remains a navigable course with behavioral and architecture
+modules, quizzes, flash cards, portable practice, and a trusted Python IDE.
+The original course retains its lesson, project, workspace, and capstone
+layouts. All three now inherit the same navigation, typography, controls,
+feedback, progress, focus, and mobile language.
+
+### Concise visual comparison
+
+| Concern | Before v2 | After v2 |
+| --- | --- | --- |
+| Design ownership | Three shells approximated a family with local CSS. | Course Kit owns one exact foundation consumed by static and React builds. |
+| Headers | Family, product, and activity bars created stacked header-like rows. | One global header; problem, lesson, and editor navigation remains contextual. |
+| Theme choice | Raw token maps could recreate unrelated products. | Five reviewed palettes vary color while framework geometry and behavior stay invariant. |
+| Coding surfaces | Ten Problems and Interview's IDE used different control and result languages. | Both inherit shared editor framing, actions, status, and feedback while preserving different workspace flows. |
+| Customization | Generated output was patched to establish the product interface. | `site-config.mjs` and the builder establish identity, labels, routes, palette, and runtime before rendering. |
+| Mobile/a11y | Products reconciled menus, landmarks, focus, and short viewports independently. | Shared compact disclosure, skip target, Escape restoration, visible focus, live regions, and breakpoints form the baseline. |
+
+### Local validation and express user evidence
+
+- Course Kit built successfully and all 57 package tests passed. The 70
+  focused application regression tests, TypeScript, and ESLint passed.
+- `npm run open-learning:validate`, `npm run open-learning:schema`, and
+  `npm run open-learning:generate` passed without changing the portable
+  contracts.
+- Ten Problems strict validation passed with 4 groups, 10 questions, 39 cases,
+  and zero warnings; all 6 example tests and the production build passed.
+- Interview Loop strict validation and all 13 focused tests passed, including
+  its real-Python authored cases and production build.
+- The React production export prerendered 96 routes and verified 95 rendered
+  course routes, 27 required routes, and 4 assets. The combined local Pages
+  artifact contains 441 files and exposes `/`, `/llm-systems/`,
+  `/interview-loop/`, `/practice/`, and `/practice/leeches/`.
+- At 1440 × 900, the beginning-learner pass moved from Learning Studio into
+  Ten Problems, found one stable header, opened Practice, understood the public
+  example, used Continue, and recognized device-local progress without
+  framework terminology.
+- The advanced Ten Problems pass verified problem navigation, example and
+  full-check failure then success, actionable expected/received feedback,
+  five-of-ten solved progress after reload, repeated-miss appearance, and
+  removal from Review after a passing solution.
+- The parallel Interview pass verified module navigation/resume,
+  wrong/correct quiz feedback, card rating persistence, and Python IDE failure
+  then four-check success.
+- At 390 × 844, the three-panel practice workspace stacked to the viewport
+  width without horizontal document overflow. **Explore** opened with local
+  and family navigation, and Escape restored focus with the shared
+  three-pixel visible indicator.
+- The combined local route sweep recorded zero browser-console warnings or
+  errors.
+
+This evidence is local Chromium emulation and keyboard inspection, not a
+physical-device or formal screen-reader certification. The final full-root
+`npm run validate` gate passed with 606 tests and zero failures. No v2 live
+commit or workflow result is claimed until deployment verification completes.

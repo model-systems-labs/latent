@@ -14,18 +14,21 @@ typography, navigation, controls, feedback, progress, focus treatment, and
 responsive shell as
 [Ten Problems](../ten-problems/).
 
+The page has one learner header: Interview Loop identity, local navigation,
+and one **Explore** disclosure for the learning suite. On mobile, local
+navigation moves into that disclosure; module controls remain inside the
+course layout instead of becoming another site header.
+
 This is original, transferable preparation. It does not reproduce or predict
 the private interview process, rubric, or questions of Stripe, OpenAI,
 Anthropic, or any other employer.
 
 [Open the hosted course](https://model-systems-labs.github.io/latent/interview-loop/).
 
-The shared learner UI revision described here was verified in the combined
-local Pages preview and in the
-[live learning suite](https://model-systems-labs.github.io/latent/) at merge
-commit `778994638801b2599c9691c98d0d7183b5a97463`. Desktop, mobile, keyboard,
-Python execution, persistence, subpath assets, and console evidence are
-recorded in [AUTHORING.md](./AUTHORING.md).
+The current learner UI v2 revision has local production-build, desktop,
+mobile, keyboard, Python execution, and persistence evidence recorded in
+[AUTHORING.md](./AUTHORING.md). Live evidence is recorded there only after a
+deployment has been verified.
 
 ```bash
 npm run validate
@@ -48,8 +51,11 @@ The reviewed source of truth for the shared presentation is
 `packages/course-kit/src/learner-ui.ts`. This dependency-free example consumes
 the generated build-time copy at `tools/vendor/learner-ui.mjs`;
 `platform.json` explicitly supplies its product name, navigation labels and
-hash routes, theme, and footer. It has no runtime dependency on a hosted
-stylesheet, JavaScript service, framework CDN, or model API.
+hash routes, `sage` appearance palette, and footer. The palette changes color
+identity, not layout or component behavior; the other reviewed choices are
+`paper`, `cobalt`, `plum`, and `graphite`. The example has no runtime
+dependency on a hosted stylesheet, JavaScript service, framework CDN, or model
+API.
 
 Read [GUIDE.md](./GUIDE.md) for the course map, shared/specialized source
 boundaries, and practice sequence. Read [AGENTS.md](./AGENTS.md) before asking

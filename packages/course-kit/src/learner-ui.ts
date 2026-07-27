@@ -1,4 +1,4 @@
-export const LEARNER_UI_VERSION = 1 as const;
+export const LEARNER_UI_VERSION = 2 as const;
 
 export const LEARNER_UI_BREAKPOINTS = Object.freeze({
   compact: 760,
@@ -25,6 +25,25 @@ export type LearnerUiTheme = Readonly<Partial<{
   focus: string;
 }>>;
 
+export const LEARNER_UI_PALETTE_NAMES = Object.freeze([
+  "paper",
+  "sage",
+  "cobalt",
+  "plum",
+  "graphite",
+] as const);
+
+export type LearnerUiPaletteName = typeof LEARNER_UI_PALETTE_NAMES[number];
+
+export type LearnerUiAppearance = Readonly<{
+  palette?: LearnerUiPaletteName;
+  /**
+   * Compatibility escape hatch for trusted repository UI. Portable learning
+   * content must never supply appearance overrides.
+   */
+  theme?: LearnerUiTheme;
+}>;
+
 export type LearnerUiNavigationItem = Readonly<{
   label: string;
   href: string;
@@ -49,24 +68,100 @@ export type LearnerUiFooterOptions = Readonly<{
   attribution?: string;
 }>;
 
-const DEFAULT_THEME = Object.freeze({
-  canvas: "#f4f7f5",
-  surface: "#ffffff",
-  surfaceMuted: "#edf2ef",
-  ink: "#17211d",
-  muted: "#5d6a64",
-  border: "#ced8d2",
-  accent: "#176b5a",
-  accentStrong: "#0f5144",
-  accentSoft: "#dff2ec",
-  accentContrast: "#ffffff",
-  success: "#1d704e",
-  successSoft: "#def3e8",
-  danger: "#a33d3d",
-  dangerSoft: "#fae7e5",
-  warning: "#8b5a15",
-  focus: "#2259c7",
-} satisfies Required<LearnerUiTheme>);
+export const LEARNER_UI_PALETTES = Object.freeze({
+  paper: Object.freeze({
+    canvas: "#f4f0e8",
+    surface: "#fffdf8",
+    surfaceMuted: "#eee9df",
+    ink: "#282322",
+    muted: "#665e59",
+    border: "#d8d0c7",
+    accent: "#78667d",
+    accentStrong: "#554653",
+    accentSoft: "#eee8ef",
+    accentContrast: "#fffdf8",
+    success: "#54735d",
+    successSoft: "#e2ebe4",
+    danger: "#8d5a54",
+    dangerSoft: "#f3e5e2",
+    warning: "#9a6342",
+    focus: "#3159b7",
+  }),
+  sage: Object.freeze({
+    canvas: "#f2f4ed",
+    surface: "#fffdf8",
+    surfaceMuted: "#e8ede3",
+    ink: "#252a25",
+    muted: "#61685f",
+    border: "#cfd6ca",
+    accent: "#47705d",
+    accentStrong: "#315342",
+    accentSoft: "#dfebe4",
+    accentContrast: "#fffdf8",
+    success: "#47705d",
+    successSoft: "#dfebe4",
+    danger: "#8d5a54",
+    dangerSoft: "#f3e5e2",
+    warning: "#92613f",
+    focus: "#3159b7",
+  }),
+  cobalt: Object.freeze({
+    canvas: "#f1f3f7",
+    surface: "#fffdf8",
+    surfaceMuted: "#e8edf5",
+    ink: "#24272e",
+    muted: "#606773",
+    border: "#cdd4df",
+    accent: "#42629b",
+    accentStrong: "#2d4979",
+    accentSoft: "#e1e8f4",
+    accentContrast: "#fffdf8",
+    success: "#4c705c",
+    successSoft: "#e0ebe4",
+    danger: "#935853",
+    dangerSoft: "#f4e4e2",
+    warning: "#93613c",
+    focus: "#3159b7",
+  }),
+  plum: Object.freeze({
+    canvas: "#f3eff3",
+    surface: "#fffdf8",
+    surfaceMuted: "#ebe5eb",
+    ink: "#292329",
+    muted: "#6a5e68",
+    border: "#d9cfd8",
+    accent: "#765b75",
+    accentStrong: "#563f56",
+    accentSoft: "#eee4ed",
+    accentContrast: "#fffdf8",
+    success: "#55715f",
+    successSoft: "#e2ebe5",
+    danger: "#915955",
+    dangerSoft: "#f4e4e2",
+    warning: "#97603f",
+    focus: "#3159b7",
+  }),
+  graphite: Object.freeze({
+    canvas: "#f1f0ed",
+    surface: "#fffdf8",
+    surfaceMuted: "#e7e6e2",
+    ink: "#242525",
+    muted: "#626665",
+    border: "#ced1ce",
+    accent: "#59666b",
+    accentStrong: "#3f4b50",
+    accentSoft: "#e2e7e8",
+    accentContrast: "#fffdf8",
+    success: "#52705d",
+    successSoft: "#e0ebe4",
+    danger: "#915955",
+    dangerSoft: "#f4e4e2",
+    warning: "#916240",
+    focus: "#3159b7",
+  }),
+} satisfies Record<LearnerUiPaletteName, Required<LearnerUiTheme>>);
+
+const DEFAULT_THEME = LEARNER_UI_PALETTES.paper;
 
 function escapeHtml(value: string) {
   return value
@@ -144,6 +239,33 @@ function themeValue(value: string, label: string) {
   return value.toLowerCase();
 }
 
+export function resolveLearnerUiTheme(
+  appearance: LearnerUiAppearance = {},
+): Required<LearnerUiTheme> {
+  const unknownKeys = Object.keys(appearance).filter(
+    (key) => key !== "palette" && key !== "theme",
+  );
+  if (unknownKeys.length) {
+    throw new Error(`Unknown learner UI appearance field: ${unknownKeys[0]}`);
+  }
+  const palette = appearance.palette ?? "paper";
+  if (!LEARNER_UI_PALETTE_NAMES.includes(palette)) {
+    throw new Error(`Unknown learner UI palette: ${String(palette)}`);
+  }
+  const theme = appearance.theme ?? {};
+  const unknownThemeKeys = Object.keys(theme).filter((key) => !(key in DEFAULT_THEME));
+  if (unknownThemeKeys.length) {
+    throw new Error(`Unknown learner UI theme token: ${unknownThemeKeys[0]}`);
+  }
+  const base = LEARNER_UI_PALETTES[palette];
+  return Object.freeze(Object.fromEntries(
+    Object.entries(base).map(([key, fallback]) => [
+      key,
+      themeValue(theme[key as keyof LearnerUiTheme] ?? fallback, `appearance.theme.${key}`),
+    ]),
+  )) as Required<LearnerUiTheme>;
+}
+
 export function createLearnerUiCss(theme: LearnerUiTheme = {}) {
   const unknownKeys = Object.keys(theme).filter((key) => !(key in DEFAULT_THEME));
   if (unknownKeys.length) {
@@ -158,9 +280,9 @@ export function createLearnerUiCss(theme: LearnerUiTheme = {}) {
 
   return `:root {
   color-scheme: light;
-  --learner-font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --learner-font-reading: Georgia, "Times New Roman", serif;
-  --learner-font-mono: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --learner-font-sans: var(--font-geist-sans, "Helvetica Neue"), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --learner-font-reading: "Iowan Old Style", Baskerville, "Times New Roman", serif;
+  --learner-font-mono: var(--font-geist-mono, "SFMono-Regular"), ui-monospace, Consolas, "Liberation Mono", monospace;
   --learner-color-canvas: ${colors.canvas};
   --learner-color-surface: ${colors.surface};
   --learner-color-surface-muted: ${colors.surfaceMuted};
@@ -184,16 +306,19 @@ export function createLearnerUiCss(theme: LearnerUiTheme = {}) {
   --learner-space-5: 1.5rem;
   --learner-space-6: 2rem;
   --learner-space-7: 3rem;
-  --learner-radius-sm: .4rem;
-  --learner-radius-md: .7rem;
-  --learner-radius-lg: 1rem;
+  --learner-space-8: 4.5rem;
+  --learner-radius-sm: .3rem;
+  --learner-radius-md: .5rem;
+  --learner-radius-lg: .75rem;
   --learner-border: 1px solid var(--learner-color-border);
-  --learner-shadow-sm: 0 1px 2px rgba(23, 33, 29, .06);
-  --learner-shadow-md: 0 10px 30px rgba(23, 33, 29, .08);
-  --learner-width-reading: 46rem;
-  --learner-width-content: 76rem;
-  --learner-width-wide: 90rem;
-  --learner-header-height: 4.5rem;
+  --learner-shadow-sm: 0 1px 1px color-mix(in srgb, var(--learner-color-ink) 6%, transparent);
+  --learner-shadow-md: 0 18px 50px color-mix(in srgb, var(--learner-color-ink) 11%, transparent);
+  --learner-width-reading: 45rem;
+  --learner-width-content: 78rem;
+  --learner-width-wide: 92rem;
+  --learner-header-height: 4.9rem;
+  --learner-rhythm-section: clamp(2.1rem, 4.2vw, 3.5rem);
+  --learner-rhythm-major: clamp(3.15rem, 5.6vw, 4.9rem);
   font-family: var(--learner-font-sans);
   font-synthesis: none;
 }
@@ -204,7 +329,10 @@ html {
   scroll-behavior: smooth;
 }
 body.learner-ui {
-  background: var(--learner-color-canvas);
+  background:
+    radial-gradient(circle at 4% 0%, color-mix(in srgb, var(--learner-color-accent-soft) 70%, transparent) 0, transparent min(36rem, 55vw)),
+    radial-gradient(circle at 96% 12%, color-mix(in srgb, var(--learner-color-surface) 70%, transparent) 0, transparent min(32rem, 48vw)),
+    var(--learner-color-canvas);
   color: var(--learner-color-ink);
   font-family: var(--learner-font-sans);
   line-height: 1.5;
@@ -242,7 +370,7 @@ body.learner-ui {
   min-height: 100vh;
 }
 .learner-header {
-  background: color-mix(in srgb, var(--learner-color-surface) 94%, transparent);
+  background: color-mix(in srgb, var(--learner-color-canvas) 91%, transparent);
   border-bottom: var(--learner-border);
   position: relative;
   z-index: 20;
@@ -250,12 +378,18 @@ body.learner-ui {
 .learner-header__inner {
   align-items: center;
   display: flex;
-  gap: var(--learner-space-5);
-  justify-content: space-between;
+  gap: clamp(var(--learner-space-4), 2.5vw, var(--learner-space-6));
   margin: 0 auto;
   max-width: var(--learner-width-wide);
   min-height: var(--learner-header-height);
   padding: 0 clamp(1rem, 4vw, 3rem);
+}
+.learner-header__identity {
+  align-items: center;
+  display: flex;
+  flex: 0 1 auto;
+  gap: var(--learner-space-3);
+  min-width: 0;
 }
 .learner-wordmark {
   align-items: center;
@@ -270,7 +404,7 @@ body.learner-ui {
 }
 .learner-wordmark__mark {
   background: var(--learner-color-accent);
-  border-radius: .25rem;
+  border-radius: .2rem;
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--learner-color-accent-strong) 30%, transparent);
   display: inline-block;
   height: 1rem;
@@ -279,30 +413,56 @@ body.learner-ui {
 }
 .learner-header__meta {
   color: var(--learner-color-muted);
-  font-size: .75rem;
+  font-size: .7rem;
+  letter-spacing: .015em;
+  white-space: nowrap;
+}
+.learner-primary-nav--desktop {
+  justify-content: center;
   margin-left: auto;
 }
-.learner-nav-menu { position: relative; }
+.learner-nav-menu {
+  flex: 0 0 auto;
+  position: relative;
+}
 .learner-nav-menu > summary {
   align-items: center;
-  background: var(--learner-color-surface);
-  border: var(--learner-border);
+  background: transparent;
+  border: 1px solid transparent;
   border-radius: var(--learner-radius-sm);
   cursor: pointer;
-  display: none;
-  font-size: .82rem;
-  font-weight: 700;
+  display: flex;
+  font-size: .76rem;
+  font-weight: 720;
+  letter-spacing: .025em;
   min-height: 2.75rem;
   padding: .5rem .8rem;
 }
 .learner-nav-menu > summary::marker { content: ""; }
 .learner-nav-menu > summary::after {
-  content: "⌄";
-  font-size: 1rem;
-  margin-left: .6rem;
+  content: "↓";
+  font-size: .8rem;
+  margin-left: .55rem;
 }
-.learner-nav-menu[open] > summary::after { content: "⌃"; }
-.learner-nav-menu__panel,
+.learner-nav-menu[open] > summary {
+  background: var(--learner-color-surface-muted);
+  border-color: var(--learner-color-border);
+}
+.learner-nav-menu[open] > summary::after { content: "↑"; }
+.learner-nav-menu__panel {
+  background: var(--learner-color-surface);
+  border: var(--learner-border);
+  border-radius: var(--learner-radius-md);
+  box-shadow: var(--learner-shadow-md);
+  display: grid;
+  gap: var(--learner-space-1);
+  min-width: min(19rem, calc(100vw - 2rem));
+  padding: var(--learner-space-2);
+  position: absolute;
+  right: 0;
+  top: calc(100% + var(--learner-space-2));
+}
+.learner-nav-menu:not([open]) > .learner-nav-menu__panel { display: none; }
 .learner-global-nav,
 .learner-primary-nav {
   align-items: center;
@@ -310,8 +470,9 @@ body.learner-ui {
   gap: var(--learner-space-2);
 }
 .learner-global-nav {
-  border-right: var(--learner-border);
-  padding-right: var(--learner-space-3);
+  align-items: stretch;
+  display: grid;
+  gap: var(--learner-space-1);
 }
 .learner-global-nav a,
 .learner-primary-nav a {
@@ -319,11 +480,17 @@ body.learner-ui {
   border-radius: var(--learner-radius-sm);
   color: var(--learner-color-muted);
   display: inline-flex;
-  font-size: .82rem;
+  font-size: .78rem;
   font-weight: 680;
   min-height: 2.75rem;
   padding: .58rem .8rem;
   text-decoration: none;
+}
+.learner-global-nav a { display: flex; }
+.learner-primary-nav--mobile {
+  border-top: var(--learner-border);
+  display: none;
+  padding-top: var(--learner-space-2);
 }
 .learner-global-nav a:hover,
 .learner-primary-nav a:hover {
@@ -362,6 +529,15 @@ body.learner-ui {
   margin: 0 auto;
   max-width: var(--learner-width-reading);
 }
+.learner-reading h1,
+.learner-reading h2,
+.learner-reading h3,
+.learner-content > h1,
+.learner-content > h2 {
+  font-family: var(--learner-font-reading);
+  font-weight: 500;
+  letter-spacing: -.035em;
+}
 .learner-eyebrow {
   color: var(--learner-color-accent-strong);
   font-size: .7rem;
@@ -375,10 +551,10 @@ body.learner-ui {
   line-height: 1.65;
 }
 .learner-card {
-  background: var(--learner-color-surface);
+  background: color-mix(in srgb, var(--learner-color-surface) 78%, transparent);
   border: var(--learner-border);
   border-radius: var(--learner-radius-md);
-  box-shadow: var(--learner-shadow-sm);
+  box-shadow: none;
   padding: var(--learner-space-5);
 }
 .learner-button {
@@ -389,6 +565,7 @@ body.learner-ui {
   color: var(--learner-color-ink);
   cursor: pointer;
   display: inline-flex;
+  font-size: .84rem;
   font-weight: 720;
   justify-content: center;
   min-height: 2.75rem;
@@ -396,7 +573,6 @@ body.learner-ui {
 }
 .learner-button:hover:not(:disabled) {
   border-color: color-mix(in srgb, var(--learner-color-ink) 45%, var(--learner-color-border));
-  box-shadow: var(--learner-shadow-sm);
   transform: translateY(-1px);
 }
 .learner-button[data-variant="primary"] {
@@ -456,7 +632,7 @@ body.learner-ui {
   color: var(--learner-color-warning);
 }
 .learner-results {
-  background: var(--learner-color-surface-muted);
+  background: color-mix(in srgb, var(--learner-color-surface-muted) 72%, transparent);
   border: var(--learner-border);
   border-radius: var(--learner-radius-md);
   margin-top: var(--learner-space-4);
@@ -517,9 +693,9 @@ body.learner-ui {
   padding: .6rem .85rem;
 }
 .learner-editor {
-  background: #17211d;
+  background: #211f22;
   border: 0;
-  color: #f4f7f5;
+  color: #f7f2eb;
   display: block;
   font: .875rem/1.6 var(--learner-font-mono);
   min-height: 18rem;
@@ -651,6 +827,7 @@ body.learner-ui {
   white-space: nowrap;
   width: 1px;
 }
+.learner-nav-menu--local-only > summary { display: none; }
 @media (max-width: ${LEARNER_UI_BREAKPOINTS.stacked}px) {
   .learner-layout { grid-template-columns: 1fr; }
   .learner-sidebar {
@@ -660,7 +837,7 @@ body.learner-ui {
   .learner-mobile-panel[data-learner-collapse-at="stacked"] > summary { display: flex; }
   .learner-mobile-panel[data-learner-collapse-at="stacked"]:not([open]) > .learner-mobile-panel__content { display: none; }
 }
-@media (max-width: ${LEARNER_UI_BREAKPOINTS.compact}px) {
+@media (max-width: ${LEARNER_UI_BREAKPOINTS.compact}px), (max-height: 500px) {
   :root { --learner-header-height: 4rem; }
   html { scroll-behavior: auto; }
   .learner-header__inner {
@@ -669,35 +846,19 @@ body.learner-ui {
     padding: 0 var(--learner-space-4);
   }
   .learner-header__meta { display: none; }
+  .learner-primary-nav--desktop { display: none; }
   .learner-nav-menu > summary { display: flex; }
-  .learner-nav-menu__panel {
-    background: var(--learner-color-surface);
-    border: var(--learner-border);
-    border-radius: var(--learner-radius-md);
-    box-shadow: var(--learner-shadow-md);
-    display: grid;
-    gap: var(--learner-space-1);
-    min-width: min(18rem, calc(100vw - 2rem));
-    padding: var(--learner-space-2);
-    position: absolute;
-    right: 0;
-    top: calc(100% + var(--learner-space-2));
-  }
-  .learner-nav-menu:not([open]) > .learner-nav-menu__panel { display: none; }
-  .learner-global-nav,
-  .learner-primary-nav {
+  .learner-primary-nav--mobile {
     align-items: stretch;
     display: grid;
     gap: var(--learner-space-1);
   }
   .learner-global-nav {
     border-bottom: var(--learner-border);
-    border-right: 0;
     padding: 0 0 var(--learner-space-2);
   }
-  .learner-nav-menu__panel nav + nav { padding-top: var(--learner-space-1); }
   .learner-global-nav a,
-  .learner-primary-nav a { display: flex; }
+  .learner-primary-nav--mobile a { display: flex; }
   .learner-mobile-panel > summary { display: flex; }
   .learner-mobile-panel:not([open]) > .learner-mobile-panel__content { display: none; }
   .learner-content { padding: var(--learner-space-5) var(--learner-space-4); }
@@ -705,14 +866,13 @@ body.learner-ui {
   .learner-editor { font-size: 1rem; }
   .learner-footer__inner { flex-direction: column; }
 }
-@media (min-width: ${LEARNER_UI_BREAKPOINTS.compact + 1}px) {
-  .learner-nav-menu > .learner-nav-menu__panel { display: flex !important; }
+@media (min-width: ${LEARNER_UI_BREAKPOINTS.compact + 1}px) and (min-height: 501px) {
   .learner-mobile-panel > .learner-mobile-panel__content { display: block !important; }
 }
-@media (min-width: ${LEARNER_UI_BREAKPOINTS.compact + 1}px) and (max-width: ${LEARNER_UI_BREAKPOINTS.stacked}px) {
+@media (min-width: ${LEARNER_UI_BREAKPOINTS.compact + 1}px) and (min-height: 501px) and (max-width: ${LEARNER_UI_BREAKPOINTS.stacked}px) {
   .learner-mobile-panel[data-learner-collapse-at="stacked"]:not([open]) > .learner-mobile-panel__content { display: none !important; }
 }
-@media (min-width: ${LEARNER_UI_BREAKPOINTS.stacked + 1}px) {
+@media (min-width: ${LEARNER_UI_BREAKPOINTS.stacked + 1}px) and (min-height: 501px) {
   .learner-mobile-panel[data-learner-collapse-at="stacked"] > .learner-mobile-panel__content { display: block !important; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -741,7 +901,11 @@ export function renderLearnerHeader(options: LearnerUiHeaderOptions) {
     "Navigation label",
     160,
   );
-  const menuLabel = boundedText(options.menuLabel ?? "Menu", "Menu label", 80);
+  const menuLabel = boundedText(
+    options.menuLabel ?? (options.globalNavigation ? "Explore" : "Menu"),
+    "Menu label",
+    80,
+  );
   if (!Array.isArray(options.navigation) || options.navigation.length === 0) {
     throw new Error("Learner header navigation must include at least one item.");
   }
@@ -774,15 +938,21 @@ export function renderLearnerHeader(options: LearnerUiHeaderOptions) {
   const meta = options.meta === undefined
     ? ""
     : `<span class="learner-header__meta">${escapeHtml(boundedText(options.meta, "Header metadata", 160))}</span>`;
+  const menuClass = globalNavigation
+    ? "learner-nav-menu"
+    : "learner-nav-menu learner-nav-menu--local-only";
   return `<header class="learner-header">
   <div class="learner-header__inner">
-    <a class="learner-wordmark" href="${escapeHtml(homeHref)}" aria-label="${escapeHtml(homeLabel)}"><i class="learner-wordmark__mark" aria-hidden="true"></i><span>${escapeHtml(productName)}</span></a>
-    ${meta}
-    <details class="learner-nav-menu">
+    <div class="learner-header__identity">
+      <a class="learner-wordmark" href="${escapeHtml(homeHref)}" aria-label="${escapeHtml(homeLabel)}"><i class="learner-wordmark__mark" aria-hidden="true"></i><span>${escapeHtml(productName)}</span></a>
+      ${meta}
+    </div>
+    <nav class="learner-primary-nav learner-primary-nav--desktop" aria-label="${escapeHtml(navigationLabel)}">${navigation}</nav>
+    <details class="${menuClass}">
       <summary>${escapeHtml(menuLabel)}</summary>
       <div class="learner-nav-menu__panel">
         ${globalNavigation}
-        <nav class="learner-primary-nav" aria-label="${escapeHtml(navigationLabel)}">${navigation}</nav>
+        <nav class="learner-primary-nav learner-primary-nav--mobile" aria-label="${escapeHtml(navigationLabel)}">${navigation}</nav>
       </div>
     </details>
   </div>
@@ -802,7 +972,7 @@ export function renderLearnerFooter(options: LearnerUiFooterOptions = {}) {
 
 export const learnerUiJavaScript = `(() => {
   "use strict";
-  const compact = globalThis.matchMedia("(max-width: ${LEARNER_UI_BREAKPOINTS.compact}px)");
+  const compact = globalThis.matchMedia("(max-width: ${LEARNER_UI_BREAKPOINTS.compact}px), (max-height: 500px)");
   const stacked = globalThis.matchMedia("(max-width: ${LEARNER_UI_BREAKPOINTS.stacked}px)");
   const disclosureSelector = ".learner-nav-menu, .learner-mobile-panel";
   const prepared = new WeakSet();
@@ -823,20 +993,23 @@ export const learnerUiJavaScript = `(() => {
     const summary = disclosure.querySelector(":scope > summary");
     if (disclosure.matches(".learner-nav-menu")) {
       disclosure.querySelectorAll("a").forEach((link) => {
-        link.addEventListener("click", () => {
-          if (compact.matches) disclosure.removeAttribute("open");
-        });
+        link.addEventListener("click", () => disclosure.removeAttribute("open"));
       });
     }
     disclosure.addEventListener("keydown", (event) => {
+      const isNavigationMenu = disclosure.matches(".learner-nav-menu");
       const breakpoint = disclosure.dataset.learnerCollapseAt === "stacked"
         ? stacked
         : compact;
-      if (event.key !== "Escape" || !disclosure.open || !breakpoint.matches) return;
+      if (
+        event.key !== "Escape"
+        || !disclosure.open
+        || (!isNavigationMenu && !breakpoint.matches)
+      ) return;
       disclosure.removeAttribute("open");
       summary?.focus();
     });
-    synchronize(disclosure);
+    if (disclosure.matches(".learner-mobile-panel")) synchronize(disclosure);
   };
   const prepareWithin = (root) => {
     if (root instanceof Element && root.matches(disclosureSelector)) prepare(root);
@@ -861,13 +1034,13 @@ export const learnerUiJavaScript = `(() => {
     }
   }).observe(document.documentElement, { childList: true, subtree: true });
   compact.addEventListener("change", () => {
-    document.querySelectorAll(disclosureSelector).forEach(synchronize);
+    document.querySelectorAll(".learner-nav-menu").forEach((menu) => menu.removeAttribute("open"));
+    document.querySelectorAll(".learner-mobile-panel:not([data-learner-collapse-at='stacked'])").forEach(synchronize);
   });
   stacked.addEventListener("change", () => {
     document.querySelectorAll('[data-learner-collapse-at="stacked"]').forEach(synchronize);
   });
   document.addEventListener("click", (event) => {
-    if (!compact.matches) return;
     for (const menu of document.querySelectorAll(".learner-nav-menu[open]")) {
       if (!menu.contains(event.target)) menu.removeAttribute("open");
     }

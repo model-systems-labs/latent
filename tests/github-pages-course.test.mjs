@@ -45,6 +45,8 @@ test("the original LLM Systems course has a subpath-safe static export", async (
   assert.match(rootLayout, /worker-src 'self' blob:/);
   assert.match(exportPreparation, /capstone-react-runtime\.js/);
   assert.match(exportPreparation, /capstone-sandbox-worker\.js/);
+  assert.match(exportPreparation, /learningSuiteBasePath/);
+  assert.match(exportPreparation, /`\$\{learningSuiteBasePath\}\/`/);
   assert.match(exportPreparation, /Unprefixed static URL/);
 });
 

@@ -48,9 +48,9 @@ adapter; a trusted host may inject another adapter at build time.
 The repository's standalone builder accepts optional trusted site
 configuration alongside the already-trusted runtime-adapter option. It can set
 the product name, content-oriented navigation labels, a safe one-directory
-review route, bounded learner-facing status copy, theme tokens, footer text,
-the document's single-line meta CSP, and whether the bundled
-JavaScript/TypeScript runtime assets are emitted.
+review route, bounded learner-facing status copy, a reviewed appearance
+palette, footer text, the document's single-line meta CSP, and whether the
+bundled JavaScript/TypeScript runtime assets are emitted.
 
 That configuration is build input, not part of the Question Group library:
 
@@ -62,6 +62,7 @@ const files = await buildStandaloneQuestionGroupSite(library, {
   ui: {
     productName: "Python Practice",
     reviewDirectory: "review",
+    appearance: { palette: "cobalt" },
     copy: {
       allNavigationLabel: "Problems",
       reviewNavigationLabel: "Review",
@@ -69,6 +70,16 @@ const files = await buildStandaloneQuestionGroupSite(library, {
   },
 });
 ```
+
+The shared v2 appearance model defaults to `paper` and offers five named
+palettes: `paper`, `sage`, `cobalt`, `plum`, and `graphite`. A palette changes
+color identity only. Typography, spacing, borders, page width, one-header
+anatomy, controls, focus states, feedback, and responsive behavior remain
+framework invariants. The legacy top-level `ui.theme` token map remains a
+trusted compatibility input, but it is deprecated, cannot be combined with
+`ui.appearance`, and is not used by the reviewed examples. New product
+configuration should select a named palette rather than recreate the interface
+with raw tokens.
 
 The builder validates configured routes, text, and the bounded single-line CSP;
 escapes every value placed in HTML; and renders configured copy through text
@@ -82,6 +93,13 @@ Product configuration and trusted runtime adapters must be passed to the
 builder before rendering; renaming framework concepts or establishing the
 primary interface by patching generated HTML, JavaScript, or CSS is not a
 supported customization seam.
+
+The generated page has one global learner header: product identity, local
+primary navigation, and one **Explore** disclosure for the product family. On
+compact screens the disclosure includes local navigation, so the player does
+not add a second header. Problem navigation, editor actions, and result
+controls remain specialized content regions while inheriting the shared
+keyboard, focus, live-region, and mobile contracts.
 
 Latent's built-in practice site uses the shared CodeMirror editor, Browser Lab
 for JavaScript and TypeScript, and a separate practice progress store. It does

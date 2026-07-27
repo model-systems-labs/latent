@@ -9,6 +9,7 @@ import {
   learnerUiJavaScript,
   renderLearnerFooter,
   renderLearnerHeader,
+  resolveLearnerUiTheme,
 } from "../tools/vendor/learner-ui.mjs";
 
 const platform = JSON.parse(await readFile(
@@ -18,7 +19,8 @@ const platform = JSON.parse(await readFile(
 
 test("build-time learner UI config renders the shared shell and local assets", async () => {
   assert.equal(platform.schemaVersion, 2);
-  assert.equal(LEARNER_UI_VERSION, 1);
+  assert.equal(LEARNER_UI_VERSION, 2);
+  assert.deepEqual(platform.learnerUi.appearance, { palette: "sage" });
   assert.equal(LEARNER_UI_BREAKPOINTS.compact, 760);
   assert.deepEqual(
     platform.learnerUi.header.navigation.map(({ label, href, dataView }) => ({
@@ -39,9 +41,10 @@ test("build-time learner UI config renders the shared shell and local assets", a
     ...platform.learnerUi.header,
   });
   const footer = renderLearnerFooter(platform.learnerUi.footer);
-  const css = createLearnerUiCss(platform.learnerUi.theme);
+  const css = createLearnerUiCss(resolveLearnerUiTheme(platform.learnerUi.appearance));
   assert.match(header, /class="learner-header"/);
   assert.match(header, /class="learner-global-nav"/);
+  assert.match(header, /href="\.\.\/">Learning Studio<\/a>/);
   assert.match(header, /href="\.\.\/llm-systems\/">LLM Systems<\/a>/);
   assert.match(header, /href="\.\/" aria-current="page">Interview Loop<\/a>/);
   assert.match(header, /href="\.\.\/practice\/">Ten Problems<\/a>/);
@@ -50,7 +53,9 @@ test("build-time learner UI config renders the shared shell and local assets", a
   assert.match(header, /href="#review"[^>]*data-view="cards"/);
   assert.match(header, /href="#coding-lab"[^>]*data-view="ide"/);
   assert.match(footer, /Built with Latent\./);
-  assert.match(css, /--learner-color-accent: #176b5a/);
+  assert.match(css, /--learner-color-canvas: #f2f4ed/);
+  assert.match(css, /--learner-color-accent: #47705d/);
+  assert.match(css, /--learner-font-reading: "Iowan Old Style"/);
   assert.match(css, /:focus-visible/);
   assert.match(css, /@media \(max-width: 760px\)/);
   assert.match(learnerUiJavaScript, /Escape/);

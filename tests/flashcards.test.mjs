@@ -556,7 +556,10 @@ test("the built flash-card route renders an accessible unrevealed study deck", a
   assert.match(html, /Make the ideas stick/);
   assert.match(html, /Review library · (?:<!-- -->)?638(?:<!-- -->)? cards/);
   assert.match(html, /href="\/course">Courses/);
-  assert.match(html, /href="\/flashcards" aria-current="page">Cards/);
+  assert.match(
+    html,
+    /<a(?=[^>]*href="\/flashcards")(?=[^>]*aria-current="page")[^>]*>Review<\/a>/,
+  );
   assert.match(html, /aria-label="Study progress"/);
   assert.match(html, /role="progressbar"/);
   assert.match(html, /aria-label="Cards reviewed in selected subjects"/);
@@ -584,9 +587,11 @@ test("hundreds of rich cards use a small HTML shell and a cacheable mobile-frien
   const compressedHtmlBytes = gzipSync(htmlBytes).byteLength;
   assert.ok(htmlBytes.byteLength < 25_000, `raw route payload: ${htmlBytes.byteLength} bytes`);
   assert.ok(compressedHtmlBytes < 7_000, `compressed route payload: ${compressedHtmlBytes} bytes`);
+  assert.match(html, /<link[^>]+href="\/assets\/learner-ui\.css"[^>]+rel="stylesheet"/);
 
   const assetsUrl = new URL("../dist/client/assets/", import.meta.url);
   const assets = await readdir(assetsUrl);
+  assert.ok(assets.includes("learner-ui.css"), "expected the cacheable shared learner stylesheet");
   const deckAsset = assets.find((name) => /^FlashcardDeck-[\w-]+\.js$/.test(name));
   assert.ok(deckAsset, "expected one built FlashcardDeck client asset");
   const deckBytes = await readFile(new URL(deckAsset, assetsUrl));
@@ -725,7 +730,10 @@ test("flash-card controls keep 44px targets and mobile, safe-area, and reduced-m
   assert.match(deckStyles, /\.card\[data-subject="harness-engineering"\][^{]*\{[^}]*--card-accent:\s*#85643c/);
   assert.match(pageStyles, /@media \(max-width: 650px\)[\s\S]*?padding:\s*0\.7rem 0 0\.65rem/);
   assert.match(pageStyles, /@media \(max-width: 430px\) and \(max-height: 700px\)[\s\S]*?clip-path:\s*inset\(50%\)/);
-  assert.match(cssRule(pageStyles, ".header > a"), /min-height:\s*2\.75rem/);
+  assert.match(
+    cssRule(pageStyles, ".header :global(.learner-wordmark)"),
+    /min-height:\s*2\.75rem/,
+  );
   assert.doesNotMatch(responsiveStyles, /\.site-header nav\.course-primary-nav\s*\{[^}]*grid-template-columns:\s*repeat\(6, minmax\(0, 1fr\)\)/);
 });
 
@@ -735,13 +743,13 @@ test("course navigation links to the flash-card section", async () => {
     readFile(learnerHeaderUrl, "utf8"),
   ]);
   assert.match(source, /<LearnerHeader current="courses" \/>/);
-  assert.match(learnerHeader, /\{ id: "cards", href: "\/flashcards", label: "Cards" \}/);
+  assert.match(learnerHeader, /\{ id: "cards", href: "\/flashcards", label: "Review" \}/);
   assert.match(source, /className=\{styles\.reviewCallout\} href="\/flashcards"/);
 
   const response = await render("/course");
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /href="\/flashcards">Cards<\/a>/);
+  assert.match(html, /href="\/flashcards">Review<\/a>/);
   assert.match(html, /Review library/);
   assert.match(html, /Study flash cards/);
 });

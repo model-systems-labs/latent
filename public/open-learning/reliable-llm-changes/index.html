@@ -8,26 +8,36 @@
   <title>Make reliable changes to an LLM application</title>
   <link rel="stylesheet" href="./assets/player.css">
 </head>
-<body data-storage-key="latent.learning.v1:latent/reliable-llm-changes@1.0.0:acd7a92d2858a55d4b18f723ea8bc1d0643b57d19b33975ca4b4c7b6d581623e">
-  <a class="skip-link" href="#content">Skip to learning content</a>
-  <header class="site-header">
-    <a class="wordmark" href="./" aria-label="Make reliable changes to an LLM application home"><i></i>latent open learning</a>
-    <span>Self-hosted · 1.0.0</span>
-  </header>
-  <div class="layout">
-    <aside class="sidebar">
-      <p class="eyebrow">Published by Latent Project Contributors</p>
+<body class="learner-ui" data-storage-key="latent.learning.v1:latent/reliable-llm-changes@1.0.0:acd7a92d2858a55d4b18f723ea8bc1d0643b57d19b33975ca4b4c7b6d581623e">
+  <a class="learner-skip-link" href="#content">Skip to learning content</a>
+  <div class="learner-page">
+  <header class="learner-header">
+  <div class="learner-header__inner">
+    <a class="learner-wordmark" href="./" aria-label="Make reliable changes to an LLM application home"><i class="learner-wordmark__mark" aria-hidden="true"></i><span>Make reliable changes to an LLM application</span></a>
+    <span class="learner-header__meta">Version 1.0.0</span>
+    <details class="learner-nav-menu" open>
+      <summary>Menu</summary>
+      <div class="learner-nav-menu__panel">
+
+        <nav class="learner-primary-nav" aria-label="Learning navigation"><a href="#lesson-claim-before-metric" aria-current="page" data-view="lesson-claim-before-metric">Modules</a><a href="#deck-reliable-change-review" data-view="deck-reliable-change-review">Review</a></nav>
+      </div>
+    </details>
+  </div>
+</header>
+  <div class="learner-main learner-layout layout">
+    <aside class="learner-sidebar sidebar">
+      <p class="learner-eyebrow eyebrow">Published by Latent Project Contributors</p>
       <h2>Make reliable changes to an LLM application</h2>
       <p>A compact lesson and review pack for turning a proposed LLM application change into explicit claims, representative checks, and an inspectable release decision.</p>
       <nav aria-label="Learning pack contents">
-        <button type="button" data-open-view="lesson-claim-before-metric" aria-current="page"><small>12 min lesson</small><span>Write the claim before the metric</span></button><button type="button" data-open-view="lesson-evidence-before-release" aria-current="false"><small>15 min lesson</small><span>Build evidence that can say no</span></button><button type="button" data-open-view="deck-reliable-change-review" aria-current="false"><small>8 flash cards</small><span>Reliable change review</span></button>
+        <button class="learner-nav-item" type="button" data-open-view="lesson-claim-before-metric" aria-current="page"><small>12 min lesson</small><span>Write the claim before the metric</span></button><button class="learner-nav-item" type="button" data-open-view="lesson-evidence-before-release" aria-current="false"><small>15 min lesson</small><span>Build evidence that can say no</span></button><button class="learner-nav-item" type="button" data-open-view="deck-reliable-change-review" aria-current="false"><small>8 flash cards</small><span>Reliable change review</span></button>
       </nav>
       <footer>
         <span>CC-BY-4.0</span>
         <a href="./learning-pack.json">View source JSON</a>
       </footer>
     </aside>
-    <main id="content">
+    <main class="learner-content" id="content" tabindex="-1">
     <section class="learning-view" id="lesson-claim-before-metric" data-view="lesson-claim-before-metric" >
       <header class="view-header">
         <span class="eyebrow">12 minute lesson</span>
@@ -35,13 +45,13 @@
         <p>Begin with the behavior that must remain true, then select a check that could reveal a meaningful failure.</p>
       </header>
       <div class="lesson-body">
-        <p>An evaluation is useful when it can change a decision. Start by naming the behavior you expect, the situation in which it matters, and the evidence that would make you withhold a release. This keeps a convenient metric from quietly becoming the goal.</p><h2>Separate the claim from its proxy</h2><ol><li>Claim: the assistant keeps a user&#039;s stated constraint while revising a plan.</li><li>Failure condition: a revised plan drops or contradicts any explicit constraint.</li><li>Proxy: the share of representative revision cases in which every constraint is preserved.</li><li>Release rule: investigate every failed case and do not release if a critical constraint is lost.</li></ol><aside class="callout callout-warning"><strong>A score is not the behavior</strong><p>A high average can hide a severe failure in a small but important slice. Keep the individual cases available for inspection.</p></aside><form class="quiz" data-answer="constraint"><fieldset><legend>Which statement is the strongest release claim for a plan-revision assistant?</legend><label><input type="radio" name="claim-before-metric-claim-check" value="latency"> <span>Median response latency stays under two seconds.</span></label><label><input type="radio" name="claim-before-metric-claim-check" value="constraint"> <span>When asked to revise a plan, the assistant preserves every explicit user constraint in the representative test set.</span></label><label><input type="radio" name="claim-before-metric-claim-check" value="preference"> <span>Most reviewers say the new answers feel better.</span></label></fieldset><button type="submit">Check answer</button><p class="quiz-result" role="status" aria-live="polite"></p><p class="quiz-explanation" hidden>The constraint statement names the behavior, the situation, and observable evidence. Latency measures a different property, while an unstructured preference does not define the failure that matters.</p></form>
+        <p>An evaluation is useful when it can change a decision. Start by naming the behavior you expect, the situation in which it matters, and the evidence that would make you withhold a release. This keeps a convenient metric from quietly becoming the goal.</p><h2>Separate the claim from its proxy</h2><ol><li>Claim: the assistant keeps a user&#039;s stated constraint while revising a plan.</li><li>Failure condition: a revised plan drops or contradicts any explicit constraint.</li><li>Proxy: the share of representative revision cases in which every constraint is preserved.</li><li>Release rule: investigate every failed case and do not release if a critical constraint is lost.</li></ol><aside class="callout callout-warning"><strong>A score is not the behavior</strong><p>A high average can hide a severe failure in a small but important slice. Keep the individual cases available for inspection.</p></aside><form class="learner-form quiz" data-answer="constraint"><fieldset><legend>Which statement is the strongest release claim for a plan-revision assistant?</legend><label><input type="radio" name="claim-before-metric-claim-check" value="latency"> <span>Median response latency stays under two seconds.</span></label><label><input type="radio" name="claim-before-metric-claim-check" value="constraint"> <span>When asked to revise a plan, the assistant preserves every explicit user constraint in the representative test set.</span></label><label><input type="radio" name="claim-before-metric-claim-check" value="preference"> <span>Most reviewers say the new answers feel better.</span></label></fieldset><button class="learner-button" data-variant="primary" type="submit">Check answer</button><p class="learner-status quiz-result" role="status" aria-live="polite"></p><p class="quiz-explanation" hidden>The constraint statement names the behavior, the situation, and observable evidence. Latency measures a different property, while an unstructured preference does not define the failure that matters.</p></form>
       </div>
       <section class="sources" aria-labelledby="claim-before-metric-sources">
         <h2 id="claim-before-metric-sources">Sources used here</h2>
         <ul><li><a href="https://www.nist.gov/itl/ai-risk-management-framework" rel="noreferrer" target="_blank">NIST AI Risk Management Framework</a><span>The framework motivates documented measurement and management of risks across an AI system&#039;s lifecycle.</span></li><li><a href="https://platform.openai.com/docs/guides/evals" rel="noreferrer" target="_blank">OpenAI evaluation best practices</a><span>The guide explains task-specific evaluation design, representative test data, and continuous evaluation.</span></li></ul>
       </section>
-      <button class="complete-button" type="button" data-complete="claim-before-metric">Mark lesson complete</button>
+      <button class="learner-button complete-button" data-variant="primary" type="button" data-complete="claim-before-metric">Mark lesson complete</button>
     </section>
 
     <section class="learning-view" id="lesson-evidence-before-release" data-view="lesson-evidence-before-release" hidden>
@@ -57,13 +67,13 @@
   &quot;critical_failures&quot;: 0,
   &quot;known_limits&quot;: [&quot;mixed-language constraints need more coverage&quot;],
   &quot;decision&quot;: &quot;release to a small cohort&quot;
-}</code></pre></figure><aside class="callout callout-tip"><strong>Prefer evidence over machinery</strong><p>A simple test that catches the failure you care about is more valuable than a complicated evaluation system that produces a number nobody can interpret.</p></aside><form class="quiz" data-answer="withhold"><fieldset><legend>A new prompt improves the overall pass rate from 88% to 94%, but two high-cost safety cases now fail. What is the strongest next step?</legend><label><input type="radio" name="evidence-before-release-release-check" value="ship"> <span>Ship because the aggregate result improved.</span></label><label><input type="radio" name="evidence-before-release-release-check" value="average"> <span>Add more easy cases until the overall score is high enough.</span></label><label><input type="radio" name="evidence-before-release-release-check" value="withhold"> <span>Withhold the release, inspect the two regressions, and revise the change or the release scope.</span></label></fieldset><button type="submit">Check answer</button><p class="quiz-result" role="status" aria-live="polite"></p><p class="quiz-explanation" hidden>The aggregate improvement does not cancel a known critical regression. The release decision should reflect the severity and location of failures as well as the overall score.</p></form>
+}</code></pre></figure><aside class="callout callout-tip"><strong>Prefer evidence over machinery</strong><p>A simple test that catches the failure you care about is more valuable than a complicated evaluation system that produces a number nobody can interpret.</p></aside><form class="learner-form quiz" data-answer="withhold"><fieldset><legend>A new prompt improves the overall pass rate from 88% to 94%, but two high-cost safety cases now fail. What is the strongest next step?</legend><label><input type="radio" name="evidence-before-release-release-check" value="ship"> <span>Ship because the aggregate result improved.</span></label><label><input type="radio" name="evidence-before-release-release-check" value="average"> <span>Add more easy cases until the overall score is high enough.</span></label><label><input type="radio" name="evidence-before-release-release-check" value="withhold"> <span>Withhold the release, inspect the two regressions, and revise the change or the release scope.</span></label></fieldset><button class="learner-button" data-variant="primary" type="submit">Check answer</button><p class="learner-status quiz-result" role="status" aria-live="polite"></p><p class="quiz-explanation" hidden>The aggregate improvement does not cancel a known critical regression. The release decision should reflect the severity and location of failures as well as the overall score.</p></form>
       </div>
       <section class="sources" aria-labelledby="evidence-before-release-sources">
         <h2 id="evidence-before-release-sources">Sources used here</h2>
         <ul><li><a href="https://www.nist.gov/itl/ai-risk-management-framework" rel="noreferrer" target="_blank">NIST AI Risk Management Framework</a><span>The framework motivates documented measurement and management of risks across an AI system&#039;s lifecycle.</span></li><li><a href="https://platform.openai.com/docs/guides/evals" rel="noreferrer" target="_blank">OpenAI evaluation best practices</a><span>The guide explains task-specific evaluation design, representative test data, and continuous evaluation.</span></li><li><a href="https://www.anthropic.com/engineering/building-effective-agents" rel="noreferrer" target="_blank">Building effective agents</a><span>The article emphasizes simple, inspectable patterns and careful measurement before adding system complexity.</span></li></ul>
       </section>
-      <button class="complete-button" type="button" data-complete="evidence-before-release">Mark lesson complete</button>
+      <button class="learner-button complete-button" data-variant="primary" type="button" data-complete="evidence-before-release">Mark lesson complete</button>
     </section>
 
     <section class="learning-view" id="deck-reliable-change-review" data-view="deck-reliable-change-review" hidden>
@@ -75,7 +85,7 @@
       <div class="deck-status" role="status" aria-live="polite"></div>
       <ol class="cards">
 
-          <li class="card" data-card="observable-claim">
+          <li class="learner-card card" data-card="observable-claim">
             <span class="card-count">Card 1 of 8</span>
             <button class="card-face" type="button" aria-expanded="false">
               <span class="card-prompt">What makes a release claim observable?</span>
@@ -83,12 +93,12 @@
               <em>Reveal answer</em>
             </button>
             <div class="card-actions" hidden>
-              <button type="button" data-rating="review">Needs review</button>
-              <button type="button" data-rating="know">Know it</button>
+              <button class="learner-button" type="button" data-rating="review">Needs review</button>
+              <button class="learner-button" data-variant="primary" type="button" data-rating="know">Know it</button>
             </div>
           </li>
 
-          <li class="card" data-card="metric-proxy">
+          <li class="learner-card card" data-card="metric-proxy">
             <span class="card-count">Card 2 of 8</span>
             <button class="card-face" type="button" aria-expanded="false">
               <span class="card-prompt">Why is an evaluation metric a proxy rather than the goal?</span>
@@ -96,12 +106,12 @@
               <em>Reveal answer</em>
             </button>
             <div class="card-actions" hidden>
-              <button type="button" data-rating="review">Needs review</button>
-              <button type="button" data-rating="know">Know it</button>
+              <button class="learner-button" type="button" data-rating="review">Needs review</button>
+              <button class="learner-button" data-variant="primary" type="button" data-rating="know">Know it</button>
             </div>
           </li>
 
-          <li class="card" data-card="representative-set">
+          <li class="learner-card card" data-card="representative-set">
             <span class="card-count">Card 3 of 8</span>
             <button class="card-face" type="button" aria-expanded="false">
               <span class="card-prompt">What three kinds of cases belong in a first representative test set?</span>
@@ -109,12 +119,12 @@
               <em>Reveal answer</em>
             </button>
             <div class="card-actions" hidden>
-              <button type="button" data-rating="review">Needs review</button>
-              <button type="button" data-rating="know">Know it</button>
+              <button class="learner-button" type="button" data-rating="review">Needs review</button>
+              <button class="learner-button" data-variant="primary" type="button" data-rating="know">Know it</button>
             </div>
           </li>
 
-          <li class="card" data-card="critical-failure">
+          <li class="learner-card card" data-card="critical-failure">
             <span class="card-count">Card 4 of 8</span>
             <button class="card-face" type="button" aria-expanded="false">
               <span class="card-prompt">How should a critical failure affect an improved aggregate score?</span>
@@ -122,12 +132,12 @@
               <em>Reveal answer</em>
             </button>
             <div class="card-actions" hidden>
-              <button type="button" data-rating="review">Needs review</button>
-              <button type="button" data-rating="know">Know it</button>
+              <button class="learner-button" type="button" data-rating="review">Needs review</button>
+              <button class="learner-button" data-variant="primary" type="button" data-rating="know">Know it</button>
             </div>
           </li>
 
-          <li class="card" data-card="slice-reading">
+          <li class="learner-card card" data-card="slice-reading">
             <span class="card-count">Card 5 of 8</span>
             <button class="card-face" type="button" aria-expanded="false">
               <span class="card-prompt">Why compare evaluation slices?</span>
@@ -135,12 +145,12 @@
               <em>Reveal answer</em>
             </button>
             <div class="card-actions" hidden>
-              <button type="button" data-rating="review">Needs review</button>
-              <button type="button" data-rating="know">Know it</button>
+              <button class="learner-button" type="button" data-rating="review">Needs review</button>
+              <button class="learner-button" data-variant="primary" type="button" data-rating="know">Know it</button>
             </div>
           </li>
 
-          <li class="card" data-card="release-record">
+          <li class="learner-card card" data-card="release-record">
             <span class="card-count">Card 6 of 8</span>
             <button class="card-face" type="button" aria-expanded="false">
               <span class="card-prompt">What belongs in a minimal release record?</span>
@@ -148,12 +158,12 @@
               <em>Reveal answer</em>
             </button>
             <div class="card-actions" hidden>
-              <button type="button" data-rating="review">Needs review</button>
-              <button type="button" data-rating="know">Know it</button>
+              <button class="learner-button" type="button" data-rating="review">Needs review</button>
+              <button class="learner-button" data-variant="primary" type="button" data-rating="know">Know it</button>
             </div>
           </li>
 
-          <li class="card" data-card="complexity-test">
+          <li class="learner-card card" data-card="complexity-test">
             <span class="card-count">Card 7 of 8</span>
             <button class="card-face" type="button" aria-expanded="false">
               <span class="card-prompt">When should you add more evaluation machinery?</span>
@@ -161,12 +171,12 @@
               <em>Reveal answer</em>
             </button>
             <div class="card-actions" hidden>
-              <button type="button" data-rating="review">Needs review</button>
-              <button type="button" data-rating="know">Know it</button>
+              <button class="learner-button" type="button" data-rating="review">Needs review</button>
+              <button class="learner-button" data-variant="primary" type="button" data-rating="know">Know it</button>
             </div>
           </li>
 
-          <li class="card" data-card="continuous-evaluation">
+          <li class="learner-card card" data-card="continuous-evaluation">
             <span class="card-count">Card 8 of 8</span>
             <button class="card-face" type="button" aria-expanded="false">
               <span class="card-prompt">Why add production failures back into the test set?</span>
@@ -174,8 +184,8 @@
               <em>Reveal answer</em>
             </button>
             <div class="card-actions" hidden>
-              <button type="button" data-rating="review">Needs review</button>
-              <button type="button" data-rating="know">Know it</button>
+              <button class="learner-button" type="button" data-rating="review">Needs review</button>
+              <button class="learner-button" data-variant="primary" type="button" data-rating="know">Know it</button>
             </div>
           </li>
 
@@ -187,6 +197,9 @@
     </section>
   </main>
   </div>
+  <footer class="learner-footer"><div class="learner-footer__inner"><span>CC-BY-4.0 · Progress stays on this device.</span><span>Built with Latent.</span></div></footer>
+  </div>
+  <script src="./assets/learner-ui.js" defer></script>
   <script src="./assets/player.js" defer></script>
 </body>
 </html>

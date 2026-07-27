@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ModuleCheckpoint } from "@/app/components/ModuleCheckpoint";
 import { courseTracks, getTrack } from "@/examples/learning-platform/llm-learning/lessons/course";
 import { moduleCheckpoint } from "@/examples/learning-platform/llm-learning/content/llm-systems/learning";
 import { PageAtmosphere } from "@/app/components/PageAtmosphere";
+import { LearnerHeader } from "@/app/components/LearnerHeader";
 
 export function generateStaticParams() {
   return courseTracks.map((track) => ({ module: track.id }));
@@ -13,7 +13,7 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{ module: string }> }): Promise<Metadata> {
   const { module } = await params;
   const definition = moduleCheckpoint(module);
-  return definition ? { title: `${definition.title} · Latent Courses`, description: definition.objective } : {};
+  return definition ? { title: `${definition.title} · Build an LLM System`, description: definition.objective } : {};
 }
 
 export default async function CheckpointPage({ params }: { params: Promise<{ module: string }> }) {
@@ -23,7 +23,7 @@ export default async function CheckpointPage({ params }: { params: Promise<{ mod
   return (
     <main>
       <PageAtmosphere />
-      <header className="site-header course-header"><Link className="wordmark" href="/" aria-label="Latent Courses home"><i />latent courses</Link><nav><Link href={`/courses/llm-systems/${track.id}`}>Module</Link><Link href="/project">Project</Link><Link href="/workspace">IDE</Link></nav></header>
+      <LearnerHeader current="courses" />
       <ModuleCheckpoint courseId={track.id} />
     </main>
   );

@@ -33,6 +33,7 @@ import { harnessLessonProjectSeed, type HarnessProjectSeed } from "@/app/lib/har
 import { runPracticeContracts, type PracticeContractRun } from "@/app/features/ide/browser-lab-service";
 import { runPythonLessonContracts } from "@/app/features/ide/python-lesson-service";
 import { ArtifactRuntimePanel } from "@/app/features/artifacts/ArtifactRuntimePanel";
+import { LearnerHeader } from "@/app/components/LearnerHeader";
 import { recordValidatedLessonArtifact } from "@/app/features/artifacts/lesson-artifacts";
 import { lessonBlockComment, lessonImplementationPrelude, lessonImplementationSource } from "@/examples/learning-platform/llm-learning/lessons/implementation-source";
 import { canonicalProjectSeeds } from "@/app/lib/canonical-project";
@@ -1621,15 +1622,15 @@ export function PaperLab({
   return (
     <main className={styles.lessonShell} data-flair-tone={flair?.tone}>
       <PageAtmosphere />
-      <header className="site-header lesson-header">
-        <Link className="wordmark" href="/" aria-label="Latent Courses home"><i />latent courses</Link>
+      <LearnerHeader current="courses" />
+      <div className="lesson-header lesson-section-header">
         <nav aria-label="Lesson navigation">
           <a href="#summary">Read</a>
           <a href="#implementation">Code</a>
           {contributesToBrowserChat ? <a href="#artifacts">Results</a> : null}
         </nav>
         <span>{lesson.courseTitle ?? "Model Foundations"}</span>
-      </header>
+      </div>
       {persistenceError ? <p className="persistence-warning lesson-persistence-warning" role="alert">Storage warning: {persistenceError}</p> : null}
       <article className="paper-page" id="top">
         <HeaderSection lesson={lesson} />

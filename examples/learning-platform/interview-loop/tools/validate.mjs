@@ -8,6 +8,14 @@ import {
   validateLearningPack,
   validateQuestionGroupLibrary,
 } from "./vendor/course-kit-validator.mjs";
+import {
+  LEARNER_UI_BREAKPOINTS,
+  LEARNER_UI_VERSION,
+  createLearnerUiCss,
+  learnerUiJavaScript,
+  renderLearnerFooter,
+  renderLearnerHeader,
+} from "./vendor/learner-ui.mjs";
 import { learningPackProgressIdentity } from "../site/progress.mjs";
 import { admitRuntimeLimits } from "../site/runtime-policy.mjs";
 
@@ -331,13 +339,54 @@ function validateIdeExercises(exercises) {
 }
 
 const platform = await readJson("platform.json");
-expect(platform?.schemaVersion === 1, "platform.schemaVersion", "Expected schema version 1.");
+expect(platform?.schemaVersion === 2, "platform.schemaVersion", "Expected schema version 2.");
 expect(nonempty(platform?.brand?.name), "platform.brand.name", "Add a platform name.");
 expect(nonempty(platform?.brand?.tagline), "platform.brand.tagline", "Add a platform promise.");
 expect(
-  /^#[0-9a-f]{6}$/i.test(platform?.brand?.accent ?? ""),
-  "platform.brand.accent",
-  "Use a six-digit hex accent.",
+  LEARNER_UI_VERSION === 1
+    && LEARNER_UI_BREAKPOINTS.compact === 760
+    && nonempty(learnerUiJavaScript),
+  "platform.learnerUi.version",
+  "Use the reviewed learner UI v1 bundle.",
+);
+expect(
+  isRecord(platform?.learnerUi?.theme),
+  "platform.learnerUi.theme",
+  "Declare the learner UI theme at build time.",
+);
+expect(
+  isRecord(platform?.learnerUi?.header),
+  "platform.learnerUi.header",
+  "Declare the learner header and primary navigation at build time.",
+);
+expect(
+  isRecord(platform?.learnerUi?.footer),
+  "platform.learnerUi.footer",
+  "Declare the quiet learner footer at build time.",
+);
+try {
+  createLearnerUiCss(platform?.learnerUi?.theme);
+  renderLearnerHeader({
+    productName: platform?.brand?.name,
+    ...platform?.learnerUi?.header,
+  });
+  renderLearnerFooter(platform?.learnerUi?.footer);
+} catch (error) {
+  fail(
+    "platform.learnerUi",
+    error instanceof Error ? error.message : "Learner UI configuration is invalid.",
+  );
+}
+const expectedNavigation = [
+  { label: "Modules", href: "#modules", dataView: "lesson", current: true },
+  { label: "Practice", href: "#practice", dataView: "practice" },
+  { label: "Review", href: "#review", dataView: "cards" },
+  { label: "Coding lab", href: "#coding-lab", dataView: "ide" },
+];
+expect(
+  JSON.stringify(platform?.learnerUi?.header?.navigation) === JSON.stringify(expectedNavigation),
+  "platform.learnerUi.header.navigation",
+  "Use the content-oriented Modules, Practice, Review, and Coding lab hash routes.",
 );
 expect(
   platform?.content?.learningPack === expectedPaths.learningPack,
@@ -362,17 +411,19 @@ await Promise.all([
   "LICENSE",
   "NOTICE.md",
   "CONTENT_LICENSE.md",
-  "site/index.html",
   "site/styles.css",
   "site/app.mjs",
   "site/checker.mjs",
   "site/runtime-policy.mjs",
   "site/progress.mjs",
+  "test/learner-ui.test.mjs",
+  "test/learning-state.test.mjs",
   "test/python-runtime.test.mjs",
   "test/reference-solutions.test.mjs",
-  "test/learning-state.test.mjs",
   "tools/build.mjs",
+  "tools/check-learner-ui.mjs",
   "tools/vendor/course-kit-validator.mjs",
+  "tools/vendor/learner-ui.mjs",
   "trusted/python-exercise-runtime.ts",
 ].map((path) => typeof path === "string" ? safeProjectFile(path, path) : path));
 

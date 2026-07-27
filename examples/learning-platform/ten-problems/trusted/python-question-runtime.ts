@@ -249,10 +249,23 @@ export function createPythonQuestionRuntime(options: RuntimeOptions) {
             exerciseCase,
             observation,
           );
+          const authoredCase = selectedCases.find((candidate) => (
+            candidate.id === result.caseId
+          ));
           return {
             id: result.caseId,
             label: result.caseLabel,
             passed: result.passed,
+            input: authoredCase?.args ?? [],
+            expected: authoredCase?.assertions.map((assertion) => (
+              "expected" in assertion ? assertion.expected : assertion.label
+            )) ?? [],
+            actual: observation.status === "returned"
+              ? observation.value
+              : {
+                  errorName: observation.errorName,
+                  message: observation.message,
+                },
             assertions: result.assertions.map((assertion) => ({
               id: assertion.assertionId,
               label: assertion.label,

@@ -4,9 +4,10 @@ import { ProjectStructureMap } from "@/app/components/ProjectStructureMap";
 import { ProjectTimeline } from "@/app/components/ProjectTimeline";
 import { LearningDataPanel } from "@/app/components/LearningDataPanel";
 import { PageAtmosphere } from "@/app/components/PageAtmosphere";
+import { LearnerHeader } from "@/app/components/LearnerHeader";
 
 export const metadata: Metadata = {
-  title: "Project structure · Latent Courses",
+  title: "Project structure · Build an LLM System",
   description: "See which starter files you have completed and what is ready for the browser-chat build.",
 };
 
@@ -14,9 +15,13 @@ export default function ProjectPage() {
   return (
     <main>
       <PageAtmosphere />
-      <header className="site-header course-header">
-        <Link className="wordmark" href="/" aria-label="Latent Courses home"><i />latent courses</Link>
-        <nav><Link href="/courses/llm-systems">LLM Systems</Link><Link href="/workspace">IDE</Link><Link href="/capstone">Capstone</Link></nav>
+      <LearnerHeader current="courses" />
+      <header className="site-header course-header" style={{ height: "auto", minHeight: "3.35rem" }}>
+        <Link href="/courses/llm-systems">Course</Link>
+        <nav aria-label="Project tools">
+          <Link href="/workspace">Coding workspace</Link>
+          <Link href="/capstone">Capstone</Link>
+        </nav>
       </header>
       <article className="project-page">
         <header className="project-page-hero">

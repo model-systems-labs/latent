@@ -11,6 +11,9 @@ const eslintConfig = defineConfig([
     ".next/**",
     "out/**",
     "build/**",
+    "**/dist/**",
+    ".pages-site/**",
+    ".pages-site-build-*/**",
     "next-env.d.ts",
     // Generated, minified runtimes transferred into the isolated capstone frame.
     "public/capstone-react-runtime.js",

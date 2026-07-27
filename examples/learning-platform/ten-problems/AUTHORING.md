@@ -94,10 +94,12 @@
   authored cases under the pinned runtime.
 - Trusted runtime adapter tests: exact-profile support, example/check mapping,
   adapted-argument transport, failed assertions, and fail-closed incomplete
-  results pass; 5 example tests pass in total.
+  results pass. A focused build-output test also proves the configured UI,
+  unchanged canonical library, injected runtime, and omitted browser compiler;
+  6 example tests pass in total.
 - Example validation and build: `2.0.0` canonical library digest
   `cbf3e5b4c6ea04d734b30c2abc1526d59d83a8a6b5a08ba21d8691064bdad834`;
-  20 generated files; no runtime warnings; five hashed same-origin Pyodide core
+  21 generated files; no runtime warnings; five hashed same-origin Pyodide core
   payloads totaling 13,544,397 source bytes; and no bundled JavaScript runtime
   claim. The generated report records source and published hashes for the two
   module copies that receive an inert lint directive.
@@ -111,3 +113,181 @@
   still renders; and the 390 × 844 layout stacks all three panels at 390 pixels
   with no horizontal overflow. The browser console recorded no warnings or
   errors.
+
+## Shared learner UI revision
+
+### Why the examples diverged
+
+Interview Loop grew from a bespoke application shell, while Ten Problems used
+Course Kit's standalone Question Group player and then changed generated
+HTML/JavaScript strings and generated CSS to establish the primary product
+interface. Those paths duplicated navigation, typography, controls, feedback,
+progress, accessibility, and responsive decisions. Similar colors alone would
+not have fixed that ownership gap.
+
+This revision moves common learner presentation into reviewed Course Kit source
+and makes product differences explicit trusted build input. Ten Problems stays
+a focused Python practice workspace; it is not reshaped into a course.
+
+### Architectural decisions
+
+- `packages/course-kit/src/learner-ui.ts` is the source of truth for design
+  tokens, responsive breakpoints, the global shell and widths, header and
+  primary navigation, buttons, forms, cards, progress/resume, status and result
+  panels, empty states, editor framing, focus treatment, screen-reader helpers,
+  reduced-motion handling, and local mobile-menu behavior.
+- `packages/course-kit/src/static-site.ts` composes the same foundation with
+  standalone Learning Pack lesson/card sites.
+- `packages/course-kit/src/question-group-site.ts` composes it with the
+  specialized problem-list, prompt, editor, run/check, progress, continue, and
+  repeated-miss layout. Its reviewed build API accepts product identity,
+  navigation labels, review directory, learner copy, theme tokens, footer,
+  favicon, and an optional trusted runtime adapter.
+- `site-config.mjs` is the sole Ten Problems product-configuration input. It
+  declares **Practice**, **Review**, **Run examples**, **Check solution**, and
+  **Continue** copy, the `leeches` review directory, the blue accent variant,
+  quiet footer attribution, and the favicon.
+- `security-config.mjs` is the sole Ten Problems security configuration. It
+  provides the custom document meta CSP passed into the Question Group builder
+  and renders the full static-host page/Python-worker header policies for the
+  standalone root and combined `/practice/` subpath without changing portable
+  content.
+- `tools/build.mjs` passes that object and the reviewed Python adapter to
+  `buildStandaloneQuestionGroupSite` before files are rendered. The old
+  post-build HTML/JavaScript replacements and generated-CSS patches are
+  removed. `bundledBrowserRuntime: false` omits the browser compiler and sandbox
+  assets through the builder instead of deleting exact generated script tags,
+  and `runtimeAdapterJavaScript` injects the reviewed Python adapter directly.
+  The same-origin Pyodide URL is supplied while bundling the worker rather than
+  rewritten in compiled output. Generated files are then assembled with the
+  self-hosted Python payloads, headers, reports, and marker-owned directory.
+- Interview Loop consumes the canonical foundation through the generated
+  `examples/learning-platform/interview-loop/tools/vendor/learner-ui.mjs`.
+  `scripts/generate-learning-platform-learner-ui.mjs` creates that file from
+  Course Kit and the repository checks it for drift.
+- `scripts/build-learning-example-pages.mjs` atomically assembles the
+  content-first Learning Studio index, the original Build an LLM System course
+  at `/llm-systems/`, Interview Loop at `/interview-loop/`, and Ten Problems
+  at `/practice/`. The React course shares family navigation and presentation
+  through `app/components/LearnerHeader.tsx` and
+  `app/components/LearnerHeader.module.css`.
+- No portable Learning Pack, Learning Feed, or Question Group contract changed.
+  Question cases remain public declarative data. Runtime admission, executable
+  checks, Python execution, timeouts, output limits, state logic, and UI
+  behavior remain trusted source.
+- Progress remains bound to the exact Question Group library digest and
+  question contract identity/version. Portable Question Group v1 progress
+  stores no submitted-source digest. Repeated-miss review remains a progress
+  query.
+  Pyodide remains version-pinned and same-origin, and the build adds no hosted
+  stylesheet, framework CDN, JavaScript service, model API, or remote
+  executable plugin. Existing CSP, subpath-safe relative assets, marker-owned
+  output, and combined GitHub Pages routes remain in force.
+- The builder embeds the custom document meta CSP. `_headers` supplies fuller
+  page/worker response policies, including anti-framing and a worker-context
+  CSP, as defense in depth on supporting static hosts. Anti-framing depends on
+  those response headers; the combined local preview mirrors the Python-worker
+  response CSP during QA. GitHub Pages does not honor `_headers`, but the
+  document meta CSP remains active there and restricts script sources,
+  same-origin workers/connections, styles, and other assets.
+
+### What remains intentionally specialized
+
+Ten Problems retains its problem list, prompt and contract column, editor,
+public examples, full visible checks, progress statuses, continue flow, and
+repeated-miss review. The example-local Python adapter still maps validated
+Question Groups into the repository's reviewed Python worker and host-owned
+assertion evaluator.
+
+Interview Loop retains its module rail, long-form lessons, quizzes,
+flash-card review, portable Python practice, and trusted Python IDE. The
+shared foundation unifies their shell and interaction language, not their
+information architecture or runtime.
+
+### Concise visual comparison
+
+| Concern | Before | After |
+| --- | --- | --- |
+| Shell and navigation | Ten's generated player and Interview's bespoke shell used different header and mobile patterns. | Both use the shared header, primary navigation, page widths, footer, current-page state, and mobile menu. |
+| Product copy | Framework concepts were renamed after generation. | `site-config.mjs` supplies Practice, Review, Continue, Run examples, and Check solution before generation. |
+| Controls and feedback | Buttons, progress, statuses, results, and empty states evolved separately. | Shared component contracts provide consistent shape, spacing, focus, and success/failure language. |
+| Coding surfaces | Ten's three-panel Python workspace had no family resemblance to Interview's IDE. | Both use the shared editor frame, toolbar, actions, and result treatment while preserving different workspace layouts and runtimes. |
+| Color and identity | CSS patches carried most Ten Problems branding. | A small validated theme-token override distinguishes Ten Problems within the common system; attribution stays secondary in the footer. |
+| Mobile and accessibility | Each build owned its own responsive and focus fixes. | Shared breakpoints, skip links, visible focus, live status regions, screen-reader helpers, and reduced-motion rules establish the baseline. |
+
+### Validation and browser evidence for this revision
+
+The JavaScript and Python revision results above remain historical evidence for
+those versions. They are not evidence for the shared learner UI revision.
+The following evidence belongs to the shared learner UI revision.
+
+- Course Kit built-package tests passed 55 of 55, including learner UI and
+  configured standalone-builder coverage.
+- Course Kit's smoke-package check passed an isolated tarball installation and
+  CLI smoke test.
+- Ten Problems strict Question Group validation passed with 4 groups,
+  10 questions, 39 cases, and zero warnings. Its six tests passed, including
+  real CPython reference execution across all 39 cases and configured build
+  output. The production artifact contains 21 files, reports learner UI
+  version 1, uses `bundledBrowserRuntime: false`, and records zero remote URLs
+  in the Python worker.
+- Interview Loop's shared-source/vendor check, validation, nine focused tests,
+  and production build passed, including all 13 real-Python authored cases and
+  mutation/alias checks.
+- The combined local Pages build contains 437 files and the routes `/`,
+  `/llm-systems/`, `/interview-loop/`, `/practice/`, and
+  `/practice/leeches/`.
+- `npm run build:pages-course` passed with 95 rendered routes, 27 verified
+  course routes, and 4 verified assets.
+- `npm run build:web && npm run test:performance` passed; the largest emitted
+  stylesheet is 179.8 KiB against the 180 KiB budget.
+- Desktop browser inspection at 1440 × 900 covered Ten Problems problem
+  navigation, Python example failure and success, Python check failure and
+  success, progress persistence after reload, and removal from repeated-miss
+  **Review** after a successful check.
+- The same desktop pass covered Interview Loop module navigation and resume,
+  wrong and correct quiz feedback, card reveal/rating persistence, coding
+  starter failure, a four-check passing Python solution, and source/progress
+  persistence after reload.
+- Compact browser and keyboard inspection at 390 × 844 covered the shared
+  menus and collapsible problem panels, Escape focus restoration, the visible
+  three-pixel focus indicator, skip-link focus transfer, and no horizontal
+  overflow.
+- Direct local navigation verified same-origin subpath asset URLs for `/`,
+  `/llm-systems/`, `/interview-loop/`, `/practice/`, and
+  `/practice/leeches/`. The browser console recorded zero warnings or errors
+  during the inspected flows.
+- The accessibility evidence is browser and keyboard inspection, not a formal
+  screen-reader audit.
+- Final full-root `npm run validate` passed, including 470 of 470 application
+  tests, the workspace and package test suites, and both learning-example
+  validations.
+- Live GitHub Pages deployment and verification remain pending for this
+  revision.
+
+### Express beginner and advanced user-testing loop
+
+- The beginning-learner pass started from the Learning Studio at 1440 × 900
+  and 390 × 844, then entered the original course, Interview Loop, and Ten
+  Problems without repository context. It exposed platform-showcase wording,
+  a misleading resume target, hidden-before-run example expectations, and a
+  crowded intermediate-width navigation state. The revision replaced that
+  framing with content-oriented labels, made **Continue** choose the next
+  incomplete item, exposed public input/expected output before execution, and
+  added the shared compact menu and collapsible problem panels.
+- The advanced-learner pass exercised direct problem/module navigation,
+  Control/Command+Enter checking, Shift+Control/Command+Enter example runs,
+  cancellation, detailed expected/received feedback, Python success and
+  failure states, repeated-miss review, and persistence after reload. It also
+  caught the need to preserve Interview Loop's Python-first runtime, restore
+  course project/workspace context links, resolve extensionless static-course
+  URLs, mirror the Python-worker CSP, and keep the shared header below the CSS
+  performance budget; each issue was fixed before the final validation pass.
+- Both personas repeated their route checks through the production-base local
+  aliases `/latent/`, `/latent/llm-systems/`, `/latent/interview-loop/`,
+  `/latent/practice/`, and `/latent/practice/leeches/`. Desktop and mobile
+  passes finished without horizontal overflow or browser-console warnings or
+  errors. This is local static-artifact evidence, not live deployment
+  evidence.
+
+The table above is the concise before/after visual record.

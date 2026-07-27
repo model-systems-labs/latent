@@ -134,11 +134,15 @@ test("example and check runs map CPython observations into host-owned assertions
     "interleaved-repeats",
   ]);
   assert.equal(examples.cases[0].assertions[0].passed, true);
+  assert.deepEqual(examples.cases[0].input, [[4, 1, 7, 1, 4]]);
+  assert.deepEqual(examples.cases[0].expected, [1]);
+  assert.equal(examples.cases[0].actual, 1);
 
   const check = await adapter.run(request({ mode: "check" }));
   assert.equal(check.passed, false);
   assert.equal(check.cases.length, 4);
   assert.equal(check.cases[0].assertions[0].passed, false);
+  assert.equal(check.cases[0].actual, "definitely-wrong");
 
   assert.equal(calls.length, 2);
   for (const call of calls) {

@@ -1,24 +1,182 @@
-:root {
+export const LEARNER_UI_VERSION = 1 as const;
+
+export const LEARNER_UI_BREAKPOINTS = Object.freeze({
+  compact: 760,
+  stacked: 980,
+  wide: 1280,
+} as const);
+
+export type LearnerUiTheme = Readonly<Partial<{
+  canvas: string;
+  surface: string;
+  surfaceMuted: string;
+  ink: string;
+  muted: string;
+  border: string;
+  accent: string;
+  accentStrong: string;
+  accentSoft: string;
+  accentContrast: string;
+  success: string;
+  successSoft: string;
+  danger: string;
+  dangerSoft: string;
+  warning: string;
+  focus: string;
+}>>;
+
+export type LearnerUiNavigationItem = Readonly<{
+  label: string;
+  href: string;
+  current?: boolean;
+  dataView?: string;
+}>;
+
+export type LearnerUiHeaderOptions = Readonly<{
+  productName: string;
+  homeHref: string;
+  homeLabel?: string;
+  globalNavigationLabel?: string;
+  globalNavigation?: readonly LearnerUiNavigationItem[];
+  navigationLabel: string;
+  navigation: readonly LearnerUiNavigationItem[];
+  menuLabel?: string;
+  meta?: string;
+}>;
+
+export type LearnerUiFooterOptions = Readonly<{
+  summary?: string;
+  attribution?: string;
+}>;
+
+const DEFAULT_THEME = Object.freeze({
+  canvas: "#f4f7f5",
+  surface: "#ffffff",
+  surfaceMuted: "#edf2ef",
+  ink: "#17211d",
+  muted: "#5d6a64",
+  border: "#ced8d2",
+  accent: "#176b5a",
+  accentStrong: "#0f5144",
+  accentSoft: "#dff2ec",
+  accentContrast: "#ffffff",
+  success: "#1d704e",
+  successSoft: "#def3e8",
+  danger: "#a33d3d",
+  dangerSoft: "#fae7e5",
+  warning: "#8b5a15",
+  focus: "#2259c7",
+} satisfies Required<LearnerUiTheme>);
+
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function boundedText(value: string, label: string, maximum = 200) {
+  if (
+    typeof value !== "string"
+    || value.trim().length === 0
+    || value.length > maximum
+    || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value)
+  ) {
+    throw new Error(`${label} must be a non-empty text value no longer than ${maximum} characters.`);
+  }
+  return value.trim();
+}
+
+function safeRelativeHref(value: string, label: string) {
+  const href = boundedText(value, label, 500);
+  if (/^#[A-Za-z][A-Za-z0-9._-]*$/.test(href)) return href;
+  if (
+    href.startsWith("/")
+    || href.startsWith("//")
+    || href.includes("\\")
+    || href.includes(":")
+    || href.includes("?")
+    || href.includes("#")
+    || href.includes("\0")
+  ) {
+    throw new Error(`${label} must be a same-origin relative path or fragment.`);
+  }
+  const segments = href.split("/");
+  let contentStarted = false;
+  for (const [index, segment] of segments.entries()) {
+    if (segment === "" && segments.length === 1) {
+      throw new Error(`${label} must not be empty.`);
+    }
+    if (segment === "" && index !== segments.length - 1) {
+      throw new Error(`${label} must not contain an empty path segment.`);
+    }
+    if (segment === ".") {
+      if (contentStarted) throw new Error(`${label} may use "." only as a leading segment.`);
+      continue;
+    }
+    if (segment === "..") {
+      if (contentStarted) throw new Error(`${label} may use ".." only as a leading segment.`);
+      continue;
+    }
+    if (segment === "") continue;
+    contentStarted = true;
+    if (!/^[A-Za-z0-9._~-]+$/.test(segment)) {
+      throw new Error(`${label} contains an unsupported path segment.`);
+    }
+  }
+  return href;
+}
+
+function navigationToken(value: string) {
+  const token = boundedText(value, "Navigation data view", 80);
+  if (!/^[A-Za-z][A-Za-z0-9._-]*$/.test(token)) {
+    throw new Error("Navigation data view must be a simple identifier.");
+  }
+  return token;
+}
+
+function themeValue(value: string, label: string) {
+  if (!/^#[0-9a-f]{6}$/i.test(value)) {
+    throw new Error(`${label} must be a six-digit hexadecimal color.`);
+  }
+  return value.toLowerCase();
+}
+
+export function createLearnerUiCss(theme: LearnerUiTheme = {}) {
+  const unknownKeys = Object.keys(theme).filter((key) => !(key in DEFAULT_THEME));
+  if (unknownKeys.length) {
+    throw new Error(`Unknown learner UI theme token: ${unknownKeys[0]}`);
+  }
+  const colors = Object.fromEntries(
+    Object.entries(DEFAULT_THEME).map(([key, fallback]) => [
+      key,
+      themeValue(theme[key as keyof LearnerUiTheme] ?? fallback, `theme.${key}`),
+    ]),
+  ) as typeof DEFAULT_THEME;
+
+  return `:root {
   color-scheme: light;
   --learner-font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --learner-font-reading: Georgia, "Times New Roman", serif;
   --learner-font-mono: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  --learner-color-canvas: #f4f7f5;
-  --learner-color-surface: #ffffff;
-  --learner-color-surface-muted: #edf2ef;
-  --learner-color-ink: #17211d;
-  --learner-color-muted: #5d6a64;
-  --learner-color-border: #ced8d2;
-  --learner-color-accent: #176b5a;
-  --learner-color-accent-strong: #0f5144;
-  --learner-color-accent-soft: #dff2ec;
-  --learner-color-accent-contrast: #ffffff;
-  --learner-color-success: #1d704e;
-  --learner-color-success-soft: #def3e8;
-  --learner-color-danger: #a33d3d;
-  --learner-color-danger-soft: #fae7e5;
-  --learner-color-warning: #8b5a15;
-  --learner-color-focus: #2259c7;
+  --learner-color-canvas: ${colors.canvas};
+  --learner-color-surface: ${colors.surface};
+  --learner-color-surface-muted: ${colors.surfaceMuted};
+  --learner-color-ink: ${colors.ink};
+  --learner-color-muted: ${colors.muted};
+  --learner-color-border: ${colors.border};
+  --learner-color-accent: ${colors.accent};
+  --learner-color-accent-strong: ${colors.accentStrong};
+  --learner-color-accent-soft: ${colors.accentSoft};
+  --learner-color-accent-contrast: ${colors.accentContrast};
+  --learner-color-success: ${colors.success};
+  --learner-color-success-soft: ${colors.successSoft};
+  --learner-color-danger: ${colors.danger};
+  --learner-color-danger-soft: ${colors.dangerSoft};
+  --learner-color-warning: ${colors.warning};
+  --learner-color-focus: ${colors.focus};
   --learner-space-1: .25rem;
   --learner-space-2: .5rem;
   --learner-space-3: .75rem;
@@ -488,7 +646,7 @@ body.learner-ui {
   white-space: nowrap;
   width: 1px;
 }
-@media (max-width: 980px) {
+@media (max-width: ${LEARNER_UI_BREAKPOINTS.stacked}px) {
   .learner-layout { grid-template-columns: 1fr; }
   .learner-sidebar {
     border-bottom: var(--learner-border);
@@ -497,7 +655,7 @@ body.learner-ui {
   .learner-mobile-panel[data-learner-collapse-at="stacked"] > summary { display: flex; }
   .learner-mobile-panel[data-learner-collapse-at="stacked"]:not([open]) > .learner-mobile-panel__content { display: none; }
 }
-@media (max-width: 760px) {
+@media (max-width: ${LEARNER_UI_BREAKPOINTS.compact}px) {
   :root { --learner-header-height: 4rem; }
   html { scroll-behavior: auto; }
   .learner-header__inner {
@@ -541,14 +699,14 @@ body.learner-ui {
   .learner-button { min-height: 2.9rem; }
   .learner-footer__inner { flex-direction: column; }
 }
-@media (min-width: 761px) {
+@media (min-width: ${LEARNER_UI_BREAKPOINTS.compact + 1}px) {
   .learner-nav-menu > .learner-nav-menu__panel { display: flex !important; }
   .learner-mobile-panel > .learner-mobile-panel__content { display: block !important; }
 }
-@media (min-width: 761px) and (max-width: 980px) {
+@media (min-width: ${LEARNER_UI_BREAKPOINTS.compact + 1}px) and (max-width: ${LEARNER_UI_BREAKPOINTS.stacked}px) {
   .learner-mobile-panel[data-learner-collapse-at="stacked"]:not([open]) > .learner-mobile-panel__content { display: none !important; }
 }
-@media (min-width: 981px) {
+@media (min-width: ${LEARNER_UI_BREAKPOINTS.stacked + 1}px) {
   .learner-mobile-panel[data-learner-collapse-at="stacked"] > .learner-mobile-panel__content { display: block !important; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -561,86 +719,151 @@ body.learner-ui {
 }
 @media (forced-colors: active) {
   .learner-status-dot[data-status] { forced-color-adjust: none; }
+}\n`;
 }
 
-:root {
-  --paper: var(--learner-color-canvas);
-  --bright: var(--learner-color-surface);
-  --ink: var(--learner-color-ink);
-  --muted: var(--learner-color-muted);
-  --line: var(--learner-color-border);
-  --violet: var(--learner-color-accent);
-  --wash: var(--learner-color-accent-soft);
-  --green: var(--learner-color-success);
+export function renderLearnerHeader(options: LearnerUiHeaderOptions) {
+  const productName = boundedText(options.productName, "Product name", 160);
+  const homeHref = safeRelativeHref(options.homeHref, "Header home path");
+  const homeLabel = boundedText(
+    options.homeLabel ?? `${productName} home`,
+    "Header home label",
+    200,
+  );
+  const navigationLabel = boundedText(
+    options.navigationLabel,
+    "Navigation label",
+    160,
+  );
+  const menuLabel = boundedText(options.menuLabel ?? "Menu", "Menu label", 80);
+  if (!Array.isArray(options.navigation) || options.navigation.length === 0) {
+    throw new Error("Learner header navigation must include at least one item.");
+  }
+  const renderNavigation = (
+    items: readonly LearnerUiNavigationItem[],
+    itemLabel: string,
+  ) => items.map((item, index) => {
+    const label = boundedText(item.label, `${itemLabel} item ${index + 1} label`, 120);
+    const href = safeRelativeHref(item.href, `Navigation item ${index + 1} path`);
+    const dataView = item.dataView === undefined
+      ? ""
+      : ` data-view="${escapeHtml(navigationToken(item.dataView))}"`;
+    const current = item.current ? ' aria-current="page"' : "";
+    return `<a href="${escapeHtml(href)}"${current}${dataView}>${escapeHtml(label)}</a>`;
+  }).join("");
+  const navigation = renderNavigation(options.navigation, "Navigation");
+  const globalNavigation = options.globalNavigation === undefined
+    ? ""
+    : (() => {
+        if (!Array.isArray(options.globalNavigation) || options.globalNavigation.length === 0) {
+          throw new Error("Global learner navigation must include at least one item when configured.");
+        }
+        const label = boundedText(
+          options.globalNavigationLabel ?? "Learning experiences",
+          "Global navigation label",
+          160,
+        );
+        return `<nav class="learner-global-nav" aria-label="${escapeHtml(label)}">${renderNavigation(options.globalNavigation, "Global navigation")}</nav>`;
+      })();
+  const meta = options.meta === undefined
+    ? ""
+    : `<span class="learner-header__meta">${escapeHtml(boundedText(options.meta, "Header metadata", 160))}</span>`;
+  return `<header class="learner-header">
+  <div class="learner-header__inner">
+    <a class="learner-wordmark" href="${escapeHtml(homeHref)}" aria-label="${escapeHtml(homeLabel)}"><i class="learner-wordmark__mark" aria-hidden="true"></i><span>${escapeHtml(productName)}</span></a>
+    ${meta}
+    <details class="learner-nav-menu" open>
+      <summary>${escapeHtml(menuLabel)}</summary>
+      <div class="learner-nav-menu__panel">
+        ${globalNavigation}
+        <nav class="learner-primary-nav" aria-label="${escapeHtml(navigationLabel)}">${navigation}</nav>
+      </div>
+    </details>
+  </div>
+</header>`;
 }
-* { box-sizing: border-box; }
-html { background: var(--paper); color: var(--ink); }
-body { margin: 0; min-height: 100vh; }
-button, input { font: inherit; }
-button, a { -webkit-tap-highlight-color: transparent; }
-a { color: inherit; }
-.skip-link { background: var(--ink); color: white; left: 1rem; padding: .75rem 1rem; position: fixed; top: -5rem; z-index: 10; }
-.skip-link:focus { top: 1rem; }
-.site-header { align-items: center; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; min-height: 4.5rem; padding: 0 clamp(1.25rem,4vw,4rem); }
-.site-header span { color: var(--muted); font-size: .75rem; }
-.wordmark { align-items: center; display: flex; font-size: .78rem; font-weight: 650; gap: .7rem; letter-spacing: .08em; text-decoration: none; text-transform: uppercase; }
-.wordmark i { background: var(--violet); border-radius: 50%; height: .7rem; width: .7rem; }
-.layout { display: grid; grid-template-columns: minmax(17rem, 24rem) minmax(0, 1fr); margin: 0 auto; max-width: 1200px; min-height: calc(100vh - 4.5rem); }
-.sidebar { border-right: 1px solid var(--line); padding: clamp(2rem,5vw,4.5rem) clamp(1.25rem,3vw,2.5rem); }
-.eyebrow { color: var(--violet); font-size: .7rem; font-weight: 650; letter-spacing: .09em; text-transform: uppercase; }
-.sidebar h2 { font-family: Georgia,serif; font-size: clamp(1.8rem,3vw,2.5rem); font-weight: 400; letter-spacing: -.04em; line-height: 1.05; margin: .8rem 0 1rem; }
-.sidebar > p:not(.eyebrow), .view-header p { color: var(--muted); line-height: 1.65; }
-.sidebar nav { border-top: 1px solid var(--line); margin-top: 2.5rem; }
-.sidebar nav button { background: transparent; border: 0; border-bottom: 1px solid var(--line); color: var(--muted); cursor: pointer; display: grid; gap: .25rem; padding: 1rem 0; text-align: left; width: 100%; }
-.sidebar nav button[aria-current="page"] { color: var(--ink); }
-.sidebar nav button[aria-current="page"] span::after { color: var(--violet); content: " →"; }
-.sidebar nav small { font-size: .68rem; text-transform: uppercase; }
-.sidebar footer { color: var(--muted); display: flex; flex-wrap: wrap; font-size: .7rem; gap: .75rem; justify-content: space-between; margin-top: 2rem; }
-main { padding: clamp(2.5rem,7vw,6.5rem) clamp(1.25rem,7vw,6rem); }
-.learning-view { margin: 0 auto; max-width: 760px; }
-.view-header { border-bottom: 1px solid var(--line); padding-bottom: 2rem; }
-.view-header h1 { font-family: Georgia,serif; font-size: clamp(2.6rem,6vw,4.8rem); font-weight: 400; letter-spacing: -.06em; line-height: .98; margin: .75rem 0 1.2rem; }
-.view-header p { font-family: Georgia,serif; font-size: 1.2rem; margin: 0; }
-.lesson-body { padding: 2rem 0; }
-.lesson-body > p, .lesson-body li { font-family: Georgia,serif; font-size: 1.08rem; line-height: 1.75; }
-.lesson-body h2, .lesson-body h3, .sources h2 { font-family: Georgia,serif; font-weight: 400; letter-spacing: -.03em; margin-top: 2.5rem; }
-.callout { background: var(--wash); border-left: 3px solid var(--violet); margin: 2rem 0; padding: 1.25rem 1.4rem; }
-.callout p { line-height: 1.6; margin-bottom: 0; }
-.code-block { margin: 2rem 0; }
-.code-block figcaption { color: var(--muted); font-size: .75rem; margin-bottom: .5rem; }
-pre { background: #211f22; border-radius: .35rem; color: #f8f3ed; overflow-x: auto; padding: 1.25rem; }
-code { font-family: ui-monospace,SFMono-Regular,monospace; font-size: .86rem; line-height: 1.6; }
-.quiz { border-bottom: 1px solid var(--line); border-top: 1px solid var(--line); margin: 2.5rem 0; padding: 1.5rem 0; }
-.quiz fieldset { border: 0; display: grid; gap: .75rem; margin: 0; padding: 0; }
-.quiz legend { font-family: Georgia,serif; font-size: 1.25rem; margin-bottom: 1rem; }
-.quiz label { align-items: start; background: rgba(255,255,255,.35); border: 1px solid var(--line); cursor: pointer; display: flex; gap: .75rem; padding: .9rem; }
-.quiz button, .complete-button, .card-actions button { background: var(--ink); border: 1px solid var(--ink); color: white; cursor: pointer; margin-top: 1rem; min-height: 2.75rem; padding: .65rem 1rem; }
-.quiz-result { font-weight: 650; }
-.quiz-result.correct { color: var(--green); }
-.quiz-explanation { color: var(--muted); line-height: 1.6; }
-.sources { border-top: 1px solid var(--line); margin-top: 3rem; padding-top: 1rem; }
-.sources h2 { font-size: 1.35rem; margin-top: 0; }
-.sources ul { list-style: none; padding: 0; }
-.sources li { display: grid; gap: .3rem; padding: .7rem 0; }
-.sources li span { color: var(--muted); font-size: .75rem; line-height: 1.5; }
-.cards { display: grid; gap: 1rem; list-style: none; padding: 1.5rem 0; }
-.card { border: 1px solid var(--line); padding: 1rem; }
-.card-count, .deck-status { color: var(--muted); font-size: .72rem; }
-.deck-status { margin-top: 1.5rem; }
-.card-face { background: var(--bright); border: 0; cursor: pointer; display: grid; gap: 1rem; margin-top: .6rem; min-height: 12rem; padding: 1.5rem; text-align: left; width: 100%; }
-.card-prompt, .card-answer strong { font-family: Georgia,serif; font-size: 1.35rem; font-weight: 400; line-height: 1.35; }
-.card-answer { display: grid; gap: .7rem; }
-.card-answer small { color: var(--muted); line-height: 1.5; }
-.card-face em { align-self: end; color: var(--violet); font-size: .72rem; font-style: normal; }
-.card-actions { display: flex; gap: .5rem; }
-.card-actions button:first-child { background: transparent; color: var(--ink); }
-:focus-visible { outline: 3px solid var(--violet); outline-offset: 3px; }
-[hidden] { display: none !important; }
-@media (max-width: 760px) {
-  .site-header { align-items: flex-start; flex-direction: column; gap: .3rem; justify-content: center; }
-  .layout { grid-template-columns: 1fr; }
-  .sidebar { border-bottom: 1px solid var(--line); border-right: 0; padding-bottom: 1.5rem; }
-  .sidebar nav { display: flex; gap: .5rem; overflow-x: auto; }
-  .sidebar nav button { border: 1px solid var(--line); flex: 0 0 12rem; padding: .75rem; }
-  main { padding-top: 3rem; }
+
+export function renderLearnerFooter(options: LearnerUiFooterOptions = {}) {
+  const summary = options.summary === undefined
+    ? ""
+    : `<span>${escapeHtml(boundedText(options.summary, "Footer summary", 240))}</span>`;
+  const attribution = options.attribution === undefined
+    ? ""
+    : `<span>${escapeHtml(boundedText(options.attribution, "Footer attribution", 160))}</span>`;
+  if (!summary && !attribution) return "";
+  return `<footer class="learner-footer"><div class="learner-footer__inner">${summary}${attribution}</div></footer>`;
 }
+
+export const learnerUiJavaScript = `(() => {
+  "use strict";
+  const compact = globalThis.matchMedia("(max-width: ${LEARNER_UI_BREAKPOINTS.compact}px)");
+  const stacked = globalThis.matchMedia("(max-width: ${LEARNER_UI_BREAKPOINTS.stacked}px)");
+  const disclosureSelector = ".learner-nav-menu, .learner-mobile-panel";
+  const prepared = new WeakSet();
+  const preparedSkipLinks = new WeakSet();
+  const synchronize = (disclosure) => {
+    const breakpoint = disclosure.dataset.learnerCollapseAt === "stacked"
+      ? stacked
+      : compact;
+    const viewport = breakpoint.matches ? "compact" : "wide";
+    if (disclosure.dataset.learnerViewport === viewport) return;
+    disclosure.dataset.learnerViewport = viewport;
+    if (breakpoint.matches) disclosure.removeAttribute("open");
+    else disclosure.setAttribute("open", "");
+  };
+  const prepare = (disclosure) => {
+    if (prepared.has(disclosure)) return;
+    prepared.add(disclosure);
+    const summary = disclosure.querySelector(":scope > summary");
+    if (disclosure.matches(".learner-nav-menu")) {
+      disclosure.querySelectorAll("a").forEach((link) => {
+        link.addEventListener("click", () => {
+          if (compact.matches) disclosure.removeAttribute("open");
+        });
+      });
+    }
+    disclosure.addEventListener("keydown", (event) => {
+      const breakpoint = disclosure.dataset.learnerCollapseAt === "stacked"
+        ? stacked
+        : compact;
+      if (event.key !== "Escape" || !disclosure.open || !breakpoint.matches) return;
+      disclosure.removeAttribute("open");
+      summary?.focus();
+    });
+    synchronize(disclosure);
+  };
+  const prepareWithin = (root) => {
+    if (root instanceof Element && root.matches(disclosureSelector)) prepare(root);
+    root.querySelectorAll?.(disclosureSelector).forEach(prepare);
+    const prepareSkipLink = (link) => {
+      if (preparedSkipLinks.has(link)) return;
+      preparedSkipLinks.add(link);
+      link.addEventListener("click", () => {
+        const target = document.getElementById(link.hash.slice(1));
+        target?.focus();
+      });
+    };
+    if (root instanceof Element && root.matches(".learner-skip-link")) prepareSkipLink(root);
+    root.querySelectorAll?.(".learner-skip-link").forEach(prepareSkipLink);
+  };
+  prepareWithin(document);
+  new MutationObserver((records) => {
+    for (const record of records) {
+      record.addedNodes.forEach((node) => {
+        if (node instanceof Element) prepareWithin(node);
+      });
+    }
+  }).observe(document.documentElement, { childList: true, subtree: true });
+  compact.addEventListener("change", () => {
+    document.querySelectorAll(disclosureSelector).forEach(synchronize);
+  });
+  stacked.addEventListener("change", () => {
+    document.querySelectorAll('[data-learner-collapse-at="stacked"]').forEach(synchronize);
+  });
+  document.addEventListener("click", (event) => {
+    if (!compact.matches) return;
+    for (const menu of document.querySelectorAll(".learner-nav-menu[open]")) {
+      if (!menu.contains(event.target)) menu.removeAttribute("open");
+    }
+  });
+})();\n`;

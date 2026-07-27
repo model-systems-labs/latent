@@ -53,14 +53,8 @@ jobs:
         run: |
           npm run open-learning:generate
           git diff --exit-code -- docs public
-      - name: Build both validated learner experiences
+      - name: Build the complete learner suite
         run: npm run learning-examples:build
-      - name: Export the original LLM Systems course
-        run: npm run build:pages-course
-      - name: Add the original LLM Systems course
-        run: |
-          mkdir -p .pages-site/llm-systems
-          cp -R dist/client/. .pages-site/llm-systems/
       - name: Refuse to replace published version 1 schema bytes
         run: |
           for schema_path in \

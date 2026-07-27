@@ -124,19 +124,8 @@ jobs:
           cp -R public/open-learning/. _schema-site/open-learning/
           cp -R public/question-groups/. _schema-site/question-groups/
           touch _schema-site/.nojekyll
-      - name: Add both validated learner experiences
-        run: |
-          npm run build --prefix examples/learning-platform/interview-loop
-          npm run build --prefix examples/learning-platform/ten-problems
-          cp -R examples/learning-platform/interview-loop/dist/. _schema-site/
-          mkdir -p _schema-site/interview-loop _schema-site/practice
-          cp -R examples/learning-platform/interview-loop/dist/. _schema-site/interview-loop/
-          cp -R examples/learning-platform/ten-problems/dist/. _schema-site/practice/
-      - name: Add the original LLM Systems course
-        run: |
-          npm run build:pages-course
-          mkdir -p _schema-site/llm-systems
-          cp -R dist/client/. _schema-site/llm-systems/
+      - name: Build the complete learner suite
+        run: npm run learning-examples:build
       - name: Refuse to replace published version 1 schema bytes
         run: |
           for schema in learning-pack.schema.json learning-feed.schema.json; do
@@ -144,7 +133,7 @@ jobs:
             existing="$RUNNER_TEMP/$schema"
             http_status="$(curl --silent --show-error --location --output "$existing" --write-out '%{http_code}' "$url")"
             if [ "$http_status" = "200" ]; then
-              cmp "$existing" "_schema-site/open-learning/v1/$schema"
+              cmp "$existing" ".pages-site/open-learning/v1/$schema"
             else
               printf 'Published schema %s returned HTTP %s\n' "$url" "$http_status" >&2
               exit 1
@@ -155,7 +144,7 @@ jobs:
             question_existing="$RUNNER_TEMP/$question_schema"
             question_status="$(curl --silent --show-error --location --output "$question_existing" --write-out '%{http_code}' "$question_url")"
             if [ "$question_status" = "200" ]; then
-              cmp "$question_existing" "_schema-site/question-groups/v1/$question_schema"
+              cmp "$question_existing" ".pages-site/question-groups/v1/$question_schema"
             elif [ "$question_status" = "404" ] && [ "$GITHUB_REF_NAME" = "course-kit-v0.2.0" ]; then
               printf 'Publishing new immutable schema %s\n' "$question_url"
             else
@@ -166,8 +155,8 @@ jobs:
       - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         with:
-          path: _schema-site
-      - name: Deploy immutable schemas to GitHub Pages
+          path: .pages-site
+      - name: Deploy immutable schemas and learner experiences
         id: deployment
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
 

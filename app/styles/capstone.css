@@ -22,6 +22,12 @@
 .capstone-topbar > div strong { font-family: var(--serif); font-size: 1rem; font-weight: 400; }
 .capstone-topbar nav { display: flex; gap: 1.3rem; justify-self: end; }
 .capstone-topbar nav a { color: var(--muted); font-size: max(0.68rem, 11px); }
+.capstone-topbar > a:first-child,
+.ide-topbar > a:first-child {
+  font-family: var(--sans);
+  font-size: max(0.72rem, 12px);
+  font-weight: 750;
+}
 
 .ide-shell { background: #231f25; min-height: 100vh; }
 .ide-topbar {
@@ -49,6 +55,11 @@
     height: 100dvh;
     min-height: 0;
     overflow: hidden;
+  }
+
+  .course-header + .ide-shell {
+    height: calc(100vh - 4.9rem);
+    height: calc(100dvh - 4.9rem);
   }
 
   .ide-shell .project-workbench {

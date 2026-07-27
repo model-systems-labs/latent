@@ -17,6 +17,23 @@ export const viewport: Viewport = {
   themeColor: "#f2f0e9",
 };
 
+const isLlmSystemsCourseExport = process.env.LATENT_COURSE_HOME === "llm-systems";
+const llmSystemsCourseCsp = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: https://cdn.jsdelivr.net",
+  "worker-src 'self' blob:",
+  "child-src 'self' blob:",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob:",
+  "font-src 'self' data:",
+  "connect-src 'self' blob: https://cdn.jsdelivr.net https://huggingface.co https://*.huggingface.co https://*.hf.co",
+  "media-src 'self' blob:",
+  "frame-src 'self' blob:",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+].join("; ");
+
 export async function generateMetadata(): Promise<Metadata> {
   const staticExportOrigin = process.env.LATENT_STATIC_EXPORT_ORIGIN?.trim();
   let metadataBase: URL;
@@ -33,19 +50,24 @@ export async function generateMetadata(): Promise<Metadata> {
   const socialImage = basePath
     ? new URL(`${basePath}/og.png`, metadataBase).toString()
     : defaultSocialImage;
-  const title = "Latent Courses · Learn LLM systems in your browser";
-  const description =
-    "Four interactive, browser-native courses in linear algebra, machine learning, harness engineering, and LLM systems, with runnable exercises, flash cards, and coding practice.";
+  const title = isLlmSystemsCourseExport
+    ? "Build an LLM System · Interactive browser course"
+    : "Latent Courses · Learn LLM systems in your browser";
+  const description = isLlmSystemsCourseExport
+    ? "Build model foundations, an inference runtime, reliable serving, and a streaming React chatbot through 14 browser-based lessons."
+    : "Four interactive, browser-native courses in linear algebra, machine learning, harness engineering, and LLM systems, with runnable exercises, flash cards, and coding practice.";
 
   return {
     metadataBase,
     title,
     description,
-    robots: {
-      index: false,
-      follow: false,
-      nocache: true,
-    },
+    robots: staticExportOrigin
+      ? { index: true, follow: true }
+      : {
+          index: false,
+          follow: false,
+          nocache: true,
+        },
     openGraph: {
       title,
       description,
@@ -64,8 +86,14 @@ export async function generateMetadata(): Promise<Metadata> {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
+      {isLlmSystemsCourseExport ? (
+        <head>
+          <meta httpEquiv="Content-Security-Policy" content={llmSystemsCourseCsp} />
+        </head>
+      ) : null}
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        {children}
+        <a className="site-skip-link" href="#main-content">Skip to learning content</a>
+        <div id="main-content" tabIndex={-1}>{children}</div>
       </body>
     </html>
   );

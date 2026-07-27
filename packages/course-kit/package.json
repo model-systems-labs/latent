@@ -55,6 +55,10 @@
       "types": "./dist/learning-pack.d.ts",
       "import": "./dist/learning-pack.js"
     },
+    "./learner-ui": {
+      "types": "./dist/learner-ui.d.ts",
+      "import": "./dist/learner-ui.js"
+    },
     "./question-group": {
       "types": "./dist/question-group.d.ts",
       "import": "./dist/question-group.js"

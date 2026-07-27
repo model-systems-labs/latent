@@ -43,10 +43,55 @@ dependency. A compatible reader still decides whether and how to execute
 learner code. The static build bundles a browser-worker JavaScript/TypeScript
 adapter; a trusted host may inject another adapter at build time.
 
+### Trusted standalone presentation
+
+The repository's standalone builder accepts optional trusted site
+configuration alongside the already-trusted runtime-adapter option. It can set
+the product name, content-oriented navigation labels, a safe one-directory
+review route, bounded learner-facing status copy, theme tokens, footer text,
+the document's single-line meta CSP, and whether the bundled
+JavaScript/TypeScript runtime assets are emitted.
+
+That configuration is build input, not part of the Question Group library:
+
+```js
+const files = await buildStandaloneQuestionGroupSite(library, {
+  bundledBrowserRuntime: false,
+  runtimeAdapterJavaScript: reviewedHostAdapter,
+  metaContentSecurityPolicy: reviewedPageCsp,
+  ui: {
+    productName: "Python Practice",
+    reviewDirectory: "review",
+    copy: {
+      allNavigationLabel: "Problems",
+      reviewNavigationLabel: "Review",
+    },
+  },
+});
+```
+
+The builder validates configured routes, text, and the bounded single-line CSP;
+escapes every value placed in HTML; and renders configured copy through text
+nodes in the player. Response-header CSP, including a worker-specific policy or
+`frame-ancestors`, remains a static-host responsibility. Changing this
+presentation does not change canonical library JSON, its SHA-256 digest,
+contract versions, or progress keys. The generated CSS and navigation behavior
+come from `packages/course-kit/src/learner-ui.ts`; the deployed site has no
+hosted stylesheet, framework CDN, JavaScript service, or model dependency.
+
 Latent's built-in practice site uses the shared CodeMirror editor, Browser Lab
 for JavaScript and TypeScript, and a separate practice progress store. It does
 not reuse lesson completion, the cumulative course project, or flash-card
 ratings.
+
+The standalone player saves editor drafts separately from progress, keyed by
+the exact library digest and question contract identity/version. Drafts restore
+after problem navigation and reload without becoming portable content.
+Run/check adapters can accept an abort signal so **Cancel** stops a disposable
+worker while leaving the draft and progress unchanged. The player renders
+public example input and expected output before execution, shows
+input/expected/received values in feedback, and supports
+Control/Command+Enter for checks plus Shift+Control/Command+Enter for examples.
 
 ## What a library can declare
 

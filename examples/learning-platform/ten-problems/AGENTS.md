@@ -1,6 +1,6 @@
 # Agent contract
 
-This example deliberately exposes one learner surface: programming practice.
+This example exposes one learner surface: Python programming practice.
 
 ## Portable content
 
@@ -14,12 +14,37 @@ never grants a capability.
 
 ## Trusted build source
 
-`tools/build.mjs` invokes the reviewed Course Kit static player, bundles the
-example-local adapter in `trusted/`, reuses the repository's reviewed Python
-Lab worker, copies the npm-locked Pyodide core to same-origin assets, and
-applies learner-facing labels and colors. Trusted source may interpret the
-portable assertion vocabulary; executable checks must never move into JSON.
-Do not describe the browser worker as a hostile-code security sandbox.
+`site-config.mjs` is the explicit trusted input for product identity,
+navigation labels, learner copy, theme tokens, footer, review route, and
+favicon. `security-config.mjs` is the explicit trusted input for page and
+Python-worker CSP: it provides the custom document meta policy and the full
+static-host page/worker header policies at the standalone root and combined
+`/practice/` subpath. `tools/build.mjs` passes the meta policy, UI input, and
+reviewed Python adapter to the Course Kit static player, reuses the repository's
+reviewed Python Lab worker, copies the npm-locked Pyodide core to same-origin
+assets, renders `_headers`, and writes the result through a fresh marker-owned
+directory. Do not patch generated HTML, JavaScript, or CSS to customize the
+primary interface.
+
+Treat `_headers` as defense in depth on hosts that support it. Anti-framing
+depends on those response headers; the combined local preview mirrors the
+Python-worker response CSP during QA. GitHub Pages does not honor `_headers`,
+so the builder-injected document meta CSP must remain self-sufficient there for
+script sources, same-origin workers/connections, styles, and other assets.
+
+The shared learner presentation source of truth is
+`packages/course-kit/src/learner-ui.ts`. Its standalone integrations are
+`packages/course-kit/src/static-site.ts` and
+`packages/course-kit/src/question-group-site.ts`. Put reusable design tokens,
+shells, headers, navigation, controls, feedback, editor frames, progress,
+accessibility, or responsive behavior in that shared trusted source. Keep only
+the focused problem/copy/editor layout and Python-specific workflow specialized
+in the Question Group builder and this example's trusted adapter.
+
+Trusted source may interpret the portable assertion vocabulary; executable
+checks must never move into JSON. Do not describe the browser worker as a
+hostile-code security sandbox.
 
 Run `npm run validate` after every change. Run `npm run build` before handoff.
-Never hand-edit `dist/`.
+From the repository root, run `npm run learning-examples:validate` when shared
+learner UI or builder behavior changes. Never hand-edit `dist/`.

@@ -13,10 +13,14 @@ or execution server required.
 
 [![Watch an agent create and revise Interview Loop Lab](./docs/readme/agent-course-demo-poster.png)](./docs/readme/agent-course-demo.webm)
 
-**Live examples:** [Interview Loop Lab](https://model-systems-labs.github.io/latent/)
-— interview prep shaped through iterative feedback ·
-[Build an LLM System](https://model-systems-labs.github.io/latent/llm-systems/courses/llm-systems/)
-— 14 browser labs that become a working chat capstone.
+**Live examples:** [Learning Studio](https://model-systems-labs.github.io/latent/)
+— choose a complete course or focused practice ·
+[Build an LLM System](https://model-systems-labs.github.io/latent/llm-systems/)
+— 14 browser labs that become a working chat capstone ·
+[Interview Loop Lab](https://model-systems-labs.github.io/latent/interview-loop/)
+— behavioral, coding, and architecture preparation ·
+[Ten Problems](https://model-systems-labs.github.io/latent/practice/)
+— focused Python practice with saved drafts and review.
 
 [Watch the Interview Loop demo](./docs/readme/agent-course-demo.webm) ·
 [Source](./examples/learning-platform/interview-loop) ·

@@ -34,6 +34,7 @@ const lessonIds = [
 ];
 const moduleSlugs = ["models", "systems", "backend", "product"];
 const requiredRoutes = [
+  "index.html",
   "courses/llm-systems/index.html",
   ...moduleSlugs.map((slug) => `courses/llm-systems/${slug}/index.html`),
   ...moduleSlugs.map((slug) => `checkpoints/${slug}/index.html`),
@@ -51,6 +52,10 @@ const requiredAssets = [
   "emscripten-module.wasm",
   "og.png",
 ];
+const learningSuiteRoutes = new Set([
+  "/latent/interview-loop/",
+  "/latent/practice/",
+]);
 
 async function collectHtml(directory) {
   const files = [];
@@ -80,6 +85,18 @@ for (const asset of requiredAssets) {
   await assertRegularFile(join(clientRoot, asset));
 }
 
+const landingPage = await readFile(join(clientRoot, "index.html"), "utf8");
+if (
+  !landingPage.includes("Build an LLM System in Your Browser")
+  || landingPage.includes("Use Latent Framework to publish")
+  || landingPage.includes("Four interactive, browser-native courses")
+  || !landingPage.includes('http-equiv="Content-Security-Policy"')
+) {
+  throw new Error(
+    "The Pages root must render the protected LLM Systems course, not the product catalog.",
+  );
+}
+
 const rawFontPath = "/assets/_vinext_fonts/";
 const prefixedFontPath = `${basePath}${rawFontPath}`;
 const htmlFiles = await collectHtml(clientRoot);
@@ -102,7 +119,11 @@ for (const path of htmlFiles) {
   if (requiredRoutePaths.has(path)) {
     for (const match of output.matchAll(/\b(?:href|src)="(\/[^"]*)"/g)) {
       const url = match[1];
-      if (url !== basePath && !url.startsWith(`${basePath}/`)) {
+      if (
+        url !== basePath
+        && !url.startsWith(`${basePath}/`)
+        && !learningSuiteRoutes.has(url)
+      ) {
         throw new Error(`Unprefixed static URL ${url} in ${relative(root, path)}`);
       }
     }

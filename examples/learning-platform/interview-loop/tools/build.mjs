@@ -15,6 +15,14 @@ import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build as bundle } from "esbuild";
 
+import {
+  LEARNER_UI_VERSION,
+  createLearnerUiCss,
+  learnerUiJavaScript,
+  renderLearnerFooter,
+  renderLearnerHeader,
+} from "./vendor/learner-ui.mjs";
+
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repositoryRoot = resolve(root, "../../..");
 const target = resolve(root, "dist");
@@ -33,6 +41,67 @@ const pyodideFiles = Object.freeze([
   "pyodide-lock.json",
 ]);
 const remotePyodideIndex = "https://cdn.jsdelivr.net/pyodide/v314.0.2/full/";
+
+function escapeHtml(value) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function renderIndex(platform) {
+  const navigationByView = new Map(
+    platform.learnerUi.header.navigation.map((item) => [item.dataView, item]),
+  );
+  const panel = (view, headingId, rootId, loadingText) => {
+    const navigation = navigationByView.get(view);
+    if (!navigation || !navigation.href.startsWith("#")) {
+      throw new Error(`Missing hash navigation for learner view "${view}".`);
+    }
+    return `      <section class="view" id="${escapeHtml(navigation.href.slice(1))}" data-panel="${escapeHtml(view)}" aria-labelledby="${escapeHtml(headingId)}"${view === "lesson" ? "" : " hidden"}>
+        <div id="${escapeHtml(rootId)}" class="learner-empty loading">${escapeHtml(loadingText)}</div>
+      </section>`;
+  };
+  const header = renderLearnerHeader({
+    productName: platform.brand.name,
+    ...platform.learnerUi.header,
+  });
+  const footer = renderLearnerFooter(platform.learnerUi.footer);
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; connect-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'none'"
+    >
+    <meta name="description" content="${escapeHtml(platform.brand.tagline)}">
+    <title>${escapeHtml(platform.brand.name)}</title>
+    <link rel="stylesheet" href="./learner-ui.css">
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body class="learner-ui">
+    <a class="learner-skip-link" href="#learning-surface">Skip to learning content</a>
+    <div class="learner-page">
+      ${header}
+      <main id="learning-surface" class="learner-main" tabindex="-1">
+${panel("lesson", "lesson-heading", "lesson-root", "Loading modules…")}
+${panel("practice", "practice-heading", "practice-root", "Loading practice…")}
+${panel("cards", "cards-heading", "cards-root", "Loading review…")}
+${panel("ide", "ide-heading", "ide-root", "Loading coding lab…")}
+      </main>
+      ${footer}
+    </div>
+    <div id="announcement" class="learner-sr-only" role="status" aria-live="polite"></div>
+    <script src="./learner-ui.js" defer></script>
+    <script type="module" src="./app.mjs"></script>
+  </body>
+</html>
+`;
+}
 
 async function inspectTarget() {
   try {
@@ -66,6 +135,8 @@ async function collectFiles(directory) {
 const existed = await inspectTarget();
 const temporary = await mkdtemp(join(root, ".dist.latent-build-"));
 try {
+  const platform = JSON.parse(await readFile(join(root, "platform.json"), "utf8"));
+  const index = renderIndex(platform);
   await Promise.all([
     cp(join(root, "site"), temporary, { recursive: true }),
     cp(join(root, "content"), join(temporary, "content"), { recursive: true }),
@@ -74,6 +145,16 @@ try {
     ...["README.md", "LICENSE", "NOTICE.md", "CONTENT_LICENSE.md"].map((file) => (
       cp(join(root, file), join(temporary, file))
     )),
+  ]);
+  await Promise.all([
+    writeFile(join(temporary, "index.html"), index, "utf8"),
+    writeFile(join(temporary, "404.html"), index, "utf8"),
+    writeFile(
+      join(temporary, "learner-ui.css"),
+      createLearnerUiCss(platform.learnerUi.theme),
+      "utf8",
+    ),
+    writeFile(join(temporary, "learner-ui.js"), learnerUiJavaScript, "utf8"),
   ]);
   const assets = join(temporary, "assets");
   await mkdir(assets, { recursive: true });
@@ -139,7 +220,6 @@ License: https://www.mozilla.org/MPL/2.0/
     "utf8",
   );
   await rm(join(temporary, "trusted/python-exercise-runtime.ts"));
-  await cp(join(temporary, "index.html"), join(temporary, "404.html"));
   await writeFile(join(temporary, marker), "latent-platform-static-v1\n", "utf8");
   await writeFile(join(temporary, ".nojekyll"), "", "utf8");
 
@@ -149,6 +229,7 @@ License: https://www.mozilla.org/MPL/2.0/
     join(root, "LICENSE"),
     join(root, "NOTICE.md"),
     join(root, "CONTENT_LICENSE.md"),
+    join(root, "tools/vendor/learner-ui.mjs"),
     ...await collectFiles(join(root, "content")),
     ...await collectFiles(join(root, "trusted")),
     ...await collectFiles(join(root, "site")),
@@ -173,6 +254,7 @@ License: https://www.mozilla.org/MPL/2.0/
   await writeFile(join(temporary, "build-report.json"), `${JSON.stringify({
     format: "latent-platform-build",
     schemaVersion: 1,
+    learnerUiVersion: LEARNER_UI_VERSION,
     sourceSha256: digest.digest("hex"),
     pythonRuntime: {
       engine: "pyodide",

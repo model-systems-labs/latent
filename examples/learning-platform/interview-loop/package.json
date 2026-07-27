@@ -5,8 +5,10 @@
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
+    "learner-ui:generate": "npm --prefix ../../.. run build --workspace @latent/course-kit && node ../../../scripts/generate-learning-platform-learner-ui.mjs --out tools/vendor/learner-ui.mjs",
+    "learner-ui:check": "node tools/check-learner-ui.mjs",
     "test:focused": "node --test test/*.test.mjs",
-    "validate": "node tools/validate.mjs && npm run test:focused",
+    "validate": "npm run learner-ui:check && node tools/validate.mjs && npm run test:focused",
     "build": "npm run validate && node tools/build.mjs",
     "preview": "npm run build && node tools/serve.mjs dist"
   },

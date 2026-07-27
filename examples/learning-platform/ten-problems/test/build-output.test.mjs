@@ -57,8 +57,10 @@ test("the trusted build input configures a Python-only learner site without outp
   assert.match(files["assets/player.js"], /Run the public example, then check every published case/);
   assert.match(files["assets/player.js"], /new AbortController/);
   assert.match(files["assets/player.js"], /publicExamplesHeading/);
-  assert.match(files["assets/player.css"], /--learner-color-canvas: #f1f3f7/);
+  assert.match(files["assets/player.css"], /--learner-color-canvas: #eaf0fa/);
   assert.match(files["assets/player.css"], /--learner-color-accent: #42629b/);
+  assert.match(files["assets/player.css"], /--learner-background-recipe: cobalt/);
+  assert.match(files["assets/player.css"], /2rem 2rem, 2rem 2rem/);
   assert.match(files["assets/player.css"], /--learner-font-reading: "Iowan Old Style"/);
   assert.match(files["assets/favicon.svg"], /M25 20 14 32l11 12/);
 

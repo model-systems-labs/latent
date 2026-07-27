@@ -37,6 +37,7 @@ test("Question Group builds are complete static practice sites with a leech quer
   assert.match(files["index.html"], /src="\.\/assets\/learner-ui\.js"/);
   assert.match(files["leeches/index.html"], /src="\.\.\/assets\/learner-ui\.js"/);
   assert.match(files["assets/player.css"], /--learner-font-sans:/);
+  assert.match(files["assets/player.css"], /--learner-background-recipe: paper;/);
   assert.match(files["assets/player.css"], /\.learner-ui :focus-visible/);
   assert.match(
     files["assets/player.css"],
@@ -308,10 +309,12 @@ test("Question Group UI configuration controls branding, routes, copy, and runti
     /data-library-url="\.\.\/question-group-library\.json"/,
   );
   assert.match(configured["review/index.html"], /src="\.\.\/assets\/learner-ui\.js"/);
-  assert.match(configured["assets/player.css"], /--learner-color-canvas: #f1f3f7;/);
+  assert.match(configured["assets/player.css"], /--learner-color-canvas: #eaf0fa;/);
   assert.match(configured["assets/player.css"], /--learner-color-accent: #123abc;/);
   assert.match(configured["assets/player.css"], /--learner-color-focus: #fedcba;/);
+  assert.match(configured["assets/player.css"], /--learner-background-recipe: cobalt;/);
   assert.match(legacyTheme["assets/player.css"], /--learner-color-accent: #234567;/);
+  assert.match(legacyTheme["assets/player.css"], /--learner-background-recipe: paper;/);
   assert.match(configured["assets/player.js"], /"runExamples":"Run public examples"/);
   assert.match(configured["assets/player.js"], /"checkSolution":"Check full solution"/);
   assert.match(configured["assets/player.js"], /"continueLabel":"Continue next"/);

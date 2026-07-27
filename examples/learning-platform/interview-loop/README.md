@@ -52,8 +52,9 @@ The reviewed source of truth for the shared presentation is
 the generated build-time copy at `tools/vendor/learner-ui.mjs`;
 `platform.json` explicitly supplies its product name, navigation labels and
 hash routes, `sage` appearance palette, and footer. The palette changes color
-identity, not layout or component behavior; the other reviewed choices are
-`paper`, `cobalt`, `plum`, and `graphite`. The example has no runtime
+identity and the organic Field Notes background atmosphere, not layout or
+component behavior; the other reviewed choices are `paper`, `cobalt`, `plum`,
+and `graphite`. The example has no runtime
 dependency on a hosted stylesheet, JavaScript service, framework CDN, or model
 API.
 

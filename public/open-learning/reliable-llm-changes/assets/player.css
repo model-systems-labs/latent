@@ -19,6 +19,11 @@
   --learner-color-danger-soft: #f3e5e2;
   --learner-color-warning: #9a6342;
   --learner-color-focus: #3159b7;
+  --learner-background-recipe: paper;
+  --learner-background-image: radial-gradient(ellipse 46rem 32rem at 5% -8%, color-mix(in srgb, var(--learner-color-accent-soft) 82%, transparent) 0, transparent 72%), radial-gradient(ellipse 34rem 26rem at 90% 7%, color-mix(in srgb, var(--learner-color-warning) 10%, transparent) 0, transparent 70%), linear-gradient(180deg, color-mix(in srgb, var(--learner-color-surface) 42%, transparent) 0, transparent 32rem);
+  --learner-background-position: center top, center top, center top;
+  --learner-background-repeat: no-repeat, no-repeat, no-repeat;
+  --learner-background-size: auto, auto, auto;
   --learner-space-1: .25rem;
   --learner-space-2: .5rem;
   --learner-space-3: .75rem;
@@ -44,15 +49,16 @@
 }
 * { box-sizing: border-box; }
 html {
-  background: var(--learner-color-canvas);
+  background-color: var(--learner-color-canvas);
   color: var(--learner-color-ink);
   scroll-behavior: smooth;
 }
 body.learner-ui {
-  background:
-    radial-gradient(circle at 4% 0%, color-mix(in srgb, var(--learner-color-accent-soft) 70%, transparent) 0, transparent min(36rem, 55vw)),
-    radial-gradient(circle at 96% 12%, color-mix(in srgb, var(--learner-color-surface) 70%, transparent) 0, transparent min(32rem, 48vw)),
-    var(--learner-color-canvas);
+  background-color: var(--learner-color-canvas);
+  background-image: var(--learner-background-image);
+  background-position: var(--learner-background-position);
+  background-repeat: var(--learner-background-repeat);
+  background-size: var(--learner-background-size);
   color: var(--learner-color-ink);
   font-family: var(--learner-font-sans);
   line-height: 1.5;
@@ -90,7 +96,7 @@ body.learner-ui {
   min-height: 100vh;
 }
 .learner-header {
-  background: color-mix(in srgb, var(--learner-color-canvas) 91%, transparent);
+  background: color-mix(in srgb, var(--learner-color-canvas) 86%, transparent);
   border-bottom: var(--learner-border);
   position: relative;
   z-index: 20;
@@ -234,14 +240,14 @@ body.learner-ui {
   min-height: calc(100vh - var(--learner-header-height));
 }
 .learner-sidebar {
-  background: var(--learner-color-surface-muted);
+  background: color-mix(in srgb, var(--learner-color-surface-muted) 86%, transparent);
   border-right: var(--learner-border);
   min-width: 0;
   padding: clamp(1.25rem, 3vw, 2.25rem);
 }
 .learner-sidebar__header { margin-bottom: var(--learner-space-5); }
 .learner-content {
-  background: var(--learner-color-surface);
+  background: color-mix(in srgb, var(--learner-color-surface) 91%, transparent);
   min-width: 0;
   padding: clamp(1.5rem, 5vw, 4rem);
 }
@@ -604,7 +610,11 @@ body.learner-ui {
   }
 }
 @media (forced-colors: active) {
+  body.learner-ui { background-image: none; }
   .learner-status-dot[data-status] { forced-color-adjust: none; }
+}
+@media print {
+  body.learner-ui { background-image: none; }
 }
 
 .sidebar h2 {

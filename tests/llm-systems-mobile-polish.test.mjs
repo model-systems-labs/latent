@@ -26,11 +26,14 @@ test("the server-rendered skip link targets content after learner navigation", a
   assert.match(lesson, /<LearnerHeader[\s\S]*?<article[^>]*id="main-content"/);
 });
 
-test("the learner family header is a server adapter for the shared learner UI", async () => {
-  const [layout, header, styles] = await Promise.all([
+test("the learner family header and Plum atmosphere come from the shared learner UI", async () => {
+  const [layout, header, styles, generatedCss, generator, legacyGlobalStyles] = await Promise.all([
     read("app/layout.tsx"),
     read("app/components/LearnerHeader.tsx"),
     read("packages/course-kit/src/learner-ui.ts"),
+    read("public/assets/learner-ui.css"),
+    read("scripts/generate-learning-platform-learner-ui.mjs"),
+    read("app/styles/learning-flow.css"),
   ]);
 
   assert.doesNotMatch(header, /"use client"|useEffect|useRef|matchMedia/);
@@ -51,6 +54,14 @@ test("the learner family header is a server adapter for the shared learner UI", 
   assert.match(layout, /src=\{`\$\{learnerUiAssetBasePath\}\/assets\/learner-ui\.js`\}/);
   assert.doesNotMatch(layout, /dangerouslySetInnerHTML/);
   assert.match(layout, /learner-ui/);
+  assert.match(generator, /resolveLearnerUiTheme\(\{ palette: "plum" \}\)/);
+  assert.match(generator, /createLearnerUiCss\(theme, \{ palette: "plum" \}\)/);
+  assert.match(generatedCss, /--learner-background-recipe: plum;/);
+  assert.match(generatedCss, /circle at 88% 4%/);
+  assert.doesNotMatch(
+    legacyGlobalStyles,
+    /body\s*\{[^}]*background(?:-attachment)?\s*:/,
+  );
   assert.match(styles, /\.learner-primary-nav--desktop\s*\{[\s\S]*?margin-left:\s*auto/);
   assert.match(styles, /\.learner-nav-menu > summary\s*\{[^}]*min-height:\s*2\.75rem/);
   assert.match(styles, /@media \(max-width: \$\{LEARNER_UI_BREAKPOINTS\.compact\}px\)[\s\S]*?\.learner-primary-nav--desktop \{ display: none; \}[\s\S]*?\.learner-primary-nav--mobile/);

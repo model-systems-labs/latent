@@ -3,16 +3,10 @@
 }
 
 html {
-  background: var(--paper);
   scroll-behavior: smooth;
 }
 
 body {
-  background:
-    radial-gradient(circle at 88% 4%, rgba(203, 188, 210, 0.2), transparent 32rem),
-    radial-gradient(circle at 73% 18%, rgba(230, 183, 139, 0.11), transparent 22rem),
-    var(--paper);
-  background-attachment: fixed;
   color: var(--ink);
   font-family: var(--sans);
   margin: 0;

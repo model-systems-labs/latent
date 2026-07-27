@@ -73,13 +73,15 @@ const files = await buildStandaloneQuestionGroupSite(library, {
 
 The shared v2 appearance model defaults to `paper` and offers five named
 palettes: `paper`, `sage`, `cobalt`, `plum`, and `graphite`. A palette changes
-color identity only. Typography, spacing, borders, page width, one-header
-anatomy, controls, focus states, feedback, and responsive behavior remain
-framework invariants. The legacy top-level `ui.theme` token map remains a
-trusted compatibility input, but it is deprecated, cannot be combined with
-`ui.appearance`, and is not used by the reviewed examples. New product
-configuration should select a named palette rather than recreate the interface
-with raw tokens.
+the semantic colors and reviewed CSS-only background atmosphere. Typography,
+spacing, borders, page width, one-header anatomy, controls, focus states,
+feedback, and responsive behavior remain framework invariants. Ten Problems
+uses Cobalt's blueprint-grid atmosphere; the original course, Interview Loop,
+and Learning Studio use Plum, Sage, and Paper respectively. The legacy
+top-level `ui.theme` token map remains a trusted compatibility input, but it
+is deprecated, cannot be combined with `ui.appearance`, and is not used by the
+reviewed examples. New product configuration should select a named palette
+rather than recreate the interface with raw tokens.
 
 The builder validates configured routes, text, and the bounded single-line CSP;
 escapes every value placed in HTML; and renders configured copy through text

@@ -3,22 +3,27 @@
   --learner-font-sans: var(--font-geist-sans, "Helvetica Neue"), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --learner-font-reading: "Iowan Old Style", Baskerville, "Times New Roman", serif;
   --learner-font-mono: var(--font-geist-mono, "SFMono-Regular"), ui-monospace, Consolas, "Liberation Mono", monospace;
-  --learner-color-canvas: #f4f0e8;
-  --learner-color-surface: #fffdf8;
-  --learner-color-surface-muted: #eee9df;
-  --learner-color-ink: #282322;
-  --learner-color-muted: #665e59;
-  --learner-color-border: #d8d0c7;
-  --learner-color-accent: #78667d;
-  --learner-color-accent-strong: #554653;
-  --learner-color-accent-soft: #eee8ef;
+  --learner-color-canvas: #f2eaf4;
+  --learner-color-surface: #fffaff;
+  --learner-color-surface-muted: #e9deeb;
+  --learner-color-ink: #292329;
+  --learner-color-muted: #6a5e68;
+  --learner-color-border: #d7c8da;
+  --learner-color-accent: #765b75;
+  --learner-color-accent-strong: #563f56;
+  --learner-color-accent-soft: #eee4ed;
   --learner-color-accent-contrast: #fffdf8;
-  --learner-color-success: #54735d;
-  --learner-color-success-soft: #e2ebe4;
-  --learner-color-danger: #8d5a54;
-  --learner-color-danger-soft: #f3e5e2;
-  --learner-color-warning: #9a6342;
+  --learner-color-success: #55715f;
+  --learner-color-success-soft: #e2ebe5;
+  --learner-color-danger: #915955;
+  --learner-color-danger-soft: #f4e4e2;
+  --learner-color-warning: #97603f;
   --learner-color-focus: #3159b7;
+  --learner-background-recipe: plum;
+  --learner-background-image: radial-gradient(circle at 88% 4%, transparent 0 10rem, color-mix(in srgb, var(--learner-color-accent) 11%, transparent) 10.05rem 10.12rem, transparent 10.18rem 17rem, color-mix(in srgb, var(--learner-color-accent) 8%, transparent) 17.05rem 17.12rem, transparent 17.18rem), radial-gradient(ellipse 46rem 34rem at 86% 0%, color-mix(in srgb, var(--learner-color-accent-soft) 88%, transparent) 0, transparent 72%), radial-gradient(ellipse 34rem 28rem at 2% 94%, color-mix(in srgb, var(--learner-color-danger) 9%, transparent) 0, transparent 72%), linear-gradient(180deg, color-mix(in srgb, var(--learner-color-surface) 30%, transparent), transparent 34rem);
+  --learner-background-position: center top, center top, center top, center top;
+  --learner-background-repeat: no-repeat, no-repeat, no-repeat, no-repeat;
+  --learner-background-size: auto, auto, auto, auto;
   --learner-space-1: .25rem;
   --learner-space-2: .5rem;
   --learner-space-3: .75rem;
@@ -44,15 +49,16 @@
 }
 * { box-sizing: border-box; }
 html {
-  background: var(--learner-color-canvas);
+  background-color: var(--learner-color-canvas);
   color: var(--learner-color-ink);
   scroll-behavior: smooth;
 }
 body.learner-ui {
-  background:
-    radial-gradient(circle at 4% 0%, color-mix(in srgb, var(--learner-color-accent-soft) 70%, transparent) 0, transparent min(36rem, 55vw)),
-    radial-gradient(circle at 96% 12%, color-mix(in srgb, var(--learner-color-surface) 70%, transparent) 0, transparent min(32rem, 48vw)),
-    var(--learner-color-canvas);
+  background-color: var(--learner-color-canvas);
+  background-image: var(--learner-background-image);
+  background-position: var(--learner-background-position);
+  background-repeat: var(--learner-background-repeat);
+  background-size: var(--learner-background-size);
   color: var(--learner-color-ink);
   font-family: var(--learner-font-sans);
   line-height: 1.5;
@@ -90,7 +96,7 @@ body.learner-ui {
   min-height: 100vh;
 }
 .learner-header {
-  background: color-mix(in srgb, var(--learner-color-canvas) 91%, transparent);
+  background: color-mix(in srgb, var(--learner-color-canvas) 86%, transparent);
   border-bottom: var(--learner-border);
   position: relative;
   z-index: 20;
@@ -234,14 +240,14 @@ body.learner-ui {
   min-height: calc(100vh - var(--learner-header-height));
 }
 .learner-sidebar {
-  background: var(--learner-color-surface-muted);
+  background: color-mix(in srgb, var(--learner-color-surface-muted) 86%, transparent);
   border-right: var(--learner-border);
   min-width: 0;
   padding: clamp(1.25rem, 3vw, 2.25rem);
 }
 .learner-sidebar__header { margin-bottom: var(--learner-space-5); }
 .learner-content {
-  background: var(--learner-color-surface);
+  background: color-mix(in srgb, var(--learner-color-surface) 91%, transparent);
   min-width: 0;
   padding: clamp(1.5rem, 5vw, 4rem);
 }
@@ -604,5 +610,9 @@ body.learner-ui {
   }
 }
 @media (forced-colors: active) {
+  body.learner-ui { background-image: none; }
   .learner-status-dot[data-status] { forced-color-adjust: none; }
+}
+@media print {
+  body.learner-ui { background-image: none; }
 }

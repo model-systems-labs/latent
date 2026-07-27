@@ -51,11 +51,12 @@ test("the original LLM Systems course has a subpath-safe static export", async (
 });
 
 test("both Pages publishers retain public artifacts and the LLM Systems example", async () => {
-  const [deploy, release, readme, previewServer] = await Promise.all([
+  const [deploy, release, readme, previewServer, suiteBuilder] = await Promise.all([
     read(".github/workflows/deploy-interview-loop-pages.yml"),
     read(".github/workflows/release-course-kit.yml"),
     read("README.md"),
     read("scripts/serve-learning-example-pages.mjs"),
+    read("scripts/build-learning-example-pages.mjs"),
   ]);
 
   assert.match(deploy, /npm run learning-examples:build/);
@@ -78,4 +79,8 @@ test("both Pages publishers retain public artifacts and the LLM Systems example"
   assert.match(readme, /14 browser labs that become a working chat capstone/);
   assert.match(previewServer, /join\(requestedPath, "index\.html"\)/);
   assert.match(previewServer, /python-exercise\.worker\.js/);
+  assert.match(
+    suiteBuilder,
+    /createLearnerUiCss\([\s\S]*?resolveLearnerUiTheme\(\{ palette: "paper" \}\),[\s\S]*?\{ palette: "paper" \}/,
+  );
 });

@@ -214,6 +214,7 @@ test("standalone builds derive integrity, are deterministic, self-contained, and
   assert.doesNotMatch(first["index.html"], /<img src=x onerror=/);
   assert.match(first["index.html"], /&lt;img src=x onerror=alert\(1\)&gt;/);
   assert.match(first["assets/player.css"], /--learner-font-sans:/);
+  assert.match(first["assets/player.css"], /--learner-background-recipe: paper;/);
   assert.match(first["assets/player.css"], /\.learner-ui :focus-visible/);
   assert.match(first["assets/player.css"], /font-family: var\(--learner-font-reading\)/);
   assert.doesNotMatch(first["assets/player.css"], /\.site-header|\.wordmark|\.skip-link/);
@@ -291,10 +292,12 @@ test("standalone Learning Pack UI configuration changes presentation without cha
   assert.match(configured["index.html"], /Review cards/);
   assert.match(configured["index.html"], /Progress stays on this device\./);
   assert.match(configured["index.html"], /A quiet attribution\./);
-  assert.match(configured["assets/player.css"], /--learner-color-canvas: #f1f3f7;/);
+  assert.match(configured["assets/player.css"], /--learner-color-canvas: #eaf0fa;/);
   assert.match(configured["assets/player.css"], /--learner-color-accent: #345abc;/);
   assert.match(configured["assets/player.css"], /--learner-color-focus: #fedcba;/);
+  assert.match(configured["assets/player.css"], /--learner-background-recipe: cobalt;/);
   assert.match(legacyTheme["assets/player.css"], /--learner-color-accent: #234567;/);
+  assert.match(legacyTheme["assets/player.css"], /--learner-background-recipe: paper;/);
   assert.equal(
     configured["assets/learner-ui.js"],
     baseline["assets/learner-ui.js"],

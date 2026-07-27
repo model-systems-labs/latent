@@ -44,6 +44,10 @@ export type LearnerUiAppearance = Readonly<{
   theme?: LearnerUiTheme;
 }>;
 
+export type LearnerUiCssOptions = Readonly<{
+  palette?: LearnerUiPaletteName;
+}>;
+
 export type LearnerUiNavigationItem = Readonly<{
   label: string;
   href: string;
@@ -88,12 +92,12 @@ export const LEARNER_UI_PALETTES = Object.freeze({
     focus: "#3159b7",
   }),
   sage: Object.freeze({
-    canvas: "#f2f4ed",
-    surface: "#fffdf8",
-    surfaceMuted: "#e8ede3",
+    canvas: "#eaf1e8",
+    surface: "#fffef9",
+    surfaceMuted: "#dfe9dd",
     ink: "#252a25",
     muted: "#61685f",
-    border: "#cfd6ca",
+    border: "#c4d1c2",
     accent: "#47705d",
     accentStrong: "#315342",
     accentSoft: "#dfebe4",
@@ -106,12 +110,12 @@ export const LEARNER_UI_PALETTES = Object.freeze({
     focus: "#3159b7",
   }),
   cobalt: Object.freeze({
-    canvas: "#f1f3f7",
-    surface: "#fffdf8",
-    surfaceMuted: "#e8edf5",
+    canvas: "#eaf0fa",
+    surface: "#fbfdff",
+    surfaceMuted: "#dfe7f5",
     ink: "#24272e",
     muted: "#606773",
-    border: "#cdd4df",
+    border: "#c2cee0",
     accent: "#42629b",
     accentStrong: "#2d4979",
     accentSoft: "#e1e8f4",
@@ -124,12 +128,12 @@ export const LEARNER_UI_PALETTES = Object.freeze({
     focus: "#3159b7",
   }),
   plum: Object.freeze({
-    canvas: "#f3eff3",
-    surface: "#fffdf8",
-    surfaceMuted: "#ebe5eb",
+    canvas: "#f2eaf4",
+    surface: "#fffaff",
+    surfaceMuted: "#e9deeb",
     ink: "#292329",
     muted: "#6a5e68",
-    border: "#d9cfd8",
+    border: "#d7c8da",
     accent: "#765b75",
     accentStrong: "#563f56",
     accentSoft: "#eee4ed",
@@ -142,12 +146,12 @@ export const LEARNER_UI_PALETTES = Object.freeze({
     focus: "#3159b7",
   }),
   graphite: Object.freeze({
-    canvas: "#f1f0ed",
-    surface: "#fffdf8",
-    surfaceMuted: "#e7e6e2",
+    canvas: "#eceeec",
+    surface: "#fcfcf8",
+    surfaceMuted: "#dfe3e1",
     ink: "#242525",
     muted: "#626665",
-    border: "#ced1ce",
+    border: "#c7cdca",
     accent: "#59666b",
     accentStrong: "#3f4b50",
     accentSoft: "#e2e7e8",
@@ -162,6 +166,68 @@ export const LEARNER_UI_PALETTES = Object.freeze({
 } satisfies Record<LearnerUiPaletteName, Required<LearnerUiTheme>>);
 
 const DEFAULT_THEME = LEARNER_UI_PALETTES.paper;
+
+type LearnerUiBackgroundRecipe = Readonly<{
+  image: string;
+  position: string;
+  repeat: string;
+  size: string;
+}>;
+
+const LEARNER_UI_BACKGROUND_RECIPES = Object.freeze({
+  paper: Object.freeze({
+    image: [
+      "radial-gradient(ellipse 46rem 32rem at 5% -8%, color-mix(in srgb, var(--learner-color-accent-soft) 82%, transparent) 0, transparent 72%)",
+      "radial-gradient(ellipse 34rem 26rem at 90% 7%, color-mix(in srgb, var(--learner-color-warning) 10%, transparent) 0, transparent 70%)",
+      "linear-gradient(180deg, color-mix(in srgb, var(--learner-color-surface) 42%, transparent) 0, transparent 32rem)",
+    ].join(", "),
+    position: "center top, center top, center top",
+    repeat: "no-repeat, no-repeat, no-repeat",
+    size: "auto, auto, auto",
+  }),
+  sage: Object.freeze({
+    image: [
+      "radial-gradient(ellipse 46rem 62rem at -14% 58%, color-mix(in srgb, var(--learner-color-accent) 14%, transparent) 0, transparent 70%)",
+      "radial-gradient(ellipse 38rem 28rem at 104% -4%, color-mix(in srgb, var(--learner-color-warning) 11%, transparent) 0, transparent 72%)",
+      "linear-gradient(145deg, color-mix(in srgb, var(--learner-color-surface) 34%, transparent) 0, transparent 47%, color-mix(in srgb, var(--learner-color-accent-soft) 56%, transparent) 100%)",
+    ].join(", "),
+    position: "center top, center top, center top",
+    repeat: "no-repeat, no-repeat, no-repeat",
+    size: "auto, auto, auto",
+  }),
+  cobalt: Object.freeze({
+    image: [
+      "linear-gradient(color-mix(in srgb, var(--learner-color-accent) 8%, transparent) 1px, transparent 1px)",
+      "linear-gradient(90deg, color-mix(in srgb, var(--learner-color-accent) 8%, transparent) 1px, transparent 1px)",
+      "radial-gradient(ellipse 44rem 30rem at 92% -8%, color-mix(in srgb, var(--learner-color-accent-soft) 88%, transparent) 0, transparent 72%)",
+      "linear-gradient(180deg, color-mix(in srgb, var(--learner-color-surface) 42%, transparent) 0, transparent 30rem)",
+    ].join(", "),
+    position: "left top, left top, center top, center top",
+    repeat: "repeat, repeat, no-repeat, no-repeat",
+    size: "2rem 2rem, 2rem 2rem, auto, auto",
+  }),
+  plum: Object.freeze({
+    image: [
+      "radial-gradient(circle at 88% 4%, transparent 0 10rem, color-mix(in srgb, var(--learner-color-accent) 11%, transparent) 10.05rem 10.12rem, transparent 10.18rem 17rem, color-mix(in srgb, var(--learner-color-accent) 8%, transparent) 17.05rem 17.12rem, transparent 17.18rem)",
+      "radial-gradient(ellipse 46rem 34rem at 86% 0%, color-mix(in srgb, var(--learner-color-accent-soft) 88%, transparent) 0, transparent 72%)",
+      "radial-gradient(ellipse 34rem 28rem at 2% 94%, color-mix(in srgb, var(--learner-color-danger) 9%, transparent) 0, transparent 72%)",
+      "linear-gradient(180deg, color-mix(in srgb, var(--learner-color-surface) 30%, transparent), transparent 34rem)",
+    ].join(", "),
+    position: "center top, center top, center top, center top",
+    repeat: "no-repeat, no-repeat, no-repeat, no-repeat",
+    size: "auto, auto, auto, auto",
+  }),
+  graphite: Object.freeze({
+    image: [
+      "repeating-linear-gradient(135deg, color-mix(in srgb, var(--learner-color-ink) 4%, transparent) 0 1px, transparent 1px 12px)",
+      "radial-gradient(ellipse 64rem 28rem at 50% -8%, color-mix(in srgb, var(--learner-color-surface) 82%, transparent) 0, transparent 74%)",
+      "linear-gradient(180deg, color-mix(in srgb, var(--learner-color-surface-muted) 36%, transparent) 0, transparent 34rem)",
+    ].join(", "),
+    position: "left top, center top, center top",
+    repeat: "repeat, no-repeat, no-repeat",
+    size: "auto, auto, auto",
+  }),
+} satisfies Record<LearnerUiPaletteName, LearnerUiBackgroundRecipe>);
 
 function escapeHtml(value: string) {
   return value
@@ -266,10 +332,21 @@ export function resolveLearnerUiTheme(
   )) as Required<LearnerUiTheme>;
 }
 
-export function createLearnerUiCss(theme: LearnerUiTheme = {}) {
+export function createLearnerUiCss(
+  theme: LearnerUiTheme = {},
+  options: LearnerUiCssOptions = {},
+) {
   const unknownKeys = Object.keys(theme).filter((key) => !(key in DEFAULT_THEME));
   if (unknownKeys.length) {
     throw new Error(`Unknown learner UI theme token: ${unknownKeys[0]}`);
+  }
+  const unknownOptionKeys = Object.keys(options).filter((key) => key !== "palette");
+  if (unknownOptionKeys.length) {
+    throw new Error(`Unknown learner UI CSS option: ${unknownOptionKeys[0]}`);
+  }
+  const palette = options.palette ?? "paper";
+  if (!LEARNER_UI_PALETTE_NAMES.includes(palette)) {
+    throw new Error(`Unknown learner UI palette: ${String(palette)}`);
   }
   const colors = Object.fromEntries(
     Object.entries(DEFAULT_THEME).map(([key, fallback]) => [
@@ -277,6 +354,7 @@ export function createLearnerUiCss(theme: LearnerUiTheme = {}) {
       themeValue(theme[key as keyof LearnerUiTheme] ?? fallback, `theme.${key}`),
     ]),
   ) as typeof DEFAULT_THEME;
+  const background = LEARNER_UI_BACKGROUND_RECIPES[palette];
 
   return `:root {
   color-scheme: light;
@@ -299,6 +377,11 @@ export function createLearnerUiCss(theme: LearnerUiTheme = {}) {
   --learner-color-danger-soft: ${colors.dangerSoft};
   --learner-color-warning: ${colors.warning};
   --learner-color-focus: ${colors.focus};
+  --learner-background-recipe: ${palette};
+  --learner-background-image: ${background.image};
+  --learner-background-position: ${background.position};
+  --learner-background-repeat: ${background.repeat};
+  --learner-background-size: ${background.size};
   --learner-space-1: .25rem;
   --learner-space-2: .5rem;
   --learner-space-3: .75rem;
@@ -324,15 +407,16 @@ export function createLearnerUiCss(theme: LearnerUiTheme = {}) {
 }
 * { box-sizing: border-box; }
 html {
-  background: var(--learner-color-canvas);
+  background-color: var(--learner-color-canvas);
   color: var(--learner-color-ink);
   scroll-behavior: smooth;
 }
 body.learner-ui {
-  background:
-    radial-gradient(circle at 4% 0%, color-mix(in srgb, var(--learner-color-accent-soft) 70%, transparent) 0, transparent min(36rem, 55vw)),
-    radial-gradient(circle at 96% 12%, color-mix(in srgb, var(--learner-color-surface) 70%, transparent) 0, transparent min(32rem, 48vw)),
-    var(--learner-color-canvas);
+  background-color: var(--learner-color-canvas);
+  background-image: var(--learner-background-image);
+  background-position: var(--learner-background-position);
+  background-repeat: var(--learner-background-repeat);
+  background-size: var(--learner-background-size);
   color: var(--learner-color-ink);
   font-family: var(--learner-font-sans);
   line-height: 1.5;
@@ -370,7 +454,7 @@ body.learner-ui {
   min-height: 100vh;
 }
 .learner-header {
-  background: color-mix(in srgb, var(--learner-color-canvas) 91%, transparent);
+  background: color-mix(in srgb, var(--learner-color-canvas) 86%, transparent);
   border-bottom: var(--learner-border);
   position: relative;
   z-index: 20;
@@ -514,14 +598,14 @@ body.learner-ui {
   min-height: calc(100vh - var(--learner-header-height));
 }
 .learner-sidebar {
-  background: var(--learner-color-surface-muted);
+  background: color-mix(in srgb, var(--learner-color-surface-muted) 86%, transparent);
   border-right: var(--learner-border);
   min-width: 0;
   padding: clamp(1.25rem, 3vw, 2.25rem);
 }
 .learner-sidebar__header { margin-bottom: var(--learner-space-5); }
 .learner-content {
-  background: var(--learner-color-surface);
+  background: color-mix(in srgb, var(--learner-color-surface) 91%, transparent);
   min-width: 0;
   padding: clamp(1.5rem, 5vw, 4rem);
 }
@@ -884,7 +968,11 @@ body.learner-ui {
   }
 }
 @media (forced-colors: active) {
+  body.learner-ui { background-image: none; }
   .learner-status-dot[data-status] { forced-color-adjust: none; }
+}
+@media print {
+  body.learner-ui { background-image: none; }
 }\n`;
 }
 

@@ -16,6 +16,7 @@ import {
   resolveLearnerUiTheme,
   type LearnerUiAppearance,
   type LearnerUiNavigationItem,
+  type LearnerUiPaletteName,
   type LearnerUiTheme,
 } from "./learner-ui.js";
 
@@ -139,6 +140,7 @@ type NormalizedQuestionGroupSiteUi = Readonly<{
   copy: QuestionGroupSiteCopy;
   footerSummary: string;
   attribution: string;
+  palette: LearnerUiPaletteName;
   theme: Required<LearnerUiTheme>;
   faviconSvg?: string;
 }>;
@@ -251,10 +253,9 @@ function normalizeQuestionGroupSiteUi(
       "Question Group site ui.appearance and ui.theme cannot be configured together.",
     );
   }
-  const theme = resolveLearnerUiTheme(
-    input.appearance
-      ?? (input.theme === undefined ? {} : { theme: input.theme }),
-  );
+  const appearance = input.appearance
+    ?? (input.theme === undefined ? {} : { theme: input.theme });
+  const theme = resolveLearnerUiTheme(appearance);
   const globalNavigation = input.globalNavigation?.map((item, index) => {
     if (!item || typeof item !== "object" || Array.isArray(item)) {
       throw new Error(`ui.globalNavigation[${index}] must be a navigation item.`);
@@ -301,6 +302,7 @@ function normalizeQuestionGroupSiteUi(
       240,
     ),
     attribution: siteText(input.attribution ?? "Built with Latent.", "ui.attribution", 160),
+    palette: appearance.palette ?? "paper",
     theme,
     ...(faviconSvg === undefined ? {} : { faviconSvg }),
   });
@@ -1827,7 +1829,7 @@ export async function buildStandaloneQuestionGroupSite(
     ).replace(/[ \t]+$/gm, ""),
     "question-group-library.json": libraryJson,
     "assets/learner-ui.js": learnerUiJavaScript,
-    "assets/player.css": `${createLearnerUiCss(ui.theme)}\n${questionGroupLayoutCss}`,
+    "assets/player.css": `${createLearnerUiCss(ui.theme, { palette: ui.palette })}\n${questionGroupLayoutCss}`,
     "assets/player.js": renderQuestionGroupPlayerJavaScript(
       ui.copy,
       bundledBrowserRuntime,

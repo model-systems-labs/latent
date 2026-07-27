@@ -371,7 +371,10 @@ expect(
   "Declare the quiet learner footer at build time.",
 );
 try {
-  createLearnerUiCss(resolveLearnerUiTheme(platform?.learnerUi?.appearance));
+  createLearnerUiCss(
+    resolveLearnerUiTheme(platform?.learnerUi?.appearance),
+    { palette: platform?.learnerUi?.appearance?.palette },
+  );
   renderLearnerHeader({
     productName: platform?.brand?.name,
     ...platform?.learnerUi?.header,

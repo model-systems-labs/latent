@@ -139,9 +139,14 @@ The default `paper` palette carries the warm editorial principles established
 by the original Build an LLM System course: serif display type, quiet
 hairlines, restrained depth, readable measure, and content-first hierarchy.
 Trusted product configuration may select one of five reviewed palettes:
-`paper`, `sage`, `cobalt`, `plum`, or `graphite`. Layout, typography,
-components, focus behavior, and responsive rules do not change with the
-palette. A low-level token override remains available to trusted callers for
+`paper`, `sage`, `cobalt`, `plum`, or `graphite`. A palette is the bounded
+environmental layer: it selects semantic colors and one reviewed CSS-gradient
+background recipe. Layout, typography, components, focus behavior, and
+responsive rules do not change. The suite uses Paper for Learning Studio,
+Plum for the original LLM Systems course, Sage for Interview Loop, and Cobalt
+for Ten Problems; Graphite remains a neutral fifth choice. All recipes are
+self-hosted CSS with no image request, animation, or fixed attachment. A
+low-level token override remains available to trusted callers for
 compatibility, but the reviewed examples use palette-only `appearance`
 configuration and may not combine it with the legacy `theme` input.
 

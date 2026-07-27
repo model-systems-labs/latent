@@ -152,7 +152,10 @@ try {
     writeFile(join(temporary, "404.html"), index, "utf8"),
     writeFile(
       join(temporary, "learner-ui.css"),
-      createLearnerUiCss(resolveLearnerUiTheme(platform.learnerUi.appearance)),
+      createLearnerUiCss(
+        resolveLearnerUiTheme(platform.learnerUi.appearance),
+        { palette: platform.learnerUi.appearance.palette },
+      ),
       "utf8",
     ),
     writeFile(join(temporary, "learner-ui.js"), learnerUiJavaScript, "utf8"),

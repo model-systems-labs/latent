@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 import vm from "node:vm";
@@ -24,14 +25,21 @@ async function exampleLibrary() {
 
 test("Question Group builds are complete static practice sites with a leech query", async () => {
   const library = await exampleLibrary();
+  const declarations = await readFile(
+    new URL("../dist/question-group-site.d.ts", import.meta.url),
+    "utf8",
+  );
   const files = await buildStandaloneQuestionGroupSite(library);
   const repeated = await buildStandaloneQuestionGroupSite(structuredClone(library));
+  assert.equal(QUESTION_GROUP_PLAYER_VERSION, 2);
+  assert.match(declarations, /viewExampleSolution\?: string;/);
   assert.equal(files[".latent-build"], `${QUESTION_GROUP_BUILD_MARKER}\n`);
   assert.ok(files["assets/esbuild.wasm"] instanceof Uint8Array);
   assert.ok(files["assets/esbuild.wasm"].byteLength > 1_000_000);
   assert.match(files["index.html"], /data-initial-query="all"/);
   assert.match(files["leeches/index.html"], /data-initial-query="leeches"/);
   assert.match(files["index.html"], /<body class="learner-ui"/);
+  assert.match(files["index.html"], /data-learner-atmosphere aria-hidden="true"/);
   assert.match(files["index.html"], /class="learner-skip-link"/);
   assert.match(files["index.html"], /class="learner-header"/);
   assert.match(files["index.html"], /src="\.\/assets\/learner-ui\.js"/);
@@ -39,6 +47,35 @@ test("Question Group builds are complete static practice sites with a leech quer
   assert.match(files["assets/player.css"], /--learner-font-sans:/);
   assert.match(files["assets/player.css"], /--learner-background-recipe: paper;/);
   assert.match(files["assets/player.css"], /\.learner-ui :focus-visible/);
+  const practiceLayoutCss = files["assets/player.css"].match(
+    /\.practice-layout\s*\{([^}]*)\}/,
+  )?.[1];
+  const libraryCss = files["assets/player.css"].match(
+    /\.library\s*\{([^}]*)\}/,
+  )?.[1];
+  const questionCopyCss = files["assets/player.css"].match(
+    /\.question-copy\s*\{([^}]*)\}/,
+  )?.[1];
+  const workspaceCss = files["assets/player.css"].match(
+    /\.workspace\s*\{([^}]*)\}/,
+  )?.[1];
+  const resultsCss = files["assets/player.css"].match(
+    /\.workspace \.learner-results\s*\{([^}]*)\}/,
+  )?.[1];
+  assert.match(practiceLayoutCss ?? "", /max-width:\s*72rem/);
+  assert.doesNotMatch(practiceLayoutCss ?? "", /grid-template-columns|min-height:\s*calc/);
+  assert.match(libraryCss ?? "", /overflow:\s*visible/);
+  assert.doesNotMatch(libraryCss ?? "", /overflow:\s*auto/);
+  assert.match(questionCopyCss ?? "", /overflow:\s*visible/);
+  assert.doesNotMatch(questionCopyCss ?? "", /overflow:\s*auto/);
+  assert.match(workspaceCss ?? "", /display:\s*flex/);
+  assert.doesNotMatch(workspaceCss ?? "", /grid-template-rows|min-height:\s*46rem/);
+  assert.match(resultsCss ?? "", /overflow:\s*visible/);
+  assert.doesNotMatch(resultsCss ?? "", /overflow:\s*auto/);
+  assert.match(
+    files["assets/player.css"],
+    /\.workspace \.learner-editor\s*\{[^}]*overflow:\s*auto;[^}]*resize:\s*vertical;/,
+  );
   assert.match(
     files["assets/player.css"],
     /\.question-copy h2\s*\{[^}]*font-family: var\(--learner-font-reading\)/,
@@ -65,6 +102,8 @@ test("Question Group builds are complete static practice sites with a leech quer
     files["assets/player.js"],
     /const libraryHeader = document\.createElement\("div"\)/,
   );
+  assert.match(files["assets/player.js"], /const sidebar = document\.createElement\("div"\)/);
+  assert.doesNotMatch(files["assets/player.js"], /const sidebar = document\.createElement\("aside"\)/);
   assert.match(
     files["assets/player.js"],
     /const workspaceHeader = document\.createElement\("div"\)/,
@@ -78,10 +117,14 @@ test("Question Group builds are complete static practice sites with a leech quer
   assert.match(files["assets/player.js"], /copy\.runCanceled/);
   assert.match(
     files["assets/player.js"],
-    /navigation\.open = !navigationBreakpoint\.matches/,
+    /navigation\.open = false/,
   );
-  assert.match(files["assets/player.js"], /navigation\.dataset\.learnerCollapseAt = "stacked"/);
-  assert.match(files["assets/player.js"], /"\(max-width: 980px\)"/);
+  assert.match(files["assets/player.js"], /navigation\.dataset\.learnerCollapseAt = "always"/);
+  assert.match(
+    files["assets/player.js"],
+    /button\.addEventListener\("click", \(\) => \{[\s\S]*navigation\.removeAttribute\("open"\);[\s\S]*renderActive\(true\)/,
+  );
+  assert.doesNotMatch(files["assets/player.js"], /navigationBreakpoint/);
   assert.match(files["assets/player.js"], /learner-sr-only/);
   assert.match(files["assets/player.js"], /question-result-announcement/);
   assert.match(
@@ -98,7 +141,8 @@ test("Question Group builds are complete static practice sites with a leech quer
   );
   assert.match(files["assets/player.js"], /results\.tabIndex = 0/);
   assert.match(files["assets/player.js"], /exerciseCase\.passed \? "Pass · " : "Fail · "/);
-  assert.match(files["assets/player.js"], /empty\.setAttribute\("role", "status"\)/);
+  assert.match(files["assets/player.js"], /text\("h1", library\.library\.title\)/);
+  assert.match(files["assets/player.js"], /message\.setAttribute\("role", "status"\)/);
   assert.match(files["assets/player.js"], /app\.replaceChildren\(empty\);\s*empty\.focus\(\{ preventScroll: true \}\)/);
   assert.match(
     files["assets/player.js"],
@@ -151,6 +195,10 @@ test("Question Group builds are complete static practice sites with a leech quer
   assert.equal(report.learnerUiVersion, 2);
   assert.equal(report.reviewDirectory, "leeches");
   assert.equal(report.bundledBrowserRuntime, true);
+  assert.deepEqual(report.referenceSolutions, {
+    count: 0,
+    sha256: createHash("sha256").update("[]").digest("hex"),
+  });
   assert.deepEqual(report.browserRuntimes, ["browser-javascript"]);
   assert.equal(report.files.includes("leeches/index.html"), true);
   assert.match(
@@ -254,6 +302,7 @@ test("Question Group UI configuration controls branding, routes, copy, and runti
           editorLabel: "Python answer",
           draftSaved: "Answer saved",
           runtimeUnavailable: "Practice is taking a break.",
+          viewExampleSolution: "Open worked answer",
         },
         footerSummary: "Progress stays with this exact set.",
         attribution: "A quiet attribution.",
@@ -325,6 +374,7 @@ test("Question Group UI configuration controls branding, routes, copy, and runti
     configured["assets/player.js"],
     /"runtimeUnavailable":"Practice is taking a break\."/,
   );
+  assert.match(configured["assets/player.js"], /"viewExampleSolution":"Open worked answer"/);
   assert.match(configured["index.html"], /Progress stays with this exact set\./);
   assert.match(configured["index.html"], /A quiet attribution\./);
   assert.match(
@@ -375,6 +425,200 @@ test("Question Group UI configuration controls branding, routes, copy, and runti
   assert.equal(
     JSON.parse(legacyTheme["build-report.json"]).sha256,
     baselineReport.sha256,
+  );
+});
+
+test("trusted reference solutions render as inert read-only disclosures without changing portable identity", async () => {
+  const library = await exampleLibrary();
+  const baseline = await buildStandaloneQuestionGroupSite(library, {
+    bundledBrowserRuntime: false,
+  });
+  const referenceSolutions = [{
+    groupId: "arithmetic",
+    questionId: "add-two-values",
+    source: `export function addTwoValues(left, right) {
+  return left + right;
+}
+// </code><script>globalThis.referenceEscaped = false</script>
+`,
+  }];
+  const files = await buildStandaloneQuestionGroupSite(
+    structuredClone(library),
+    {
+      bundledBrowserRuntime: false,
+      referenceSolutions,
+    },
+  );
+
+  assert.equal(
+    files["question-group-library.json"],
+    baseline["question-group-library.json"],
+  );
+  assert.equal(
+    JSON.parse(files["build-report.json"]).sha256,
+    JSON.parse(baseline["build-report.json"]).sha256,
+  );
+  assert.match(files["assets/player.js"], /const referenceSolutions = /);
+  assert.match(files["assets/player.js"], /return left \+ right/);
+  assert.match(
+    files["assets/player.js"],
+    /solutionHost\.className = "learner-solution-host"/,
+  );
+  assert.match(
+    files["assets/player.js"],
+    /globalThis\.LearnerUiComponents\?\.createSolutionDisclosure/,
+  );
+  assert.match(
+    files["assets/learner-ui.js"],
+    /Compare the control flow and boundary cases with your draft\. Opening this reference does not replace your work or update progress\./,
+  );
+  assert.match(
+    files["assets/learner-ui.js"],
+    /details\.className = "learner-solution"/,
+  );
+  assert.match(
+    files["assets/player.js"],
+    /solutionHost\.append\(createSolutionDisclosure\(\{/,
+  );
+  assert.match(
+    files["assets/learner-ui.js"],
+    /code\.textContent = trustedSource/,
+  );
+  assert.match(files["assets/learner-ui.js"], /sourceFrame\.tabIndex = 0/);
+  assert.doesNotMatch(files["assets/player.js"], /\.innerHTML/);
+  assert.match(
+    files["assets/player.css"],
+    /\.learner-solution > summary\s*\{[^}]*min-height:\s*2\.75rem/,
+  );
+  assert.match(
+    files["assets/player.css"],
+    /\.learner-solution pre\s*\{[^}]*overflow:\s*auto/,
+  );
+  assert.doesNotMatch(
+    files["question-group-library.json"],
+    /return left \+ right|referenceEscaped/,
+  );
+  assert.doesNotMatch(
+    files["assets/runtime-adapter.js"],
+    /return left \+ right|referenceEscaped/,
+  );
+
+  const report = JSON.parse(files["build-report.json"]);
+  assert.deepEqual(report.referenceSolutions, {
+    count: 1,
+    sha256: createHash("sha256")
+      .update(JSON.stringify(referenceSolutions))
+      .digest("hex"),
+  });
+  assert.doesNotMatch(files["build-report.json"], /return left \+ right/);
+});
+
+test("omitting trusted reference solutions remains compatible with an explicit empty list", async () => {
+  const library = await exampleLibrary();
+  const omitted = await buildStandaloneQuestionGroupSite(
+    structuredClone(library),
+    { bundledBrowserRuntime: false },
+  );
+  const explicitEmpty = await buildStandaloneQuestionGroupSite(
+    structuredClone(library),
+    {
+      bundledBrowserRuntime: false,
+      referenceSolutions: [],
+    },
+  );
+
+  assert.equal(
+    omitted["question-group-library.json"],
+    explicitEmpty["question-group-library.json"],
+  );
+  assert.equal(omitted["assets/player.js"], explicitEmpty["assets/player.js"]);
+  assert.equal(omitted["build-report.json"], explicitEmpty["build-report.json"]);
+});
+
+test("trusted reference solution input is strict, bounded, unique, and library-bound", async () => {
+  const library = await exampleLibrary();
+  const valid = {
+    groupId: "arithmetic",
+    questionId: "add-two-values",
+    source: "export const addTwoValues = (left, right) => left + right;\n",
+  };
+  const invalidInputs = [
+    {
+      value: {},
+      pattern: /must be an array/,
+    },
+    {
+      value: [{ ...valid, extra: true }],
+      pattern: /Unknown referenceSolutions\[0\] field: extra/,
+    },
+    {
+      value: [{ ...valid, groupId: "unknown" }],
+      pattern: /does not match a Question Group question/,
+    },
+    {
+      value: [valid, { ...valid }],
+      pattern: /Duplicate Question Group reference solution/,
+    },
+    {
+      value: [{ ...valid, source: " \n" }],
+      pattern: /must be non-empty source text/,
+    },
+    {
+      value: [{ ...valid, source: "x".repeat(50_001) }],
+      pattern: /no longer than 50,000 characters/,
+    },
+  ];
+  for (const invalid of invalidInputs) {
+    await assert.rejects(
+      buildStandaloneQuestionGroupSite(structuredClone(library), {
+        bundledBrowserRuntime: false,
+        referenceSolutions: invalid.value,
+      }),
+      invalid.pattern,
+    );
+  }
+});
+
+test("trusted reference solutions serialize deterministically by question identity", async () => {
+  const library = await exampleLibrary();
+  const secondQuestion = structuredClone(library.groups[0].questions[0]);
+  secondQuestion.id = "add-three-values";
+  secondQuestion.order = 2;
+  secondQuestion.title = "Add three values";
+  secondQuestion.prompt = "Return the sum of three numeric inputs while preserving their left-to-right order.";
+  secondQuestion.path = "add-three-values.js";
+  secondQuestion.starterCode = "export function addThreeValues(left, middle, right) { return 0; }\n";
+  library.groups[0].questions.push(secondQuestion);
+  const first = {
+    groupId: "arithmetic",
+    questionId: "add-two-values",
+    source: "export const addTwoValues = (left, right) => left + right;\n",
+  };
+  const second = {
+    groupId: "arithmetic",
+    questionId: "add-three-values",
+    source: "export const addThreeValues = (left, middle, right) => left + middle + right;\n",
+  };
+
+  const forward = await buildStandaloneQuestionGroupSite(
+    structuredClone(library),
+    {
+      bundledBrowserRuntime: false,
+      referenceSolutions: [first, second],
+    },
+  );
+  const reverse = await buildStandaloneQuestionGroupSite(
+    structuredClone(library),
+    {
+      bundledBrowserRuntime: false,
+      referenceSolutions: [second, first],
+    },
+  );
+
+  assert.equal(forward["assets/player.js"], reverse["assets/player.js"]);
+  assert.deepEqual(
+    JSON.parse(forward["build-report.json"]).referenceSolutions,
+    JSON.parse(reverse["build-report.json"]).referenceSolutions,
   );
 });
 

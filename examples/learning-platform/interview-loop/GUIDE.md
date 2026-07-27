@@ -1,7 +1,8 @@
 # Interview Loop Lab
 
 Interview Loop Lab is a 58-minute course with three connected modules:
-Behavioral Evidence, Progressive Coding, and Webhook Delivery Architecture.
+Behavioral Evidence, Progressive Coding, and a System Design Interview using
+webhook delivery as the worked prompt.
 Its navigation and feedback belong to the same learner UI family as Ten
 Problems, while its lesson, quiz, flash-card, and trusted IDE surfaces remain
 course-specific.
@@ -13,6 +14,8 @@ course-specific.
   per-tenant admission.
 - `trusted/ide-exercises.mjs` owns one reviewed Python IDE exercise with four
   host-owned checks for bounded webhook retry scheduling.
+- `trusted/reference-solutions.mjs` owns read-only reviewed solutions for the
+  three practice questions and the coding follow-up.
 - `trusted/python-exercise-runtime.ts` owns the reviewed adapter between the
   player, Python Lab, and the host-owned value and ownership checks.
 - `site/` owns the specialized course, quiz, card, practice, and IDE rendering;
@@ -24,8 +27,9 @@ course-specific.
 
 The first two files are untrusted declarative content. The IDE definition,
 Python adapter, worker, state logic, specialized UI, and tools are trusted
-repository source. The Learning Pack and Question Group library are both
-version 2.0.0; the IDE uses contract `interview-loop.retry-plan.v3`. Read
+repository source. The Learning Pack is version 2.1.0 and the Question Group
+library is version 2.0.0; the IDE uses contract
+`interview-loop.retry-plan.v3`. Read
 `AGENTS.md` before asking any coding agent to edit the project.
 
 ## Shared learner UI
@@ -47,8 +51,9 @@ The current ownership is explicit:
 - `packages/course-kit/src/question-group-site.ts` composes it with the
   standalone coding-practice player.
 - `scripts/generate-learning-platform-learner-ui.mjs` produces
-  `tools/vendor/learner-ui.mjs` for this extractable, dependency-free example.
-  The generated file is build input, not a second hand-maintained theme.
+  `tools/vendor/learner-ui.mjs` as a dependency-free browser bundle for the
+  repository-owned example. The generated file is build input, not a second
+  hand-maintained theme.
 - `platform.json` provides Interview Loop's explicit product name, header
   labels, hash routes, theme, metadata, and footer. `tools/build.mjs` renders
   the shared header and footer and copies the shared CSS and local navigation
@@ -59,11 +64,17 @@ The current ownership is explicit:
   full static-host page/worker header policies for standalone and `/practice/`
   hosting.
 
-Interview Loop intentionally keeps its two-column module rail, reading layout,
-quizzes, cards, portable Python practice, and trusted IDE workflow in
-`site/app.mjs` and `site/styles.css`. Those specializations use the shared
-tokens and component classes. Ten Problems instead keeps its dense
-problem/copy/editor workspace. The products are related, not identical.
+Interview Loop keeps its course navigation, reading, quiz, card, portable
+Python practice, and trusted IDE sections in `site/app.mjs` and
+`site/styles.css`, but they now share one centered vertical document flow.
+Ten Problems uses the same one-plane flow for problem navigation, prompt,
+editor, actions, and results. The products are related, not identical.
+
+The five reviewed palettes change semantic color and line tint. They no longer
+select unrelated grids, rings, stripes, or filled shapes: all products use the
+same sparse partial-line atmosphere and scroll crossfade. Both coding surfaces
+render trusted example solutions as closed native disclosures without
+modifying drafts or portable content.
 
 Neither portable format changed for this presentation work. Learning Pack and
 Question Group JSON remain declarative, while UI behavior, runtime adapters,
@@ -88,7 +99,9 @@ available loopback URL it prints.
 
 Open the printed loopback URL. Move among the three course modules, complete
 their quizzes, retrieve the cards, submit each practice question, and run the
-IDE checks. Progress stays on this device. Module position, module completion,
+IDE checks. Open an example solution when you need a worked approach; the
+disclosure does not submit it or change your saved draft. Progress stays on
+this device. Module position, module completion,
 quiz answers, and card ratings are namespaced by the exact SHA-256 digest of
 the loaded Learning Pack, so changed bytes do not inherit state even if the
 package id and version are unchanged.
@@ -121,12 +134,10 @@ review is a progress query, not a content type.
 
 ## Publish it on GitHub Pages
 
-For this directory by itself, create a repository from the directory, push the
-`main` branch, and select **GitHub Actions** as the Pages source. The checked-in
-`.github/workflows/deploy-pages.yml` validates and builds the course before
-uploading only `dist/`.
-
-In the Latent repository, run the combined Pages layout instead:
+Interview Loop is trusted repository source: its build consumes the shared
+suite catalog, Course Kit UI, Python Lab worker, and pinned local Pyodide
+package from the Latent monorepo. Build and publish it through the combined
+Pages layout:
 
 ```bash
 npm run learning-examples:preview
@@ -139,6 +150,11 @@ It serves the same static artifacts as the production suite:
 - `/interview-loop/` — Interview Loop Lab
 - `/practice/` — Ten Problems
 - `/practice/leeches/` — repeated-miss review
+
+`../learning-suite.mjs` is the trusted build-time directory for these three
+independent artifacts. Learning Studio is not an account, enrollment list, or
+aggregate progress dashboard; each experience keeps separate exact-content-
+bound progress on the device.
 
 The root
 `.github/workflows/deploy-interview-loop-pages.yml` builds that combined

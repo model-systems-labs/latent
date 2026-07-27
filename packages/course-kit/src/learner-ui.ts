@@ -1,5 +1,11 @@
 export const LEARNER_UI_VERSION = 2 as const;
 
+export const LEARNER_UI_FAVICON_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">'
+  + '<rect width="64" height="64" rx="15" fill="#f4f0e8"/>'
+  + '<rect x="20" y="20" width="24" height="24" rx="5" fill="#78667d" transform="rotate(-7 32 32)"/>'
+  + "</svg>";
+
 export const LEARNER_UI_BREAKPOINTS = Object.freeze({
   compact: 760,
   stacked: 980,
@@ -167,67 +173,12 @@ export const LEARNER_UI_PALETTES = Object.freeze({
 
 const DEFAULT_THEME = LEARNER_UI_PALETTES.paper;
 
-type LearnerUiBackgroundRecipe = Readonly<{
-  image: string;
-  position: string;
-  repeat: string;
-  size: string;
-}>;
+export const LEARNER_UI_ATMOSPHERE_TRACE_COUNT = 3 as const;
 
-const LEARNER_UI_BACKGROUND_RECIPES = Object.freeze({
-  paper: Object.freeze({
-    image: [
-      "radial-gradient(ellipse 46rem 32rem at 5% -8%, color-mix(in srgb, var(--learner-color-accent-soft) 82%, transparent) 0, transparent 72%)",
-      "radial-gradient(ellipse 34rem 26rem at 90% 7%, color-mix(in srgb, var(--learner-color-warning) 10%, transparent) 0, transparent 70%)",
-      "linear-gradient(180deg, color-mix(in srgb, var(--learner-color-surface) 42%, transparent) 0, transparent 32rem)",
-    ].join(", "),
-    position: "center top, center top, center top",
-    repeat: "no-repeat, no-repeat, no-repeat",
-    size: "auto, auto, auto",
-  }),
-  sage: Object.freeze({
-    image: [
-      "radial-gradient(ellipse 46rem 62rem at -14% 58%, color-mix(in srgb, var(--learner-color-accent) 14%, transparent) 0, transparent 70%)",
-      "radial-gradient(ellipse 38rem 28rem at 104% -4%, color-mix(in srgb, var(--learner-color-warning) 11%, transparent) 0, transparent 72%)",
-      "linear-gradient(145deg, color-mix(in srgb, var(--learner-color-surface) 34%, transparent) 0, transparent 47%, color-mix(in srgb, var(--learner-color-accent-soft) 56%, transparent) 100%)",
-    ].join(", "),
-    position: "center top, center top, center top",
-    repeat: "no-repeat, no-repeat, no-repeat",
-    size: "auto, auto, auto",
-  }),
-  cobalt: Object.freeze({
-    image: [
-      "linear-gradient(color-mix(in srgb, var(--learner-color-accent) 8%, transparent) 1px, transparent 1px)",
-      "linear-gradient(90deg, color-mix(in srgb, var(--learner-color-accent) 8%, transparent) 1px, transparent 1px)",
-      "radial-gradient(ellipse 44rem 30rem at 92% -8%, color-mix(in srgb, var(--learner-color-accent-soft) 88%, transparent) 0, transparent 72%)",
-      "linear-gradient(180deg, color-mix(in srgb, var(--learner-color-surface) 42%, transparent) 0, transparent 30rem)",
-    ].join(", "),
-    position: "left top, left top, center top, center top",
-    repeat: "repeat, repeat, no-repeat, no-repeat",
-    size: "2rem 2rem, 2rem 2rem, auto, auto",
-  }),
-  plum: Object.freeze({
-    image: [
-      "radial-gradient(circle at 88% 4%, transparent 0 10rem, color-mix(in srgb, var(--learner-color-accent) 11%, transparent) 10.05rem 10.12rem, transparent 10.18rem 17rem, color-mix(in srgb, var(--learner-color-accent) 8%, transparent) 17.05rem 17.12rem, transparent 17.18rem)",
-      "radial-gradient(ellipse 46rem 34rem at 86% 0%, color-mix(in srgb, var(--learner-color-accent-soft) 88%, transparent) 0, transparent 72%)",
-      "radial-gradient(ellipse 34rem 28rem at 2% 94%, color-mix(in srgb, var(--learner-color-danger) 9%, transparent) 0, transparent 72%)",
-      "linear-gradient(180deg, color-mix(in srgb, var(--learner-color-surface) 30%, transparent), transparent 34rem)",
-    ].join(", "),
-    position: "center top, center top, center top, center top",
-    repeat: "no-repeat, no-repeat, no-repeat, no-repeat",
-    size: "auto, auto, auto, auto",
-  }),
-  graphite: Object.freeze({
-    image: [
-      "repeating-linear-gradient(135deg, color-mix(in srgb, var(--learner-color-ink) 4%, transparent) 0 1px, transparent 1px 12px)",
-      "radial-gradient(ellipse 64rem 28rem at 50% -8%, color-mix(in srgb, var(--learner-color-surface) 82%, transparent) 0, transparent 74%)",
-      "linear-gradient(180deg, color-mix(in srgb, var(--learner-color-surface-muted) 36%, transparent) 0, transparent 34rem)",
-    ].join(", "),
-    position: "left top, center top, center top",
-    repeat: "repeat, no-repeat, no-repeat",
-    size: "auto, auto, auto",
-  }),
-} satisfies Record<LearnerUiPaletteName, LearnerUiBackgroundRecipe>);
+const LEARNER_UI_BACKGROUND_IMAGE =
+  "linear-gradient(156deg, color-mix(in srgb, var(--learner-color-accent-soft) 58%, transparent) 0, transparent 46%), "
+  + "linear-gradient(24deg, transparent 54%, color-mix(in srgb, var(--learner-color-warning) 7%, transparent) 100%), "
+  + "linear-gradient(180deg, color-mix(in srgb, var(--learner-color-surface) 52%, transparent) 0, transparent 42rem)";
 
 function escapeHtml(value: string) {
   return value
@@ -354,8 +305,6 @@ export function createLearnerUiCss(
       themeValue(theme[key as keyof LearnerUiTheme] ?? fallback, `theme.${key}`),
     ]),
   ) as typeof DEFAULT_THEME;
-  const background = LEARNER_UI_BACKGROUND_RECIPES[palette];
-
   return `:root {
   color-scheme: light;
   --learner-font-sans: var(--font-geist-sans, "Helvetica Neue"), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -378,10 +327,13 @@ export function createLearnerUiCss(
   --learner-color-warning: ${colors.warning};
   --learner-color-focus: ${colors.focus};
   --learner-background-recipe: ${palette};
-  --learner-background-image: ${background.image};
-  --learner-background-position: ${background.position};
-  --learner-background-repeat: ${background.repeat};
-  --learner-background-size: ${background.size};
+  --learner-background-image: ${LEARNER_UI_BACKGROUND_IMAGE};
+  --learner-background-position: center top;
+  --learner-background-repeat: no-repeat;
+  --learner-background-size: 100% 42rem;
+  --learner-atmosphere-line: color-mix(in srgb, var(--learner-color-accent) 25%, transparent);
+  --learner-atmosphere-line-warm: color-mix(in srgb, var(--learner-color-warning) 20%, transparent);
+  --learner-atmosphere-glow: color-mix(in srgb, var(--learner-color-accent) 13%, transparent);
   --learner-space-1: .25rem;
   --learner-space-2: .5rem;
   --learner-space-3: .75rem;
@@ -423,6 +375,53 @@ body.learner-ui {
   margin: 0;
   min-height: 100vh;
 }
+.learner-atmosphere {
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  position: fixed;
+  z-index: 0;
+}
+.learner-atmosphere__line {
+  border: 0;
+  border-radius: 50%;
+  filter: drop-shadow(0 0 16px var(--learner-atmosphere-glow));
+  opacity: 0;
+  position: absolute;
+  will-change: opacity;
+}
+.learner-atmosphere__line--intro {
+  border-bottom: 1px solid var(--learner-atmosphere-line);
+  height: 30rem;
+  right: -13rem;
+  top: -10rem;
+  transform: rotate(-18deg);
+  width: 57rem;
+}
+.learner-atmosphere__line--1 {
+  border-top: 1px solid var(--learner-atmosphere-line);
+  height: 13rem;
+  left: -14rem;
+  top: 34vh;
+  transform: rotate(7deg);
+  width: 48rem;
+}
+.learner-atmosphere__line--2 {
+  border-left: 1px solid var(--learner-atmosphere-line);
+  height: 42rem;
+  right: -19rem;
+  top: 20vh;
+  transform: rotate(12deg);
+  width: 30rem;
+}
+.learner-atmosphere__line--3 {
+  border-top: 1px solid var(--learner-atmosphere-line-warm);
+  bottom: 7vh;
+  height: 11rem;
+  left: 18vw;
+  transform: rotate(-5deg);
+  width: 64vw;
+}
 .learner-ui button,
 .learner-ui input,
 .learner-ui select,
@@ -452,6 +451,8 @@ body.learner-ui {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  position: relative;
+  z-index: 1;
 }
 .learner-header {
   background: color-mix(in srgb, var(--learner-color-canvas) 86%, transparent);
@@ -750,6 +751,43 @@ body.learner-ui {
 .learner-results li[data-passed="true"] {
   border-left-color: var(--learner-color-success);
 }
+.learner-solution {
+  border-top: var(--learner-border);
+  margin-top: var(--learner-space-5);
+  padding-top: var(--learner-space-2);
+}
+.learner-solution-host { display: contents; }
+.learner-solution > summary {
+  align-items: center;
+  background: transparent;
+  color: var(--learner-color-accent-strong);
+  cursor: pointer;
+  display: flex;
+  font-size: .82rem;
+  font-weight: 720;
+  min-height: 2.75rem;
+  padding: .45rem 0;
+}
+.learner-solution > summary::marker { content: ""; }
+.learner-solution > summary::-webkit-details-marker { display: none; }
+.learner-solution > summary::after {
+  content: "+";
+  margin-left: auto;
+}
+.learner-solution[open] > summary::after { content: "−"; }
+.learner-solution pre {
+  background: transparent;
+  border-left: 2px solid var(--learner-color-border);
+  border-radius: 0;
+  color: var(--learner-color-ink);
+  font: .82rem/1.6 var(--learner-font-mono);
+  margin: var(--learner-space-2) 0 0;
+  max-width: 100%;
+  overflow: auto;
+  overscroll-behavior-x: contain;
+  padding: var(--learner-space-3) 0 var(--learner-space-3) var(--learner-space-4);
+  white-space: pre;
+}
 .learner-empty {
   background: var(--learner-color-surface-muted);
   border: 1px dashed var(--learner-color-border);
@@ -931,6 +969,7 @@ body.learner-ui {
   }
   .learner-header__meta { display: none; }
   .learner-primary-nav--desktop { display: none; }
+  .learner-nav-menu { margin-left: auto; }
   .learner-nav-menu > summary { display: flex; }
   .learner-primary-nav--mobile {
     align-items: stretch;
@@ -959,7 +998,15 @@ body.learner-ui {
 @media (min-width: ${LEARNER_UI_BREAKPOINTS.stacked + 1}px) and (min-height: 501px) {
   .learner-mobile-panel[data-learner-collapse-at="stacked"] > .learner-mobile-panel__content { display: block !important; }
 }
+.learner-mobile-panel[data-learner-collapse-at="always"] > summary { display: flex; }
+.learner-mobile-panel[data-learner-collapse-at="always"]:not([open]) > .learner-mobile-panel__content {
+  display: none !important;
+}
 @media (prefers-reduced-motion: reduce) {
+  .learner-atmosphere__line {
+    opacity: 0 !important;
+    will-change: auto;
+  }
   *,
   *::before,
   *::after {
@@ -969,11 +1016,23 @@ body.learner-ui {
 }
 @media (forced-colors: active) {
   body.learner-ui { background-image: none; }
+  .learner-atmosphere { display: none; }
   .learner-status-dot[data-status] { forced-color-adjust: none; }
 }
 @media print {
   body.learner-ui { background-image: none; }
+  .learner-atmosphere { display: none; }
 }\n`;
+}
+
+export function renderLearnerAtmosphere() {
+  const traces = Array.from(
+    { length: LEARNER_UI_ATMOSPHERE_TRACE_COUNT },
+    (_, index) => (
+      `<span class="learner-atmosphere__line learner-atmosphere__line--${index + 1}" data-learner-atmosphere-trace></span>`
+    ),
+  ).join("");
+  return `<div class="learner-atmosphere" data-learner-atmosphere aria-hidden="true"><span class="learner-atmosphere__line learner-atmosphere__line--intro" data-learner-atmosphere-intro></span>${traces}</div>`;
 }
 
 export function renderLearnerHeader(options: LearnerUiHeaderOptions) {
@@ -990,7 +1049,7 @@ export function renderLearnerHeader(options: LearnerUiHeaderOptions) {
     160,
   );
   const menuLabel = boundedText(
-    options.menuLabel ?? (options.globalNavigation ? "Explore" : "Menu"),
+    options.menuLabel ?? (options.globalNavigation ? "Learning suite" : "Menu"),
     "Menu label",
     80,
   );
@@ -1060,12 +1119,95 @@ export function renderLearnerFooter(options: LearnerUiFooterOptions = {}) {
 
 export const learnerUiJavaScript = `(() => {
   "use strict";
+  const solutionNote = "Compare the control flow and boundary cases with your draft. Opening this reference does not replace your work or update progress.";
+  const componentText = (value, label, maximum) => {
+    if (
+      typeof value !== "string"
+      || value.trim().length === 0
+      || value.length > maximum
+      || /[\\u0000-\\u0008\\u000b\\u000c\\u000e-\\u001f\\u007f]/.test(value)
+    ) {
+      throw new Error(label + " must be non-empty trusted text no longer than " + maximum + " characters.");
+    }
+    return value;
+  };
+  const createSolutionDisclosure = ({ source, title, label = "View example solution" }) => {
+    const trustedSource = componentText(source, "Example solution source", 50000);
+    const trustedTitle = componentText(title, "Example solution title", 200).trim();
+    const trustedLabel = componentText(label, "Example solution label", 80).trim();
+    const details = document.createElement("details");
+    details.className = "learner-solution";
+    const summary = document.createElement("summary");
+    summary.textContent = trustedLabel;
+    summary.setAttribute("aria-label", trustedLabel + " for " + trustedTitle);
+    const note = document.createElement("p");
+    note.className = "learner-summary";
+    note.textContent = solutionNote;
+    const sourceFrame = document.createElement("pre");
+    sourceFrame.className = "learner-solution__code";
+    sourceFrame.tabIndex = 0;
+    sourceFrame.setAttribute("aria-label", trustedTitle + " example solution");
+    const code = document.createElement("code");
+    code.textContent = trustedSource;
+    sourceFrame.append(code);
+    details.append(summary, note, sourceFrame);
+    return details;
+  };
+  if (globalThis.LearnerUiComponents === undefined) {
+    Object.defineProperty(globalThis, "LearnerUiComponents", {
+      configurable: false,
+      enumerable: false,
+      value: Object.freeze({ createSolutionDisclosure }),
+      writable: false,
+    });
+  }
   const compact = globalThis.matchMedia("(max-width: ${LEARNER_UI_BREAKPOINTS.compact}px), (max-height: 500px)");
   const stacked = globalThis.matchMedia("(max-width: ${LEARNER_UI_BREAKPOINTS.stacked}px)");
+  const reducedMotion = globalThis.matchMedia("(prefers-reduced-motion: reduce)");
+  const traceInterval = 1.45;
+  const traceFadeWidth = 0.92;
   const disclosureSelector = ".learner-nav-menu, .learner-mobile-panel";
   const prepared = new WeakSet();
   const preparedSkipLinks = new WeakSet();
+  let atmosphereFrame = null;
+  const traceOpacity = (phase, index, count) => {
+    const directDistance = Math.abs(phase - index);
+    const wrappedDistance = Math.min(directDistance, count - directDistance);
+    if (wrappedDistance >= traceFadeWidth) return 0;
+    return (Math.cos((wrappedDistance / traceFadeWidth) * Math.PI) + 1) / 2;
+  };
+  const updateAtmospheres = () => {
+    atmosphereFrame = null;
+    const viewportHeight = Math.max(globalThis.innerHeight, 1);
+    const scrollY = Math.max(globalThis.scrollY, 0);
+    const fadeDistance = viewportHeight * 0.7;
+    const traceStart = viewportHeight * 0.55;
+    const traceScroll = Math.max(scrollY - traceStart, 0);
+    const traceIntroduction = Math.min(1, traceScroll / (viewportHeight * 0.45));
+    document.querySelectorAll("[data-learner-atmosphere]").forEach((atmosphere) => {
+      const intro = atmosphere.querySelector("[data-learner-atmosphere-intro]");
+      const traces = Array.from(atmosphere.querySelectorAll("[data-learner-atmosphere-trace]"));
+      if (!intro || traces.length === 0) return;
+      const introOpacity = reducedMotion.matches
+        ? 0
+        : Math.max(0, 1 - (scrollY / fadeDistance));
+      const tracePhase = (traceScroll / (viewportHeight * traceInterval)) % traces.length;
+      intro.style.opacity = String(introOpacity);
+      traces.forEach((trace, index) => {
+        const opacity = reducedMotion.matches
+          ? 0
+          : traceOpacity(tracePhase, index, traces.length) * traceIntroduction;
+        trace.style.opacity = String(opacity);
+      });
+    });
+  };
+  const scheduleAtmospheres = () => {
+    if (atmosphereFrame === null) {
+      atmosphereFrame = globalThis.requestAnimationFrame(updateAtmospheres);
+    }
+  };
   const synchronize = (disclosure) => {
+    if (disclosure.dataset.learnerCollapseAt === "always") return;
     const breakpoint = disclosure.dataset.learnerCollapseAt === "stacked"
       ? stacked
       : compact;
@@ -1086,13 +1228,14 @@ export const learnerUiJavaScript = `(() => {
     }
     disclosure.addEventListener("keydown", (event) => {
       const isNavigationMenu = disclosure.matches(".learner-nav-menu");
+      const isAlwaysCollapsible = disclosure.dataset.learnerCollapseAt === "always";
       const breakpoint = disclosure.dataset.learnerCollapseAt === "stacked"
         ? stacked
         : compact;
       if (
         event.key !== "Escape"
         || !disclosure.open
-        || (!isNavigationMenu && !breakpoint.matches)
+        || (!isNavigationMenu && !isAlwaysCollapsible && !breakpoint.matches)
       ) return;
       disclosure.removeAttribute("open");
       summary?.focus();
@@ -1114,13 +1257,18 @@ export const learnerUiJavaScript = `(() => {
     root.querySelectorAll?.(".learner-skip-link").forEach(prepareSkipLink);
   };
   prepareWithin(document);
+  scheduleAtmospheres();
   new MutationObserver((records) => {
     for (const record of records) {
       record.addedNodes.forEach((node) => {
         if (node instanceof Element) prepareWithin(node);
       });
     }
+    scheduleAtmospheres();
   }).observe(document.documentElement, { childList: true, subtree: true });
+  globalThis.addEventListener("scroll", scheduleAtmospheres, { passive: true });
+  globalThis.addEventListener("resize", scheduleAtmospheres);
+  reducedMotion.addEventListener("change", scheduleAtmospheres);
   compact.addEventListener("change", () => {
     document.querySelectorAll(".learner-nav-menu").forEach((menu) => menu.removeAttribute("open"));
     document.querySelectorAll(".learner-mobile-panel:not([data-learner-collapse-at='stacked'])").forEach(synchronize);

@@ -10,6 +10,7 @@ import {
   LEARNER_UI_VERSION,
   createLearnerUiCss,
   learnerUiJavaScript,
+  renderLearnerAtmosphere,
   renderLearnerFooter,
   renderLearnerHeader,
   resolveLearnerUiTheme,
@@ -218,6 +219,7 @@ function renderIndex(
 </head>
 <body class="learner-ui" data-storage-key="${escapeHtml(storageKey)}">
   <a class="learner-skip-link" href="#content">Skip to learning content</a>
+  ${renderLearnerAtmosphere()}
   <div class="learner-page">
   ${header}
   <div class="learner-main learner-layout layout">

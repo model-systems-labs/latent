@@ -17,6 +17,7 @@ import {
   renderLearnerHeader,
   resolveLearnerUiTheme,
 } from "./vendor/learner-ui.mjs";
+import { createInterviewLoopHeader } from "../site-config.mjs";
 import { learningPackProgressIdentity } from "../site/progress.mjs";
 import { admitRuntimeLimits } from "../site/runtime-policy.mjs";
 
@@ -26,6 +27,7 @@ const expectedPaths = Object.freeze({
   learningPack: "content/learning-pack.json",
   questionGroups: "content/question-groups.json",
   ideExercises: "trusted/ide-exercises.mjs",
+  referenceSolutions: "trusted/reference-solutions.mjs",
 });
 const expectedModuleIds = Object.freeze([
   "behavioral-evidence",
@@ -339,6 +341,114 @@ function validateIdeExercises(exercises) {
   }
 }
 
+function validateReferenceSolutionEntries({
+  entries,
+  expectedIdentities,
+  identityFor,
+  allowedFields,
+  path,
+  expectedCount,
+}) {
+  if (!Array.isArray(entries)) {
+    fail(path, "Export reference solutions as an array.");
+    return;
+  }
+  expect(
+    expectedIdentities.size === expectedCount,
+    path,
+    `The current learner experience must expose exactly ${expectedCount} reference solution identities.`,
+  );
+  expect(
+    entries.length === expectedCount,
+    path,
+    `Export exactly ${expectedCount} trusted reference solutions.`,
+  );
+  const seen = new Set();
+  for (const [index, entry] of entries.entries()) {
+    const entryPath = `${path}.${index}`;
+    if (!isRecord(entry)) {
+      fail(entryPath, "Every trusted reference solution must be an object.");
+      continue;
+    }
+    for (const field of Object.keys(entry)) {
+      expect(
+        allowedFields.has(field),
+        `${entryPath}.${field}`,
+        `Unknown trusted reference solution field: ${field}`,
+      );
+    }
+    const identity = identityFor(entry);
+    if (identity === null) {
+      fail(entryPath, "Reference solution identity fields must be non-empty strings.");
+    } else {
+      expect(
+        !seen.has(identity),
+        entryPath,
+        `Duplicate trusted reference solution identity: ${identity}`,
+      );
+      seen.add(identity);
+      expect(
+        expectedIdentities.has(identity),
+        entryPath,
+        `Stale trusted reference solution identity: ${identity}`,
+      );
+    }
+    expect(
+      nonempty(entry.source)
+        && entry.source.length <= 50_000
+        && !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(entry.source),
+      `${entryPath}.source`,
+      "Reference solution source must be non-empty, bounded trusted text.",
+    );
+  }
+  for (const identity of expectedIdentities) {
+    expect(
+      seen.has(identity),
+      path,
+      `Missing trusted reference solution identity: ${identity}`,
+    );
+  }
+}
+
+function validateReferenceSolutions(module, library, exercises) {
+  const practiceIdentities = new Set(
+    library.groups.flatMap((group) => (
+      group.questions.map((question) => `${group.id}/${question.id}`)
+    )),
+  );
+  validateReferenceSolutionEntries({
+    entries: module.interviewPracticeReferenceSolutions,
+    expectedIdentities: practiceIdentities,
+    identityFor(entry) {
+      return nonempty(entry.groupId) && nonempty(entry.questionId)
+        ? `${entry.groupId}/${entry.questionId}`
+        : null;
+    },
+    allowedFields: new Set(["groupId", "questionId", "source"]),
+    path: "hostOwned.referenceSolutions.practice",
+    expectedCount: 3,
+  });
+
+  const ideIdentities = new Set(
+    exercises.map((exercise) => JSON.stringify([
+      exercise.id,
+      exercise.contractVersion,
+    ])),
+  );
+  validateReferenceSolutionEntries({
+    entries: module.interviewIdeReferenceSolutions,
+    expectedIdentities: ideIdentities,
+    identityFor(entry) {
+      return nonempty(entry.exerciseId) && nonempty(entry.contractVersion)
+        ? JSON.stringify([entry.exerciseId, entry.contractVersion])
+        : null;
+    },
+    allowedFields: new Set(["exerciseId", "contractVersion", "source"]),
+    path: "hostOwned.referenceSolutions.ide",
+    expectedCount: 1,
+  });
+}
+
 const platform = await readJson("platform.json");
 expect(platform?.schemaVersion === 2, "platform.schemaVersion", "Expected schema version 2.");
 expect(nonempty(platform?.brand?.name), "platform.brand.name", "Add a platform name.");
@@ -377,7 +487,7 @@ try {
   );
   renderLearnerHeader({
     productName: platform?.brand?.name,
-    ...platform?.learnerUi?.header,
+    ...createInterviewLoopHeader(platform?.learnerUi?.header),
   });
   renderLearnerFooter(platform?.learnerUi?.footer);
 } catch (error) {
@@ -420,6 +530,7 @@ await Promise.all([
   "LICENSE",
   "NOTICE.md",
   "CONTENT_LICENSE.md",
+  "site-config.mjs",
   "site/styles.css",
   "site/app.mjs",
   "site/focus.mjs",
@@ -527,9 +638,11 @@ if (questionValidation.valid) {
   }
 }
 
+let ideExercises = null;
 const idePath = resolve(root, expectedPaths.ideExercises);
 try {
   const loadedModule = await import(`${pathToFileURL(idePath).href}?validate=${Date.now()}`);
+  ideExercises = loadedModule.ideExercises;
   validateIdeExercises(loadedModule.ideExercises);
   const learnerFacingIde = JSON.stringify(loadedModule.ideExercises);
   expect(
@@ -541,6 +654,25 @@ try {
   fail(
     "hostOwned.ideExercises",
     error instanceof Error ? error.message : "Could not import trusted IDE exercises.",
+  );
+}
+
+const referenceSolutionsPath = resolve(root, expectedPaths.referenceSolutions);
+try {
+  const loadedModule = await import(
+    `${pathToFileURL(referenceSolutionsPath).href}?validate=${Date.now()}`
+  );
+  if (questionValidation.valid && Array.isArray(ideExercises)) {
+    validateReferenceSolutions(
+      loadedModule,
+      questionValidation.library,
+      ideExercises,
+    );
+  }
+} catch (error) {
+  fail(
+    "hostOwned.referenceSolutions",
+    error instanceof Error ? error.message : "Could not import trusted reference solutions.",
   );
 }
 

@@ -43,7 +43,11 @@ The current ownership is explicit:
   problem-list, prompt, editor, results, progress, resume, and repeated-miss
   experience. Its typed build options accept trusted product identity,
   navigation labels, review directory, learner copy, theme tokens, footer,
-  favicon, and an optional reviewed runtime adapter.
+  favicon, an optional reviewed runtime adapter, and separate reviewed
+  reference-solution input.
+- `trusted/reference-solutions.mjs` owns the ten reference implementations.
+  The builder renders them as inert text in the player JavaScript and never
+  adds them to portable Question Group JSON.
 - `site-config.mjs` contains Ten Problems' explicit product configuration.
   `tools/build.mjs` passes it and the reviewed Python adapter to Course Kit
   before any files are generated. The old output string replacements and CSS
@@ -54,10 +58,17 @@ The current ownership is explicit:
   policy to the Question Group builder and emits `_headers` without weakening
   the builder's runtime boundary.
 
-Ten Problems intentionally keeps its dense problem/copy/editor workspace,
-Python terminology, visible example and check flows, and repeated-miss review.
-Interview Loop keeps its course/module/card/IDE composition. Both consume the
-same shell and interaction language without becoming the same application.
+Ten Problems keeps Python terminology, public example and full-check flows,
+and repeated-miss review, but the problem list, prompt, editor, actions, and
+results now form one centered vertical document rather than three independent
+full-height panes. Interview Loop keeps its course/module/card/IDE composition.
+Both consume the same shell and interaction language without becoming the same
+application.
+
+All five palettes use the same sparse partial-line atmosphere and scroll
+crossfade; palette selection changes semantic color and line tint, not
+geometry. A native **View example solution** disclosure is closed by default,
+keyboard-operable, and does not replace the draft, run code, or write progress.
 
 This presentation work did not change Learning Pack or Question Group formats.
 Portable JSON remains declarative. Runtime admission, Python execution,
@@ -106,6 +117,11 @@ This assembles the same route layout used by GitHub Pages:
 - `/interview-loop/` — Interview Loop Lab
 - `/practice/` — Ten Problems
 - `/practice/leeches/` — repeated-miss review
+
+`../learning-suite.mjs` is the trusted build-time directory for these three
+independent artifacts. Learning Studio is not an account, enrollment list, or
+aggregate progress dashboard; each experience keeps separate exact-content-
+bound progress on the device.
 
 GitHub provides one Pages deployment per repository. The three learner
 experiences are served from stable routes in that deployment. The root

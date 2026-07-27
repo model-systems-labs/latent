@@ -120,6 +120,7 @@ consume the same build-time foundation:
 packages/course-kit/src/learner-ui.ts
         |
         +-- v2 design tokens, five named palettes, and breakpoints
+        +-- one ethereal, scroll-reactive atmosphere grammar
         +-- shell, one-header anatomy, navigation, and footer renderers
         +-- controls, progress, feedback, empty-state, and editor contracts
         +-- focus, screen-reader, reduced-motion, and mobile behavior
@@ -139,20 +140,26 @@ The default `paper` palette carries the warm editorial principles established
 by the original Build an LLM System course: serif display type, quiet
 hairlines, restrained depth, readable measure, and content-first hierarchy.
 Trusted product configuration may select one of five reviewed palettes:
-`paper`, `sage`, `cobalt`, `plum`, or `graphite`. A palette is the bounded
-environmental layer: it selects semantic colors and one reviewed CSS-gradient
-background recipe. Layout, typography, components, focus behavior, and
-responsive rules do not change. The suite uses Paper for Learning Studio,
-Plum for the original LLM Systems course, Sage for Interview Loop, and Cobalt
-for Ten Problems; Graphite remains a neutral fifth choice. All recipes are
-self-hosted CSS with no image request, animation, or fixed attachment. A
+`paper`, `sage`, `cobalt`, `plum`, or `graphite`. Palette selection changes
+semantic color and atmosphere tint, not geometry, layout, typography, focus
+behavior, or responsive rules. Every palette uses the same sparse partial-line
+atmosphere. Its lines fade between phases as the single document scrolls; it
+has no grid, orbital field, pinstripe, filled decorative shape, image request,
+fixed background attachment, or runtime service. Reduced-motion, forced-color,
+and print modes remove the decorative motion.
+
+Learning Studio and the original LLM Systems course use Paper, Interview Loop
+uses Sage, and Ten Problems uses Cobalt; Plum and Graphite remain bounded
+alternatives. `renderLearnerAtmosphere()` supplies static markup,
+`learnerUiJavaScript` owns the shared request-animation-frame scroll behavior,
+and `app/components/PageAtmosphere.tsx` is only a React markup adapter. A
 low-level token override remains available to trusted callers for
-compatibility, but the reviewed examples use palette-only `appearance`
+compatibility, but reviewed examples use palette-only `appearance`
 configuration and may not combine it with the legacy `theme` input.
 
 Each learner product has exactly one page-level header. Its stable anatomy is
 product identity and optional metadata, local primary navigation, and one
-**Explore** disclosure for movement between products. On compact screens the
+**Learning suite** disclosure for movement between products. On compact screens the
 same disclosure also exposes the local navigation rather than adding another
 header. Lesson section links, problem controls, and editor toolbars remain
 inside their content regions and use the appropriate `nav` or `div` landmark;
@@ -160,11 +167,14 @@ they are not additional site headers. Escape closes the disclosure and
 restores focus, the skip link transfers focus to main content, and a
 three-pixel visible focus indicator is shared across products.
 
-Branding, routes, navigation labels, palette choice, and product-specific copy
-are trusted build configuration. They are not Learning Pack or Question Group
-fields and do not affect canonical content bytes, integrity digests, runtime
-authority, or progress identities. Generated sites copy the shared CSS and
-JavaScript into their own static artifact. For React,
+Branding, routes, navigation labels, palette choice, trusted reference
+solutions, and product-specific copy are trusted build configuration. They
+are not Learning Pack or Question Group fields and do not affect canonical
+content bytes, integrity digests, runtime authority, or progress identities.
+The Question Group builder accepts reviewed reference source separately from
+portable JSON and renders it as inert text in a native disclosure; opening it
+does not execute code, replace a draft, or update progress. Generated sites
+copy the shared CSS and JavaScript into their own static artifact. For React,
 `scripts/generate-learning-platform-learner-ui.mjs` derives
 `public/assets/learner-ui.css` and `public/assets/learner-ui.js` from the same
 reviewed Course Kit source before the web build. No learner product depends on
@@ -176,11 +186,14 @@ repository validates that copy against the reviewed Course Kit source. There
 is still one source of truth, and the deployed learner runtime remains
 self-hosted.
 
-The repository Pages artifact is assembled by
-`scripts/build-learning-example-pages.mjs`. It creates a shared, content-first
-Learning Studio index and copies three independently built learner products
-into stable subpaths: the React Build an LLM System course at `/llm-systems/`,
-Interview Loop Lab at `/interview-loop/`, and Ten Problems at `/practice/`.
+The trusted `examples/learning-platform/learning-suite.mjs` manifest defines
+the ordered deployment directory, stable mount names, card copy, and derived
+same-origin family navigation once. The repository Pages artifact is assembled
+from that manifest by `scripts/build-learning-example-pages.mjs`. It creates a
+content-first Learning Studio index and copies three independently built
+learner products into stable subpaths: the React Build an LLM System course at
+`/llm-systems/`, Interview Loop Lab at `/interview-loop/`, and Ten Problems at
+`/practice/`.
 The root `build:web` script regenerates the two self-hosted learner assets
 before compiling the application. `app/layout.tsx` links them through the
 active base path rather than inlining package source; `LearnerHeader.tsx` is a
@@ -190,10 +203,17 @@ generated, drift-checked
 `examples/learning-platform/interview-loop/tools/vendor/learner-ui.mjs`.
 Ten Problems consumes the foundation through
 `packages/course-kit/src/question-group-site.ts`. All three expose the same
-family navigation while retaining product-appropriate reading, module,
-flash-card, IDE, and coding-practice layouts.
+family navigation and a single primary vertical document flow while retaining
+product-appropriate reading, module, flash-card, IDE, and coding-practice
+sections.
 `scripts/prepare-pages-course-export.mjs` verifies the static course export
 before the atomic suite assembly.
+
+Learning Studio is a build-time directory for the deployment, not a learner
+account, enrollment list, or aggregate progress dashboard. The three apps have
+no cross-product runtime API. Each persists progress under its own exact
+content identity on the same device, and the root page deliberately does not
+invent a suite-wide percentage or Continue destination.
 
 ## Question Group execution
 

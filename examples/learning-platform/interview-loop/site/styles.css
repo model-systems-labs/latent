@@ -2,7 +2,31 @@
   min-height: calc(100vh - var(--learner-header-height));
 }
 
-.rail h2,
+.view-grid {
+  display: block;
+  margin: 0 auto;
+  max-width: 76rem;
+  min-height: 0;
+  padding: clamp(1.5rem, 5vw, 4.5rem) clamp(1rem, 4vw, 3rem);
+}
+
+.view-grid .rail {
+  background: transparent;
+  border: 0;
+  border-bottom: var(--learner-border);
+  padding: 0 0 var(--learner-rhythm-section);
+}
+
+.view-grid .work {
+  background: transparent;
+  padding: var(--learner-rhythm-section) 0 0;
+}
+
+.view-grid .learner-mobile-panel__content {
+  max-width: 58rem;
+}
+
+.rail h1,
 .work h2,
 .work h3 {
   color: var(--learner-color-ink);
@@ -12,12 +36,12 @@
   line-height: 1.02;
 }
 
-.rail h2 {
+.rail h1 {
   font-size: clamp(2rem, 4vw, 3.35rem);
   margin: 0 0 var(--learner-space-3);
 }
 
-.work > h3,
+.work > h2,
 .prose > h2,
 .prose > h3 {
   font-size: clamp(1.6rem, 3vw, 2.35rem);
@@ -170,7 +194,7 @@
   width: min(100%, 42rem);
 }
 
-.flash-card h3 {
+.flash-card h2 {
   font-size: clamp(1.8rem, 4vw, 3rem);
   margin-bottom: var(--learner-space-6);
 }
@@ -280,6 +304,10 @@
 @media (max-width: 760px) {
   .view {
     min-height: auto;
+  }
+
+  .view-grid {
+    padding: var(--learner-space-5) var(--learner-space-4) var(--learner-space-7);
   }
 
   .rail {

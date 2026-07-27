@@ -5,6 +5,7 @@ import test from "node:test";
 const root = new URL("../", import.meta.url);
 const paperLabUrl = new URL("app/components/PaperLab.tsx", root);
 const pageAtmosphereUrl = new URL("app/components/PageAtmosphere.tsx", root);
+const learnerUiUrl = new URL("packages/course-kit/src/learner-ui.ts", root);
 const syntaxCodeUrl = new URL("app/features/ide/SyntaxCode.tsx", root);
 const codeEditorUrl = new URL("app/features/ide/CodeEditor.tsx", root);
 const learningFlowUrl = new URL("app/styles/learning-flow.css", root);
@@ -46,18 +47,24 @@ test("lessons use an editorial hierarchy instead of landing-page scale", async (
 });
 
 test("decorative lines crossfade through the reading flow", async () => {
-  const atmosphere = await readFile(pageAtmosphereUrl, "utf8");
-  assert.match(atmosphere, /const TRACE_INTERVAL = 1\.45/);
-  assert.match(atmosphere, /const TRACE_FADE_WIDTH = 0\.92/);
-  assert.match(atmosphere, /const fadeDistance = viewportHeight \* 0\.7/);
-  assert.match(atmosphere, /Math\.max\(0, 1 - \(window\.scrollY \/ fadeDistance\)\)/);
-  assert.match(atmosphere, /function traceOpacity[\s\S]*?Math\.cos/);
-  assert.match(atmosphere, /const traceIntroduction = Math\.min\(1, traceScroll \/ \(viewportHeight \* 0\.45\)\)/);
-  assert.match(atmosphere, /traceOpacity\(tracePhase, index, traces\.length\)/);
-  assert.match(atmosphere, /traceStyles\.map/);
-  assert.match(atmosphere, /window\.requestAnimationFrame\(update\)/);
-  assert.match(atmosphere, /addEventListener\("scroll", schedule, \{ passive: true \}\)/);
-  assert.match(atmosphere, /prefers-reduced-motion: reduce[\s\S]*?reducedMotion\.matches \? 0[\s\S]*?const opacity = reducedMotion\.matches\s*\? 0/);
+  const [atmosphere, learnerUi] = await Promise.all([
+    readFile(pageAtmosphereUrl, "utf8"),
+    readFile(learnerUiUrl, "utf8"),
+  ]);
+  assert.match(atmosphere, /className="learner-atmosphere"/);
+  assert.match(atmosphere, /data-learner-atmosphere=""/);
+  assert.equal(atmosphere.match(/data-learner-atmosphere-trace=""/g)?.length, 3);
+  assert.doesNotMatch(atmosphere, /"use client"|useEffect|useRef|style=\{/);
+  assert.match(learnerUi, /const traceInterval = 1\.45/);
+  assert.match(learnerUi, /const traceFadeWidth = 0\.92/);
+  assert.match(learnerUi, /const fadeDistance = viewportHeight \* 0\.7/);
+  assert.match(learnerUi, /Math\.max\(0, 1 - \(scrollY \/ fadeDistance\)\)/);
+  assert.match(learnerUi, /const traceOpacity = [\s\S]*?Math\.cos/);
+  assert.match(learnerUi, /const traceIntroduction = Math\.min\(1, traceScroll \/ \(viewportHeight \* 0\.45\)\)/);
+  assert.match(learnerUi, /traceOpacity\(tracePhase, index, traces\.length\)/);
+  assert.match(learnerUi, /globalThis\.requestAnimationFrame\(updateAtmospheres\)/);
+  assert.match(learnerUi, /addEventListener\("scroll", scheduleAtmospheres, \{ passive: true \}\)/);
+  assert.match(learnerUi, /prefers-reduced-motion: reduce[\s\S]*?reducedMotion\.matches\s*\? 0/);
 });
 
 test("selection prompts and project history stay out of the primary reading path", async () => {

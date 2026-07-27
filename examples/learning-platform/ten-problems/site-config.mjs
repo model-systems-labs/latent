@@ -1,15 +1,18 @@
+import {
+  createLearningSuiteHeaderNavigation,
+  learningSuite,
+} from "../learning-suite.mjs";
+
 export const tenProblemsSiteUi = Object.freeze({
   productName: "Ten Problems",
   headerMeta: "10 Python problems",
-  globalNavigationLabel: "Learning experiences",
-  globalNavigation: Object.freeze([
-    Object.freeze({ label: "Learning Studio", href: "../" }),
-    Object.freeze({ label: "LLM Systems", href: "../llm-systems/" }),
-    Object.freeze({ label: "Interview Loop", href: "../interview-loop/" }),
-    Object.freeze({ label: "Ten Problems", href: "./", current: true }),
-  ]),
+  globalNavigationLabel: learningSuite.navigationLabel,
+  globalNavigation: createLearningSuiteHeaderNavigation({
+    rootHref: "../",
+    currentId: "ten-problems",
+  }),
   navigationLabel: "Ten Problems navigation",
-  menuLabel: "Explore",
+  menuLabel: "Learning suite",
   reviewDirectory: "leeches",
   copy: Object.freeze({
     allNavigationLabel: "Practice",
@@ -21,6 +24,7 @@ export const tenProblemsSiteUi = Object.freeze({
     loading: "Loading Python practice…",
     runExamples: "Run examples",
     checkSolution: "Check solution",
+    viewExampleSolution: "View example solution",
     initialResults: "Run the public example, then check every published case.",
     running: "Running your Python code…",
     passedHeading: "All checks passed",

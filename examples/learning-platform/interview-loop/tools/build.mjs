@@ -16,13 +16,16 @@ import { fileURLToPath } from "node:url";
 import { build as bundle } from "esbuild";
 
 import {
+  LEARNER_UI_FAVICON_SVG,
   LEARNER_UI_VERSION,
   createLearnerUiCss,
   learnerUiJavaScript,
+  renderLearnerAtmosphere,
   renderLearnerFooter,
   renderLearnerHeader,
   resolveLearnerUiTheme,
 } from "./vendor/learner-ui.mjs";
+import { createInterviewLoopHeader } from "../site-config.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repositoryRoot = resolve(root, "../../..");
@@ -67,7 +70,7 @@ function renderIndex(platform) {
   };
   const header = renderLearnerHeader({
     productName: platform.brand.name,
-    ...platform.learnerUi.header,
+    ...createInterviewLoopHeader(platform.learnerUi.header),
   });
   const footer = renderLearnerFooter(platform.learnerUi.footer);
   return `<!doctype html>
@@ -81,11 +84,13 @@ function renderIndex(platform) {
     >
     <meta name="description" content="${escapeHtml(platform.brand.tagline)}">
     <title>${escapeHtml(platform.brand.name)}</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="./learner-ui.css">
     <link rel="stylesheet" href="./styles.css">
   </head>
   <body class="learner-ui">
     <a class="learner-skip-link" href="#learning-surface">Skip to learning content</a>
+    ${renderLearnerAtmosphere()}
     <div class="learner-page">
       ${header}
       <main id="learning-surface" class="learner-main" tabindex="-1">
@@ -159,6 +164,7 @@ try {
       "utf8",
     ),
     writeFile(join(temporary, "learner-ui.js"), learnerUiJavaScript, "utf8"),
+    writeFile(join(temporary, "favicon.svg"), `${LEARNER_UI_FAVICON_SVG}\n`, "utf8"),
   ]);
   const assets = join(temporary, "assets");
   await mkdir(assets, { recursive: true });
@@ -228,7 +234,9 @@ License: https://www.mozilla.org/MPL/2.0/
   await writeFile(join(temporary, ".nojekyll"), "", "utf8");
 
   const sourceFiles = [
+    resolve(root, "../learning-suite.mjs"),
     join(root, "platform.json"),
+    join(root, "site-config.mjs"),
     join(root, "README.md"),
     join(root, "LICENSE"),
     join(root, "NOTICE.md"),

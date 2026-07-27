@@ -26,12 +26,23 @@ test("the server-rendered skip link targets content after learner navigation", a
   assert.match(lesson, /<LearnerHeader[\s\S]*?<article[^>]*id="main-content"/);
 });
 
-test("the learner family header and Plum atmosphere come from the shared learner UI", async () => {
-  const [layout, header, styles, generatedCss, generator, legacyGlobalStyles] = await Promise.all([
+test("the learner family header and Paper ethereal atmosphere come from the shared learner UI", async () => {
+  const [
+    layout,
+    header,
+    atmosphere,
+    styles,
+    generatedCss,
+    generatedJavaScript,
+    generator,
+    legacyGlobalStyles,
+  ] = await Promise.all([
     read("app/layout.tsx"),
     read("app/components/LearnerHeader.tsx"),
+    read("app/components/PageAtmosphere.tsx"),
     read("packages/course-kit/src/learner-ui.ts"),
     read("public/assets/learner-ui.css"),
+    read("public/assets/learner-ui.js"),
     read("scripts/generate-learning-platform-learner-ui.mjs"),
     read("app/styles/learning-flow.css"),
   ]);
@@ -41,7 +52,8 @@ test("the learner family header and Plum atmosphere come from the shared learner
   assert.match(header, /className="learner-header__inner"/);
   assert.match(header, /className="learner-wordmark"/);
   assert.match(header, /learner-primary-nav--\$\{mobile \? "mobile" : "desktop"\}/);
-  assert.match(header, /className="learner-global-nav" aria-label="Learning experiences"/);
+  assert.match(header, /className="learner-global-nav" aria-label=\{learningSuite\.navigationLabel\}/);
+  assert.match(header, /createLearningSuiteHeaderNavigation/);
   assert.match(header, /className="learner-nav-menu__panel"/);
   assert.doesNotMatch(header, /<details[^>]*\sopen(?:\s|=)/);
   assert.match(header, /label: "Modules"/);
@@ -49,18 +61,25 @@ test("the learner family header and Plum atmosphere come from the shared learner
   assert.match(header, /label: "Review"/);
   assert.match(header, /label: "Project"/);
   assert.match(header, /label: "Reading"/);
-  assert.match(header, /<summary>\{suiteMode \? "Explore" : "Menu"\}<\/summary>/);
+  assert.match(header, /<summary>\{suiteMode \? "Learning suite" : "Menu"\}<\/summary>/);
   assert.match(layout, /href=\{`\$\{learnerUiAssetBasePath\}\/assets\/learner-ui\.css`\}/);
   assert.match(layout, /src=\{`\$\{learnerUiAssetBasePath\}\/assets\/learner-ui\.js`\}/);
   assert.doesNotMatch(layout, /dangerouslySetInnerHTML/);
   assert.match(layout, /learner-ui/);
-  assert.match(generator, /resolveLearnerUiTheme\(\{ palette: "plum" \}\)/);
-  assert.match(generator, /createLearnerUiCss\(theme, \{ palette: "plum" \}\)/);
-  assert.match(generatedCss, /--learner-background-recipe: plum;/);
-  assert.match(generatedCss, /circle at 88% 4%/);
+  assert.match(generator, /resolveLearnerUiTheme\(\{ palette: "paper" \}\)/);
+  assert.match(generator, /createLearnerUiCss\(theme, \{ palette: "paper" \}\)/);
+  assert.match(generatedCss, /--learner-background-recipe: paper;/);
+  assert.match(generatedCss, /linear-gradient\(180deg/);
+  assert.doesNotMatch(generatedCss, /radial-gradient|conic-gradient|repeating-linear-gradient/);
+  assert.match(generatedCss, /\.learner-atmosphere__line--intro/);
+  assert.match(generatedJavaScript, /const traceInterval = 1\.45/);
+  assert.match(generatedJavaScript, /addEventListener\("scroll", scheduleAtmospheres, \{ passive: true \}\)/);
+  assert.match(atmosphere, /data-learner-atmosphere=""/);
+  assert.equal(atmosphere.match(/data-learner-atmosphere-trace=""/g)?.length, 3);
+  assert.doesNotMatch(atmosphere, /"use client"|useEffect|useRef|style=\{/);
   assert.doesNotMatch(
     legacyGlobalStyles,
-    /body\s*\{[^}]*background(?:-attachment)?\s*:/,
+    /\.page-atmosphere|\.orbit|\.node|\.warm-star/,
   );
   assert.match(styles, /\.learner-primary-nav--desktop\s*\{[\s\S]*?margin-left:\s*auto/);
   assert.match(styles, /\.learner-nav-menu > summary\s*\{[^}]*min-height:\s*2\.75rem/);

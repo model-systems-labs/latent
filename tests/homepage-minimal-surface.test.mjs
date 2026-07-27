@@ -48,10 +48,13 @@ test("the learner landing presents courses without platform publishing controls"
 
   assert.match(page, /<PageAtmosphere \/>/);
   assert.match(page, /<LearnerHeader current="courses" \/>/);
-  assert.match(atmosphere, /page-atmosphere/);
-  assert.match(atmosphere, /orbit orbit-one/);
-  assert.match(atmosphere, /node node-one/);
-  assert.match(atmosphere, /warm-star/);
+  assert.match(atmosphere, /data-learner-atmosphere/);
+  assert.match(atmosphere, /data-learner-atmosphere-intro/);
+  assert.equal(
+    atmosphere.match(/data-learner-atmosphere-trace/g)?.length,
+    3,
+  );
+  assert.doesNotMatch(atmosphere, /page-atmosphere|orbit|node-one|warm-star/);
   assert.match(page, /Learn how language-model systems actually work/);
   assert.match(page, /Bundled reference courses/);
   assert.match(page, /not a shared[\s\S]*catalog of courses other publishers make/);

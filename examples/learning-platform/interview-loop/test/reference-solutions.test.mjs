@@ -1,8 +1,24 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import {
+  cp,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 import { build } from "esbuild";
 import { loadPyodide } from "pyodide";
+
+import {
+  interviewIdeReferenceSolutions,
+  interviewPracticeReferenceSolutions,
+} from "../trusted/reference-solutions.mjs";
 
 const library = JSON.parse(await readFile(
   new URL("../content/question-groups.json", import.meta.url),
@@ -11,63 +27,25 @@ const library = JSON.parse(await readFile(
 const { ideExercises } = await import(
   new URL("../trusted/ide-exercises.mjs", import.meta.url)
 );
-const questions = library.groups.flatMap((group) => group.questions);
+const questions = library.groups.flatMap((group) => group.questions.map((question) => ({
+  ...question,
+  groupId: group.id,
+})));
 const ideExercise = ideExercises[0];
+const execFileAsync = promisify(execFile);
 let createHarness;
-
-const referenceSources = {
-  collapse_attempts: `def collapse_attempts(attempts):
-    seen = set()
-    output = []
-    for attempt in attempts:
-        delivery_id = attempt["deliveryId"]
-        if delivery_id not in seen:
-            seen.add(delivery_id)
-            output.append({
-                "deliveryId": delivery_id,
-                "status": attempt["status"],
-            })
-    return output
-`,
-  summarize_window: `def summarize_window(events, start_ms):
-    traffic = 0
-    errors = 0
-    max_latency_ms = 0
-    for event in events:
-        if event["atMs"] >= start_ms:
-            traffic += 1
-            if event["outcome"] == "error":
-                errors += 1
-            max_latency_ms = max(max_latency_ms, event["latencyMs"])
-    return {
-        "traffic": traffic,
-        "errors": errors,
-        "maxLatencyMs": max_latency_ms,
-    }
-`,
-  admit_per_tenant: `def admit_per_tenant(jobs, limit):
-    admitted = []
-    counts = {}
-    for job in jobs:
-        tenant = job["tenant"]
-        if counts.get(tenant, 0) < limit:
-            admitted.append(job["id"])
-            counts[tenant] = counts.get(tenant, 0) + 1
-    return admitted
-`,
-  schedule_retries: `def schedule_retries(deliveries, now_ms):
-    delays = {1: 1000, 2: 2000, 3: 4000}
-    output = []
-    for delivery in deliveries:
-        delay = delays.get(delivery["attempt"])
-        if delivery["outcome"] == "retryable" and delay is not None:
-            output.append({
-                "deliveryId": delivery["deliveryId"],
-                "runAtMs": now_ms + delay,
-            })
-    return output
-`,
-};
+const practiceReferenceSourceByQuestion = new Map(
+  interviewPracticeReferenceSolutions.map((entry) => [
+    `${entry.groupId}/${entry.questionId}`,
+    entry.source,
+  ]),
+);
+const ideReferenceSourceByContract = new Map(
+  interviewIdeReferenceSolutions.map((entry) => [
+    `${entry.exerciseId}@${entry.contractVersion}`,
+    entry.source,
+  ]),
+);
 
 test.before(async () => {
   const result = await build({
@@ -157,22 +135,33 @@ test("all four exercises declare Python and all 13 authored cases pass", {
   python.FS.mkdirTree("/workspace");
   const exercises = [
     ...questions.map((question) => ({
+      referenceSource: practiceReferenceSourceByQuestion.get(
+        `${question.groupId}/${question.id}`,
+      ),
       path: question.path,
       functionName: question.entrypoint.functionName,
       cases: question.cases,
     })),
     {
+      referenceSource: ideReferenceSourceByContract.get(
+        `${ideExercise.id}@${ideExercise.contractVersion}`,
+      ),
       path: ideExercise.files[0].path,
       functionName: ideExercise.entrypoint.functionName,
       cases: ideCases(),
     },
   ];
   let checkedCases = 0;
+  assert.equal(
+    practiceReferenceSourceByQuestion.size + ideReferenceSourceByContract.size,
+    exercises.length,
+  );
   for (const exercise of exercises) {
     assert.match(exercise.path, /\.py$/);
+    assert.equal(typeof exercise.referenceSource, "string");
     const observations = await runHarness(
       python,
-      referenceSources[exercise.functionName],
+      exercise.referenceSource,
       exercise.path,
       exercise.functionName,
       exercise.cases,
@@ -237,5 +226,45 @@ test("real Python detects post-call input changes and nested output aliasing", {
     assert.equal(envelope.observation.status, "returned");
     assert.deepEqual(envelope.observation.value, expected);
     assert.deepEqual(envelope.observation.purity, sample.purity);
+  }
+});
+
+test("authoring validation rejects a stale trusted reference identity", async () => {
+  const temporaryRoot = await mkdtemp(join(tmpdir(), "interview-loop-reference-validation-"));
+  const fixtureRoot = join(temporaryRoot, "interview-loop");
+  try {
+    await cp(
+      fileURLToPath(new URL("../", import.meta.url)),
+      fixtureRoot,
+      { recursive: true },
+    );
+    await cp(
+      fileURLToPath(new URL("../../learning-suite.mjs", import.meta.url)),
+      join(temporaryRoot, "learning-suite.mjs"),
+    );
+    const referencePath = join(fixtureRoot, "trusted/reference-solutions.mjs");
+    const original = await readFile(referencePath, "utf8");
+    const stale = original.replace(
+      'groupId: "identity-and-signals"',
+      'groupId: "retired-practice-group"',
+    );
+    assert.notEqual(stale, original);
+    await writeFile(referencePath, stale, "utf8");
+
+    await assert.rejects(
+      execFileAsync(process.execPath, ["tools/validate.mjs"], {
+        cwd: fixtureRoot,
+      }),
+      (error) => {
+        assert.equal(error.code, 1);
+        assert.match(
+          `${error.stdout ?? ""}\n${error.stderr ?? ""}`,
+          /Stale trusted reference solution identity: retired-practice-group\/collapse-attempts/,
+        );
+        return true;
+      },
+    );
+  } finally {
+    await rm(temporaryRoot, { recursive: true, force: true });
   }
 });

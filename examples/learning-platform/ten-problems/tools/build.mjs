@@ -23,6 +23,7 @@ import {
   tenProblemsMetaContentSecurityPolicy,
 } from "../security-config.mjs";
 import { tenProblemsSiteUi } from "../site-config.mjs";
+import { tenProblemsReferenceSolutions } from "../trusted/reference-solutions.mjs";
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repositoryRoot = resolve(projectRoot, "../../..");
@@ -269,6 +270,7 @@ const files = await buildStandaloneQuestionGroupSite(library, {
   runtimeAdapterJavaScript,
   bundledBrowserRuntime: false,
   metaContentSecurityPolicy: tenProblemsMetaContentSecurityPolicy,
+  referenceSolutions: tenProblemsReferenceSolutions,
   ui: tenProblemsSiteUi,
 });
 

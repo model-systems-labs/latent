@@ -203,7 +203,7 @@ The coding contract promises read-only inputs and fresh output. Enforce both in 
   await pause(2600);
 
   await page.getByRole("button", { name: "01 Course", exact: true }).click();
-  await page.getByRole("button", { name: /03 · Webhook delivery architecture/ }).click();
+  await page.getByRole("button", { name: /03 · System design interview: webhook delivery/ }).click();
   await pause(3500);
 
   await showReplaySlide({

@@ -29,11 +29,13 @@ async function generatedSource() {
       contents: `
         export {
           LEARNER_UI_BREAKPOINTS,
+          LEARNER_UI_FAVICON_SVG,
           LEARNER_UI_PALETTE_NAMES,
           LEARNER_UI_PALETTES,
           LEARNER_UI_VERSION,
           createLearnerUiCss,
           learnerUiJavaScript,
+          renderLearnerAtmosphere,
           renderLearnerFooter,
           renderLearnerHeader,
           resolveLearnerUiTheme,
@@ -76,9 +78,9 @@ if (!appOnly) {
   outputs.push([moduleOutput, await generatedSource(), "Vendored learner UI"]);
 }
 if (!customModuleOutput) {
-  const theme = resolveLearnerUiTheme({ palette: "plum" });
+  const theme = resolveLearnerUiTheme({ palette: "paper" });
   outputs.push(
-    [appCssOutput, `${createLearnerUiCss(theme, { palette: "plum" }).trim()}\n`, "React learner UI stylesheet"],
+    [appCssOutput, `${createLearnerUiCss(theme, { palette: "paper" }).trim()}\n`, "React learner UI stylesheet"],
     [appJavaScriptOutput, `${learnerUiJavaScript.trim()}\n`, "React learner UI behavior"],
   );
 }

@@ -143,10 +143,14 @@ Trusted product configuration may select one of five reviewed palettes:
 `paper`, `sage`, `cobalt`, `plum`, or `graphite`. Palette selection changes
 semantic color and atmosphere tint, not geometry, layout, typography, focus
 behavior, or responsive rules. Every palette uses the same sparse partial-line
-atmosphere. Its lines fade between phases as the single document scrolls; it
-has no grid, orbital field, pinstripe, filled decorative shape, image request,
+atmosphere. Its lines fade between phases as the single document scrolls.
+Sage, Cobalt, Plum, and Graphite add one short highlight to each existing
+hairline; because the highlight belongs to the line, it inherits the same
+scroll crossfade without another animation, listener, or decorative layer.
+Paper keeps the original quiet line. The atmosphere has no grid, orbital
+field, pinstripe, particle field, filled decorative shape, image request,
 fixed background attachment, or runtime service. Reduced-motion, forced-color,
-and print modes remove the decorative motion.
+and print modes remove the decorative motion and highlights.
 
 Learning Studio and the original LLM Systems course use Paper, Interview Loop
 uses Sage, and Ten Problems uses Cobalt; Plum and Graphite remain bounded
@@ -157,15 +161,21 @@ low-level token override remains available to trusted callers for
 compatibility, but reviewed examples use palette-only `appearance`
 configuration and may not combine it with the legacy `theme` input.
 
-Each learner product has exactly one page-level header. Its stable anatomy is
-product identity and optional metadata, local primary navigation, and one
-**Learning suite** disclosure for movement between products. On compact screens the
-same disclosure also exposes the local navigation rather than adding another
-header. Lesson section links, problem controls, and editor toolbars remain
-inside their content regions and use the appropriate `nav` or `div` landmark;
-they are not additional site headers. Escape closes the disclosure and
-restores focus, the skip link transfers focus to main content, and a
-three-pixel visible focus indicator is shared across products.
+Every route in the reviewed suite has exactly one page-level header. Its
+stable identity is **Learning Studio** with **Courses and practice** metadata,
+and its primary navigation is the same ordered LLM Systems, Interview Loop,
+and Ten Problems list. Only the current item and subpath-safe hrefs vary. On
+compact screens those three destinations move into one **Experiences**
+disclosure without changing identity.
+
+Product-local destinations such as Modules, Practice, Review, Project,
+Reading, and Coding lab render through
+`renderLearnerContextNavigation()` as a quiet, horizontally scrollable row in
+the content plane. It is a `nav`, never another `header` or disclosure.
+Lesson controls, problem controls, and editor toolbars stay inside their
+content regions. Escape closes the compact global disclosure and restores
+focus, the skip link transfers focus to main content, and a three-pixel
+visible focus indicator is shared across products.
 
 Branding, routes, navigation labels, palette choice, trusted reference
 solutions, and product-specific copy are trusted build configuration. They
@@ -188,12 +198,15 @@ self-hosted.
 
 The trusted `examples/learning-platform/learning-suite.mjs` manifest defines
 the ordered deployment directory, stable mount names, card copy, and derived
-same-origin family navigation once. The repository Pages artifact is assembled
-from that manifest by `scripts/build-learning-example-pages.mjs`. It creates a
-content-first Learning Studio index and copies three independently built
-learner products into stable subpaths: the React Build an LLM System course at
-`/llm-systems/`, Interview Loop Lab at `/interview-loop/`, and Ten Problems at
-`/practice/`.
+same-origin family navigation once.
+`createLearningSuiteHeaderConfiguration()` is the single reviewed build-time
+source for the suite identity, metadata, destination order, compact label,
+active state, and root-relative paths. The repository Pages artifact is
+assembled from that manifest by `scripts/build-learning-example-pages.mjs`.
+It creates a content-first Learning Studio index and copies three independently
+built learner products into stable subpaths: the React Build an LLM System
+course at `/llm-systems/`, Interview Loop Lab at `/interview-loop/`, and Ten
+Problems at `/practice/`.
 The root `build:web` script regenerates the two self-hosted learner assets
 before compiling the application. `app/layout.tsx` links them through the
 active base path rather than inlining package source; `LearnerHeader.tsx` is a

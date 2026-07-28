@@ -36,6 +36,7 @@ async function generatedSource() {
           createLearnerUiCss,
           learnerUiJavaScript,
           renderLearnerAtmosphere,
+          renderLearnerContextNavigation,
           renderLearnerFooter,
           renderLearnerHeader,
           resolveLearnerUiTheme,

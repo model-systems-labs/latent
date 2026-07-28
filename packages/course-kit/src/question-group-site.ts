@@ -12,10 +12,12 @@ import {
   createLearnerUiCss,
   learnerUiJavaScript,
   renderLearnerAtmosphere,
+  renderLearnerContextNavigation,
   renderLearnerFooter,
   renderLearnerHeader,
   resolveLearnerUiTheme,
   type LearnerUiAppearance,
+  type LearnerUiHeaderOptions,
   type LearnerUiNavigationItem,
   type LearnerUiPaletteName,
   type LearnerUiTheme,
@@ -54,6 +56,11 @@ export type QuestionGroupSiteReferenceSolution = Readonly<{
   source: string;
 }>;
 
+export type QuestionGroupSiteSuiteHeader = Omit<
+  LearnerUiHeaderOptions,
+  "globalNavigationLabel" | "globalNavigation"
+>;
+
 export type QuestionGroupSiteCopy = Readonly<{
   allNavigationLabel: string;
   reviewNavigationLabel: string;
@@ -91,6 +98,7 @@ export type QuestionGroupSiteUi = Readonly<{
   headerMeta?: string;
   globalNavigationLabel?: string;
   globalNavigation?: readonly LearnerUiNavigationItem[];
+  suiteHeader?: QuestionGroupSiteSuiteHeader;
   navigationLabel?: string;
   menuLabel?: string;
   reviewDirectory?: string;
@@ -146,6 +154,7 @@ type NormalizedQuestionGroupSiteUi = Readonly<{
   headerMeta: string;
   globalNavigationLabel: string;
   globalNavigation?: readonly LearnerUiNavigationItem[];
+  suiteHeader?: QuestionGroupSiteSuiteHeader & Readonly<{ menuLabel: string }>;
   navigationLabel: string;
   menuLabel: string;
   reviewDirectory: string;
@@ -204,6 +213,7 @@ function normalizeQuestionGroupSiteUi(
     "headerMeta",
     "globalNavigationLabel",
     "globalNavigation",
+    "suiteHeader",
     "navigationLabel",
     "menuLabel",
     "reviewDirectory",
@@ -293,6 +303,112 @@ function normalizeQuestionGroupSiteUi(
   if (globalNavigation && globalNavigation.length === 0) {
     throw new Error("ui.globalNavigation must include at least one item when configured.");
   }
+  const suiteHeaderInput = input.suiteHeader;
+  let suiteHeader: NormalizedQuestionGroupSiteUi["suiteHeader"];
+  if (suiteHeaderInput !== undefined) {
+    if (
+      !suiteHeaderInput
+      || typeof suiteHeaderInput !== "object"
+      || Array.isArray(suiteHeaderInput)
+    ) {
+      throw new Error("ui.suiteHeader must be a suite header configuration object.");
+    }
+    const supportedSuiteHeaderFields = new Set([
+      "productName",
+      "homeHref",
+      "homeLabel",
+      "navigationLabel",
+      "navigation",
+      "menuLabel",
+      "meta",
+    ]);
+    const unknownSuiteHeaderFields = Object.keys(suiteHeaderInput).filter(
+      (key) => !supportedSuiteHeaderFields.has(key),
+    );
+    if (unknownSuiteHeaderFields.length) {
+      throw new Error(`Unknown ui.suiteHeader field: ${unknownSuiteHeaderFields[0]}`);
+    }
+    if (
+      !Array.isArray(suiteHeaderInput.navigation)
+      || suiteHeaderInput.navigation.length === 0
+    ) {
+      throw new Error("ui.suiteHeader.navigation must include at least one item.");
+    }
+    const suiteNavigation = suiteHeaderInput.navigation.map((item, index) => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) {
+        throw new Error(`ui.suiteHeader.navigation[${index}] must be a navigation item.`);
+      }
+      const unknownKeys = Object.keys(item).filter(
+        (key) => !new Set(["label", "href", "current", "dataView"]).has(key),
+      );
+      if (unknownKeys.length) {
+        throw new Error(
+          `Unknown ui.suiteHeader.navigation[${index}] field: ${unknownKeys[0]}`,
+        );
+      }
+      if (typeof item.current !== "undefined" && typeof item.current !== "boolean") {
+        throw new Error(
+          `ui.suiteHeader.navigation[${index}].current must be a boolean.`,
+        );
+      }
+      return Object.freeze({
+        label: siteText(item.label, `ui.suiteHeader.navigation[${index}].label`, 120),
+        href: siteText(item.href, `ui.suiteHeader.navigation[${index}].href`, 500),
+        ...(item.current === undefined ? {} : { current: item.current }),
+        ...(item.dataView === undefined
+          ? {}
+          : {
+              dataView: siteText(
+                item.dataView,
+                `ui.suiteHeader.navigation[${index}].dataView`,
+                80,
+              ),
+            }),
+      });
+    });
+    suiteHeader = Object.freeze({
+      productName: siteText(
+        suiteHeaderInput.productName,
+        "ui.suiteHeader.productName",
+        160,
+      ),
+      homeHref: siteText(suiteHeaderInput.homeHref, "ui.suiteHeader.homeHref", 500),
+      ...(suiteHeaderInput.homeLabel === undefined
+        ? {}
+        : {
+            homeLabel: siteText(
+              suiteHeaderInput.homeLabel,
+              "ui.suiteHeader.homeLabel",
+              200,
+            ),
+          }),
+      navigationLabel: siteText(
+        suiteHeaderInput.navigationLabel,
+        "ui.suiteHeader.navigationLabel",
+        160,
+      ),
+      navigation: Object.freeze(suiteNavigation),
+      menuLabel: siteText(
+        suiteHeaderInput.menuLabel ?? "Experiences",
+        "ui.suiteHeader.menuLabel",
+        80,
+      ),
+      ...(suiteHeaderInput.meta === undefined
+        ? {}
+        : {
+            meta: siteText(
+              suiteHeaderInput.meta,
+              "ui.suiteHeader.meta",
+              160,
+            ),
+          }),
+    });
+  }
+  if (suiteHeader !== undefined && globalNavigation !== undefined) {
+    throw new Error(
+      "Question Group site ui.suiteHeader and ui.globalNavigation cannot be configured together.",
+    );
+  }
   return Object.freeze({
     productName: siteText(input.productName ?? library.library.title, "ui.productName", 160),
     headerMeta: siteText(input.headerMeta ?? library.library.version, "ui.headerMeta", 160),
@@ -304,6 +420,7 @@ function normalizeQuestionGroupSiteUi(
     ...(globalNavigation === undefined
       ? {}
       : { globalNavigation: Object.freeze(globalNavigation) }),
+    ...(suiteHeader === undefined ? {} : { suiteHeader }),
     navigationLabel: siteText(input.navigationLabel ?? "Practice navigation", "ui.navigationLabel", 160),
     menuLabel: siteText(input.menuLabel ?? "Menu", "ui.menuLabel", 80),
     reviewDirectory,
@@ -403,33 +520,57 @@ function renderIndex(
   const description = initialQuery === "leeches"
     ? `Review repeatedly missed questions from ${library.library.title}.`
     : library.library.description;
+  const withPageRoot = (href: string) => (
+    root === "./" || href.startsWith("#") || href.startsWith("/")
+      ? href
+      : root + (href.startsWith("./") ? href.slice(2) : href)
+  );
   const globalNavigation = ui.globalNavigation?.map((item) => ({
     ...item,
-    href: root === "./"
-      ? item.href
-      : root + (item.href.startsWith("./") ? item.href.slice(2) : item.href),
+    href: withPageRoot(item.href),
   }));
-  const header = renderLearnerHeader({
-    productName: ui.productName,
-    homeHref: root,
-    globalNavigationLabel: ui.globalNavigationLabel,
-    ...(globalNavigation === undefined ? {} : { globalNavigation }),
-    navigationLabel: ui.navigationLabel,
-    menuLabel: ui.menuLabel,
-    meta: ui.headerMeta,
-    navigation: [
-      {
-        label: ui.copy.allNavigationLabel,
-        href: root,
-        current: initialQuery === "all",
-      },
-      {
-        label: ui.copy.reviewNavigationLabel,
-        href: initialQuery === "leeches" ? "./" : `./${ui.reviewDirectory}/`,
-        current: initialQuery === "leeches",
-      },
-    ],
-  });
+  const localNavigation = [
+    {
+      label: ui.copy.allNavigationLabel,
+      href: root,
+      current: initialQuery === "all",
+    },
+    {
+      label: ui.copy.reviewNavigationLabel,
+      href: initialQuery === "leeches" ? "./" : `./${ui.reviewDirectory}/`,
+      current: initialQuery === "leeches",
+    },
+  ];
+  const suiteHeader = ui.suiteHeader;
+  const header = suiteHeader === undefined
+    ? renderLearnerHeader({
+        productName: ui.productName,
+        homeHref: root,
+        globalNavigationLabel: ui.globalNavigationLabel,
+        ...(globalNavigation === undefined ? {} : { globalNavigation }),
+        navigationLabel: ui.navigationLabel,
+        menuLabel: ui.menuLabel,
+        meta: ui.headerMeta,
+        navigation: localNavigation,
+      })
+    : renderLearnerHeader({
+        productName: suiteHeader.productName,
+        homeHref: withPageRoot(suiteHeader.homeHref),
+        ...(suiteHeader.homeLabel === undefined ? {} : { homeLabel: suiteHeader.homeLabel }),
+        navigationLabel: suiteHeader.navigationLabel,
+        menuLabel: suiteHeader.menuLabel,
+        ...(suiteHeader.meta === undefined ? {} : { meta: suiteHeader.meta }),
+        navigation: suiteHeader.navigation.map((item) => ({
+          ...item,
+          href: withPageRoot(item.href),
+        })),
+      });
+  const contextNavigation = suiteHeader === undefined
+    ? ""
+    : renderLearnerContextNavigation({
+        navigationLabel: ui.navigationLabel,
+        navigation: localNavigation,
+      });
   const footer = renderLearnerFooter({
     summary: ui.footerSummary,
     attribution: ui.attribution,
@@ -456,6 +597,7 @@ function renderIndex(
   <a class="learner-skip-link" href="#app">Skip to practice</a>
   <div class="learner-page">
   ${header}
+  ${contextNavigation}
   <main id="app" class="learner-main" tabindex="-1" aria-busy="true">
     <p class="learner-empty loading">${escapeHtml(ui.copy.loading)}</p>
   </main>

@@ -428,6 +428,124 @@ test("Question Group UI configuration controls branding, routes, copy, and runti
   );
 });
 
+test("suiteHeader keeps a persistent global identity while local practice navigation stays in the content plane", async () => {
+  const library = await exampleLibrary();
+  const baseline = await buildStandaloneQuestionGroupSite(library, {
+    bundledBrowserRuntime: false,
+  });
+  const files = await buildStandaloneQuestionGroupSite(
+    structuredClone(library),
+    {
+      bundledBrowserRuntime: false,
+      ui: {
+        productName: "Ten Problems",
+        headerMeta: "10 Python problems",
+        suiteHeader: {
+          productName: "Learning Studio",
+          homeHref: "../",
+          homeLabel: "Learning Studio home",
+          navigationLabel: "Learning suite",
+          navigation: [
+            { label: "LLM Systems", href: "../llm-systems/" },
+            { label: "Interview Loop", href: "../interview-loop/" },
+            { label: "Ten Problems", href: "./", current: true },
+          ],
+          menuLabel: "Experiences",
+          meta: "Courses and practice",
+        },
+        navigationLabel: "Problem navigation",
+        reviewDirectory: "review",
+        copy: {
+          allNavigationLabel: "Problems",
+          reviewNavigationLabel: "Review misses",
+        },
+      },
+    },
+  );
+
+  assert.equal((files["index.html"].match(/<header\b/g) ?? []).length, 1);
+  assert.match(
+    files["index.html"],
+    /class="learner-wordmark" href="\.\.\/" aria-label="Learning Studio home"/,
+  );
+  assert.match(files["index.html"], /<span>Learning Studio<\/span>/);
+  assert.match(files["index.html"], /learner-header__meta">Courses and practice/);
+  assert.match(files["index.html"], /aria-label="Learning suite"/);
+  assert.match(files["index.html"], />Experiences<\/summary>/);
+  assert.match(files["index.html"], /href="\.\.\/llm-systems\/">LLM Systems<\/a>/);
+  assert.match(
+    files["index.html"],
+    /href="\.\/" aria-current="page">Ten Problems<\/a>/,
+  );
+  assert.match(
+    files["index.html"],
+    /<nav class="learner-context-nav" aria-label="Problem navigation">/,
+  );
+  assert.match(
+    files["index.html"],
+    /href="\.\/" aria-current="page">Problems<\/a>/,
+  );
+  assert.match(files["index.html"], /href="\.\/review\/">Review misses<\/a>/);
+
+  assert.match(
+    files["review/index.html"],
+    /class="learner-wordmark" href="\.\.\/\.\.\/" aria-label="Learning Studio home"/,
+  );
+  assert.match(
+    files["review/index.html"],
+    /href="\.\.\/\.\.\/llm-systems\/">LLM Systems<\/a>/,
+  );
+  assert.match(
+    files["review/index.html"],
+    /href="\.\.\/" aria-current="page">Ten Problems<\/a>/,
+  );
+  assert.match(files["review/index.html"], /href="\.\.\/">Problems<\/a>/);
+  assert.match(
+    files["review/index.html"],
+    /href="\.\/" aria-current="page">Review misses<\/a>/,
+  );
+  assert.equal(
+    JSON.parse(files["build-report.json"]).sha256,
+    JSON.parse(baseline["build-report.json"]).sha256,
+  );
+  assert.equal(
+    files["question-group-library.json"],
+    baseline["question-group-library.json"],
+  );
+  assert.doesNotMatch(baseline["index.html"], /learner-context-nav/);
+
+  const absoluteFiles = await buildStandaloneQuestionGroupSite(
+    structuredClone(library),
+    {
+      bundledBrowserRuntime: false,
+      ui: {
+        suiteHeader: {
+          productName: "Learning Studio",
+          homeHref: "/latent/",
+          navigationLabel: "Learning suite",
+          navigation: [
+            { label: "LLM Systems", href: "/latent/llm-systems/" },
+            { label: "Practice", href: "/latent/practice/", current: true },
+          ],
+        },
+        reviewDirectory: "review",
+      },
+    },
+  );
+  assert.match(
+    absoluteFiles["index.html"],
+    /class="learner-wordmark" href="\/latent\/"/,
+  );
+  assert.match(
+    absoluteFiles["review/index.html"],
+    /class="learner-wordmark" href="\/latent\/"/,
+  );
+  assert.match(
+    absoluteFiles["review/index.html"],
+    /href="\/latent\/practice\/" aria-current="page">Practice<\/a>/,
+  );
+});
+
 test("trusted reference solutions render as inert read-only disclosures without changing portable identity", async () => {
   const library = await exampleLibrary();
   const baseline = await buildStandaloneQuestionGroupSite(library, {
@@ -657,7 +775,36 @@ test("Question Group UI configuration rejects unsafe directories and unknown cop
         ],
       },
     }),
-    /same-origin relative path/,
+    /same-origin local path/,
+  );
+  await assert.rejects(
+    buildStandaloneQuestionGroupSite(library, {
+      bundledBrowserRuntime: false,
+      ui: {
+        globalNavigation: [{ label: "Course", href: "../course/" }],
+        suiteHeader: {
+          productName: "Learning Studio",
+          homeHref: "../",
+          navigationLabel: "Learning suite",
+          navigation: [{ label: "Practice", href: "./", current: true }],
+        },
+      },
+    }),
+    /ui\.suiteHeader and ui\.globalNavigation cannot be configured together/,
+  );
+  await assert.rejects(
+    buildStandaloneQuestionGroupSite(library, {
+      bundledBrowserRuntime: false,
+      ui: {
+        suiteHeader: {
+          productName: "Learning Studio",
+          homeHref: "../",
+          navigationLabel: "Learning suite",
+          navigation: [],
+        },
+      },
+    }),
+    /ui\.suiteHeader\.navigation must include at least one item/,
   );
   await assert.rejects(
     buildStandaloneQuestionGroupSite(library, {

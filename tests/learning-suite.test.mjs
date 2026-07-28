@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import {
+  createLearningSuiteHeaderConfiguration,
   createLearningSuiteHeaderNavigation,
   createLearningSuiteNavigation,
   learningSuite,
@@ -94,6 +95,25 @@ test("suite navigation derives root, sibling, and Pages-subpath links", () => {
     })[3],
     { label: "Ten Problems", href: "./", current: true },
   );
+  assert.deepEqual(
+    createLearningSuiteHeaderConfiguration({
+      rootHref: "../",
+      currentId: "interview-loop",
+    }),
+    {
+      productName: "Learning Studio",
+      homeHref: "../",
+      homeLabel: "Learning Studio home",
+      navigationLabel: "Learning suite",
+      navigation: [
+        { label: "LLM Systems", href: "../llm-systems/", current: undefined },
+        { label: "Interview Loop", href: "./", current: true },
+        { label: "Ten Problems", href: "../practice/", current: undefined },
+      ],
+      menuLabel: "Experiences",
+      meta: "Courses and practice",
+    },
+  );
 });
 
 test("suite validation rejects duplicate ids and routes", () => {
@@ -147,15 +167,17 @@ test("suite consumers derive sibling navigation from the manifest", async () => 
 
   assert.match(builder, /learningSuite\.experiences\.map/);
   assert.match(builder, /learningSuiteRouteReport\(\)/);
-  assert.match(builder, /includeHome: false/);
+  assert.match(builder, /createLearningSuiteHeaderConfiguration/);
   assert.doesNotMatch(builder, /grid-template-columns:\s*repeat\(3/);
-  assert.match(header, /createLearningSuiteHeaderNavigation/);
-  assert.match(header, /learningSuite\.navigationLabel/);
+  assert.match(header, /createLearningSuiteHeaderConfiguration/);
+  assert.match(header, /suiteHeader\.navigationLabel/);
   assert.doesNotMatch(header, /const suiteDestinations = \[/);
-  assert.equal(JSON.parse(interviewPlatform).learnerUi.header.globalNavigation, undefined);
+  assert.equal(JSON.parse(interviewPlatform).learnerUi.header, undefined);
+  assert.ok(JSON.parse(interviewPlatform).learnerUi.contextNavigation);
   for (const config of [interviewConfig, tenConfig]) {
-    assert.match(config, /createLearningSuiteHeaderNavigation/);
-    assert.match(config, /learningSuite\.navigationLabel/);
+    assert.match(config, /createLearningSuiteHeaderConfiguration/);
     assert.doesNotMatch(config, /label:\s*"Learning Studio"/);
   }
+  assert.match(interviewConfig, /createInterviewLoopHeader/);
+  assert.match(tenConfig, /suiteHeader:\s*createLearningSuiteHeaderConfiguration/);
 });

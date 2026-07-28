@@ -118,14 +118,18 @@ function boundedText(value, label, maximum = 200) {
   }
   return value.trim();
 }
-function safeRelativeHref(value, label) {
+function safeLocalHref(value, label) {
   const href = boundedText(value, label, 500);
   if (/^#[A-Za-z][A-Za-z0-9._-]*$/.test(href))
     return href;
-  if (href.startsWith("/") || href.startsWith("//") || href.includes("\\") || href.includes(":") || href.includes("?") || href.includes("#") || href.includes("\0")) {
-    throw new Error(`${label} must be a same-origin relative path or fragment.`);
+  const rootAbsolute = href.startsWith("/") && !href.startsWith("//");
+  if (href.startsWith("//") || href.includes("\\") || href.includes(":") || href.includes("?") || href.includes("#") || href.includes("\0")) {
+    throw new Error(`${label} must be a same-origin local path or fragment.`);
   }
-  const segments = href.split("/");
+  const path = rootAbsolute ? href.slice(1) : href;
+  if (rootAbsolute && path === "")
+    return href;
+  const segments = path.split("/");
   let contentStarted = false;
   for (const [index, segment] of segments.entries()) {
     if (segment === "" && segments.length === 1) {
@@ -135,11 +139,17 @@ function safeRelativeHref(value, label) {
       throw new Error(`${label} must not contain an empty path segment.`);
     }
     if (segment === ".") {
+      if (rootAbsolute) {
+        throw new Error(`${label} must not traverse from a root-absolute path.`);
+      }
       if (contentStarted)
         throw new Error(`${label} may use "." only as a leading segment.`);
       continue;
     }
     if (segment === "..") {
+      if (rootAbsolute) {
+        throw new Error(`${label} must not traverse from a root-absolute path.`);
+      }
       if (contentStarted)
         throw new Error(`${label} may use ".." only as a leading segment.`);
       continue;
@@ -232,6 +242,9 @@ function createLearnerUiCss(theme = {}, options = {}) {
   --learner-atmosphere-line: color-mix(in srgb, var(--learner-color-accent) 25%, transparent);
   --learner-atmosphere-line-warm: color-mix(in srgb, var(--learner-color-warning) 20%, transparent);
   --learner-atmosphere-glow: color-mix(in srgb, var(--learner-color-accent) 13%, transparent);
+  --learner-atmosphere-glint: color-mix(in srgb, var(--learner-color-accent-strong) 64%, var(--learner-color-surface));
+  --learner-atmosphere-glint-warm: color-mix(in srgb, var(--learner-color-warning) 58%, var(--learner-color-surface));
+  --learner-atmosphere-glint-strength: ${palette === "paper" ? "0" : ".38"};
   --learner-space-1: .25rem;
   --learner-space-2: .5rem;
   --learner-space-3: .75rem;
@@ -250,6 +263,7 @@ function createLearnerUiCss(theme = {}, options = {}) {
   --learner-width-content: 78rem;
   --learner-width-wide: 92rem;
   --learner-header-height: 4.9rem;
+  --learner-context-nav-height: 0rem;
   --learner-rhythm-section: clamp(2.1rem, 4.2vw, 3.5rem);
   --learner-rhythm-major: clamp(3.15rem, 5.6vw, 4.9rem);
   font-family: var(--learner-font-sans);
@@ -273,6 +287,9 @@ body.learner-ui {
   margin: 0;
   min-height: 100vh;
 }
+body.learner-ui:has(.learner-context-nav) {
+  --learner-context-nav-height: 3.35rem;
+}
 .learner-atmosphere {
   inset: 0;
   overflow: hidden;
@@ -288,6 +305,14 @@ body.learner-ui {
   position: absolute;
   will-change: opacity;
 }
+.learner-atmosphere__line::after {
+  background: linear-gradient(90deg, transparent, var(--learner-atmosphere-glint), transparent);
+  content: "";
+  height: 1px;
+  opacity: var(--learner-atmosphere-glint-strength);
+  position: absolute;
+  width: clamp(3.75rem, 6vw, 6.5rem);
+}
 .learner-atmosphere__line--intro {
   border-bottom: 1px solid var(--learner-atmosphere-line);
   height: 30rem;
@@ -295,6 +320,10 @@ body.learner-ui {
   top: -10rem;
   transform: rotate(-18deg);
   width: 57rem;
+}
+.learner-atmosphere__line--intro::after {
+  bottom: -1px;
+  right: 30%;
 }
 .learner-atmosphere__line--1 {
   border-top: 1px solid var(--learner-atmosphere-line);
@@ -304,6 +333,10 @@ body.learner-ui {
   transform: rotate(7deg);
   width: 48rem;
 }
+.learner-atmosphere__line--1::after {
+  left: 43%;
+  top: -1px;
+}
 .learner-atmosphere__line--2 {
   border-left: 1px solid var(--learner-atmosphere-line);
   height: 42rem;
@@ -312,6 +345,13 @@ body.learner-ui {
   transform: rotate(12deg);
   width: 30rem;
 }
+.learner-atmosphere__line--2::after {
+  background: linear-gradient(180deg, transparent, var(--learner-atmosphere-glint), transparent);
+  height: clamp(3.75rem, 6vw, 6.5rem);
+  left: -1px;
+  top: 38%;
+  width: 1px;
+}
 .learner-atmosphere__line--3 {
   border-top: 1px solid var(--learner-atmosphere-line-warm);
   bottom: 7vh;
@@ -319,6 +359,11 @@ body.learner-ui {
   left: 18vw;
   transform: rotate(-5deg);
   width: 64vw;
+}
+.learner-atmosphere__line--3::after {
+  background: linear-gradient(90deg, transparent, var(--learner-atmosphere-glint-warm), transparent);
+  right: 24%;
+  top: -1px;
 }
 .learner-ui button,
 .learner-ui input,
@@ -485,6 +530,46 @@ body.learner-ui {
   background: var(--learner-color-accent-soft);
   color: var(--learner-color-accent-strong);
 }
+.learner-context-nav {
+  border-bottom: var(--learner-border);
+  min-height: var(--learner-context-nav-height);
+  position: relative;
+  z-index: 10;
+}
+.learner-context-nav__inner {
+  align-items: stretch;
+  display: flex;
+  gap: var(--learner-space-5);
+  margin: 0 auto;
+  max-width: var(--learner-width-wide);
+  min-height: var(--learner-context-nav-height);
+  overflow-x: auto;
+  padding: 0 clamp(1rem, 4vw, 3rem);
+  scrollbar-width: thin;
+}
+.learner-context-nav a {
+  align-items: center;
+  border-bottom: 2px solid transparent;
+  color: var(--learner-color-muted);
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: .75rem;
+  font-weight: 690;
+  letter-spacing: .015em;
+  min-height: var(--learner-context-nav-height);
+  padding: .3rem 0;
+  text-decoration: none;
+}
+.learner-context-nav a:hover {
+  color: var(--learner-color-ink);
+}
+.learner-context-nav a[aria-current="page"] {
+  border-bottom-color: var(--learner-color-accent);
+  color: var(--learner-color-accent-strong);
+}
+.learner-context-nav a:focus-visible {
+  outline-offset: -3px;
+}
 .learner-main {
   flex: 1 0 auto;
   margin: 0 auto;
@@ -494,7 +579,11 @@ body.learner-ui {
 .learner-layout {
   display: grid;
   grid-template-columns: minmax(16rem, 22rem) minmax(0, 1fr);
-  min-height: calc(100vh - var(--learner-header-height));
+  min-height: calc(
+    100vh
+    - var(--learner-header-height)
+    - var(--learner-context-nav-height)
+  );
 }
 .learner-sidebar {
   background: color-mix(in srgb, var(--learner-color-surface-muted) 86%, transparent);
@@ -869,6 +958,7 @@ body.learner-ui {
   .learner-primary-nav--desktop { display: none; }
   .learner-nav-menu { margin-left: auto; }
   .learner-nav-menu > summary { display: flex; }
+  .learner-nav-menu--local-only > summary { display: flex; }
   .learner-primary-nav--mobile {
     align-items: stretch;
     display: grid;
@@ -905,6 +995,7 @@ body.learner-ui {
     opacity: 0 !important;
     will-change: auto;
   }
+  .learner-atmosphere__line::after { opacity: 0 !important; }
   *,
   *::before,
   *::after {
@@ -927,29 +1018,31 @@ function renderLearnerAtmosphere() {
   const traces = Array.from({ length: LEARNER_UI_ATMOSPHERE_TRACE_COUNT }, (_, index) => `<span class="learner-atmosphere__line learner-atmosphere__line--${index + 1}" data-learner-atmosphere-trace></span>`).join("");
   return `<div class="learner-atmosphere" data-learner-atmosphere aria-hidden="true"><span class="learner-atmosphere__line learner-atmosphere__line--intro" data-learner-atmosphere-intro></span>${traces}</div>`;
 }
+function renderLearnerNavigationItems(items, itemLabel) {
+  return items.map((item, index) => {
+    const label = boundedText(item.label, `${itemLabel} item ${index + 1} label`, 120);
+    const href = safeLocalHref(item.href, `${itemLabel} item ${index + 1} path`);
+    const dataView = item.dataView === void 0 ? "" : ` data-view="${escapeHtml(navigationToken(item.dataView))}"`;
+    const current = item.current ? ' aria-current="page"' : "";
+    return `<a href="${escapeHtml(href)}"${current}${dataView}>${escapeHtml(label)}</a>`;
+  }).join("");
+}
 function renderLearnerHeader(options) {
   const productName = boundedText(options.productName, "Product name", 160);
-  const homeHref = safeRelativeHref(options.homeHref, "Header home path");
+  const homeHref = safeLocalHref(options.homeHref, "Header home path");
   const homeLabel = boundedText(options.homeLabel ?? `${productName} home`, "Header home label", 200);
   const navigationLabel = boundedText(options.navigationLabel, "Navigation label", 160);
   const menuLabel = boundedText(options.menuLabel ?? (options.globalNavigation ? "Learning suite" : "Menu"), "Menu label", 80);
   if (!Array.isArray(options.navigation) || options.navigation.length === 0) {
     throw new Error("Learner header navigation must include at least one item.");
   }
-  const renderNavigation = (items, itemLabel) => items.map((item, index) => {
-    const label = boundedText(item.label, `${itemLabel} item ${index + 1} label`, 120);
-    const href = safeRelativeHref(item.href, `Navigation item ${index + 1} path`);
-    const dataView = item.dataView === void 0 ? "" : ` data-view="${escapeHtml(navigationToken(item.dataView))}"`;
-    const current = item.current ? ' aria-current="page"' : "";
-    return `<a href="${escapeHtml(href)}"${current}${dataView}>${escapeHtml(label)}</a>`;
-  }).join("");
-  const navigation = renderNavigation(options.navigation, "Navigation");
+  const navigation = renderLearnerNavigationItems(options.navigation, "Navigation");
   const globalNavigation = options.globalNavigation === void 0 ? "" : (() => {
     if (!Array.isArray(options.globalNavigation) || options.globalNavigation.length === 0) {
       throw new Error("Global learner navigation must include at least one item when configured.");
     }
     const label = boundedText(options.globalNavigationLabel ?? "Learning experiences", "Global navigation label", 160);
-    return `<nav class="learner-global-nav" aria-label="${escapeHtml(label)}">${renderNavigation(options.globalNavigation, "Global navigation")}</nav>`;
+    return `<nav class="learner-global-nav" aria-label="${escapeHtml(label)}">${renderLearnerNavigationItems(options.globalNavigation, "Global navigation")}</nav>`;
   })();
   const meta = options.meta === void 0 ? "" : `<span class="learner-header__meta">${escapeHtml(boundedText(options.meta, "Header metadata", 160))}</span>`;
   const menuClass = globalNavigation ? "learner-nav-menu" : "learner-nav-menu learner-nav-menu--local-only";
@@ -969,6 +1062,14 @@ function renderLearnerHeader(options) {
     </details>
   </div>
 </header>`;
+}
+function renderLearnerContextNavigation(options) {
+  const navigationLabel = boundedText(options.navigationLabel, "Context navigation label", 160);
+  if (!Array.isArray(options.navigation) || options.navigation.length === 0) {
+    throw new Error("Learner context navigation must include at least one item.");
+  }
+  const navigation = renderLearnerNavigationItems(options.navigation, "Context navigation");
+  return `<nav class="learner-context-nav" aria-label="${escapeHtml(navigationLabel)}"><div class="learner-context-nav__inner">${navigation}</div></nav>`;
 }
 function renderLearnerFooter(options = {}) {
   const summary = options.summary === void 0 ? "" : `<span>${escapeHtml(boundedText(options.summary, "Footer summary", 240))}</span>`;
@@ -1152,6 +1253,7 @@ export {
   createLearnerUiCss,
   learnerUiJavaScript,
   renderLearnerAtmosphere,
+  renderLearnerContextNavigation,
   renderLearnerFooter,
   renderLearnerHeader,
   resolveLearnerUiTheme

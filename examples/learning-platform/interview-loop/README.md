@@ -20,10 +20,11 @@ closed, read-only **View example solution** disclosure. Reference source is
 reviewed repository input, not Learning Pack or Question Group data; opening
 it neither replaces the learner draft nor changes progress.
 
-The page has one learner header: Interview Loop identity, local navigation,
-and one **Learning suite** disclosure for the learning suite. On mobile, local
-navigation moves into that disclosure; module controls remain inside the
-course layout instead of becoming another site header.
+The page has one persistent learner header: **Learning Studio** identity and
+the three sibling experiences. Interview Loop's **Modules**, **Practice**,
+**Review**, and **Coding lab** links sit immediately below it as a quiet
+context row, not as another header. Module controls remain inside the course
+layout.
 
 This is original, transferable preparation. It does not reproduce or predict
 the private interview process, rubric, or questions of Stripe, OpenAI,
@@ -57,13 +58,16 @@ The reviewed source of truth for the shared presentation is
 `packages/course-kit/src/learner-ui.ts`. The example consumes its generated,
 dependency-free browser bundle at `tools/vendor/learner-ui.mjs` during a
 monorepo build;
-`platform.json` explicitly supplies its product name, navigation labels and
-hash routes, `sage` appearance palette, and footer. The palette changes color
-identity and line tint, while every palette shares the same sparse,
-scroll-reactive ethereal atmosphere and component behavior; the other reviewed
-choices are `paper`, `cobalt`, `plum`, and `graphite`. The example has no runtime
-dependency on a hosted stylesheet, JavaScript service, framework CDN, or model
-API.
+`platform.json` explicitly supplies its product name, contextual navigation
+labels and hash routes, `sage` appearance palette, and footer.
+`../learning-suite.mjs` supplies the persistent Learning Studio identity and
+sibling destinations. The palette changes color identity and line tint, while
+every palette shares the same sparse, scroll-reactive ethereal atmosphere and
+component behavior. Sage adds a short highlight to the existing line, so its
+sparkle inherits the shared scroll crossfade without another animation layer;
+the other reviewed choices are `paper`, `cobalt`, `plum`, and `graphite`. The
+example has no runtime dependency on a hosted stylesheet, JavaScript service,
+framework CDN, or model API.
 
 Read [GUIDE.md](./GUIDE.md) for the course map, shared/specialized source
 boundaries, and practice sequence. Read [AGENTS.md](./AGENTS.md) before asking

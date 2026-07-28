@@ -18,9 +18,10 @@ never grants a capability. Portable Python runtimes must remain
 
 ## Trusted learner UI and application source
 
-`platform.json` is trusted build input for the product name, header navigation
-labels and hash routes, theme, metadata, and footer. It does not extend either
-portable format or grant runtime authority.
+`platform.json` is trusted build input for the product name, contextual
+navigation labels and hash routes, theme, metadata, and footer. The persistent
+Learning Studio header comes from `../learning-suite.mjs`. Neither input
+extends a portable format or grants runtime authority.
 
 The shared learner presentation source of truth is
 `packages/course-kit/src/learner-ui.ts`. Its standalone integrations are

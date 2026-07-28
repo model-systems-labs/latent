@@ -8,12 +8,8 @@
     "appearance": {
       "palette": "sage"
     },
-    "header": {
-      "homeHref": "./",
-      "homeLabel": "Interview Loop Lab home",
-      "navigationLabel": "Learning areas",
-      "menuLabel": "Learning suite",
-      "meta": "Webhook scenario · 3 modules",
+    "contextNavigation": {
+      "navigationLabel": "Interview Loop sections",
       "navigation": [
         {
           "label": "Modules",

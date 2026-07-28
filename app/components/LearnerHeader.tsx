@@ -1,7 +1,6 @@
 import Link from "next/link";
 import {
-  createLearningSuiteHeaderNavigation,
-  learningSuite,
+  createLearningSuiteHeaderConfiguration,
 } from "@/examples/learning-platform/learning-suite.mjs";
 
 type LearnerDestination =
@@ -12,7 +11,19 @@ type LearnerDestination =
   | "reading";
 
 type LearnerExperience = "llm-systems";
-type LearningSuiteExperience = Readonly<{ id: string; navLabel: string }>;
+type LearningSuiteHeaderContract = Readonly<{
+  productName: string;
+  homeHref: string;
+  homeLabel: string;
+  navigationLabel: string;
+  navigation: readonly Readonly<{
+    label: string;
+    href: string;
+    current?: boolean;
+  }>[];
+  menuLabel: string;
+  meta: string;
+}>;
 
 const destinations = [
   { id: "courses", href: "/course", label: "Courses" },
@@ -22,13 +33,10 @@ const destinations = [
 ] as const;
 
 const learningSuiteBasePath = process.env.LATENT_LEARNING_SUITE_BASE_PATH ?? "";
-const suiteDestinations = createLearningSuiteHeaderNavigation({
+const suiteHeader = createLearningSuiteHeaderConfiguration({
   rootHref: `${learningSuiteBasePath}/`,
   currentId: "llm-systems",
-});
-const llmSystemsExperience = learningSuite.experiences.find(
-  (experience: LearningSuiteExperience) => experience.id === "llm-systems",
-)!;
+}) as LearningSuiteHeaderContract;
 
 const suiteNavigation = [
   { id: "courses", href: "/courses/llm-systems", label: "Modules" },
@@ -65,6 +73,47 @@ function PrimaryNavigation({
   );
 }
 
+function LearningSuiteNavigation({ mobile = false }: { mobile?: boolean }) {
+  return (
+    <nav
+      className={`learner-primary-nav learner-primary-nav--${mobile ? "mobile" : "desktop"}`}
+      aria-label={suiteHeader.navigationLabel}
+    >
+      {suiteHeader.navigation.map((destination) => (
+        <a
+          aria-current={destination.current ? "page" : undefined}
+          href={destination.href}
+          key={destination.href}
+        >
+          {destination.label}
+        </a>
+      ))}
+    </nav>
+  );
+}
+
+function LlmSystemsContextNavigation({
+  current,
+}: {
+  current?: LearnerDestination;
+}) {
+  return (
+    <nav className="learner-context-nav" aria-label="LLM Systems navigation">
+      <div className="learner-context-nav__inner">
+        {suiteNavigation.map((destination) => (
+          <Link
+            aria-current={current === destination.id ? "page" : undefined}
+            href={destination.href}
+            key={destination.id}
+          >
+            {destination.label}
+          </Link>
+        ))}
+      </div>
+    </nav>
+  );
+}
+
 export function LearnerHeader({
   className,
   current,
@@ -76,48 +125,60 @@ export function LearnerHeader({
 }) {
   const suiteMode = experience === "llm-systems"
     || process.env.LATENT_COURSE_HOME === "llm-systems";
-  const productName = suiteMode ? llmSystemsExperience.navLabel : "Latent Courses";
-  const navigation = suiteMode ? suiteNavigation : destinations;
+  const productName = suiteMode ? suiteHeader.productName : "Latent Courses";
+  const wordmarkContent = (
+    <>
+      <i className="learner-wordmark__mark" aria-hidden="true" />
+      <span>{productName}</span>
+    </>
+  );
   return (
-    <header
-      className={`learner-header${className ? ` ${className}` : ""}`}
-      data-learner-family-header={suiteMode ? "true" : undefined}
-    >
-      <div className="learner-header__inner">
-        <div className="learner-header__identity">
-          <Link
-            className="learner-wordmark"
-            href={suiteMode ? "/courses/llm-systems" : "/"}
-            aria-label={`${productName} home`}
-          >
-            <i className="learner-wordmark__mark" aria-hidden="true" />
-            <span>{productName}</span>
-          </Link>
-          {suiteMode ? <span className="learner-header__meta">Build the system</span> : null}
-        </div>
-        <PrimaryNavigation current={current} items={navigation} />
-        <details
-          className={`learner-nav-menu${suiteMode ? "" : " learner-nav-menu--local-only"}`}
-        >
-          <summary>{suiteMode ? "Learning suite" : "Menu"}</summary>
-          <div className="learner-nav-menu__panel">
+    <>
+      <header
+        className={`learner-header${className ? ` ${className}` : ""}`}
+        data-learner-family-header={suiteMode ? "true" : undefined}
+      >
+        <div className="learner-header__inner">
+          <div className="learner-header__identity">
             {suiteMode ? (
-              <nav className="learner-global-nav" aria-label={learningSuite.navigationLabel}>
-                {suiteDestinations.map((destination) => (
-                  <a
-                    aria-current={destination.current ? "page" : undefined}
-                    href={destination.href}
-                    key={destination.href}
-                  >
-                    {destination.label}
-                  </a>
-                ))}
-              </nav>
+              <a
+                className="learner-wordmark"
+                href={suiteHeader.homeHref}
+                aria-label={suiteHeader.homeLabel}
+              >
+                {wordmarkContent}
+              </a>
+            ) : (
+              <Link
+                className="learner-wordmark"
+                href="/"
+                aria-label={`${productName} home`}
+              >
+                {wordmarkContent}
+              </Link>
+            )}
+            {suiteMode ? (
+              <span className="learner-header__meta">{suiteHeader.meta}</span>
             ) : null}
-            <PrimaryNavigation current={current} items={navigation} mobile />
           </div>
-        </details>
-      </div>
-    </header>
+          {suiteMode ? (
+            <LearningSuiteNavigation />
+          ) : (
+            <PrimaryNavigation current={current} items={destinations} />
+          )}
+          <details className="learner-nav-menu learner-nav-menu--local-only">
+            <summary>{suiteMode ? suiteHeader.menuLabel : "Menu"}</summary>
+            <div className="learner-nav-menu__panel">
+              {suiteMode ? (
+                <LearningSuiteNavigation mobile />
+              ) : (
+                <PrimaryNavigation current={current} items={destinations} mobile />
+              )}
+            </div>
+          </details>
+        </div>
+      </header>
+      {suiteMode ? <LlmSystemsContextNavigation current={current} /> : null}
+    </>
   );
 }

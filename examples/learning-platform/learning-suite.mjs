@@ -237,6 +237,33 @@ export function createLearningSuiteHeaderNavigation(options) {
   })));
 }
 
+/**
+ * Provide one reviewed global header contract for every route in the suite.
+ * Product-local navigation belongs in the content plane and is intentionally
+ * not accepted here.
+ *
+ * @param {{ rootHref: string, currentId: string }} options
+ */
+export function createLearningSuiteHeaderConfiguration({
+  rootHref: requestedRootHref,
+  currentId,
+}) {
+  const base = rootHref(requestedRootHref);
+  return deepFreeze({
+    productName: learningSuite.title,
+    homeHref: base,
+    homeLabel: `${learningSuite.title} home`,
+    navigationLabel: learningSuite.navigationLabel,
+    navigation: createLearningSuiteHeaderNavigation({
+      rootHref: base,
+      currentId,
+      includeHome: false,
+    }),
+    menuLabel: "Experiences",
+    meta: learningSuite.headerMeta,
+  });
+}
+
 export function learningSuiteRouteReport() {
   const routes = {
     home: ["/"],

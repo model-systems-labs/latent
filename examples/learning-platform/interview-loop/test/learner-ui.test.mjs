@@ -8,6 +8,7 @@ import {
   LEARNER_UI_VERSION,
   createLearnerUiCss,
   learnerUiJavaScript,
+  renderLearnerContextNavigation,
   renderLearnerFooter,
   renderLearnerHeader,
   resolveLearnerUiTheme,
@@ -24,11 +25,14 @@ test("build-time learner UI config renders the shared shell and local assets", a
   assert.equal(LEARNER_UI_VERSION, 2);
   assert.deepEqual(platform.learnerUi.appearance, { palette: "sage" });
   assert.equal(LEARNER_UI_BREAKPOINTS.compact, 760);
-  assert.equal(platform.learnerUi.header.menuLabel, "Learning suite");
+  assert.equal(
+    platform.learnerUi.contextNavigation.navigationLabel,
+    "Interview Loop sections",
+  );
   assert.match(platform.brand.tagline, /one webhook-delivery scenario/);
   assert.match(LEARNER_UI_FAVICON_SVG, /^<svg/);
   assert.deepEqual(
-    platform.learnerUi.header.navigation.map(({ label, href, dataView }) => ({
+    platform.learnerUi.contextNavigation.navigation.map(({ label, href, dataView }) => ({
       label,
       href,
       dataView,
@@ -41,30 +45,35 @@ test("build-time learner UI config renders the shared shell and local assets", a
     ],
   );
 
-  const header = renderLearnerHeader({
-    productName: platform.brand.name,
-    ...createInterviewLoopHeader(platform.learnerUi.header),
-  });
+  const header = renderLearnerHeader(createInterviewLoopHeader());
+  const contextNavigation = renderLearnerContextNavigation(
+    platform.learnerUi.contextNavigation,
+  );
   const footer = renderLearnerFooter(platform.learnerUi.footer);
   const css = createLearnerUiCss(
     resolveLearnerUiTheme(platform.learnerUi.appearance),
     { palette: platform.learnerUi.appearance.palette },
   );
   assert.match(header, /class="learner-header"/);
-  assert.match(header, /class="learner-global-nav"/);
-  assert.match(header, /href="\.\.\/">Learning Studio<\/a>/);
+  assert.match(header, /class="learner-wordmark"[^>]*>[\s\S]*Learning Studio/);
+  assert.match(header, /learner-header__meta">Courses and practice/);
+  assert.doesNotMatch(header, /class="learner-global-nav"/);
   assert.match(header, /href="\.\.\/llm-systems\/">LLM Systems<\/a>/);
   assert.match(header, /href="\.\/" aria-current="page">Interview Loop<\/a>/);
   assert.match(header, /href="\.\.\/practice\/">Ten Problems<\/a>/);
-  assert.equal(platform.learnerUi.header.globalNavigation, undefined);
-  assert.match(header, /href="#modules"[^>]*data-view="lesson"/);
-  assert.match(header, /href="#practice"[^>]*data-view="practice"/);
-  assert.match(header, /href="#review"[^>]*data-view="cards"/);
-  assert.match(header, /href="#coding-lab"[^>]*data-view="ide"/);
+  assert.equal(platform.learnerUi.header, undefined);
+  assert.doesNotMatch(header, /data-view=|href="#modules"/);
+  assert.match(contextNavigation, /class="learner-context-nav"/);
+  assert.match(contextNavigation, /aria-label="Interview Loop sections"/);
+  assert.match(contextNavigation, /href="#modules"[^>]*data-view="lesson"/);
+  assert.match(contextNavigation, /href="#practice"[^>]*data-view="practice"/);
+  assert.match(contextNavigation, /href="#review"[^>]*data-view="cards"/);
+  assert.match(contextNavigation, /href="#coding-lab"[^>]*data-view="ide"/);
   assert.match(footer, /Built with Latent\./);
   assert.match(css, /--learner-color-canvas: #eaf1e8/);
   assert.match(css, /--learner-color-accent: #47705d/);
   assert.match(css, /--learner-background-recipe: sage/);
+  assert.match(css, /--learner-atmosphere-glint-strength: \.38/);
   assert.match(css, /\.learner-atmosphere__line--3/);
   assert.match(css, /--learner-atmosphere-line:/);
   assert.doesNotMatch(css, /radial-gradient|repeating-linear-gradient/);
@@ -78,6 +87,7 @@ test("build-time learner UI config renders the shared shell and local assets", a
     assert.match(buildSource, new RegExp(asset.replace(".", "\\.")));
   }
   assert.match(buildSource, /\{ palette: platform\.learnerUi\.appearance\.palette \}/);
+  assert.match(buildSource, /renderLearnerContextNavigation/);
   assert.doesNotMatch(buildSource, /replaceExact|replaceAll\(before/);
 });
 
@@ -135,6 +145,8 @@ test("Interview interactions preserve compact focus, touch targets, and wrapped 
   assert.match(appSource, /element\("div", \{ className: "learner-card callout", role: "note" \}/);
   assert.doesNotMatch(appSource, /element\("aside"/);
   assert.match(appSource, /candidate\.dataset\.view === view/);
+  assert.match(appSource, /\.learner-context-nav \[data-view\]/);
+  assert.doesNotMatch(appSource, /\.learner-primary-nav \[data-view\]/);
   assert.match(appSource, /tabindex: "0"/);
   assert.match(appSource, /globalThis\.LearnerUiComponents\?\.createSolutionDisclosure/);
   const setStatusBody = appSource.match(
@@ -154,5 +166,9 @@ test("Interview interactions preserve compact focus, touch targets, and wrapped 
   assert.match(
     styles,
     /\.learner-status,[\s\S]*\.case-list p \{[\s\S]*overflow-wrap: anywhere;/,
+  );
+  assert.match(
+    styles,
+    /\.view \{[\s\S]*var\(--learner-header-height\)[\s\S]*var\(--learner-context-nav-height\)/,
   );
 });

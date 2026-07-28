@@ -1,18 +1,13 @@
 import {
-  createLearningSuiteHeaderNavigation,
-  learningSuite,
+  createLearningSuiteHeaderConfiguration,
 } from "../learning-suite.mjs";
 
 export const tenProblemsSiteUi = Object.freeze({
-  productName: "Ten Problems",
-  headerMeta: "10 Python problems",
-  globalNavigationLabel: learningSuite.navigationLabel,
-  globalNavigation: createLearningSuiteHeaderNavigation({
+  suiteHeader: createLearningSuiteHeaderConfiguration({
     rootHref: "../",
     currentId: "ten-problems",
   }),
   navigationLabel: "Ten Problems navigation",
-  menuLabel: "Learning suite",
   reviewDirectory: "leeches",
   copy: Object.freeze({
     allNavigationLabel: "Practice",

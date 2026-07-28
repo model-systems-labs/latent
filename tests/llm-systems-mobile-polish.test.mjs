@@ -52,16 +52,30 @@ test("the learner family header and Paper ethereal atmosphere come from the shar
   assert.match(header, /className="learner-header__inner"/);
   assert.match(header, /className="learner-wordmark"/);
   assert.match(header, /learner-primary-nav--\$\{mobile \? "mobile" : "desktop"\}/);
-  assert.match(header, /className="learner-global-nav" aria-label=\{learningSuite\.navigationLabel\}/);
-  assert.match(header, /createLearningSuiteHeaderNavigation/);
+  assert.match(header, /productName = suiteMode \? suiteHeader\.productName : "Latent Courses"/);
+  assert.match(header, /<span className="learner-header__meta">\{suiteHeader\.meta\}<\/span>/);
+  assert.match(header, /createLearningSuiteHeaderConfiguration/);
+  assert.match(header, /rootHref: `\$\{learningSuiteBasePath\}\/`/);
+  assert.match(header, /<a[\s\S]*?href=\{suiteHeader\.homeHref\}[\s\S]*?aria-label=\{suiteHeader\.homeLabel\}/);
   assert.match(header, /className="learner-nav-menu__panel"/);
+  assert.match(
+    header,
+    /<details className="learner-nav-menu learner-nav-menu--local-only">/,
+  );
   assert.doesNotMatch(header, /<details[^>]*\sopen(?:\s|=)/);
+  assert.match(header, /<summary>\{suiteMode \? suiteHeader\.menuLabel : "Menu"\}<\/summary>/);
+  assert.match(header, /<LearningSuiteNavigation \/>/);
+  assert.match(header, /<LearningSuiteNavigation mobile \/>/);
+  assert.match(header, /<nav className="learner-context-nav" aria-label="LLM Systems navigation">/);
+  assert.match(header, /className="learner-context-nav__inner"/);
+  assert.match(header, /\{suiteMode \? <LlmSystemsContextNavigation current=\{current\} \/> : null\}/);
+  assert.doesNotMatch(header, /className="learner-global-nav"/);
+  assert.equal(header.match(/<header/g)?.length, 1);
   assert.match(header, /label: "Modules"/);
   assert.match(header, /label: "Practice"/);
   assert.match(header, /label: "Review"/);
   assert.match(header, /label: "Project"/);
   assert.match(header, /label: "Reading"/);
-  assert.match(header, /<summary>\{suiteMode \? "Learning suite" : "Menu"\}<\/summary>/);
   assert.match(layout, /href=\{`\$\{learnerUiAssetBasePath\}\/assets\/learner-ui\.css`\}/);
   assert.match(layout, /src=\{`\$\{learnerUiAssetBasePath\}\/assets\/learner-ui\.js`\}/);
   assert.doesNotMatch(layout, /dangerouslySetInnerHTML/);
@@ -69,9 +83,11 @@ test("the learner family header and Paper ethereal atmosphere come from the shar
   assert.match(generator, /resolveLearnerUiTheme\(\{ palette: "paper" \}\)/);
   assert.match(generator, /createLearnerUiCss\(theme, \{ palette: "paper" \}\)/);
   assert.match(generatedCss, /--learner-background-recipe: paper;/);
+  assert.match(generatedCss, /--learner-atmosphere-glint-strength: 0;/);
   assert.match(generatedCss, /linear-gradient\(180deg/);
   assert.doesNotMatch(generatedCss, /radial-gradient|conic-gradient|repeating-linear-gradient/);
   assert.match(generatedCss, /\.learner-atmosphere__line--intro/);
+  assert.match(generatedCss, /\.learner-atmosphere__line::after/);
   assert.match(generatedJavaScript, /const traceInterval = 1\.45/);
   assert.match(generatedJavaScript, /addEventListener\("scroll", scheduleAtmospheres, \{ passive: true \}\)/);
   assert.match(atmosphere, /data-learner-atmosphere=""/);
@@ -100,7 +116,7 @@ test("full-height workspaces account for the family header at every compact brea
   assert.match(workspace, /import \{ ProjectWorkbench \} from "@\/app\/components\/ProjectWorkbench"/);
   assert.match(workspace, /<ProjectWorkbench \/>/);
   assert.doesNotMatch(workspace, /lazy|Suspense|WorkspaceLoading/);
-  assert.match(workspaceStyles, /\.shell\s*\{[^}]*height:\s*calc\(100dvh - var\(--learner-header-height\)\)/);
+  assert.match(workspaceStyles, /\.shell\s*\{[^}]*height:\s*calc\(100dvh - var\(--learner-header-height\) - var\(--learner-context-nav-height, 0rem\)\)/);
   assert.match(workspaceStyles, /\.shell\s*\{[^}]*min-height:\s*0/);
   assert.doesNotMatch(workspaceStyles, /data-learner-family-header|course-header|4\.9rem/);
   assert.match(workspaceStyles, /\.topbar\s*\{[^}]*column-gap:\s*0\.5rem/);
@@ -109,9 +125,9 @@ test("full-height workspaces account for the family header at every compact brea
   assert.match(capstone, /compiled-capstone-shell \$\{styles\.shell\}/);
   assert.match(capstone, /compiled-capstone-runtime \$\{styles\.runtime\}/);
   assert.match(capstone, /capstone-build-gate \$\{styles\.gate\}/);
-  assert.match(capstoneStyles, /\.shell\s*\{[^}]*min-height:\s*calc\(100dvh - var\(--learner-header-height\)\)/);
-  assert.match(capstoneStyles, /\.runtime\s*\{[^}]*height:\s*calc\(100dvh - var\(--learner-header-height\) - 4\.8rem\)/);
-  assert.match(capstoneStyles, /\.gate\s*\{[^}]*min-height:\s*calc\(100dvh - var\(--learner-header-height\) - 4\.8rem\)/);
+  assert.match(capstoneStyles, /\.shell\s*\{[^}]*min-height:\s*calc\(100dvh - var\(--learner-header-height\) - var\(--learner-context-nav-height, 0rem\)\)/);
+  assert.match(capstoneStyles, /\.runtime\s*\{[^}]*height:\s*calc\(100dvh - var\(--learner-header-height\) - var\(--learner-context-nav-height, 0rem\) - 4\.8rem\)/);
+  assert.match(capstoneStyles, /\.gate\s*\{[^}]*min-height:\s*calc\(100dvh - var\(--learner-header-height\) - var\(--learner-context-nav-height, 0rem\) - 4\.8rem\)/);
   assert.match(capstoneStyles, /@media \(max-width: 650px\)[\s\S]*?\.runtime\s*\{[^}]*3\.75rem/);
   assert.match(capstoneStyles, /@media \(max-width: 940px\) and \(max-height: 500px\)[\s\S]*?\.runtime\s*\{[^}]*2\.75rem/);
   assert.doesNotMatch(capstoneStyles, /external-header-height|data-learner-family-header|course-header/);

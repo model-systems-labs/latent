@@ -39,6 +39,10 @@ test("the trusted build input configures a Python-only learner site without outp
   assert.ok(files["assets/learner-ui.js"]);
   assert.match(files["assets/player.css"], /--learner-background-recipe: cobalt;/);
   assert.match(files["assets/player.css"], /--learner-atmosphere-glint-strength: \.38;/);
+  assert.match(
+    files["assets/player.css"],
+    /\.learner-editor-frame \.learner-solution\s*\{[^}]*border-top:\s*0;[^}]*margin-top:\s*0;[^}]*padding:\s*0 var\(--learner-space-4\);/,
+  );
 
   assert.equal((files["index.html"].match(/<header\b/g) ?? []).length, 1);
   assert.match(files["index.html"], /<span>Learning Studio<\/span>/);

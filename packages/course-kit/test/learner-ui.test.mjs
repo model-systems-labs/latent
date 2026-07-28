@@ -65,6 +65,10 @@ test("the learner UI foundation publishes stable tokens, responsive breakpoints,
   assert.match(css, /\.learner-solution > summary \{[\s\S]*?min-height: 2\.75rem;/);
   assert.match(css, /\.learner-solution pre \{[\s\S]*?overflow: auto;/);
   assert.match(css, /\.learner-solution pre \{[\s\S]*?background: transparent;/);
+  assert.match(
+    css,
+    /\.learner-editor-frame \.learner-solution \{[\s\S]*?border-top: 0;[\s\S]*?margin-top: 0;[\s\S]*?padding: 0 var\(--learner-space-4\);/,
+  );
   assert.match(css, /\.learner-editor-frame/);
   assert.match(
     css,

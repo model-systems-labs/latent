@@ -59,6 +59,9 @@ test("Question Group builds are complete static practice sites with a leech quer
   const workspaceCss = files["assets/player.css"].match(
     /\.workspace\s*\{([^}]*)\}/,
   )?.[1];
+  const framedSolutionCss = files["assets/player.css"].match(
+    /\.learner-editor-frame \.learner-solution\s*\{([^}]*)\}/,
+  )?.[1];
   const resultsCss = files["assets/player.css"].match(
     /\.workspace \.learner-results\s*\{([^}]*)\}/,
   )?.[1];
@@ -70,6 +73,9 @@ test("Question Group builds are complete static practice sites with a leech quer
   assert.doesNotMatch(questionCopyCss ?? "", /overflow:\s*auto/);
   assert.match(workspaceCss ?? "", /display:\s*flex/);
   assert.doesNotMatch(workspaceCss ?? "", /grid-template-rows|min-height:\s*46rem/);
+  assert.match(framedSolutionCss ?? "", /border-top:\s*0/);
+  assert.match(framedSolutionCss ?? "", /margin-top:\s*0/);
+  assert.match(framedSolutionCss ?? "", /padding:\s*0 var\(--learner-space-4\)/);
   assert.match(resultsCss ?? "", /overflow:\s*visible/);
   assert.doesNotMatch(resultsCss ?? "", /overflow:\s*auto/);
   assert.match(

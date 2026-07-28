@@ -897,6 +897,11 @@ body.learner-ui:has(.learner-context-nav) {
   min-width: 0;
   overflow: hidden;
 }
+.learner-editor-frame .learner-solution {
+  border-top: 0;
+  margin-top: 0;
+  padding: 0 var(--learner-space-4);
+}
 .learner-editor-toolbar {
   align-items: center;
   background: var(--learner-color-surface-muted);

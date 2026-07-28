@@ -22,13 +22,7 @@ export function CourseResume() {
     return () => { active = false; };
   }, []);
 
-  if (!hydrated) {
-    return (
-      <section className={`${styles.resume} ${styles.loading}`} aria-busy="true" aria-live="polite">
-        <p>Restoring your place…</p>
-      </section>
-    );
-  }
+  if (!hydrated) return null;
 
   const startedLessons = courseLessons.filter((lesson) => (learner.lessons[lesson.id]?.updatedAt ?? 0) > 0);
   const nextLesson = courseLessons.find((lesson) => !lessonIsComplete(

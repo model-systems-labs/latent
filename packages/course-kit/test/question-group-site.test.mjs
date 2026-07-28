@@ -38,6 +38,7 @@ test("Question Group builds are complete static practice sites with a leech quer
   assert.equal(QUESTION_GROUP_PLAYER_VERSION, 2);
   assert.match(declarations, /viewExampleSolution\?: string;/);
   assert.match(declarations, /exampleInputLabel\?: string;/);
+  assert.match(declarations, /draftChanged\?: string;/);
   assert.equal(files[".latent-build"], `${QUESTION_GROUP_BUILD_MARKER}\n`);
   assert.ok(files["assets/esbuild.wasm"] instanceof Uint8Array);
   assert.ok(files["assets/esbuild.wasm"].byteLength > 1_000_000);
@@ -118,6 +119,10 @@ test("Question Group builds are complete static practice sites with a leech quer
     files["assets/player.css"],
     /\.question-copy h2\s*\{[^}]*font-family: var\(--learner-font-reading\)/,
   );
+  assert.match(
+    files["assets/player.css"],
+    /\.question-copy h2\[tabindex="-1"\]\s*\{[^}]*width:\s*fit-content/,
+  );
   assert.match(files["assets/learner-ui.js"], /event\.key !== "Escape"/);
   assert.match(files["assets/learner-ui.js"], /const prepareCodeEditor = /);
   assert.match(
@@ -184,6 +189,15 @@ test("Question Group builds are complete static practice sites with a leech quer
     files["assets/player.js"],
     /globalThis\.LearnerUiComponents\?\.createEditableExamples/,
   );
+  assert.match(
+    files["assets/player.js"],
+    /workspace\.append\(\s*workspaceHeader,\s*editor,\s*actions,\s*resultAnnouncement,\s*results,\s*solutionHost,\s*\)/,
+  );
+  assert.match(files["assets/player.js"], /exampleController\?\.invalidate\?\.\(\)/);
+  assert.match(
+    files["assets/player.js"],
+    /source !== lastSettledRunSource[\s\S]*copy\.draftChanged/,
+  );
   assert.match(files["assets/learner-ui.js"], /const createEditableExamples = /);
   assert.match(
     files["assets/learner-ui.js"],
@@ -219,7 +233,7 @@ test("Question Group builds are complete static practice sites with a leech quer
   assert.match(files["assets/learner-ui.js"], /event\.ctrlKey \|\| event\.metaKey/);
   assert.match(
     files["assets/learner-ui.js"],
-    /current\.onRun\(event\.shiftKey \? "examples" : "check"\)/,
+    /const mode = event\.shiftKey \? "examples" : "check";[\s\S]*current\.runModes\.includes\(mode\)\) current\.onRun\(mode\)/,
   );
   assert.match(files["assets/player.js"], /copy\.runCanceled/);
   assert.match(
@@ -467,6 +481,7 @@ test("Question Group UI configuration controls branding, routes, copy, and runti
           continueLabel: "Continue next",
           editorLabel: "Python answer",
           draftSaved: "Answer saved",
+          draftChanged: "Answer changed. Run it again.",
           runtimeUnavailable: "Practice is taking a break.",
           viewExampleSolution: "Open worked answer",
         },
@@ -540,6 +555,10 @@ test("Question Group UI configuration controls branding, routes, copy, and runti
   assert.match(configured["assets/player.js"], /"cancelRun":"Cancel"/);
   assert.match(configured["assets/player.js"], /"editorLabel":"Python answer"/);
   assert.match(configured["assets/player.js"], /"draftSaved":"Answer saved"/);
+  assert.match(
+    configured["assets/player.js"],
+    /"draftChanged":"Answer changed\. Run it again\."/,
+  );
   assert.match(
     configured["assets/player.js"],
     /"runtimeUnavailable":"Practice is taking a break\."/,

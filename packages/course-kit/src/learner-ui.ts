@@ -906,6 +906,9 @@ body.learner-ui:has(.learner-context-nav) {
   margin: var(--learner-space-4) 0 0;
   padding: .25rem 0 .25rem var(--learner-space-3);
 }
+.learner-status:empty {
+  display: none;
+}
 .learner-status[data-tone="success"] {
   border-color: var(--learner-color-success);
   color: var(--learner-color-success);
@@ -1486,6 +1489,7 @@ export const learnerUiJavaScript = `(() => {
     receivedLabel = "Received",
     modifiedLabel = "Modified input",
     resetMessage = "Published input restored.",
+    staleMessage = "Source changed. Run this input again.",
     onRun,
     onBusyChange,
     onChange,
@@ -1512,6 +1516,7 @@ export const learnerUiJavaScript = `(() => {
       received: componentText(receivedLabel, "Example received label", 80).trim(),
       modified: componentText(modifiedLabel, "Example modified label", 80).trim(),
       resetMessage: componentText(resetMessage, "Example reset message", 120).trim(),
+      staleMessage: componentText(staleMessage, "Example stale message", 160).trim(),
     };
     const list = document.createElement("div");
     list.className = "learner-examples";
@@ -1853,6 +1858,20 @@ export const learnerUiJavaScript = `(() => {
       reset() {
         records.forEach((record) => resetRecord(record, false));
       },
+      invalidate(message = labels.staleMessage) {
+        const trustedMessage = componentText(
+          message,
+          "Example stale message",
+          160,
+        ).trim();
+        revision += 1;
+        activeRun?.controller.abort();
+        for (const record of records) {
+          if (!record.status.textContent) continue;
+          record.status.dataset.tone = "warning";
+          record.status.textContent = trustedMessage;
+        }
+      },
       revision() {
         return revision;
       },
@@ -1870,25 +1889,49 @@ export const learnerUiJavaScript = `(() => {
       ? value
       : "text"
   );
-  const editorInstruction = (tabSize, language, hasRunHandler) => (
+  const normalizedRunModes = (onRun, value) => {
+    if (!onRun) return [];
+    const modes = value === undefined ? ["examples", "check"] : value;
+    if (
+      !Array.isArray(modes)
+      || modes.length === 0
+      || modes.length > 2
+      || modes.some((mode) => mode !== "examples" && mode !== "check")
+      || new Set(modes).size !== modes.length
+    ) {
+      throw new Error(
+        "Shared code editor runModes must contain unique examples and/or check modes.",
+      );
+    }
+    return [...modes];
+  };
+  const editorInstruction = (tabSize, language, runModes) => (
     (language === "python"
       ? "Python code editor. "
       : "Code editor. ")
     + "Tab indents " + tabSize
     + " spaces; Shift+Tab outdents. Press Escape, then Tab, to leave the editor."
-    + (hasRunHandler
+    + (runModes.includes("check") && runModes.includes("examples")
       ? " Press Command or Control plus Enter to check; add Shift to run examples."
-      : "")
+      : runModes.includes("check")
+        ? " Press Command or Control plus Enter to run the current check."
+        : runModes.includes("examples")
+          ? " Press Command or Control plus Shift plus Enter to run examples."
+          : "")
   );
-  const editorShortcuts = ({ onRun, onSave }) => [
+  const editorShortcuts = ({ onSave, runModes }) => [
     "Tab",
     "Shift+Tab",
     "Escape",
     ...(onSave ? ["Control+S", "Meta+S"] : []),
-    ...(onRun
+    ...(runModes.includes("check")
       ? [
           "Control+Enter",
           "Meta+Enter",
+        ]
+      : []),
+    ...(runModes.includes("examples")
+      ? [
           "Control+Shift+Enter",
           "Meta+Shift+Enter",
         ]
@@ -1979,6 +2022,7 @@ export const learnerUiJavaScript = `(() => {
       language: requestedLanguage = "text",
       onRun,
       onSave,
+      runModes: requestedRunModes,
       tabSize: requestedTabSize = 2,
     } = {},
   ) => {
@@ -1987,10 +2031,12 @@ export const learnerUiJavaScript = `(() => {
     }
     const tabSize = normalizedTabSize(requestedTabSize);
     const language = normalizedEditorLanguage(requestedLanguage);
+    const runHandler = typeof onRun === "function" ? onRun : null;
     const configuration = {
       language,
-      onRun: typeof onRun === "function" ? onRun : null,
+      onRun: runHandler,
       onSave: typeof onSave === "function" ? onSave : null,
+      runModes: normalizedRunModes(runHandler, requestedRunModes),
       tabSize,
     };
     editor.dataset.learnerTabSize = String(tabSize);
@@ -2003,7 +2049,7 @@ export const learnerUiJavaScript = `(() => {
       prepared.instruction.textContent = editorInstruction(
         tabSize,
         language,
-        Boolean(configuration.onRun),
+        configuration.runModes,
       );
       const enhanceTextarea =
         globalThis.LatentLearnerCodeEditorRuntime?.enhanceTextarea;
@@ -2027,7 +2073,7 @@ export const learnerUiJavaScript = `(() => {
     instruction.textContent = editorInstruction(
       tabSize,
       language,
-      Boolean(configuration.onRun),
+      configuration.runModes,
     );
     editor.after(instruction);
     const describedBy = editor.getAttribute("aria-describedby");
@@ -2071,7 +2117,8 @@ export const learnerUiJavaScript = `(() => {
         && current.onRun
       ) {
         event.preventDefault();
-        current.onRun(event.shiftKey ? "examples" : "check");
+        const mode = event.shiftKey ? "examples" : "check";
+        if (current.runModes.includes(mode)) current.onRun(mode);
         return;
       }
       if (

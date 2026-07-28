@@ -242,6 +242,12 @@ function renderLesson(pack, state) {
   );
   const lesson = lessons[activeIndex];
   const completed = new Set(state.module.completedIds);
+  const nextRecommendedLesson = (
+    completed.has(lesson.id)
+      ? lessons.slice(activeIndex + 1).find((candidate) => !completed.has(candidate.id))
+        ?? lessons.find((candidate) => !completed.has(candidate.id))
+      : lesson
+  );
   const quizCount = lesson.blocks.filter((block) => block.type === "quiz").length;
   const progress = element("progress", {
     className: "learner-progress module-progress",
@@ -261,7 +267,7 @@ function renderLesson(pack, state) {
         element("span", {
           text: completed.size === lessons.length
             ? "All modules finished. You can revisit any module."
-            : `${lesson.title}. Position and completion are saved on this device.`,
+            : `${nextRecommendedLesson?.title ?? lesson.title}. Position and completion are saved on this device.`,
         }),
       ]),
     ]),
@@ -340,7 +346,9 @@ function renderLesson(pack, state) {
     if (completed.has(lesson.id)) completed.delete(lesson.id);
     else {
       completed.add(lesson.id);
-      const nextIncomplete = lessons.find((candidate) => !completed.has(candidate.id));
+      const nextIncomplete = lessons
+        .slice(activeIndex + 1)
+        .find((candidate) => !completed.has(candidate.id));
       if (nextIncomplete) state.module.activeId = nextIncomplete.id;
     }
     const openedAnotherModule = state.module.activeId !== lesson.id;
@@ -519,6 +527,10 @@ function renderPractice(library, state) {
       ? questionKey(visibleQuestions[0])
       : questionKey(allQuestions[0]);
   }
+  state.runtimeStore.write("practice-active", {
+    libraryDigest: state.practice.libraryDigest,
+    key: state.practice.activeKey,
+  });
   const question = allQuestions.find((entry) => (
     questionKey(entry) === state.practice.activeKey
   )) ?? allQuestions[0];
@@ -542,13 +554,14 @@ function renderPractice(library, state) {
     element("h1", { id: "practice-heading", tabindex: "-1", text: "Coding practice" }),
     element("p", {
       className: "learner-summary",
-      text: "Work through the public examples and checks. Questions with repeated misses move into Review.",
+      text: "Work through the public examples and checks. Use the repeated-miss filter here when a problem needs another pass.",
     }),
   ]);
   const list = element("ul", {
     className: "learner-nav-list question-list",
     "aria-label": "Practice problems",
   });
+  const navigationItems = new Map();
   if (!visibleQuestions.length) {
     list.append(element("li", {
       className: "learner-empty",
@@ -581,15 +594,25 @@ function renderPractice(library, state) {
     ]);
     button.addEventListener("click", () => {
       state.practice.activeKey = questionKey(entry);
+      state.runtimeStore.write("practice-active", {
+        libraryDigest: state.practice.libraryDigest,
+        key: state.practice.activeKey,
+      });
       renderPractice(library, state);
       focusRendered("#practice-question-heading", { scroll: true });
       announce(`Problem ${sequence} opened: ${entry.title}.`);
+    });
+    navigationItems.set(questionKey(entry), {
+      button,
+      dot: button.querySelector(".learner-status-dot"),
+      sequence,
+      title: entry.title,
     });
     list.append(element("li", {}, button));
   }
   const filter = element("label", { className: "filter", htmlFor: toggleId }, [
     toggle,
-    element("span", { text: "Review repeated misses" }),
+    element("span", { text: "Show repeated misses" }),
   ]);
   rail.append(mobilePanel("Choose problem", [filter, list]));
   if (state.practice.leechesOnly && visibleQuestions.length === 0) {
@@ -597,7 +620,7 @@ function renderPractice(library, state) {
       rail,
       element("div", { className: "learner-content work" }, element("p", {
         className: "learner-empty",
-        text: "Nothing needs review yet. Turn off repeated-miss review to keep practicing.",
+        text: "Nothing needs another pass yet. Turn off the repeated-miss filter to keep practicing.",
       })),
     );
     return;
@@ -619,6 +642,25 @@ function renderPractice(library, state) {
     className: "learner-eyebrow",
     text: question.path,
   });
+  const draftStatus = element("span", {
+    className: "draft-status",
+    role: "status",
+    "aria-live": "polite",
+    "aria-atomic": "true",
+  });
+  let hasSavedDraft = state.practice.drafts[identity.contractVersion] !== null;
+  let draftPersisted = hasSavedDraft;
+  const setDraftCheckState = (checkState, restored = false) => {
+    const draftLabel = !hasSavedDraft
+      ? "Starter"
+      : !draftPersisted
+        ? "Draft kept for this visit"
+        : restored
+          ? "Draft restored"
+          : "Draft saved";
+    draftStatus.textContent = `${draftLabel} · ${checkState}`;
+  };
+  setDraftCheckState("Not checked", hasSavedDraft);
   const editor = element("textarea", {
     id: "practice-editor",
     className: "learner-editor",
@@ -627,7 +669,7 @@ function renderPractice(library, state) {
   });
   editor.value = source;
   const editorFrame = element("div", { className: "learner-editor-frame" }, [
-    element("div", { className: "learner-editor-toolbar" }, label),
+    element("div", { className: "learner-editor-toolbar" }, [label, draftStatus]),
     editor,
   ]);
   const status = element("p", { className: "learner-status", "aria-live": "polite" });
@@ -750,6 +792,7 @@ function renderPractice(library, state) {
     updateRunAvailability();
     const submittedSource = editor.value;
     const cases = mode === "examples" ? publicCases : question.cases;
+    results.replaceChildren();
     setStatus(
       status,
       mode === "examples"
@@ -778,6 +821,7 @@ function renderPractice(library, state) {
         mode === "examples" ? "Published example results" : "Check results",
       ));
       if (mode === "examples") {
+        setDraftCheckState("Not checked");
         setStatus(
           status,
           passed
@@ -803,12 +847,33 @@ function renderPractice(library, state) {
       });
       state.practice.progress[identity.contractVersion] = next;
       state.runtimeStore.write("practice-progress", state.practice.progress);
+      state.practice.drafts[identity.contractVersion] = submittedSource;
+      draftPersisted = state.runtimeStore.write(
+        `practice-draft:${identity.contractVersion}`,
+        submittedSource,
+      );
+      hasSavedDraft = true;
+      setDraftCheckState("Checked");
+      const navigationItem = navigationItems.get(questionKey(question));
+      if (navigationItem) {
+        const progressStatus = next.status ?? "attempted";
+        const progressLabel = progressStatus === "solved"
+          ? "solved"
+          : progressStatus === "attempted"
+            ? "attempted"
+            : "not started";
+        navigationItem.dot.dataset.status = progressStatus;
+        navigationItem.button.setAttribute(
+          "aria-label",
+          `Problem ${navigationItem.sequence}: ${navigationItem.title}, ${progressLabel}`,
+        );
+      }
       setStatus(
         status,
         passed
-          ? "All checks passed. This problem no longer needs repeated-miss review."
+          ? "All checks passed. This problem no longer appears in the repeated-miss filter."
           : isLeechProgress(next)
-            ? "Some checks failed. This problem is now in repeated-miss review."
+            ? "Some checks failed. This problem now appears in the repeated-miss filter."
             : "Some checks failed. Review the cases and try again.",
         passed ? "success" : "danger",
       );
@@ -819,6 +884,7 @@ function renderPractice(library, state) {
       ) {
         return;
       }
+      setDraftCheckState("Not checked");
       setStatus(status, error.message, "danger");
     } finally {
       if (practiceRunController === controller) {
@@ -836,12 +902,23 @@ function renderPractice(library, state) {
   });
   editor.addEventListener("input", () => {
     state.practice.drafts[identity.contractVersion] = editor.value;
-    state.runtimeStore.write(`practice-draft:${identity.contractVersion}`, editor.value);
+    draftPersisted = state.runtimeStore.write(
+      `practice-draft:${identity.contractVersion}`,
+      editor.value,
+    );
+    hasSavedDraft = true;
+    setDraftCheckState("Not checked");
+    practiceExamplesController?.invalidate?.(
+      "Source changed. Run this input again.",
+    );
+    results.replaceChildren();
+    setStatus(status, "");
   });
   practiceEditorController = prepareCodeEditor(editor, {
     onRun: (mode) => (
       mode === "examples" ? runExamples : checkSolution
     ).click(),
+    runModes: ["examples", "check"],
   });
   updateRunAvailability();
   const publicExamples = element("section", {
@@ -861,9 +938,9 @@ function renderPractice(library, state) {
       runExamples,
       checkSolution,
     ]),
-    referenceSolutionDisclosure(referenceSolution.source, question.title),
     status,
     results,
+    referenceSolutionDisclosure(referenceSolution.source, question.title),
   );
   root.append(rail, work);
 }
@@ -884,7 +961,7 @@ function renderIde(exercises, state) {
     element("h1", { id: "ide-heading", tabindex: "-1", text: "Coding follow-up" }),
     element("p", { className: "learner-summary", text: exercise.summary }),
     element("ul", { className: "meta-list" }, [
-      element("li", {}, [element("span", { text: "Runtime" }), element("strong", { text: "Python 3.14 · browser worker" })]),
+      element("li", {}, [element("span", { text: "Runtime" }), element("strong", { text: "Runs in your browser" })]),
       element("li", {}, [element("span", { text: "Language" }), element("strong", { text: exercise.language })]),
       element("li", {}, [element("span", { text: "Checks" }), element("strong", { text: String(exercise.checks.length) })]),
       element("li", {}, [element("span", { text: "Progress" }), progressValue]),
@@ -897,6 +974,24 @@ function renderIde(exercises, state) {
     className: "learner-eyebrow",
     text: exercise.files[0].path,
   });
+  const draftStatus = element("span", {
+    className: "draft-status",
+    role: "status",
+    "aria-live": "polite",
+    "aria-atomic": "true",
+  });
+  let hasIdeDraft = state.ide.draft !== null;
+  let ideDraftPersisted = hasIdeDraft;
+  const setIdeDraftCheckState = (checkState, restored = false) => {
+    const draftLabel = !hasIdeDraft
+      ? "Starter"
+      : !ideDraftPersisted
+        ? "Draft kept for this visit"
+        : restored
+          ? "Draft restored"
+          : "Draft saved";
+    draftStatus.textContent = `${draftLabel} · ${checkState}`;
+  };
   const editor = element("textarea", {
     id: "ide-editor",
     className: "learner-editor",
@@ -904,12 +999,8 @@ function renderIde(exercises, state) {
     "aria-label": `${exercise.title} source`,
   });
   editor.value = saved;
-  editor.addEventListener("input", () => {
-    state.ide.draft = editor.value;
-    state.runtimeStore.write(`ide-draft:${exercise.id}:${exercise.contractVersion}`, editor.value);
-  });
   const editorFrame = element("div", { className: "learner-editor-frame" }, [
-    element("div", { className: "learner-editor-toolbar" }, editorLabel),
+    element("div", { className: "learner-editor-toolbar" }, [editorLabel, draftStatus]),
     editor,
   ]);
   const status = element("p", { className: "learner-status", "aria-live": "polite" });
@@ -935,7 +1026,24 @@ function renderIde(exercises, state) {
         : "Your latest saved solution still has failing checks.",
       state.ide.result.passed ? "success" : "danger",
     );
+    setIdeDraftCheckState("Checked", true);
+  } else {
+    setIdeDraftCheckState("Not checked", hasIdeDraft);
   }
+  editor.addEventListener("input", () => {
+    state.ide.draft = editor.value;
+    hasIdeDraft = true;
+    ideDraftPersisted = state.runtimeStore.write(
+      `ide-draft:${exercise.id}:${exercise.contractVersion}`,
+      editor.value,
+    );
+    state.ide.result = null;
+    state.runtimeStore.remove(`ide-result:${exercise.id}:${exercise.contractVersion}`);
+    progressValue.textContent = "In progress";
+    setIdeDraftCheckState("Not checked");
+    results.replaceChildren();
+    setStatus(status, "");
+  });
   const run = element("button", {
     className: "learner-button",
     "data-variant": "primary",
@@ -945,8 +1053,15 @@ function renderIde(exercises, state) {
   run.addEventListener("click", async () => {
     run.disabled = true;
     setStatus(status, "Checking your solution…");
+    results.replaceChildren();
     try {
       const submittedSource = editor.value;
+      state.ide.draft = submittedSource;
+      hasIdeDraft = true;
+      ideDraftPersisted = state.runtimeStore.write(
+        `ide-draft:${exercise.id}:${exercise.contractVersion}`,
+        submittedSource,
+      );
       const cases = exercise.checks.map((check) => ({ ...check, assertions: [{
         id: check.id,
         label: check.label,
@@ -979,8 +1094,10 @@ function renderIde(exercises, state) {
         state.ide.result,
       );
       progressValue.textContent = passed ? "Complete" : "In progress";
+      setIdeDraftCheckState("Checked");
       setStatus(status, passed ? "Every IDE check passed." : "One or more IDE checks failed.", passed ? "success" : "danger");
     } catch (error) {
+      setIdeDraftCheckState("Not checked");
       setStatus(status, error.message, "danger");
     } finally {
       run.disabled = false;
@@ -988,6 +1105,7 @@ function renderIde(exercises, state) {
   });
   ideEditorController = prepareCodeEditor(editor, {
     onRun: () => run.click(),
+    runModes: ["check"],
   });
   const reset = element("button", {
     className: "learner-button",
@@ -998,25 +1116,36 @@ function renderIde(exercises, state) {
     editor.value = exercise.files[0].content;
     ideEditorController?.setValue?.(editor.value);
     state.ide.draft = editor.value;
-    state.runtimeStore.write(`ide-draft:${exercise.id}:${exercise.contractVersion}`, editor.value);
     state.ide.result = null;
     state.runtimeStore.remove(`ide-result:${exercise.id}:${exercise.contractVersion}`);
     results.replaceChildren();
     progressValue.textContent = "In progress";
+    hasIdeDraft = true;
+    ideDraftPersisted = state.runtimeStore.write(
+      `ide-draft:${exercise.id}:${exercise.contractVersion}`,
+      editor.value,
+    );
+    setIdeDraftCheckState("Not checked");
     setStatus(status, "Starter restored.");
   });
   work.append(
     editorFrame,
     element("div", { className: "learner-button-row practice-actions" }, [run, reset]),
-    referenceSolutionDisclosure(referenceSolution.source, exercise.title),
     status,
     results,
+    referenceSolutionDisclosure(referenceSolution.source, exercise.title),
   );
   root.append(rail, work);
 }
 
 function configureNavigation() {
   const links = $$(".learner-context-nav [data-view]");
+  const headingByView = {
+    lesson: "#lesson-heading",
+    practice: "#practice-heading",
+    cards: "#cards-heading",
+    ide: "#ide-heading",
+  };
   const open = (link, { focus = false, announceView = false, updateHistory = false } = {}) => {
     const view = link.dataset.view;
     for (const candidate of links) {
@@ -1027,7 +1156,9 @@ function configureNavigation() {
     if (updateHistory && location.hash !== link.getAttribute("href")) {
       history.pushState(null, "", link.getAttribute("href"));
     }
-    if (focus) $("#learning-surface").focus({ preventScroll: true });
+    if (focus) {
+      focusRendered(headingByView[view], { scroll: true });
+    }
     if (announceView) announce(`${link.textContent.trim()} opened.`);
   };
   for (const link of links) {
@@ -1089,6 +1220,13 @@ try {
   const practiceIdentities = practiceQuestions.map((question) => (
     practiceProgressIdentity(library, libraryRecord.digest, question)
   ));
+  const storedPracticeActive = runtimeStore.read("practice-active", null);
+  const storedPracticeActiveKey = (
+    storedPracticeActive?.libraryDigest === libraryRecord.digest
+    && practiceQuestions.some((question) => (
+      questionKey(question) === storedPracticeActive.key
+    ))
+  ) ? storedPracticeActive.key : null;
   const ideExercise = hostModule.ideExercises[0];
   const ideDraftKey = `ide-draft:${ideExercise.id}:${ideExercise.contractVersion}`;
   const ideResultKey = `ide-result:${ideExercise.id}:${ideExercise.contractVersion}`;
@@ -1117,7 +1255,8 @@ try {
       ratings: store.read("card-ratings", {}),
     },
     practice: {
-      activeKey: `${practiceQuestions[0].groupId}/${practiceQuestions[0].id}`,
+      activeKey: storedPracticeActiveKey
+        ?? `${practiceQuestions[0].groupId}/${practiceQuestions[0].id}`,
       libraryDigest: libraryRecord.digest,
       leechesOnly: false,
       progress: runtimeStore.read("practice-progress", {}),

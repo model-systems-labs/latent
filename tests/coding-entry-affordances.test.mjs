@@ -21,7 +21,8 @@ test("learner navigation keeps the workspace contextual to the LLM Systems artif
     learnerHeader.indexOf("const learningSuiteBasePath"),
   );
   assert.doesNotMatch(generalDestinations, /href: "\/(?:workspace|open-learning)"/);
-  assert.match(learnerHeader, /\{ id: "practice", href: "\/workspace", label: "Practice" \}/);
+  assert.match(learnerHeader, /\{ id: "courses", href: "\/", label: "Modules" \}/);
+  assert.match(learnerHeader, /\{ id: "practice", href: "\/practice", label: "Practice" \}/);
   for (const page of [landing, catalog]) {
     assert.match(page, /<LearnerHeader current="courses" \/>/);
     assert.doesNotMatch(page, /href="\/(?:workspace|open-learning)"/);
@@ -43,7 +44,9 @@ test("lesson exercise rows advertise the editor and leave the coding area unobst
   assert.match(paperLab, /`Running round \$\{round\}`/);
   assert.match(paperLab, /`Complete · \$\{completedRounds\}\/3 rounds`/);
   assert.match(paperLab, /"Round 1 of 3"/);
-  assert.match(paperLab, />Open coding workspace ↗<\/Link>/);
+  assert.match(paperLab, />Open coding workspace →<\/Link>/);
+  assert.match(paperLab, /onRun=\{\(\) => void runCell\(block\)\}/);
+  assert.match(paperLab, /runModes=\{\["check"\]\}/);
   assert.match(lessonPage, /<PaperLab lesson=\{lesson\}/);
   assert.doesNotMatch(lessonPage, /CopyEditor/);
   assert.match(codingCss, /\.exercise-summary:hover\s*\{[^}]*background:\s*var\(--violet-wash\)/);

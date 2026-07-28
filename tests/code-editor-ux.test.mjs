@@ -105,7 +105,10 @@ test("the React adapter keeps controlled-value updates distinct from learner typ
   assert.match(source, /applyingExternalValueRef\.current = true;[\s\S]*?view\.dispatch\([\s\S]*?insert: value[\s\S]*?finally \{[\s\S]*?applyingExternalValueRef\.current = false/);
   assert.match(source, /const hasSaveHandler = Boolean\(onSave\)/);
   assert.match(source, /hasSaveHandler[\s\S]*?\{ onSave: \(\) => saveRef\.current\?\.\(\) \}/);
-  assert.match(source, /hasRunHandler[\s\S]*?\{ onRun: \(\) => runRef\.current\?\.\(\) \}/);
+  assert.match(source, /onRun\?: \(mode: LearnerCodeEditorRunMode\) => void/);
+  assert.match(source, /runModes\?: readonly LearnerCodeEditorRunMode\[\]/);
+  assert.match(source, /onRun: \(mode: LearnerCodeEditorRunMode\) => runRef\.current\?\.\(mode\)/);
+  assert.match(source, /runModes: \[[\s\S]*?supportsExampleRun[\s\S]*?supportsCheckRun/);
 });
 
 test("the mobile IDE source contract preserves readable type, bounded scrolling, focus, and touch targets", async () => {
@@ -125,7 +128,7 @@ test("the mobile IDE source contract preserves readable type, bounded scrolling,
   assert.match(primitive, /"aria-multiline": "true"/);
   assert.match(primitive, /"aria-readonly": "true"/);
   assert.match(source, /ariaDescribedBy:\s*instructionId/);
-  assert.match(source, /const editableEditorInstruction =\s*"Code editor\. Tab accepts an open suggestion; otherwise it indents\. Press Escape, then Tab, to leave the editor\."/);
+  assert.match(source, /const editableEditorInstruction =\s*"Code editor\. Tab accepts an open suggestion or indents; Shift plus Tab outdents\. Press Escape, then Tab, to leave the editor\."/);
   const readOnlyInstruction = source.match(/const readOnlyEditorInstruction =\s*"([^"]+)"/)?.[1];
   assert.equal(
     readOnlyInstruction,
@@ -133,6 +136,7 @@ test("the mobile IDE source contract preserves readable type, bounded scrolling,
   );
   assert.doesNotMatch(readOnlyInstruction, /Tab indents/);
   assert.match(source, /\{readOnly \? readOnlyEditorInstruction : editableEditorInstruction\}/);
+  assert.match(source, /supportsCheckRun && supportsExampleRun[\s\S]*?add Shift to run examples/);
   assert.match(source, /const className =[\s\S]*?"code-editor lesson-code-editor"[\s\S]*?"code-editor workbook-code-editor"[\s\S]*?"code-editor"/);
   assert.match(source, /className=\{className\}[\s\S]*?ref=\{hostRef\}[\s\S]*?\/>\s*<span className="sr-only" id=\{instructionId\}>/);
   assert.doesNotMatch(source, /<div className="code-editor" ref=\{hostRef\}>\s*<span/);

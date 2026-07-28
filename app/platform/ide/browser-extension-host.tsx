@@ -318,6 +318,7 @@ export function createLatentCodeMirrorIdeEditor(
           }}
           path={model.file.path}
           readOnly={!model.file.editable || model.running}
+          runModes={["check"]}
           value={model.value}
         />
       );

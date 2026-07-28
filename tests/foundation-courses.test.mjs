@@ -291,7 +291,7 @@ test("foundation routes stay independent while legacy advanced aliases redirect 
   assert.doesNotMatch(standaloneRoute, /href="\/(?:project|workspace|capstone)"/);
   assert.match(advancedRoute, /<LearnerHeader current="courses" experience="llm-systems" \/>/);
   assert.match(learnerHeader, /\{ id: "project", href: "\/project", label: "Project" \}/);
-  assert.match(learnerHeader, /\{ id: "practice", href: "\/workspace", label: "Practice" \}/);
+  assert.match(learnerHeader, /\{ id: "practice", href: "\/practice", label: "Practice" \}/);
   assert.deepEqual(course.courseTracks.map((track) => track.id), ["models", "systems", "backend", "product"]);
   for (const track of course.courseTracks) {
     assert.equal(`/courses/${track.id}`.startsWith("/courses/llm-systems/"), false);

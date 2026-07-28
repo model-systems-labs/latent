@@ -1347,8 +1347,8 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
         <div className="editor-toolbar">
           <div className="editor-file"><span>{projectPath}</span></div>
           <span className="sr-only">{verifiedCells} of {blocks.length} exercises verified</span>
-          {contributesToBrowserChat ? <Link className="open-ide-link" href={`/workspace?file=${encodeURIComponent(projectPath)}`}>Open coding workspace ↗</Link> : null}
-          {contributesToHarness ? <Link className="open-ide-link" href={`/courses/harness-engineering/workspace?file=${encodeURIComponent(projectPath)}`}>Open project ↗</Link> : null}
+          {contributesToBrowserChat ? <Link className="open-ide-link" href={`/workspace?file=${encodeURIComponent(projectPath)}`}>Open coding workspace →</Link> : null}
+          {contributesToHarness ? <Link className="open-ide-link" href={`/courses/harness-engineering/workspace?file=${encodeURIComponent(projectPath)}`}>Open project →</Link> : null}
         </div>
         <div className="practice-sequence">
           {implementationPrelude ? (
@@ -1484,8 +1484,10 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
                             ariaLabel={`Edit ${block.label}, round ${round} of ${PRACTICE_ROUNDS.length}`}
                             lineNumberStart={startLine}
                             onChange={(value) => updateAnswer(block, value)}
+                            onRun={() => void runCell(block)}
                             path={lesson.implementation.filename}
                             readOnly={blockRunning || (projectConflict && round === 1)}
+                            runModes={["check"]}
                             value={workingSource}
                             variant="lesson"
                           />

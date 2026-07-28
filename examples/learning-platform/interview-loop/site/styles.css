@@ -45,6 +45,18 @@
   margin: 0 0 var(--learner-space-3);
 }
 
+.rail h1[tabindex="-1"],
+.work h2[tabindex="-1"] {
+  max-width: 100%;
+  width: fit-content;
+}
+
+.rail h1[tabindex="-1"]:focus-visible,
+.work h2[tabindex="-1"]:focus-visible {
+  outline-width: 2px;
+  outline-offset: .3rem;
+}
+
 .work > h2,
 .prose > h2,
 .prose > h3 {
@@ -114,9 +126,14 @@
 }
 
 .prose pre {
-  background: #17211d;
+  background: color-mix(
+    in srgb,
+    var(--learner-code-surface) 88%,
+    var(--learner-color-surface)
+  );
+  border: var(--learner-border);
   border-radius: var(--learner-radius-md);
-  color: #f4f7f5;
+  color: var(--learner-code-text);
   font: .875rem/1.6 var(--learner-font-mono);
   overflow-x: auto;
   padding: var(--learner-space-4);
@@ -270,6 +287,14 @@
   margin: 0;
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.draft-status {
+  color: var(--learner-color-muted);
+  flex: 0 1 auto;
+  font-size: .75rem;
+  margin-left: var(--learner-space-3);
+  text-align: right;
 }
 
 .practice-actions {

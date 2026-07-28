@@ -231,3 +231,75 @@ run identifiers remain historical records for their published revisions.
 This is local Chromium emulation and keyboard inspection, not physical-device
 or formal screen-reader certification. Live Pages verification for this
 revision belongs to the release handoff after deployment.
+
+## Editable coding-flow polish — 2026-07-28
+
+This local checkpoint tightened the existing shared learner foundation without
+changing the portable Learning Pack or Question Group contracts. The reviewed
+`packages/course-kit/src/learner-code-editor.ts` source now accepts a trusted
+`runModes` configuration so each host exposes only the run/check shortcuts it
+actually supports. All editable course and practice code continues to use that
+same CodeMirror primitive, including Python syntax highlighting, Tab and
+Shift+Tab indentation, and Escape-then-Tab exit behavior. The shared
+`packages/course-kit/src/learner-ui.ts` and
+`packages/course-kit/src/question-group-site.ts` controllers now invalidate
+out-of-date example, check, and custom-input feedback when source changes
+instead of leaving a result that appears to describe a newer draft.
+The editor also consumes the other family run chord when a host supports only
+one mode. For example, Command/Control+Shift+Enter in a check-only lesson or
+IDE now leaves the source untouched instead of falling through to CodeMirror
+as an accidental newline; the advertised Command/Control+Enter check still
+runs normally.
+
+The earlier standalone post-build string and styling patch architecture remains
+removed. React, Interview Loop, and the standalone Question Group player
+consume the reviewed learner UI and editor source through deterministic,
+same-origin build artifacts. Example solutions are trusted application source,
+open separately, and do not overwrite the learner's saved draft. What remains
+intentionally specialized is product structure: LLM Systems keeps its lesson
+and intentionally dark project workspace; Interview Loop keeps modules,
+quizzes, cards, practice, and its Python coding lab; Ten Problems keeps its
+focused problem chooser, editable public inputs, Python checks, and
+repeated-miss Review.
+
+Targeted automated evidence for this checkpoint:
+
+- Course Kit: 76 tests passed.
+- LLM Systems focused regressions: 48 tests passed.
+- Interview Loop focused regressions: 22 tests passed, with strict authored
+  content validation green.
+- Ten Problems: 9 tests passed; strict Question Group validation remained green
+  for 4 groups, 10 questions, and 39 declarative cases.
+- The combined production Pages build completed successfully and produced 446
+  files with its strict example, subpath, and performance checks green.
+
+Local in-app Chromium flows covered beginning, advanced, keyboard-oriented, and
+mobile learners at 1440 × 900 and 390 × 844. The exercised routes were `/`,
+`/llm-systems/`, `/interview-loop/`, `/practice/`, `/practice/leeches/`, and
+their `/latent/` equivalents. The flows included LLM lesson/practice/project
+editing; Interview module, quiz, card, practice, IDE, and resume states; and Ten
+Problems example/check failure and success, custom public input, draft reload,
+progress, and repeated-miss removal. The route sweeps found one stable global
+header, no horizontal document overflow, same-origin subpath assets, and no
+browser-console errors. This is local Chromium evidence only; final repository
+validation and live Pages verification are intentionally not claimed by this
+checkpoint.
+
+Two additional full passes on fresh local origins found no new P0, P1, or
+meaningful P2 issues after the final fixes. Those fixes gave the narrow LLM
+practice search field its own 44-pixel-tall row above the two filters, exposed
+the dark project workspace identity as a level-one screen-reader heading
+without adding another visual header, and verified the unsupported-shortcut
+guard in both the LLM lesson editor and Interview IDE. The second pass repeated
+desktop and mobile route sweeps, failure/success checks, draft-preserving
+solutions, custom Python inputs, reload persistence, repeated-miss
+appearance/removal, compact-menu Escape restoration, focus outlines, and
+editor Tab/Shift+Tab behavior with zero page overflow or console errors.
+
+The final repository gate then passed Open Learning validation/schema/public
+generation, all 76 Course Kit tests, all 480 application tests, Interview
+strict validation plus 22 focused tests, Ten Problems strict validation plus 9
+tests, and the production learning-examples build. The final Pages artifact
+contains 446 files; 96 LLM routes prerendered, 95 were rewritten for the Pages
+subpath, all performance budgets passed, and `git diff --check` was clean.
+Live Pages verification remains a release step after merge.

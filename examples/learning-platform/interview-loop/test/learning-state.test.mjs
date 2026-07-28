@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+  createJsonStorage,
   createLearningPackStateStore,
   sha256Hex,
 } from "../site/progress.mjs";
@@ -61,4 +62,22 @@ test("Learning Pack state restores only for unchanged bytes", async () => {
   assert.equal(changedReload.store.read("card-ratings", null), null);
   assert.match(unchangedReload.identity.namespace, new RegExp(`sha256:${unchangedDigest}$`));
   assert.match(changedReload.identity.namespace, new RegExp(`sha256:${changedDigest}$`));
+});
+
+test("draft storage reports whether a device write succeeded", () => {
+  const storage = memoryStorage();
+  const available = createJsonStorage(storage, "interview-runtime");
+  assert.equal(available.write("draft", "print('saved')"), true);
+  assert.equal(available.read("draft", null), "print('saved')");
+
+  const unavailable = createJsonStorage({
+    getItem() {
+      return null;
+    },
+    setItem() {
+      throw new Error("storage unavailable");
+    },
+    removeItem() {},
+  }, "interview-runtime");
+  assert.equal(unavailable.write("draft", "print('session')"), false);
 });

@@ -34,7 +34,7 @@ export function CourseGuide({
       {primaryLink || secondaryLink ? (
         <div className={styles.actions}>
           {primaryLink ? <Link href={primaryLink.href}><strong>{primaryLink.label} <span aria-hidden="true">→</span></strong></Link> : null}
-          {secondaryLink ? <Link href={secondaryLink.href}><strong>{secondaryLink.label} <span aria-hidden="true">↗</span></strong></Link> : null}
+          {secondaryLink ? <Link href={secondaryLink.href}><strong>{secondaryLink.label} <span aria-hidden="true">→</span></strong></Link> : null}
         </div>
       ) : null}
       <details className={`${styles.details} calm-disclosure`}>

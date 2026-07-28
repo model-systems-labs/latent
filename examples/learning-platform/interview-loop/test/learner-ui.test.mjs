@@ -241,6 +241,78 @@ test("Interview interactions preserve compact focus, touch targets, and wrapped 
   );
 });
 
+test("Interview draft, feedback, resume, and review semantics stay learner-facing", async () => {
+  const [appSource, styles, questionGroupsSource] = await Promise.all([
+    readFile(new URL("../site/app.mjs", import.meta.url), "utf8"),
+    readFile(new URL("../site/styles.css", import.meta.url), "utf8"),
+    readFile(new URL("../content/question-groups.json", import.meta.url), "utf8"),
+  ]);
+  const questionGroups = JSON.parse(questionGroupsSource);
+  const prompts = questionGroups.groups.flatMap((group) => (
+    group.questions.map((question) => question.prompt)
+  ));
+
+  assert.equal(appSource.match(/className: "draft-status"/g)?.length, 2);
+  assert.equal(appSource.match(/"Draft saved"/g)?.length, 2);
+  assert.equal(appSource.match(/"Draft kept for this visit"/g)?.length, 2);
+  assert.match(appSource, /practiceExamplesController\?\.invalidate\?\.\(/);
+  assert.equal(
+    appSource.match(/results\.replaceChildren\(\);\n    setStatus\(status, ""\);/g)?.length,
+    2,
+  );
+  assert.match(appSource, /runModes: \["examples", "check"\]/);
+  assert.match(appSource, /runModes: \["check"\]/);
+
+  const practiceAppend = appSource.match(
+    /work\.append\(\n    publicExamples,([\s\S]*?)\n  \);\n  root\.append\(rail, work\);/,
+  )?.[1];
+  assert.ok(practiceAppend);
+  assert.ok(practiceAppend.indexOf("status") < practiceAppend.indexOf("results"));
+  assert.ok(
+    practiceAppend.indexOf("results")
+      < practiceAppend.indexOf("referenceSolutionDisclosure"),
+  );
+  const ideAppend = appSource.match(
+    /work\.append\(\n    editorFrame,([\s\S]*?)\n  \);\n  root\.append\(rail, work\);/,
+  )?.[1];
+  assert.ok(ideAppend);
+  assert.ok(ideAppend.indexOf("status") < ideAppend.indexOf("results"));
+  assert.ok(
+    ideAppend.indexOf("results")
+      < ideAppend.indexOf("referenceSolutionDisclosure"),
+  );
+
+  assert.doesNotMatch(appSource, /move into Review|Review repeated misses/);
+  assert.match(appSource, /Show repeated misses/);
+  assert.match(appSource, /repeated-miss filter/);
+  assert.match(appSource, /navigationItem\.dot\.dataset\.status = progressStatus/);
+  assert.match(appSource, /storedPracticeActive\?\.libraryDigest === libraryRecord\.digest/);
+  assert.match(
+    appSource,
+    /state\.runtimeStore\.write\("practice-active", \{\n\s+libraryDigest:/,
+  );
+  assert.match(appSource, /focusRendered\(headingByView\[view\], \{ scroll: true \}\)/);
+  assert.doesNotMatch(
+    appSource,
+    /if \(focus\) \$\("#learning-surface"\)\.focus/,
+  );
+  assert.match(appSource, /\.slice\(activeIndex \+ 1\)/);
+  assert.match(appSource, /text: "Runs in your browser"/);
+
+  assert.ok(prompts.every((prompt) => prompt.length <= 190));
+  assert.ok(prompts.every((prompt) => /^Step [1-3] of 4\./.test(prompt)));
+  assert.doesNotMatch(styles, /background: #17211d/);
+  assert.match(
+    styles,
+    /\.prose pre \{[\s\S]*var\(--learner-code-surface\)[\s\S]*var\(--learner-code-text\)/,
+  );
+  assert.match(styles, /\.draft-status \{[\s\S]*text-align: right;/);
+  assert.match(
+    styles,
+    /\.rail h1\[tabindex="-1"\],[\s\S]*\.work h2\[tabindex="-1"\] \{[\s\S]*width: fit-content;/,
+  );
+});
+
 test("the checked-in learner code editor is a bounded same-origin build input", async () => {
   const editorSource = await readFile(
     new URL("../tools/vendor/learner-code-editor.js", import.meta.url),

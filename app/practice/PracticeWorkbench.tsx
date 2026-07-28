@@ -14,6 +14,7 @@ import {
   runMethodQuestion,
   type MethodQuestionRunMode,
 } from "@/app/features/practice/question-runner";
+import { methodPracticeReferenceSolution } from "@/app/features/practice/reference-solutions";
 import {
   applyQuestionAttemptMutation,
   applyQuestionDraftMutation,
@@ -110,6 +111,7 @@ export function PracticeWorkbench({
     methodQuestionLibrary.library.version,
     activeQuestion,
   );
+  const activeReferenceSolution = methodPracticeReferenceSolution(activeQuestion.id);
 
   useEffect(() => {
     progressRef.current = progressByQuestion;
@@ -778,41 +780,65 @@ export function PracticeWorkbench({
             <CodeEditor
               ariaLabel={`${activeQuestion.title} solution editor`}
               onChange={handleChange}
-              onRun={() => void runQuestion("check")}
+              onRun={(mode) => void runQuestion(mode)}
               onSave={() => void flushCurrentDraft()}
               path={activeQuestion.path}
+              runModes={["examples", "check"]}
               value={draft}
               variant="workbook"
             />
           </div>
-          <footer className={styles.editorFooter}>
-            <span>⌘/Ctrl + Enter checks · ⌘/Ctrl + S saves · Escape then Tab leaves the editor</span>
-            <div className={styles.editorActions}>
-              {runState.status === "running" ? (
-                <button className={styles.cancelAction} onClick={cancelRun} type="button">Cancel</button>
-              ) : (
-                <button onClick={() => setConfirmingReset(true)} type="button">Start over</button>
-              )}
-              <button disabled={runState.status === "running"} onClick={() => void runQuestion("examples")} type="button">Run examples</button>
-              <button
-                className={styles.primaryAction}
-                disabled={runState.status === "running"}
-                onClick={() => void runQuestion("check")}
-                type="button"
-              >
-                {runState.status === "running" ? "Checking…" : "Check solution"}
-              </button>
-            </div>
-          </footer>
-          {confirmingReset ? (
-            <div className={styles.resetConfirmation} role="alert">
-              <p>Replace this draft with the starter and clear its attempts?</p>
-              <div>
-                <button onClick={() => setConfirmingReset(false)} type="button">Keep draft</button>
-                <button onClick={() => void resetActiveQuestion()} type="button">Reset question</button>
+          <div className={styles.editorControls}>
+            <footer className={styles.editorFooter}>
+              <span>⌘/Ctrl + Enter checks · ⇧ + ⌘/Ctrl + Enter runs examples · ⌘/Ctrl + S saves · Escape then Tab exits</span>
+              <div className={styles.editorActions}>
+                {runState.status === "running" ? (
+                  <button className={styles.cancelAction} onClick={cancelRun} type="button">Cancel</button>
+                ) : (
+                  <button onClick={() => setConfirmingReset(true)} type="button">Start over</button>
+                )}
+                <button disabled={runState.status === "running"} onClick={() => void runQuestion("examples")} type="button">Run examples</button>
+                <button
+                  className={styles.primaryAction}
+                  disabled={runState.status === "running"}
+                  onClick={() => void runQuestion("check")}
+                  type="button"
+                >
+                  {runState.status === "running" ? "Checking…" : "Check solution"}
+                </button>
               </div>
+            </footer>
+            <div className={`learner-solution-host ${styles.solutionHost}`}>
+              <details className="learner-solution">
+                <summary aria-label={`View example solution for ${activeQuestion.title}`}>
+                  View example solution
+                </summary>
+                <p className="learner-summary">
+                  Compare the approach with your draft. Opening this reference does not replace
+                  your code or update progress.
+                </p>
+                <div className={styles.solutionEditor}>
+                  <CodeEditor
+                    ariaLabel={`${activeQuestion.title} example solution`}
+                    onChange={() => undefined}
+                    path={activeQuestion.path}
+                    readOnly
+                    value={activeReferenceSolution}
+                    variant="workbook"
+                  />
+                </div>
+              </details>
             </div>
-          ) : null}
+            {confirmingReset ? (
+              <div className={styles.resetConfirmation} role="alert">
+                <p>Replace this draft with the starter and clear its attempts?</p>
+                <div>
+                  <button onClick={() => setConfirmingReset(false)} type="button">Keep draft</button>
+                  <button onClick={() => void resetActiveQuestion()} type="button">Reset question</button>
+                </div>
+              </div>
+            ) : null}
+          </div>
           <section
             aria-busy={runState.status === "running"}
             aria-label="Check results"

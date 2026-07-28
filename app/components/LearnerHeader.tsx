@@ -39,8 +39,8 @@ const suiteHeader = createLearningSuiteHeaderConfiguration({
 }) as LearningSuiteHeaderContract;
 
 const suiteNavigation = [
-  { id: "courses", href: "/courses/llm-systems", label: "Modules" },
-  { id: "practice", href: "/workspace", label: "Practice" },
+  { id: "courses", href: "/", label: "Modules" },
+  { id: "practice", href: "/practice", label: "Practice" },
   { id: "cards", href: "/flashcards", label: "Review" },
   { id: "project", href: "/project", label: "Project" },
   { id: "reading", href: "/sources", label: "Reading" },

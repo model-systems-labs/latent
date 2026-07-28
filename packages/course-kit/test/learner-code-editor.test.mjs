@@ -9,7 +9,7 @@ import vm from "node:vm";
 
 import { syntaxTree } from "@codemirror/language";
 import { EditorState } from "@codemirror/state";
-import { EditorView } from "@codemirror/view";
+import { EditorView, keymap } from "@codemirror/view";
 
 import {
   LEARNER_CODE_EDITOR_CSP_NONCE,
@@ -158,7 +158,70 @@ test("read-only editors remain navigable while disabled editors leave the tab or
   );
 });
 
-test("editor configuration rejects ambiguous language and indentation inputs", () => {
+test("editor configuration exposes only the run shortcuts owned by its host", () => {
+  let checkRunMode = null;
+  const checkOnly = stateFor("python", "return None", {
+    onRun(mode) { checkRunMode = mode; },
+    runModes: ["check"],
+  });
+  const checkOnlyAttributes = checkOnly
+    .facet(EditorView.contentAttributes)
+    .filter((value) => typeof value !== "function")
+    .reduce((attributes, value) => ({ ...attributes, ...value }), {});
+  assert.equal(
+    checkOnlyAttributes["aria-keyshortcuts"],
+    "Tab Shift+Tab Escape Control+Enter Meta+Enter",
+  );
+  const checkOnlyRunBindings = checkOnly
+    .facet(keymap)
+    .flat()
+    .filter(({ key }) => key === "Mod-Enter" || key === "Mod-Shift-Enter");
+  assert.equal(
+    checkOnlyRunBindings.find(({ key }) => key === "Mod-Shift-Enter")
+      .preventDefault,
+    true,
+  );
+  assert.equal(
+    checkOnlyRunBindings.find(({ key }) => key === "Mod-Shift-Enter").run({}),
+    true,
+  );
+  assert.equal(checkRunMode, null);
+  assert.equal(
+    checkOnlyRunBindings.find(({ key }) => key === "Mod-Enter").run({}),
+    true,
+  );
+  assert.equal(checkRunMode, "check");
+
+  let examplesRunMode = null;
+  const examplesOnly = stateFor("python", "return None", {
+    onRun(mode) { examplesRunMode = mode; },
+    runModes: ["examples"],
+  });
+  const examplesOnlyAttributes = examplesOnly
+    .facet(EditorView.contentAttributes)
+    .filter((value) => typeof value !== "function")
+    .reduce((attributes, value) => ({ ...attributes, ...value }), {});
+  assert.equal(
+    examplesOnlyAttributes["aria-keyshortcuts"],
+    "Tab Shift+Tab Escape Control+Shift+Enter Meta+Shift+Enter",
+  );
+  const examplesOnlyRunBindings = examplesOnly
+    .facet(keymap)
+    .flat()
+    .filter(({ key }) => key === "Mod-Enter" || key === "Mod-Shift-Enter");
+  assert.equal(
+    examplesOnlyRunBindings.find(({ key }) => key === "Mod-Enter").run({}),
+    true,
+  );
+  assert.equal(examplesRunMode, null);
+  assert.equal(
+    examplesOnlyRunBindings.find(({ key }) => key === "Mod-Shift-Enter").run({}),
+    true,
+  );
+  assert.equal(examplesRunMode, "examples");
+});
+
+test("editor configuration rejects ambiguous language, indentation, and run inputs", () => {
   assert.throws(
     () => createLearnerCodeEditorExtensions({ language: "ruby" }),
     /Unsupported learner code editor language/,
@@ -176,6 +239,22 @@ test("editor configuration rejects ambiguous language and indentation inputs", (
       variant: "black",
     }),
     /Unsupported learner code editor variant/,
+  );
+  assert.throws(
+    () => createLearnerCodeEditorExtensions({
+      language: "python",
+      onRun() {},
+      runModes: [],
+    }),
+    /runModes must contain unique examples and\/or check modes/,
+  );
+  assert.throws(
+    () => createLearnerCodeEditorExtensions({
+      language: "python",
+      onRun() {},
+      runModes: ["check", "check"],
+    }),
+    /runModes must contain unique examples and\/or check modes/,
   );
 });
 

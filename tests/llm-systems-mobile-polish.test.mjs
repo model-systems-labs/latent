@@ -104,11 +104,18 @@ test("the learner family header and Paper ethereal atmosphere come from the shar
 });
 
 test("full-height workspaces account for the family header at every compact breakpoint", async () => {
-  const [workspace, workspaceStyles, capstone, capstoneStyles] = await Promise.all([
+  const [
+    workspace,
+    workspaceStyles,
+    capstone,
+    capstoneStyles,
+    productizationStyles,
+  ] = await Promise.all([
     read("app/components/WorkspaceShell.tsx"),
     read("app/components/WorkspaceShell.module.css"),
     read("app/components/BrowserChatCapstone.tsx"),
     read("app/components/BrowserChatCapstone.module.css"),
+    read("app/styles/productization.css"),
   ]);
 
   assert.match(workspace, /className=\{`ide-shell \$\{styles\.shell\}`\}/);
@@ -120,11 +127,16 @@ test("full-height workspaces account for the family header at every compact brea
   assert.match(workspaceStyles, /\.shell\s*\{[^}]*min-height:\s*0/);
   assert.doesNotMatch(workspaceStyles, /data-learner-family-header|course-header|4\.9rem/);
   assert.match(workspaceStyles, /\.topbar\s*\{[^}]*column-gap:\s*0\.5rem/);
-  assert.match(workspaceStyles, /\.topbar > a:first-child\s*\{[^}]*min-height:\s*2\.75rem/);
+  assert.match(workspaceStyles, /\.topbar nav a\s*\{[^}]*min-height:\s*2\.75rem/);
+  assert.match(workspace, /role="heading" aria-level=\{1\}><span>Project workspace<\/span><strong>browser-chat\/<\/strong>/);
+  assert.doesNotMatch(workspace, />LLM Systems<\/Link>|href="\/project"/);
+  assert.doesNotMatch(productizationStyles, /\.ide-topbar > div\s*\{[^}]*display:\s*block/);
 
   assert.match(capstone, /compiled-capstone-shell \$\{styles\.shell\}/);
   assert.match(capstone, /compiled-capstone-runtime \$\{styles\.runtime\}/);
   assert.match(capstone, /capstone-build-gate \$\{styles\.gate\}/);
+  assert.match(capstone, /<span>Capstone preview<\/span><strong>Browser Chat<\/strong>/);
+  assert.doesNotMatch(capstone, />LLM Systems<\/Link>|href="\/project"/);
   assert.match(capstoneStyles, /\.shell\s*\{[^}]*min-height:\s*calc\(100dvh - var\(--learner-header-height\) - var\(--learner-context-nav-height, 0rem\)\)/);
   assert.match(capstoneStyles, /\.runtime\s*\{[^}]*height:\s*calc\(100dvh - var\(--learner-header-height\) - var\(--learner-context-nav-height, 0rem\) - 4\.8rem\)/);
   assert.match(capstoneStyles, /\.gate\s*\{[^}]*min-height:\s*calc\(100dvh - var\(--learner-header-height\) - var\(--learner-context-nav-height, 0rem\) - 4\.8rem\)/);

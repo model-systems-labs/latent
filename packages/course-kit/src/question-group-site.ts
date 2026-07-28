@@ -97,6 +97,7 @@ export type QuestionGroupSiteCopy = Readonly<{
   draftSaved: string;
   draftRestored: string;
   draftSessionOnly: string;
+  draftChanged?: string;
   runtimeUnavailable: string;
   viewExampleSolution?: string;
 }>;
@@ -161,6 +162,7 @@ const defaultQuestionGroupSiteCopy = Object.freeze({
   draftSaved: "Draft saved",
   draftRestored: "Draft restored",
   draftSessionOnly: "Draft kept for this visit",
+  draftChanged: "Draft changed. Run examples or check solution again.",
   runtimeUnavailable: "This practice environment is unavailable right now. You can keep editing your draft.",
   viewExampleSolution: "View example solution",
 } satisfies NormalizedQuestionGroupSiteCopy);
@@ -727,6 +729,14 @@ const questionGroupLayoutCss = `
   letter-spacing: -.055em;
   line-height: 1;
   margin: .65rem 0 1rem;
+}
+.question-copy h2[tabindex="-1"] {
+  max-width: 100%;
+  width: fit-content;
+}
+.question-copy h2[tabindex="-1"]:focus-visible {
+  outline-width: 2px;
+  outline-offset: .3rem;
 }
 .question-copy h3 {
   font-size: .82rem;
@@ -1673,6 +1683,7 @@ function renderQuestionGroupPlayerJavaScript(
     let running = false;
     let runningMode = null;
     let activeRunController = null;
+    let lastSettledRunSource = null;
     let draftWriteActive = false;
     const pendingDraftWrites = new Map();
     const layout = document.createElement("div");
@@ -1779,9 +1790,9 @@ function renderQuestionGroupPlayerJavaScript(
       workspaceHeader,
       editor,
       actions,
-      solutionHost,
       resultAnnouncement,
       results,
+      solutionHost,
     );
     layout.append(sidebar, questionCopy, workspace);
     app.append(layout);
@@ -1973,6 +1984,7 @@ function renderQuestionGroupPlayerJavaScript(
       }
       sourcePath.textContent = question.path;
       editor.value = source;
+      lastSettledRunSource = null;
       codeEditor = prepareCodeEditor(editor, {
         language: question.language,
         onRun: (mode) => {
@@ -2132,6 +2144,7 @@ function renderQuestionGroupPlayerJavaScript(
           list.append(item);
         }
         results.replaceChildren(heading, list);
+        lastSettledRunSource = runSource;
         announceResult(outcome.passed ? copy.passedHeading : copy.failedHeading);
         if (mode === "check") {
           const key = questionKey(group, question);
@@ -2167,6 +2180,7 @@ function renderQuestionGroupPlayerJavaScript(
       } catch (error) {
         if (!isCurrentRun()) return;
         results.replaceChildren(text("p", error?.message || String(error), "error"));
+        lastSettledRunSource = runSource;
         announceResult(copy.failedHeading);
       } finally {
         if (activeRunController === controller) activeRunController = null;
@@ -2180,6 +2194,7 @@ function renderQuestionGroupPlayerJavaScript(
     };
     editor.addEventListener("input", () => {
       source = editor.value;
+      exampleController?.invalidate?.();
       const { group, question } = active;
       const key = questionKey(group, question);
       const draftSource = source;
@@ -2187,6 +2202,14 @@ function renderQuestionGroupPlayerJavaScript(
       draftStatus.textContent = "";
       pendingDraftWrites.set(key, { group, question, key, source: draftSource });
       void persistDraftWrites();
+      if (
+        lastSettledRunSource !== null
+        && source !== lastSettledRunSource
+      ) {
+        lastSettledRunSource = null;
+        results.replaceChildren(text("p", copy.draftChanged));
+        announceResult(copy.draftChanged);
+      }
       if (running) {
         activeRunController?.abort();
         activeRunController = null;
@@ -2209,6 +2232,7 @@ function renderQuestionGroupPlayerJavaScript(
       running = false;
       runningMode = null;
       results.replaceChildren(text("p", copy.runCanceled));
+      lastSettledRunSource = source;
       announceResult(copy.runCanceled);
       updateActionAvailability();
       renderNavigation();

@@ -12,8 +12,6 @@
   display: none;
 }
 
-.ide-topbar > div { display: block; }
-
 .project-workbench > header {
   min-height: 3.25rem;
   padding: 0.35rem 0.75rem;

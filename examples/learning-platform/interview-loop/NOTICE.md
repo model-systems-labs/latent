@@ -19,7 +19,13 @@ assets, licensed under the Mozilla Public License 2.0 and copyright the Pyodide
 contributors. Pyodide source and license information are available at
 <https://github.com/pyodide/pyodide>.
 
-The Zod MIT license follows:
+`tools/vendor/learner-code-editor.js` is the generated Course Kit editor
+bundle. It includes CodeMirror 6, Lezer, `@marijn/find-cluster-break`, `crelt`,
+`style-mod`, and `w3c-keyname`, all under the MIT license. CodeMirror and its
+supporting packages are copyright 2016-2024 Marijn Haverbeke and others; Lezer
+is copyright 2018 Marijn Haverbeke and others.
+
+The MIT license terms for Zod and the editor dependencies follow:
 
 > Permission is hereby granted, free of charge, to any person obtaining a copy
 > of this software and associated documentation files (the "Software"), to

@@ -27,9 +27,11 @@ Ten Problems uses the same reviewed learner UI foundation as
 [Interview Loop Lab](../interview-loop/): shared typography, page shell,
 navigation, controls, editor framing, feedback, progress, focus treatment, and
 mobile behavior. `packages/course-kit/src/learner-ui.ts` is the source of
-truth, `packages/course-kit/src/question-group-site.ts` composes the
-coding-practice layout, and `site-config.mjs` explicitly supplies this
-product's persistent suite-header contract, local labels, review route,
+truth for the shell and controls,
+`packages/course-kit/src/learner-code-editor.ts` supplies the shared
+syntax-aware editor primitive, `packages/course-kit/src/question-group-site.ts`
+composes the coding-practice layout, and `site-config.mjs` explicitly supplies
+this product's persistent suite-header contract, local labels, review route,
 `cobalt` appearance palette, footer, and favicon at build time. The other
 reviewed palette choices are `paper`, `sage`, `plum`, and `graphite`; Cobalt
 supplies a distinct cool color atmosphere and a subtle highlight that travels
@@ -43,7 +45,9 @@ worker isolation and anti-framing as defense in depth; anti-framing depends on
 those response headers. The combined local preview mirrors the Python-worker
 response CSP during QA. GitHub Pages does not honor `_headers`; the document
 meta CSP remains active there and restricts script sources, same-origin
-workers/connections, styles, and other assets. The build does not patch
+workers/connections, styles, and other assets. The only inline-style
+permission is the exact reviewed nonce used by CodeMirror's generated theme
+rules; `unsafe-inline` remains disallowed. The build does not patch
 generated HTML, JavaScript, or CSS and does not load a hosted stylesheet,
 framework CDN, JavaScript service, or model API.
 

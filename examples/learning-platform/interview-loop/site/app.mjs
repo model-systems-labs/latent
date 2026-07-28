@@ -67,13 +67,20 @@ function referenceSolutionDisclosure(source, title) {
   return createSolutionDisclosure({ source, title });
 }
 
-function prepareCodeEditor(editor, tabSize = 4) {
+let practiceEditorController = null;
+let ideEditorController = null;
+
+function prepareCodeEditor(editor, options = {}) {
   const prepare =
     globalThis.LearnerUiComponents?.prepareCodeEditor;
   if (typeof prepare !== "function") {
     throw new Error("The shared learner code editor adapter is unavailable.");
   }
-  return prepare(editor, { tabSize });
+  return prepare(editor, {
+    language: "python",
+    tabSize: 4,
+    ...options,
+  });
 }
 
 async function runPythonChecks(source, path, entrypoint, cases, requirement) {
@@ -437,6 +444,8 @@ function renderCaseResults(results) {
 }
 
 function renderPractice(library, state) {
+  practiceEditorController?.destroy?.();
+  practiceEditorController = null;
   const root = $("#practice-root");
   root.className = "learner-layout view-grid";
   root.replaceChildren();
@@ -551,8 +560,7 @@ function renderPractice(library, state) {
       element("li", { text: constraint })
     ))),
   ]);
-  const label = element("label", {
-    htmlFor: "practice-editor",
+  const label = element("code", {
     className: "learner-eyebrow",
     text: question.path,
   });
@@ -571,7 +579,6 @@ function renderPractice(library, state) {
     element("div", { className: "learner-editor-toolbar" }, label),
     editor,
   ]);
-  prepareCodeEditor(editor);
   const status = element("p", { className: "learner-status", "aria-live": "polite" });
   const results = element("div", { className: "learner-results" });
   const referenceSolution = state.referenceSolutions.practice.find((entry) => (
@@ -628,6 +635,9 @@ function renderPractice(library, state) {
       run.disabled = false;
     }
   });
+  practiceEditorController = prepareCodeEditor(editor, {
+    onRun: () => run.click(),
+  });
   work.append(
     editorFrame,
     element("div", { className: "learner-button-row practice-actions" }, run),
@@ -639,6 +649,8 @@ function renderPractice(library, state) {
 }
 
 function renderIde(exercises, state) {
+  ideEditorController?.destroy?.();
+  ideEditorController = null;
   const root = $("#ide-root");
   root.className = "learner-layout view-grid";
   root.replaceChildren();
@@ -661,9 +673,8 @@ function renderIde(exercises, state) {
   const work = element("div", { className: "learner-content work" }, [
     element("h2", { text: exercise.title }),
   ]);
-  const editorLabel = element("label", {
+  const editorLabel = element("code", {
     className: "learner-eyebrow",
-    htmlFor: "ide-editor",
     text: exercise.files[0].path,
   });
   const editor = element("textarea", {
@@ -681,7 +692,6 @@ function renderIde(exercises, state) {
     element("div", { className: "learner-editor-toolbar" }, editorLabel),
     editor,
   ]);
-  prepareCodeEditor(editor);
   const status = element("p", { className: "learner-status", "aria-live": "polite" });
   const results = element("div", { className: "learner-results" });
   const referenceSolution = state.referenceSolutions.ide.find((entry) => (
@@ -756,6 +766,9 @@ function renderIde(exercises, state) {
       run.disabled = false;
     }
   });
+  ideEditorController = prepareCodeEditor(editor, {
+    onRun: () => run.click(),
+  });
   const reset = element("button", {
     className: "learner-button",
     type: "button",
@@ -763,6 +776,7 @@ function renderIde(exercises, state) {
   });
   reset.addEventListener("click", () => {
     editor.value = exercise.files[0].content;
+    ideEditorController?.setValue?.(editor.value);
     state.ide.draft = editor.value;
     state.runtimeStore.write(`ide-draft:${exercise.id}:${exercise.contractVersion}`, editor.value);
     state.ide.result = null;

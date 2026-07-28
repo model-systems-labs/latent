@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
 const codeEditorUrl = new URL("../app/features/ide/CodeEditor.tsx", import.meta.url);
+const learnerCodeEditorUrl = new URL("../packages/course-kit/src/learner-code-editor.ts", import.meta.url);
 const projectWorkbenchUrl = new URL("../app/components/ProjectWorkbench.tsx", import.meta.url);
 const workspacePageUrl = new URL("../app/workspace/page.tsx", import.meta.url);
 const capstoneCssUrl = new URL("../app/styles/capstone.css", import.meta.url);
@@ -31,136 +32,109 @@ function contrastRatio(foreground, background) {
   return (light + 0.05) / (dark + 0.05);
 }
 
-function compositeOnHexBackground(red, green, blue, alpha, background) {
-  const backgroundChannels = [1, 3, 5].map((offset) => Number.parseInt(background.slice(offset, offset + 2), 16));
-  const channels = [red, green, blue].map((channel, index) => Math.round(
-    (channel * alpha) + (backgroundChannels[index] * (1 - alpha)),
-  ));
-  return `#${channels.map((channel) => channel.toString(16).padStart(2, "0")).join("")}`;
-}
+test("the React adapter delegates language, syntax, themes, and keymaps to Course Kit", async () => {
+  const [adapter, primitive] = await Promise.all([
+    readFile(codeEditorUrl, "utf8"),
+    readFile(learnerCodeEditorUrl, "utf8"),
+  ]);
 
-test("the IDE installs a real CodeMirror syntax highlighter and keeps long lines horizontally scrollable", async () => {
-  const source = await readFile(codeEditorUrl, "utf8");
-  assert.match(source, /HighlightStyle\.define\s*\(/);
-  assert.match(source, /syntaxHighlighting\s*\(\s*lightEditor \? lessonSyntaxTheme : syntaxTheme\s*\)/);
-  assert.match(source, /lightEditor \? lessonTheme : latentTheme/);
-  assert.match(source, /variant\?: "lesson" \| "project" \| "workbook"/);
-  assert.match(source, /tags\.keyword/);
-  assert.match(source, /tags\.comment/);
-  assert.doesNotMatch(source, /EditorView\.baseTheme\s*\(/);
-  assert.doesNotMatch(source, /EditorView\.lineWrapping/);
+  assert.match(adapter, /from "@latent\/course-kit\/learner-code-editor"/);
+  assert.match(adapter, /extensions:\s*createLearnerCodeEditorExtensions\(\{/);
+  assert.match(adapter, /if \(normalized\.endsWith\("\.py"\)\) return "python"/);
+  assert.match(adapter, /if \(normalized\.endsWith\("\.tsx"\)\) return "tsx"/);
+  assert.match(adapter, /if \(normalized\.endsWith\("\.ts"\)\) return "typescript"/);
+  assert.match(adapter, /if \(normalized\.endsWith\("\.jsx"\)\) return "jsx"/);
+  assert.match(adapter, /variant === "project" \? "workspace-dark" : "integrated"/);
+
+  assert.match(primitive, /import \{ python \} from "@codemirror\/lang-python"/);
+  assert.match(primitive, /import \{ javascript \} from "@codemirror\/lang-javascript"/);
+  assert.match(primitive, /if \(language === "python"\) return python\(\)/);
+  assert.match(primitive, /return javascript\(\{[\s\S]*?jsx:[\s\S]*?typescript:/);
+  assert.match(primitive, /syntaxHighlighting\([\s\S]*?workspaceDarkSyntaxTheme[\s\S]*?integratedSyntaxTheme/);
+  assert.match(primitive, /tags\.keyword/);
+  assert.match(primitive, /tags\.comment/);
+  assert.doesNotMatch(primitive, /EditorView\.lineWrapping/);
+
+  for (const duplicatedConcern of [
+    /@codemirror\/autocomplete/,
+    /@codemirror\/commands/,
+    /@codemirror\/lang-/,
+    /@codemirror\/language/,
+    /@lezer\/highlight/,
+    /HighlightStyle/,
+    /syntaxHighlighting/,
+    /EditorView\.theme/,
+    /keymap\.of/,
+    /tags\./,
+  ]) {
+    assert.doesNotMatch(
+      adapter,
+      duplicatedConcern,
+      "the React lifecycle adapter must not reimplement the shared primitive",
+    );
+  }
 });
 
-test("the lesson editor uses a mutually exclusive light theme whose tokens clear WCAG AA", async () => {
-  const source = await readFile(codeEditorUrl, "utf8");
-  const paletteSource = source.match(/const lessonEditorPalette = \{([\s\S]*?)\} as const;/)?.[1];
-  assert.ok(paletteSource, "CodeEditor must expose a reviewable lesson palette");
-  const palette = Object.fromEntries(
-    [...paletteSource.matchAll(/(\w+):\s*"(#[0-9a-f]{6})"/gi)].map((match) => [match[1], match[2]]),
-  );
-  assert.match(source, /const lessonTheme = EditorView\.theme\([\s\S]*?\}, \{ dark: false \}\);/);
-  assert.match(source, /const latentTheme = EditorView\.theme\([\s\S]*?\}, \{ dark: true \}\);/);
-  assert.doesNotMatch(source, /latentTheme,\s*variant === "lesson"/);
-  for (const [name, color] of Object.entries(palette)) {
-    if (name === "background") continue;
-    assert.ok(
-      contrastRatio(color, palette.background) >= 4.5,
-      `lesson ${name} (${color}) must remain readable on ${palette.background}`,
-    );
-  }
-  const lessonThemeSource = source.slice(source.indexOf("const lessonTheme"), source.indexOf("const syntaxTheme"));
-  const activeLineBackground = lessonThemeSource.match(/"\.cm-activeLine":\s*\{[^\n]*backgroundColor:\s*"([^"]+)"/)?.[1];
-  const activeLineGutterBackground = lessonThemeSource.match(/"\.cm-activeLineGutter":\s*\{[^\n]*backgroundColor:\s*"(#[0-9a-f]{6})"/)?.[1];
-  const selectedBackground = lessonThemeSource.match(/cm-selectionBackground[^\n]*backgroundColor: "(#[0-9a-f]{6})"/)?.[1];
-  assert.equal(activeLineBackground, "transparent", "the active line must not cover CodeMirror's selection layer");
-  assert.match(activeLineGutterBackground ?? "", /^#[0-9a-f]{6}$/i);
-  assert.match(selectedBackground ?? "", /^#[0-9a-f]{6}$/i);
-  assert.match(
-    lessonThemeSource,
-    /&\.cm-focused > \.cm-scroller > \.cm-selectionLayer \.cm-selectionBackground[^\n]*backgroundColor: "#[0-9a-f]{6}"/,
-    "the lesson selection color must beat CodeMirror's focused-selection specificity",
-  );
-  assert.match(lessonThemeSource, /"\.cm-selectionMatch":\s*\{[^\n]*backgroundColor:/, "other occurrences of a selected token should also be visible");
-  assert.ok(
-    contrastRatio(selectedBackground, palette.background) >= 1.3,
-    `selection ${selectedBackground} must be visibly distinct from editor ${palette.background}`,
-  );
-  assert.ok(
-    contrastRatio(palette.gutter, activeLineGutterBackground) >= 4.5,
-    `lesson gutter (${palette.gutter}) must remain readable on active line ${activeLineGutterBackground}`,
-  );
-  for (const [name, color] of Object.entries(palette)) {
-    if (name === "background" || name === "gutter") continue;
-    assert.ok(
-      contrastRatio(color, selectedBackground) >= 4.5,
-      `lesson ${name} (${color}) must remain readable on selected text background ${selectedBackground}`,
-    );
-  }
-  assert.match(lessonThemeSource, /userSelect:\s*"text"/);
-  assert.match(lessonThemeSource, /WebkitUserSelect:\s*"text"/);
+test("lesson and workbook editors use the integrated light surface while the project IDE keeps its intentional dark workspace", async () => {
+  const [adapter, primitive] = await Promise.all([
+    readFile(codeEditorUrl, "utf8"),
+    readFile(learnerCodeEditorUrl, "utf8"),
+  ]);
+
+  assert.match(adapter, /variant\?: "lesson" \| "project" \| "workbook"/);
+  assert.match(adapter, /variant === "project" \? "workspace-dark" : "integrated"/);
+  assert.match(adapter, /variant === "project"[\s\S]*?`Project file editor: \$\{path\}`[\s\S]*?variant === "lesson"[\s\S]*?`Lesson code editor: \$\{path\}`[\s\S]*?`Workbook code editor: \$\{path\}`/);
+  assert.match(adapter, /ariaLabel: ariaLabel \?\? defaultAriaLabel/);
+  assert.match(adapter, /defaultAriaLabel,[\s\S]*?editorVariant,/);
+  assert.match(primitive, /const integratedTheme = EditorView\.theme\([\s\S]*?var\(--learner-code-surface, #fbfaf8\)[\s\S]*?\}, \{ dark: false \}\);/);
+  assert.match(primitive, /const workspaceDarkTheme = EditorView\.theme\([\s\S]*?backgroundColor:\s*"#1f1e21"[\s\S]*?\}, \{ dark: true \}\);/);
+  assert.match(primitive, /variant === "workspace-dark" \? workspaceDarkTheme : integratedTheme/);
+  assert.match(primitive, /variant === "workspace-dark"[\s\S]*?workspaceDarkSyntaxTheme[\s\S]*?integratedSyntaxTheme/);
+  assert.match(primitive, /&\.cm-focused > \.cm-scroller > \.cm-selectionLayer \.cm-selectionBackground/);
+  assert.match(primitive, /userSelect:\s*"text"/);
+  assert.match(primitive, /WebkitUserSelect:\s*"text"/);
+  assert.doesNotMatch(adapter, /#[0-9a-f]{3,8}|rgba?\(/i, "adapter-local palettes would let the products diverge again");
 });
 
-test("every declared editor token color clears WCAG AA contrast on the editor background", async () => {
+test("the React adapter keeps controlled-value updates distinct from learner typing", async () => {
   const source = await readFile(codeEditorUrl, "utf8");
-  const paletteSource = source.match(/const editorPalette = \{([\s\S]*?)\} as const;/)?.[1];
-  assert.ok(paletteSource, "CodeEditor must expose its visual palette as a reviewable constant");
-  const palette = Object.fromEntries(
-    [...paletteSource.matchAll(/(\w+):\s*"(#[0-9a-f]{6})"/gi)].map((match) => [match[1], match[2]]),
-  );
-  assert.match(palette.background ?? "", /^#[0-9a-f]{6}$/i);
-  for (const [name, color] of Object.entries(palette)) {
-    if (name === "background") continue;
-    assert.ok(
-      contrastRatio(color, palette.background) >= 4.5,
-      `${name} (${color}) must remain readable on ${palette.background}`,
-    );
-  }
-  const selection = source.match(/cm-selectionBackground[\s\S]*?rgba\((\d+),(\d+),(\d+),([.\d]+)\)/);
-  assert.ok(selection, "the selection background must remain explicitly reviewable");
-  const selectedBackground = compositeOnHexBackground(
-    Number(selection[1]),
-    Number(selection[2]),
-    Number(selection[3]),
-    Number(selection[4]),
-    palette.background,
-  );
-  for (const [name, color] of Object.entries(palette)) {
-    if (name === "background" || name === "gutter") continue;
-    assert.ok(
-      contrastRatio(color, selectedBackground) >= 4.5,
-      `${name} (${color}) must remain readable when text is selected on ${selectedBackground}`,
-    );
-  }
-  const latentThemeSource = source.slice(source.indexOf("const latentTheme"), source.indexOf("const lessonTheme"));
-  assert.match(
-    latentThemeSource,
-    /&\.cm-focused > \.cm-scroller > \.cm-selectionLayer \.cm-selectionBackground[^\n]*backgroundColor: "rgba\(181,151,209,\.20\)"/,
-    "the project selection color must beat CodeMirror's focused-selection specificity",
-  );
+
+  assert.match(source, /const applyingExternalValueRef = useRef\(false\)/);
+  assert.match(source, /onChange:\s*\(nextValue\) => \{[\s\S]*?if \(!applyingExternalValueRef\.current\)[\s\S]*?changeRef\.current\(nextValue\)/);
+  assert.match(source, /const current = view\.state\.doc\.toString\(\);[\s\S]*?if \(current === value\) return/);
+  assert.match(source, /applyingExternalValueRef\.current = true;[\s\S]*?view\.dispatch\([\s\S]*?insert: value[\s\S]*?finally \{[\s\S]*?applyingExternalValueRef\.current = false/);
+  assert.match(source, /const hasSaveHandler = Boolean\(onSave\)/);
+  assert.match(source, /hasSaveHandler[\s\S]*?\{ onSave: \(\) => saveRef\.current\?\.\(\) \}/);
+  assert.match(source, /hasRunHandler[\s\S]*?\{ onRun: \(\) => runRef\.current\?\.\(\) \}/);
 });
 
 test("the mobile IDE source contract preserves readable type, bounded scrolling, focus, and touch targets", async () => {
-  const [source, responsiveCss] = await Promise.all([
+  const [source, primitive, responsiveCss] = await Promise.all([
     readFile(codeEditorUrl, "utf8"),
+    readFile(learnerCodeEditorUrl, "utf8"),
     readFile(responsiveCssUrl, "utf8"),
   ]);
-  assert.match(source, /&\.cm-focused[\s\S]*?outline:\s*"2px solid/);
-  assert.match(source, /overscrollBehaviorX:\s*"contain"[\s\S]*?overscrollBehaviorY:\s*"auto"/);
-  assert.match(source, /import \{ acceptCompletion \} from "@codemirror\/autocomplete"/);
-  assert.match(source, /import \{ indentWithTab, temporarilySetTabFocusMode \} from "@codemirror\/commands"/);
-  assert.match(source, /import \{ HighlightStyle, indentUnit, syntaxHighlighting \} from "@codemirror\/language"/);
-  assert.match(source, /Prec\.high\(keymap\.of\(\[\s*\{ key: "Escape", run: temporarilySetTabFocusMode \},\s*\{ key: "Tab", run: acceptCompletion \},\s*indentWithTab/);
-  assert.match(source, /indentUnit\.of\(isPython \? " {4}" : " {2}"\)/);
-  assert.match(source, /"aria-describedby":\s*instructionId/);
-  assert.match(source, /const editableEditorInstruction = "Code editor\. Tab accepts an open suggestion; otherwise it indents\. Press Escape, then Tab, to leave the editor\."/);
-  const readOnlyInstruction = source.match(/const readOnlyEditorInstruction = "([^"]+)"/)?.[1];
+  assert.match(primitive, /&\.cm-focused[\s\S]*?outline:\s*"3px solid/);
+  assert.match(primitive, /overscrollBehaviorX:\s*"contain"[\s\S]*?overscrollBehaviorY:\s*"auto"/);
+  assert.match(primitive, /import \{[\s\S]*?acceptCompletion,[\s\S]*?\} from "@codemirror\/autocomplete"/);
+  assert.match(primitive, /temporarilySetTabFocusMode/);
+  assert.match(primitive, /Prec\.high\(keymap\.of\(\[\s*\{ key: "Escape", run: temporarilySetTabFocusMode \},\s*\{ key: "Tab", run: acceptCompletion \},\s*indentWithTab/);
+  assert.match(primitive, /indentUnit\.of\(" "\.repeat\(tabSize\)\)/);
+  assert.match(primitive, /EditorState\.tabSize\.of\(tabSize\)/);
+  assert.match(primitive, /"aria-keyshortcuts": shortcuts\.join\(" "\)/);
+  assert.match(primitive, /"aria-multiline": "true"/);
+  assert.match(primitive, /"aria-readonly": "true"/);
+  assert.match(source, /ariaDescribedBy:\s*instructionId/);
+  assert.match(source, /const editableEditorInstruction =\s*"Code editor\. Tab accepts an open suggestion; otherwise it indents\. Press Escape, then Tab, to leave the editor\."/);
+  const readOnlyInstruction = source.match(/const readOnlyEditorInstruction =\s*"([^"]+)"/)?.[1];
   assert.equal(
     readOnlyInstruction,
     "Read-only code example. Use the arrow keys to navigate the code. Press Escape, then Tab, to leave the code example.",
   );
   assert.doesNotMatch(readOnlyInstruction, /Tab indents/);
   assert.match(source, /\{readOnly \? readOnlyEditorInstruction : editableEditorInstruction\}/);
-  assert.match(source, /className=\{variant === "lesson" \? "code-editor lesson-code-editor" : variant === "workbook" \? "code-editor workbook-code-editor" : "code-editor"\}[\s\S]*?ref=\{hostRef\}[\s\S]*?\/>\s*<span className="sr-only" id=\{instructionId\}>/);
+  assert.match(source, /const className =[\s\S]*?"code-editor lesson-code-editor"[\s\S]*?"code-editor workbook-code-editor"[\s\S]*?"code-editor"/);
+  assert.match(source, /className=\{className\}[\s\S]*?ref=\{hostRef\}[\s\S]*?\/>\s*<span className="sr-only" id=\{instructionId\}>/);
   assert.doesNotMatch(source, /<div className="code-editor" ref=\{hostRef\}>\s*<span/);
   assert.match(responsiveCss, /\.project-workbench-grid\[data-mobile-view="code"\][\s\S]*?\.cm-editor\s*\{[\s\S]*?font-size:\s*16px/);
   assert.match(responsiveCss, /\.project-workbench-grid\[data-mobile-view="code"\][\s\S]*?\.cm-scroller\s*\{[\s\S]*?overflow-x:\s*auto/);

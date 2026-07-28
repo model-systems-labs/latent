@@ -24,12 +24,16 @@ Learning Studio header comes from `../learning-suite.mjs`. Neither input
 extends a portable format or grants runtime authority.
 
 The shared learner presentation source of truth is
-`packages/course-kit/src/learner-ui.ts`. Its standalone integrations are
+`packages/course-kit/src/learner-ui.ts`; the shared syntax-aware editor source
+is `packages/course-kit/src/learner-code-editor.ts` with its static runtime in
+`packages/course-kit/src/browser/learner-code-editor-runtime.ts`. Their
+standalone integrations are
 `packages/course-kit/src/static-site.ts` and
 `packages/course-kit/src/question-group-site.ts`. This example consumes the
-generated `tools/vendor/learner-ui.mjs`, produced by
+generated `tools/vendor/learner-ui.mjs` and
+`tools/vendor/learner-code-editor.js`, produced by
 `scripts/generate-learning-platform-learner-ui.mjs`; never hand-edit that
-generated file. Put a reusable design token, shell, header, navigation,
+generated source. Put a reusable design token, shell, header, navigation,
 control, feedback, editor-frame, progress, accessibility, or responsive
 behavior in the shared source instead of cloning it into this example.
 

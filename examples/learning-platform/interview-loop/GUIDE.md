@@ -46,13 +46,19 @@ The current ownership is explicit:
   breakpoints, the global shell, header, primary navigation, content widths,
   buttons, forms, cards, progress, status/results, empty states, editor
   framing, screen-reader utilities, and mobile navigation behavior.
+- `packages/course-kit/src/learner-code-editor.ts` is the reviewed,
+  framework-neutral CodeMirror primitive. It owns Python/JavaScript parsing,
+  syntax highlighting, indentation, run/save shortcuts, accessibility
+  attributes, and the palette-aware integrated editor surface.
 - `packages/course-kit/src/static-site.ts` composes that foundation with the
   standalone lesson/card player.
 - `packages/course-kit/src/question-group-site.ts` composes it with the
   standalone coding-practice player.
 - `scripts/generate-learning-platform-learner-ui.mjs` produces
-  `tools/vendor/learner-ui.mjs` as a dependency-free browser bundle for the
-  repository-owned example. The generated file is build input, not a second
+  `tools/vendor/learner-ui.mjs` and
+  `tools/vendor/learner-code-editor.js` as drift-checked build inputs for the
+  repository-owned example. The latter is copied unchanged from Course Kit's
+  reviewed same-origin browser bundle. Neither generated file is a second
   hand-maintained theme.
 - `../learning-suite.mjs` provides the persistent Learning Studio header
   identity and sibling destinations. `platform.json` provides Interview
@@ -69,6 +75,9 @@ The current ownership is explicit:
 Interview Loop keeps its course navigation, reading, quiz, card, portable
 Python practice, and trusted IDE sections in `site/app.mjs` and
 `site/styles.css`, but they now share one centered vertical document flow.
+Both Interview coding surfaces progressively enhance their fallback
+textareas with that same Python editor primitive and the Sage-integrated light
+surface.
 Ten Problems uses the same one-plane flow for problem navigation, prompt,
 editor, actions, and results. The products are related, not identical.
 

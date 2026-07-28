@@ -132,11 +132,12 @@ test("example and full runs have stable source-bound contract versions", () => {
 });
 
 test("the practice route reuses the shared editor and independent progress layer", async () => {
-  const [page, leechPage, workbench, editor] = await Promise.all([
+  const [page, leechPage, workbench, editor, learnerEditor] = await Promise.all([
     readFile(new URL("app/practice/page.tsx", root), "utf8"),
     readFile(new URL("app/practice/leeches/page.tsx", root), "utf8"),
     readFile(new URL("app/practice/PracticeWorkbench.tsx", root), "utf8"),
     readFile(new URL("app/features/ide/CodeEditor.tsx", root), "utf8"),
+    readFile(new URL("packages/course-kit/src/learner-code-editor.ts", root), "utf8"),
   ]);
   assert.match(page, /<PracticeWorkbench \/>/);
   assert.match(workbench, /<CodeEditor/);
@@ -154,8 +155,9 @@ test("the practice route reuses the shared editor and independent progress layer
   assert.match(leechPage, /no separate leech content is created/i);
   assert.doesNotMatch(workbench, /PaperLab|project-workspace|learner-state/);
   assert.match(editor, /const hasRunHandler = Boolean\(onRun\)/);
-  assert.match(editor, /\.\.\.\(hasRunHandler \? \[\{[\s\S]*?key:\s*"Mod-Enter"[\s\S]*?preventDefault:\s*true/);
-  assert.match(editor, /\[ariaLabel, hasRunHandler,/);
+  assert.match(editor, /hasRunHandler[\s\S]*?\{ onRun: \(\) => runRef\.current\?\.\(\) \}/);
+  assert.match(editor, /hasRunHandler,[\s\S]*?hasSaveHandler,/);
+  assert.match(learnerEditor, /\.\.\.\(options\.onRun[\s\S]*?key:\s*"Mod-Enter"[\s\S]*?preventDefault:\s*true/);
   assert.doesNotMatch(editor, /if \(!runRef\.current\) return false/);
 });
 

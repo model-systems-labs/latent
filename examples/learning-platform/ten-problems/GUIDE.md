@@ -59,6 +59,11 @@ The current ownership is explicit:
   root and combined `/practice/` subpath. `tools/build.mjs` passes the meta
   policy to the Question Group builder and emits `_headers` without weakening
   the builder's runtime boundary.
+- `packages/course-kit/src/learner-code-editor.ts` owns the shared CodeMirror
+  language, highlighting, theme, keyboard, and accessibility extensions.
+  `packages/course-kit/src/browser/learner-code-editor-runtime.ts` packages
+  that reviewed source as the same-origin static-player asset; Ten Problems
+  supplies only the Python language and four-space indentation configuration.
 
 Ten Problems keeps Python terminology, public example and full-check flows,
 and repeated-miss review, but the problem list, prompt, editor, actions, and
@@ -137,7 +142,9 @@ browser evidence for merge commit
 
 GitHub Pages does not honor generated `_headers` files. On Pages, the document
 meta CSP still restricts script sources, workers and connections to
-same-origin, plus styles and other assets. The `_headers` page and worker
+same-origin, plus styles and other assets. CodeMirror's generated theme rules
+are admitted by one exact reviewed nonce, without `unsafe-inline`. The
+`_headers` page and worker
 policies add defense in depth when a static host supports them. Anti-framing
 depends on those response headers; the combined local preview mirrors the
 Python-worker response CSP during QA.

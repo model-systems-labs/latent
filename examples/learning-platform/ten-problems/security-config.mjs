@@ -1,8 +1,12 @@
+import {
+  LEARNER_CODE_EDITOR_CSP_SOURCE,
+} from "@latent/course-kit/learner-code-editor";
+
 const tenProblemsDocumentContentSecurityPolicyDirectives = [
   "default-src 'none'",
   "script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'",
   "worker-src 'self'",
-  "style-src 'self'",
+  `style-src 'self' ${LEARNER_CODE_EDITOR_CSP_SOURCE}`,
   "connect-src 'self'",
   "img-src 'self' data:",
   "font-src 'self'",

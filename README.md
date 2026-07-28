@@ -82,6 +82,14 @@ and start a preview.
 
 ## What you get
 
+- **Composition primitives:** Course and Module.
+- **Learning primitives:** Lesson, Flash cards, Question Group, and IDE
+  exercise.
+- **Embedded blocks:** Knowledge check, code block, callout, headings, and
+  lists.
+- **Framework services:** Progress, resume, review, persistence, navigation,
+  and themes.
+
 - Lessons, knowledge checks, flash cards, coding practice, and browser IDEs.
 - Browser-local workers and reviewed WebAssembly runtime adapters, so coding
   practice can run without a hosted execution service.

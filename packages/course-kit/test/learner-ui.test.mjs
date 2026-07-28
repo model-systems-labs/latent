@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import vm from "node:vm";
 
 import {
   LEARNER_UI_ATMOSPHERE_TRACE_COUNT,
@@ -411,4 +412,216 @@ test("the learner UI behavior closes compact menus and restores keyboard focus",
     learnerUiJavaScript,
     /querySelectorAll\("\.learner-nav-menu"\)\.forEach\(\(menu\) => menu\.removeAttribute\("open"\)\)/,
   );
+});
+
+test("the shared code editor adapter owns indentation, persistence events, and keyboard escape", () => {
+  class FakeElement {
+    constructor() {
+      this.attributes = new Map();
+      this.className = "";
+      this.dataset = {};
+      this.id = "";
+      this.style = {};
+      this.textContent = "";
+    }
+
+    getAttribute(name) {
+      return this.attributes.get(name) ?? null;
+    }
+
+    setAttribute(name, value) {
+      this.attributes.set(name, String(value));
+    }
+  }
+
+  class FakeTextArea extends FakeElement {
+    constructor(value) {
+      super();
+      this.disabled = false;
+      this.listeners = new Map();
+      this.parentNode = {};
+      this.readOnly = false;
+      this.selectionDirection = "none";
+      this.selectionEnd = 0;
+      this.selectionStart = 0;
+      this.siblings = [];
+      this.scrollLeft = 0;
+      this.scrollTop = 0;
+      this.value = value;
+    }
+
+    addEventListener(type, listener) {
+      const listeners = this.listeners.get(type) ?? [];
+      listeners.push(listener);
+      this.listeners.set(type, listeners);
+    }
+
+    after(node) {
+      this.siblings.push(node);
+    }
+
+    dispatch(type, event) {
+      for (const listener of this.listeners.get(type) ?? []) listener(event);
+    }
+
+    dispatchEvent(event) {
+      this.dispatch(event.type, event);
+      return !event.defaultPrevented;
+    }
+
+    setRangeText(insert, from, to) {
+      this.value = this.value.slice(0, from) + insert + this.value.slice(to);
+    }
+
+    setSelectionRange(start, end, direction) {
+      this.selectionStart = start;
+      this.selectionEnd = end;
+      this.selectionDirection = direction;
+    }
+  }
+
+  let now = 1_000;
+  const document = {
+    addEventListener() {},
+    createElement() {
+      return new FakeElement();
+    },
+    documentElement: {},
+    getElementById() {
+      return null;
+    },
+    querySelectorAll() {
+      return [];
+    },
+  };
+  class FakeMutationObserver {
+    observe() {}
+  }
+  const context = {
+    Date: { now: () => now },
+    Element: FakeElement,
+    Event,
+    HTMLTextAreaElement: FakeTextArea,
+    MutationObserver: FakeMutationObserver,
+    addEventListener() {},
+    document,
+    innerHeight: 900,
+    matchMedia: () => ({ addEventListener() {}, matches: false }),
+    requestAnimationFrame: () => 1,
+    scrollY: 0,
+  };
+  vm.runInNewContext(learnerUiJavaScript, context);
+
+  const prepareCodeEditor = context.LearnerUiComponents.prepareCodeEditor;
+  const editor = new FakeTextArea("first\nsecond");
+  editor.setAttribute("aria-describedby", "existing-help");
+  editor.selectionStart = 0;
+  editor.selectionEnd = editor.value.length;
+  editor.selectionDirection = "backward";
+  let inputEvents = 0;
+  editor.addEventListener("input", () => {
+    inputEvents += 1;
+  });
+  prepareCodeEditor(editor, { tabSize: 4 });
+
+  assert.equal(editor.dataset.learnerTabSize, "4");
+  assert.equal(editor.style.tabSize, "4");
+  assert.equal(editor.siblings.length, 1);
+  assert.equal(
+    editor.getAttribute("aria-describedby"),
+    `existing-help ${editor.siblings[0].id}`,
+  );
+  assert.equal(editor.getAttribute("aria-keyshortcuts"), "Tab Shift+Tab Escape");
+  assert.equal(
+    editor.siblings[0].textContent,
+    "Code editor. Tab indents 4 spaces; Shift+Tab outdents. Press Escape, then Tab, to leave the editor.",
+  );
+
+  const keyboardEvent = (key, overrides = {}) => ({
+    altKey: false,
+    ctrlKey: false,
+    defaultPrevented: false,
+    isComposing: false,
+    key,
+    metaKey: false,
+    preventDefault() {
+      this.defaultPrevented = true;
+    },
+    shiftKey: false,
+    ...overrides,
+  });
+  const indent = keyboardEvent("Tab");
+  editor.dispatch("keydown", indent);
+  assert.equal(indent.defaultPrevented, true);
+  assert.equal(editor.value, "    first\n    second");
+  assert.deepEqual(
+    [editor.selectionStart, editor.selectionEnd, editor.selectionDirection],
+    [4, 20, "backward"],
+  );
+  assert.equal(inputEvents, 1);
+
+  const outdent = keyboardEvent("Tab", { shiftKey: true });
+  editor.dispatch("keydown", outdent);
+  assert.equal(outdent.defaultPrevented, true);
+  assert.equal(editor.value, "first\nsecond");
+  assert.deepEqual(
+    [editor.selectionStart, editor.selectionEnd, editor.selectionDirection],
+    [0, 12, "backward"],
+  );
+  assert.equal(inputEvents, 2);
+
+  editor.dispatch("keydown", keyboardEvent("Escape"));
+  const escapeTab = keyboardEvent("Tab");
+  editor.dispatch("keydown", escapeTab);
+  assert.equal(escapeTab.defaultPrevented, false);
+  assert.equal(editor.value, "first\nsecond");
+  assert.equal(inputEvents, 2);
+
+  editor.selectionStart = 3;
+  editor.selectionEnd = 3;
+  editor.selectionDirection = "none";
+  editor.dispatch("keydown", keyboardEvent("Escape"));
+  editor.dispatch("keydown", keyboardEvent("a"));
+  const canceledEscapeTab = keyboardEvent("Tab");
+  editor.dispatch("keydown", canceledEscapeTab);
+  assert.equal(canceledEscapeTab.defaultPrevented, true);
+  assert.equal(editor.value, "    first\nsecond");
+  assert.deepEqual([editor.selectionStart, editor.selectionEnd], [7, 7]);
+  assert.equal(inputEvents, 3);
+
+  editor.dispatch("keydown", keyboardEvent("Escape"));
+  now += 2_001;
+  const expiredEscapeTab = keyboardEvent("Tab");
+  editor.dispatch("keydown", expiredEscapeTab);
+  assert.equal(expiredEscapeTab.defaultPrevented, true);
+  assert.equal(editor.value, "        first\nsecond");
+  assert.equal(inputEvents, 4);
+
+  const modifiedTab = keyboardEvent("Tab", { ctrlKey: true });
+  editor.dispatch("keydown", modifiedTab);
+  assert.equal(modifiedTab.defaultPrevented, false);
+  assert.equal(inputEvents, 4);
+
+  const composingTab = keyboardEvent("Tab", { isComposing: true });
+  editor.dispatch("keydown", composingTab);
+  assert.equal(composingTab.defaultPrevented, false);
+  assert.equal(inputEvents, 4);
+
+  const mixedIndentEditor = new FakeTextArea("  \tcode\n \t  next");
+  mixedIndentEditor.selectionStart = 0;
+  mixedIndentEditor.selectionEnd = mixedIndentEditor.value.length;
+  prepareCodeEditor(mixedIndentEditor, { tabSize: 4 });
+  const mixedOutdent = keyboardEvent("Tab", { shiftKey: true });
+  mixedIndentEditor.dispatch("keydown", mixedOutdent);
+  assert.equal(mixedOutdent.defaultPrevented, true);
+  assert.equal(mixedIndentEditor.value, "code\n  next");
+  assert.deepEqual(
+    [mixedIndentEditor.selectionStart, mixedIndentEditor.selectionEnd],
+    [0, 11],
+  );
+
+  prepareCodeEditor(editor, { tabSize: 2 });
+  assert.equal(editor.dataset.learnerTabSize, "2");
+  assert.equal(editor.siblings.length, 1);
+  assert.match(editor.siblings[0].textContent, /Tab indents 2 spaces/);
 });

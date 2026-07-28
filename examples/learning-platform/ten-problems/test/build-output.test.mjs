@@ -91,6 +91,17 @@ test("the trusted build input configures a Python-only learner site without outp
   assert.match(files["assets/player.js"], /def first_echo\(values\)/);
   assert.match(files["assets/player.js"], /def minimum_daily_capacity\(loads, days\)/);
   assert.match(files["assets/player.js"], /LearnerUiComponents\?\.createSolutionDisclosure/);
+  assert.match(files["assets/player.js"], /LearnerUiComponents\?\.prepareCodeEditor/);
+  assert.match(
+    files["assets/player.js"],
+    /tabSize: question\.language === "python" \? 4 : 2/,
+  );
+  assert.doesNotMatch(files["assets/player.js"], /event\.key === "Tab"|setRangeText/);
+  assert.match(files["assets/learner-ui.js"], /const prepareCodeEditor = /);
+  assert.match(
+    files["assets/learner-ui.js"],
+    /Code editor\. Tab indents [\s\S]*Shift\+Tab outdents\. Press Escape, then Tab, to leave the editor\./,
+  );
   assert.match(files["assets/learner-ui.js"], /code\.textContent = trustedSource/);
   assert.match(
     files["assets/learner-ui.js"],

@@ -87,6 +87,20 @@ test("Question Group builds are complete static practice sites with a leech quer
     /\.question-copy h2\s*\{[^}]*font-family: var\(--learner-font-reading\)/,
   );
   assert.match(files["assets/learner-ui.js"], /event\.key !== "Escape"/);
+  assert.match(files["assets/learner-ui.js"], /const prepareCodeEditor = /);
+  assert.match(
+    files["assets/learner-ui.js"],
+    /Code editor\. Tab indents [\s\S]*Shift\+Tab outdents\. Press Escape, then Tab, to leave the editor\./,
+  );
+  assert.match(
+    files["assets/player.js"],
+    /globalThis\.LearnerUiComponents\?\.prepareCodeEditor/,
+  );
+  assert.match(
+    files["assets/player.js"],
+    /tabSize: question\.language === "python" \? 4 : 2/,
+  );
+  assert.doesNotMatch(files["assets/player.js"], /event\.key === "Tab"|setRangeText/);
   assert.match(files["assets/player.js"], /isLeech/);
   assert.match(files["assets/player.js"], /new Worker/);
   assert.match(files["assets/player.js"], /indexedDB\.open\("latent-question-groups"/);

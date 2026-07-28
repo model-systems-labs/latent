@@ -118,7 +118,18 @@ test("the trusted build input configures a Python-only learner site without outp
   assert.match(files["assets/player.js"], /def first_echo\(values\)/);
   assert.match(files["assets/player.js"], /def minimum_daily_capacity\(loads, days\)/);
   assert.match(files["assets/player.js"], /LearnerUiComponents\?\.createSolutionDisclosure/);
+  assert.match(files["assets/player.js"], /LearnerUiComponents\?\.createEditableExamples/);
   assert.match(files["assets/player.js"], /LearnerUiComponents\?\.prepareCodeEditor/);
+  assert.match(files["assets/player.js"], /runLabel: copy\.runInput/);
+  assert.match(files["assets/player.js"], /return normalizeObservation\(result\?\.observation\)/);
+  assert.match(
+    files["assets/player.js"],
+    /question: \{ \.\.\.question, cases: \[scopedCase\] \}/,
+  );
+  assert.match(
+    files["assets/player.js"],
+    /if \(mode === "check"\) \{[\s\S]*writeProgress/,
+  );
   assert.match(
     files["assets/player.js"],
     /tabSize: question\.language === "python" \? 4 : 2/,
@@ -129,6 +140,9 @@ test("the trusted build input configures a Python-only learner site without outp
   );
   assert.doesNotMatch(files["assets/player.js"], /event\.key === "Tab"|setRangeText/);
   assert.match(files["assets/learner-ui.js"], /const prepareCodeEditor = /);
+  assert.match(files["assets/learner-ui.js"], /const createEditableExamples = /);
+  assert.match(files["assets/learner-ui.js"], /Use an array of function arguments/);
+  assert.match(files["assets/learner-ui.js"], /This run does not affect progress/);
   assert.match(
     files["assets/learner-ui.js"],
     /Python code editor\.[\s\S]*Tab indents [\s\S]*Shift\+Tab outdents\. Press Escape, then Tab, to leave the editor\./,
@@ -149,6 +163,8 @@ test("the trusted build input configures a Python-only learner site without outp
   assert.match(files["assets/player.css"], /--learner-color-canvas: #eaf0fa/);
   assert.match(files["assets/player.css"], /--learner-color-accent: #42629b/);
   assert.match(files["assets/player.css"], /--learner-background-recipe: cobalt/);
+  assert.match(files["assets/player.css"], /\.learner-textarea/);
+  assert.match(files["assets/player.css"], /\.learner-example__actions/);
   assert.match(files["assets/player.css"], /--learner-background-size: 100% 42rem/);
   assert.match(files["assets/player.css"], /\.learner-atmosphere__line--intro/);
   assert.match(files["assets/player.css"], /--learner-font-reading: "Iowan Old Style"/);

@@ -20,6 +20,14 @@ closed, read-only **View example solution** disclosure. Reference source is
 reviewed repository input, not Learning Pack or Question Group data; opening
 it neither replaces the learner draft nor changes progress.
 
+Practice also renders each published example through the shared editable-input
+component. **Run this input** executes the current draft against temporary JSON
+arguments and reports the received value without grading the problem.
+**Run examples** always runs the authored public cases, while **Check
+solution** runs every canonical case and is the only action that updates
+practice progress. Edited example arguments are visit-local and can be reset;
+they never alter the Question Group, its digest, or its saved progress.
+
 The page has one persistent learner header: **Learning Studio** identity and
 the three sibling experiences. Interview Loop's **Modules**, **Practice**,
 **Review**, and **Coding lab** links sit immediately below it as a quiet

@@ -604,6 +604,17 @@ change progress. Digest-bound persistence, public declarative cases, complete
 trusted checks, timeouts, output limits, CSP, same-origin Pyodide, and
 subpath-safe routing remain intact.
 
+The editable public-example interaction is also trusted UI, not portable
+content. `packages/course-kit/src/learner-ui.ts` owns the labeled JSON fields,
+bounded parsing, reset, cancellation, actual-only feedback, focus, and mobile
+behavior. `packages/course-kit/src/question-group-site.ts` scopes one
+published example identity to temporary arguments and passes it to the same
+reviewed Python adapter. The published expected value remains explicitly tied
+to the original input. Custom tries stay visit-local and never call the
+progress writer; canonical **Run examples** and **Check solution** continue to
+use the untouched validated case objects, with only the latter changing
+attempt, solved, or repeated-miss state.
+
 The primary interface is still produced from `site-config.mjs` and Course Kit
 at build time. The removed HTML/JavaScript string replacements, concept
 renaming, and generated-CSS patches have not returned. The obsolete nested
@@ -617,28 +628,30 @@ on reviewed monorepo sources and is owned by the root Pages build.
 | Ten Problems exposed multiple adjacent work surfaces and an unrelated player hierarchy. | One centered vertical flow with a collapsed chooser, prompt, editor, actions, solution, and feedback in reading order. |
 | Similar accent colors masked different backgrounds, headers, controls, and responsive behavior. | Every route keeps the Learning Studio header; local links sit in one context row, while Paper, Sage, and Cobalt retain distinct atmospheres over identical geometry, shell, components, and breakpoints. |
 | Coding experiences offered no consistent reference answer. | Interview and Ten use one reviewed read-only solution disclosure after actions. |
+| Public example arguments were display-only. | Both Python practice products use one shared editable JSON field, actual-only **Run this input** feedback, and **Reset input**, while canonical grading remains unchanged. |
 | Empty repeated-miss Review was only a status sentence. | Review preserves the product H1, context label, live message, and programmatic focus. |
 
 ### Current local validation and user evidence
 
-- Course Kit passed all 64 package tests. Ten Problems passed strict
-  validation and all 6 focused tests: 4 groups, 10 questions, 39 cases, 10
+- Course Kit passed all 75 package tests. Ten Problems passed strict
+  validation and all 9 focused tests: 4 groups, 10 questions, 39 cases, 10
   public examples, and 29 complete checks. Interview passed strict validation
-  and all 16 focused tests: 3 lessons, 14 cards, 3 practice questions, 1 IDE
+  and all 20 focused tests: 3 lessons, 14 cards, 3 practice questions, 1 IDE
   exercise, and all 13 authored Python cases.
 - `npm run open-learning:validate`, `npm run open-learning:schema`, and
   `npm run open-learning:generate` passed with unchanged public contracts.
   The production course build stayed within CSS/runtime budgets, and the
-  combined Pages artifact contains 444 files.
+  combined Pages artifact contains 446 files.
 - The final root `npm run validate` gate passed package builds/tests,
-  boundaries, TypeScript, ESLint, the 480-test application suite, performance
-  budgets, and both strict example validations.
+  boundaries, TypeScript, ESLint, the application suite, performance budgets,
+  and both strict example validations.
 - The beginner pass covered product choice, the collapsed problem chooser,
-  prompt/constraint reading, public examples, Run examples, Continue, and the
-  optional example solution. The advanced pass covered problem switching,
-  example failure/success, full-check failure/success with expected/received
-  evidence, saved progress after reload, repeated-miss appearance and removal,
-  and confirmation that opening a solution mutates neither draft nor progress.
+  prompt/constraint reading, editing a public JSON input, resetting it,
+  canonical Run examples, Continue, and the optional example solution. The
+  advanced pass covered problem switching, custom returned-value feedback,
+  canonical example and full-check failure/success, saved progress after
+  reload, repeated-miss appearance/removal, and proof that custom runs and
+  solution disclosure mutate neither draft-bound progress nor review state.
 - The regression that motivated this revision is covered directly: clicking
   **Learning Studio** from LLM Systems preserves the same identity,
   **Courses and practice** metadata, global destination order, and header
@@ -654,8 +667,9 @@ on reviewed monorepo sources and is owned by the root Pages build.
 - Keyboard and accessibility checks covered skip-target routing,
   compact-menu Escape focus restoration, current-page state, one page-level
   header, distinct global/local navigation labels, visible headings and live
-  messages, focusable code/reference regions, 53-pixel local navigation
-  targets, and the shared three-pixel visible focus indicator.
+  messages, the JSON field's normal Tab exit, CodeMirror Tab indentation and
+  Escape-then-Tab exit, focusable code/reference regions, 53-pixel local
+  navigation targets, and the shared three-pixel visible focus indicator.
 
 This is local Chromium emulation and keyboard inspection, not a physical
 device or formal screen-reader certification.

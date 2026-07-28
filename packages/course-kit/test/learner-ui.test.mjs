@@ -17,6 +17,7 @@ import {
   renderLearnerHeader,
   resolveLearnerUiTheme,
 } from "../dist/learner-ui.js";
+import { practiceCaseSchema } from "../dist/question-group.js";
 
 function rgb(hex) {
   return [1, 3, 5].map((offset) => (
@@ -96,6 +97,14 @@ test("the learner UI foundation publishes stable tokens, responsive breakpoints,
   );
   assert.match(css, /\.learner-button\[data-variant="primary"\]/);
   assert.match(css, /\.learner-form label:has\(input:checked\)/);
+  assert.match(css, /\.learner-examples/);
+  assert.match(css, /\.learner-field__label/);
+  assert.match(
+    css,
+    /\.learner-textarea \{[\s\S]*?background: color-mix\([\s\S]*?width: 100%;/,
+  );
+  assert.match(css, /\.learner-textarea\[aria-invalid="true"\]/);
+  assert.match(css, /\.learner-example__actions/);
   assert.match(css, /\.learner-status\[data-tone="success"\]/);
   assert.match(css, /\.learner-results/);
   assert.match(
@@ -482,6 +491,19 @@ test("the learner UI behavior closes compact menus and restores keyboard focus",
   assert.match(learnerUiJavaScript, /Math\.cos\(\(wrappedDistance \/ traceFadeWidth\) \* Math\.PI\)/);
   assert.match(learnerUiJavaScript, /requestAnimationFrame\(updateAtmospheres\)/);
   assert.match(learnerUiJavaScript, /createSolutionDisclosure/);
+  assert.match(learnerUiJavaScript, /createEditableExamples/);
+  assert.match(
+    learnerUiJavaScript,
+    /value: Object\.freeze\(\{[\s\S]*createEditableExamples,[\s\S]*createSolutionDisclosure,[\s\S]*prepareCodeEditor/,
+  );
+  assert.match(learnerUiJavaScript, /JSON\.parse\(field\.input\.value\)/);
+  assert.match(learnerUiJavaScript, /if \(!Array\.isArray\(parsed\)\)/);
+  assert.match(learnerUiJavaScript, /parsed\.length > 20/);
+  assert.match(learnerUiJavaScript, /nodes > 2000/);
+  assert.match(learnerUiJavaScript, /current\.depth > 12/);
+  assert.match(learnerUiJavaScript, /firstInvalid\.focus\(\)/);
+  assert.match(learnerUiJavaScript, /record\.status\.textContent = labels\.received/);
+  assert.match(learnerUiJavaScript, /controller\.signal\.aborted/);
   assert.match(learnerUiJavaScript, /code\.textContent = trustedSource/);
   assert.doesNotMatch(learnerUiJavaScript, /\.innerHTML/);
   assert.match(
@@ -760,4 +782,272 @@ test("the shared code editor adapter owns indentation, persistence events, and k
     tabSize: 2,
   }));
   assert.equal(enhancedOptions.language, "text");
+});
+
+test("editable examples validate bounded JSON, reset safely, and return actual observations without grading", async () => {
+  class FakeElement {
+    constructor(tagName = "div") {
+      this.attributes = new Map();
+      this.children = [];
+      this.className = "";
+      this.dataset = {};
+      this.disabled = false;
+      this.hidden = false;
+      this.id = "";
+      this.listeners = new Map();
+      this.parentNode = null;
+      this.tagName = tagName.toUpperCase();
+      this.textContent = "";
+    }
+
+    addEventListener(type, listener) {
+      const listeners = this.listeners.get(type) ?? [];
+      listeners.push(listener);
+      this.listeners.set(type, listeners);
+    }
+
+    append(...children) {
+      for (const child of children) {
+        child.parentNode = this;
+        this.children.push(child);
+      }
+    }
+
+    dispatch(type, event = {}) {
+      for (const listener of this.listeners.get(type) ?? []) listener(event);
+    }
+
+    focus() {
+      document.activeElement = this;
+    }
+
+    getAttribute(name) {
+      return this.attributes.get(name) ?? null;
+    }
+
+    removeAttribute(name) {
+      this.attributes.delete(name);
+    }
+
+    scrollIntoView() {}
+
+    setAttribute(name, value) {
+      this.attributes.set(name, String(value));
+    }
+  }
+
+  class FakeTextArea extends FakeElement {
+    constructor() {
+      super("textarea");
+      this.maxLength = 0;
+      this.rows = 0;
+      this.spellcheck = true;
+      this.value = "";
+    }
+  }
+
+  const document = {
+    activeElement: null,
+    addEventListener() {},
+    createElement(tagName) {
+      return tagName === "textarea"
+        ? new FakeTextArea()
+        : new FakeElement(tagName);
+    },
+    documentElement: new FakeElement("html"),
+    getElementById() {
+      return null;
+    },
+    querySelectorAll() {
+      return [];
+    },
+  };
+  class FakeMutationObserver {
+    observe() {}
+  }
+  const context = {
+    AbortController,
+    Element: FakeElement,
+    Event,
+    HTMLTextAreaElement: FakeTextArea,
+    MutationObserver: FakeMutationObserver,
+    addEventListener() {},
+    document,
+    innerHeight: 900,
+    matchMedia: () => ({ addEventListener() {}, matches: false }),
+    requestAnimationFrame: () => 1,
+    scrollY: 0,
+  };
+  vm.runInNewContext(learnerUiJavaScript, context);
+
+  const descendants = (root) => [
+    root,
+    ...root.children.flatMap((child) => descendants(child)),
+  ];
+  const boundaryArgument = Array.from(
+    { length: 200 },
+    () => [0, 1, 2, 3],
+  );
+  let depthTwelveArgument = 0;
+  for (let depth = 0; depth < 12; depth += 1) {
+    depthTwelveArgument = [depthTwelveArgument];
+  }
+  const longArguments = Array.from(
+    { length: 11 },
+    () => "x".repeat(20_000),
+  );
+  assert.equal(practiceCaseSchema.safeParse({
+    id: "boundary-compatible",
+    label: "accepts every portable argument boundary independently",
+    visibility: "example",
+    args: [
+      boundaryArgument,
+      structuredClone(boundaryArgument),
+      depthTwelveArgument,
+      ...longArguments,
+    ],
+    assertions: [{
+      id: "result",
+      label: "returns the expected result",
+      kind: "deep-equal",
+      expected: null,
+    }],
+  }).success, true);
+  const calls = [];
+  const busy = [];
+  const controller = context.LearnerUiComponents.createEditableExamples({
+    examples: [
+      {
+        id: "first-repeat",
+        label: "finds the repeat encountered first",
+        args: [[4, 1, 7, 1, 4]],
+        expected: 1,
+      },
+      {
+        id: "independent-node-budgets",
+        label: "keeps each argument's node budget independent",
+        args: [
+          boundaryArgument,
+          structuredClone(boundaryArgument),
+        ],
+        expected: null,
+      },
+      {
+        id: "maximum-depth",
+        label: "accepts the maximum portable JSON depth",
+        args: [depthTwelveArgument],
+        expected: null,
+      },
+      {
+        id: "portable-raw-length",
+        label: "accepts portable arguments longer than the old field cap",
+        args: longArguments,
+        expected: null,
+      },
+    ],
+    async onRun(request) {
+      calls.push(request);
+      return { status: "returned", value: 4 };
+    },
+    onBusyChange(value) {
+      busy.push(value);
+    },
+  });
+  const nodes = descendants(controller.element);
+  const input = nodes.find((node) => node.className === "learner-textarea");
+  const run = nodes.find((node) => node.textContent === "Run this input");
+  const reset = nodes.find((node) => node.textContent === "Reset input");
+  const status = nodes.find((node) => (
+    node.className === "learner-status learner-example__status"
+  ));
+  const expected = nodes.find((node) => node.textContent === "1");
+  const exampleControls = controller.element.children.map((fieldset) => {
+    const fieldNodes = descendants(fieldset);
+    return {
+      input: fieldNodes.find((node) => node.className === "learner-textarea"),
+      run: fieldNodes.find((node) => node.textContent === "Run this input"),
+    };
+  });
+
+  assert.equal(input.value, "[[4,1,7,1,4]]");
+  assert.equal(input.maxLength, 2_000_000);
+  assert.equal(input.getAttribute("aria-invalid"), null);
+  assert.equal(input.getAttribute("aria-keyshortcuts"), "Control+Enter Meta+Enter");
+  assert.equal(expected.tagName, "CODE");
+
+  input.value = "[[4,1,7,4,1]]";
+  input.dispatch("input");
+  run.dispatch("click");
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(JSON.stringify(calls[0].args), "[[4,1,7,4,1]]");
+  assert.equal(status.textContent, "Received: 4");
+  assert.equal(status.getAttribute("data-tone"), null);
+  assert.deepEqual(busy, [true, false]);
+
+  exampleControls[1].run.dispatch("click");
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(calls[1].args.length, 2);
+  assert.equal(calls[1].args[0].length, 200);
+
+  exampleControls[2].run.dispatch("click");
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(JSON.stringify(calls[2].args), JSON.stringify([depthTwelveArgument]));
+
+  assert.ok(exampleControls[3].input.value.length > 200_000);
+  exampleControls[3].run.dispatch("click");
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(calls[3].args.length, 11);
+  const successfulCallCount = calls.length;
+
+  input.value = "{";
+  input.dispatch("input");
+  run.dispatch("click");
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(calls.length, successfulCallCount);
+  assert.equal(input.getAttribute("aria-invalid"), "true");
+  assert.equal(document.activeElement, input);
+  assert.match(status.textContent, /Fix the highlighted input/);
+
+  reset.dispatch("click");
+  assert.equal(input.value, "[[4,1,7,1,4]]");
+  assert.equal(input.getAttribute("aria-invalid"), null);
+  assert.equal(status.textContent, "Published input restored.");
+
+  input.value = JSON.stringify(Array.from({ length: 21 }, (_, index) => index));
+  input.dispatch("input");
+  run.dispatch("click");
+  assert.equal(calls.length, successfulCallCount);
+  assert.match(
+    nodes.find((node) => node.className === "learner-field__error").textContent,
+    /no more than 20/,
+  );
+
+  const oversizedArgument = Array.from(
+    { length: 200 },
+    () => Array.from({ length: 10 }, (_, index) => index),
+  );
+  input.value = JSON.stringify([oversizedArgument]);
+  input.dispatch("input");
+  run.dispatch("click");
+  assert.equal(calls.length, successfulCallCount);
+  assert.match(
+    nodes.find((node) => node.className === "learner-field__error").textContent,
+    /Argument 1: JSON values may not contain more than 2,000 values/,
+  );
+
+  const tabEvent = {
+    altKey: false,
+    ctrlKey: false,
+    defaultPrevented: false,
+    isComposing: false,
+    key: "Tab",
+    metaKey: false,
+    preventDefault() {
+      this.defaultPrevented = true;
+    },
+    shiftKey: false,
+  };
+  input.dispatch("keydown", tabEvent);
+  assert.equal(tabEvent.defaultPrevented, false);
+  controller.destroy();
 });

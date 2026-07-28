@@ -176,6 +176,7 @@ test("Interview interactions preserve compact focus, touch targets, and wrapped 
   assert.doesNotMatch(appSource, /\.learner-primary-nav \[data-view\]/);
   assert.match(appSource, /tabindex: "0"/);
   assert.match(appSource, /globalThis\.LearnerUiComponents\?\.createSolutionDisclosure/);
+  assert.match(appSource, /globalThis\.LearnerUiComponents\?\.createEditableExamples/);
   assert.match(appSource, /globalThis\.LearnerUiComponents\?\.prepareCodeEditor/);
   assert.equal(
     appSource.match(/EditorController = prepareCodeEditor\(editor, \{/g)?.length,
@@ -184,8 +185,38 @@ test("Interview interactions preserve compact focus, touch targets, and wrapped 
   assert.match(appSource, /language: "python"/);
   assert.match(appSource, /tabSize: 4/);
   assert.equal(appSource.match(/EditorController\?\.destroy\?\.\(\)/g)?.length, 2);
+  assert.equal(appSource.match(/practiceExamplesController\?\.destroy\?\.\(\)/g)?.length, 1);
+  assert.match(appSource, /practiceRunController\?\.abort\(\)/);
   assert.match(appSource, /ideEditorController\?\.setValue\?\.\(editor\.value\)/);
   assert.doesNotMatch(appSource, /event\.key === "Tab"|setRangeText/);
+  assert.match(appSource, /runLabel: "Run this input"/);
+  assert.match(appSource, /inputLabel: "Arguments \(JSON\)"/);
+  assert.match(appSource, /expectedLabel: "Published expected \(for the original input\)"/);
+  assert.match(appSource, /helperText: "Enter one JSON array containing the function arguments\. This run does not affect progress\."/);
+  const customExampleRun = appSource.match(
+    /async onRun\(\{ id, args, constructorArgs, signal \}\) \{([\s\S]*?)\n    \},\n    onBusyChange/,
+  )?.[1];
+  assert.ok(customExampleRun);
+  assert.match(customExampleRun, /\[customCase\],[\s\S]*runtime,[\s\S]*signal/);
+  assert.match(customExampleRun, /includeObservation: true/);
+  assert.match(customExampleRun, /return customResult\.observation/);
+  assert.doesNotMatch(customExampleRun, /nextPracticeProgress|practice-progress/);
+  const canonicalRun = appSource.match(
+    /const runCanonical = async \(mode\) => \{([\s\S]*?)\n  \};\n  runExamples\.addEventListener/,
+  )?.[1];
+  assert.ok(canonicalRun);
+  assert.match(canonicalRun, /mode === "examples" \? publicCases : question\.cases/);
+  assert.match(canonicalRun, /if \(mode === "examples"\) \{/);
+  assert.doesNotMatch(canonicalRun, /includeObservation/);
+  assert.ok(
+    canonicalRun.indexOf('if (mode === "examples")')
+      < canonicalRun.indexOf("nextPracticeProgress"),
+  );
+  assert.match(canonicalRun, /state\.runtimeStore\.write\("practice-progress"/);
+  assert.match(
+    appSource,
+    /onRun: \(mode\) => \(\s*mode === "examples" \? runExamples : checkSolution\s*\)\.click\(\)/,
+  );
   const setStatusBody = appSource.match(
     /function setStatus\(node, message, tone = "neutral"\) \{([\s\S]*?)\n\}/,
   )?.[1];

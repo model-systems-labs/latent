@@ -54,6 +54,17 @@ function returned(value, purity) {
   }];
 }
 
+function threw(errorName, message) {
+  return [{
+    caseId: exerciseCase.id,
+    observation: {
+      status: "threw",
+      errorName,
+      message,
+    },
+  }];
+}
+
 function fakeClient(result, calls) {
   return {
     async initialize(payload, options) {
@@ -148,6 +159,7 @@ test("value-correct post-call changes and alias evidence fail while pure evidenc
     });
     const [result] = await adapter.run(request());
     assert.equal(result.passed, sample.failedAssertion === null);
+    assert.equal(Object.hasOwn(result, "observation"), false);
     if (sample.failedAssertion) {
       assert.equal(
         result.assertions.find((entry) => entry.id === sample.failedAssertion)?.passed,
@@ -161,6 +173,105 @@ test("value-correct post-call changes and alias evidence fail while pure evidenc
     assert.equal(calls.run.options.timeoutMs, 10_000);
     assert.equal(calls.disposed, true);
   }
+});
+
+test("canonical near-limit results do not duplicate the returned value as an observation", async () => {
+  const calls = {};
+  const nearLimitValue = "x".repeat(60_000);
+  const adapter = runtimeModule.createInterviewPythonRuntime({
+    createClient() {
+      return fakeClient(
+        returned(nearLimitValue, {
+          inputUnchanged: true,
+          outputFresh: true,
+        }),
+        calls,
+      );
+    },
+  });
+
+  const [result] = await adapter.run(request({
+    requirement: {
+      ...requirement,
+      limits: {
+        ...requirement.limits,
+        maxOutputBytes: 80_000,
+      },
+    },
+  }));
+
+  assert.equal(Object.hasOwn(result, "observation"), false);
+  assert.equal(result.assertions[0].actual, nearLimitValue);
+  assert.ok(
+    new TextEncoder().encode(JSON.stringify([result])).byteLength < 80_000,
+  );
+  assert.equal(calls.disposed, true);
+});
+
+test("edited public arguments reach the worker and return a normalized ungraded observation", async () => {
+  const calls = {};
+  const signal = new AbortController().signal;
+  const customCase = {
+    ...exerciseCase,
+    args: [[{
+      deliveryId: "custom-input",
+      status: "accepted",
+    }]],
+  };
+  const observed = [{
+    deliveryId: "custom-input",
+    status: "accepted",
+  }];
+  const adapter = runtimeModule.createInterviewPythonRuntime({
+    createClient() {
+      return fakeClient(
+        returned(observed, {
+          inputUnchanged: true,
+          outputFresh: true,
+        }),
+        calls,
+      );
+    },
+  });
+
+  const [result] = await adapter.run(request({
+    cases: [customCase],
+    includeObservation: true,
+    signal,
+  }));
+
+  assert.deepEqual(result.observation, {
+    status: "returned",
+    value: observed,
+  });
+  assert.match(calls.run.payload.code, /custom-input/);
+  assert.equal(calls.initialize.options.signal, signal);
+  assert.equal(calls.sync.options.signal, signal);
+  assert.equal(calls.run.options.signal, signal);
+  assert.equal(calls.disposed, true);
+});
+
+test("thrown calls expose only the normalized error observation", async () => {
+  const calls = {};
+  const adapter = runtimeModule.createInterviewPythonRuntime({
+    createClient() {
+      return fakeClient(threw("ValueError", "bad delivery"), calls);
+    },
+  });
+
+  const [result] = await adapter.run(request({
+    includeObservation: true,
+  }));
+
+  assert.equal(result.passed, false);
+  assert.deepEqual(result.observation, {
+    status: "threw",
+    errorName: "ValueError",
+    message: "bad delivery",
+  });
+  assert.equal(Object.isFrozen(result.observation), true);
+  assert.equal(result.assertions[0].id, "platform-execution");
+  assert.equal(calls.disposed, true);
 });
 
 test("an incomplete Python result fails closed and disposes the worker", async () => {

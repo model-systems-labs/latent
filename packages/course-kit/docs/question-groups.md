@@ -153,6 +153,26 @@ public example input and expected output before execution, shows
 input/expected/received values in feedback, and supports
 Control/Command+Enter for checks plus Shift+Control/Command+Enter for examples.
 
+Public examples also use the shared editable-example component from
+`packages/course-kit/src/learner-ui.ts`. A learner can temporarily change the
+JSON argument array and choose **Run this input** to see only the returned value
+or raised exception. The published expected value remains labeled as a
+reference for the original input; a custom try is never presented as a pass or
+failure against that stale expectation. **Reset input** restores the published
+arguments. These edits are visit-local, use the same trusted runtime adapter,
+timeouts, cancellation, output limits, and bounded-JSON checks as the player,
+and never alter canonical Question Group bytes, the library digest, contract
+identity, attempts, solved state, or repeated-miss review. **Run examples**
+continues to execute the immutable published example cases, and **Check
+solution** continues to execute the immutable full case set and is the only
+path that records progress.
+
+The bundled runtime and reviewed Python adapter advertise
+`supportsEditableExamples: true`. An older injected trusted adapter that does
+not advertise that capability keeps the previous read-only public-example
+list; it is never sent the new observation request. This makes the interaction
+an additive trusted-adapter extension rather than a breaking runtime contract.
+
 ## What a library can declare
 
 A library declares authors, an SPDX license, source revision, learning

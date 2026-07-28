@@ -13,6 +13,7 @@ type RuntimeRequest = {
   contractVersion: string;
   source: string;
   mode: "examples" | "check";
+  includeObservation?: boolean;
   signal?: AbortSignal;
 };
 
@@ -176,6 +177,7 @@ export function createPythonQuestionRuntime(options: RuntimeOptions) {
   ));
 
   return Object.freeze({
+    supportsEditableExamples: true,
     supports: supportsPython,
     async run(request: RuntimeRequest) {
       if (!supportsPython(request.runtime)) {
@@ -252,7 +254,7 @@ export function createPythonQuestionRuntime(options: RuntimeOptions) {
           const authoredCase = selectedCases.find((candidate) => (
             candidate.id === result.caseId
           ));
-          return {
+          const caseResult = {
             id: result.caseId,
             label: result.caseLabel,
             passed: result.passed,
@@ -273,6 +275,9 @@ export function createPythonQuestionRuntime(options: RuntimeOptions) {
               detail: assertion.detail,
             })),
           };
+          return request.includeObservation === true
+            ? { ...caseResult, observation }
+            : caseResult;
         });
         const outcome = {
           passed: cases.every((exerciseCase) => exerciseCase.passed),

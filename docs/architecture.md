@@ -123,6 +123,7 @@ packages/course-kit/src/learner-ui.ts
         +-- one ethereal, scroll-reactive atmosphere grammar
         +-- shell, one-header anatomy, navigation, and footer renderers
         +-- controls, progress, feedback, empty-state, and editor framing
+        +-- editable public-example fields and actual-only try feedback
         +-- focus, screen-reader, reduced-motion, and mobile behavior
         |
         +-- learner-code-editor.ts
@@ -285,6 +286,23 @@ question contract identity/version, restores them on navigation and reload,
 and falls back to visit-local memory when durable storage is unavailable.
 Run and check operations are cancelable by the host adapter; cancellation
 terminates the disposable worker without changing progress or the saved draft.
+
+Editable public-example arguments are a trusted presentation/runtime
+composition owned by `packages/course-kit/src/learner-ui.ts` and
+`packages/course-kit/src/question-group-site.ts`, not a new portable field.
+Custom arguments are bounded JSON held only for the current visit. **Run this
+input** scopes one published example identity to those temporary arguments and
+renders the normalized returned/raised observation without grading it against
+the published expected value. Canonical **Run examples** and **Check solution**
+continue to use the immutable validated cases; only the latter writes
+progress. Interview Loop composes the same shared component with its
+application-owned Python adapter, while Ten Problems receives it through the
+standalone Question Group builder.
+
+Standalone runtime adapters opt in to that custom-input observation path with
+an explicit trusted capability. Existing injected adapters without the
+capability retain the canonical read-only public-example presentation and are
+never sent a new request shape.
 
 Browser Lab can emit a source- and contract-bound receipt directly. Python Lab
 returns guarded runtime observations and results; the application performs the

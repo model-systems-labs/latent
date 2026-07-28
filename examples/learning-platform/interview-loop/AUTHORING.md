@@ -722,6 +722,21 @@ one reviewed color palette rather than rebuilding a shell.
 | `examples/learning-platform/ten-problems/site-config.mjs` | Ten Problems labels, review route, footer, favicon, and `cobalt` palette. |
 | `scripts/build-learning-example-pages.mjs` | Builds the Paper-palette Learning Studio and assembles all three products at stable Pages subpaths. |
 
+### Shared editor keyboard contract
+
+The original v2 handoff shared the editor shell and focus treatment, but not
+the editing behavior: Interview Loop and the standalone Question Group player
+still created independent native textareas while the React IDE used
+CodeMirror. The reviewed `LearnerUiComponents.prepareCodeEditor` adapter in
+`packages/course-kit/src/learner-ui.ts` now owns native-editor Tab indentation,
+Shift+Tab outdent, the Escape-then-Tab focus exit, screen-reader instructions,
+and the bubbling input event required by draft persistence. Interview Loop
+calls that adapter for both Practice and Coding lab; Question Group sites call
+it with a language-specific indent width. The React CodeMirror adapters remain
+specialized, but use the same keyboard contract and an explicit four-space
+Python indentation unit. No portable content field or runtime authority was
+added.
+
 The one global header has a stable anatomy: **Learning Studio** identity,
 optional suite metadata, and sibling experience navigation. Product-local
 destinations render in the shared contextual row below the header instead of

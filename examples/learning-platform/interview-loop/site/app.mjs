@@ -67,6 +67,15 @@ function referenceSolutionDisclosure(source, title) {
   return createSolutionDisclosure({ source, title });
 }
 
+function prepareCodeEditor(editor, tabSize = 4) {
+  const prepare =
+    globalThis.LearnerUiComponents?.prepareCodeEditor;
+  if (typeof prepare !== "function") {
+    throw new Error("The shared learner code editor adapter is unavailable.");
+  }
+  return prepare(editor, { tabSize });
+}
+
 async function runPythonChecks(source, path, entrypoint, cases, requirement) {
   if (!interviewPythonRuntime.supports(requirement)) {
     throw new Error("This exercise does not declare the supported Python runtime.");
@@ -562,6 +571,7 @@ function renderPractice(library, state) {
     element("div", { className: "learner-editor-toolbar" }, label),
     editor,
   ]);
+  prepareCodeEditor(editor);
   const status = element("p", { className: "learner-status", "aria-live": "polite" });
   const results = element("div", { className: "learner-results" });
   const referenceSolution = state.referenceSolutions.practice.find((entry) => (
@@ -671,6 +681,7 @@ function renderIde(exercises, state) {
     element("div", { className: "learner-editor-toolbar" }, editorLabel),
     editor,
   ]);
+  prepareCodeEditor(editor);
   const status = element("p", { className: "learner-status", "aria-live": "polite" });
   const results = element("div", { className: "learner-results" });
   const referenceSolution = state.referenceSolutions.ide.find((entry) => (

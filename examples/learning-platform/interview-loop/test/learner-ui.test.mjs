@@ -81,6 +81,11 @@ test("build-time learner UI config renders the shared shell and local assets", a
   assert.match(css, /:focus-visible/);
   assert.match(css, /@media \(max-width: 760px\)/);
   assert.match(learnerUiJavaScript, /Escape/);
+  assert.match(learnerUiJavaScript, /const prepareCodeEditor = /);
+  assert.match(
+    learnerUiJavaScript,
+    /Code editor\. Tab indents [\s\S]*Shift\+Tab outdents\. Press Escape, then Tab, to leave the editor\./,
+  );
 
   const buildSource = await readFile(new URL("../tools/build.mjs", import.meta.url), "utf8");
   for (const asset of ["index.html", "learner-ui.css", "learner-ui.js", "favicon.svg"]) {
@@ -149,6 +154,9 @@ test("Interview interactions preserve compact focus, touch targets, and wrapped 
   assert.doesNotMatch(appSource, /\.learner-primary-nav \[data-view\]/);
   assert.match(appSource, /tabindex: "0"/);
   assert.match(appSource, /globalThis\.LearnerUiComponents\?\.createSolutionDisclosure/);
+  assert.match(appSource, /globalThis\.LearnerUiComponents\?\.prepareCodeEditor/);
+  assert.equal(appSource.match(/prepareCodeEditor\(editor\);/g)?.length, 2);
+  assert.doesNotMatch(appSource, /event\.key === "Tab"|setRangeText/);
   const setStatusBody = appSource.match(
     /function setStatus\(node, message, tone = "neutral"\) \{([\s\S]*?)\n\}/,
   )?.[1];

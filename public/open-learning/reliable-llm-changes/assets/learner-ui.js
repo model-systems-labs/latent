@@ -1,6 +1,8 @@
 (() => {
   "use strict";
   const solutionNote = "Compare the control flow and boundary cases with your draft. Opening this reference does not replace your work or update progress.";
+  const preparedCodeEditors = new WeakMap();
+  let editorInstructionSequence = 0;
   const componentText = (value, label, maximum) => {
     if (
       typeof value !== "string"
@@ -34,11 +36,163 @@
     details.append(summary, note, sourceFrame);
     return details;
   };
+  const normalizedTabSize = (value) => (
+    Number.isInteger(value) && value >= 1 && value <= 8 ? value : 2
+  );
+  const editorInstruction = (tabSize) => (
+    "Code editor. Tab indents " + tabSize
+    + " spaces; Shift+Tab outdents. Press Escape, then Tab, to leave the editor."
+  );
+  const editCodeSelection = (editor, tabSize, outdent) => {
+    const value = editor.value;
+    const selectionStart = editor.selectionStart;
+    const selectionEnd = editor.selectionEnd;
+    const selectionDirection = editor.selectionDirection;
+    const firstLineStart = selectionStart === 0
+      ? 0
+      : value.lastIndexOf("\n", selectionStart - 1) + 1;
+    const effectiveEnd = (
+      selectionEnd > selectionStart && value[selectionEnd - 1] === "\n"
+        ? selectionEnd - 1
+        : selectionEnd
+    );
+    const lineStarts = [firstLineStart];
+    let scanFrom = firstLineStart;
+    while (scanFrom < effectiveEnd) {
+      const newline = value.indexOf("\n", scanFrom);
+      if (newline === -1 || newline >= effectiveEnd) break;
+      lineStarts.push(newline + 1);
+      scanFrom = newline + 1;
+    }
+    const indentation = " ".repeat(tabSize);
+    const edits = lineStarts.flatMap((lineStart) => {
+      if (!outdent) {
+        return [{ from: lineStart, to: lineStart, insert: indentation }];
+      }
+      let indentEnd = lineStart;
+      let visualIndent = 0;
+      while (indentEnd < value.length) {
+        if (value[indentEnd] === " ") {
+          visualIndent += 1;
+        } else if (value[indentEnd] === "\t") {
+          visualIndent += tabSize - (visualIndent % tabSize);
+        } else {
+          break;
+        }
+        indentEnd += 1;
+      }
+      return visualIndent
+        ? [{
+            from: lineStart,
+            to: indentEnd,
+            insert: " ".repeat(Math.max(0, visualIndent - tabSize)),
+          }]
+        : [];
+    });
+    if (!edits.length) return false;
+    const mapPosition = (position) => {
+      let mapped = position;
+      for (const edit of edits) {
+        const removedLength = edit.to - edit.from;
+        const insertedLength = edit.insert.length;
+        if (removedLength === 0) {
+          if (position >= edit.from) mapped += insertedLength;
+        } else if (position > edit.to) {
+          mapped += insertedLength - removedLength;
+        } else if (position > edit.from) {
+          mapped += insertedLength - (position - edit.from);
+        }
+      }
+      return mapped;
+    };
+    const nextSelectionStart = mapPosition(selectionStart);
+    const nextSelectionEnd = mapPosition(selectionEnd);
+    const scrollTop = editor.scrollTop;
+    const scrollLeft = editor.scrollLeft;
+    [...edits].reverse().forEach((edit) => {
+      editor.setRangeText(edit.insert, edit.from, edit.to, "preserve");
+    });
+    editor.setSelectionRange(
+      nextSelectionStart,
+      nextSelectionEnd,
+      selectionDirection,
+    );
+    editor.scrollTop = scrollTop;
+    editor.scrollLeft = scrollLeft;
+    editor.dispatchEvent(new Event("input", { bubbles: true }));
+    return true;
+  };
+  const prepareCodeEditor = (editor, { tabSize: requestedTabSize = 2 } = {}) => {
+    if (!(editor instanceof HTMLTextAreaElement)) {
+      throw new Error("The shared code editor adapter requires a textarea.");
+    }
+    const tabSize = normalizedTabSize(requestedTabSize);
+    editor.dataset.learnerTabSize = String(tabSize);
+    editor.style.tabSize = String(tabSize);
+    const prepared = preparedCodeEditors.get(editor);
+    if (prepared) {
+      prepared.instruction.textContent = editorInstruction(tabSize);
+      return editor;
+    }
+    if (!editor.parentNode) {
+      throw new Error("The shared code editor adapter requires a mounted editor frame.");
+    }
+    const instruction = document.createElement("span");
+    instruction.className = "learner-sr-only";
+    instruction.id = "learner-editor-instructions-" + (++editorInstructionSequence);
+    instruction.textContent = editorInstruction(tabSize);
+    editor.after(instruction);
+    const describedBy = editor.getAttribute("aria-describedby");
+    editor.setAttribute(
+      "aria-describedby",
+      describedBy ? describedBy + " " + instruction.id : instruction.id,
+    );
+    editor.setAttribute("aria-keyshortcuts", "Tab Shift+Tab Escape");
+    let tabFocusUntil = 0;
+    editor.addEventListener("keydown", (event) => {
+      if (
+        event.key === "Escape"
+        && !event.altKey
+        && !event.ctrlKey
+        && !event.metaKey
+        && !event.isComposing
+      ) {
+        tabFocusUntil = Date.now() + 2000;
+        return;
+      }
+      if (event.key === "Tab") {
+        if (
+          event.altKey
+          || event.ctrlKey
+          || event.metaKey
+          || event.isComposing
+          || editor.disabled
+          || editor.readOnly
+        ) return;
+        if (Date.now() <= tabFocusUntil) {
+          tabFocusUntil = 0;
+          return;
+        }
+        event.preventDefault();
+        editCodeSelection(
+          editor,
+          normalizedTabSize(Number(editor.dataset.learnerTabSize)),
+          event.shiftKey,
+        );
+        return;
+      }
+      if (!["Alt", "Control", "Meta", "Shift"].includes(event.key)) {
+        tabFocusUntil = 0;
+      }
+    });
+    preparedCodeEditors.set(editor, { instruction });
+    return editor;
+  };
   if (globalThis.LearnerUiComponents === undefined) {
     Object.defineProperty(globalThis, "LearnerUiComponents", {
       configurable: false,
       enumerable: false,
-      value: Object.freeze({ createSolutionDisclosure }),
+      value: Object.freeze({ createSolutionDisclosure, prepareCodeEditor }),
       writable: false,
     });
   }

@@ -5,7 +5,7 @@ import { basicSetup } from "codemirror";
 import { acceptCompletion } from "@codemirror/autocomplete";
 import { indentWithTab, temporarilySetTabFocusMode } from "@codemirror/commands";
 import { python } from "@codemirror/lang-python";
-import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
+import { HighlightStyle, indentUnit, syntaxHighlighting } from "@codemirror/language";
 import { EditorState, Prec, type Extension } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
@@ -130,6 +130,7 @@ export function PythonCodeEditor({ value, path, onChange, onSave, readOnly = fal
           saveKeymap,
           pythonEditorTheme,
           syntaxHighlighting(pythonSyntaxTheme),
+          indentUnit.of("    "),
           EditorState.tabSize.of(4),
           EditorState.readOnly.of(readOnly),
           EditorView.editable.of(!readOnly),

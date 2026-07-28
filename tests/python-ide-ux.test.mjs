@@ -79,6 +79,8 @@ test("the Python editor has native syntax highlighting and the same keyboard esc
   assert.match(source, /syntaxHighlighting\(pythonSyntaxTheme\)/);
   assert.match(source, /background:\s*"#1f1e21"/);
   assert.match(source, /\}, \{ dark: true \}\);/);
+  assert.match(source, /import \{ HighlightStyle, indentUnit, syntaxHighlighting \} from "@codemirror\/language"/);
+  assert.match(source, /indentUnit\.of\(" {4}"\)/);
   assert.match(source, /EditorState\.tabSize\.of\(4\)/);
   assert.match(source, /\{ key: "Escape", run: temporarilySetTabFocusMode \}/);
   assert.match(source, /\{ key: "Tab", run: acceptCompletion \},\s*indentWithTab/);

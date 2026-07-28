@@ -5,7 +5,7 @@ import { basicSetup } from "codemirror";
 import { acceptCompletion } from "@codemirror/autocomplete";
 import { javascript } from "@codemirror/lang-javascript";
 import { python } from "@codemirror/lang-python";
-import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
+import { HighlightStyle, indentUnit, syntaxHighlighting } from "@codemirror/language";
 import { EditorState, Prec, type Extension } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers } from "@codemirror/view";
 import { indentWithTab, temporarilySetTabFocusMode } from "@codemirror/commands";
@@ -237,6 +237,7 @@ export function CodeEditor({ value, path, onChange, onSave, onRun, readOnly = fa
           saveKeymap,
           lightEditor ? lessonTheme : latentTheme,
           syntaxHighlighting(lightEditor ? lessonSyntaxTheme : syntaxTheme),
+          indentUnit.of(isPython ? "    " : "  "),
           EditorState.tabSize.of(isPython ? 4 : 2),
           EditorState.readOnly.of(readOnly),
           EditorView.editable.of(!readOnly),

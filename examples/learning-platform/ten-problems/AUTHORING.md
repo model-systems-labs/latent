@@ -421,6 +421,21 @@ the shell.
 | `scripts/generate-learning-platform-learner-ui.mjs` | Generates that vendored copy from Course Kit rather than creating another design source. |
 | `scripts/build-learning-example-pages.mjs` | Builds the Paper-palette Learning Studio and assembles all three products at stable Pages subpaths. |
 
+### Shared editor keyboard contract
+
+The original v2 handoff shared the editor shell and focus treatment, but not
+the editing behavior: Ten Problems and Interview Loop still created
+independent native textareas while the React IDE used CodeMirror. The reviewed
+`LearnerUiComponents.prepareCodeEditor` adapter in
+`packages/course-kit/src/learner-ui.ts` now owns native-editor Tab indentation,
+Shift+Tab outdent, the Escape-then-Tab focus exit, screen-reader instructions,
+and the bubbling input event required by draft persistence. The Question Group
+player composes that adapter with a language-specific indent width, while
+Interview Loop uses it for both Practice and Coding lab. The React CodeMirror
+adapters remain specialized, but use the same keyboard contract and an
+explicit four-space Python indentation unit. No Question Group field, digest,
+runtime adapter, or executable-check boundary changed.
+
 The one global header has a stable anatomy: product identity and optional
 metadata, local primary navigation, and one **Learning suite** disclosure for the
 product family. Compact layouts put Practice/Review navigation inside

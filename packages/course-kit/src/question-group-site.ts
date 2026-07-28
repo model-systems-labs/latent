@@ -1613,6 +1613,11 @@ function renderQuestionGroupPlayerJavaScript(
     editor.className = "learner-editor";
     editor.setAttribute("aria-label", copy.editorLabel);
     editor.spellcheck = false;
+    const prepareCodeEditor =
+      globalThis.LearnerUiComponents?.prepareCodeEditor;
+    if (typeof prepareCodeEditor !== "function") {
+      throw new Error("The shared learner code editor adapter is unavailable.");
+    }
     const persistDraftWrites = async () => {
       if (draftWriteActive) return;
       draftWriteActive = true;
@@ -1819,6 +1824,9 @@ function renderQuestionGroupPlayerJavaScript(
       }
       sourcePath.textContent = question.path;
       editor.value = source;
+      prepareCodeEditor(editor, {
+        tabSize: question.language === "python" ? 4 : 2,
+      });
       const referenceSolution = referenceSolutionByQuestion.get(
         questionKey(group, question),
       );

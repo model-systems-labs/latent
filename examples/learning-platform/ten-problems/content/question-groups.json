@@ -3,7 +3,7 @@
   "schemaVersion": 1,
   "library": {
     "id": "latent-demos/ten-problems",
-    "version": "2.0.0",
+    "version": "2.1.0",
     "title": "Ten Problems",
     "description": "Ten original Python problems arranged as a compact progression through core interview patterns.",
     "authors": [
@@ -18,7 +18,7 @@
     },
     "provenance": {
       "sourceUrl": "https://github.com/model-systems-labs/latent/tree/main/examples/learning-platform/ten-problems",
-      "revision": "2.0.0-python-practice-set"
+      "revision": "2.1.0-type-hinted-starters"
     }
   },
   "objectives": [
@@ -102,7 +102,7 @@
           "difficulty": "easy",
           "language": "python",
           "path": "first-echo.py",
-          "starterCode": "def first_echo(values):\n    # Return the first value encountered for a second time.\n    return None\n",
+          "starterCode": "def first_echo(values: list[int]) -> int | None:\n    # Return the first value encountered for a second time.\n    return None\n",
           "entrypoint": {
             "kind": "function",
             "functionName": "first_echo"
@@ -214,7 +214,7 @@
           "difficulty": "easy",
           "language": "python",
           "path": "tunnel-gates.py",
-          "starterCode": "def gates_close_cleanly(events):\n    # Match each close with the most recently opened gate.\n    return False\n",
+          "starterCode": "def gates_close_cleanly(events: str) -> bool:\n    # Match each close with the most recently opened gate.\n    return False\n",
           "entrypoint": {
             "kind": "function",
             "functionName": "gates_close_cleanly"
@@ -310,7 +310,7 @@
           "difficulty": "easy",
           "language": "python",
           "path": "quietest-window.py",
-          "starterCode": "def quietest_window(readings, width):\n    # Reuse the previous window total.\n    return 0\n",
+          "starterCode": "def quietest_window(readings: list[int], width: int) -> int:\n    # Reuse the previous window total.\n    return 0\n",
           "entrypoint": {
             "kind": "function",
             "functionName": "quietest_window"
@@ -430,7 +430,7 @@
           "difficulty": "medium",
           "language": "python",
           "path": "longest-unique-span.py",
-          "starterCode": "def longest_unique_span(text):\n    # Move a left boundary past repeats without moving it backward.\n    return 0\n",
+          "starterCode": "def longest_unique_span(text: str) -> int:\n    # Move a left boundary past repeats without moving it backward.\n    return 0\n",
           "entrypoint": {
             "kind": "function",
             "functionName": "longest_unique_span"
@@ -543,7 +543,7 @@
           "difficulty": "easy",
           "language": "python",
           "path": "reverse-chain.py",
-          "starterCode": "def reverse_chain(head):\n    # Each node is a dict with \"value\" and \"next\"; next is another node or None.\n    return None\n",
+          "starterCode": "def reverse_chain(head: dict[str, object] | None) -> dict[str, object] | None:\n    # Each node is a dict with \"value\" and \"next\"; next is another node or None.\n    return None\n",
           "entrypoint": {
             "kind": "function",
             "functionName": "reverse_chain"
@@ -647,7 +647,7 @@
           "difficulty": "medium",
           "language": "python",
           "path": "condense-calendar.py",
-          "starterCode": "def condense_windows(windows):\n    # Return sorted, merged [start, end] pairs.\n    return []\n",
+          "starterCode": "def condense_windows(windows: list[list[int]]) -> list[list[int]]:\n    # Return sorted, merged [start, end] pairs.\n    return []\n",
           "entrypoint": {
             "kind": "function",
             "functionName": "condense_windows"
@@ -829,7 +829,7 @@
           "difficulty": "medium",
           "language": "python",
           "path": "disease-spread-clock.py",
-          "starterCode": "def minutes_to_reach_all(grid):\n    # Begin one breadth-first frontier from every S cell.\n    return 0\n",
+          "starterCode": "def minutes_to_reach_all(grid: list[list[str]]) -> int:\n    # Begin one breadth-first frontier from every S cell.\n    return 0\n",
           "entrypoint": {
             "kind": "function",
             "functionName": "minutes_to_reach_all"
@@ -959,7 +959,7 @@
           "difficulty": "easy",
           "language": "python",
           "path": "fewest-relay-hops.py",
-          "starterCode": "def fewest_relay_hops(node_count, links, start, goal):\n    # Breadth-first search measures distance in equal-cost links.\n    return -1\n",
+          "starterCode": "def fewest_relay_hops(node_count: int, links: list[list[int]], start: int, goal: int) -> int:\n    # Breadth-first search measures distance in equal-cost links.\n    return -1\n",
           "entrypoint": {
             "kind": "function",
             "functionName": "fewest_relay_hops"
@@ -1139,7 +1139,7 @@
           "difficulty": "medium",
           "language": "python",
           "path": "minimum-climb-energy.py",
-          "starterCode": "def minimum_climb_energy(heights):\n    # Keep the minimum cost to reach each of the last two positions.\n    return 0\n",
+          "starterCode": "def minimum_climb_energy(heights: list[int]) -> int:\n    # Keep the minimum cost to reach each of the last two positions.\n    return 0\n",
           "entrypoint": {
             "kind": "function",
             "functionName": "minimum_climb_energy"
@@ -1250,7 +1250,7 @@
           "difficulty": "medium",
           "language": "python",
           "path": "workday-capacity.py",
-          "starterCode": "def minimum_daily_capacity(loads, days):\n    # Binary-search capacities and test each one with a greedy scan.\n    return 0\n",
+          "starterCode": "def minimum_daily_capacity(loads: list[int], days: int) -> int:\n    # Binary-search capacities and test each one with a greedy scan.\n    return 0\n",
           "entrypoint": {
             "kind": "function",
             "functionName": "minimum_daily_capacity"

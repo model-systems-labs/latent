@@ -1,7 +1,7 @@
 export const ideExercises = [
   {
     id: "bounded-webhook-retries",
-    contractVersion: "interview-loop.retry-plan.v3",
+    contractVersion: "interview-loop.retry-plan.v4",
     title: "Coding follow-up: schedule bounded retries",
     summary: "A system-design interview can narrow into an implementation follow-up. Turn retry semantics into a deterministic plan with terminal-state and retry-budget boundaries. Target O(r) time and O(r) output space for r deliveries.",
     language: "python",
@@ -19,7 +19,7 @@ export const ideExercises = [
     files: [
       {
         path: "schedule_retries.py",
-        content: `def schedule_retries(deliveries, now_ms):
+        content: `def schedule_retries(deliveries: list[dict[str, str | int]], now_ms: int) -> list[dict[str, str | int]]:
     # Return dictionaries with "deliveryId" and "runAtMs" keys for retryable deliveries only.
     # attempt is the number of the attempt that just finished.
     # Retry attempts 1, 2, and 3 after 1s, 2s, and 4s respectively.

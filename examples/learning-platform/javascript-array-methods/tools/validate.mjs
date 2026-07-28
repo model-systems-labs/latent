@@ -29,6 +29,12 @@ function nonempty(value) {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+function hasJavascriptTypeHints(value) {
+  return typeof value === "string"
+    && /@param\s+\{[^}]+\}\s+[A-Za-z_$][A-Za-z0-9_$]*/.test(value)
+    && /@returns?\s+\{[^}]+\}/.test(value);
+}
+
 function isRecord(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -141,6 +147,11 @@ function validateTinyQuestionPlayer(library) {
         `${path}.entrypoint`,
         "The dependency-free tiny player supports function entrypoints only.",
       );
+      expect(
+        hasJavascriptTypeHints(question.starterCode),
+        `${path}.starterCode`,
+        "JavaScript starter code must include JSDoc @param and @returns type hints.",
+      );
       for (const [caseIndex, exerciseCase] of (question.cases ?? []).entries()) {
         expect(
           Array.isArray(exerciseCase.assertions)
@@ -228,6 +239,11 @@ function validateIdeExercises(exercises) {
           nonempty(file.content),
           `${filePath}.content`,
           "File content must be a non-empty string.",
+        );
+        expect(
+          hasJavascriptTypeHints(file.content),
+          `${filePath}.content`,
+          "JavaScript IDE starter code must include JSDoc @param and @returns type hints.",
         );
       }
     }

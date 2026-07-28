@@ -1,14 +1,18 @@
 export const ideExercises = [
   {
     id: "initials-from-name",
-    contractVersion: "1",
+    contractVersion: "2",
     title: "Build initials from a name",
     summary: "Use a short array-method pipeline to turn words into initials.",
     language: "javascript",
     files: [
       {
         path: "initials.js",
-        content: `function initials(name) {
+        content: `/**
+ * @param {string} name
+ * @returns {string}
+ */
+function initials(name) {
   // Trim the name, split it into words, and return uppercase initials.
   return "";
 }

@@ -27,10 +27,10 @@ course-specific.
 
 The first two files are untrusted declarative content. The IDE definition,
 Python adapter, worker, state logic, specialized UI, and tools are trusted
-repository source. The Learning Pack is version 2.1.0 and the Question Group
-library is version 2.0.0; the IDE uses contract
-`interview-loop.retry-plan.v3`. Read
-`AGENTS.md` before asking any coding agent to edit the project.
+repository source. The Learning Pack and type-hinted Question Group library
+are both version 2.1.0; the type-hinted IDE uses contract
+`interview-loop.retry-plan.v4`. Read `AGENTS.md` before asking any coding agent
+to edit the project.
 
 ## Shared learner UI
 

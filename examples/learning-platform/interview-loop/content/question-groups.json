@@ -3,7 +3,7 @@
   "schemaVersion": 1,
   "library": {
     "id": "latent-demos/interview-loop",
-    "version": "2.0.0",
+    "version": "2.1.0",
     "title": "Interview Loop Lab coding practice",
     "description": "Original Python interview drills connecting duplicate handling, observable event windows, and fair admission to the course architecture scenario.",
     "authors": [
@@ -18,7 +18,7 @@
     },
     "provenance": {
       "sourceUrl": "https://github.com/model-systems-labs/latent/tree/main/examples/learning-platform/interview-loop",
-      "revision": "2.0.0-python-revision"
+      "revision": "2.1.0-type-hinted-starters"
     }
   },
   "objectives": [
@@ -110,7 +110,7 @@
           "difficulty": "easy",
           "language": "python",
           "path": "collapse_attempts.py",
-          "starterCode": "def collapse_attempts(attempts):\n    # Keep the first result for each deliveryId in first-seen order.\n    return []\n",
+          "starterCode": "def collapse_attempts(attempts: list[dict[str, str]]) -> list[dict[str, str]]:\n    # Keep the first result for each deliveryId in first-seen order.\n    return []\n",
           "entrypoint": {
             "kind": "function",
             "functionName": "collapse_attempts"
@@ -244,7 +244,7 @@
           "difficulty": "medium",
           "language": "python",
           "path": "summarize_window.py",
-          "starterCode": "def summarize_window(events, start_ms):\n    # Aggregate the inclusive window without assuming input order.\n    return {\"traffic\": 0, \"errors\": 0, \"maxLatencyMs\": 0}\n",
+          "starterCode": "def summarize_window(events: list[dict[str, int | float | str]], start_ms: int | float) -> dict[str, int | float]:\n    # Aggregate the inclusive window without assuming input order.\n    return {\"traffic\": 0, \"errors\": 0, \"maxLatencyMs\": 0}\n",
           "entrypoint": {
             "kind": "function",
             "functionName": "summarize_window"
@@ -398,7 +398,7 @@
           "difficulty": "medium",
           "language": "python",
           "path": "admit_per_tenant.py",
-          "starterCode": "def admit_per_tenant(jobs, limit):\n    # Preserve global arrival order while enforcing each tenant's cap.\n    return []\n",
+          "starterCode": "def admit_per_tenant(jobs: list[dict[str, str]], limit: int) -> list[str]:\n    # Preserve global arrival order while enforcing each tenant's cap.\n    return []\n",
           "entrypoint": {
             "kind": "function",
             "functionName": "admit_per_tenant"

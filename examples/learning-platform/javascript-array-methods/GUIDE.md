@@ -13,6 +13,10 @@ The first two files are untrusted declarative content. The IDE definition,
 worker, UI, and tools are trusted repository source. Read `AGENTS.md` before
 asking any coding agent to edit the project.
 
+Both JavaScript learner entrypoints include JSDoc parameter and return types.
+The Question Group library is version 1.1.0, so existing versioned progress is
+not attached to the changed starter source.
+
 ## Run it
 
 Node 22.13 or newer is the only prerequisite. The canonical Course Kit

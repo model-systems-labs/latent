@@ -83,4 +83,12 @@ test("both Pages publishers retain public artifacts and the LLM Systems example"
     suiteBuilder,
     /createLearnerUiCss\([\s\S]*?resolveLearnerUiTheme\(\{ palette: "paper" \}\),[\s\S]*?\{ palette: "paper" \}/,
   );
+  assert.match(
+    suiteBuilder,
+    /cp\(join\(root, "public\/llms\.txt"\), join\(temporary, "llms\.txt"\)\)/,
+  );
+  assert.match(
+    suiteBuilder,
+    /join\(root, "public\/skills"\),[\s\S]*?join\(temporary, "skills"\)/,
+  );
 });

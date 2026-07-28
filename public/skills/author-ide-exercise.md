@@ -21,11 +21,19 @@ application-private lesson components from a reusable package.
 Define:
 
 - one observable programming outcome;
-- JavaScript or TypeScript source files and an explicit entrypoint;
-- small starter code with no hidden dependency;
+- TypeScript source files by default, or JavaScript when the learning objective
+  is specifically JavaScript, plus an explicit entrypoint;
+- small starter code with typed parameters and a typed return value and no
+  hidden dependency;
 - deterministic host-owned checks, including a boundary case;
 - persistence identity and contract version;
 - accessible instructions and expected failure feedback.
+
+Use native annotations in TypeScript and in a host-reviewed Python exercise.
+In an intentionally JavaScript-only exercise, put JSDoc `@param` and `@returns`
+annotations immediately above the entrypoint. Keep the types local and
+dependency-free; runtime behavior is still established by the host-owned
+checks.
 
 Prefer the hardened browser runtime. Do not claim remote Python execution or a
 hostile-code security sandbox.

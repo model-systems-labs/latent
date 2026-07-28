@@ -220,6 +220,12 @@ try {
     join(temporary, "question-groups"),
     { recursive: true },
   );
+  await cp(
+    join(root, "public/skills"),
+    join(temporary, "skills"),
+    { recursive: true },
+  );
+  await cp(join(root, "public/llms.txt"), join(temporary, "llms.txt"));
   await writeFile(
     join(temporary, marker),
     "latent-learning-examples-pages-v1\n",

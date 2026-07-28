@@ -41,6 +41,12 @@ validate, build, and serve the exact static artifact.
 - **Brand data:** edit `platform.json`; it may select presentation, never grant
   runtime capabilities.
 
+Default learner-facing coding signatures to typed parameters and return values.
+Prefer native TypeScript or Python annotations; use JSDoc `@param` and
+`@returns` when the objective is intentionally JavaScript-only. Types guide
+the learner, while declarative cases and host-owned checks still define
+behavior.
+
 Do not move executable checks into portable JSON, add runtime model calls, or
 load remote code. A hosted content URL is never execution authority.
 

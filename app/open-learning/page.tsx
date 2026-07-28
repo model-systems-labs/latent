@@ -6,14 +6,14 @@ import styles from "@/app/open-learning/page.module.css";
 
 export const metadata: Metadata = {
   title: "Open learning · Latent Framework",
-  description: "Create, self-host, verify, and study portable lessons and flash cards made by people or any capable LLM.",
+  description: "Turn source collections into grounded, portable learning paths that you can inspect, self-host, verify, and study.",
 };
 
 const workflow = [
   {
     number: "01",
-    title: "Author anywhere",
-    body: "A person or any capable LLM writes the same public JSON format. No model-specific API is required.",
+    title: "Start from sources",
+    body: "A person or any capable LLM maps a bounded source collection and learning goal into the same public JSON format.",
   },
   {
     number: "02",
@@ -36,12 +36,13 @@ export default function OpenLearningPage() {
       <article className={styles.shell} id="main-content" tabIndex={-1}>
         <header className={styles.hero}>
           <span className="eyebrow">An open format · not another content silo</span>
-          <h1>Anyone can publish a lesson.</h1>
+          <h1>Turn a source collection into a learning path.</h1>
           <p>
-            Open Learning has two deliberately separate workflows. Publishers
-            author and build portable content. Learners verify and read a
-            publisher-controlled feed. Neither workflow grants remote content
-            new runtime capabilities.
+            Give an authoring agent a codebase, paper collection, documentation,
+            or notes and a capability you want to develop. Open Learning turns
+            the result into portable content that remains traceable to its
+            sources. Learners verify and read a publisher-controlled feed;
+            neither workflow grants remote content new runtime capabilities.
           </p>
           <div className={styles.heroActions}>
             <Link href="/open-learning/read">Read a hosted feed <span aria-hidden="true">→</span></Link>

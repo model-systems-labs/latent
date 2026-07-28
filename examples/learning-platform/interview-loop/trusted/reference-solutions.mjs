@@ -55,7 +55,7 @@ export const interviewPracticeReferenceSolutions = Object.freeze([
 export const interviewIdeReferenceSolutions = Object.freeze([
   Object.freeze({
     exerciseId: "bounded-webhook-retries",
-    contractVersion: "interview-loop.retry-plan.v3",
+    contractVersion: "interview-loop.retry-plan.v4",
     source: `def schedule_retries(deliveries, now_ms):
     delays = {1: 1000, 2: 2000, 3: 4000}
     output = []

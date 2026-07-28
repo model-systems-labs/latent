@@ -39,7 +39,7 @@ test("the React adapter delegates language, syntax, themes, and keymaps to Cours
   ]);
 
   assert.match(adapter, /from "@latent\/course-kit\/learner-code-editor"/);
-  assert.match(adapter, /extensions:\s*createLearnerCodeEditorExtensions\(\{/);
+  assert.match(adapter, /extensions:\s*\[[\s\S]*?\.\.\.createLearnerCodeEditorExtensions\(\{/);
   assert.match(adapter, /if \(normalized\.endsWith\("\.py"\)\) return "python"/);
   assert.match(adapter, /if \(normalized\.endsWith\("\.tsx"\)\) return "tsx"/);
   assert.match(adapter, /if \(normalized\.endsWith\("\.ts"\)\) return "typescript"/);

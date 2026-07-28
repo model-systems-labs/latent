@@ -81,10 +81,10 @@ test("the framework landing leads with local browser execution and agent-ready p
 
   assert.match(page, /<PageAtmosphere \/>/);
   assert.match(page, /<FrameworkHeader current="overview" \/>/);
-  assert.match(page, /Build learning software that runs in the browser/);
+  assert.match(page, /Turn your sources into something you can actually learn/);
   assert.match(page, /Course Kit \+ starter/);
   assert.match(page, /CPython through WebAssembly/);
-  assert.match(page, /Understanding comes from changing the code/);
+  assert.match(page, /Turn machine context into human understanding/);
   assert.match(page, /Latent Courses[\s\S]*bundled[\s\S]*reference-course product/);
   assert.match(page, /not added to Latent Courses/);
   assert.match(page, /There is no hidden Latent course cloud/);

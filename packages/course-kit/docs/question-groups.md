@@ -192,6 +192,13 @@ requirements. It then contains ordered question groups. Each question declares:
 Regular-expression assertions use ECMAScript `RegExp` syntax. Course Kit
 rejects invalid patterns during full validation, before a reader sees them.
 
+For new questions, prefer TypeScript for browser execution and include
+parameter and return annotations in TypeScript or Python starter signatures.
+When a learning objective specifically requires JavaScript, use JSDoc `@param`
+and `@returns` annotations instead. This is an authoring default, not a v1
+validity rule: existing JavaScript remains valid, and readers must establish
+behavior from cases rather than trusting type hints.
+
 The format never accepts executable test strings, HTML, components, workers,
 iframes, credentials, runtime module URLs, or publisher-defined hooks. A
 namespaced extension remains bounded JSON and grants no capability. Cases are
@@ -315,7 +322,7 @@ This complete library passes full Course Kit validation:
   "schemaVersion": 1,
   "library": {
     "id": "publisher/topic",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "title": "Topic practice",
     "description": "A complete description of the practice library.",
     "authors": [
@@ -330,7 +337,7 @@ This complete library passes full Course Kit validation:
     },
     "provenance": {
       "sourceUrl": "https://example.com/topic-practice",
-      "revision": "1.0.0"
+      "revision": "1.1.0-typescript-starter"
     }
   },
   "objectives": [
@@ -353,8 +360,8 @@ This complete library passes full Course Kit validation:
   ],
   "runtimes": [
     {
-      "id": "browser-javascript",
-      "language": "javascript",
+      "id": "browser-typescript",
+      "language": "typescript",
       "environment": "browser-worker",
       "engine": "esbuild-wasm",
       "engineVersion": "0.28.1",
@@ -383,9 +390,9 @@ This complete library passes full Course Kit validation:
           "title": "Add two values",
           "prompt": "Implement the method so it returns the sum of its two numeric arguments.",
           "difficulty": "easy",
-          "language": "javascript",
-          "path": "add-two-values.js",
-          "starterCode": "class Solution {\n  add(left, right) {\n    return 0;\n  }\n}\n",
+          "language": "typescript",
+          "path": "add-two-values.ts",
+          "starterCode": "class Solution {\n  add(left: number, right: number): number {\n    return 0;\n  }\n}\n",
           "entrypoint": {
             "kind": "class-method",
             "className": "Solution",
@@ -397,7 +404,7 @@ This complete library passes full Course Kit validation:
           "sourceIds": [
             "original-prompt"
           ],
-          "runtimeId": "browser-javascript",
+          "runtimeId": "browser-typescript",
           "constraints": [
             "Both arguments are finite JSON numbers."
           ],

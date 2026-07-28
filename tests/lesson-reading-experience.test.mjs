@@ -193,7 +193,10 @@ test("lesson code opens progressive starter-first syntax-aware Python practice i
   assert.doesNotMatch(syntaxCode, /dangerouslySetInnerHTML/);
   assert.match(codeEditor, /from "@latent\/course-kit\/learner-code-editor"/);
   assert.match(codeEditor, /if \(normalized\.endsWith\("\.py"\)\) return "python"/);
-  assert.match(codeEditor, /extensions:\s*createLearnerCodeEditorExtensions\(\{/);
+  assert.match(
+    codeEditor,
+    /extensions:\s*\[[\s\S]*?\.\.\.createLearnerCodeEditorExtensions\(\{/,
+  );
   assert.match(learnerCodeEditor, /import \{ python \} from "@codemirror\/lang-python"/);
   assert.match(learnerCodeEditor, /if \(language === "python"\) return python\(\)/);
   assert.match(paperLab, /const \[activeBlockId, setActiveBlockId\] = useState\(blocks\[0\]\?\.id \?\? ""\)/);

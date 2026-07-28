@@ -32,7 +32,7 @@ test("the injectable player resolves only declared content and trusted host runt
     libraryDigest,
     now: () => 123,
     runtime: {
-      supports: (runtime) => runtime.id === "browser-javascript",
+      supports: (runtime) => runtime.id === "browser-typescript",
       async run(request) {
         calls.push(request);
         const cases = request.question.cases
@@ -63,7 +63,7 @@ test("the injectable player resolves only declared content and trusted host runt
     },
   });
 
-  assert.equal(player.question("arithmetic", "add-two-values")?.language, "javascript");
+  assert.equal(player.question("arithmetic", "add-two-values")?.language, "typescript");
   assert.equal(player.question("missing", "missing"), null);
   await assert.rejects(
     player.run({
@@ -79,7 +79,7 @@ test("the injectable player resolves only declared content and trusted host runt
     await player.run({
       groupId: "arithmetic",
       questionId: "add-two-values",
-      source: "class Solution { add(left, right) { return left + right; } }",
+      source: "class Solution { add(left: number, right: number): number { return left + right; } }",
       mode: "check",
     });
   }
@@ -88,7 +88,7 @@ test("the injectable player resolves only declared content and trusted host runt
   assert.equal(calls[0].contractVersion, player.contractVersion("arithmetic", "add-two-values"));
   assert.match(calls[0].contractVersion, new RegExp(`sha256:${libraryDigest}:`));
   assert.equal(calls[0].libraryDigest, libraryDigest);
-  assert.equal(calls[0].question.runtimeId, "browser-javascript");
+  assert.equal(calls[0].question.runtimeId, "browser-typescript");
   const leeches = await player.progress({ kind: "leeches" });
   assert.equal(leeches.length, 1);
   assert.equal(leeches[0].attemptCount, 3);
@@ -125,7 +125,7 @@ test("the player rejects unsupported adapters and inconsistent runtime results",
       source: "class Solution {}",
       mode: "examples",
     }),
-    /does not support javascript in browser-worker/,
+    /does not support typescript in browser-worker/,
   );
 
   const inconsistent = await createQuestionGroupPlayer({

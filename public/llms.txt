@@ -1,11 +1,12 @@
 # Latent
 
-Build your own learning platform with agents.
+Turn source collections into something a person can actually learn.
 
-Latent is an opinionated, open-source framework for courses, browser IDE
-lessons, flash cards, and programming practice. Portable Learning Pack sites
-can be hosted independently. The included LLM Learning curriculum is the
-reference implementation.
+Latent is an open-source framework for using coding agents to turn codebases,
+research papers, technical documentation, and notes into source-grounded
+courses, browser IDE lessons, flash cards, and programming practice. Portable
+Learning Pack sites can be hosted independently. The included LLM Learning
+curriculum is the reference implementation.
 
 There are two extension modes:
 - Portable content is untrusted declarative data authored by people or agents.
@@ -17,34 +18,35 @@ The latest published Course Kit release is v0.2.0, tagged
 Question Groups; npm publication remains deferred.
 
 Programming Question Groups are a released declarative primitive:
-/question-groups/guide.md
-/question-groups/v1/question-group-library.schema.json
-/question-groups/v1/question-group-progress.schema.json
+question-groups/guide.md
+question-groups/v1/question-group-library.schema.json
+question-groups/v1/question-group-progress.schema.json
 
 Latent executes only its reviewed, bundled Question Group library:
-/practice
+practice
 
 Authoritative guide:
-/open-learning/guide.md
+open-learning/guide.md
 
 JSON Schema:
-/open-learning/learning-pack.schema.json
-/open-learning/learning-feed.schema.json
+open-learning/learning-pack.schema.json
+open-learning/learning-feed.schema.json
 
 Complete example:
-/open-learning/reliable-llm-changes/learning-pack.json
+open-learning/reliable-llm-changes/learning-pack.json
 
 LLM workflows:
-/open-learning/skills/author-learning-pack.md
-/open-learning/skills/review-learning-pack.md
-/open-learning/skills/publish-learning-pack.md
-/skills/author-learning-platform.md
-/skills/author-course.md
-/skills/author-flash-card-deck.md
-/skills/author-question-group.md
-/skills/author-ide-exercise.md
-/skills/review-learning-design.md
-/skills/publish-learning-platform.md
+open-learning/skills/learn-from-sources.md
+open-learning/skills/author-learning-pack.md
+open-learning/skills/review-learning-pack.md
+open-learning/skills/publish-learning-pack.md
+skills/author-learning-platform.md
+skills/author-course.md
+skills/author-flash-card-deck.md
+skills/author-question-group.md
+skills/author-ide-exercise.md
+skills/review-learning-design.md
+skills/publish-learning-platform.md
 
 Rules:
 - For portable content, author only the public declarative JSON formats.

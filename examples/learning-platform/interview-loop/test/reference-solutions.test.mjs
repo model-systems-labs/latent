@@ -99,7 +99,7 @@ async function runHarness(python, source, path, functionName, cases) {
 test("all four exercises declare Python and all 13 authored cases pass", {
   timeout: 45_000,
 }, async () => {
-  assert.equal(library.library.version, "2.0.0");
+  assert.equal(library.library.version, "2.1.0");
   assert.deepEqual(library.runtimes, [{
     id: "interview-host-python",
     language: "python",
@@ -118,7 +118,7 @@ test("all four exercises declare Python and all 13 authored cases pass", {
     9,
   );
   assert.equal(ideExercise.language, "python");
-  assert.equal(ideExercise.contractVersion, "interview-loop.retry-plan.v3");
+  assert.equal(ideExercise.contractVersion, "interview-loop.retry-plan.v4");
   assert.deepEqual(ideExercise.runtime, {
     language: "python",
     environment: "host-managed",
@@ -130,6 +130,15 @@ test("all four exercises declare Python and all 13 authored cases pass", {
       maxOutputBytes: 50_000,
     },
   });
+  for (const source of [
+    ...questions.map((question) => question.starterCode),
+    ideExercise.files[0].content,
+  ]) {
+    assert.match(
+      source,
+      /^def [a-z][a-z0-9_]*\((?=[^)\n]*:\s*)[^)\n]*\)\s*->\s*[^:\n]+:/,
+    );
+  }
 
   const python = await loadPyodide();
   python.FS.mkdirTree("/workspace");

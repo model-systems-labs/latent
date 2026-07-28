@@ -358,7 +358,10 @@ test("the shared lesson editor selects CPython syntax and four-space indentation
 
   assert.match(source, /if \(normalized\.endsWith\("\.py"\)\) return "python"/);
   assert.match(source, /tabSize: language === "python" \? 4 : 2/);
-  assert.match(source, /extensions:\s*createLearnerCodeEditorExtensions\(\{/);
+  assert.match(
+    source,
+    /extensions:\s*\[[\s\S]*?\.\.\.createLearnerCodeEditorExtensions\(\{/,
+  );
   assert.match(primitive, /import \{ python \} from "@codemirror\/lang-python"/);
   assert.match(primitive, /if \(language === "python"\) return python\(\)/);
   assert.match(primitive, /indentUnit\.of\(" "\.repeat\(tabSize\)\)/);

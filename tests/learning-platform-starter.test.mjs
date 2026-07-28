@@ -360,6 +360,16 @@ test("golden-path command creates and validates a branded platform without insta
   assert.ok(elapsed < 30_000, `Scaffold took ${Math.round(elapsed)}ms`);
   assert.equal((await json(join(target, "platform.json"))).brand.name, "Field Notes School");
   assert.equal((await json(join(target, "package.json"))).name, "field-notes-school");
+  const questionGroups = await json(join(target, "content/question-groups.json"));
+  assert.equal(questionGroups.library.version, "1.1.0");
+  assert.match(questionGroups.groups[0].questions[0].starterCode, /@param\s+\{string\[\]\}/);
+  assert.match(questionGroups.groups[0].questions[0].starterCode, /@returns\s+\{string\[\]\}/);
+  const ideExerciseSource = await readFile(
+    join(target, "trusted/ide-exercises.mjs"),
+    "utf8",
+  );
+  assert.match(ideExerciseSource, /@param\s+\{string\}/);
+  assert.match(ideExerciseSource, /@returns\s+\{string\}/);
   await assert.rejects(stat(join(target, "node_modules")));
   await assert.rejects(stat(join(target, "dist")));
 

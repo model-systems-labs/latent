@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
-const title = "Latent Framework · Learning software that runs in the browser";
+const title = "Latent Framework · Turn sources into durable understanding";
 const description =
-  "Build local-first courses, coding practice, flash cards, and browser IDE lessons with WebAssembly runtimes and agent-ready source.";
+  "Turn codebases, research papers, documentation, and notes into source-grounded courses, retrieval, coding practice, and browser IDE lessons.";
 
 export const frameworkMetadata: Metadata = {
   title,

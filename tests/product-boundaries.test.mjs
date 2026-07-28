@@ -168,7 +168,7 @@ test("course and framework routes keep separate social identities", async () => 
   assert.match(rootLayout, /"\/og\.png"[\s\S]*width: 1731, height: 909/);
   assert.match(frameworkRoute, /frameworkMetadata/);
   assert.match(openLearningLayout, /frameworkMetadata/);
-  assert.match(frameworkMetadata, /Latent Framework · Learning software that runs in the browser/);
+  assert.match(frameworkMetadata, /Latent Framework · Turn sources into durable understanding/);
   assert.match(frameworkMetadata, /"\/og-framework\.png"[\s\S]*width: 1731, height: 909/);
 
   assert.match(frameworkHeader, /styles\.header/);

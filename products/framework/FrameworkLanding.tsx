@@ -54,8 +54,8 @@ const learningExperiences = [
 const agentFlow = [
   {
     number: "01",
-    title: "Describe",
-    detail: "Give a person or coding agent a concrete learning outcome.",
+    title: "Supply",
+    detail: "Give a coding agent a bounded source collection and a concrete learning outcome.",
   },
   {
     number: "02",
@@ -99,21 +99,22 @@ export function FrameworkLanding() {
       <article className={styles.shell} id="main-content" tabIndex={-1}>
         <section className={styles.hero}>
           <span className="eyebrow">Open source · local-first · built for agents</span>
-          <h1>Build learning software that runs in the browser.</h1>
+          <h1>Turn your sources into something you can actually learn.</h1>
           <p>
-            Turn difficult ideas into courses, coding practice, flash cards, and
-            browser IDE lessons. JavaScript, TypeScript, Python, and learner
-            progress can run on the learner&apos;s device—without making an
-            account, paywall, application server, or model provider the center
-            of the experience.
+            Give a coding agent a codebase, collection of papers, technical
+            documentation, or notes—and tell it what you want to be able to do.
+            Latent turns that material into source-grounded courses, retrieval,
+            coding practice, and browser IDE lessons that run without making an
+            account, application server, or model provider the center of the
+            experience.
           </p>
           <div className={styles.actions}>
             <a
               className={styles.primaryAction}
-              href="https://github.com/model-systems-labs/latent/blob/main/docs/getting-started.md"
+              href="https://github.com/model-systems-labs/latent/blob/main/skills/learn-from-sources/SKILL.md"
               rel="noreferrer"
             >
-              Build the five-minute starter <span aria-hidden="true">↗</span>
+              Learn from your sources <span aria-hidden="true">↗</span>
             </a>
             <a
               className={styles.secondaryAction}
@@ -183,13 +184,14 @@ export function FrameworkLanding() {
 
         <section className={styles.argument} aria-labelledby="practice-title">
           <span className="eyebrow">Why Latent exists</span>
-          <h2 id="practice-title">Understanding comes from changing the code.</h2>
+          <h2 id="practice-title">Turn machine context into human understanding.</h2>
           <p>
-            Latent began with a frustration: reading papers and explanations was
-            not closing the gaps in working understanding. The missing piece was
-            a tighter loop—read the source, change real code, run it immediately,
-            and retrieve the idea later. Modern browsers are capable enough to
-            hold that entire loop.
+            An agent can inspect more material than a person can hold at once.
+            Latent uses that breadth to build a tighter learning loop: read the
+            source, form a mental model, predict what follows, apply it, and
+            retrieve the idea later. For software, application can mean changing
+            and running real code. For papers, it can mean comparing assumptions,
+            reproducing a result, or deciding what the evidence supports.
           </p>
           <ol className={styles.experienceGrid}>
             {learningExperiences.map((experience) => (
@@ -207,11 +209,12 @@ export function FrameworkLanding() {
           <h2 id="agent-title">Give coding agents a framework they can actually work in.</h2>
           <p>
             Latent keeps instructions, schemas, examples, review criteria, and
-            validation beside the source. Any capable coding agent can author a
-            lesson, expand a practice set, or propose a platform-source change.
-            Changes that add runtime behavior still go through normal source
-            review and validation. The learner never needs that agent—or a hidden
-            model call—to use what was built.
+            validation beside the source. Any capable coding agent can turn a
+            bounded source collection into a learning path, expand a practice
+            set, or propose a platform-source change. Changes that add runtime
+            behavior still go through normal source review and validation. The
+            learner never needs that agent—or a hidden model call—to use what was
+            built.
           </p>
           <ol className={styles.agentFlow} aria-label="Agent-assisted publishing workflow">
             {agentFlow.map((stage) => (

@@ -54,6 +54,46 @@ function nonempty(value) {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+function splitPythonParameters(value) {
+  const parameters = [];
+  let start = 0;
+  let depth = 0;
+  let quote = "";
+  let escaped = false;
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value[index];
+    if (quote) {
+      if (escaped) escaped = false;
+      else if (character === "\\") escaped = true;
+      else if (character === quote) quote = "";
+      continue;
+    }
+    if (character === "'" || character === '"') {
+      quote = character;
+      continue;
+    }
+    if ("([{".includes(character)) depth += 1;
+    else if (")]}".includes(character)) depth -= 1;
+    else if (character === "," && depth === 0) {
+      parameters.push(value.slice(start, index));
+      start = index + 1;
+    }
+  }
+  parameters.push(value.slice(start));
+  return parameters;
+}
+
+function hasPythonTypeHints(value) {
+  if (typeof value !== "string") return false;
+  const signature = /^def\s+[A-Za-z_][A-Za-z0-9_]*\(([^)\n]*)\)\s*->\s*[^:\n]+:/m.exec(value);
+  if (!signature) return false;
+  return splitPythonParameters(signature[1]).every((parameter) => {
+    const normalized = parameter.trim();
+    if (!normalized || normalized === "/" || normalized === "*") return true;
+    return /^[*]{0,2}[A-Za-z_][A-Za-z0-9_]*\s*:/.test(normalized);
+  });
+}
+
 function isRecord(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -171,6 +211,11 @@ function validateTinyQuestionPlayer(library) {
         `${path}.entrypoint`,
         "The dependency-free tiny player supports function entrypoints only.",
       );
+      expect(
+        hasPythonTypeHints(question.starterCode),
+        `${path}.starterCode`,
+        "Python starter code must type-hint its parameters and return value.",
+      );
       for (const [caseIndex, exerciseCase] of (question.cases ?? []).entries()) {
         expect(
           Array.isArray(exerciseCase.assertions)
@@ -272,6 +317,11 @@ function validateIdeExercises(exercises) {
           nonempty(file.content),
           `${filePath}.content`,
           "File content must be a non-empty string.",
+        );
+        expect(
+          hasPythonTypeHints(file.content),
+          `${filePath}.content`,
+          "Python IDE starter code must type-hint its parameters and return value.",
         );
         expect(
           typeof file.path === "string" && /^[A-Za-z0-9_-]+\.py$/.test(file.path),

@@ -19,7 +19,7 @@ const referenceSourceByQuestion = new Map(tenProblemsReferenceSolutions.map((ent
 ]));
 
 test("all ten portable contracts declare the pinned host-managed Python runtime", () => {
-  assert.equal(library.library.version, "2.0.0");
+  assert.equal(library.library.version, "2.1.0");
   assert.deepEqual(library.runtimes, [{
     id: "host-python",
     language: "python",
@@ -42,7 +42,10 @@ test("all ten portable contracts declare the pinned host-managed Python runtime"
     assert.equal(question.language, "python");
     assert.match(question.path, /\.py$/);
     assert.equal(question.runtimeId, "host-python");
-    assert.match(question.starterCode, /^def [a-z][a-z0-9_]*\(/);
+    assert.match(
+      question.starterCode,
+      /^def [a-z][a-z0-9_]*\((?=[^)\n]*:\s*)[^)\n]*\)\s*->\s*[^:\n]+:/,
+    );
     assert.equal(
       typeof referenceSourceByQuestion.get(`${question.groupId}/${question.id}`),
       "string",

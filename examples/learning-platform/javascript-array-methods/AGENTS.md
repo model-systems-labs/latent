@@ -16,6 +16,11 @@ publisher-defined executable tests or hooks. Do not add executable HTML, model
 calls, remote imports, workers, or runtime module URLs. A URL or extension key
 never grants a capability.
 
+Coding problems default to type-bearing starter signatures. This example is
+intentionally JavaScript-only, so keep JSDoc `@param` and `@returns`
+annotations immediately above each learner entrypoint. New browser-first
+platforms should prefer TypeScript with native parameter and return types.
+
 ## Trusted platform source
 
 You may edit `trusted/`, `site/`, and `tools/` only when the task explicitly

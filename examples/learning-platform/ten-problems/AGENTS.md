@@ -12,6 +12,11 @@ publisher-defined executable tests or hooks. Do not add executable HTML, model
 calls, remote imports, workers, or runtime module URLs. A URL or extension key
 never grants a capability.
 
+Python coding problems default to type-hinted starter signatures. Keep
+annotations on every learner-facing parameter and return value, use
+dependency-free built-in types where practical, and treat declarative
+cases—not annotations—as the behavioral contract.
+
 ## Trusted build source
 
 `site-config.mjs` is the explicit trusted input for product identity,

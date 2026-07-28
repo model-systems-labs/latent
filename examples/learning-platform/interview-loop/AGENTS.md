@@ -16,6 +16,11 @@ calls, remote imports, workers, or runtime module URLs. A URL or extension key
 never grants a capability. Portable Python runtimes must remain
 `host-managed`.
 
+Python coding problems and IDE exercises default to type-hinted starter
+signatures. Keep annotations on every learner-facing parameter and return
+value, use dependency-free built-in types where practical, and treat cases and
+host-owned checks—not annotations—as the behavioral contract.
+
 ## Trusted learner UI and application source
 
 `platform.json` is trusted build input for the product name, contextual

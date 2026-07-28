@@ -3,7 +3,7 @@
   "schemaVersion": 1,
   "library": {
     "id": "latent-starters/javascript-array-methods",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "title": "JavaScript array method practice",
     "description": "Small browser exercises for expressing one-to-one transformations without mutating the input.",
     "authors": [
@@ -18,7 +18,7 @@
     },
     "provenance": {
       "sourceUrl": "https://github.com/model-systems-labs/latent/tree/main/examples/learning-platform/javascript-array-methods",
-      "revision": "1.0.0"
+      "revision": "1.1.0-type-hinted-starters"
     }
   },
   "objectives": [
@@ -74,7 +74,7 @@
           "difficulty": "easy",
           "language": "javascript",
           "path": "format-labels.js",
-          "starterCode": "function formatLabels(labels) {\n  // Return one normalized label for each input.\n  return [];\n}\n",
+          "starterCode": "/**\n * @param {string[]} labels\n * @returns {string[]}\n */\nfunction formatLabels(labels) {\n  // Return one normalized label for each input.\n  return [];\n}\n",
           "entrypoint": {
             "kind": "function",
             "functionName": "formatLabels"

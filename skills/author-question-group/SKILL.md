@@ -19,13 +19,22 @@ and question to relevant objectives and sources.
 
 For each question:
 
-- use JavaScript or TypeScript unless the host explicitly supports Python;
+- prefer TypeScript for new browser questions; use JavaScript when the learning
+  objective is specifically JavaScript, and use Python only when the host
+  explicitly supports it;
 - name one function or class-method entrypoint;
-- provide a small starter file and concrete constraints;
+- provide a small starter file with typed parameters and a typed return value,
+  plus concrete constraints;
 - include at least one visible example and one non-example check;
 - express expected behavior only with supported declarative assertions;
 - include boundaries that distinguish a robust solution from the obvious
   partial implementation.
+
+Type-bearing starter signatures are the default. Use native annotations in
+TypeScript and Python. In an intentionally JavaScript-only question, add JSDoc
+`@param` and `@returns` annotations immediately above the entrypoint. Keep the
+types local and dependency-free; a type hint guides the learner but does not
+grant runtime authority or replace behavioral cases.
 
 ## Respect the layer
 

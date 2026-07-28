@@ -561,10 +561,10 @@ The table above is the concise before/after visual record for this revision.
   three declarative Question Group exercises, and the trusted step-four coding
   lab. Function names, `.py` paths, starter code, source guidance, and runtime
   labels were converted together.
-- The Learning Pack is version 2.1.0 and the Question Group library is version
-  2.0.0. The trusted
-  coding-lab contract is `interview-loop.retry-plan.v3`, preventing saved
-  JavaScript drafts from carrying into the Python exercise.
+- The Learning Pack and type-hinted Question Group library are version 2.1.0.
+  The trusted coding-lab contract is `interview-loop.retry-plan.v4`; its
+  version change prevents saved v3 drafts from replacing the new annotated
+  Python starter.
 - Portable content declares only a `host-managed` Pyodide 314.0.2 requirement.
   `trusted/python-exercise-runtime.ts` is the reviewed adapter from the shared
   learner application to Python Lab. The marker-owned build bundles that

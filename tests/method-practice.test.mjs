@@ -102,6 +102,10 @@ test("every shipped problem uses a real class method and data-only host checks",
     assert.equal(question.entrypoint.kind, "class-method");
     assert.match(question.starterCode, new RegExp(`class\\s+${question.entrypoint.className}\\b`));
     assert.match(question.starterCode, new RegExp(`${question.entrypoint.methodName}\\s*\\(`));
+    assert.match(
+      question.starterCode,
+      new RegExp(`${question.entrypoint.methodName}\\([^)]*:\\s*[^)]*\\)\\s*:\\s*[^\\s{]+`),
+    );
     assert.doesNotMatch(`${question.title}\n${question.prompt}`, /leetcode/i);
 
     const adapted = adapter.adaptPracticeQuestion(question, question.starterCode, {

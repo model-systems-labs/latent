@@ -337,7 +337,7 @@ test("Question Group builds are complete static practice sites with a leech quer
     count: 0,
     sha256: createHash("sha256").update("[]").digest("hex"),
   });
-  assert.deepEqual(report.browserRuntimes, ["browser-javascript"]);
+  assert.deepEqual(report.browserRuntimes, ["browser-typescript"]);
   assert.equal(report.files.includes("leeches/index.html"), true);
   assert.match(
     files["README.txt"],
@@ -893,7 +893,7 @@ test("trusted reference solutions serialize deterministically by question identi
   secondQuestion.order = 2;
   secondQuestion.title = "Add three values";
   secondQuestion.prompt = "Return the sum of three numeric inputs while preserving their left-to-right order.";
-  secondQuestion.path = "add-three-values.js";
+  secondQuestion.path = "add-three-values.ts";
   secondQuestion.starterCode = "export function addThreeValues(left, middle, right) { return 0; }\n";
   library.groups[0].questions.push(secondQuestion);
   const first = {

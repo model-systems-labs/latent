@@ -17,6 +17,7 @@ const copies = [
     ),
   ],
   ["docs/learning-pack-quality-rubric.md", "public/open-learning/quality-rubric.md"],
+  ["skills/learn-from-sources/SKILL.md", "public/open-learning/skills/learn-from-sources.md"],
   ["skills/author-learning-pack/SKILL.md", "public/open-learning/skills/author-learning-pack.md"],
   ["skills/review-learning-pack/SKILL.md", "public/open-learning/skills/review-learning-pack.md"],
   ["skills/publish-learning-pack/SKILL.md", "public/open-learning/skills/publish-learning-pack.md"],

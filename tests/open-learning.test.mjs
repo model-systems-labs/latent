@@ -168,6 +168,7 @@ test("the live LLM entrypoint and public workflow documents are self-contained",
       ),
     ],
     ["docs/learning-pack-quality-rubric.md", "public/open-learning/quality-rubric.md"],
+    ["skills/learn-from-sources/SKILL.md", "public/open-learning/skills/learn-from-sources.md"],
     ["skills/author-learning-pack/SKILL.md", "public/open-learning/skills/author-learning-pack.md"],
     ["skills/review-learning-pack/SKILL.md", "public/open-learning/skills/review-learning-pack.md"],
     ["skills/publish-learning-pack/SKILL.md", "public/open-learning/skills/publish-learning-pack.md"],
@@ -188,19 +189,25 @@ test("the live LLM entrypoint and public workflow documents are self-contained",
   const llms = await readFile(new URL("public/llms.txt", root), "utf8");
   assert.doesNotMatch(llms, /github\.com\/model-systems-labs\/latent\/(?:blob|tree)\/main/);
   for (const path of [
-    "/open-learning/skills/author-learning-pack.md",
-    "/open-learning/skills/review-learning-pack.md",
-    "/open-learning/skills/publish-learning-pack.md",
-    "/skills/author-learning-platform.md",
-    "/skills/author-course.md",
-    "/skills/author-flash-card-deck.md",
-    "/skills/author-question-group.md",
-    "/skills/author-ide-exercise.md",
-    "/skills/review-learning-design.md",
-    "/skills/publish-learning-platform.md",
+    "open-learning/skills/learn-from-sources.md",
+    "open-learning/skills/author-learning-pack.md",
+    "open-learning/skills/review-learning-pack.md",
+    "open-learning/skills/publish-learning-pack.md",
+    "skills/author-learning-platform.md",
+    "skills/author-course.md",
+    "skills/author-flash-card-deck.md",
+    "skills/author-question-group.md",
+    "skills/author-ide-exercise.md",
+    "skills/review-learning-design.md",
+    "skills/publish-learning-platform.md",
   ]) {
     assert.ok(llms.includes(path), `public/llms.txt does not discover ${path}`);
   }
+  assert.doesNotMatch(
+    llms,
+    /^\/(?:open-learning|practice|question-groups|skills)(?:\/|$)/m,
+    "llms.txt links must resolve under either a root deployment or a Pages subpath",
+  );
   assert.match(llms, /course-kit-v0\.2\.0/);
   assert.match(llms, /Community Learning Pack/);
   assert.match(llms, /Question Groups may contain learner starter source/);

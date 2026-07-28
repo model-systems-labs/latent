@@ -40,10 +40,10 @@ test("the framework route presents its local-first browser runtime and publishin
   const response = await render("/framework");
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /Build learning software that runs in the browser/);
+  assert.match(html, /Turn your sources into something you can actually learn/);
   assert.match(html, /Publish static sites/);
   assert.match(html, /CPython through WebAssembly/);
-  assert.match(html, /Understanding comes from changing the code/);
+  assert.match(html, /Turn machine context into human understanding/);
   assert.match(html, /Latent Courses[\s\S]*bundled[\s\S]*reference-course product/);
   assert.match(html, /not added to Latent Courses/);
   assert.match(html, /There is no hidden Latent course cloud/);
@@ -146,7 +146,7 @@ test("open learning exposes self-hosted feeds and local package authoring", asyn
   const response = await render("/open-learning");
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /Anyone can publish a lesson/);
+  assert.match(html, /Turn a source collection into a learning path/);
   assert.match(html, /Reading and publishing are different jobs/);
   assert.match(html, /Verify and read a hosted feed/);
   assert.match(html, /Build a portable Learning Pack you host/);

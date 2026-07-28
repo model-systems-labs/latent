@@ -21,6 +21,10 @@ Every prompt, title, and synthetic case was written for this repository. The
 set uses generic algorithms and data structures without copying proprietary
 question wording, examples, or hidden tests.
 
+Every Python starter signature type-hints its parameters and return value. The
+Question Group library is version 2.1.0, so changed starter source receives a
+new immutable content identity and progress namespace.
+
 ## Shared learner UI
 
 The two learning examples previously diverged because Interview Loop owned a

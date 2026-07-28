@@ -373,8 +373,16 @@
   .toolbar { grid-template-columns: 1fr; }
   .progressSummary,
   .filters { grid-column: 1; }
+  .filters {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .filters label:first-child { grid-column: 1 / -1; }
+  .filters label,
+  .filters input,
+  .filters select { width: 100%; }
   .toolbar > button { width: 100%; }
-  .layout { height: calc(100dvh - 10.7rem); }
+  .layout { height: calc(100dvh - 13.9rem); }
   .layout[data-mobile-view="question"] { grid-template-columns: 1fr; grid-template-rows: auto 12.5rem minmax(0, 1fr); }
   .layout[data-mobile-view="question"] .mobileTabs { grid-column: 1; }
   .layout[data-mobile-view="question"] .library { border-bottom: 1px solid var(--practice-line); }

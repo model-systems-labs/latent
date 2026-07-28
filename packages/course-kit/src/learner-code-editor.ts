@@ -434,25 +434,21 @@ function keyboardExtensions(
           },
         }]
       : []),
-    ...(runModes.includes("examples")
+    ...(options.onRun
       ? [
           {
             key: "Mod-Shift-Enter",
             preventDefault: true,
             run: () => {
-              options.onRun?.("examples");
+              if (runModes.includes("examples")) options.onRun?.("examples");
               return true;
             },
           },
-        ]
-      : []),
-    ...(runModes.includes("check")
-      ? [
           {
             key: "Mod-Enter",
             preventDefault: true,
             run: () => {
-              options.onRun?.("check");
+              if (runModes.includes("check")) options.onRun?.("check");
               return true;
             },
           },

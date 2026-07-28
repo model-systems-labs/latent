@@ -163,8 +163,8 @@ test("the practice route reuses the shared editor and independent progress layer
   assert.match(workbench, /methodPracticeReferenceSolution\(activeQuestion\.id\)/);
   assert.match(workbench, /readOnly[\s\S]*?value=\{activeReferenceSolution\}/);
   assert.match(editor, /hasRunHandler,[\s\S]*?hasSaveHandler,/);
-  assert.match(learnerEditor, /runModes\.includes\("examples"\)[\s\S]*?key:\s*"Mod-Shift-Enter"/);
-  assert.match(learnerEditor, /runModes\.includes\("check"\)[\s\S]*?key:\s*"Mod-Enter"/);
+  assert.match(learnerEditor, /key:\s*"Mod-Shift-Enter"[\s\S]*?runModes\.includes\("examples"\)[\s\S]*?onRun\?\.\("examples"\)/);
+  assert.match(learnerEditor, /key:\s*"Mod-Enter"[\s\S]*?runModes\.includes\("check"\)[\s\S]*?onRun\?\.\("check"\)/);
   assert.doesNotMatch(editor, /if \(!runRef\.current\) return false/);
 });
 
@@ -181,5 +181,6 @@ test("the mobile workspace exposes honest Question, Code, and Results views", as
   assert.match(css, /height:\s*calc\(100dvh/);
   assert.match(css, /\.editorHost :global\(\.cm-editor\)\s*\{\s*font-size:\s*16px/);
   assert.match(css, /\.results:focus/);
+  assert.match(css, /\.filters label:first-child\s*\{\s*grid-column:\s*1 \/ -1/);
   assert.match(css, /touch-action:\s*pan-x pan-y pinch-zoom/);
 });

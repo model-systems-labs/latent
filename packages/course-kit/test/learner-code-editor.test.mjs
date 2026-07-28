@@ -9,7 +9,7 @@ import vm from "node:vm";
 
 import { syntaxTree } from "@codemirror/language";
 import { EditorState } from "@codemirror/state";
-import { EditorView } from "@codemirror/view";
+import { EditorView, keymap } from "@codemirror/view";
 
 import {
   LEARNER_CODE_EDITOR_CSP_NONCE,
@@ -159,8 +159,9 @@ test("read-only editors remain navigable while disabled editors leave the tab or
 });
 
 test("editor configuration exposes only the run shortcuts owned by its host", () => {
+  let checkRunMode = null;
   const checkOnly = stateFor("python", "return None", {
-    onRun() {},
+    onRun(mode) { checkRunMode = mode; },
     runModes: ["check"],
   });
   const checkOnlyAttributes = checkOnly
@@ -171,9 +172,29 @@ test("editor configuration exposes only the run shortcuts owned by its host", ()
     checkOnlyAttributes["aria-keyshortcuts"],
     "Tab Shift+Tab Escape Control+Enter Meta+Enter",
   );
+  const checkOnlyRunBindings = checkOnly
+    .facet(keymap)
+    .flat()
+    .filter(({ key }) => key === "Mod-Enter" || key === "Mod-Shift-Enter");
+  assert.equal(
+    checkOnlyRunBindings.find(({ key }) => key === "Mod-Shift-Enter")
+      .preventDefault,
+    true,
+  );
+  assert.equal(
+    checkOnlyRunBindings.find(({ key }) => key === "Mod-Shift-Enter").run({}),
+    true,
+  );
+  assert.equal(checkRunMode, null);
+  assert.equal(
+    checkOnlyRunBindings.find(({ key }) => key === "Mod-Enter").run({}),
+    true,
+  );
+  assert.equal(checkRunMode, "check");
 
+  let examplesRunMode = null;
   const examplesOnly = stateFor("python", "return None", {
-    onRun() {},
+    onRun(mode) { examplesRunMode = mode; },
     runModes: ["examples"],
   });
   const examplesOnlyAttributes = examplesOnly
@@ -184,6 +205,20 @@ test("editor configuration exposes only the run shortcuts owned by its host", ()
     examplesOnlyAttributes["aria-keyshortcuts"],
     "Tab Shift+Tab Escape Control+Shift+Enter Meta+Shift+Enter",
   );
+  const examplesOnlyRunBindings = examplesOnly
+    .facet(keymap)
+    .flat()
+    .filter(({ key }) => key === "Mod-Enter" || key === "Mod-Shift-Enter");
+  assert.equal(
+    examplesOnlyRunBindings.find(({ key }) => key === "Mod-Enter").run({}),
+    true,
+  );
+  assert.equal(examplesRunMode, null);
+  assert.equal(
+    examplesOnlyRunBindings.find(({ key }) => key === "Mod-Shift-Enter").run({}),
+    true,
+  );
+  assert.equal(examplesRunMode, "examples");
 });
 
 test("editor configuration rejects ambiguous language, indentation, and run inputs", () => {

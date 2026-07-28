@@ -750,7 +750,7 @@ test("the shared code editor adapter owns indentation, persistence events, and k
     shiftKey: true,
   });
   editor.dispatch("keydown", unavailableExamplesShortcut);
-  assert.equal(unavailableExamplesShortcut.defaultPrevented, false);
+  assert.equal(unavailableExamplesShortcut.defaultPrevented, true);
   assert.equal(runMode, null);
   const checkShortcut = keyboardEvent("Enter", { ctrlKey: true });
   editor.dispatch("keydown", checkShortcut);

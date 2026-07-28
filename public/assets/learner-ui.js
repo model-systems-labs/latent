@@ -736,10 +736,10 @@
         && !event.isComposing
         && event.key === "Enter"
         && current.onRun
-        && current.runModes.includes(event.shiftKey ? "examples" : "check")
       ) {
         event.preventDefault();
-        current.onRun(event.shiftKey ? "examples" : "check");
+        const mode = event.shiftKey ? "examples" : "check";
+        if (current.runModes.includes(mode)) current.onRun(mode);
         return;
       }
       if (

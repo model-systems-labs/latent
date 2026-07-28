@@ -128,7 +128,7 @@ test("full-height workspaces account for the family header at every compact brea
   assert.doesNotMatch(workspaceStyles, /data-learner-family-header|course-header|4\.9rem/);
   assert.match(workspaceStyles, /\.topbar\s*\{[^}]*column-gap:\s*0\.5rem/);
   assert.match(workspaceStyles, /\.topbar nav a\s*\{[^}]*min-height:\s*2\.75rem/);
-  assert.match(workspace, /<span>Project workspace<\/span><strong>browser-chat\/<\/strong>/);
+  assert.match(workspace, /role="heading" aria-level=\{1\}><span>Project workspace<\/span><strong>browser-chat\/<\/strong>/);
   assert.doesNotMatch(workspace, />LLM Systems<\/Link>|href="\/project"/);
   assert.doesNotMatch(productizationStyles, /\.ide-topbar > div\s*\{[^}]*display:\s*block/);
 

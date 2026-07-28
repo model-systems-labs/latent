@@ -233,7 +233,7 @@ test("Question Group builds are complete static practice sites with a leech quer
   assert.match(files["assets/learner-ui.js"], /event\.ctrlKey \|\| event\.metaKey/);
   assert.match(
     files["assets/learner-ui.js"],
-    /current\.onRun\(event\.shiftKey \? "examples" : "check"\)/,
+    /const mode = event\.shiftKey \? "examples" : "check";[\s\S]*current\.runModes\.includes\(mode\)\) current\.onRun\(mode\)/,
   );
   assert.match(files["assets/player.js"], /copy\.runCanceled/);
   assert.match(

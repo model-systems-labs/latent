@@ -41,14 +41,16 @@ The current ownership is explicit:
   standalone lesson/card player.
 - `packages/course-kit/src/question-group-site.ts` composes it with this
   problem-list, prompt, editor, results, progress, resume, and repeated-miss
-  experience. Its typed build options accept trusted product identity,
-  navigation labels, review directory, learner copy, theme tokens, footer,
-  favicon, an optional reviewed runtime adapter, and separate reviewed
-  reference-solution input.
+  experience. Its typed build options accept a compatibility-preserving
+  `suiteHeader`, trusted product identity, local navigation labels, review
+  directory, learner copy, appearance, footer, favicon, an optional reviewed
+  runtime adapter, and separate reviewed reference-solution input.
 - `trusted/reference-solutions.mjs` owns the ten reference implementations.
   The builder renders them as inert text in the player JavaScript and never
   adds them to portable Question Group JSON.
-- `site-config.mjs` contains Ten Problems' explicit product configuration.
+- `../learning-suite.mjs` provides the one persistent Learning Studio identity
+  and ordered sibling destinations. `site-config.mjs` opts into that contract
+  and contains Ten Problems' explicit local product configuration.
   `tools/build.mjs` passes it and the reviewed Python adapter to Course Kit
   before any files are generated. The old output string replacements and CSS
   append/prepend patches have been removed.
@@ -67,8 +69,11 @@ application.
 
 All five palettes use the same sparse partial-line atmosphere and scroll
 crossfade; palette selection changes semantic color and line tint, not
-geometry. A native **View example solution** disclosure is closed by default,
-keyboard-operable, and does not replace the draft, run code, or write progress.
+geometry. Sage, Cobalt, Plum, and Graphite add one short glint to the existing
+line, so the sparkle inherits that crossfade without a particle field or
+second animation. A native **View example solution** disclosure is closed by
+default, keyboard-operable, and does not replace the draft, run code, or write
+progress.
 
 This presentation work did not change Learning Pack or Question Group formats.
 Portable JSON remains declarative. Runtime admission, Python execution,

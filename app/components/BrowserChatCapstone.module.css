@@ -1,16 +1,16 @@
 .shell {
-  min-height: calc(100vh - var(--learner-header-height));
-  min-height: calc(100dvh - var(--learner-header-height));
+  min-height: calc(100vh - var(--learner-header-height) - var(--learner-context-nav-height, 0rem));
+  min-height: calc(100dvh - var(--learner-header-height) - var(--learner-context-nav-height, 0rem));
 }
 
 .runtime {
-  height: calc(100vh - var(--learner-header-height) - 4.8rem);
-  height: calc(100dvh - var(--learner-header-height) - 4.8rem);
+  height: calc(100vh - var(--learner-header-height) - var(--learner-context-nav-height, 0rem) - 4.8rem);
+  height: calc(100dvh - var(--learner-header-height) - var(--learner-context-nav-height, 0rem) - 4.8rem);
 }
 
 .gate {
-  min-height: calc(100vh - var(--learner-header-height) - 4.8rem);
-  min-height: calc(100dvh - var(--learner-header-height) - 4.8rem);
+  min-height: calc(100vh - var(--learner-header-height) - var(--learner-context-nav-height, 0rem) - 4.8rem);
+  min-height: calc(100dvh - var(--learner-header-height) - var(--learner-context-nav-height, 0rem) - 4.8rem);
 }
 
 @media (max-width: 760px), (max-height: 500px) {
@@ -39,24 +39,24 @@
 
 @media (max-width: 650px) {
   .runtime {
-    height: calc(100vh - var(--learner-header-height) - 3.75rem);
-    height: calc(100dvh - var(--learner-header-height) - 3.75rem);
+    height: calc(100vh - var(--learner-header-height) - var(--learner-context-nav-height, 0rem) - 3.75rem);
+    height: calc(100dvh - var(--learner-header-height) - var(--learner-context-nav-height, 0rem) - 3.75rem);
   }
 
   .gate {
-    min-height: calc(100vh - var(--learner-header-height) - 3.75rem);
-    min-height: calc(100dvh - var(--learner-header-height) - 3.75rem);
+    min-height: calc(100vh - var(--learner-header-height) - var(--learner-context-nav-height, 0rem) - 3.75rem);
+    min-height: calc(100dvh - var(--learner-header-height) - var(--learner-context-nav-height, 0rem) - 3.75rem);
   }
 }
 
 @media (max-width: 940px) and (max-height: 500px) {
   .runtime {
-    height: calc(100vh - var(--learner-header-height) - 2.75rem);
-    height: calc(100dvh - var(--learner-header-height) - 2.75rem);
+    height: calc(100vh - var(--learner-header-height) - var(--learner-context-nav-height, 0rem) - 2.75rem);
+    height: calc(100dvh - var(--learner-header-height) - var(--learner-context-nav-height, 0rem) - 2.75rem);
   }
 
   .gate {
-    min-height: calc(100vh - var(--learner-header-height) - 2.75rem);
-    min-height: calc(100dvh - var(--learner-header-height) - 2.75rem);
+    min-height: calc(100vh - var(--learner-header-height) - var(--learner-context-nav-height, 0rem) - 2.75rem);
+    min-height: calc(100dvh - var(--learner-header-height) - var(--learner-context-nav-height, 0rem) - 2.75rem);
   }
 }

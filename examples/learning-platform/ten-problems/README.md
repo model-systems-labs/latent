@@ -29,12 +29,13 @@ navigation, controls, editor framing, feedback, progress, focus treatment, and
 mobile behavior. `packages/course-kit/src/learner-ui.ts` is the source of
 truth, `packages/course-kit/src/question-group-site.ts` composes the
 coding-practice layout, and `site-config.mjs` explicitly supplies this
-product's labels, review route, `cobalt` appearance palette, footer, and
-favicon at build time. The other reviewed palette choices are `paper`, `sage`,
-`plum`, and `graphite`; Cobalt supplies a distinct cool color atmosphere while
-using the same sparse, scroll-reactive line geometry as every product. Palette
-selection does not replace the shared layout, typography, controls, or
-responsive behavior.
+product's persistent suite-header contract, local labels, review route,
+`cobalt` appearance palette, footer, and favicon at build time. The other
+reviewed palette choices are `paper`, `sage`, `plum`, and `graphite`; Cobalt
+supplies a distinct cool color atmosphere and a subtle highlight that travels
+with each existing scroll-reactive line. Palette selection does not replace
+the shared line geometry, layout, typography, controls, or responsive
+behavior.
 `security-config.mjs` supplies the custom document meta CSP passed to the
 builder and the full static-host page/Python-worker header policies for both
 standalone and `/practice/` hosting. Supporting hosts may apply `_headers` for
@@ -46,10 +47,12 @@ workers/connections, styles, and other assets. The build does not patch
 generated HTML, JavaScript, or CSS and does not load a hosted stylesheet,
 framework CDN, JavaScript service, or model API.
 
-The page has one learner header: Ten Problems identity, local Practice/Review
-navigation, and one **Learning suite** disclosure for the learning suite. On mobile,
-local navigation moves into that disclosure while the problem list remains a
-specialized practice control. The current learner UI v2 revision has local
+The page has one persistent learner header: **Learning Studio** identity and
+the three sibling experiences. Ten Problems' **Practice** and **Review** links
+sit immediately below it in the shared context row, never in another header.
+On mobile, the global destinations move into **Experiences** while the local
+row stays horizontally available and the problem list remains a specialized
+practice control. The current learner UI v2 revision has local
 production-build, desktop, mobile, keyboard, Python execution, and persistence
 evidence recorded in [AUTHORING.md](./AUTHORING.md). Live evidence is recorded
 there only after a deployment has been verified.

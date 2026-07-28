@@ -771,7 +771,7 @@ function renderIde(exercises, state) {
 }
 
 function configureNavigation() {
-  const links = $$(".learner-primary-nav [data-view]");
+  const links = $$(".learner-context-nav [data-view]");
   const open = (link, { focus = false, announceView = false, updateHistory = false } = {}) => {
     const view = link.dataset.view;
     for (const candidate of links) {

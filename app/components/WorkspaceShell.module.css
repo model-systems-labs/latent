@@ -1,6 +1,6 @@
 .shell {
-  height: calc(100vh - var(--learner-header-height));
-  height: calc(100dvh - var(--learner-header-height));
+  height: calc(100vh - var(--learner-header-height) - var(--learner-context-nav-height, 0rem));
+  height: calc(100dvh - var(--learner-header-height) - var(--learner-context-nav-height, 0rem));
   min-height: 0;
 }
 

@@ -531,23 +531,25 @@ v2 handoff above. Its PR and deployment records remain historical evidence for
 the previously published revision.
 
 The final framework is intentionally opinionated rather than a collection of
-loosely related themes. It fixes one global header, one vertical content
-plane, editorial typography and measure, component geometry, feedback,
-focus, responsive behavior, and a sparse scroll-reactive line atmosphere.
-Products choose one reviewed palette. LLM Systems uses warm `paper`,
-Interview Loop uses `sage`, and Ten Problems uses `cobalt`; the background
-colors and line tint differ, but geometry and motion do not.
+loosely related themes. It fixes one persistent **Learning Studio** global
+header, one in-content local navigation row, one vertical content plane,
+editorial typography and measure, component geometry, feedback, focus,
+responsive behavior, and a sparse scroll-reactive line atmosphere. Products
+choose one reviewed palette. LLM Systems uses warm `paper`, Interview Loop
+uses `sage`, and Ten Problems uses `cobalt`; background colors and line tint
+differ, while the four non-Paper palettes add a short highlight to the same
+geometry and scroll crossfade.
 
 ### Exact shared and specialized sources
 
 | Source | Final responsibility |
 | --- | --- |
-| `packages/course-kit/src/learner-ui.ts` | Canonical tokens, five palettes, open-line atmosphere, shell, header/footer, navigation, controls, progress, focus, screen-reader helpers, compact behavior, and trusted example-solution disclosure. |
+| `packages/course-kit/src/learner-ui.ts` | Canonical tokens, five palettes, open-line atmosphere and glint, shell, persistent-header and context-navigation renderers, controls, progress, focus, screen-reader helpers, compact behavior, and trusted example-solution disclosure. |
 | `packages/course-kit/src/static-site.ts` | Standalone Learning Pack composition over the shared foundation. |
 | `packages/course-kit/src/question-group-site.ts` | Single-column problem flow, chooser, editor, Run examples/Check solution feedback, Continue, repeated-miss Review, and accessible empty state. |
 | `scripts/generate-learning-platform-learner-ui.mjs` | Generates React assets and Interview's drift-checked build input from Course Kit source. |
 | `app/components/PageAtmosphere.tsx` and `app/components/LearnerHeader.tsx` | Thin React markup adapters for the original course. |
-| `examples/learning-platform/learning-suite.mjs` | Trusted suite catalog, sibling navigation, route report, and device-local progress explanation. |
+| `examples/learning-platform/learning-suite.mjs` | Trusted suite catalog and the single `createLearningSuiteHeaderConfiguration()` source for identity, metadata, sibling navigation, active state, subpath routes, and compact label. |
 | `examples/learning-platform/ten-problems/site-config.mjs` | Explicit Cobalt identity, labels, routes, footer, favicon, runtime assets, and security-adjacent build configuration. |
 | `examples/learning-platform/ten-problems/trusted/reference-solutions.mjs` | Ten reviewed Python references keyed to exact trusted question identities. |
 | `examples/learning-platform/interview-loop/site-config.mjs`, `site/app.mjs`, and `trusted/reference-solutions.mjs` | Specialized Sage course composition and reviewed coding references. |
@@ -584,13 +586,13 @@ on reviewed monorepo sources and is owned by the root Pages build.
 | Before this refinement | After this refinement |
 | --- | --- |
 | Ten Problems exposed multiple adjacent work surfaces and an unrelated player hierarchy. | One centered vertical flow with a collapsed chooser, prompt, editor, actions, solution, and feedback in reading order. |
-| Similar accent colors masked different backgrounds, headers, controls, and responsive behavior. | Paper, Sage, and Cobalt retain distinct atmospheres over identical geometry, shell, components, and breakpoints. |
+| Similar accent colors masked different backgrounds, headers, controls, and responsive behavior. | Every route keeps the Learning Studio header; local links sit in one context row, while Paper, Sage, and Cobalt retain distinct atmospheres over identical geometry, shell, components, and breakpoints. |
 | Coding experiences offered no consistent reference answer. | Interview and Ten use one reviewed read-only solution disclosure after actions. |
 | Empty repeated-miss Review was only a status sentence. | Review preserves the product H1, context label, live message, and programmatic focus. |
 
 ### Current local validation and user evidence
 
-- Course Kit passed all 62 package tests. Ten Problems passed strict
+- Course Kit passed all 64 package tests. Ten Problems passed strict
   validation and all 6 focused tests: 4 groups, 10 questions, 39 cases, 10
   public examples, and 29 complete checks. Interview passed strict validation
   and all 16 focused tests: 3 lessons, 14 cards, 3 practice questions, 1 IDE
@@ -608,16 +610,23 @@ on reviewed monorepo sources and is owned by the root Pages build.
   example failure/success, full-check failure/success with expected/received
   evidence, saved progress after reload, repeated-miss appearance and removal,
   and confirmation that opening a solution mutates neither draft nor progress.
+- The regression that motivated this revision is covered directly: clicking
+  **Learning Studio** from LLM Systems preserves the same identity,
+  **Courses and practice** metadata, global destination order, and header
+  height. Only the product-local context row is added or removed.
+- Paper reports zero glint strength. Sage and Cobalt report the reviewed
+  nonzero strength, and browser scroll evidence showed the intro line fading
+  out while the first trace and its inherited highlight faded in.
 - Desktop checks at 1280 × 720 covered `/`, `/llm-systems/`,
   `/interview-loop/`, `/practice/`, `/practice/leeches/`, and all `/latent/`
   equivalents. Mobile checks at 390 × 844 covered the same product routes.
   Every checked route had one global header, a visible H1, same-origin assets,
   no horizontal document overflow, and zero console warnings or errors.
-- Keyboard checks covered skip-target routing, compact-menu Escape focus
-  restoration, current-page state, focusable code/reference regions, and the
-  shared three-pixel visible focus indicator. Automated accessibility
-  inspection found no WCAG-tagged issue in representative Interview,
-  Practice, or empty Review states.
+- Keyboard and accessibility checks covered skip-target routing,
+  compact-menu Escape focus restoration, current-page state, one page-level
+  header, distinct global/local navigation labels, visible headings and live
+  messages, focusable code/reference regions, 53-pixel local navigation
+  targets, and the shared three-pixel visible focus indicator.
 
 This is local Chromium emulation and keyboard inspection, not a physical
 device or formal screen-reader certification.

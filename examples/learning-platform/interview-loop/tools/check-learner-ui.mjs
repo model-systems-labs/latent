@@ -7,6 +7,7 @@ import {
   LEARNER_UI_VERSION,
   createLearnerUiCss,
   learnerUiJavaScript,
+  renderLearnerContextNavigation,
   renderLearnerFooter,
   renderLearnerHeader,
   resolveLearnerUiTheme,
@@ -51,6 +52,7 @@ if (generatorStats?.isFile() && !generatorStats.isSymbolicLink()) {
   if (
     LEARNER_UI_VERSION !== 2
     || typeof createLearnerUiCss !== "function"
+    || typeof renderLearnerContextNavigation !== "function"
     || typeof renderLearnerHeader !== "function"
     || typeof renderLearnerFooter !== "function"
     || typeof resolveLearnerUiTheme !== "function"

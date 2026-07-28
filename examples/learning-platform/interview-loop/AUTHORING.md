@@ -400,14 +400,16 @@ while preserving the course and coding-workspace layouts appropriate to each.
   and production builds intentionally remain in the Latent monorepo because
   they also consume the suite catalog, Python Lab worker, and pinned Pyodide
   package.
+- `examples/learning-platform/learning-suite.mjs` explicitly owns the
+  persistent Learning Studio header identity and sibling destinations.
 - `examples/learning-platform/interview-loop/platform.json` explicitly owns
-  the Interview Loop product name, navigation labels and hash routes, header
-  metadata, theme values, and footer copy.
+  the Interview Loop product name, contextual navigation labels and hash
+  routes, theme values, and footer copy.
 - `examples/learning-platform/interview-loop/tools/build.mjs` renders the
-  shared header/footer and emits the shared CSS and local menu script alongside
-  the existing trusted application. `site/app.mjs` and `site/styles.css`
-  remain responsible for the specialized module, quiz, flash-card, portable
-  practice, and IDE experiences.
+  shared header/context navigation/footer and emits the shared CSS and
+  navigation script alongside the existing trusted application. `site/app.mjs`
+  and `site/styles.css` remain responsible for the specialized module, quiz,
+  flash-card, portable practice, and IDE experiences.
 - `examples/learning-platform/ten-problems/site-config.mjs` owns the parallel
   Ten Problems configuration, and its build passes that configuration directly
   to the Question Group builder.
@@ -713,18 +715,19 @@ one reviewed color palette rather than rebuilding a shell.
 | `app/styles/tokens.css` | Aliases older course variables to the canonical learner tokens. |
 | `app/components/LearnerHeader.tsx` | Thin React adapter over the shared header markup contract. |
 | `examples/learning-platform/interview-loop/tools/vendor/learner-ui.mjs` | Generated copy consumed at build time; not an independent design source. |
-| `examples/learning-platform/interview-loop/platform.json` | Interview identity, routes, labels, footer, and `sage` palette. |
+| `examples/learning-platform/learning-suite.mjs` | Persistent Learning Studio header identity and sibling destinations. |
+| `examples/learning-platform/interview-loop/platform.json` | Interview identity, contextual routes and labels, footer, and `sage` palette. |
 | `examples/learning-platform/interview-loop/tools/build.mjs` | Emits the shared assets and shell before the specialized application runs. |
 | `examples/learning-platform/interview-loop/site/app.mjs` and `site/styles.css` | Module, quiz, card, portable-practice, and Python IDE composition that intentionally remains course-specific. |
 | `examples/learning-platform/ten-problems/site-config.mjs` | Ten Problems labels, review route, footer, favicon, and `cobalt` palette. |
 | `scripts/build-learning-example-pages.mjs` | Builds the Paper-palette Learning Studio and assembles all three products at stable Pages subpaths. |
 
-The one global header has a stable anatomy: product identity and optional
-metadata, local primary navigation, and one **Learning suite** disclosure for the
-product family. Compact layouts put local navigation inside **Learning suite** rather
-than adding a second header. Module controls, lesson section links, problem
-navigation, and editor actions stay inside the relevant content region. In the
-original course, **Read / Code / Results** is now a quiet “In this lesson”
+The one global header has a stable anatomy: **Learning Studio** identity,
+optional suite metadata, and sibling experience navigation. Product-local
+destinations render in the shared contextual row below the header instead of
+replacing its identity. Module controls, lesson section links, problem
+navigation, and editor actions stay inside the relevant content region. In
+the original course, **Read / Code / Results** is a quiet “In this lesson”
 section nav after the lesson introduction, not a second full-width bar below
 the site header.
 
@@ -836,24 +839,25 @@ though its behavioral, coding, and architecture work all use one webhook
 delivery scenario. V2 had shared tokens, but those differences still made the
 examples read as separate applications.
 
-The final framework rule is deliberately narrow: one global header, one
+The final framework rule is deliberately narrow: one persistent
+**Learning Studio** global header, one in-content local navigation row, one
 vertical reading or practice plane, one sparse line atmosphere, and one
 component and interaction language. Backgrounds remain meaningfully
 different through reviewed palettes: LLM Systems uses warm `paper`, Interview
-Loop uses `sage`, and Ten Problems uses `cobalt`. Palette changes color and
-line tint only; it cannot select a different geometry, layout system, or
-motion model.
+Loop uses `sage`, and Ten Problems uses `cobalt`. Sage, Cobalt, Plum, and
+Graphite add a short highlight to the same line and scroll crossfade; a
+palette cannot select a different geometry, layout system, or motion model.
 
 ### Authoritative sources
 
 | Source | Final responsibility |
 | --- | --- |
-| `packages/course-kit/src/learner-ui.ts` | Canonical tokens, five reviewed palettes, shared line atmosphere, page widths, header/footer, navigation, controls, focus, screen-reader helpers, compact behavior, and trusted example-solution disclosure. |
+| `packages/course-kit/src/learner-ui.ts` | Canonical tokens, five reviewed palettes, shared line atmosphere and glint, page widths, persistent-header and context-navigation renderers, controls, focus, screen-reader helpers, compact behavior, and trusted example-solution disclosure. |
 | `packages/course-kit/src/static-site.ts` | Learning Pack composition over that foundation. |
 | `packages/course-kit/src/question-group-site.ts` | Question Group problem flow, editor, Run examples/Check solution feedback, progress, Continue, repeated-miss Review, and accessible empty state over the same foundation. |
 | `scripts/generate-learning-platform-learner-ui.mjs` | Generates the React assets and drift-checked Interview build input from Course Kit source. |
 | `app/components/PageAtmosphere.tsx` and `app/components/LearnerHeader.tsx` | Thin React markup adapters; neither defines another visual system. |
-| `examples/learning-platform/learning-suite.mjs` | Trusted build-time catalog, sibling navigation, route report, and device-local progress explanation for all three experiences. |
+| `examples/learning-platform/learning-suite.mjs` | Trusted catalog and the single `createLearningSuiteHeaderConfiguration()` source for identity, metadata, sibling navigation, active state, subpath routes, and compact label. |
 | `examples/learning-platform/interview-loop/site-config.mjs`, `platform.json`, `site/app.mjs`, and `site/styles.css` | Sage identity plus the intentionally specialized course, quiz, card, practice, and IDE composition. |
 | `examples/learning-platform/interview-loop/trusted/reference-solutions.mjs` | Reviewed example solutions keyed to exact trusted exercise identities. |
 | `examples/learning-platform/ten-problems/site-config.mjs` and `trusted/reference-solutions.mjs` | Cobalt practice identity and the ten reviewed Python references. |
@@ -893,13 +897,13 @@ publication path.
 | Before this refinement | After this refinement |
 | --- | --- |
 | The original course lost the warm ethereal treatment; the examples used unrelated decorative compositions. | Paper, Sage, and Cobalt share the original-style open line and scroll crossfade while retaining distinct color atmospheres. |
-| Course rails, problem lists, editor surfaces, and activity bars read as parallel planes or extra headers. | One global header and one centered vertical content flow; contextual navigation collapses in place. |
+| Course rails, problem lists, editor surfaces, and activity bars read as parallel planes or extra headers. | One persistent global header and one centered vertical content flow; local navigation stays in the content plane and scrolls horizontally when space is tight. |
 | Example solutions were absent from the coding experiences. | Both coding experiences use the same reviewed, read-only disclosure after the run/check actions. |
 | Empty Review could render without a page heading, and simplified Interview views skipped heading levels. | Empty Review keeps a visible H1/live message; Interview active content follows H1 with H2. |
 
 ### Current local validation and user evidence
 
-- Course Kit passed all 62 package tests. Interview passed strict validation
+- Course Kit passed all 64 package tests. Interview passed strict validation
   and all 16 focused tests: 3 lessons, 14 cards, 3 practice questions, 1 IDE
   exercise, and all 13 authored Python cases. Ten Problems passed strict
   validation and all 6 focused tests: 4 groups, 10 questions, 39 cases, 10
@@ -918,16 +922,24 @@ publication path.
   problem switching, Python example/check failure and success, saved progress
   after reload, repeated-miss entry/removal, and solution disclosure without
   draft or progress mutation.
+- The original header regression is covered directly: clicking **Learning
+  Studio** from LLM Systems preserves the same identity, **Courses and
+  practice** metadata, global destination order, and header height. Only the
+  local course context row is removed on the Studio index.
+- Paper reports zero glint strength. Sage and Cobalt report the reviewed
+  nonzero strength, and browser scroll evidence showed the intro line fading
+  out while the first trace and its inherited highlight faded in.
 - Desktop route checks at 1280 × 720 covered `/`, `/llm-systems/`,
   `/interview-loop/`, `/practice/`, `/practice/leeches/`, and every
   `/latent/` equivalent. Mobile checks at 390 × 844 covered the same product
   routes. Every checked route had one global header, a visible H1,
   same-origin assets, no horizontal document overflow, and zero console
   warnings or errors.
-- Keyboard checks covered the skip target, compact-menu Escape restoration,
-  synchronized current-page state, and the shared three-pixel visible focus
-  indicator. Automated accessibility inspection found no WCAG-tagged issue
-  in the representative Interview, Practice, or empty Review states.
+- Keyboard and accessibility checks covered the skip target, compact-menu
+  Escape restoration, synchronized current-page state, one page-level header,
+  distinct global/local navigation labels, visible headings and live
+  messages, 53-pixel local navigation targets, and the shared three-pixel
+  visible focus indicator.
 
 This is local Chromium emulation and keyboard inspection, not a physical
 device or formal screen-reader certification.

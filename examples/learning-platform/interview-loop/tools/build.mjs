@@ -21,6 +21,7 @@ import {
   createLearnerUiCss,
   learnerUiJavaScript,
   renderLearnerAtmosphere,
+  renderLearnerContextNavigation,
   renderLearnerFooter,
   renderLearnerHeader,
   resolveLearnerUiTheme,
@@ -57,7 +58,7 @@ function escapeHtml(value) {
 
 function renderIndex(platform) {
   const navigationByView = new Map(
-    platform.learnerUi.header.navigation.map((item) => [item.dataView, item]),
+    platform.learnerUi.contextNavigation.navigation.map((item) => [item.dataView, item]),
   );
   const panel = (view, headingId, rootId, loadingText) => {
     const navigation = navigationByView.get(view);
@@ -68,10 +69,10 @@ function renderIndex(platform) {
         <div id="${escapeHtml(rootId)}" class="learner-empty loading">${escapeHtml(loadingText)}</div>
       </section>`;
   };
-  const header = renderLearnerHeader({
-    productName: platform.brand.name,
-    ...createInterviewLoopHeader(platform.learnerUi.header),
-  });
+  const header = renderLearnerHeader(createInterviewLoopHeader());
+  const contextNavigation = renderLearnerContextNavigation(
+    platform.learnerUi.contextNavigation,
+  );
   const footer = renderLearnerFooter(platform.learnerUi.footer);
   return `<!doctype html>
 <html lang="en">
@@ -93,6 +94,7 @@ function renderIndex(platform) {
     ${renderLearnerAtmosphere()}
     <div class="learner-page">
       ${header}
+      ${contextNavigation}
       <main id="learning-surface" class="learner-main" tabindex="-1">
 ${panel("lesson", "lesson-heading", "lesson-root", "Loading modules…")}
 ${panel("practice", "practice-heading", "practice-root", "Loading practice…")}

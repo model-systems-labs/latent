@@ -13,6 +13,7 @@ import {
   LEARNER_UI_VERSION,
   createLearnerUiCss,
   learnerUiJavaScript,
+  renderLearnerContextNavigation,
   renderLearnerFooter,
   renderLearnerHeader,
   resolveLearnerUiTheme,
@@ -471,9 +472,14 @@ expect(
   "Interview Loop uses the shared sage palette.",
 );
 expect(
-  isRecord(platform?.learnerUi?.header),
+  isRecord(platform?.learnerUi?.contextNavigation),
+  "platform.learnerUi.contextNavigation",
+  "Declare the course section navigation at build time.",
+);
+expect(
+  platform?.learnerUi?.header === undefined,
   "platform.learnerUi.header",
-  "Declare the learner header and primary navigation at build time.",
+  "The persistent Learning Studio header comes from the shared suite configuration; keep product links in contextNavigation.",
 );
 expect(
   isRecord(platform?.learnerUi?.footer),
@@ -485,10 +491,8 @@ try {
     resolveLearnerUiTheme(platform?.learnerUi?.appearance),
     { palette: platform?.learnerUi?.appearance?.palette },
   );
-  renderLearnerHeader({
-    productName: platform?.brand?.name,
-    ...createInterviewLoopHeader(platform?.learnerUi?.header),
-  });
+  renderLearnerHeader(createInterviewLoopHeader());
+  renderLearnerContextNavigation(platform?.learnerUi?.contextNavigation);
   renderLearnerFooter(platform?.learnerUi?.footer);
 } catch (error) {
   fail(
@@ -503,8 +507,8 @@ const expectedNavigation = [
   { label: "Coding lab", href: "#coding-lab", dataView: "ide" },
 ];
 expect(
-  JSON.stringify(platform?.learnerUi?.header?.navigation) === JSON.stringify(expectedNavigation),
-  "platform.learnerUi.header.navigation",
+  JSON.stringify(platform?.learnerUi?.contextNavigation?.navigation) === JSON.stringify(expectedNavigation),
+  "platform.learnerUi.contextNavigation.navigation",
   "Use the content-oriented Modules, Practice, Review, and Coding lab hash routes.",
 );
 expect(

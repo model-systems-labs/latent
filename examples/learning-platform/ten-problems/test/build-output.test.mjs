@@ -37,14 +37,38 @@ test("the trusted build input configures a Python-only learner site without outp
   assert.equal(files["assets/esbuild.wasm"], undefined);
   assert.equal(files["assets/sandbox.worker.js"], undefined);
   assert.ok(files["assets/learner-ui.js"]);
+  assert.match(files["assets/player.css"], /--learner-background-recipe: cobalt;/);
+  assert.match(files["assets/player.css"], /--learner-atmosphere-glint-strength: \.38;/);
 
+  assert.equal((files["index.html"].match(/<header\b/g) ?? []).length, 1);
+  assert.match(files["index.html"], /<span>Learning Studio<\/span>/);
   assert.match(files["index.html"], />Ten Problems</);
   assert.match(files["index.html"], />Practice</);
   assert.match(files["index.html"], />Review</);
   assert.match(files["index.html"], /href="\.\/leeches\/"/);
-  assert.match(files["index.html"], /href="\.\.\/">Learning Studio<\/a>/);
+  assert.match(
+    files["index.html"],
+    /class="learner-wordmark" href="\.\.\/" aria-label="Learning Studio home"/,
+  );
   assert.match(files["index.html"], /href="\.\.\/llm-systems\/">LLM Systems<\/a>/);
-  assert.match(files["index.html"], /learner-header__meta">10 Python problems/);
+  assert.match(files["index.html"], /learner-header__meta">Courses and practice/);
+  assert.match(
+    files["index.html"],
+    /<nav class="learner-context-nav" aria-label="Ten Problems navigation">/,
+  );
+  assert.match(
+    files["leeches/index.html"],
+    /class="learner-wordmark" href="\.\.\/\.\.\/" aria-label="Learning Studio home"/,
+  );
+  assert.match(
+    files["leeches/index.html"],
+    /href="\.\.\/" aria-current="page">Ten Problems<\/a>/,
+  );
+  assert.match(files["leeches/index.html"], /href="\.\.\/">Practice<\/a>/);
+  assert.match(
+    files["leeches/index.html"],
+    /href="\.\/" aria-current="page">Review<\/a>/,
+  );
   assert.match(files["index.html"], /Built with Latent\./);
   assert.match(
     files["index.html"],

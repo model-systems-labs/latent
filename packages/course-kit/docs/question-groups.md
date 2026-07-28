@@ -72,6 +72,30 @@ const files = await buildStandaloneQuestionGroupSite(library, {
 });
 ```
 
+Independent sites keep that product-owned header by default. A reviewed
+multi-product build can instead opt into a persistent global identity with
+`ui.suiteHeader`. The value uses the same trusted header contract as
+`renderLearnerHeader`; product-local Practice/Review links then render through
+`renderLearnerContextNavigation` immediately below it:
+
+```js
+ui: {
+  suiteHeader: createLearningSuiteHeaderConfiguration({
+    rootHref: "../",
+    currentId: "ten-problems",
+  }),
+  navigationLabel: "Ten Problems navigation",
+  reviewDirectory: "leeches",
+}
+```
+
+`suiteHeader` is additive and mutually exclusive with the legacy
+`globalNavigation` option. It is trusted builder configuration, not a
+Question Group field, and the builder rebases it for both the practice root
+and nested review route. Header links may be parent-relative or root-absolute
+same-origin paths; root-absolute paths stay unchanged on nested pages so an
+explicit GitHub Pages base such as `/latent/` remains subpath-safe.
+
 `referenceSolutions` is optional reviewed repository source keyed to existing
 group/question identities. It is serialized only into the self-hosted player,
 rendered as text in a closed native disclosure, and never added to canonical
@@ -81,9 +105,12 @@ attempt.
 
 The shared v2 appearance model defaults to `paper` and offers five named
 palettes: `paper`, `sage`, `cobalt`, `plum`, and `graphite`. A palette changes
-semantic colors and atmosphere tint. Typography, spacing, borders, page width,
-one-header anatomy, controls, focus states, feedback, responsive behavior, and
-the sparse scroll-reactive partial-line geometry remain framework invariants.
+semantic colors and atmosphere tint. Sage, Cobalt, Plum, and Graphite also add
+a short highlight to each existing line; the highlight inherits the same
+scroll crossfade and creates no second motion layer. Typography, spacing,
+borders, page width, one-header anatomy, controls, focus states, feedback,
+responsive behavior, and the sparse partial-line geometry remain framework
+invariants.
 Ten Problems uses Cobalt, Interview Loop uses Sage, and the original course and
 Learning Studio use Paper. The legacy
 top-level `ui.theme` token map remains a trusted compatibility input, but it
@@ -104,12 +131,13 @@ builder before rendering; renaming framework concepts or establishing the
 primary interface by patching generated HTML, JavaScript, or CSS is not a
 supported customization seam.
 
-The generated page has one global learner header: product identity, local
-primary navigation, and one **Learning suite** disclosure for the product family. On
-compact screens the disclosure includes local navigation, so the player does
-not add a second header. Problem navigation, editor actions, and result
-controls remain specialized content regions while inheriting the shared
-keyboard, focus, live-region, and mobile contracts.
+The default generated page has one product-owned learner header. When
+`suiteHeader` is configured, that single header instead keeps the suite
+identity and sibling destinations stable; local Practice/Review destinations
+move to the shared in-content context row. On compact screens only the global
+destinations move into its disclosure. Problem navigation, editor actions,
+and result controls remain specialized content regions while inheriting the
+shared keyboard, focus, live-region, and mobile contracts.
 
 Latent's built-in practice site uses the shared CodeMirror editor, Browser Lab
 for JavaScript and TypeScript, and a separate practice progress store. It does

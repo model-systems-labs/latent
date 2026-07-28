@@ -1,5 +1,9 @@
 .view {
-  min-height: calc(100vh - var(--learner-header-height));
+  min-height: calc(
+    100vh
+    - var(--learner-header-height)
+    - var(--learner-context-nav-height)
+  );
 }
 
 .view-grid {

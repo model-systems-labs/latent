@@ -54,10 +54,12 @@ The current ownership is explicit:
   `tools/vendor/learner-ui.mjs` as a dependency-free browser bundle for the
   repository-owned example. The generated file is build input, not a second
   hand-maintained theme.
-- `platform.json` provides Interview Loop's explicit product name, header
-  labels, hash routes, theme, metadata, and footer. `tools/build.mjs` renders
-  the shared header and footer and copies the shared CSS and local navigation
-  behavior into `dist/`.
+- `../learning-suite.mjs` provides the persistent Learning Studio header
+  identity and sibling destinations. `platform.json` provides Interview
+  Loop's explicit product name, contextual navigation labels and hash routes,
+  theme, metadata, and footer. `tools/build.mjs` renders the shared header,
+  context row, and footer and copies the shared CSS and navigation behavior
+  into `dist/`.
 - `../ten-problems/site-config.mjs` provides the corresponding Ten Problems UI
   inputs, while `../ten-problems/security-config.mjs` provides its reviewed CSP
   configuration: the custom document meta policy passed to the builder and the
@@ -72,9 +74,11 @@ editor, actions, and results. The products are related, not identical.
 
 The five reviewed palettes change semantic color and line tint. They no longer
 select unrelated grids, rings, stripes, or filled shapes: all products use the
-same sparse partial-line atmosphere and scroll crossfade. Both coding surfaces
-render trusted example solutions as closed native disclosures without
-modifying drafts or portable content.
+same sparse partial-line atmosphere and scroll crossfade. Sage, Cobalt, Plum,
+and Graphite add a short highlight to the existing line rather than a particle
+field or another animation. Both coding surfaces render trusted example
+solutions as closed native disclosures without modifying drafts or portable
+content.
 
 Neither portable format changed for this presentation work. Learning Pack and
 Question Group JSON remain declarative, while UI behavior, runtime adapters,

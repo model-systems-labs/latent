@@ -11,6 +11,7 @@ import {
   createLearnerUiCss,
   learnerUiJavaScript,
   renderLearnerAtmosphere,
+  renderLearnerContextNavigation,
   renderLearnerFooter,
   renderLearnerHeader,
   resolveLearnerUiTheme,
@@ -39,6 +40,15 @@ test("the learner UI foundation publishes stable tokens, responsive breakpoints,
   assert.match(css, /data-learner-collapse-at="always"/);
   assert.match(css, /--learner-width-reading:/);
   assert.match(css, /--learner-width-wide:/);
+  assert.match(css, /--learner-context-nav-height: 0rem;/);
+  assert.match(
+    css,
+    /body\.learner-ui:has\(\.learner-context-nav\) \{\s*--learner-context-nav-height: 3\.35rem;/,
+  );
+  assert.match(
+    css,
+    /\.learner-context-nav a:focus-visible \{\s*outline-offset: -3px;/,
+  );
   assert.match(
     css,
     /\.learner-ui :focus-visible \{\s*outline: 3px solid var\(--learner-color-focus\)/,
@@ -79,6 +89,7 @@ test("the learner UI foundation publishes stable tokens, responsive breakpoints,
   assert.match(css, /@media \(max-width: 760px\)/);
   assert.match(css, /\.learner-primary-nav--desktop \{ display: none; \}/);
   assert.match(css, /\.learner-nav-menu > summary \{ display: flex; \}/);
+  assert.match(css, /\.learner-nav-menu--local-only > summary \{ display: flex; \}/);
   assert.match(css, /\.learner-primary-nav--mobile \{[\s\S]*?display: grid;/);
   assert.match(css, /\.learner-mobile-panel > summary \{ display: flex; \}/);
   assert.match(css, /\.learner-editor \{ font-size: 1rem; \}/);
@@ -87,6 +98,10 @@ test("the learner UI foundation publishes stable tokens, responsive breakpoints,
   assert.match(
     css,
     /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*?\.learner-atmosphere__line \{[\s\S]*?opacity: 0 !important;/,
+  );
+  assert.match(
+    css,
+    /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*?\.learner-atmosphere__line::after \{ opacity: 0 !important; \}/,
   );
   assert.match(css, /@media \(forced-colors: active\)[\s\S]*?\.learner-atmosphere \{ display: none; \}/);
   assert.match(css, /@media print[\s\S]*?\.learner-atmosphere \{ display: none; \}/);
@@ -127,6 +142,10 @@ test("five constrained palettes change color without changing the shared etherea
     .replace(
       /--learner-background-(?:recipe|image|position|repeat|size): [^;]+;/g,
       "--learner-background-token: <palette>;",
+    )
+    .replace(
+      /--learner-atmosphere-glint-strength: [^;]+;/g,
+      "--learner-atmosphere-glint-strength: <palette>;",
     );
   assert.equal(new Set(cssByPalette.map(withoutPaletteValues)).size, 1);
   assert.match(cssByPalette[0], /--learner-color-canvas: #f4f0e8;/);
@@ -137,10 +156,23 @@ test("five constrained palettes change color without changing the shared etherea
   assert.match(cssByPalette[1], /--learner-color-canvas: #eaf1e8;/);
   assert.match(cssByPalette[2], /--learner-color-accent: #42629b;/);
   assert.match(cssByPalette[2], /--learner-color-canvas: #eaf0fa;/);
+  assert.match(cssByPalette[0], /--learner-atmosphere-glint-strength: 0;/);
+  for (const css of cssByPalette.slice(1)) {
+    assert.match(css, /--learner-atmosphere-glint-strength: \.38;/);
+  }
   assert.match(cssByPalette[0], /--learner-atmosphere-line:/);
+  assert.match(
+    cssByPalette[0],
+    /\.learner-atmosphere__line::after \{[\s\S]*?linear-gradient\(90deg,[\s\S]*?height: 1px;/,
+  );
+  assert.match(
+    cssByPalette[0],
+    /\.learner-atmosphere__line--2::after \{[\s\S]*?linear-gradient\(180deg,[\s\S]*?width: 1px;/,
+  );
   assert.match(cssByPalette[0], /\.learner-atmosphere__line--intro/);
   assert.match(cssByPalette[0], /\.learner-atmosphere__line--3/);
   assert.doesNotMatch(cssByPalette.join("\n"), /radial-gradient|conic-gradient|repeating-linear-gradient/);
+  assert.doesNotMatch(cssByPalette.join("\n"), /@keyframes/);
   assert.doesNotMatch(cssByPalette.join("\n"), /url\(|https?:/);
 
   const legacyCss = createLearnerUiCss({ accent: "#123abc" });
@@ -191,7 +223,7 @@ test("the shared atmosphere renderer emits inert CSP-safe line markup", () => {
   assert.doesNotMatch(atmosphere, /\sstyle=|<script|\son[a-z]+=/i);
 });
 
-test("the shared header escapes authored labels and accepts only same-origin relative links", () => {
+test("the shared header escapes authored labels and accepts only same-origin local links", () => {
   const header = renderLearnerHeader({
     productName: "Practice <Lab>",
     homeHref: "../",
@@ -239,6 +271,18 @@ test("the shared header escapes authored labels and accepts only same-origin rel
   assert.match(header, /data-view="problem-list"/);
   assert.doesNotMatch(header, /<Lab>|<navigation>|<all>/);
 
+  const rootAbsoluteHeader = renderLearnerHeader({
+    productName: "Learning Studio",
+    homeHref: "/latent/",
+    navigationLabel: "Learning suite",
+    navigation: [
+      { label: "LLM Systems", href: "/latent/llm-systems/", current: true },
+      { label: "Practice", href: "/latent/practice/" },
+    ],
+  });
+  assert.match(rootAbsoluteHeader, /href="\/latent\/"/);
+  assert.match(rootAbsoluteHeader, /href="\/latent\/llm-systems\/"/);
+
   const base = {
     productName: "Practice",
     homeHref: "./",
@@ -246,10 +290,10 @@ test("the shared header escapes authored labels and accepts only same-origin rel
     navigation: [{ label: "Problems", href: "./" }],
   };
   for (const unsafeHref of [
-    "/absolute/",
     "//other.example/",
     "https://other.example/",
     "javascript:alert(1)",
+    "/latent/../escape/",
     "./review/?mode=all",
     "./review/#content",
     ".\\review\\",
@@ -259,7 +303,7 @@ test("the shared header escapes authored labels and accepts only same-origin rel
         ...base,
         navigation: [{ label: "Unsafe", href: unsafeHref }],
       }),
-      /same-origin relative path or fragment/,
+      /same-origin local path or fragment|traverse from a root-absolute path/,
       unsafeHref,
     );
   }
@@ -278,6 +322,48 @@ test("the shared header escapes authored labels and accepts only same-origin rel
   assert.match(footer, /Progress &lt;stays&gt; here/);
   assert.match(footer, /Built &amp; reviewed/);
   assert.doesNotMatch(footer, /<stays>/);
+});
+
+test("context navigation stays in the content plane and validates trusted links", () => {
+  const navigation = renderLearnerContextNavigation({
+    navigationLabel: "Course <navigation>",
+    navigation: [
+      {
+        label: "Modules <all>",
+        href: "#modules",
+        current: true,
+        dataView: "modules",
+      },
+      {
+        label: "Coding & lab",
+        href: "./lab/",
+      },
+    ],
+  });
+
+  assert.match(
+    navigation,
+    /^<nav class="learner-context-nav" aria-label="Course &lt;navigation&gt;">/,
+  );
+  assert.match(navigation, /class="learner-context-nav__inner"/);
+  assert.match(navigation, /href="#modules" aria-current="page" data-view="modules"/);
+  assert.match(navigation, /Modules &lt;all&gt;/);
+  assert.match(navigation, /href="\.\/lab\/">Coding &amp; lab<\/a>/);
+  assert.doesNotMatch(navigation, /<header|<details|<all>/);
+  assert.throws(
+    () => renderLearnerContextNavigation({
+      navigationLabel: "Course navigation",
+      navigation: [{ label: "Unsafe", href: "https://example.com/" }],
+    }),
+    /same-origin local path or fragment/,
+  );
+  assert.throws(
+    () => renderLearnerContextNavigation({
+      navigationLabel: "Course navigation",
+      navigation: [],
+    }),
+    /must include at least one item/,
+  );
 });
 
 test("the learner UI behavior closes compact menus and restores keyboard focus", () => {

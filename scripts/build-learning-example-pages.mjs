@@ -23,7 +23,7 @@ import {
   resolveLearnerUiTheme,
 } from "@latent/course-kit/learner-ui";
 import {
-  createLearningSuiteHeaderNavigation,
+  createLearningSuiteHeaderConfiguration,
   createLearningSuiteNavigation,
   learningSuite,
   learningSuiteRouteReport,
@@ -53,19 +53,13 @@ function renderLanding() {
     includeHome: false,
   };
   const familyDestinations = createLearningSuiteNavigation(navigationOptions);
-  const familyNavigation = createLearningSuiteHeaderNavigation(navigationOptions);
   const hrefByExperience = new Map(
     familyDestinations.map((destination) => [destination.id, destination.href]),
   );
-  const header = renderLearnerHeader({
-    productName: learningSuite.title,
-    homeHref: "./",
-    homeLabel: `${learningSuite.title} home`,
-    navigationLabel: learningSuite.navigationLabel,
-    navigation: familyNavigation,
-    menuLabel: "Experiences",
-    meta: learningSuite.headerMeta,
-  });
+  const header = renderLearnerHeader(createLearningSuiteHeaderConfiguration({
+    rootHref: "./",
+    currentId: learningSuite.home.id,
+  }));
   const footer = renderLearnerFooter({
     summary: learningSuite.footerSummary,
     attribution: "Built with Latent.",

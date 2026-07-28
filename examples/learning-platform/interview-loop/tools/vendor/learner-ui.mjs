@@ -699,6 +699,101 @@ body.learner-ui:has(.learner-context-nav) {
   background: var(--learner-color-accent-soft);
   border-color: var(--learner-color-accent);
 }
+.learner-examples {
+  border-bottom: var(--learner-border);
+  border-top: var(--learner-border);
+  display: grid;
+  list-style: none;
+  margin: var(--learner-space-3) 0 0;
+  padding: 0;
+}
+.learner-example {
+  border: 0;
+  display: grid;
+  gap: var(--learner-space-3);
+  margin: 0;
+  min-width: 0;
+  padding: var(--learner-space-4) 0;
+}
+.learner-example + .learner-example {
+  border-top: var(--learner-border);
+}
+.learner-example legend {
+  color: var(--learner-color-ink);
+  font-size: .84rem;
+  font-weight: 720;
+  padding: 0;
+}
+.learner-field {
+  display: grid;
+  gap: var(--learner-space-1);
+  min-width: 0;
+}
+.learner-field__label {
+  color: var(--learner-color-ink);
+  font-size: .76rem;
+  font-weight: 720;
+}
+.learner-field__hint,
+.learner-field__error {
+  font-size: .73rem;
+  line-height: 1.45;
+  margin: 0;
+}
+.learner-field__hint {
+  color: var(--learner-color-muted);
+}
+.learner-field__error {
+  color: var(--learner-color-danger);
+  min-height: 1.05rem;
+}
+.learner-textarea {
+  background: color-mix(in srgb, var(--learner-color-surface) 86%, transparent);
+  border: 1px solid var(--learner-color-border);
+  border-radius: var(--learner-radius-sm);
+  color: var(--learner-color-ink);
+  font: .82rem/1.5 var(--learner-font-mono);
+  max-width: 100%;
+  min-height: 4.4rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  padding: .7rem .8rem;
+  resize: vertical;
+  width: 100%;
+}
+.learner-textarea[aria-invalid="true"] {
+  border-color: var(--learner-color-danger);
+}
+.learner-example__reference {
+  color: var(--learner-color-muted);
+  display: grid;
+  font-size: .76rem;
+  gap: var(--learner-space-1);
+  line-height: 1.5;
+  margin: 0;
+}
+.learner-example__reference code {
+  color: var(--learner-color-ink);
+  font: .78rem/1.5 var(--learner-font-mono);
+  overflow-wrap: anywhere;
+}
+.learner-example__modified {
+  color: var(--learner-color-accent-strong);
+  font-size: .7rem;
+  font-weight: 760;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.learner-example__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--learner-space-2);
+}
+.learner-status.learner-example__status {
+  margin-top: 0;
+  min-height: 2rem;
+}
 .learner-status {
   border-left: 3px solid var(--learner-color-border);
   color: var(--learner-color-muted);
@@ -1019,6 +1114,7 @@ body.learner-ui:has(.learner-context-nav) {
   .learner-mobile-panel:not([open]) > .learner-mobile-panel__content { display: none; }
   .learner-content { padding: var(--learner-space-5) var(--learner-space-4); }
   .learner-button { min-height: 2.9rem; }
+  .learner-example__actions .learner-button { flex: 1 1 9rem; }
   .learner-editor { font-size: 1rem; }
   .learner-code-editor .cm-editor { font-size: 1rem; }
   .learner-footer__inner { flex-direction: column; }
@@ -1129,6 +1225,7 @@ var learnerUiJavaScript = `(() => {
   const solutionNote = "Compare the control flow and boundary cases with your draft. Opening this reference does not replace your work or update progress.";
   const preparedCodeEditors = new WeakMap();
   let editorInstructionSequence = 0;
+  let exampleEditorSequence = 0;
   const componentText = (value, label, maximum) => {
     if (
       typeof value !== "string"
@@ -1161,6 +1258,455 @@ var learnerUiJavaScript = `(() => {
     sourceFrame.append(code);
     details.append(summary, note, sourceFrame);
     return details;
+  };
+  const boundedJsonProblem = (input) => {
+    const stack = [{ depth: 0, value: input }];
+    const seen = new Set();
+    let nodes = 0;
+    while (stack.length) {
+      const current = stack.pop();
+      nodes += 1;
+      if (nodes > 2000) return "JSON values may not contain more than 2,000 values.";
+      if (current.depth > 12) return "JSON values may not be nested more than 12 levels.";
+      if (
+        current.value === null
+        || typeof current.value === "boolean"
+        || (typeof current.value === "number" && Number.isFinite(current.value))
+      ) continue;
+      if (typeof current.value === "string") {
+        if (current.value.length > 20000) {
+          return "JSON strings may not exceed 20,000 characters.";
+        }
+        continue;
+      }
+      if (!current.value || typeof current.value !== "object") {
+        return "Use JSON values only.";
+      }
+      if (seen.has(current.value)) {
+        return "JSON values may not contain shared or circular objects.";
+      }
+      seen.add(current.value);
+      if (Array.isArray(current.value)) {
+        if (current.value.length > 200) {
+          return "JSON arrays may not contain more than 200 entries.";
+        }
+        current.value.forEach((value) => {
+          stack.push({ depth: current.depth + 1, value });
+        });
+        continue;
+      }
+      if (Object.getPrototypeOf(current.value) !== Object.prototype) {
+        return "JSON objects must use a plain object shape.";
+      }
+      const entries = Object.entries(current.value);
+      if (entries.length > 200) {
+        return "JSON objects may not contain more than 200 fields.";
+      }
+      for (const [key, value] of entries) {
+        if (key.length > 200) {
+          return "JSON object keys may not exceed 200 characters.";
+        }
+        stack.push({ depth: current.depth + 1, value });
+      }
+    }
+    return null;
+  };
+  const cloneJson = (value) => JSON.parse(JSON.stringify(value));
+  const argumentArrayProblem = (values) => {
+    for (let index = 0; index < values.length; index += 1) {
+      const problem = boundedJsonProblem(values[index]);
+      if (problem) return "Argument " + (index + 1) + ": " + problem;
+    }
+    return null;
+  };
+  const createEditableExamples = ({
+    examples,
+    inputLabel = "Arguments (JSON)",
+    constructorInputLabel = "Constructor arguments (JSON)",
+    expectedLabel = "Published expected (for the original input)",
+    runLabel = "Run this input",
+    resetLabel = "Reset input",
+    cancelLabel = "Cancel",
+    helperText = "Enter one JSON array containing the function arguments. This run does not affect progress.",
+    runningLabel = "Running this input…",
+    receivedLabel = "Received",
+    modifiedLabel = "Modified input",
+    resetMessage = "Published input restored.",
+    onRun,
+    onBusyChange,
+    onChange,
+  }) => {
+    if (!Array.isArray(examples) || examples.length === 0) {
+      throw new Error("The shared example editor requires at least one example.");
+    }
+    if (typeof onRun !== "function") {
+      throw new Error("The shared example editor requires a trusted run handler.");
+    }
+    const labels = {
+      input: componentText(inputLabel, "Example input label", 120).trim(),
+      constructor: componentText(
+        constructorInputLabel,
+        "Example constructor input label",
+        120,
+      ).trim(),
+      expected: componentText(expectedLabel, "Example expected label", 160).trim(),
+      run: componentText(runLabel, "Example run label", 80).trim(),
+      reset: componentText(resetLabel, "Example reset label", 80).trim(),
+      cancel: componentText(cancelLabel, "Example cancel label", 80).trim(),
+      helper: componentText(helperText, "Example helper text", 300).trim(),
+      running: componentText(runningLabel, "Example running label", 120).trim(),
+      received: componentText(receivedLabel, "Example received label", 80).trim(),
+      modified: componentText(modifiedLabel, "Example modified label", 80).trim(),
+      resetMessage: componentText(resetMessage, "Example reset message", 120).trim(),
+    };
+    const list = document.createElement("div");
+    list.className = "learner-examples";
+    const records = [];
+    const identities = new Set();
+    let activeRun = null;
+    let destroyed = false;
+    let disabled = false;
+    let revision = 0;
+    const notifyBusy = (busy) => {
+      if (typeof onBusyChange === "function") onBusyChange(busy);
+    };
+    const notifyChange = () => {
+      revision += 1;
+      if (typeof onChange === "function") onChange();
+    };
+    const clearFieldError = (field) => {
+      field.input.removeAttribute("aria-invalid");
+      field.error.textContent = "";
+    };
+    const markFieldError = (field, message) => {
+      field.input.setAttribute("aria-invalid", "true");
+      field.error.textContent = message;
+    };
+    const parseField = (field) => {
+      clearFieldError(field);
+      if (field.input.value.length > 2000000) {
+        throw new Error("Example input may not exceed 2,000,000 characters.");
+      }
+      let parsed;
+      try {
+        parsed = JSON.parse(field.input.value);
+      } catch {
+        throw new Error("Enter valid JSON.");
+      }
+      if (!Array.isArray(parsed)) {
+        throw new Error("Use an array of function arguments.");
+      }
+      if (parsed.length > 20) {
+        throw new Error("Use no more than 20 function arguments.");
+      }
+      const problem = argumentArrayProblem(parsed);
+      if (problem) throw new Error(problem);
+      return parsed;
+    };
+    const updateModified = (record) => {
+      record.modified.hidden = record.fields.every((field) => (
+        field.input.value === field.original
+      ));
+    };
+    const updateDisabled = () => {
+      for (const record of records) {
+        const busy = Boolean(activeRun);
+        for (const field of record.fields) {
+          field.input.disabled = disabled || busy;
+        }
+        record.run.disabled = disabled || busy;
+        record.reset.disabled = disabled || busy;
+        const ownsRun = activeRun?.record === record;
+        record.cancel.hidden = !ownsRun;
+        record.cancel.disabled = !ownsRun;
+      }
+    };
+    const resetRecord = (record, announceReset = true) => {
+      if (activeRun?.record === record) activeRun.controller.abort();
+      for (const field of record.fields) {
+        field.input.value = field.original;
+        clearFieldError(field);
+      }
+      updateModified(record);
+      record.status.removeAttribute("data-tone");
+      record.status.textContent = announceReset ? labels.resetMessage : "";
+      notifyChange();
+    };
+    const observationProblem = (observation) => {
+      if (!observation || typeof observation !== "object" || Array.isArray(observation)) {
+        return "The practice runtime returned an unreadable example result.";
+      }
+      if (observation.status === "returned" && Object.hasOwn(observation, "value")) {
+        const problem = boundedJsonProblem(observation.value);
+        return problem
+          ? "The practice runtime returned an invalid value. " + problem
+          : null;
+      }
+      if (
+        observation.status === "threw"
+        && typeof observation.errorName === "string"
+        && observation.errorName.length <= 160
+        && typeof observation.message === "string"
+        && observation.message.length <= 8192
+      ) {
+        return null;
+      }
+      return "The practice runtime returned an unreadable example result.";
+    };
+    const runRecord = async (record) => {
+      if (destroyed || disabled || activeRun) return;
+      const values = {};
+      let firstInvalid = null;
+      for (const field of record.fields) {
+        try {
+          values[field.kind] = parseField(field);
+        } catch (error) {
+          markFieldError(field, error?.message || "Enter valid JSON.");
+          if (!firstInvalid) firstInvalid = field.input;
+        }
+      }
+      if (firstInvalid) {
+        record.status.dataset.tone = "danger";
+        record.status.textContent = "Fix the highlighted input before running.";
+        firstInvalid.focus();
+        firstInvalid.scrollIntoView({ block: "nearest", inline: "nearest" });
+        return;
+      }
+      const controller = new AbortController();
+      const runRevision = revision;
+      activeRun = { controller, record, restoreFocus: false };
+      record.status.removeAttribute("data-tone");
+      record.status.textContent = labels.running;
+      updateDisabled();
+      notifyBusy(true);
+      try {
+        const observation = await onRun({
+          id: record.id,
+          args: cloneJson(values.args),
+          constructorArgs: values.constructorArgs === undefined
+            ? undefined
+            : cloneJson(values.constructorArgs),
+          signal: controller.signal,
+        });
+        if (
+          destroyed
+          || controller.signal.aborted
+          || activeRun?.controller !== controller
+          || revision !== runRevision
+        ) return;
+        const problem = observationProblem(observation);
+        if (problem) throw new Error(problem);
+        if (observation.status === "returned") {
+          record.status.removeAttribute("data-tone");
+          record.status.textContent = labels.received + ": " + JSON.stringify(
+            observation.value,
+          );
+        } else {
+          record.status.dataset.tone = "danger";
+          record.status.textContent = "Raised " + observation.errorName + ": "
+            + observation.message;
+        }
+      } catch (error) {
+        if (
+          !destroyed
+          && activeRun?.controller === controller
+          && revision === runRevision
+        ) {
+          record.status.dataset.tone = controller.signal.aborted ? "neutral" : "danger";
+          record.status.textContent = controller.signal.aborted
+            ? "Run canceled. Your input is unchanged."
+            : error?.message || String(error);
+        }
+      } finally {
+        if (activeRun?.controller === controller) {
+          const restoreFocus = activeRun.restoreFocus;
+          activeRun = null;
+          notifyBusy(false);
+          updateDisabled();
+          if (restoreFocus && !destroyed) record.fields[0].input.focus();
+        }
+      }
+    };
+    for (const example of examples) {
+      if (!example || typeof example !== "object" || Array.isArray(example)) {
+        throw new Error("Every shared editable example must be an object.");
+      }
+      const id = componentText(example.id, "Example id", 160).trim();
+      const label = componentText(example.label, "Example label", 200).trim();
+      if (identities.has(id)) {
+        throw new Error("Shared editable example ids must be unique.");
+      }
+      identities.add(id);
+      if (!Array.isArray(example.args) || example.args.length > 20) {
+        throw new Error("Shared editable example arguments must be an array of at most 20 values.");
+      }
+      if (argumentArrayProblem(example.args)) {
+        throw new Error("Shared editable example arguments must contain bounded JSON.");
+      }
+      if (
+        example.constructorArgs !== undefined
+        && (
+          !Array.isArray(example.constructorArgs)
+          || example.constructorArgs.length > 20
+          || argumentArrayProblem(example.constructorArgs)
+        )
+      ) {
+        throw new Error("Shared editable constructor arguments must contain bounded JSON.");
+      }
+      const sequence = ++exampleEditorSequence;
+      const fieldset = document.createElement("fieldset");
+      fieldset.className = "learner-example";
+      const legend = document.createElement("legend");
+      legend.textContent = label;
+      const modified = document.createElement("span");
+      modified.className = "learner-example__modified";
+      modified.textContent = labels.modified;
+      modified.hidden = true;
+      fieldset.append(legend, modified);
+      const fields = [];
+      const addField = (kind, value, fieldLabel) => {
+        const field = document.createElement("div");
+        field.className = "learner-field";
+        const inputId = "learner-example-input-" + sequence + "-" + kind;
+        const hintId = inputId + "-hint";
+        const errorId = inputId + "-error";
+        const inputLabelNode = document.createElement("label");
+        inputLabelNode.className = "learner-field__label";
+        inputLabelNode.htmlFor = inputId;
+        inputLabelNode.textContent = fieldLabel;
+        const input = document.createElement("textarea");
+        input.className = "learner-textarea";
+        input.id = inputId;
+        input.rows = 3;
+        input.maxLength = 2000000;
+        input.spellcheck = false;
+        input.value = JSON.stringify(value);
+        input.setAttribute("autocomplete", "off");
+        input.setAttribute("autocapitalize", "none");
+        input.setAttribute("autocorrect", "off");
+        input.setAttribute("wrap", "soft");
+        input.setAttribute("aria-describedby", hintId + " " + errorId);
+        input.setAttribute("aria-keyshortcuts", "Control+Enter Meta+Enter");
+        const hint = document.createElement("p");
+        hint.className = "learner-field__hint";
+        hint.id = hintId;
+        hint.textContent = labels.helper;
+        const error = document.createElement("p");
+        error.className = "learner-field__error";
+        error.id = errorId;
+        error.setAttribute("role", "alert");
+        field.append(inputLabelNode, input, hint, error);
+        fieldset.append(field);
+        const record = {
+          error,
+          input,
+          kind,
+          original: input.value,
+        };
+        fields.push(record);
+        input.addEventListener("input", () => {
+          clearFieldError(record);
+          updateModified(exampleRecord);
+          exampleRecord.status.removeAttribute("data-tone");
+          exampleRecord.status.textContent = "";
+          notifyChange();
+        });
+        input.addEventListener("keydown", (event) => {
+          if (
+            (event.ctrlKey || event.metaKey)
+            && !event.altKey
+            && !event.shiftKey
+            && !event.isComposing
+            && event.key === "Enter"
+          ) {
+            event.preventDefault();
+            void runRecord(exampleRecord);
+          }
+        });
+      };
+      let exampleRecord;
+      if (example.constructorArgs !== undefined) {
+        addField("constructorArgs", example.constructorArgs, labels.constructor);
+      }
+      addField("args", example.args, labels.input);
+      const reference = document.createElement("p");
+      reference.className = "learner-example__reference";
+      const referenceLabel = document.createElement("strong");
+      referenceLabel.textContent = labels.expected;
+      const referenceValue = document.createElement("code");
+      const expectedJson = JSON.stringify(example.expected);
+      referenceValue.textContent = expectedJson === undefined
+        ? String(example.expected)
+        : expectedJson;
+      reference.append(referenceLabel, referenceValue);
+      const actions = document.createElement("div");
+      actions.className = "learner-example__actions";
+      const run = document.createElement("button");
+      run.className = "learner-button";
+      run.type = "button";
+      run.textContent = labels.run;
+      const reset = document.createElement("button");
+      reset.className = "learner-button";
+      reset.dataset.variant = "quiet";
+      reset.type = "button";
+      reset.textContent = labels.reset;
+      const cancel = document.createElement("button");
+      cancel.className = "learner-button";
+      cancel.dataset.variant = "secondary";
+      cancel.type = "button";
+      cancel.textContent = labels.cancel;
+      cancel.hidden = true;
+      actions.append(run, reset, cancel);
+      const status = document.createElement("p");
+      status.className = "learner-status learner-example__status";
+      status.setAttribute("role", "status");
+      status.setAttribute("aria-live", "polite");
+      status.setAttribute("aria-atomic", "true");
+      exampleRecord = {
+        cancel,
+        fields,
+        id,
+        modified,
+        reset,
+        run,
+        status,
+      };
+      run.addEventListener("click", () => {
+        void runRecord(exampleRecord);
+      });
+      reset.addEventListener("click", () => {
+        resetRecord(exampleRecord);
+      });
+      cancel.addEventListener("click", () => {
+        if (activeRun?.record !== exampleRecord) return;
+        activeRun.restoreFocus = true;
+        activeRun.controller.abort();
+      });
+      fieldset.append(reference, actions, status);
+      list.append(fieldset);
+      records.push(exampleRecord);
+    }
+    updateDisabled();
+    return Object.freeze({
+      element: list,
+      destroy() {
+        destroyed = true;
+        const wasBusy = Boolean(activeRun);
+        activeRun?.controller.abort();
+        activeRun = null;
+        if (wasBusy) notifyBusy(false);
+      },
+      reset() {
+        records.forEach((record) => resetRecord(record, false));
+      },
+      revision() {
+        return revision;
+      },
+      setDisabled(nextDisabled) {
+        disabled = Boolean(nextDisabled);
+        updateDisabled();
+      },
+    });
   };
   const normalizedTabSize = (value) => (
     Number.isInteger(value) && value >= 1 && value <= 8 ? value : 2
@@ -1415,7 +1961,11 @@ var learnerUiJavaScript = `(() => {
     Object.defineProperty(globalThis, "LearnerUiComponents", {
       configurable: false,
       enumerable: false,
-      value: Object.freeze({ createSolutionDisclosure, prepareCodeEditor }),
+      value: Object.freeze({
+        createEditableExamples,
+        createSolutionDisclosure,
+        prepareCodeEditor,
+      }),
       writable: false,
     });
   }

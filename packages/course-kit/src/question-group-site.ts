@@ -80,6 +80,12 @@ export type QuestionGroupSiteCopy = Readonly<{
   publicExamplesHeading: string;
   inputLabel: string;
   expectedLabel: string;
+  exampleInputLabel?: string;
+  constructorInputLabel?: string;
+  publishedExpectedLabel?: string;
+  runInput?: string;
+  resetInput?: string;
+  exampleHelperText?: string;
   initialResults: string;
   running: string;
   passedHeading: string;
@@ -138,6 +144,12 @@ const defaultQuestionGroupSiteCopy = Object.freeze({
   publicExamplesHeading: "Public example",
   inputLabel: "Input",
   expectedLabel: "Expected",
+  exampleInputLabel: "Arguments (JSON)",
+  constructorInputLabel: "Constructor arguments (JSON)",
+  publishedExpectedLabel: "Published expected (for the original input)",
+  runInput: "Run this input",
+  resetInput: "Reset input",
+  exampleHelperText: "Enter one JSON array containing the function arguments. This run does not affect progress.",
   initialResults: "Run the examples, then check the full solution.",
   running: "Running your code…",
   passedHeading: "All checks passed",
@@ -728,23 +740,6 @@ const questionGroupLayoutCss = `
   line-height: 1.55;
   margin-bottom: .45rem;
 }
-.example-cases {
-  display: grid;
-  gap: var(--learner-space-3);
-  list-style: none;
-  padding: 0;
-}
-.example-cases li {
-  background: var(--learner-color-surface-muted);
-  border: var(--learner-border);
-  border-radius: var(--learner-radius-sm);
-  padding: var(--learner-space-3);
-}
-.example-cases code {
-  display: block;
-  font: .78rem/1.55 var(--learner-font-mono);
-  overflow-wrap: anywhere;
-}
 .workspace {
   --learner-editor-min-height: 22rem;
   display: flex;
@@ -835,6 +830,7 @@ export const questionGroupSandboxWorkerJavaScript = `(() => {
   const safeRegExpTest = RegExp.prototype.test;
   const safeReflectApply = Reflect.apply;
   const safeStringIncludes = String.prototype.includes;
+  const safeStringSlice = String.prototype.slice;
   const safeStructuredClone = workerGlobal.structuredClone;
   const safeTextEncode = TextEncoder.prototype.encode;
   const constructorPrototypes = [
@@ -1153,12 +1149,40 @@ export const questionGroupSandboxWorkerJavaScript = `(() => {
           assertions[assertionIndex] = assertionEntry;
           if (!assertionEntry.passed) casePassed = false;
         }
-        caseResults[caseIndex] = {
+        const caseResult = {
           id: exerciseCase.id,
           label: exerciseCase.label,
           passed: casePassed,
           assertions,
         };
+        if (payload.includeObservation === true) {
+          caseResult.observation = thrown
+            ? {
+                status: "threw",
+                errorName: safeReflectApply(
+                  safeStringSlice,
+                  SafeString(thrown.name || "Error"),
+                  [0, 160],
+                ),
+                message: safeReflectApply(
+                  safeStringSlice,
+                  SafeString(thrown.message || ""),
+                  [0, 8192],
+                ),
+              }
+            : resultProblem
+              ? {
+                  status: "threw",
+                  errorName: "ResultError",
+                  message: safeReflectApply(
+                    safeStringSlice,
+                    SafeString(resultProblem),
+                    [0, 8192],
+                  ),
+                }
+              : { status: "returned", value: result };
+        }
+        caseResults[caseIndex] = caseResult;
       }
       const output = printable(caseResults);
       if (safeReflectApply(safeTextEncode, new SafeTextEncoder(), [output]).byteLength > payload.maxOutputBytes) {
@@ -1229,7 +1253,36 @@ function renderQuestionGroupPlayerJavaScript(
     if (className) node.className = className;
     return node;
   };
+  const normalizeObservation = (observation) => {
+    if (
+      observation
+      && typeof observation === "object"
+      && !Array.isArray(observation)
+      && observation.status === "returned"
+      && Object.hasOwn(observation, "value")
+    ) {
+      return { status: "returned", value: observation.value };
+    }
+    if (
+      observation
+      && typeof observation === "object"
+      && !Array.isArray(observation)
+      && observation.status === "threw"
+      && typeof observation.errorName === "string"
+      && observation.errorName.length <= 160
+      && typeof observation.message === "string"
+      && observation.message.length <= 8192
+    ) {
+      return {
+        status: "threw",
+        errorName: observation.errorName,
+        message: observation.message,
+      };
+    }
+    throw new Error("The isolated runtime returned an invalid invocation observation.");
+  };
   const browserRuntime = {
+    supportsEditableExamples: true,
     supports(runtime) {
       if (runtime.environment !== "browser-worker") return false;
       if (runtime.engine === "esbuild-wasm" && runtime.engineVersion === "0.28.1") {
@@ -1344,7 +1397,18 @@ function renderQuestionGroupPlayerJavaScript(
               reject(new Error("The isolated browser runtime returned an inconsistent case result."));
               return;
             }
-            normalizedCases.push({ ...returnedCase, passed });
+            const normalizedCase = {
+              id: returnedCase.id,
+              label: returnedCase.label,
+              passed,
+              assertions: returnedCase.assertions,
+            };
+            if (request.includeObservation === true) {
+              normalizedCase.observation = normalizeObservation(
+                returnedCase.observation,
+              );
+            }
+            normalizedCases.push(normalizedCase);
           }
           resolve({
             passed: normalizedCases.every((entry) => entry.passed),
@@ -1359,6 +1423,7 @@ function renderQuestionGroupPlayerJavaScript(
           id,
           code: compiled.code,
           cases,
+          includeObservation: request.includeObservation === true,
           maxOutputBytes: request.runtime.limits.maxOutputBytes,
         });
       });
@@ -1604,7 +1669,9 @@ function renderQuestionGroupPlayerJavaScript(
     )) || initialVisible[0];
     let source = draftSourceFor(active.group, active.question);
     let codeEditor = null;
+    let exampleController = null;
     let running = false;
+    let runningMode = null;
     let activeRunController = null;
     let draftWriteActive = false;
     const pendingDraftWrites = new Map();
@@ -1803,10 +1870,11 @@ function renderQuestionGroupPlayerJavaScript(
       const supported = Boolean(runtime && runtimeAdapter.supports(runtime));
       editor.disabled = running || !supported;
       codeEditor?.setDisabled?.(editor.disabled);
+      exampleController?.setDisabled?.(running || !supported);
       examplesButton.disabled = running || !supported;
       checkButton.disabled = running || !supported;
-      cancelButton.hidden = !running;
-      cancelButton.disabled = !running;
+      cancelButton.hidden = !running || runningMode === "input";
+      cancelButton.disabled = !running || runningMode === "input";
       return supported;
     };
     const announceResult = (message) => {
@@ -1818,6 +1886,8 @@ function renderQuestionGroupPlayerJavaScript(
     };
     const renderActive = (moveFocus = false) => {
       const { group, question } = active;
+      exampleController?.destroy?.();
+      exampleController = null;
       const heading = text("h2", question.title);
       heading.tabIndex = -1;
       questionCopy.replaceChildren(
@@ -1832,28 +1902,74 @@ function renderQuestionGroupPlayerJavaScript(
       const examples = question.cases.filter((entry) => entry.visibility === "example");
       if (examples.length) {
         questionCopy.append(text("h3", copy.publicExamplesHeading));
-        const exampleList = document.createElement("ul");
-        exampleList.className = "example-cases";
-        for (const example of examples) {
-          const expected = example.assertions.map((assertion) => (
-            Object.hasOwn(assertion, "expected")
-              ? assertion.expected
-              : assertion.label
-          ));
-          const item = document.createElement("li");
-          item.append(
-            text("strong", example.label),
-            text("code", copy.inputLabel + ": " + JSON.stringify(example.args)),
-            text(
-              "code",
-              copy.expectedLabel + ": " + JSON.stringify(
-                expected.length === 1 ? expected[0] : expected,
+        if (runtimeAdapter.supportsEditableExamples === true) {
+          const createEditableExamples =
+            globalThis.LearnerUiComponents?.createEditableExamples;
+          if (typeof createEditableExamples !== "function") {
+            throw new Error("The shared editable example component is unavailable.");
+          }
+          exampleController = createEditableExamples({
+            examples: examples.map((example) => {
+              const expected = example.assertions.map((assertion) => (
+                Object.hasOwn(assertion, "expected")
+                  ? assertion.expected
+                  : assertion.label
+              ));
+              return {
+                id: example.id,
+                label: example.label,
+                args: example.args,
+                constructorArgs: example.constructorArgs,
+                expected: expected.length === 1 ? expected[0] : expected,
+              };
+            }),
+            inputLabel: copy.exampleInputLabel,
+            constructorInputLabel: copy.constructorInputLabel,
+            expectedLabel: copy.publishedExpectedLabel,
+            runLabel: copy.runInput,
+            resetLabel: copy.resetInput,
+            helperText: copy.exampleHelperText,
+            onRun: ({ id, args, constructorArgs, signal }) => runExampleInput({
+              id,
+              args,
+              constructorArgs,
+              signal,
+            }),
+            onBusyChange: (busy) => {
+              running = busy;
+              runningMode = busy ? "input" : null;
+              updateActionAvailability();
+              renderNavigation();
+            },
+            onChange: () => {
+              runGuard.invalidate();
+            },
+          });
+          questionCopy.append(exampleController.element);
+        } else {
+          const exampleList = document.createElement("ul");
+          exampleList.className = "example-cases";
+          for (const example of examples) {
+            const expected = example.assertions.map((assertion) => (
+              Object.hasOwn(assertion, "expected")
+                ? assertion.expected
+                : assertion.label
+            ));
+            const item = document.createElement("li");
+            item.append(
+              text("strong", example.label),
+              text("code", copy.inputLabel + ": " + JSON.stringify(example.args)),
+              text(
+                "code",
+                copy.expectedLabel + ": " + JSON.stringify(
+                  expected.length === 1 ? expected[0] : expected,
+                ),
               ),
-            ),
-          );
-          exampleList.append(item);
+            );
+            exampleList.append(item);
+          }
+          questionCopy.append(exampleList);
         }
-        questionCopy.append(exampleList);
       }
       sourcePath.textContent = question.path;
       editor.value = source;
@@ -1892,6 +2008,54 @@ function renderQuestionGroupPlayerJavaScript(
       }
       if (moveFocus) focusAndReveal(heading, "center");
     };
+    const runExampleInput = async ({ id, args, constructorArgs, signal }) => {
+      const { group, question } = active;
+      const runtime = library.runtimes.find((entry) => entry.id === question.runtimeId);
+      if (!runtime || !runtimeAdapter.supports(runtime)) {
+        throw new Error(copy.runtimeUnavailable);
+      }
+      const publishedCase = question.cases.find((entry) => (
+        entry.visibility === "example" && entry.id === id
+      ));
+      if (!publishedCase) {
+        throw new Error("The selected public example is unavailable.");
+      }
+      source = editor.value;
+      const runSource = source;
+      const inputIdentity = JSON.stringify([id, constructorArgs ?? null, args]);
+      const runIdentity = runSource + "\\u0000" + inputIdentity;
+      const runQuestionKey = questionKey(group, question);
+      const runToken = runGuard.begin(runQuestionKey, runIdentity);
+      const scopedCase = {
+        ...publishedCase,
+        args,
+        ...(constructorArgs === undefined ? {} : { constructorArgs }),
+      };
+      const outcome = await runtimeAdapter.run({
+        library,
+        group,
+        question: { ...question, cases: [scopedCase] },
+        runtime,
+        contractVersion: contractVersion(library, group, question),
+        source: runSource,
+        mode: "examples",
+        includeObservation: true,
+        signal,
+      });
+      const currentIdentity = editor.value + "\\u0000" + inputIdentity;
+      if (
+        signal.aborted
+        || !runGuard.isCurrent(
+          runToken,
+          questionKey(active.group, active.question),
+          currentIdentity,
+        )
+      ) {
+        throw new Error(copy.runCanceled);
+      }
+      const result = outcome?.cases?.find((entry) => entry?.id === id);
+      return normalizeObservation(result?.observation);
+    };
     const run = async (mode) => {
       const { group, question } = active;
       const runtime = library.runtimes.find((entry) => entry.id === question.runtimeId);
@@ -1903,6 +2067,7 @@ function renderQuestionGroupPlayerJavaScript(
       const controller = new AbortController();
       activeRunController = controller;
       running = true;
+      runningMode = mode;
       updateActionAvailability();
       renderNavigation();
       const isCurrentRun = () => (
@@ -1984,8 +2149,10 @@ function renderQuestionGroupPlayerJavaScript(
             const remaining = visibleEntries();
             runGuard.invalidate();
             running = false;
+            runningMode = null;
             if (!remaining.length) {
               codeEditor?.destroy?.();
+              exampleController?.destroy?.();
               const empty = emptyView();
               app.replaceChildren(empty);
               empty.focus({ preventScroll: true });
@@ -2005,6 +2172,7 @@ function renderQuestionGroupPlayerJavaScript(
         if (activeRunController === controller) activeRunController = null;
         if (isCurrentRun()) {
           running = false;
+          runningMode = null;
           updateActionAvailability();
           renderNavigation();
         }
@@ -2024,6 +2192,7 @@ function renderQuestionGroupPlayerJavaScript(
         activeRunController = null;
         runGuard.invalidate();
         running = false;
+        runningMode = null;
         results.replaceChildren(text("p", copy.initialResults));
         announceResult(copy.initialResults);
         updateActionAvailability();
@@ -2033,11 +2202,12 @@ function renderQuestionGroupPlayerJavaScript(
     examplesButton.addEventListener("click", () => run("examples"));
     checkButton.addEventListener("click", () => run("check"));
     cancelButton.addEventListener("click", () => {
-      if (!running) return;
+      if (!running || runningMode === "input") return;
       activeRunController?.abort();
       activeRunController = null;
       runGuard.invalidate();
       running = false;
+      runningMode = null;
       results.replaceChildren(text("p", copy.runCanceled));
       announceResult(copy.runCanceled);
       updateActionAvailability();

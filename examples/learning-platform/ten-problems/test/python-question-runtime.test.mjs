@@ -101,6 +101,7 @@ test("the injected adapter supports only the exact pinned Python profile", () =>
       throw new Error("not used");
     },
   });
+  assert.equal(adapter.supportsEditableExamples, true);
   assert.equal(adapter.supports(runtimeRequirement), true);
   for (const changed of [
     { ...runtimeRequirement, language: "javascript" },
@@ -137,12 +138,14 @@ test("example and check runs map CPython observations into host-owned assertions
   assert.deepEqual(examples.cases[0].input, [[4, 1, 7, 1, 4]]);
   assert.deepEqual(examples.cases[0].expected, [1]);
   assert.equal(examples.cases[0].actual, 1);
+  assert.equal(Object.hasOwn(examples.cases[0], "observation"), false);
 
   const check = await adapter.run(request({ mode: "check" }));
   assert.equal(check.passed, false);
   assert.equal(check.cases.length, 4);
   assert.equal(check.cases[0].assertions[0].passed, false);
   assert.equal(check.cases[0].actual, "definitely-wrong");
+  assert.equal(Object.hasOwn(check.cases[0], "observation"), false);
 
   assert.equal(calls.length, 2);
   for (const call of calls) {
@@ -159,6 +162,149 @@ test("example and check runs map CPython observations into host-owned assertions
     assert.doesNotMatch(call.run.payload.code, /\"args\":null/);
     assert.equal(call.disposed, true);
   }
+});
+
+test("a trusted custom example reaches Python and exposes actual output independently of the published assertion", async () => {
+  const calls = {};
+  const publicCase = question.cases.find((entry) => entry.visibility === "example");
+  const customCase = {
+    ...publicCase,
+    args: [[4, 1, 7, 4, 1]],
+  };
+  const scopedQuestion = {
+    ...question,
+    cases: [customCase],
+  };
+  const adapter = runtimeModule.createPythonQuestionRuntime({
+    assetRoot: "./assets/",
+    createClient() {
+      return fakeClient([{
+        caseId: customCase.id,
+        observation: {
+          status: "returned",
+          value: 4,
+        },
+      }], calls);
+    },
+  });
+
+  const outcome = await adapter.run(request({
+    question: scopedQuestion,
+    includeObservation: true,
+  }));
+
+  assert.equal(outcome.passed, false);
+  assert.deepEqual(outcome.cases[0].observation, {
+    status: "returned",
+    value: 4,
+  });
+  assert.equal(outcome.cases[0].actual, 4);
+  assert.match(calls.run.payload.code, /\[\[4,1,7,4,1\]\]/);
+  assert.equal(calls.disposed, true);
+});
+
+test("trusted custom examples expose thrown observations without changing canonical results", async () => {
+  const calls = {};
+  const publicCase = question.cases.find((entry) => entry.visibility === "example");
+  const scopedQuestion = {
+    ...question,
+    cases: [publicCase],
+  };
+  const adapter = runtimeModule.createPythonQuestionRuntime({
+    assetRoot: "./assets/",
+    createClient() {
+      return fakeClient([{
+        caseId: publicCase.id,
+        observation: {
+          status: "threw",
+          errorName: "ValueError",
+          message: "custom input is unsupported",
+        },
+      }], calls);
+    },
+  });
+
+  const outcome = await adapter.run(request({
+    question: scopedQuestion,
+    includeObservation: true,
+  }));
+
+  assert.deepEqual(outcome.cases[0].observation, {
+    status: "threw",
+    errorName: "ValueError",
+    message: "custom input is unsupported",
+  });
+  assert.deepEqual(outcome.cases[0].actual, {
+    errorName: "ValueError",
+    message: "custom input is unsupported",
+  });
+  assert.equal(calls.disposed, true);
+});
+
+test("canonical Python runs retain their prior output budget near the declared limit", async () => {
+  const publicCase = question.cases.find((entry) => entry.visibility === "example");
+  const returnedValue = "x".repeat(1_200);
+  const scopedCase = {
+    ...publicCase,
+    assertions: [{
+      id: "result",
+      label: "returns text",
+      kind: "type",
+      expected: "string",
+    }],
+  };
+  const scopedQuestion = {
+    ...question,
+    cases: [scopedCase],
+  };
+  const result = [{
+    caseId: scopedCase.id,
+    observation: {
+      status: "returned",
+      value: returnedValue,
+    },
+  }];
+  const runWithLimit = async (maxOutputBytes, includeObservation = false) => {
+    const calls = {};
+    const adapter = runtimeModule.createPythonQuestionRuntime({
+      assetRoot: "./assets/",
+      createClient() {
+        return fakeClient(result, calls);
+      },
+    });
+    return adapter.run(request({
+      question: scopedQuestion,
+      runtime: {
+        ...runtimeRequirement,
+        limits: {
+          ...runtimeRequirement.limits,
+          maxOutputBytes,
+        },
+      },
+      includeObservation,
+    }));
+  };
+
+  const baseline = await runWithLimit(100_000);
+  assert.equal(Object.hasOwn(baseline.cases[0], "observation"), false);
+  const baselineBytes = new TextEncoder().encode(
+    JSON.stringify(baseline),
+  ).byteLength;
+  const duplicatedBytes = new TextEncoder().encode(JSON.stringify({
+    ...baseline,
+    cases: [{
+      ...baseline.cases[0],
+      observation: result[0].observation,
+    }],
+  })).byteLength;
+  assert.ok(duplicatedBytes > baselineBytes);
+
+  const nearLimit = await runWithLimit(baselineBytes);
+  assert.equal(Object.hasOwn(nearLimit.cases[0], "observation"), false);
+  await assert.rejects(
+    runWithLimit(baselineBytes, true),
+    /exceeded its declared output limit/,
+  );
 });
 
 test("an incomplete worker result fails closed and still disposes the worker", async () => {

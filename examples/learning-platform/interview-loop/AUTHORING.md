@@ -943,18 +943,18 @@ publication path.
 
 ### Current local validation and user evidence
 
-- Course Kit passed all 64 package tests. Interview passed strict validation
-  and all 16 focused tests: 3 lessons, 14 cards, 3 practice questions, 1 IDE
+- Course Kit passed all 75 package tests. Interview passed strict validation
+  and all 20 focused tests: 3 lessons, 14 cards, 3 practice questions, 1 IDE
   exercise, and all 13 authored Python cases. Ten Problems passed strict
-  validation and all 6 focused tests: 4 groups, 10 questions, 39 cases, 10
+  validation and all 9 focused tests: 4 groups, 10 questions, 39 cases, 10
   public examples, and 29 complete checks.
 - `npm run open-learning:validate`, `npm run open-learning:schema`, and
   `npm run open-learning:generate` passed with unchanged public contracts.
   The production course build stayed within its CSS/runtime budgets, and the
-  combined Pages artifact contains 444 files.
+  combined Pages artifact contains 446 files.
 - The final root `npm run validate` gate passed package builds/tests,
-  boundaries, TypeScript, ESLint, the 480-test application suite, performance
-  budgets, and both strict example validations.
+  boundaries, TypeScript, ESLint, the application suite, performance budgets,
+  and both strict example validations.
 - Beginning-learner browser passes found one header, content-first labels,
   clear Continue state, visible scenario framing, public examples, and an
   optional example solution without framework terminology. Advanced passes
@@ -983,3 +983,58 @@ publication path.
 
 This is local Chromium emulation and keyboard inspection, not a physical
 device or formal screen-reader certification.
+
+## Editable public examples — 2026-07-28
+
+Public cases previously appeared only in Ten Problems, and their arguments
+were inert text. Interview's specialized practice view skipped the public
+case entirely and exposed only a full graded check. That was another framework
+gap: the same declarative case had different learner affordances depending on
+which renderer consumed it.
+
+Course Kit now owns the editable-example component beside its other learner UI
+primitives. Interview consumes it from `LearnerUiComponents` in
+`site/app.mjs`; it does not reproduce JSON parsing, bounds, focus behavior,
+busy state, reset behavior, or result presentation locally. Interview still
+owns the course-specific placement and execution adapter.
+
+The three actions have intentionally separate meanings:
+
+- **Run this input** sends one temporary, validated argument set through the
+  trusted Python adapter and returns only its normalized observation to the
+  shared component. It does not write progress.
+- **Run examples** uses the untouched authored public cases and renders their
+  host-owned assertions. It does not write progress.
+- **Check solution** uses every untouched authored case and remains the sole
+  practice action that can update digest- and contract-bound progress or
+  repeated-miss state.
+
+`trusted/python-exercise-runtime.ts` can include a normalized returned or
+thrown observation when the trusted custom-input path explicitly requests it.
+Canonical example, full-check, and IDE runs omit that observation so a large
+returned value is not duplicated beside its assertion evidence or charged
+twice against the output budget. The observation is derived from the already
+bounded Python worker envelope; portable JSON cannot supply executable checks
+or runtime behavior. The existing assertion results, input-equality and
+nested-alias checks, timeout, output limit, abort signal, and worker disposal
+remain in force.
+
+No Learning Pack or Question Group field changed. Edited arguments are
+ephemeral UI state, source changes reject stale observations, question changes
+abort active work, and canonical checks never consume the edited arguments.
+
+Focused browser evidence covered both learner modes. A beginning learner could
+edit the labeled JSON field, run it, read actual-only feedback, and restore the
+published value without encountering grading language. An advanced learner
+could run a changed non-adjacent-duplicate case, then run the canonical
+published example and see its host-owned assertions without the edit leaking
+across paths. Module resume, quiz retry/success, flash-card reveal/rating, and
+the saved IDE result were also exercised after the change.
+
+At 390 × 844 the shared field and editor stayed within the viewport, both
+example actions remained at least 44 pixels tall, and the document had no
+horizontal overflow. Keyboard inspection confirmed a three-pixel visible
+focus indicator, normal Tab exit from the JSON field, CodeMirror indentation
+on Tab, and Escape-then-Tab exit from source. The combined `/latent/`,
+`/latent/interview-loop/`, and `/latent/practice/` builds loaded same-origin
+assets with one header each and no browser-console errors.

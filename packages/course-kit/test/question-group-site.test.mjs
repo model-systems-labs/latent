@@ -37,6 +37,7 @@ test("Question Group builds are complete static practice sites with a leech quer
   const repeated = await buildStandaloneQuestionGroupSite(structuredClone(library));
   assert.equal(QUESTION_GROUP_PLAYER_VERSION, 2);
   assert.match(declarations, /viewExampleSolution\?: string;/);
+  assert.match(declarations, /exampleInputLabel\?: string;/);
   assert.equal(files[".latent-build"], `${QUESTION_GROUP_BUILD_MARKER}\n`);
   assert.ok(files["assets/esbuild.wasm"] instanceof Uint8Array);
   assert.ok(files["assets/esbuild.wasm"].byteLength > 1_000_000);
@@ -138,6 +139,18 @@ test("Question Group builds are complete static practice sites with a leech quer
   assert.match(files["assets/player.js"], /codeEditor\?\.setDisabled\?\./);
   assert.match(files["assets/player.js"], /codeEditor\?\.destroy\?\./);
   assert.match(files["assets/player.js"], /codeEditor\?\.focus\?\./);
+  assert.match(
+    files["assets/player.js"],
+    /supportsEditableExamples: true/,
+  );
+  assert.match(
+    files["assets/player.js"],
+    /runtimeAdapter\.supportsEditableExamples === true/,
+  );
+  assert.match(
+    files["assets/player.js"],
+    /exampleList\.className = "example-cases"/,
+  );
   assert.doesNotMatch(files["assets/player.js"], /event\.key === "Tab"|setRangeText/);
   assert.match(files["assets/player.js"], /isLeech/);
   assert.match(files["assets/player.js"], /new Worker/);
@@ -167,7 +180,40 @@ test("Question Group builds are complete static practice sites with a leech quer
     /const workspaceHeader = document\.createElement\("div"\)/,
   );
   assert.match(files["assets/player.js"], /publicExamplesHeading/);
-  assert.match(files["assets/player.js"], /example-cases/);
+  assert.match(
+    files["assets/player.js"],
+    /globalThis\.LearnerUiComponents\?\.createEditableExamples/,
+  );
+  assert.match(files["assets/learner-ui.js"], /const createEditableExamples = /);
+  assert.match(
+    files["assets/learner-ui.js"],
+    /Enter one JSON array containing the function arguments\. This run does not affect progress\./,
+  );
+  assert.match(files["assets/learner-ui.js"], /Use an array of function arguments\./);
+  assert.match(files["assets/learner-ui.js"], /JSON values may not be nested more than 12 levels\./);
+  assert.match(files["assets/learner-ui.js"], /firstInvalid\.focus\(\)/);
+  assert.match(
+    files["assets/learner-ui.js"],
+    /input\.setAttribute\("aria-describedby", hintId \+ " " \+ errorId\)/,
+  );
+  assert.match(files["assets/learner-ui.js"], /input\.setAttribute\("aria-keyshortcuts"/);
+  assert.match(files["assets/learner-ui.js"], /record\.status\.textContent = labels\.received/);
+  assert.match(
+    files["assets/player.js"],
+    /question: \{ \.\.\.question, cases: \[scopedCase\] \}/,
+  );
+  assert.match(files["assets/player.js"], /mode: "examples",[\s\S]*signal,/);
+  assert.match(files["assets/player.js"], /includeObservation: true,[\s\S]*signal,/);
+  assert.match(files["assets/player.js"], /return normalizeObservation\(result\?\.observation\)/);
+  assert.match(
+    files["assets/player.js"],
+    /if \(request\.includeObservation === true\) \{[\s\S]*normalizedCase\.observation = normalizeObservation/,
+  );
+  assert.match(
+    files["assets/player.js"],
+    /if \(mode === "check"\) \{[\s\S]*writeProgress/,
+  );
+  assert.doesNotMatch(files["question-group-library.json"], /Run this input|Modified input/);
   assert.match(files["assets/player.js"], /new AbortController\(\)/);
   assert.match(files["assets/player.js"], /activeRunController\?\.abort\(\)/);
   assert.match(files["assets/learner-ui.js"], /event\.ctrlKey \|\| event\.metaKey/);
@@ -248,6 +294,14 @@ test("Question Group builds are complete static practice sites with a leech quer
     /\(\.\.\.__latent_args\) => [\s\S]*\(\.\.\.__latent_args\)/,
   );
   assert.match(files["assets/sandbox.worker.js"], /"fetch",[\s\S]*"WebSocket"/);
+  assert.match(
+    files["assets/sandbox.worker.js"],
+    /if \(payload\.includeObservation === true\) \{[\s\S]*caseResult\.observation =/,
+  );
+  assert.match(
+    files["assets/player.js"],
+    /includeObservation: request\.includeObservation === true,[\s\S]*maxOutputBytes/,
+  );
   assert.match(files["_headers"], /connect-src 'none'/);
   assert.match(files["_headers"], new RegExp(LEARNER_CODE_EDITOR_CSP_SOURCE));
   assert.doesNotMatch(files["_headers"], /style-src[^\n]*'unsafe-inline'/);
@@ -1047,6 +1101,110 @@ test("the bundled compiler removes native dynamic imports before worker evaluati
   assert.equal(sent.ok, true);
   assert.equal(sent.cases[0].passed, false);
   assert.match(sent.cases[0].assertions[0].detail, /ReferenceError|require/);
+});
+
+test("canonical worker runs preserve their output budget while custom input opts into observations", async () => {
+  let sent;
+  class IsolatedTextEncoder {
+    encode(value) {
+      return new TextEncoder().encode(value);
+    }
+  }
+  const self = {
+    addEventListener(type, listener) {
+      if (type === "message") this.listener = listener;
+    },
+    postMessage(value) {
+      sent = value;
+    },
+    structuredClone(value) {
+      return structuredClone(value);
+    },
+  };
+  const context = vm.createContext({
+    console,
+    globalThis: self,
+    self,
+    structuredClone: self.structuredClone,
+    TextEncoder: IsolatedTextEncoder,
+  });
+  Object.assign(self, {
+    console,
+    globalThis: self,
+    self,
+    structuredClone: self.structuredClone,
+    TextEncoder: IsolatedTextEncoder,
+  });
+  vm.runInContext(questionGroupSandboxWorkerJavaScript, context);
+
+  const returnedValue = "x".repeat(900);
+  const baseRequest = {
+    code: `globalThis.__latentEntrypoint = () => ${JSON.stringify(returnedValue)};`,
+    cases: [{
+      id: "near-output-limit",
+      label: "returns a large string",
+      args: [],
+      assertions: [{
+        id: "result",
+        label: "returns text",
+        kind: "type",
+        expected: "string",
+      }],
+    }],
+    maxOutputBytes: 1_024,
+  };
+
+  await self.listener({
+    data: { ...baseRequest, id: "canonical-near-output-limit" },
+  });
+  const canonical = sent;
+  assert.equal(canonical.ok, true);
+  assert.equal(Object.hasOwn(canonical.cases[0], "observation"), false);
+  const canonicalBytes = new TextEncoder().encode(
+    JSON.stringify(canonical.cases),
+  ).byteLength;
+  const capturedBytes = new TextEncoder().encode(JSON.stringify([{
+    ...canonical.cases[0],
+    observation: { status: "returned", value: returnedValue },
+  }])).byteLength;
+  assert.ok(canonicalBytes <= baseRequest.maxOutputBytes);
+  assert.ok(capturedBytes > baseRequest.maxOutputBytes);
+
+  await self.listener({
+    data: {
+      ...baseRequest,
+      id: "custom-near-output-limit",
+      includeObservation: true,
+    },
+  });
+  assert.equal(sent.ok, false);
+  assert.match(sent.error, /exceeded the declared output limit/);
+
+  await self.listener({
+    data: {
+      ...baseRequest,
+      id: "custom-with-output-room",
+      includeObservation: true,
+      maxOutputBytes: 4_096,
+    },
+  });
+  assert.equal(sent.ok, true);
+  assert.equal(sent.cases[0].observation.status, "returned");
+  assert.equal(sent.cases[0].observation.value, returnedValue);
+
+  await self.listener({
+    data: {
+      ...baseRequest,
+      id: "custom-thrown-observation",
+      code: 'globalThis.__latentEntrypoint = () => { throw new TypeError("custom input"); };',
+      includeObservation: true,
+      maxOutputBytes: 4_096,
+    },
+  });
+  assert.equal(sent.ok, true);
+  assert.equal(sent.cases[0].observation.status, "threw");
+  assert.equal(sent.cases[0].observation.errorName, "TypeError");
+  assert.equal(sent.cases[0].observation.message, "custom input");
 });
 
 test("the worker disables string-evaluating timers that could synthesize imports", async () => {

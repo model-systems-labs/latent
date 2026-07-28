@@ -47,6 +47,7 @@ type RuntimeRequest = {
   };
   cases: ExerciseCase[];
   requirement: RuntimeRequirement;
+  includeObservation?: boolean;
   signal?: AbortSignal;
 };
 
@@ -296,6 +297,12 @@ export function createInterviewPythonRuntime(options: RuntimeOptions = {}) {
       if (!request.cases.length) {
         throw new Error("This exercise has no cases to run.");
       }
+      if (
+        request.includeObservation !== undefined
+        && typeof request.includeObservation !== "boolean"
+      ) {
+        throw new Error("Observation output must be explicitly enabled or omitted.");
+      }
       const limits = admitRuntimeLimits(request.requirement.limits);
       const client = makeClient();
       try {
@@ -350,7 +357,7 @@ export function createInterviewPythonRuntime(options: RuntimeOptions = {}) {
             throw new Error(`CPython omitted ${exerciseCase.id}.`);
           }
           if (observation.status === "threw") {
-            return Object.freeze({
+            const assessed = Object.freeze({
               id: exerciseCase.id,
               label: exerciseCase.label,
               passed: false,
@@ -362,12 +369,31 @@ export function createInterviewPythonRuntime(options: RuntimeOptions = {}) {
                 actual: `${observation.errorName}: ${observation.message}`,
               })]),
             });
+            return request.includeObservation
+              ? Object.freeze({
+                  ...assessed,
+                  observation: Object.freeze({
+                    status: "threw" as const,
+                    errorName: observation.errorName,
+                    message: observation.message,
+                  }),
+                })
+              : assessed;
           }
-          return assessCase(
+          const assessed = assessCase(
             exerciseCase,
             observation.value,
             observation.purity,
           );
+          return request.includeObservation
+            ? Object.freeze({
+                ...assessed,
+                observation: Object.freeze({
+                  status: "returned" as const,
+                  value: observation.value,
+                }),
+              })
+            : assessed;
         });
         if (serializedOutputBytes(results) > limits.maxOutputBytes) {
           throw new Error("The Python check result exceeded its declared output limit.");

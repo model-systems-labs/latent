@@ -67,7 +67,18 @@ function referenceSolutionDisclosure(source, title) {
   return createSolutionDisclosure({ source, title });
 }
 
+function editablePublicExamples(options) {
+  const createEditableExamples =
+    globalThis.LearnerUiComponents?.createEditableExamples;
+  if (typeof createEditableExamples !== "function") {
+    throw new Error("The shared learner example component is unavailable.");
+  }
+  return createEditableExamples(options);
+}
+
 let practiceEditorController = null;
+let practiceExamplesController = null;
+let practiceRunController = null;
 let ideEditorController = null;
 
 function prepareCodeEditor(editor, options = {}) {
@@ -83,7 +94,35 @@ function prepareCodeEditor(editor, options = {}) {
   });
 }
 
-async function runPythonChecks(source, path, entrypoint, cases, requirement) {
+function validRuntimeObservation(observation) {
+  return Boolean(
+    observation
+    && typeof observation === "object"
+    && (
+      (
+        observation.status === "returned"
+        && Object.hasOwn(observation, "value")
+      )
+      || (
+        observation.status === "threw"
+        && typeof observation.errorName === "string"
+        && typeof observation.message === "string"
+      )
+    ),
+  );
+}
+
+async function runPythonChecks(
+  source,
+  path,
+  entrypoint,
+  cases,
+  requirement,
+  {
+    signal,
+    includeObservation = false,
+  } = {},
+) {
   if (!interviewPythonRuntime.supports(requirement)) {
     throw new Error("This exercise does not declare the supported Python runtime.");
   }
@@ -93,13 +132,25 @@ async function runPythonChecks(source, path, entrypoint, cases, requirement) {
     entrypoint,
     cases,
     requirement,
+    signal,
+    ...(includeObservation ? { includeObservation: true } : {}),
   });
   if (
     !Array.isArray(results)
+    || results.length !== cases.length
+    || new Set(results.map((result) => result?.id)).size !== results.length
+    || cases.some((exerciseCase) => (
+      !results.some((result) => result?.id === exerciseCase.id)
+    ))
     || !results.every((result) => (
       result
       && typeof result.id === "string"
       && typeof result.passed === "boolean"
+      && (
+        includeObservation
+          ? validRuntimeObservation(result.observation)
+          : !Object.hasOwn(result, "observation")
+      )
       && Array.isArray(result.assertions)
       && result.assertions.every((assertion) => (
         assertion
@@ -429,8 +480,8 @@ function currentQuestionProgress(library, state, question) {
   return progressMatchesIdentity(progress, identity) ? progress : null;
 }
 
-function renderCaseResults(results) {
-  const list = element("ul", { className: "case-list", "aria-label": "Check results" });
+function renderCaseResults(results, label = "Check results") {
+  const list = element("ul", { className: "case-list", "aria-label": label });
   for (const result of results) {
     const details = result.assertions.map((assertion) => (
       `${assertion.label}: ${assertion.passed ? "passed" : `expected ${JSON.stringify(assertion.expected)}, received ${JSON.stringify(assertion.actual)}`}`
@@ -444,6 +495,10 @@ function renderCaseResults(results) {
 }
 
 function renderPractice(library, state) {
+  practiceRunController?.abort();
+  practiceRunController = null;
+  practiceExamplesController?.destroy?.();
+  practiceExamplesController = null;
   practiceEditorController?.destroy?.();
   practiceEditorController = null;
   const root = $("#practice-root");
@@ -571,46 +626,175 @@ function renderPractice(library, state) {
     "aria-label": `${question.title} source`,
   });
   editor.value = source;
-  editor.addEventListener("input", () => {
-    state.practice.drafts[identity.contractVersion] = editor.value;
-    state.runtimeStore.write(`practice-draft:${identity.contractVersion}`, editor.value);
-  });
   const editorFrame = element("div", { className: "learner-editor-frame" }, [
     element("div", { className: "learner-editor-toolbar" }, label),
     editor,
   ]);
   const status = element("p", { className: "learner-status", "aria-live": "polite" });
   const results = element("div", { className: "learner-results" });
+  const runtime = library.runtimes.find((entry) => entry.id === question.runtimeId);
+  if (!runtime) {
+    throw new Error(`Missing trusted runtime for ${question.groupId}/${question.id}.`);
+  }
+  const publicCases = question.cases.filter((exerciseCase) => (
+    exerciseCase.visibility === "example"
+  ));
+  if (!publicCases.length) {
+    throw new Error(`Missing public examples for ${question.groupId}/${question.id}.`);
+  }
   const referenceSolution = state.referenceSolutions.practice.find((entry) => (
     entry.groupId === question.groupId && entry.questionId === question.id
   ));
   if (!referenceSolution) {
     throw new Error(`Missing trusted reference solution for ${question.groupId}/${question.id}.`);
   }
-  const run = element("button", {
+
+  let canonicalRunning = false;
+  let exampleBusy = false;
+  let editableExamples;
+  const runExamples = element("button", {
+    className: "learner-button",
+    type: "button",
+    text: "Run examples",
+  });
+  const checkSolution = element("button", {
     className: "learner-button",
     "data-variant": "primary",
     type: "button",
     text: "Check solution",
   });
-  run.addEventListener("click", async () => {
-    run.disabled = true;
-    setStatus(status, "Checking your solution…");
-    try {
+
+  const updateRunAvailability = () => {
+    const busy = canonicalRunning || exampleBusy;
+    runExamples.disabled = busy;
+    checkSolution.disabled = busy;
+    editor.disabled = busy;
+    practiceEditorController?.setDisabled?.(busy);
+    editableExamples?.setDisabled?.(canonicalRunning);
+  };
+  editableExamples = editablePublicExamples({
+    examples: publicCases.map((exerciseCase) => {
+      const expected = exerciseCase.assertions.map((assertion) => (
+        Object.hasOwn(assertion, "expected")
+          ? assertion.expected
+          : assertion.label
+      ));
+      return {
+        id: exerciseCase.id,
+        label: exerciseCase.label,
+        args: exerciseCase.args,
+        ...(Object.hasOwn(exerciseCase, "constructorArgs")
+          ? { constructorArgs: exerciseCase.constructorArgs }
+          : {}),
+        expected: expected.length === 1 ? expected[0] : expected,
+      };
+    }),
+    inputLabel: "Arguments (JSON)",
+    constructorInputLabel: "Constructor arguments (JSON)",
+    expectedLabel: "Published expected (for the original input)",
+    runLabel: "Run this input",
+    resetLabel: "Reset input",
+    helperText: "Enter one JSON array containing the function arguments. This run does not affect progress.",
+    runningLabel: "Running this input…",
+    receivedLabel: "Received",
+    async onRun({ id, args, constructorArgs, signal }) {
+      if (canonicalRunning) {
+        throw new Error("Wait for the published examples or checks to finish.");
+      }
+      const publishedCase = publicCases.find((exerciseCase) => exerciseCase.id === id);
+      if (!publishedCase) {
+        throw new Error("This public example is no longer available.");
+      }
       const submittedSource = editor.value;
-      const runtime = library.runtimes.find((entry) => entry.id === question.runtimeId);
+      const customCase = {
+        ...publishedCase,
+        args,
+        ...(Object.hasOwn(publishedCase, "constructorArgs")
+          ? { constructorArgs }
+          : {}),
+      };
+      const [customResult] = await runPythonChecks(
+        submittedSource,
+        question.path,
+        question.entrypoint,
+        [customCase],
+        runtime,
+        {
+          signal,
+          includeObservation: true,
+        },
+      );
+      if (
+        signal.aborted
+        || practiceExamplesController !== editableExamples
+        || editor.value !== submittedSource
+      ) {
+        throw new Error("Source or input changed while this example ran. Run it again.");
+      }
+      return customResult.observation;
+    },
+    onBusyChange(busy) {
+      if (practiceExamplesController !== editableExamples) return;
+      exampleBusy = busy;
+      updateRunAvailability();
+    },
+  });
+  practiceExamplesController = editableExamples;
+
+  const runCanonical = async (mode) => {
+    if (canonicalRunning || exampleBusy) return;
+    const controller = new AbortController();
+    practiceRunController?.abort();
+    practiceRunController = controller;
+    canonicalRunning = true;
+    updateRunAvailability();
+    const submittedSource = editor.value;
+    const cases = mode === "examples" ? publicCases : question.cases;
+    setStatus(
+      status,
+      mode === "examples"
+        ? "Running the published examples…"
+        : "Checking your solution…",
+    );
+    try {
       const runResults = await runPythonChecks(
         submittedSource,
         question.path,
         question.entrypoint,
-        question.cases,
+        cases,
         runtime,
+        { signal: controller.signal },
       );
-      if (editor.value !== submittedSource) {
-        throw new Error("Source changed while checks ran. Run the current source again.");
+      if (
+        practiceRunController !== controller
+        || controller.signal.aborted
+        || editor.value !== submittedSource
+      ) {
+        return;
+      }
+      const passed = runResults.every((entry) => entry.passed);
+      results.replaceChildren(renderCaseResults(
+        runResults,
+        mode === "examples" ? "Published example results" : "Check results",
+      ));
+      if (mode === "examples") {
+        setStatus(
+          status,
+          passed
+            ? "Published examples passed. Progress is unchanged."
+            : "A published example failed. Progress is unchanged.",
+          passed ? "success" : "danger",
+        );
+        return;
       }
       const submittedSourceDigest = await sha256Hex(submittedSource);
-      const passed = runResults.every((entry) => entry.passed);
+      if (
+        practiceRunController !== controller
+        || controller.signal.aborted
+        || editor.value !== submittedSource
+      ) {
+        return;
+      }
       const currentProgress = currentQuestionProgress(library, state, question);
       const next = nextPracticeProgress(identity, currentProgress, {
         sourceDigest: submittedSourceDigest,
@@ -619,7 +803,6 @@ function renderPractice(library, state) {
       });
       state.practice.progress[identity.contractVersion] = next;
       state.runtimeStore.write("practice-progress", state.practice.progress);
-      results.replaceChildren(renderCaseResults(runResults));
       setStatus(
         status,
         passed
@@ -630,17 +813,54 @@ function renderPractice(library, state) {
         passed ? "success" : "danger",
       );
     } catch (error) {
+      if (
+        practiceRunController !== controller
+        || controller.signal.aborted
+      ) {
+        return;
+      }
       setStatus(status, error.message, "danger");
     } finally {
-      run.disabled = false;
+      if (practiceRunController === controller) {
+        practiceRunController = null;
+        canonicalRunning = false;
+        updateRunAvailability();
+      }
     }
+  };
+  runExamples.addEventListener("click", () => {
+    void runCanonical("examples");
+  });
+  checkSolution.addEventListener("click", () => {
+    void runCanonical("check");
+  });
+  editor.addEventListener("input", () => {
+    state.practice.drafts[identity.contractVersion] = editor.value;
+    state.runtimeStore.write(`practice-draft:${identity.contractVersion}`, editor.value);
   });
   practiceEditorController = prepareCodeEditor(editor, {
-    onRun: () => run.click(),
+    onRun: (mode) => (
+      mode === "examples" ? runExamples : checkSolution
+    ).click(),
   });
+  updateRunAvailability();
+  const publicExamples = element("section", {
+    className: "practice-examples",
+    "aria-labelledby": "practice-examples-heading",
+  }, [
+    element("h3", {
+      id: "practice-examples-heading",
+      text: publicCases.length === 1 ? "Public example" : "Public examples",
+    }),
+    editableExamples.element,
+  ]);
   work.append(
+    publicExamples,
     editorFrame,
-    element("div", { className: "learner-button-row practice-actions" }, run),
+    element("div", { className: "learner-button-row practice-actions" }, [
+      runExamples,
+      checkSolution,
+    ]),
     referenceSolutionDisclosure(referenceSolution.source, question.title),
     status,
     results,

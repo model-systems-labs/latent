@@ -13,6 +13,14 @@ disclosure. The reviewed source is a trusted build input and is rendered as
 text; it is absent from portable Question Group JSON and does not replace the
 draft, run code, or update progress.
 
+Each public example now uses the shared editable-example field. Change the
+JSON argument array and choose **Run this input** to inspect the actual returned
+value or raised exception, then use **Reset input** to restore the published
+case. These exploratory inputs last only for the current visit and never count
+as attempts or repeated misses. **Run examples** still uses the immutable
+published examples, while **Check solution** still uses every immutable case
+and remains the only progress-writing action.
+
 ```bash
 npm run validate
 npm run preview
@@ -30,7 +38,8 @@ mobile behavior. `packages/course-kit/src/learner-ui.ts` is the source of
 truth for the shell and controls,
 `packages/course-kit/src/learner-code-editor.ts` supplies the shared
 syntax-aware editor primitive, `packages/course-kit/src/question-group-site.ts`
-composes the coding-practice layout, and `site-config.mjs` explicitly supplies
+composes the coding-practice layout and actual-only custom-input execution,
+and `site-config.mjs` explicitly supplies
 this product's persistent suite-header contract, local labels, review route,
 `cobalt` appearance palette, footer, and favicon at build time. The other
 reviewed palette choices are `paper`, `sage`, `plum`, and `graphite`; Cobalt

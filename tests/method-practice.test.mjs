@@ -155,9 +155,16 @@ test("the practice route reuses the shared editor and independent progress layer
   assert.match(leechPage, /no separate leech content is created/i);
   assert.doesNotMatch(workbench, /PaperLab|project-workspace|learner-state/);
   assert.match(editor, /const hasRunHandler = Boolean\(onRun\)/);
-  assert.match(editor, /hasRunHandler[\s\S]*?\{ onRun: \(\) => runRef\.current\?\.\(\) \}/);
+  assert.match(editor, /onRun: \(mode: LearnerCodeEditorRunMode\) => runRef\.current\?\.\(mode\)/);
+  assert.match(workbench, /onRun=\{\(mode\) => void runQuestion\(mode\)\}/);
+  assert.match(workbench, /runModes=\{\["examples", "check"\]\}/);
+  assert.match(workbench, /className="learner-solution"/);
+  assert.match(workbench, />\s*View example solution\s*</);
+  assert.match(workbench, /methodPracticeReferenceSolution\(activeQuestion\.id\)/);
+  assert.match(workbench, /readOnly[\s\S]*?value=\{activeReferenceSolution\}/);
   assert.match(editor, /hasRunHandler,[\s\S]*?hasSaveHandler,/);
-  assert.match(learnerEditor, /\.\.\.\(options\.onRun[\s\S]*?key:\s*"Mod-Enter"[\s\S]*?preventDefault:\s*true/);
+  assert.match(learnerEditor, /runModes\.includes\("examples"\)[\s\S]*?key:\s*"Mod-Shift-Enter"/);
+  assert.match(learnerEditor, /runModes\.includes\("check"\)[\s\S]*?key:\s*"Mod-Enter"/);
   assert.doesNotMatch(editor, /if \(!runRef\.current\) return false/);
 });
 

@@ -29,7 +29,7 @@
     white-space: nowrap;
   }
 
-  .topbar > a:first-child {
+  .topbar nav a {
     align-items: center;
     display: inline-flex;
     min-height: 2.75rem;

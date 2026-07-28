@@ -187,9 +187,10 @@ test("project autosave and recovery copy explain timing and expose a concise dif
 });
 
 test("test-gate failures expose actionable rows while compiler failures retain Output diagnostics", async () => {
-  const [source, responsive] = await Promise.all([
+  const [source, responsive, capstone] = await Promise.all([
     readFile(projectWorkbenchUrl, "utf8"),
     readFile(responsiveStylesUrl, "utf8"),
+    readFile(capstoneStylesUrl, "utf8"),
   ]);
   const build = source.slice(source.indexOf("const build = async"), source.indexOf("const runTests = async"));
   const gateFailure = build.slice(build.indexOf("if (!gate.canPromote)"), build.indexOf("const result = compileProject"));
@@ -202,6 +203,7 @@ test("test-gate failures expose actionable rows while compiler failures retain O
   assert.match(source, /failure\.detail/);
   assert.match(source, /actionableBuildFailurePath\(\{[\s\S]*?readOnly: failure\.path === CAPSTONE_ENTRY_PATH \|\| Boolean\(project\.files\[failure\.path\]\?\.readOnly\)[\s\S]*?editableFallbackPath: CAPSTONE_COMPONENT_PATH/);
   assert.match(source, /onClick=\{\(\) => openFile\(actionPath\)\}/);
+  assert.match(capstone, /\.project-output-status \{[^}]*display: block;/);
   assert.match(responsive, /\.project-output-status \{\s*display: block;/);
 });
 
@@ -223,8 +225,8 @@ test("top-level navigation fits phones, preserves tablet scrolling, and keeps to
   assert.doesNotMatch(mobileHeader, /\.site-header nav \{[^}]*display: none/);
   const narrowHeader = source.slice(source.indexOf("@media (max-width: 650px)"), source.indexOf("@media (prefers-reduced-motion"));
   assert.match(narrowHeader, /\.site-header nav \{[\s\S]*?display: grid;[\s\S]*?overflow: visible/);
-  assert.match(narrowHeader, /\.ide-topbar nav a,[\s\S]*?\.capstone-topbar nav a \{[\s\S]*?display: none/);
-  assert.match(narrowHeader, /\.ide-topbar nav a:last-child,[\s\S]*?\.capstone-topbar nav a:last-child \{[^}]*min-height: 2\.75rem/);
+  assert.match(narrowHeader, /\.ide-topbar nav a,[\s\S]*?\.capstone-topbar nav a \{[^}]*display: inline-flex[^}]*min-height: 2\.75rem/);
+  assert.doesNotMatch(narrowHeader, /\.ide-topbar nav a,[\s\S]*?\.capstone-topbar nav a \{[^}]*display: none/);
   assert.match(narrowHeader, /\.compiled-capstone-runtime \{[\s\S]*?height: calc\(100dvh - 3\.75rem\)/);
   assert.match(narrowHeader, /@media \(max-width: 940px\) and \(max-height: 500px\)[\s\S]*?height: calc\(100dvh - 2\.75rem\)/);
   assert.match(lessonMobile, /\.lessonSectionNav \{[^}]*display: flex;[^}]*flex-wrap: wrap;/);

@@ -47,8 +47,10 @@ export function createJsonStorage(storageArea, namespace) {
     write(key, value) {
       try {
         storageArea.setItem(`${namespace}:${key}`, JSON.stringify(value));
+        return true;
       } catch {
         // The platform remains usable without durable device storage.
+        return false;
       }
     },
     remove(key) {

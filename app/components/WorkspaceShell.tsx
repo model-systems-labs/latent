@@ -6,9 +6,8 @@ export function WorkspaceShell() {
   return (
     <main className={`ide-shell ${styles.shell}`} id="main-content" tabIndex={-1}>
       <header className={`ide-topbar ${styles.topbar}`}>
-        <Link href="/courses/llm-systems">LLM Systems</Link>
-        <div><strong>browser-chat/</strong></div>
-        <nav><Link href="/project">Project</Link><Link href="/capstone">Open chatbot →</Link></nav>
+        <div><span>Project workspace</span><strong>browser-chat/</strong></div>
+        <nav aria-label="Workspace actions"><Link href="/capstone">Open chatbot →</Link></nav>
       </header>
       <ProjectWorkbench />
     </main>

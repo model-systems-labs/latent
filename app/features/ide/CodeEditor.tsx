@@ -4,6 +4,7 @@ import { useEffect, useId, useRef } from "react";
 import {
   createLearnerCodeEditorExtensions,
   type LearnerCodeEditorLanguage,
+  type LearnerCodeEditorRunMode,
   type LearnerCodeEditorVariant,
 } from "@latent/course-kit/learner-code-editor";
 import { EditorState } from "@codemirror/state";
@@ -14,7 +15,8 @@ type CodeEditorProps = {
   path: string;
   onChange: (value: string) => void;
   onSave?: () => void;
-  onRun?: () => void;
+  onRun?: (mode: LearnerCodeEditorRunMode) => void;
+  runModes?: readonly LearnerCodeEditorRunMode[];
   readOnly?: boolean;
   variant?: "lesson" | "project" | "workbook";
   ariaLabel?: string;
@@ -22,7 +24,7 @@ type CodeEditorProps = {
 };
 
 const editableEditorInstruction =
-  "Code editor. Tab accepts an open suggestion; otherwise it indents. Press Escape, then Tab, to leave the editor.";
+  "Code editor. Tab accepts an open suggestion or indents; Shift plus Tab outdents. Press Escape, then Tab, to leave the editor.";
 const readOnlyEditorInstruction =
   "Read-only code example. Use the arrow keys to navigate the code. Press Escape, then Tab, to leave the code example.";
 
@@ -45,6 +47,7 @@ export function CodeEditor({
   onChange,
   onSave,
   onRun,
+  runModes,
   readOnly = false,
   variant = "project",
   ariaLabel,
@@ -61,6 +64,10 @@ export function CodeEditor({
         : `Workbook code editor: ${path}`;
   const hasRunHandler = Boolean(onRun);
   const hasSaveHandler = Boolean(onSave);
+  const supportsExampleRun = hasRunHandler
+    && (runModes === undefined || runModes.includes("examples"));
+  const supportsCheckRun = hasRunHandler
+    && (runModes === undefined || runModes.includes("check"));
   const instructionId = useId();
   const hostRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -100,7 +107,13 @@ export function CodeEditor({
             ? { onSave: () => saveRef.current?.() }
             : {}),
           ...(hasRunHandler
-            ? { onRun: () => runRef.current?.() }
+            ? {
+                onRun: (mode: LearnerCodeEditorRunMode) => runRef.current?.(mode),
+                runModes: [
+                  ...(supportsExampleRun ? ["examples" as const] : []),
+                  ...(supportsCheckRun ? ["check" as const] : []),
+                ],
+              }
             : {}),
         }),
       }),
@@ -121,6 +134,8 @@ export function CodeEditor({
     lineNumberStart,
     path,
     readOnly,
+    supportsCheckRun,
+    supportsExampleRun,
   ]);
 
   useEffect(() => {
@@ -161,9 +176,13 @@ export function CodeEditor({
       />
       <span className="sr-only" id={instructionId}>
         {readOnly ? readOnlyEditorInstruction : editableEditorInstruction}
-        {!readOnly && onRun
-          ? " Press Command or Control plus Enter to check your solution."
-          : ""}
+        {!readOnly && supportsCheckRun && supportsExampleRun
+          ? " Press Command or Control plus Enter to check; add Shift to run examples."
+          : !readOnly && supportsCheckRun
+            ? " Press Command or Control plus Enter to run the current check."
+            : !readOnly && supportsExampleRun
+              ? " Press Command or Control plus Shift plus Enter to run examples."
+              : ""}
       </span>
     </>
   );

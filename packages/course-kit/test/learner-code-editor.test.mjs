@@ -158,7 +158,35 @@ test("read-only editors remain navigable while disabled editors leave the tab or
   );
 });
 
-test("editor configuration rejects ambiguous language and indentation inputs", () => {
+test("editor configuration exposes only the run shortcuts owned by its host", () => {
+  const checkOnly = stateFor("python", "return None", {
+    onRun() {},
+    runModes: ["check"],
+  });
+  const checkOnlyAttributes = checkOnly
+    .facet(EditorView.contentAttributes)
+    .filter((value) => typeof value !== "function")
+    .reduce((attributes, value) => ({ ...attributes, ...value }), {});
+  assert.equal(
+    checkOnlyAttributes["aria-keyshortcuts"],
+    "Tab Shift+Tab Escape Control+Enter Meta+Enter",
+  );
+
+  const examplesOnly = stateFor("python", "return None", {
+    onRun() {},
+    runModes: ["examples"],
+  });
+  const examplesOnlyAttributes = examplesOnly
+    .facet(EditorView.contentAttributes)
+    .filter((value) => typeof value !== "function")
+    .reduce((attributes, value) => ({ ...attributes, ...value }), {});
+  assert.equal(
+    examplesOnlyAttributes["aria-keyshortcuts"],
+    "Tab Shift+Tab Escape Control+Shift+Enter Meta+Shift+Enter",
+  );
+});
+
+test("editor configuration rejects ambiguous language, indentation, and run inputs", () => {
   assert.throws(
     () => createLearnerCodeEditorExtensions({ language: "ruby" }),
     /Unsupported learner code editor language/,
@@ -176,6 +204,22 @@ test("editor configuration rejects ambiguous language and indentation inputs", (
       variant: "black",
     }),
     /Unsupported learner code editor variant/,
+  );
+  assert.throws(
+    () => createLearnerCodeEditorExtensions({
+      language: "python",
+      onRun() {},
+      runModes: [],
+    }),
+    /runModes must contain unique examples and\/or check modes/,
+  );
+  assert.throws(
+    () => createLearnerCodeEditorExtensions({
+      language: "python",
+      onRun() {},
+      runModes: ["check", "check"],
+    }),
+    /runModes must contain unique examples and\/or check modes/,
   );
 });
 

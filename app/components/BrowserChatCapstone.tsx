@@ -980,9 +980,8 @@ export function BrowserChatCapstone() {
   return (
     <main className={`compiled-capstone-shell ${styles.shell}`} id="main-content" tabIndex={-1}>
       <header className={`capstone-topbar ${styles.topbar}`}>
-        <Link href="/courses/llm-systems">LLM Systems</Link>
-        <div><strong>Browser Chat</strong></div>
-        <nav><Link href="/courses/llm-systems">LLM Systems</Link><Link href="/project">Project</Link><Link href="/workspace">IDE</Link></nav>
+        <div><span>Capstone preview</span><strong>Browser Chat</strong></div>
+        <nav aria-label="Capstone actions"><Link href="/workspace">Open IDE →</Link></nav>
       </header>
       {presentedStatus === "ready" && bundle && reactRuntime && buildRuntime && runRequested ? (
         <section className={`compiled-capstone-runtime ${styles.runtime}`}>

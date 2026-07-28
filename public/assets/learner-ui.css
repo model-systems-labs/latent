@@ -586,6 +586,9 @@ body.learner-ui:has(.learner-context-nav) {
   margin: var(--learner-space-4) 0 0;
   padding: .25rem 0 .25rem var(--learner-space-3);
 }
+.learner-status:empty {
+  display: none;
+}
 .learner-status[data-tone="success"] {
   border-color: var(--learner-color-success);
   color: var(--learner-color-success);

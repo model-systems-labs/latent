@@ -105,6 +105,7 @@ test("the learner UI foundation publishes stable tokens, responsive breakpoints,
   );
   assert.match(css, /\.learner-textarea\[aria-invalid="true"\]/);
   assert.match(css, /\.learner-example__actions/);
+  assert.match(css, /\.learner-status:empty\s*\{\s*display: none;/);
   assert.match(css, /\.learner-status\[data-tone="success"\]/);
   assert.match(css, /\.learner-results/);
   assert.match(
@@ -731,8 +732,33 @@ test("the shared code editor adapter owns indentation, persistence events, and k
   assert.equal(editor.siblings.length, 1);
   assert.match(editor.siblings[0].textContent, /Tab indents 2 spaces/);
 
-  let enhancedOptions = null;
   let runMode = null;
+  prepareCodeEditor(editor, {
+    onRun: (mode) => {
+      runMode = mode;
+    },
+    runModes: ["check"],
+    tabSize: 2,
+  });
+  assert.equal(
+    editor.getAttribute("aria-keyshortcuts"),
+    "Tab Shift+Tab Escape Control+Enter Meta+Enter",
+  );
+  assert.match(editor.siblings[0].textContent, /run the current check/);
+  const unavailableExamplesShortcut = keyboardEvent("Enter", {
+    ctrlKey: true,
+    shiftKey: true,
+  });
+  editor.dispatch("keydown", unavailableExamplesShortcut);
+  assert.equal(unavailableExamplesShortcut.defaultPrevented, false);
+  assert.equal(runMode, null);
+  const checkShortcut = keyboardEvent("Enter", { ctrlKey: true });
+  editor.dispatch("keydown", checkShortcut);
+  assert.equal(checkShortcut.defaultPrevented, true);
+  assert.equal(runMode, "check");
+
+  let enhancedOptions = null;
+  runMode = null;
   const enhancedController = {
     destroy() {},
     focus() {},
@@ -983,6 +1009,9 @@ test("editable examples validate bounded JSON, reset safely, and return actual o
   assert.equal(status.textContent, "Received: 4");
   assert.equal(status.getAttribute("data-tone"), null);
   assert.deepEqual(busy, [true, false]);
+  controller.invalidate();
+  assert.equal(status.textContent, "Source changed. Run this input again.");
+  assert.equal(status.dataset.tone, "warning");
 
   exampleControls[1].run.dispatch("click");
   await new Promise((resolve) => setImmediate(resolve));

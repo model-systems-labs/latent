@@ -31,6 +31,7 @@ test("the trusted learning suite declares three independent static experiences",
     practice: ["/practice/", "/practice/leeches/"],
   });
   assert.equal(learningSuite.headerMeta, "Courses and practice");
+  assert.equal(learningSuite.intro.eyebrow, "Learning paths");
   assert.match(learningSuite.intro.description, /Build an LLM system/);
   assert.match(learningSuite.intro.description, /engineering interview scenario/);
   assert.match(learningSuite.intro.description, /ten Python problems/);

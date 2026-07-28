@@ -15,7 +15,8 @@ test("the project course resumes returning learners without an introductory demo
   assert.match(projectCourse, /<section className="course-track-grid"/);
   assert.doesNotMatch(projectCourse, /FirstRunExperience|Introductory JavaScript RNN|Train and generate/);
   assert.match(courseResume, /Promise\.all\(\[initializeLearnerPersistence\(\), initializeProjectPersistence\(\)\]\)\.finally/);
-  assert.match(courseResume, /if \(!hydrated\)/);
+  assert.match(courseResume, /if \(!hydrated\) return null/);
+  assert.doesNotMatch(courseResume, /Restoring your place|styles\.loading/);
   assert.match(courseResume, /if \(startedLessons\.length === 0 && !projectStarted\) return null/);
   assert.match(courseResume, /Resume lesson/);
   assert.match(courseResume, /Resume project/);

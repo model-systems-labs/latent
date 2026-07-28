@@ -126,7 +126,7 @@ const suiteDefinition = {
     label: "Learning Studio",
   },
   intro: {
-    eyebrow: "Courses and practice",
+    eyebrow: "Learning paths",
     heading: "Choose a course or practice set.",
     description: "Build an LLM system, rehearse one engineering interview scenario, or work through ten Python problems. Progress stays on this device.",
   },

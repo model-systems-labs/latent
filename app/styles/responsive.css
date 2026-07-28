@@ -871,7 +871,7 @@
 
   .capstone-topbar,
   .ide-topbar {
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     min-height: 3.75rem;
     padding: 0 0.75rem;
     row-gap: 0;
@@ -879,13 +879,13 @@
 
   .ide-topbar > div,
   .capstone-topbar > div {
-    justify-items: center;
+    justify-items: start;
   }
 
   .ide-topbar nav,
   .capstone-topbar nav {
     gap: 0;
-    grid-column: 3;
+    grid-column: 2;
     justify-self: end;
     overflow: visible;
   }
@@ -896,12 +896,7 @@
   }
 
   .ide-topbar nav a,
-  .capstone-topbar nav a {
-    display: none;
-  }
-
-  .ide-topbar nav a:last-child,
-  .capstone-topbar nav a:last-child { align-items: center; display: inline-flex; min-height: 2.75rem; }
+  .capstone-topbar nav a { align-items: center; display: inline-flex; min-height: 2.75rem; }
 
   .compiled-capstone-runtime {
     height: calc(100vh - 3.75rem);

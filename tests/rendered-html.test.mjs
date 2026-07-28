@@ -815,7 +815,7 @@ test("LLM Systems home renders the course modules without an introductory demo",
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /aria-label="LLM Systems modules"/);
-  assert.match(html, /Restoring your place/);
+  assert.doesNotMatch(html, /Restoring your place/);
   assert.doesNotMatch(html, /Introductory JavaScript RNN|Train and generate/);
   assert.doesNotMatch(html, /temperature 1\.05 · top-k off|temperature 0\.72 · top-k 5|No output yet/);
   assert.doesNotMatch(html, /environment-readiness|First run · real training|This tiny model|Run the model to generate/);

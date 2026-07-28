@@ -90,6 +90,7 @@ export type LearnerCodeEditorOptions = {
   ariaDescribedBy?: string;
   onChange?: (value: string) => void;
   onRun?: (mode: LearnerCodeEditorRunMode) => void;
+  runModes?: readonly LearnerCodeEditorRunMode[];
   onSave?: () => void;
 };
 
@@ -340,6 +341,25 @@ function normalizedTabSize(
   return resolved;
 }
 
+function normalizedRunModes(
+  options: LearnerCodeEditorOptions,
+): readonly LearnerCodeEditorRunMode[] {
+  if (!options.onRun) return [];
+  const modes = options.runModes ?? ["examples", "check"];
+  if (
+    !Array.isArray(modes)
+    || modes.length === 0
+    || modes.length > 2
+    || modes.some((mode) => mode !== "examples" && mode !== "check")
+    || new Set(modes).size !== modes.length
+  ) {
+    throw new Error(
+      "Learner code editor runModes must contain unique examples and/or check modes.",
+    );
+  }
+  return modes;
+}
+
 function languageExtension(language: LearnerCodeEditorLanguage): Extension {
   if (language === "python") return python();
   if (language === "text") return [];
@@ -399,6 +419,7 @@ function learnerEditorSetup(lineNumberStart: number): Extension[] {
 function keyboardExtensions(
   options: LearnerCodeEditorOptions,
 ): Extension {
+  const runModes = normalizedRunModes(options);
   return Prec.high(keymap.of([
     { key: "Escape", run: temporarilySetTabFocusMode },
     { key: "Tab", run: acceptCompletion },
@@ -413,7 +434,7 @@ function keyboardExtensions(
           },
         }]
       : []),
-    ...(options.onRun
+    ...(runModes.includes("examples")
       ? [
           {
             key: "Mod-Shift-Enter",
@@ -423,6 +444,10 @@ function keyboardExtensions(
               return true;
             },
           },
+        ]
+      : []),
+    ...(runModes.includes("check")
+      ? [
           {
             key: "Mod-Enter",
             preventDefault: true,
@@ -441,15 +466,20 @@ function accessibilityAttributes(
   disabled: boolean,
   readOnly: boolean,
 ): Record<string, string> {
+  const runModes = normalizedRunModes(options);
   const shortcuts = [
     "Tab",
     "Shift+Tab",
     "Escape",
     ...(options.onSave ? ["Control+S", "Meta+S"] : []),
-    ...(options.onRun
+    ...(runModes.includes("check")
       ? [
           "Control+Enter",
           "Meta+Enter",
+        ]
+      : []),
+    ...(runModes.includes("examples")
+      ? [
           "Control+Shift+Enter",
           "Meta+Shift+Enter",
         ]

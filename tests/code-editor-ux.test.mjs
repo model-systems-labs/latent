@@ -91,6 +91,16 @@ test("lesson and workbook editors use the integrated light surface while the pro
   assert.match(primitive, /variant === "workspace-dark" \? workspaceDarkTheme : integratedTheme/);
   assert.match(primitive, /variant === "workspace-dark"[\s\S]*?workspaceDarkSyntaxTheme[\s\S]*?integratedSyntaxTheme/);
   assert.match(primitive, /&\.cm-focused > \.cm-scroller > \.cm-selectionLayer \.cm-selectionBackground/);
+  assert.match(
+    primitive,
+    /var\(--learner-code-selection, #dedbea\)[\s\S]*?boxShadow:[\s\S]*?var\(--learner-color-accent, #6576b4\) 64%/,
+    "integrated selections need a visible boundary in every learner palette",
+  );
+  assert.match(
+    primitive,
+    /backgroundColor:\s*"rgba\(181,151,209,\.22\)"[\s\S]*?boxShadow:\s*"inset 0 0 0 1px rgba\(221,189,242,\.6\)"/,
+    "dark workspace selections need a stronger fill and visible boundary",
+  );
   assert.match(primitive, /userSelect:\s*"text"/);
   assert.match(primitive, /WebkitUserSelect:\s*"text"/);
   assert.doesNotMatch(adapter, /#[0-9a-f]{3,8}|rgba?\(/i, "adapter-local palettes would let the products diverge again");

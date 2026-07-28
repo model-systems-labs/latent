@@ -142,9 +142,13 @@ const integratedTheme = EditorView.theme({
   },
   ".cm-selectionBackground": {
     backgroundColor: "var(--learner-code-selection, #dedbea)",
+    boxShadow:
+      "inset 0 0 0 1px color-mix(in srgb, var(--learner-color-accent, #6576b4) 64%, transparent)",
   },
   "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground": {
     backgroundColor: "var(--learner-code-selection, #dedbea)",
+    boxShadow:
+      "inset 0 0 0 1px color-mix(in srgb, var(--learner-color-accent, #6576b4) 64%, transparent)",
   },
   ".cm-selectionMatch": {
     backgroundColor: "var(--learner-code-selection, #dedbea)",
@@ -205,10 +209,12 @@ const workspaceDarkTheme = EditorView.theme({
     backgroundColor: "rgba(191,169,214,.065)",
   },
   ".cm-selectionBackground": {
-    backgroundColor: "rgba(181,151,209,.20)",
+    backgroundColor: "rgba(181,151,209,.22)",
+    boxShadow: "inset 0 0 0 1px rgba(221,189,242,.6)",
   },
   "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground": {
-    backgroundColor: "rgba(181,151,209,.20)",
+    backgroundColor: "rgba(181,151,209,.22)",
+    boxShadow: "inset 0 0 0 1px rgba(221,189,242,.6)",
   },
   ".cm-cursor, .cm-dropCursor": {
     borderLeftColor: "#e4c79e",

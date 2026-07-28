@@ -5,6 +5,8 @@ import { test } from "node:test";
 const executionUrl = new URL("../app/features/ide/PythonExecution.tsx", import.meta.url);
 const editorUrl = new URL("../app/features/ide/PythonCodeEditor.tsx", import.meta.url);
 const sharedEditorUrl = new URL("../app/features/ide/CodeEditor.tsx", import.meta.url);
+const completionsUrl = new URL("../app/features/ide/python-runtime-completions.ts", import.meta.url);
+const lessonServiceUrl = new URL("../app/features/ide/python-lesson-service.ts", import.meta.url);
 const learnerCodeEditorUrl = new URL("../packages/course-kit/src/learner-code-editor.ts", import.meta.url);
 const workbenchUrl = new URL("../app/components/ProjectWorkbench.tsx", import.meta.url);
 const pythonCssUrl = new URL("../app/styles/python-runtime.css", import.meta.url);
@@ -13,13 +15,14 @@ const responsiveCssUrl = new URL("../app/styles/responsive.css", import.meta.url
 const globalsUrl = new URL("../app/globals.css", import.meta.url);
 const viteConfigUrl = new URL("../vite.config.ts", import.meta.url);
 
-test("Python is an explicit, lazy runtime rather than part of page startup", async () => {
+test("Python is an explicit, lazy runtime with curated scientific and sorted-collection packages", async () => {
   const source = await readFile(executionUrl, "utf8");
   const start = source.slice(source.indexOf("const start = useCallback"), source.indexOf("const runFile = useCallback"));
   assert.match(start, /await import\("@latent\/python-lab"\)/);
   assert.match(start, /new PythonLabClient\(\)/);
-  assert.match(start, /initialize\([\s\S]*?packages: \["numpy"\]/);
-  assert.match(source, /downloads about 9 MB for the WebAssembly core, standard library, and NumPy/);
+  assert.match(start, /initialize\([\s\S]*?packages: PYTHON_IDE_PACKAGES/);
+  assert.match(source, /PYTHON_IDE_PACKAGES = \["numpy", "sortedcontainers"\] as const/);
+  assert.match(source, /downloads about 9 MB for the WebAssembly core, standard library, NumPy, and Sorted Containers/);
   assert.doesNotMatch(source, /^import \{ PythonLabClient/m, "the runtime package must not be imported into the initial workspace chunk");
 });
 
@@ -72,10 +75,12 @@ test("the project tree surfaces Python once without changing lesson completion s
 });
 
 test("the Python editor is a thin adapter over the shared highlighted editor primitive", async () => {
-  const [source, sharedEditor, primitive, viteConfig] = await Promise.all([
+  const [source, sharedEditor, primitive, completions, lessonService, viteConfig] = await Promise.all([
     readFile(editorUrl, "utf8"),
     readFile(sharedEditorUrl, "utf8"),
     readFile(learnerCodeEditorUrl, "utf8"),
+    readFile(completionsUrl, "utf8"),
+    readFile(lessonServiceUrl, "utf8"),
     readFile(viteConfigUrl, "utf8"),
   ]);
   assert.match(source, /import \{ CodeEditor \} from "@\/app\/features\/ide\/CodeEditor"/);
@@ -84,7 +89,8 @@ test("the Python editor is a thin adapter over the shared highlighted editor pri
 
   assert.match(sharedEditor, /if \(normalized\.endsWith\("\.py"\)\) return "python"/);
   assert.match(sharedEditor, /tabSize: language === "python" \? 4 : 2/);
-  assert.match(sharedEditor, /extensions:\s*createLearnerCodeEditorExtensions\(\{/);
+  assert.match(sharedEditor, /\.\.\.createLearnerCodeEditorExtensions\(\{/);
+  assert.match(sharedEditor, /language === "python" \? \[pythonRuntimeCompletions\] : \[\]/);
   assert.match(primitive, /if \(language === "python"\) return python\(\)/);
   assert.match(primitive, /syntaxHighlighting\([\s\S]*?workspaceDarkSyntaxTheme[\s\S]*?integratedSyntaxTheme/);
   assert.match(primitive, /indentUnit\.of\(" "\.repeat\(tabSize\)\)/);
@@ -92,6 +98,13 @@ test("the Python editor is a thin adapter over the shared highlighted editor pri
   assert.match(primitive, /\{ key: "Escape", run: temporarilySetTabFocusMode \}/);
   assert.match(primitive, /\{ key: "Tab", run: acceptCompletion \},\s*indentWithTab/);
   assert.match(primitive, /variant === "workspace-dark" \? workspaceDarkTheme : integratedTheme/);
+  assert.match(completions, /label: "defaultdict"/);
+  assert.match(completions, /label: "SortedSet"/);
+  assert.match(completions, /fromImport/);
+  assert.match(completions, /memberAccess/);
+  assert.match(completions, /autoImport/);
+  assert.match(lessonService, /import\\s\+sortedcontainers/);
+  assert.match(lessonService, /from\\s\+sortedcontainers/);
   assert.match(
     viteConfig,
     /optimizeDeps:[\s\S]*?include: \[[\s\S]*?"@codemirror\/lang-python"/,

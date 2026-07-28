@@ -99,7 +99,8 @@ dependency cycles.
 - Training Replay owns the model-neutral recording contract, validation,
   checkpoint materialization, lazy registry, and presentation view models. The
   application owns trainers, recordings, course placement, and React rendering.
-- Python lesson files execute inside the Pyodide worker with NumPy, and
+- Python lesson files execute inside the Pyodide worker with curated NumPy and
+  Sorted Containers support, and
   TypeScript lesson adapters execute inside Browser Lab. Both paths stay inside
   the browser, share host-owned behavioral contracts, and feed the same saved
   project without importing Python into the React bundle.

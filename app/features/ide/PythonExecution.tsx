@@ -73,7 +73,8 @@ type UsePythonExecutionOptions = {
   showPanel: (panel: "tests" | "output") => void;
 };
 
-const INITIAL_STATUS = "Python is off. Starting it downloads about 9 MB for the WebAssembly core, standard library, and NumPy. Your browser can cache those files.";
+const PYTHON_IDE_PACKAGES = ["numpy", "sortedcontainers"] as const;
+const INITIAL_STATUS = "Python is off. Starting it downloads about 9 MB for the WebAssembly core, standard library, NumPy, and Sorted Containers. Your browser can cache those files.";
 
 function sourceIdentity(path: string, source: string) {
   return `${path}\u0000${source}`;
@@ -183,7 +184,7 @@ export function usePythonExecution({
     const { controller, operation } = beginOperation();
     clearRunEvidence();
     setPhase("loading");
-    setStatus("Loading Python and NumPy in an isolated worker…");
+    setStatus("Loading Python, NumPy, and Sorted Containers in an isolated worker…");
     try {
       // The package and its worker are split from the page bundle. This import
       // is intentionally reachable only from the explicit Start Python action.
@@ -192,12 +193,12 @@ export function usePythonExecution({
       const client = new PythonLabClient();
       clientRef.current = client;
       const initialized = await client.initialize(
-        { packages: ["numpy"] },
+        { packages: PYTHON_IDE_PACKAGES },
         { signal: controller.signal, timeoutMs: 120_000, onEvent: eventHandler(operation) },
       );
       if (operation !== operationRef.current) return;
       setPhase("ready");
-      setStatus(`${initialized.pythonVersion} with NumPy is ready. Latent saves and syncs the current file before every run.`);
+      setStatus(`${initialized.pythonVersion} with NumPy and Sorted Containers is ready. Latent saves and syncs the current file before every run.`);
     } catch (error) {
       if (operation === operationRef.current) {
         clientRef.current?.dispose();
@@ -316,15 +317,15 @@ export function usePythonExecution({
     const { controller, operation } = beginOperation();
     clearRunEvidence();
     setPhase("loading");
-    setStatus("Restarting a clean Python interpreter and loading NumPy…");
+    setStatus("Restarting a clean Python interpreter and loading NumPy and Sorted Containers…");
     try {
       const initialized = await clientRef.current.reset(
-        { packages: ["numpy"] },
+        { packages: PYTHON_IDE_PACKAGES },
         { signal: controller.signal, timeoutMs: 120_000, onEvent: eventHandler(operation) },
       );
       if (operation !== operationRef.current) return;
       setPhase("ready");
-      setStatus(`${initialized.pythonVersion} with NumPy is ready in a fresh worker.`);
+      setStatus(`${initialized.pythonVersion} with NumPy and Sorted Containers is ready in a fresh worker.`);
     } catch (error) {
       failOperation(error, operation, "Python couldn’t restart.");
     }

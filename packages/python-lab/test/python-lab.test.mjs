@@ -130,12 +130,20 @@ function responsiveWorker() {
   });
 }
 
-test("pins the Pyodide release and exposes only the curated NumPy package", async () => {
+test("pins the Pyodide release and exposes only the curated runtime packages", async () => {
   const manifest = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
+  const packageManifestUrl = import.meta.resolve("pyodide/package.json");
+  const lock = JSON.parse(await readFile(new URL("pyodide-lock.json", packageManifestUrl), "utf8"));
   assert.equal(manifest.dependencies.pyodide, "314.0.2");
-  assert.deepEqual(pythonLab.CURATED_PYTHON_PACKAGES, ["numpy"]);
+  assert.deepEqual(pythonLab.CURATED_PYTHON_PACKAGES, ["numpy", "sortedcontainers"]);
   assert.equal(pythonLab.PYODIDE_CDN_URL, "https://cdn.jsdelivr.net/pyodide/v314.0.2/full/");
+  assert.equal(lock.packages.sortedcontainers.version, "2.4.0");
+  assert.equal(lock.packages.sortedcontainers.file_name, "sortedcontainers-2.4.0-py2.py3-none-any.whl");
   assert.throws(() => pythonLab.validateInitializeRequest({ packages: ["micropip"] }), (error) => error.code === "PACKAGE_NOT_ALLOWED");
+  assert.deepEqual(
+    pythonLab.validateInitializeRequest({ packages: ["sortedcontainers"] }),
+    ["sortedcontainers"],
+  );
 });
 
 test("keeps the worker lazy and routes progress, output, structured results, and tests", async () => {

@@ -11,8 +11,9 @@ The framework is designed around four product principles:
 - **Practice over passive familiarity.** Lessons can connect to focused coding
   problems, cumulative projects, retrieval practice, and flash cards.
 - **Local-first learner runtime.** JavaScript and TypeScript run in reviewed
-  browser workers; the full reference application runs CPython and NumPy
-  through Pyodide and WebAssembly. Progress stays on the learner's device.
+  browser workers; the full reference application runs CPython, NumPy, and
+  Sorted Containers through Pyodide and WebAssembly. Progress stays on the
+  learner's device.
 - **Portable publishing.** Course Kit builds declarative lessons, quizzes,
   cards, and programming-practice data into independently hosted artifacts.
 - **Agent-ready, model-neutral authoring.** Checked-in skills and validation

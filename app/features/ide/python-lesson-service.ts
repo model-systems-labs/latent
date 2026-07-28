@@ -52,8 +52,11 @@ async function sharedClient(packages: readonly string[], scope = "lesson"): Prom
   return client;
 }
 
-export function pythonLessonPackages(source: string): Array<"numpy"> {
-  return /(?:^|\n)\s*(?:import\s+numpy\b|from\s+numpy\b)/m.test(source) ? ["numpy"] : [];
+export function pythonLessonPackages(source: string): Array<"numpy" | "sortedcontainers"> {
+  const packages: Array<"numpy" | "sortedcontainers"> = [];
+  if (/(?:^|\n)\s*(?:import\s+numpy\b|from\s+numpy\b)/m.test(source)) packages.push("numpy");
+  if (/(?:^|\n)\s*(?:import\s+sortedcontainers\b|from\s+sortedcontainers\b)/m.test(source)) packages.push("sortedcontainers");
+  return packages;
 }
 
 function pythonString(value: string): string {

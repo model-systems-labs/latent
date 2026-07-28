@@ -9,6 +9,7 @@ import {
 } from "@latent/course-kit/learner-code-editor";
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
+import { pythonRuntimeCompletions } from "@/app/features/ide/python-runtime-completions";
 
 type CodeEditorProps = {
   value: string;
@@ -90,32 +91,35 @@ export function CodeEditor({
       parent: hostRef.current,
       state: EditorState.create({
         doc: valueRef.current,
-        extensions: createLearnerCodeEditorExtensions({
-          language,
-          variant: editorVariant,
-          tabSize: language === "python" ? 4 : 2,
-          lineNumberStart,
-          readOnly,
-          ariaLabel: ariaLabel ?? defaultAriaLabel,
-          ariaDescribedBy: instructionId,
-          onChange: (nextValue) => {
-            if (!applyingExternalValueRef.current) {
-              changeRef.current(nextValue);
-            }
-          },
-          ...(hasSaveHandler
-            ? { onSave: () => saveRef.current?.() }
-            : {}),
-          ...(hasRunHandler
-            ? {
-                onRun: (mode: LearnerCodeEditorRunMode) => runRef.current?.(mode),
-                runModes: [
-                  ...(supportsExampleRun ? ["examples" as const] : []),
-                  ...(supportsCheckRun ? ["check" as const] : []),
-                ],
+        extensions: [
+          ...createLearnerCodeEditorExtensions({
+            language,
+            variant: editorVariant,
+            tabSize: language === "python" ? 4 : 2,
+            lineNumberStart,
+            readOnly,
+            ariaLabel: ariaLabel ?? defaultAriaLabel,
+            ariaDescribedBy: instructionId,
+            onChange: (nextValue) => {
+              if (!applyingExternalValueRef.current) {
+                changeRef.current(nextValue);
               }
-            : {}),
-        }),
+            },
+            ...(hasSaveHandler
+              ? { onSave: () => saveRef.current?.() }
+              : {}),
+            ...(hasRunHandler
+              ? {
+                  onRun: (mode: LearnerCodeEditorRunMode) => runRef.current?.(mode),
+                  runModes: [
+                    ...(supportsExampleRun ? ["examples" as const] : []),
+                    ...(supportsCheckRun ? ["check" as const] : []),
+                  ],
+                }
+              : {}),
+          }),
+          ...(language === "python" ? [pythonRuntimeCompletions] : []),
+        ],
       }),
     });
     viewRef.current = view;

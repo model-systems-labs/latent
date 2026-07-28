@@ -33,7 +33,7 @@ test("the course source has no notebook or external Python handoff", async () =>
   assert.deepEqual(violations, []);
 });
 
-test("Python lessons use the browser worker and curated NumPy package", async () => {
+test("Python lessons use the browser worker and curated package allowlist", async () => {
   const [paperLab, worker, runtimeTypes, portfolio] = await Promise.all([
     readFile(path.join(root, "app/components/PaperLab.tsx"), "utf8"),
     readFile(path.join(root, "packages/python-lab/src/worker/python.worker.ts"), "utf8"),
@@ -44,7 +44,7 @@ test("Python lessons use the browser worker and curated NumPy package", async ()
   assert.doesNotMatch(paperLab, /PyTorchHandoff|Open Colab|Download notebook/);
   assert.match(worker, /loadPinnedPyodide/);
   assert.match(worker, /packages,/);
-  assert.match(runtimeTypes, /CURATED_PYTHON_PACKAGES = \["numpy"\]/);
+  assert.match(runtimeTypes, /CURATED_PYTHON_PACKAGES = \["numpy", "sortedcontainers"\]/);
   assert.doesNotMatch(portfolio, /pytorchFiles|PYTORCH_HANDOFF|\.ipynb|Colab/i);
 });
 

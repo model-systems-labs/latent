@@ -14,7 +14,7 @@ import { PythonLabClient } from "@latent/python-lab";
 const python = new PythonLabClient();
 
 await python.initialize(
-  { packages: ["numpy"] },
+  { packages: ["numpy", "sortedcontainers"] },
   { onEvent: (event) => renderOutput(event) },
 );
 
@@ -53,7 +53,7 @@ assert len(module["rnn_step"]([1, 0], [0, 0], parameters)) == 2
 });
 
 python.stop();  // hard-terminate active or idle Python
-await python.reset({ packages: ["numpy"] });
+await python.reset({ packages: ["numpy", "sortedcontainers"] });
 python.dispose();
 ```
 
@@ -93,10 +93,10 @@ authoritative API types and dependency lock):
 https://cdn.jsdelivr.net/pyodide/v314.0.2/full/
 ```
 
-Pyodide's core WASM, standard library, lockfile, NumPy wheel, and NumPy's
-declared dependencies are fetched only on `initialize`. Importing the package
-or constructing a client downloads nothing. The matching version in the npm
-dependency and CDN URL is an intentional release invariant.
+Pyodide's core WASM, standard library, lockfile, requested curated wheels, and
+their declared dependencies are fetched only on `initialize`. Importing the
+package or constructing a client downloads nothing. The matching version in
+the npm dependency and CDN URL is an intentional release invariant.
 
 The CDN path is immutable by release convention, but the browser import has no
 subresource-integrity check. jsDelivr is therefore an explicit availability and
@@ -105,9 +105,10 @@ should self-host the exact npm-locked Pyodide assets.
 
 ## Capability guardrails
 
-Only the curated `numpy` package name is accepted. Python Lab never invokes
-`loadPackagesFromImports`, never exposes `micropip`, and has no arbitrary wheel
-or URL installation API. Package loading completes before these reductions:
+Only the curated `numpy` and `sortedcontainers` package names are accepted.
+Python Lab never invokes `loadPackagesFromImports`, never exposes `micropip`,
+and has no arbitrary wheel or URL installation API. Package loading completes
+before these reductions:
 
 - Python's ordinary `js` import receives a frozen, null-prototype object instead
   of the worker global, withholding `fetch`, storage, sockets, workers, and the
@@ -118,7 +119,7 @@ or URL installation API. Package loading completes before these reductions:
 - an audit hook rejects network/process operations and writes outside
   `/workspace` and `/tmp`;
 - host `postMessage` is retained only in the worker module's closure;
-- after CPython and NumPy load, the worker shadows its network, storage,
+- after CPython and curated packages load, the worker shadows its network, storage,
   worker-construction, message-channel, and public `postMessage` globals;
 - host sync and artifact paths reject absolute paths, traversal, backslashes,
   unsafe segments, duplicates, oversized payloads, and symlink traversal.

@@ -386,6 +386,11 @@ while preserving the course and coding-workspace layouts appropriate to each.
   navigation, buttons, forms, cards, progress/resume, statuses, result panels,
   empty states, editor framing, screen-reader helpers, and local mobile-menu
   behavior.
+- `packages/course-kit/src/learner-code-editor.ts` is the canonical
+  framework-neutral CodeMirror primitive. It owns the reviewed Python and
+  JavaScript language extensions, syntax colors derived from learner tokens,
+  indentation and run/save shortcuts, accessibility attributes, and the
+  integrated-light and specialized workspace-dark variants.
 - `packages/course-kit/src/static-site.ts` consumes the foundation for
   standalone Learning Pack lesson/card sites.
 - `packages/course-kit/src/question-group-site.ts` consumes it for standalone
@@ -394,9 +399,11 @@ while preserving the course and coding-workspace layouts appropriate to each.
   theme, footer, favicon, and a trusted runtime adapter are typed build inputs
   rather than generated-output patches.
 - `scripts/generate-learning-platform-learner-ui.mjs` generates
-  `examples/learning-platform/interview-loop/tools/vendor/learner-ui.mjs` from
-  the canonical Course Kit module. Interview Loop uses that checked,
-  dependency-free browser bundle without any hosted runtime asset; authoring
+  `examples/learning-platform/interview-loop/tools/vendor/learner-ui.mjs` and
+  copies Course Kit's reviewed browser editor bundle byte-for-byte to
+  `tools/vendor/learner-code-editor.js`. Interview Loop uses those
+  drift-checked, same-origin assets without any hosted runtime dependency;
+  authoring
   and production builds intentionally remain in the Latent monorepo because
   they also consume the suite catalog, Python Lab worker, and pinned Pyodide
   package.
@@ -707,14 +714,17 @@ one reviewed color palette rather than rebuilding a shell.
 | Source | Responsibility |
 | --- | --- |
 | `packages/course-kit/src/learner-ui.ts` | Canonical v2 tokens, five palettes, CSS, one-header renderer, footer, focus behavior, screen-reader utilities, and compact navigation script. |
+| `packages/course-kit/src/learner-code-editor.ts` | Canonical CodeMirror language, syntax, keyboard, accessibility, and themed-surface configuration shared by React and static learners. |
+| `packages/course-kit/src/browser/learner-code-editor-runtime.ts` | Trusted progressive-enhancement adapter that keeps a fallback textarea synchronized while mounting the shared editor. |
 | `packages/course-kit/src/static-site.ts` | Shared foundation composed with standalone Learning Pack lessons and cards. |
 | `packages/course-kit/src/question-group-site.ts` | Shared foundation composed with problem navigation, editor, Run examples/Check solution feedback, progress, Continue, and repeated-miss Review. |
-| `scripts/generate-learning-platform-learner-ui.mjs` | Derives `public/assets/learner-ui.css`, `public/assets/learner-ui.js`, and the dependency-free Interview build input from reviewed Course Kit source. |
+| `scripts/generate-learning-platform-learner-ui.mjs` | Derives the React learner assets and Interview UI module, then copies the reviewed Course Kit editor bundle unchanged as an Interview build input. |
 | `public/assets/learner-ui.css` and `public/assets/learner-ui.js` | Generated, self-hosted React assets; `build:web` regenerates them rather than treating them as another design source. |
 | `app/layout.tsx` | Links the generated stylesheet and behavior through the active base path for the original React course. |
 | `app/styles/tokens.css` | Aliases older course variables to the canonical learner tokens. |
 | `app/components/LearnerHeader.tsx` | Thin React adapter over the shared header markup contract. |
 | `examples/learning-platform/interview-loop/tools/vendor/learner-ui.mjs` | Generated copy consumed at build time; not an independent design source. |
+| `examples/learning-platform/interview-loop/tools/vendor/learner-code-editor.js` | Generated same-origin CodeMirror runtime consumed by both Interview coding surfaces; not an independent editor implementation. |
 | `examples/learning-platform/learning-suite.mjs` | Persistent Learning Studio header identity and sibling destinations. |
 | `examples/learning-platform/interview-loop/platform.json` | Interview identity, contextual routes and labels, footer, and `sage` palette. |
 | `examples/learning-platform/interview-loop/tools/build.mjs` | Emits the shared assets and shell before the specialized application runs. |
@@ -722,20 +732,33 @@ one reviewed color palette rather than rebuilding a shell.
 | `examples/learning-platform/ten-problems/site-config.mjs` | Ten Problems labels, review route, footer, favicon, and `cobalt` palette. |
 | `scripts/build-learning-example-pages.mjs` | Builds the Paper-palette Learning Studio and assembles all three products at stable Pages subpaths. |
 
-### Shared editor keyboard contract
+### Shared editor primitive and keyboard contract
 
-The original v2 handoff shared the editor shell and focus treatment, but not
-the editing behavior: Interview Loop and the standalone Question Group player
-still created independent native textareas while the React IDE used
-CodeMirror. The reviewed `LearnerUiComponents.prepareCodeEditor` adapter in
-`packages/course-kit/src/learner-ui.ts` now owns native-editor Tab indentation,
-Shift+Tab outdent, the Escape-then-Tab focus exit, screen-reader instructions,
-and the bubbling input event required by draft persistence. Interview Loop
-calls that adapter for both Practice and Coding lab; Question Group sites call
-it with a language-specific indent width. The React CodeMirror adapters remain
-specialized, but use the same keyboard contract and an explicit four-space
-Python indentation unit. No portable content field or runtime authority was
-added.
+The original v2 handoff shared only the editor frame and focus treatment:
+Interview Loop and the standalone Question Group player still rendered
+independent native textareas, while the React IDE owned the only syntax-aware
+CodeMirror implementation. That is why Python appeared as unhighlighted white
+text on a hard-coded black rectangle even after the surrounding shell had
+converged.
+
+`packages/course-kit/src/learner-code-editor.ts` now owns the actual editor
+primitive: CodeMirror setup, Python/JavaScript parsing, token highlighting,
+four-space Python indentation, Tab and Shift+Tab editing, Escape-then-Tab focus
+exit, run/save shortcuts, screen-reader attributes, and theme variants.
+`packages/course-kit/src/browser/learner-code-editor-runtime.ts` packages the
+same source as a trusted IIFE for static learners. The reviewed
+`LearnerUiComponents.prepareCodeEditor` bridge progressively enhances the
+fallback textarea and keeps its value/input events synchronized, so existing
+digest-bound draft and progress logic remains unchanged.
+
+Interview Loop loads `learner-code-editor.js` before the shared learner
+behavior and application, then uses the integrated Sage-aware Python surface
+for both Practice and Coding lab. The generated CSP adds only the exact
+`'nonce-latent-learner-code-editor-v1'` style source needed by CodeMirror's
+reviewed style module; it does not add `unsafe-inline`, a CDN, or another
+script origin. The source asset is included in the build digest and its
+version, byte size, and SHA-256 are recorded in `build-report.json`.
+No portable content field or runtime authority changed.
 
 The one global header has a stable anatomy: **Learning Studio** identity,
 optional suite metadata, and sibling experience navigation. Product-local
@@ -868,12 +891,14 @@ palette cannot select a different geometry, layout system, or motion model.
 | Source | Final responsibility |
 | --- | --- |
 | `packages/course-kit/src/learner-ui.ts` | Canonical tokens, five reviewed palettes, shared line atmosphere and glint, page widths, persistent-header and context-navigation renderers, controls, focus, screen-reader helpers, compact behavior, and trusted example-solution disclosure. |
+| `packages/course-kit/src/learner-code-editor.ts` and `src/browser/learner-code-editor-runtime.ts` | Canonical CodeMirror primitive plus the same-origin progressive-enhancement runtime used by React and static learners. |
 | `packages/course-kit/src/static-site.ts` | Learning Pack composition over that foundation. |
 | `packages/course-kit/src/question-group-site.ts` | Question Group problem flow, editor, Run examples/Check solution feedback, progress, Continue, repeated-miss Review, and accessible empty state over the same foundation. |
-| `scripts/generate-learning-platform-learner-ui.mjs` | Generates the React assets and drift-checked Interview build input from Course Kit source. |
+| `scripts/generate-learning-platform-learner-ui.mjs` | Generates the React assets and drift-checked Interview UI/editor build inputs from Course Kit source. |
 | `app/components/PageAtmosphere.tsx` and `app/components/LearnerHeader.tsx` | Thin React markup adapters; neither defines another visual system. |
 | `examples/learning-platform/learning-suite.mjs` | Trusted catalog and the single `createLearningSuiteHeaderConfiguration()` source for identity, metadata, sibling navigation, active state, subpath routes, and compact label. |
 | `examples/learning-platform/interview-loop/site-config.mjs`, `platform.json`, `site/app.mjs`, and `site/styles.css` | Sage identity plus the intentionally specialized course, quiz, card, practice, and IDE composition. |
+| `examples/learning-platform/interview-loop/tools/vendor/learner-code-editor.js` | Generated, self-hosted editor runtime loaded before Interview application behavior; never hand-edited. |
 | `examples/learning-platform/interview-loop/trusted/reference-solutions.mjs` | Reviewed example solutions keyed to exact trusted exercise identities. |
 | `examples/learning-platform/ten-problems/site-config.mjs` and `trusted/reference-solutions.mjs` | Cobalt practice identity and the ten reviewed Python references. |
 

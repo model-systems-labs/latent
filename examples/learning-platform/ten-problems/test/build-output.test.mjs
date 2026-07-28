@@ -4,6 +4,10 @@ import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
 import { canonicalQuestionGroupLibraryJson } from "@latent/course-kit/question-group";
+import {
+  LEARNER_CODE_EDITOR_CSP_SOURCE,
+  LEARNER_CODE_EDITOR_VERSION,
+} from "@latent/course-kit/learner-code-editor";
 import { buildStandaloneQuestionGroupSite } from "@latent/course-kit/question-group-site";
 
 import {
@@ -37,6 +41,14 @@ test("the trusted build input configures a Python-only learner site without outp
   assert.equal(files["assets/esbuild.wasm"], undefined);
   assert.equal(files["assets/sandbox.worker.js"], undefined);
   assert.ok(files["assets/learner-ui.js"]);
+  assert.match(
+    files["assets/learner-code-editor.js"],
+    /LatentLearnerCodeEditorRuntime/,
+  );
+  assert.match(
+    files["THIRD_PARTY_NOTICES.md"],
+    /CodeMirror 6[\s\S]*Lezer[\s\S]*MIT/,
+  );
   assert.match(files["assets/player.css"], /--learner-background-recipe: cobalt;/);
   assert.match(files["assets/player.css"], /--learner-atmosphere-glint-strength: \.38;/);
   assert.match(
@@ -78,6 +90,21 @@ test("the trusted build input configures a Python-only learner site without outp
     files["index.html"],
     new RegExp(tenProblemsMetaContentSecurityPolicy.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&")),
   );
+  assert.match(files["index.html"], /src="\.\/assets\/learner-code-editor\.js"/);
+  assert.match(
+    files["leeches/index.html"],
+    /src="\.\.\/assets\/learner-code-editor\.js"/,
+  );
+  assert.ok(
+    files["index.html"].indexOf("assets/learner-code-editor.js")
+      < files["index.html"].indexOf("assets/learner-ui.js"),
+  );
+  assert.ok(
+    files["index.html"].indexOf("assets/learner-ui.js")
+      < files["index.html"].indexOf("assets/player.js"),
+  );
+  assert.match(files["index.html"], new RegExp(LEARNER_CODE_EDITOR_CSP_SOURCE));
+  assert.doesNotMatch(files["index.html"], /style-src[^;"]*'unsafe-inline'/);
   assert.doesNotMatch(files["index.html"], /worker-src 'self' blob:/);
   assert.doesNotMatch(files["index.html"], /assets\/esbuild\.js/);
   assert.ok(files["leeches/index.html"]);
@@ -96,11 +123,15 @@ test("the trusted build input configures a Python-only learner site without outp
     files["assets/player.js"],
     /tabSize: question\.language === "python" \? 4 : 2/,
   );
+  assert.match(
+    files["assets/player.js"],
+    /language: question\.language,[\s\S]*onRun: \(mode\)/,
+  );
   assert.doesNotMatch(files["assets/player.js"], /event\.key === "Tab"|setRangeText/);
   assert.match(files["assets/learner-ui.js"], /const prepareCodeEditor = /);
   assert.match(
     files["assets/learner-ui.js"],
-    /Code editor\. Tab indents [\s\S]*Shift\+Tab outdents\. Press Escape, then Tab, to leave the editor\./,
+    /Python code editor\.[\s\S]*Tab indents [\s\S]*Shift\+Tab outdents\. Press Escape, then Tab, to leave the editor\./,
   );
   assert.match(files["assets/learner-ui.js"], /code\.textContent = trustedSource/);
   assert.match(
@@ -132,6 +163,13 @@ test("the trusted build input configures a Python-only learner site without outp
   assert.equal(report.bundledBrowserRuntime, false);
   assert.equal(report.metaContentSecurityPolicy, "custom");
   assert.equal(report.playerVersion, 2);
+  assert.deepEqual(report.learnerCodeEditor, {
+    version: LEARNER_CODE_EDITOR_VERSION,
+    bytes: Buffer.byteLength(files["assets/learner-code-editor.js"], "utf8"),
+    sha256: createHash("sha256")
+      .update(files["assets/learner-code-editor.js"])
+      .digest("hex"),
+  });
   assert.equal(report.referenceSolutions.count, 10);
   assert.match(report.referenceSolutions.sha256, /^[a-f0-9]{64}$/);
   assert.deepEqual(report.browserRuntimes, []);
@@ -151,6 +189,11 @@ test("the trusted build input configures a Python-only learner site without outp
   assert.match(combinedHeaders, /^\/practice\/\*/);
   assert.match(combinedHeaders, /\/practice\/assets\/python-question\.worker\.js/);
   assert.match(combinedHeaders, /\/practice\/question-group-library\.json/);
+  assert.match(
+    combinedHeaders,
+    new RegExp(LEARNER_CODE_EDITOR_CSP_SOURCE),
+  );
+  assert.doesNotMatch(combinedHeaders, /style-src[^\n]*'unsafe-inline'/);
   assert.doesNotMatch(combinedHeaders, /^\/\*/m);
   assert.doesNotMatch(combinedHeaders, /^\/assets\/python-question\.worker\.js/m);
 });

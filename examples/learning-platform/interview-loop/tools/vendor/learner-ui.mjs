@@ -234,6 +234,21 @@ function createLearnerUiCss(theme = {}, options = {}) {
   --learner-color-danger-soft: ${colors.dangerSoft};
   --learner-color-warning: ${colors.warning};
   --learner-color-focus: ${colors.focus};
+  --learner-code-surface: color-mix(in srgb, var(--learner-color-surface) 82%, var(--learner-color-surface-muted));
+  --learner-code-gutter-surface: color-mix(in srgb, var(--learner-color-surface) 64%, var(--learner-color-surface-muted));
+  --learner-code-text: var(--learner-color-ink);
+  --learner-code-muted: var(--learner-color-muted);
+  --learner-code-keyword: var(--learner-color-accent-strong);
+  --learner-code-string: var(--learner-color-warning);
+  --learner-code-number: var(--learner-color-success);
+  --learner-code-function: var(--learner-color-accent);
+  --learner-code-type: var(--learner-color-accent-strong);
+  --learner-code-property: var(--learner-color-accent);
+  --learner-code-operator: var(--learner-color-accent-strong);
+  --learner-code-invalid: var(--learner-color-danger);
+  --learner-code-selection: color-mix(in srgb, var(--learner-color-surface) 60%, var(--learner-color-accent-soft));
+  --learner-code-active-line: color-mix(in srgb, var(--learner-color-surface) 72%, var(--learner-color-accent-soft));
+  --learner-code-caret: var(--learner-color-accent-strong);
   --learner-background-recipe: ${palette};
   --learner-background-image: ${LEARNER_UI_BACKGROUND_IMAGE};
   --learner-background-position: center top;
@@ -807,9 +822,9 @@ body.learner-ui:has(.learner-context-nav) {
   padding: .6rem .85rem;
 }
 .learner-editor {
-  background: #211f22;
+  background: var(--learner-code-surface);
   border: 0;
-  color: #f7f2eb;
+  color: var(--learner-code-text);
   display: block;
   font: .875rem/1.6 var(--learner-font-mono);
   min-height: 18rem;
@@ -819,11 +834,36 @@ body.learner-ui:has(.learner-context-nav) {
   tab-size: 2;
   width: 100%;
 }
+.learner-code-editor {
+  background: var(--learner-code-surface);
+  color: var(--learner-code-text);
+  display: block;
+  font-family: var(--learner-font-mono);
+  min-height: 18rem;
+  overflow: auto;
+  resize: vertical;
+  width: 100%;
+}
+.learner-code-editor .cm-editor {
+  background: var(--learner-code-surface);
+  height: 100%;
+  min-height: inherit;
+}
+.learner-code-editor .cm-scroller {
+  min-height: inherit;
+  overscroll-behavior: contain;
+}
+.learner-code-editor .cm-content { min-height: inherit; }
+.learner-code-editor .cm-gutters {
+  background: var(--learner-code-gutter-surface);
+}
+.learner-code-editor .cm-editor.cm-focused { outline: 0; }
 .learner-editor:focus-visible {
   box-shadow: inset 0 0 0 3px var(--learner-color-surface);
   outline: 0;
 }
-.learner-editor-frame:has(.learner-editor:focus-visible) {
+.learner-editor-frame:has(.learner-editor:focus-visible),
+.learner-editor-frame:has(.learner-code-editor .cm-editor.cm-focused) {
   outline: 3px solid var(--learner-color-focus);
   outline-offset: 3px;
 }
@@ -980,6 +1020,7 @@ body.learner-ui:has(.learner-context-nav) {
   .learner-content { padding: var(--learner-space-5) var(--learner-space-4); }
   .learner-button { min-height: 2.9rem; }
   .learner-editor { font-size: 1rem; }
+  .learner-code-editor .cm-editor { font-size: 1rem; }
   .learner-footer__inner { flex-direction: column; }
 }
 @media (min-width: ${LEARNER_UI_BREAKPOINTS.compact + 1}px) and (min-height: 501px) {
@@ -1124,10 +1165,35 @@ var learnerUiJavaScript = `(() => {
   const normalizedTabSize = (value) => (
     Number.isInteger(value) && value >= 1 && value <= 8 ? value : 2
   );
-  const editorInstruction = (tabSize) => (
-    "Code editor. Tab indents " + tabSize
-    + " spaces; Shift+Tab outdents. Press Escape, then Tab, to leave the editor."
+  const normalizedEditorLanguage = (value) => (
+    ["python", "javascript", "typescript", "jsx", "tsx"].includes(value)
+      ? value
+      : "text"
   );
+  const editorInstruction = (tabSize, language, hasRunHandler) => (
+    (language === "python"
+      ? "Python code editor. "
+      : "Code editor. ")
+    + "Tab indents " + tabSize
+    + " spaces; Shift+Tab outdents. Press Escape, then Tab, to leave the editor."
+    + (hasRunHandler
+      ? " Press Command or Control plus Enter to check; add Shift to run examples."
+      : "")
+  );
+  const editorShortcuts = ({ onRun, onSave }) => [
+    "Tab",
+    "Shift+Tab",
+    "Escape",
+    ...(onSave ? ["Control+S", "Meta+S"] : []),
+    ...(onRun
+      ? [
+          "Control+Enter",
+          "Meta+Enter",
+          "Control+Shift+Enter",
+          "Meta+Shift+Enter",
+        ]
+      : []),
+  ].join(" ");
   const editCodeSelection = (editor, tabSize, outdent) => {
     const value = editor.value;
     const selectionStart = editor.selectionStart;
@@ -1207,17 +1273,50 @@ var learnerUiJavaScript = `(() => {
     editor.dispatchEvent(new Event("input", { bubbles: true }));
     return true;
   };
-  const prepareCodeEditor = (editor, { tabSize: requestedTabSize = 2 } = {}) => {
+  const prepareCodeEditor = (
+    editor,
+    {
+      language: requestedLanguage = "text",
+      onRun,
+      onSave,
+      tabSize: requestedTabSize = 2,
+    } = {},
+  ) => {
     if (!(editor instanceof HTMLTextAreaElement)) {
       throw new Error("The shared code editor adapter requires a textarea.");
     }
     const tabSize = normalizedTabSize(requestedTabSize);
+    const language = normalizedEditorLanguage(requestedLanguage);
+    const configuration = {
+      language,
+      onRun: typeof onRun === "function" ? onRun : null,
+      onSave: typeof onSave === "function" ? onSave : null,
+      tabSize,
+    };
     editor.dataset.learnerTabSize = String(tabSize);
+    editor.dataset.learnerEditorLanguage = language;
     editor.style.tabSize = String(tabSize);
     const prepared = preparedCodeEditors.get(editor);
     if (prepared) {
-      prepared.instruction.textContent = editorInstruction(tabSize);
-      return editor;
+      prepared.configuration = configuration;
+      editor.setAttribute("aria-keyshortcuts", editorShortcuts(configuration));
+      prepared.instruction.textContent = editorInstruction(
+        tabSize,
+        language,
+        Boolean(configuration.onRun),
+      );
+      const enhanceTextarea =
+        globalThis.LatentLearnerCodeEditorRuntime?.enhanceTextarea;
+      if (typeof enhanceTextarea === "function") {
+        prepared.controller = enhanceTextarea(editor, {
+          ...configuration,
+          ariaDescribedBy: editor.getAttribute("aria-describedby") || undefined,
+          ariaLabel: editor.getAttribute("aria-label") || "Solution editor",
+          variant: "integrated",
+        });
+        return prepared.controller;
+      }
+      return prepared.controller || editor;
     }
     if (!editor.parentNode) {
       throw new Error("The shared code editor adapter requires a mounted editor frame.");
@@ -1225,16 +1324,56 @@ var learnerUiJavaScript = `(() => {
     const instruction = document.createElement("span");
     instruction.className = "learner-sr-only";
     instruction.id = "learner-editor-instructions-" + (++editorInstructionSequence);
-    instruction.textContent = editorInstruction(tabSize);
+    instruction.textContent = editorInstruction(
+      tabSize,
+      language,
+      Boolean(configuration.onRun),
+    );
     editor.after(instruction);
     const describedBy = editor.getAttribute("aria-describedby");
     editor.setAttribute(
       "aria-describedby",
       describedBy ? describedBy + " " + instruction.id : instruction.id,
     );
-    editor.setAttribute("aria-keyshortcuts", "Tab Shift+Tab Escape");
+    editor.setAttribute("aria-keyshortcuts", editorShortcuts(configuration));
+    const record = { configuration, controller: null, instruction };
+    preparedCodeEditors.set(editor, record);
+    const enhanceTextarea =
+      globalThis.LatentLearnerCodeEditorRuntime?.enhanceTextarea;
+    if (typeof enhanceTextarea === "function") {
+      record.controller = enhanceTextarea(editor, {
+        ...configuration,
+        ariaDescribedBy: editor.getAttribute("aria-describedby") || undefined,
+        ariaLabel: editor.getAttribute("aria-label") || "Solution editor",
+        variant: "integrated",
+      });
+      return record.controller;
+    }
     let tabFocusUntil = 0;
     editor.addEventListener("keydown", (event) => {
+      const current = record.configuration;
+      if (
+        (event.ctrlKey || event.metaKey)
+        && !event.altKey
+        && !event.isComposing
+        && event.key.toLowerCase() === "s"
+        && current.onSave
+      ) {
+        event.preventDefault();
+        current.onSave();
+        return;
+      }
+      if (
+        (event.ctrlKey || event.metaKey)
+        && !event.altKey
+        && !event.isComposing
+        && event.key === "Enter"
+        && current.onRun
+      ) {
+        event.preventDefault();
+        current.onRun(event.shiftKey ? "examples" : "check");
+        return;
+      }
       if (
         event.key === "Escape"
         && !event.altKey
@@ -1261,7 +1400,7 @@ var learnerUiJavaScript = `(() => {
         event.preventDefault();
         editCodeSelection(
           editor,
-          normalizedTabSize(Number(editor.dataset.learnerTabSize)),
+          current.tabSize,
           event.shiftKey,
         );
         return;
@@ -1270,7 +1409,6 @@ var learnerUiJavaScript = `(() => {
         tabFocusUntil = 0;
       }
     });
-    preparedCodeEditors.set(editor, { instruction });
     return editor;
   };
   if (globalThis.LearnerUiComponents === undefined) {
@@ -1417,3 +1555,6 @@ export {
   renderLearnerHeader,
   resolveLearnerUiTheme
 };
+
+export const LEARNER_CODE_EDITOR_CSP_SOURCE = "'nonce-latent-learner-code-editor-v1'";
+export const LEARNER_CODE_EDITOR_VERSION = 1;

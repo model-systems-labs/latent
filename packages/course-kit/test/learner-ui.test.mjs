@@ -18,6 +18,46 @@ import {
   resolveLearnerUiTheme,
 } from "../dist/learner-ui.js";
 
+function rgb(hex) {
+  return [1, 3, 5].map((offset) => (
+    Number.parseInt(hex.slice(offset, offset + 2), 16)
+  ));
+}
+
+function mix(first, second, firstWeight) {
+  return first.map((channel, index) => (
+    Math.round(
+      channel * firstWeight
+      + second[index] * (1 - firstWeight),
+    )
+  ));
+}
+
+function relativeLuminance(color) {
+  return color
+    .map((channel) => {
+      const normalized = channel / 255;
+      return normalized <= 0.04045
+        ? normalized / 12.92
+        : ((normalized + 0.055) / 1.055) ** 2.4;
+    })
+    .reduce(
+      (total, channel, index) => (
+        total + channel * [0.2126, 0.7152, 0.0722][index]
+      ),
+      0,
+    );
+}
+
+function contrastRatio(first, second) {
+  const firstLuminance = relativeLuminance(first);
+  const secondLuminance = relativeLuminance(second);
+  return (
+    (Math.max(firstLuminance, secondLuminance) + 0.05)
+    / (Math.min(firstLuminance, secondLuminance) + 0.05)
+  );
+}
+
 test("the learner UI foundation publishes stable tokens, responsive breakpoints, and accessible states", () => {
   assert.equal(LEARNER_UI_VERSION, 2);
   assert.match(LEARNER_UI_FAVICON_SVG, /^<svg[\s\S]*rotate\(-7 32 32\)[\s\S]*<\/svg>$/);
@@ -98,6 +138,22 @@ test("the learner UI foundation publishes stable tokens, responsive breakpoints,
   assert.match(css, /\.learner-primary-nav--mobile \{[\s\S]*?display: grid;/);
   assert.match(css, /\.learner-mobile-panel > summary \{ display: flex; \}/);
   assert.match(css, /\.learner-editor \{ font-size: 1rem; \}/);
+  assert.match(css, /\.learner-code-editor \.cm-editor \{ font-size: 1rem; \}/);
+  assert.match(css, /--learner-code-surface:/);
+  assert.match(css, /--learner-code-keyword:/);
+  assert.match(css, /--learner-code-selection:/);
+  assert.match(
+    css,
+    /\.learner-editor \{[\s\S]*?background: var\(--learner-code-surface\);/,
+  );
+  assert.match(
+    css,
+    /\.learner-code-editor \{[\s\S]*?background: var\(--learner-code-surface\);/,
+  );
+  assert.match(
+    css,
+    /\.learner-editor-frame:has\(\.learner-code-editor \.cm-editor\.cm-focused\)[\s\S]*?outline: 3px solid var\(--learner-color-focus\)/,
+  );
   assert.doesNotMatch(css, /\.learner-nav-menu > \.learner-nav-menu__panel \{ display: flex !important; \}/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
   assert.match(
@@ -119,6 +175,34 @@ test("the learner UI foundation publishes stable tokens, responsive breakpoints,
     () => createLearnerUiCss({ unknownToken: "#000000" }),
     /Unknown learner UI theme token/,
   );
+});
+
+test("every palette keeps shared code syntax readable on its integrated surface", () => {
+  for (const [paletteName, palette] of Object.entries(LEARNER_UI_PALETTES)) {
+    const codeSurface = mix(
+      rgb(palette.surface),
+      rgb(palette.surfaceMuted),
+      0.82,
+    );
+    const semanticSyntax = {
+      comment: palette.muted,
+      function: palette.accent,
+      invalid: palette.danger,
+      keyword: palette.accentStrong,
+      number: palette.success,
+      operator: palette.accentStrong,
+      property: palette.accent,
+      string: palette.warning,
+      text: palette.ink,
+      type: palette.accentStrong,
+    };
+    for (const [role, color] of Object.entries(semanticSyntax)) {
+      assert.ok(
+        contrastRatio(rgb(color), codeSurface) >= 4.5,
+        `${paletteName} ${role} must clear WCAG AA on the integrated editor surface`,
+      );
+    }
+  }
 });
 
 test("five constrained palettes change color without changing the shared ethereal geometry", () => {
@@ -624,4 +708,56 @@ test("the shared code editor adapter owns indentation, persistence events, and k
   assert.equal(editor.dataset.learnerTabSize, "2");
   assert.equal(editor.siblings.length, 1);
   assert.match(editor.siblings[0].textContent, /Tab indents 2 spaces/);
+
+  let enhancedOptions = null;
+  let runMode = null;
+  const enhancedController = {
+    destroy() {},
+    focus() {},
+    host: new FakeElement(),
+    setDisabled() {},
+    setValue() {},
+  };
+  context.LatentLearnerCodeEditorRuntime = {
+    enhanceTextarea(_textarea, options) {
+      enhancedOptions = options;
+      return enhancedController;
+    },
+  };
+  const pythonEditor = new FakeTextArea(
+    "def first_echo(values):\n    return None",
+  );
+  pythonEditor.setAttribute("aria-label", "First echo solution");
+  const preparedPythonEditor = prepareCodeEditor(pythonEditor, {
+    language: "python",
+    onRun: (mode) => {
+      runMode = mode;
+    },
+    tabSize: 4,
+  });
+  assert.equal(preparedPythonEditor, enhancedController);
+  assert.equal(pythonEditor.dataset.learnerEditorLanguage, "python");
+  assert.equal(
+    pythonEditor.siblings[0].textContent,
+    "Python code editor. Tab indents 4 spaces; Shift+Tab outdents. Press Escape, then Tab, to leave the editor. Press Command or Control plus Enter to check; add Shift to run examples.",
+  );
+  assert.equal(
+    pythonEditor.getAttribute("aria-keyshortcuts"),
+    "Tab Shift+Tab Escape Control+Enter Meta+Enter Control+Shift+Enter Meta+Shift+Enter",
+  );
+  assert.equal(enhancedOptions.language, "python");
+  assert.equal(enhancedOptions.variant, "integrated");
+  assert.equal(enhancedOptions.ariaLabel, "First echo solution");
+  assert.equal(
+    enhancedOptions.ariaDescribedBy,
+    pythonEditor.getAttribute("aria-describedby"),
+  );
+  enhancedOptions.onRun("examples");
+  assert.equal(runMode, "examples");
+
+  const plainTextEditor = new FakeTextArea("untyped source");
+  assert.doesNotThrow(() => prepareCodeEditor(plainTextEditor, {
+    tabSize: 2,
+  }));
+  assert.equal(enhancedOptions.language, "text");
 });

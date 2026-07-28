@@ -5,7 +5,7 @@
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
-    "learner-ui:generate": "npm --prefix ../../.. run build --workspace @latent/course-kit && node ../../../scripts/generate-learning-platform-learner-ui.mjs --out tools/vendor/learner-ui.mjs",
+    "learner-ui:generate": "npm --prefix ../../.. run build --workspace @latent/course-kit && node ../../../scripts/generate-learning-platform-learner-ui.mjs --out tools/vendor/learner-ui.mjs --editor-out tools/vendor/learner-code-editor.js",
     "learner-ui:check": "node tools/check-learner-ui.mjs",
     "test:focused": "node --test test/*.test.mjs",
     "validate": "npm run learner-ui:check && node tools/validate.mjs && npm run test:focused",

@@ -8,6 +8,7 @@ const pageAtmosphereUrl = new URL("app/components/PageAtmosphere.tsx", root);
 const learnerUiUrl = new URL("packages/course-kit/src/learner-ui.ts", root);
 const syntaxCodeUrl = new URL("app/features/ide/SyntaxCode.tsx", root);
 const codeEditorUrl = new URL("app/features/ide/CodeEditor.tsx", root);
+const learnerCodeEditorUrl = new URL("packages/course-kit/src/learner-code-editor.ts", root);
 const learningFlowUrl = new URL("app/styles/learning-flow.css", root);
 const codingWorkspaceUrl = new URL("app/styles/coding-workspace.css", root);
 const responsiveUrl = new URL("app/styles/responsive.css", root);
@@ -173,10 +174,11 @@ test("lesson further reading uses one compact inline list with assistive metadat
 });
 
 test("lesson code opens progressive starter-first syntax-aware Python practice in a light-neutral workspace", async () => {
-  const [paperLab, syntaxCode, codeEditor, codingWorkspace, learningFlow] = await Promise.all([
+  const [paperLab, syntaxCode, codeEditor, learnerCodeEditor, codingWorkspace, learningFlow] = await Promise.all([
     readFile(paperLabUrl, "utf8"),
     readFile(syntaxCodeUrl, "utf8"),
     readFile(codeEditorUrl, "utf8"),
+    readFile(learnerCodeEditorUrl, "utf8"),
     readFile(codingWorkspaceUrl, "utf8"),
     readFile(learningFlowUrl, "utf8"),
   ]);
@@ -189,8 +191,11 @@ test("lesson code opens progressive starter-first syntax-aware Python practice i
   assert.match(syntaxCode, /highlightCode\(/);
   assert.match(syntaxCode, /role="region" tabIndex=\{0\}/);
   assert.doesNotMatch(syntaxCode, /dangerouslySetInnerHTML/);
-  assert.match(codeEditor, /import \{ python \} from "@codemirror\/lang-python"/);
-  assert.match(codeEditor, /isPython \? python\(\) : javascript/);
+  assert.match(codeEditor, /from "@latent\/course-kit\/learner-code-editor"/);
+  assert.match(codeEditor, /if \(normalized\.endsWith\("\.py"\)\) return "python"/);
+  assert.match(codeEditor, /extensions:\s*createLearnerCodeEditorExtensions\(\{/);
+  assert.match(learnerCodeEditor, /import \{ python \} from "@codemirror\/lang-python"/);
+  assert.match(learnerCodeEditor, /if \(language === "python"\) return python\(\)/);
   assert.match(paperLab, /const \[activeBlockId, setActiveBlockId\] = useState\(blocks\[0\]\?\.id \?\? ""\)/);
   assert.match(paperLab, /const active = activeBlockId === block\.id/);
   assert.match(paperLab, /className="exercise-summary"[\s\S]*?aria-expanded=\{active\}[\s\S]*?aria-controls=\{`exercise-\$\{lesson\.id\}-\$\{block\.id\}`\}/);
@@ -223,11 +228,11 @@ test("lesson code opens progressive starter-first syntax-aware Python practice i
   assert.match(paperLab, />Standard error<\/span>/);
   assert.match(paperLab, /<strong>\{result\.passed \? "Passed" : "Not passed"\}<\/strong>/);
   assert.match(paperLab, /<span className="exercise-state">\{visibleState\}<\/span>/);
-  assert.match(codeEditor, /const lightEditor = variant !== "project"/);
-  assert.match(codeEditor, /lightEditor \? lessonTheme : latentTheme/);
-  assert.match(codeEditor, /syntaxHighlighting\(lightEditor \? lessonSyntaxTheme : syntaxTheme\)/);
-  assert.match(codeEditor, /\}, \{ dark: false \}\);/);
-  assert.match(codeEditor, /lineNumbers\(\{ formatNumber: \(line\) => String\(line \+ lineNumberStart - 1\) \}\)/);
+  assert.match(codeEditor, /variant === "project" \? "workspace-dark" : "integrated"/);
+  assert.match(learnerCodeEditor, /variant === "workspace-dark" \? workspaceDarkTheme : integratedTheme/);
+  assert.match(learnerCodeEditor, /syntaxHighlighting\([\s\S]*?workspaceDarkSyntaxTheme[\s\S]*?integratedSyntaxTheme/);
+  assert.match(learnerCodeEditor, /const integratedTheme = EditorView\.theme\([\s\S]*?\}, \{ dark: false \}\);/);
+  assert.match(learnerCodeEditor, /formatNumber: \(line\) => String\(line \+ lineNumberStart - 1\)/);
   for (const token of ["keyword", "string", "number", "comment", "variableName", "propertyName", "operator", "punctuation", "invalid"]) {
     assert.match(codingWorkspace, new RegExp(`\\.tok-${token}`));
   }

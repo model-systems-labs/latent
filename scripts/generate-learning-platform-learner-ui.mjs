@@ -10,11 +10,23 @@ import {
   learnerUiJavaScript,
   resolveLearnerUiTheme,
 } from "@latent/course-kit/learner-ui";
+import {
+  LEARNER_CODE_EDITOR_CSP_SOURCE,
+  LEARNER_CODE_EDITOR_VERSION,
+} from "@latent/course-kit/learner-code-editor";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const defaultModuleOutput = resolve(
   repositoryRoot,
   "examples/learning-platform/interview-loop/tools/vendor/learner-ui.mjs",
+);
+const defaultEditorOutput = resolve(
+  repositoryRoot,
+  "examples/learning-platform/interview-loop/tools/vendor/learner-code-editor.js",
+);
+const editorAssetSource = resolve(
+  repositoryRoot,
+  "packages/course-kit/dist/assets/learner-code-editor.js",
 );
 const appCssOutput = resolve(repositoryRoot, "public/assets/learner-ui.css");
 const appJavaScriptOutput = resolve(repositoryRoot, "public/assets/learner-ui.js");
@@ -61,7 +73,10 @@ async function generatedSource() {
   if (!source) throw new Error("esbuild did not produce the learner UI bundle.");
   const normalizedSource = source.replace(/[ \t]+$/gm, "");
   return `// Generated from @latent/course-kit ${packageManifest.version}; do not edit.
-${normalizedSource}`;
+${normalizedSource}
+export const LEARNER_CODE_EDITOR_CSP_SOURCE = ${JSON.stringify(LEARNER_CODE_EDITOR_CSP_SOURCE)};
+export const LEARNER_CODE_EDITOR_VERSION = ${JSON.stringify(LEARNER_CODE_EDITOR_VERSION)};
+`;
 }
 
 const args = process.argv.slice(2);
@@ -72,11 +87,23 @@ const moduleOutput = outIndex >= 0
   ? resolve(args[outIndex + 1] ?? "")
   : defaultModuleOutput;
 if (!moduleOutput) throw new Error("--out requires a path.");
+const editorOutIndex = args.indexOf("--editor-out");
+const editorOutput = editorOutIndex >= 0
+  ? resolve(args[editorOutIndex + 1] ?? "")
+  : outIndex >= 0
+    ? resolve(dirname(moduleOutput), "learner-code-editor.js")
+    : defaultEditorOutput;
+if (!editorOutput) throw new Error("--editor-out requires a path.");
 const customModuleOutput = outIndex >= 0;
 const outputs = [];
 
 if (!appOnly) {
   outputs.push([moduleOutput, await generatedSource(), "Vendored learner UI"]);
+  outputs.push([
+    editorOutput,
+    await readFile(editorAssetSource, "utf8"),
+    "Vendored learner code editor",
+  ]);
 }
 if (!customModuleOutput) {
   const theme = resolveLearnerUiTheme({ palette: "paper" });

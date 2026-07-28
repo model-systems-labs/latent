@@ -22,6 +22,10 @@ import {
   type LearnerUiPaletteName,
   type LearnerUiTheme,
 } from "./learner-ui.js";
+import {
+  LEARNER_CODE_EDITOR_CSP_SOURCE,
+  LEARNER_CODE_EDITOR_VERSION,
+} from "./learner-code-editor.js";
 
 export const QUESTION_GROUP_BUILD_MARKER = "latent-question-groups-static-build-v1";
 export const QUESTION_GROUP_PLAYER_VERSION = 2 as const;
@@ -29,7 +33,7 @@ export const QUESTION_GROUP_DEFAULT_META_CONTENT_SECURITY_POLICY = [
   "default-src 'none'",
   "script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'",
   "worker-src 'self' blob:",
-  "style-src 'self'",
+  `style-src 'self' ${LEARNER_CODE_EDITOR_CSP_SOURCE}`,
   "connect-src 'self'",
   "img-src 'self' data:",
   "font-src 'self'",
@@ -188,12 +192,36 @@ function siteText(value: string, label: string, maximum = 300) {
 }
 
 function normalizeMetaContentSecurityPolicy(value?: string) {
-  if (value === undefined) return QUESTION_GROUP_DEFAULT_META_CONTENT_SECURITY_POLICY;
+  if (value === undefined) {
+    return QUESTION_GROUP_DEFAULT_META_CONTENT_SECURITY_POLICY;
+  }
   const policy = siteText(value, "metaContentSecurityPolicy", 2_048);
   if (/[\r\n]/.test(policy)) {
     throw new Error("metaContentSecurityPolicy must be a single line.");
   }
-  return policy;
+  const requiredStyleSources = ["'self'", LEARNER_CODE_EDITOR_CSP_SOURCE];
+  const directives = policy
+    .split(";")
+    .map((directive) => directive.trim())
+    .filter(Boolean);
+  let foundStyleSource = false;
+  const normalized = directives.map((directive) => {
+    const [name, ...configuredSources] = directive.split(/\s+/);
+    const lowerName = name.toLowerCase();
+    if (lowerName !== "style-src" && lowerName !== "style-src-elem") {
+      return directive;
+    }
+    if (lowerName === "style-src") foundStyleSource = true;
+    const sources = configuredSources.filter((source) => source !== "'none'");
+    for (const source of requiredStyleSources) {
+      if (!sources.includes(source)) sources.push(source);
+    }
+    return [name, ...sources].join(" ");
+  });
+  if (!foundStyleSource) {
+    normalized.push(`style-src ${requiredStyleSources.join(" ")}`);
+  }
+  return normalized.join("; ");
 }
 
 function escapeHtmlAttribute(value: string) {
@@ -603,6 +631,7 @@ function renderIndex(
   </main>
   ${footer}
   </div>
+  <script src="${root}assets/learner-code-editor.js" defer></script>
   <script src="${root}assets/learner-ui.js" defer></script>
   ${bundledBrowserRuntime ? `<script src="${root}assets/esbuild.js" defer></script>` : ""}
   <script src="${root}assets/runtime-adapter.js" defer></script>
@@ -717,6 +746,7 @@ const questionGroupLayoutCss = `
   overflow-wrap: anywhere;
 }
 .workspace {
+  --learner-editor-min-height: 22rem;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -729,8 +759,9 @@ const questionGroupLayoutCss = `
   text-align: right;
 }
 .workspace code { font: .75rem/1.4 var(--learner-font-mono); }
-.workspace .learner-editor {
-  min-height: 26rem;
+.workspace .learner-editor,
+.workspace .learner-code-editor {
+  min-height: var(--learner-editor-min-height);
   overflow: auto;
   resize: vertical;
 }
@@ -767,7 +798,7 @@ const questionGroupLayoutCss = `
   .library-header > p { display: none; }
   .question-copy { padding-top: var(--learner-space-6); }
   .question-copy h2 { font-size: clamp(1.9rem, 10vw, 2.7rem); }
-  .workspace .learner-editor { min-height: 22rem; }
+  .workspace { --learner-editor-min-height: 18rem; }
   .actions .learner-button { flex: 1 1 9rem; }
   .problem-navigation .learner-nav-list { columns: 1; }
 }
@@ -1572,6 +1603,7 @@ function renderQuestionGroupPlayerJavaScript(
       statusFor(progress, questionKey(group, question)) !== "solved"
     )) || initialVisible[0];
     let source = draftSourceFor(active.group, active.question);
+    let codeEditor = null;
     let running = false;
     let activeRunController = null;
     let draftWriteActive = false;
@@ -1770,6 +1802,7 @@ function renderQuestionGroupPlayerJavaScript(
       const runtime = library.runtimes.find((entry) => entry.id === active.question.runtimeId);
       const supported = Boolean(runtime && runtimeAdapter.supports(runtime));
       editor.disabled = running || !supported;
+      codeEditor?.setDisabled?.(editor.disabled);
       examplesButton.disabled = running || !supported;
       checkButton.disabled = running || !supported;
       cancelButton.hidden = !running;
@@ -1824,7 +1857,11 @@ function renderQuestionGroupPlayerJavaScript(
       }
       sourcePath.textContent = question.path;
       editor.value = source;
-      prepareCodeEditor(editor, {
+      codeEditor = prepareCodeEditor(editor, {
+        language: question.language,
+        onRun: (mode) => {
+          if (!running) void run(mode);
+        },
         tabSize: question.language === "python" ? 4 : 2,
       });
       const referenceSolution = referenceSolutionByQuestion.get(
@@ -1948,6 +1985,7 @@ function renderQuestionGroupPlayerJavaScript(
             runGuard.invalidate();
             running = false;
             if (!remaining.length) {
+              codeEditor?.destroy?.();
               const empty = emptyView();
               app.replaceChildren(empty);
               empty.focus({ preventScroll: true });
@@ -2004,13 +2042,11 @@ function renderQuestionGroupPlayerJavaScript(
       announceResult(copy.runCanceled);
       updateActionAvailability();
       renderNavigation();
-      focusAndReveal(editor, "center");
-    });
-    editor.addEventListener("keydown", (event) => {
-      if (!(event.ctrlKey || event.metaKey) || event.key !== "Enter") return;
-      event.preventDefault();
-      if (running) return;
-      void run(event.shiftKey ? "examples" : "check");
+      codeEditor?.focus?.();
+      (codeEditor?.host || editor).scrollIntoView({
+        block: "center",
+        inline: "nearest",
+      });
     });
     renderNavigation();
     renderActive();
@@ -2084,7 +2120,19 @@ export async function buildStandaloneQuestionGroupSite(
   const metaContentSecurityPolicy = normalizeMetaContentSecurityPolicy(
     options.metaContentSecurityPolicy,
   );
-  const compiler = bundledBrowserRuntime ? await compilerAssets() : undefined;
+  const [
+    compiler,
+    learnerCodeEditorJavaScript,
+    learnerCodeEditorNotices,
+  ] = await Promise.all([
+    bundledBrowserRuntime ? compilerAssets() : Promise.resolve(undefined),
+    readFile(new URL("./assets/learner-code-editor.js", import.meta.url), "utf8"),
+    readFile(new URL("../THIRD_PARTY_NOTICES.md", import.meta.url), "utf8"),
+  ]);
+  const learnerCodeEditorBytes = new TextEncoder().encode(
+    learnerCodeEditorJavaScript,
+  );
+  const learnerCodeEditorSha256 = await sha256Hex(learnerCodeEditorBytes);
   const runtimeAdapter = options.runtimeAdapterJavaScript
     ?? "/* Build-time injection seam. Leave undefined to use the bundled JavaScript/TypeScript browser worker. */\n";
   const files: QuestionGroupSiteFiles = {
@@ -2107,6 +2155,8 @@ export async function buildStandaloneQuestionGroupSite(
     ).replace(/[ \t]+$/gm, ""),
     "question-group-library.json": libraryJson,
     "assets/learner-ui.js": learnerUiJavaScript,
+    "assets/learner-code-editor.js": learnerCodeEditorJavaScript,
+    "THIRD_PARTY_NOTICES.md": learnerCodeEditorNotices,
     "assets/player.css": `${createLearnerUiCss(ui.theme, { palette: ui.palette })}\n${questionGroupLayoutCss}`,
     "assets/player.js": renderQuestionGroupPlayerJavaScript(
       ui.copy,
@@ -2126,7 +2176,7 @@ export async function buildStandaloneQuestionGroupSite(
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=()
-  Content-Security-Policy: default-src 'none'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self'; connect-src 'self'; img-src 'self' data:; font-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'
+  Content-Security-Policy: default-src 'none'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' ${LEARNER_CODE_EDITOR_CSP_SOURCE}; connect-src 'self'; img-src 'self' data:; font-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'
 
 ${bundledBrowserRuntime ? `/assets/sandbox.worker.js
   Content-Security-Policy: default-src 'none'; script-src 'self' 'unsafe-eval'; connect-src 'none'; object-src 'none'
@@ -2171,6 +2221,11 @@ portable progress format.
     schemaVersion: 1,
     playerVersion: QUESTION_GROUP_PLAYER_VERSION,
     learnerUiVersion: LEARNER_UI_VERSION,
+    learnerCodeEditor: {
+      version: LEARNER_CODE_EDITOR_VERSION,
+      bytes: learnerCodeEditorBytes.byteLength,
+      sha256: learnerCodeEditorSha256,
+    },
     libraryId: library.library.id,
     version: library.library.version,
     sha256,

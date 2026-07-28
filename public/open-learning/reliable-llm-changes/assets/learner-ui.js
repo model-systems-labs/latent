@@ -39,10 +39,35 @@
   const normalizedTabSize = (value) => (
     Number.isInteger(value) && value >= 1 && value <= 8 ? value : 2
   );
-  const editorInstruction = (tabSize) => (
-    "Code editor. Tab indents " + tabSize
-    + " spaces; Shift+Tab outdents. Press Escape, then Tab, to leave the editor."
+  const normalizedEditorLanguage = (value) => (
+    ["python", "javascript", "typescript", "jsx", "tsx"].includes(value)
+      ? value
+      : "text"
   );
+  const editorInstruction = (tabSize, language, hasRunHandler) => (
+    (language === "python"
+      ? "Python code editor. "
+      : "Code editor. ")
+    + "Tab indents " + tabSize
+    + " spaces; Shift+Tab outdents. Press Escape, then Tab, to leave the editor."
+    + (hasRunHandler
+      ? " Press Command or Control plus Enter to check; add Shift to run examples."
+      : "")
+  );
+  const editorShortcuts = ({ onRun, onSave }) => [
+    "Tab",
+    "Shift+Tab",
+    "Escape",
+    ...(onSave ? ["Control+S", "Meta+S"] : []),
+    ...(onRun
+      ? [
+          "Control+Enter",
+          "Meta+Enter",
+          "Control+Shift+Enter",
+          "Meta+Shift+Enter",
+        ]
+      : []),
+  ].join(" ");
   const editCodeSelection = (editor, tabSize, outdent) => {
     const value = editor.value;
     const selectionStart = editor.selectionStart;
@@ -122,17 +147,50 @@
     editor.dispatchEvent(new Event("input", { bubbles: true }));
     return true;
   };
-  const prepareCodeEditor = (editor, { tabSize: requestedTabSize = 2 } = {}) => {
+  const prepareCodeEditor = (
+    editor,
+    {
+      language: requestedLanguage = "text",
+      onRun,
+      onSave,
+      tabSize: requestedTabSize = 2,
+    } = {},
+  ) => {
     if (!(editor instanceof HTMLTextAreaElement)) {
       throw new Error("The shared code editor adapter requires a textarea.");
     }
     const tabSize = normalizedTabSize(requestedTabSize);
+    const language = normalizedEditorLanguage(requestedLanguage);
+    const configuration = {
+      language,
+      onRun: typeof onRun === "function" ? onRun : null,
+      onSave: typeof onSave === "function" ? onSave : null,
+      tabSize,
+    };
     editor.dataset.learnerTabSize = String(tabSize);
+    editor.dataset.learnerEditorLanguage = language;
     editor.style.tabSize = String(tabSize);
     const prepared = preparedCodeEditors.get(editor);
     if (prepared) {
-      prepared.instruction.textContent = editorInstruction(tabSize);
-      return editor;
+      prepared.configuration = configuration;
+      editor.setAttribute("aria-keyshortcuts", editorShortcuts(configuration));
+      prepared.instruction.textContent = editorInstruction(
+        tabSize,
+        language,
+        Boolean(configuration.onRun),
+      );
+      const enhanceTextarea =
+        globalThis.LatentLearnerCodeEditorRuntime?.enhanceTextarea;
+      if (typeof enhanceTextarea === "function") {
+        prepared.controller = enhanceTextarea(editor, {
+          ...configuration,
+          ariaDescribedBy: editor.getAttribute("aria-describedby") || undefined,
+          ariaLabel: editor.getAttribute("aria-label") || "Solution editor",
+          variant: "integrated",
+        });
+        return prepared.controller;
+      }
+      return prepared.controller || editor;
     }
     if (!editor.parentNode) {
       throw new Error("The shared code editor adapter requires a mounted editor frame.");
@@ -140,16 +198,56 @@
     const instruction = document.createElement("span");
     instruction.className = "learner-sr-only";
     instruction.id = "learner-editor-instructions-" + (++editorInstructionSequence);
-    instruction.textContent = editorInstruction(tabSize);
+    instruction.textContent = editorInstruction(
+      tabSize,
+      language,
+      Boolean(configuration.onRun),
+    );
     editor.after(instruction);
     const describedBy = editor.getAttribute("aria-describedby");
     editor.setAttribute(
       "aria-describedby",
       describedBy ? describedBy + " " + instruction.id : instruction.id,
     );
-    editor.setAttribute("aria-keyshortcuts", "Tab Shift+Tab Escape");
+    editor.setAttribute("aria-keyshortcuts", editorShortcuts(configuration));
+    const record = { configuration, controller: null, instruction };
+    preparedCodeEditors.set(editor, record);
+    const enhanceTextarea =
+      globalThis.LatentLearnerCodeEditorRuntime?.enhanceTextarea;
+    if (typeof enhanceTextarea === "function") {
+      record.controller = enhanceTextarea(editor, {
+        ...configuration,
+        ariaDescribedBy: editor.getAttribute("aria-describedby") || undefined,
+        ariaLabel: editor.getAttribute("aria-label") || "Solution editor",
+        variant: "integrated",
+      });
+      return record.controller;
+    }
     let tabFocusUntil = 0;
     editor.addEventListener("keydown", (event) => {
+      const current = record.configuration;
+      if (
+        (event.ctrlKey || event.metaKey)
+        && !event.altKey
+        && !event.isComposing
+        && event.key.toLowerCase() === "s"
+        && current.onSave
+      ) {
+        event.preventDefault();
+        current.onSave();
+        return;
+      }
+      if (
+        (event.ctrlKey || event.metaKey)
+        && !event.altKey
+        && !event.isComposing
+        && event.key === "Enter"
+        && current.onRun
+      ) {
+        event.preventDefault();
+        current.onRun(event.shiftKey ? "examples" : "check");
+        return;
+      }
       if (
         event.key === "Escape"
         && !event.altKey
@@ -176,7 +274,7 @@
         event.preventDefault();
         editCodeSelection(
           editor,
-          normalizedTabSize(Number(editor.dataset.learnerTabSize)),
+          current.tabSize,
           event.shiftKey,
         );
         return;
@@ -185,7 +283,6 @@
         tabFocusUntil = 0;
       }
     });
-    preparedCodeEditors.set(editor, { instruction });
     return editor;
   };
   if (globalThis.LearnerUiComponents === undefined) {

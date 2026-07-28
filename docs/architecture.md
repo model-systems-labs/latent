@@ -122,8 +122,15 @@ packages/course-kit/src/learner-ui.ts
         +-- v2 design tokens, five named palettes, and breakpoints
         +-- one ethereal, scroll-reactive atmosphere grammar
         +-- shell, one-header anatomy, navigation, and footer renderers
-        +-- controls, progress, feedback, empty-state, and editor contracts
+        +-- controls, progress, feedback, empty-state, and editor framing
         +-- focus, screen-reader, reduced-motion, and mobile behavior
+        |
+        +-- learner-code-editor.ts
+        |       +-- CodeMirror language, syntax, theme, and keyboard contract
+        |       +-- integrated and specialized workspace variants
+        |       +-- React extensions and progressive-textarea adapter
+        |       +-- browser/learner-code-editor-runtime.ts
+        |               +-- self-hosted learner-code-editor.js
         |
         +-- static-site.ts                 (lesson/card specialization)
         +-- question-group-site.ts         (coding-practice specialization)
@@ -219,6 +226,19 @@ Ten Problems consumes the foundation through
 family navigation and a single primary vertical document flow while retaining
 product-appropriate reading, module, flash-card, IDE, and coding-practice
 sections.
+
+Code editing follows the same ownership rule. The framework-neutral
+`packages/course-kit/src/learner-code-editor.ts` is the reviewed source for
+language parsing, syntax colors, indentation, keyboard escape behavior,
+accessibility attributes, and integrated versus specialized-workspace
+appearance. React editors consume its extension factory; standalone Question
+Group and Interview Loop builds consume a deterministic, same-origin IIFE made
+from `packages/course-kit/src/browser/learner-code-editor-runtime.ts`. The
+static adapter progressively enhances a textarea while retaining it as the
+draft and event bridge, so existing digest-bound persistence and run/check
+logic remain host-owned. CodeMirror's generated style element carries one
+fixed reviewed nonce; only that nonce is added to the static sites' CSP. No
+`unsafe-inline`, remote stylesheet, CDN, or runtime service is introduced.
 `scripts/prepare-pages-course-export.mjs` verifies the static course export
 before the atomic suite assembly.
 

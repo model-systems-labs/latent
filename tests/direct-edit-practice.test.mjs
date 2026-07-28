@@ -8,6 +8,7 @@ const root = new URL("../", import.meta.url);
 const paperLabUrl = new URL("app/components/PaperLab.tsx", root);
 const codeEditorUrl = new URL("app/features/ide/CodeEditor.tsx", root);
 const pythonCodeEditorUrl = new URL("app/features/ide/PythonCodeEditor.tsx", root);
+const learnerCodeEditorUrl = new URL("packages/course-kit/src/learner-code-editor.ts", root);
 
 let vite;
 let practiceState;
@@ -340,19 +341,26 @@ test("external reset and restore updates do not masquerade as learner typing", a
     readFile(pythonCodeEditorUrl, "utf8"),
   ]);
 
-  for (const editorSource of [source, pythonSource]) {
-    assert.match(editorSource, /const applyingExternalValueRef = useRef\(false\)/);
-    assert.match(editorSource, /update\.docChanged && !applyingExternalValueRef\.current/);
-    assert.match(editorSource, /applyingExternalValueRef\.current = true;[\s\S]*view\.dispatch\([\s\S]*finally \{[\s\S]*applyingExternalValueRef\.current = false;/);
-  }
+  assert.match(source, /const applyingExternalValueRef = useRef\(false\)/);
+  assert.match(source, /onChange:\s*\(nextValue\) => \{[\s\S]*?!applyingExternalValueRef\.current[\s\S]*?changeRef\.current\(nextValue\)/);
+  assert.match(source, /applyingExternalValueRef\.current = true;[\s\S]*view\.dispatch\([\s\S]*finally \{[\s\S]*applyingExternalValueRef\.current = false;/);
+  assert.match(pythonSource, /import \{ CodeEditor \} from "@\/app\/features\/ide\/CodeEditor"/);
+  assert.match(pythonSource, /<CodeEditor[\s\S]*?onChange=\{onChange\}[\s\S]*?value=\{value\}/);
+  assert.doesNotMatch(pythonSource, /applyingExternalValueRef|EditorView|EditorState/, "Python must reuse the one controlled-value adapter");
   assert.match(source, /Press Escape, then Tab, to leave the editor\./, "keyboard users need an explicit escape route");
 });
 
 test("the shared lesson editor selects CPython syntax and four-space indentation for Python files", async () => {
-  const source = await readFile(codeEditorUrl, "utf8");
+  const [source, primitive] = await Promise.all([
+    readFile(codeEditorUrl, "utf8"),
+    readFile(learnerCodeEditorUrl, "utf8"),
+  ]);
 
-  assert.match(source, /import \{ python \} from "@codemirror\/lang-python"/);
-  assert.match(source, /const isPython = path\.toLowerCase\(\)\.endsWith\("\.py"\)/);
-  assert.match(source, /isPython \? python\(\) : javascript/);
-  assert.match(source, /EditorState\.tabSize\.of\(isPython \? 4 : 2\)/);
+  assert.match(source, /if \(normalized\.endsWith\("\.py"\)\) return "python"/);
+  assert.match(source, /tabSize: language === "python" \? 4 : 2/);
+  assert.match(source, /extensions:\s*createLearnerCodeEditorExtensions\(\{/);
+  assert.match(primitive, /import \{ python \} from "@codemirror\/lang-python"/);
+  assert.match(primitive, /if \(language === "python"\) return python\(\)/);
+  assert.match(primitive, /indentUnit\.of\(" "\.repeat\(tabSize\)\)/);
+  assert.match(primitive, /EditorState\.tabSize\.of\(tabSize\)/);
 });

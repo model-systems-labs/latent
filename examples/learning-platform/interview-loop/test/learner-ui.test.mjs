@@ -3,6 +3,8 @@ import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
 import {
+  LEARNER_CODE_EDITOR_CSP_SOURCE,
+  LEARNER_CODE_EDITOR_VERSION,
   LEARNER_UI_BREAKPOINTS,
   LEARNER_UI_FAVICON_SVG,
   LEARNER_UI_VERSION,
@@ -23,6 +25,11 @@ const platform = JSON.parse(await readFile(
 test("build-time learner UI config renders the shared shell and local assets", async () => {
   assert.equal(platform.schemaVersion, 2);
   assert.equal(LEARNER_UI_VERSION, 2);
+  assert.equal(LEARNER_CODE_EDITOR_VERSION, 1);
+  assert.equal(
+    LEARNER_CODE_EDITOR_CSP_SOURCE,
+    "'nonce-latent-learner-code-editor-v1'",
+  );
   assert.deepEqual(platform.learnerUi.appearance, { palette: "sage" });
   assert.equal(LEARNER_UI_BREAKPOINTS.compact, 760);
   assert.equal(
@@ -84,13 +91,28 @@ test("build-time learner UI config renders the shared shell and local assets", a
   assert.match(learnerUiJavaScript, /const prepareCodeEditor = /);
   assert.match(
     learnerUiJavaScript,
-    /Code editor\. Tab indents [\s\S]*Shift\+Tab outdents\. Press Escape, then Tab, to leave the editor\./,
+    /Python code editor\. [\s\S]*Tab indents [\s\S]*Shift\+Tab outdents\. Press Escape, then Tab, to leave the editor\./,
   );
 
   const buildSource = await readFile(new URL("../tools/build.mjs", import.meta.url), "utf8");
-  for (const asset of ["index.html", "learner-ui.css", "learner-ui.js", "favicon.svg"]) {
+  for (const asset of [
+    "index.html",
+    "learner-code-editor.js",
+    "learner-ui.css",
+    "learner-ui.js",
+    "favicon.svg",
+  ]) {
     assert.match(buildSource, new RegExp(asset.replace(".", "\\.")));
   }
+  assert.ok(
+    buildSource.indexOf('<script src="./learner-code-editor.js"></script>')
+      < buildSource.indexOf('<script src="./learner-ui.js" defer></script>'),
+  );
+  assert.match(
+    buildSource,
+    /style-src 'self' \$\{LEARNER_CODE_EDITOR_CSP_SOURCE\}/,
+  );
+  assert.doesNotMatch(buildSource, /unsafe-inline|https?:\/\/.*learner-code-editor/);
   assert.match(buildSource, /\{ palette: platform\.learnerUi\.appearance\.palette \}/);
   assert.match(buildSource, /renderLearnerContextNavigation/);
   assert.doesNotMatch(buildSource, /replaceExact|replaceAll\(before/);
@@ -155,7 +177,14 @@ test("Interview interactions preserve compact focus, touch targets, and wrapped 
   assert.match(appSource, /tabindex: "0"/);
   assert.match(appSource, /globalThis\.LearnerUiComponents\?\.createSolutionDisclosure/);
   assert.match(appSource, /globalThis\.LearnerUiComponents\?\.prepareCodeEditor/);
-  assert.equal(appSource.match(/prepareCodeEditor\(editor\);/g)?.length, 2);
+  assert.equal(
+    appSource.match(/EditorController = prepareCodeEditor\(editor, \{/g)?.length,
+    2,
+  );
+  assert.match(appSource, /language: "python"/);
+  assert.match(appSource, /tabSize: 4/);
+  assert.equal(appSource.match(/EditorController\?\.destroy\?\.\(\)/g)?.length, 2);
+  assert.match(appSource, /ideEditorController\?\.setValue\?\.\(editor\.value\)/);
   assert.doesNotMatch(appSource, /event\.key === "Tab"|setRangeText/);
   const setStatusBody = appSource.match(
     /function setStatus\(node, message, tone = "neutral"\) \{([\s\S]*?)\n\}/,
@@ -178,5 +207,18 @@ test("Interview interactions preserve compact focus, touch targets, and wrapped 
   assert.match(
     styles,
     /\.view \{[\s\S]*var\(--learner-header-height\)[\s\S]*var\(--learner-context-nav-height\)/,
+  );
+});
+
+test("the checked-in learner code editor is a bounded same-origin build input", async () => {
+  const editorSource = await readFile(
+    new URL("../tools/vendor/learner-code-editor.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(editorSource, /LatentLearnerCodeEditorRuntime/);
+  assert.doesNotMatch(editorSource, /sourceMappingURL=/);
+  assert.ok(
+    Buffer.byteLength(editorSource) < 700_000,
+    "The standalone editor should remain below the reviewed 700 KB raw budget.",
   );
 });

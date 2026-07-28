@@ -406,6 +406,8 @@ the shell.
 | Source | Responsibility |
 | --- | --- |
 | `packages/course-kit/src/learner-ui.ts` | Canonical v2 tokens, five palettes, CSS, one-header renderer, footer, focus behavior, screen-reader utilities, and compact navigation script. |
+| `packages/course-kit/src/learner-code-editor.ts` | Canonical CodeMirror extensions, Python/JavaScript parsing, syntax colors derived from learner tokens, keyboard commands, accessibility attributes, and the reviewed CSP nonce. |
+| `packages/course-kit/src/browser/learner-code-editor-runtime.ts` | Progressive textarea enhancer bundled into the same-origin `assets/learner-code-editor.js` used by static learners. |
 | `packages/course-kit/src/static-site.ts` | Shared foundation composed with standalone Learning Pack lessons and cards. |
 | `packages/course-kit/src/question-group-site.ts` | Shared foundation composed with problem navigation, editor, Run examples/Check solution feedback, progress, Continue, and repeated-miss Review. |
 | `scripts/generate-learning-platform-learner-ui.mjs` | Derives `public/assets/learner-ui.css`, `public/assets/learner-ui.js`, and the dependency-free Interview build input from reviewed Course Kit source. |
@@ -421,20 +423,32 @@ the shell.
 | `scripts/generate-learning-platform-learner-ui.mjs` | Generates that vendored copy from Course Kit rather than creating another design source. |
 | `scripts/build-learning-example-pages.mjs` | Builds the Paper-palette Learning Studio and assembles all three products at stable Pages subpaths. |
 
-### Shared editor keyboard contract
+### Shared editor primitive
 
-The original v2 handoff shared the editor shell and focus treatment, but not
-the editing behavior: Ten Problems and Interview Loop still created
-independent native textareas while the React IDE used CodeMirror. The reviewed
-`LearnerUiComponents.prepareCodeEditor` adapter in
-`packages/course-kit/src/learner-ui.ts` now owns native-editor Tab indentation,
-Shift+Tab outdent, the Escape-then-Tab focus exit, screen-reader instructions,
-and the bubbling input event required by draft persistence. The Question Group
-player composes that adapter with a language-specific indent width, while
-Interview Loop uses it for both Practice and Coding lab. The React CodeMirror
-adapters remain specialized, but use the same keyboard contract and an
-explicit four-space Python indentation unit. No Question Group field, digest,
-runtime adapter, or executable-check boundary changed.
+The original v2 handoff shared the editor shell and focus treatment but left
+three implementations behind it: native textareas in Ten Problems and
+Interview Loop, plus separate CodeMirror configuration in the React IDE.
+`packages/course-kit/src/learner-code-editor.ts` now owns the actual editor
+primitive. It provides the CodeMirror extensions, real Python/JavaScript
+parsers and syntax highlighting, token-driven integrated surface, optional
+dark project-workspace variant, Tab/Shift+Tab indentation, Escape-then-Tab
+focus exit, run/save shortcuts, and editor accessibility attributes.
+
+For static learners,
+`packages/course-kit/src/browser/learner-code-editor-runtime.ts` is bundled at
+build time as `assets/learner-code-editor.js`. The Question Group builder emits
+that same-origin asset before `learner-ui.js` and `player.js`; the shared
+`LearnerUiComponents.prepareCodeEditor` adapter progressively enhances the
+textarea while preserving its bubbling input events, draft persistence, run
+identity, and exact-digest progress behavior. The native textarea remains only
+the no-script/failure fallback. CodeMirror's reviewed generated style element
+uses the exact `latent-learner-code-editor-v1` nonce; both document and response
+CSP include only that nonce and never add `unsafe-inline`.
+
+Ten Problems selects Python and four-space indentation from trusted player
+source. Portable Question Group JSON still contains only declarative starter
+source and public cases; no Question Group field, digest, runtime adapter,
+executable-check boundary, timeout, or output limit changed.
 
 The one global header has a stable anatomy: product identity and optional
 metadata, local primary navigation, and one **Learning suite** disclosure for the

@@ -7,6 +7,10 @@ import vm from "node:vm";
 import { transform } from "esbuild-wasm";
 
 import {
+  LEARNER_CODE_EDITOR_CSP_SOURCE,
+  LEARNER_CODE_EDITOR_VERSION,
+} from "../dist/learner-code-editor.js";
+import {
   QUESTION_GROUP_BUILD_MARKER,
   QUESTION_GROUP_LEARNER_TRANSFORM_OPTIONS,
   QUESTION_GROUP_PLAYER_VERSION,
@@ -42,8 +46,35 @@ test("Question Group builds are complete static practice sites with a leech quer
   assert.match(files["index.html"], /data-learner-atmosphere aria-hidden="true"/);
   assert.match(files["index.html"], /class="learner-skip-link"/);
   assert.match(files["index.html"], /class="learner-header"/);
+  assert.match(files["index.html"], /src="\.\/assets\/learner-code-editor\.js"/);
   assert.match(files["index.html"], /src="\.\/assets\/learner-ui\.js"/);
+  assert.match(
+    files["leeches/index.html"],
+    /src="\.\.\/assets\/learner-code-editor\.js"/,
+  );
   assert.match(files["leeches/index.html"], /src="\.\.\/assets\/learner-ui\.js"/);
+  assert.ok(
+    files["index.html"].indexOf("assets/learner-code-editor.js")
+      < files["index.html"].indexOf("assets/learner-ui.js"),
+  );
+  assert.ok(
+    files["index.html"].indexOf("assets/learner-ui.js")
+      < files["index.html"].indexOf("assets/player.js"),
+  );
+  assert.match(files["index.html"], new RegExp(LEARNER_CODE_EDITOR_CSP_SOURCE));
+  assert.doesNotMatch(files["index.html"], /style-src[^;"]*'unsafe-inline'/);
+  assert.equal(typeof files["assets/learner-code-editor.js"], "string");
+  assert.match(
+    files["assets/learner-code-editor.js"],
+    /LatentLearnerCodeEditorRuntime/,
+  );
+  assert.ok(
+    Buffer.byteLength(files["assets/learner-code-editor.js"], "utf8") < 650_000,
+  );
+  assert.match(
+    files["THIRD_PARTY_NOTICES.md"],
+    /CodeMirror 6[\s\S]*Lezer[\s\S]*MIT/,
+  );
   assert.match(files["assets/player.css"], /--learner-font-sans:/);
   assert.match(files["assets/player.css"], /--learner-background-recipe: paper;/);
   assert.match(files["assets/player.css"], /\.learner-ui :focus-visible/);
@@ -80,7 +111,7 @@ test("Question Group builds are complete static practice sites with a leech quer
   assert.doesNotMatch(resultsCss ?? "", /overflow:\s*auto/);
   assert.match(
     files["assets/player.css"],
-    /\.workspace \.learner-editor\s*\{[^}]*overflow:\s*auto;[^}]*resize:\s*vertical;/,
+    /\.workspace \.learner-editor,\s*\.workspace \.learner-code-editor\s*\{[^}]*min-height:\s*var\(--learner-editor-min-height\);[^}]*overflow:\s*auto;[^}]*resize:\s*vertical;/,
   );
   assert.match(
     files["assets/player.css"],
@@ -90,7 +121,7 @@ test("Question Group builds are complete static practice sites with a leech quer
   assert.match(files["assets/learner-ui.js"], /const prepareCodeEditor = /);
   assert.match(
     files["assets/learner-ui.js"],
-    /Code editor\. Tab indents [\s\S]*Shift\+Tab outdents\. Press Escape, then Tab, to leave the editor\./,
+    /Python code editor\.[\s\S]*Tab indents [\s\S]*Shift\+Tab outdents\. Press Escape, then Tab, to leave the editor\./,
   );
   assert.match(
     files["assets/player.js"],
@@ -100,6 +131,13 @@ test("Question Group builds are complete static practice sites with a leech quer
     files["assets/player.js"],
     /tabSize: question\.language === "python" \? 4 : 2/,
   );
+  assert.match(
+    files["assets/player.js"],
+    /onRun: \(mode\) => \{[\s\S]*void run\(mode\)/,
+  );
+  assert.match(files["assets/player.js"], /codeEditor\?\.setDisabled\?\./);
+  assert.match(files["assets/player.js"], /codeEditor\?\.destroy\?\./);
+  assert.match(files["assets/player.js"], /codeEditor\?\.focus\?\./);
   assert.doesNotMatch(files["assets/player.js"], /event\.key === "Tab"|setRangeText/);
   assert.match(files["assets/player.js"], /isLeech/);
   assert.match(files["assets/player.js"], /new Worker/);
@@ -132,8 +170,11 @@ test("Question Group builds are complete static practice sites with a leech quer
   assert.match(files["assets/player.js"], /example-cases/);
   assert.match(files["assets/player.js"], /new AbortController\(\)/);
   assert.match(files["assets/player.js"], /activeRunController\?\.abort\(\)/);
-  assert.match(files["assets/player.js"], /event\.ctrlKey \|\| event\.metaKey/);
-  assert.match(files["assets/player.js"], /event\.shiftKey \? "examples" : "check"/);
+  assert.match(files["assets/learner-ui.js"], /event\.ctrlKey \|\| event\.metaKey/);
+  assert.match(
+    files["assets/learner-ui.js"],
+    /current\.onRun\(event\.shiftKey \? "examples" : "check"\)/,
+  );
   assert.match(files["assets/player.js"], /copy\.runCanceled/);
   assert.match(
     files["assets/player.js"],
@@ -173,7 +214,7 @@ test("Question Group builds are complete static practice sites with a leech quer
     /target\.focus\(\{ preventScroll: true \}\);[\s\S]*?target\.scrollIntoView/,
   );
   assert.match(files["assets/player.js"], /focusAndReveal\(heading, "center"\)/);
-  assert.match(files["assets/player.js"], /focusAndReveal\(editor, "center"\)/);
+  assert.match(files["assets/player.js"], /\(codeEditor\?\.host \|\| editor\)\.scrollIntoView/);
   assert.match(
     files["assets/player.js"],
     /announceResult\(outcome\.passed \? copy\.passedHeading : copy\.failedHeading\)/,
@@ -208,11 +249,20 @@ test("Question Group builds are complete static practice sites with a leech quer
   );
   assert.match(files["assets/sandbox.worker.js"], /"fetch",[\s\S]*"WebSocket"/);
   assert.match(files["_headers"], /connect-src 'none'/);
+  assert.match(files["_headers"], new RegExp(LEARNER_CODE_EDITOR_CSP_SOURCE));
+  assert.doesNotMatch(files["_headers"], /style-src[^\n]*'unsafe-inline'/);
   assert.doesNotMatch(files["question-group-library.json"], /runtime-adapter\.js/);
 
   const report = JSON.parse(files["build-report.json"]);
   assert.equal(report.playerVersion, QUESTION_GROUP_PLAYER_VERSION);
   assert.equal(report.learnerUiVersion, 2);
+  assert.deepEqual(report.learnerCodeEditor, {
+    version: LEARNER_CODE_EDITOR_VERSION,
+    bytes: Buffer.byteLength(files["assets/learner-code-editor.js"], "utf8"),
+    sha256: createHash("sha256")
+      .update(files["assets/learner-code-editor.js"])
+      .digest("hex"),
+  });
   assert.equal(report.reviewDirectory, "leeches");
   assert.equal(report.bundledBrowserRuntime, true);
   assert.deepEqual(report.referenceSolutions, {
@@ -230,6 +280,14 @@ test("Question Group builds are complete static practice sites with a leech quer
     /Editor drafts use separate digest- and contract-bound records/,
   );
   assert.equal(repeated["question-group-library.json"], files["question-group-library.json"]);
+  assert.equal(
+    repeated["THIRD_PARTY_NOTICES.md"],
+    files["THIRD_PARTY_NOTICES.md"],
+  );
+  assert.equal(
+    repeated["assets/learner-code-editor.js"],
+    files["assets/learner-code-editor.js"],
+  );
   assert.equal(repeated["build-report.json"], files["build-report.json"]);
   assert.deepEqual(repeated["assets/esbuild.wasm"], files["assets/esbuild.wasm"]);
 });
@@ -288,6 +346,40 @@ test("runtime injection is a build-time host option, never a content field", asy
     files["assets/runtime-adapter.js"],
     "globalThis.LatentQuestionPlayerRuntime = trustedAdapter;\n",
   );
+});
+
+test("custom page CSP keeps caller directives and admits only the reviewed editor styles", async () => {
+  const files = await buildStandaloneQuestionGroupSite(
+    await exampleLibrary(),
+    {
+      bundledBrowserRuntime: false,
+      metaContentSecurityPolicy: [
+        "default-src 'none'",
+        "style-src 'none'",
+        "style-src-elem 'sha256-YWJj'",
+        "worker-src 'self'",
+      ].join("; "),
+    },
+  );
+  const html = files["index.html"];
+  assert.match(
+    html,
+    new RegExp(
+      `style-src 'self' ${
+        LEARNER_CODE_EDITOR_CSP_SOURCE.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&")
+      }`,
+    ),
+  );
+  assert.match(
+    html,
+    new RegExp(
+      `style-src-elem 'sha256-YWJj' 'self' ${
+        LEARNER_CODE_EDITOR_CSP_SOURCE.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&")
+      }`,
+    ),
+  );
+  assert.doesNotMatch(html, /style-src[^;"]*'none'/);
+  assert.doesNotMatch(html, /style-src[^;"]*'unsafe-inline'/);
 });
 
 test("Question Group UI configuration controls branding, routes, copy, and runtime assets without changing portable identity", async () => {
@@ -377,6 +469,10 @@ test("Question Group UI configuration controls branding, routes, copy, and runti
     configured["review/index.html"],
     /data-library-url="\.\.\/question-group-library\.json"/,
   );
+  assert.match(
+    configured["review/index.html"],
+    /src="\.\.\/assets\/learner-code-editor\.js"/,
+  );
   assert.match(configured["review/index.html"], /src="\.\.\/assets\/learner-ui\.js"/);
   assert.match(configured["assets/player.css"], /--learner-color-canvas: #eaf0fa;/);
   assert.match(configured["assets/player.css"], /--learner-color-accent: #123abc;/);
@@ -397,14 +493,14 @@ test("Question Group UI configuration controls branding, routes, copy, and runti
   assert.match(configured["assets/player.js"], /"viewExampleSolution":"Open worked answer"/);
   assert.match(configured["index.html"], /Progress stays with this exact set\./);
   assert.match(configured["index.html"], /A quiet attribution\./);
-  assert.match(
-    configured["index.html"],
-    /Content-Security-Policy" content="default-src 'none'; worker-src 'self'"/,
+  const normalizedCustomPolicy =
+    `default-src 'none'; worker-src 'self'; style-src 'self' ${LEARNER_CODE_EDITOR_CSP_SOURCE}`;
+  assert.equal(configured["index.html"].includes(normalizedCustomPolicy), true);
+  assert.equal(
+    configured["review/index.html"].includes(normalizedCustomPolicy),
+    true,
   );
-  assert.match(
-    configured["review/index.html"],
-    /Content-Security-Policy" content="default-src 'none'; worker-src 'self'"/,
-  );
+  assert.doesNotMatch(configured["index.html"], /style-src[^;"]*'unsafe-inline'/);
   assert.match(baseline["index.html"], /worker-src 'self' blob:/);
 
   for (const compilerAsset of [

@@ -55,9 +55,11 @@ transient mutate-then-restore operations. Python Lab is not a hostile-code
 security sandbox.
 
 The reviewed source of truth for the shared presentation is
-`packages/course-kit/src/learner-ui.ts`. The example consumes its generated,
-dependency-free browser bundle at `tools/vendor/learner-ui.mjs` during a
-monorepo build;
+`packages/course-kit/src/learner-ui.ts`; the shared CodeMirror configuration,
+Python parser, highlighting, key bindings, and light/dark editor variants live
+in `packages/course-kit/src/learner-code-editor.ts`. The example consumes
+their generated, self-hosted build inputs at `tools/vendor/learner-ui.mjs` and
+`tools/vendor/learner-code-editor.js` during a monorepo build;
 `platform.json` explicitly supplies its product name, contextual navigation
 labels and hash routes, `sage` appearance palette, and footer.
 `../learning-suite.mjs` supplies the persistent Learning Studio identity and

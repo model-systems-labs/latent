@@ -4,6 +4,8 @@ import { test } from "node:test";
 
 const executionUrl = new URL("../app/features/ide/PythonExecution.tsx", import.meta.url);
 const editorUrl = new URL("../app/features/ide/PythonCodeEditor.tsx", import.meta.url);
+const sharedEditorUrl = new URL("../app/features/ide/CodeEditor.tsx", import.meta.url);
+const learnerCodeEditorUrl = new URL("../packages/course-kit/src/learner-code-editor.ts", import.meta.url);
 const workbenchUrl = new URL("../app/components/ProjectWorkbench.tsx", import.meta.url);
 const pythonCssUrl = new URL("../app/styles/python-runtime.css", import.meta.url);
 const pythonModuleCssUrl = new URL("../app/features/ide/PythonExecution.module.css", import.meta.url);
@@ -69,22 +71,27 @@ test("the project tree surfaces Python once without changing lesson completion s
   assert.match(source, /const status = statusForFile\(file\)/);
 });
 
-test("the Python editor has native syntax highlighting and the same keyboard escape hatch", async () => {
-  const [source, viteConfig] = await Promise.all([
+test("the Python editor is a thin adapter over the shared highlighted editor primitive", async () => {
+  const [source, sharedEditor, primitive, viteConfig] = await Promise.all([
     readFile(editorUrl, "utf8"),
+    readFile(sharedEditorUrl, "utf8"),
+    readFile(learnerCodeEditorUrl, "utf8"),
     readFile(viteConfigUrl, "utf8"),
   ]);
-  assert.match(source, /import \{ python \} from "@codemirror\/lang-python"/);
-  assert.match(source, /python\(\)/);
-  assert.match(source, /syntaxHighlighting\(pythonSyntaxTheme\)/);
-  assert.match(source, /background:\s*"#1f1e21"/);
-  assert.match(source, /\}, \{ dark: true \}\);/);
-  assert.match(source, /import \{ HighlightStyle, indentUnit, syntaxHighlighting \} from "@codemirror\/language"/);
-  assert.match(source, /indentUnit\.of\(" {4}"\)/);
-  assert.match(source, /EditorState\.tabSize\.of\(4\)/);
-  assert.match(source, /\{ key: "Escape", run: temporarilySetTabFocusMode \}/);
-  assert.match(source, /\{ key: "Tab", run: acceptCompletion \},\s*indentWithTab/);
-  assert.match(source, /Python code editor\. Tab accepts an open suggestion; otherwise it indents four spaces\. Press Escape, then Tab, to leave the editor\./);
+  assert.match(source, /import \{ CodeEditor \} from "@\/app\/features\/ide\/CodeEditor"/);
+  assert.match(source, /<CodeEditor[\s\S]*?ariaLabel=\{`Python project file editor: \$\{path\}`\}[\s\S]*?path=\{path\}[\s\S]*?variant="project"/);
+  assert.doesNotMatch(source, /@codemirror|@lezer|HighlightStyle|EditorView|keymap|python\(\)/);
+
+  assert.match(sharedEditor, /if \(normalized\.endsWith\("\.py"\)\) return "python"/);
+  assert.match(sharedEditor, /tabSize: language === "python" \? 4 : 2/);
+  assert.match(sharedEditor, /extensions:\s*createLearnerCodeEditorExtensions\(\{/);
+  assert.match(primitive, /if \(language === "python"\) return python\(\)/);
+  assert.match(primitive, /syntaxHighlighting\([\s\S]*?workspaceDarkSyntaxTheme[\s\S]*?integratedSyntaxTheme/);
+  assert.match(primitive, /indentUnit\.of\(" "\.repeat\(tabSize\)\)/);
+  assert.match(primitive, /EditorState\.tabSize\.of\(tabSize\)/);
+  assert.match(primitive, /\{ key: "Escape", run: temporarilySetTabFocusMode \}/);
+  assert.match(primitive, /\{ key: "Tab", run: acceptCompletion \},\s*indentWithTab/);
+  assert.match(primitive, /variant === "workspace-dark" \? workspaceDarkTheme : integratedTheme/);
   assert.match(
     viteConfig,
     /optimizeDeps:[\s\S]*?include: \[[\s\S]*?"@codemirror\/lang-python"/,

@@ -549,6 +549,7 @@ await Promise.all([
   "tools/build.mjs",
   "tools/check-learner-ui.mjs",
   "tools/vendor/course-kit-validator.mjs",
+  "tools/vendor/learner-code-editor.js",
   "tools/vendor/learner-ui.mjs",
   "trusted/python-exercise-runtime.ts",
 ].map((path) => typeof path === "string" ? safeProjectFile(path, path) : path));

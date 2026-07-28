@@ -22,3 +22,9 @@ The generated `dist/assets/pyodide/` directory contains core payloads from
 receive one inert generated ESLint directive; source and published hashes,
 project, corresponding source, and license links are recorded in the generated
 runtime report and `dist/assets/pyodide/NOTICE.txt`.
+
+`dist/assets/learner-code-editor.js` is the generated Course Kit editor
+bundle. It includes CodeMirror 6, Lezer, `@marijn/find-cluster-break`, `crelt`,
+`style-mod`, and `w3c-keyname`, all under the MIT license. The complete
+copyright and license text ships beside the site as
+`dist/THIRD_PARTY_NOTICES.md`.

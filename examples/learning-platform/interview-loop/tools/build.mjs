@@ -16,6 +16,8 @@ import { fileURLToPath } from "node:url";
 import { build as bundle } from "esbuild";
 
 import {
+  LEARNER_CODE_EDITOR_CSP_SOURCE,
+  LEARNER_CODE_EDITOR_VERSION,
   LEARNER_UI_FAVICON_SVG,
   LEARNER_UI_VERSION,
   createLearnerUiCss,
@@ -32,6 +34,10 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repositoryRoot = resolve(root, "../../..");
 const target = resolve(root, "dist");
 const marker = ".latent-platform-build";
+const learnerCodeEditorBundle = join(
+  root,
+  "tools/vendor/learner-code-editor.js",
+);
 const trustedRuntime = join(root, "trusted/python-exercise-runtime.ts");
 const pythonWorker = join(
   repositoryRoot,
@@ -81,7 +87,7 @@ function renderIndex(platform) {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; connect-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'none'"
+      content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; connect-src 'self'; style-src 'self' ${LEARNER_CODE_EDITOR_CSP_SOURCE}; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'none'"
     >
     <meta name="description" content="${escapeHtml(platform.brand.tagline)}">
     <title>${escapeHtml(platform.brand.name)}</title>
@@ -104,6 +110,7 @@ ${panel("ide", "ide-heading", "ide-root", "Loading coding lab…")}
       ${footer}
     </div>
     <div id="announcement" class="learner-sr-only" role="status" aria-live="polite"></div>
+    <script src="./learner-code-editor.js"></script>
     <script src="./learner-ui.js" defer></script>
     <script type="module" src="./app.mjs"></script>
   </body>
@@ -144,6 +151,16 @@ const existed = await inspectTarget();
 const temporary = await mkdtemp(join(root, ".dist.latent-build-"));
 try {
   const platform = JSON.parse(await readFile(join(root, "platform.json"), "utf8"));
+  const learnerCodeEditorStats = await lstat(learnerCodeEditorBundle);
+  if (
+    learnerCodeEditorStats.isSymbolicLink()
+    || !learnerCodeEditorStats.isFile()
+  ) {
+    throw new Error(
+      "The reviewed learner code editor bundle must be a regular file.",
+    );
+  }
+  const learnerCodeEditorSource = await readFile(learnerCodeEditorBundle);
   const index = renderIndex(platform);
   await Promise.all([
     cp(join(root, "site"), temporary, { recursive: true }),
@@ -166,6 +183,10 @@ try {
       "utf8",
     ),
     writeFile(join(temporary, "learner-ui.js"), learnerUiJavaScript, "utf8"),
+    writeFile(
+      join(temporary, "learner-code-editor.js"),
+      learnerCodeEditorSource,
+    ),
     writeFile(join(temporary, "favicon.svg"), `${LEARNER_UI_FAVICON_SVG}\n`, "utf8"),
   ]);
   const assets = join(temporary, "assets");
@@ -244,6 +265,7 @@ License: https://www.mozilla.org/MPL/2.0/
     join(root, "NOTICE.md"),
     join(root, "CONTENT_LICENSE.md"),
     join(root, "tools/vendor/learner-ui.mjs"),
+    learnerCodeEditorBundle,
     ...await collectFiles(join(root, "content")),
     ...await collectFiles(join(root, "trusted")),
     ...await collectFiles(join(root, "site")),
@@ -265,11 +287,25 @@ License: https://www.mozilla.org/MPL/2.0/
       };
     }),
   );
+  const learnerCodeEditorAsset = await readFile(
+    join(temporary, "learner-code-editor.js"),
+  );
   await writeFile(join(temporary, "build-report.json"), `${JSON.stringify({
     format: "latent-platform-build",
     schemaVersion: 1,
     learnerUiVersion: LEARNER_UI_VERSION,
     sourceSha256: digest.digest("hex"),
+    learnerCodeEditor: {
+      version: LEARNER_CODE_EDITOR_VERSION,
+      cspSource: LEARNER_CODE_EDITOR_CSP_SOURCE,
+      asset: {
+        path: "learner-code-editor.js",
+        bytes: learnerCodeEditorAsset.byteLength,
+        sha256: createHash("sha256")
+          .update(learnerCodeEditorAsset)
+          .digest("hex"),
+      },
+    },
     pythonRuntime: {
       engine: "pyodide",
       engineVersion: "314.0.2",

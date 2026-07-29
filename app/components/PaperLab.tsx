@@ -1535,7 +1535,10 @@ export function CodingSection({ lesson: lessonProp }: { lesson: CourseLesson }) 
                     </div>
                     <details className="reference-comparison">
                       <summary>Reference solution</summary>
-                      <div><SyntaxCode code={block.code} label={`${block.label} reference implementation`} startLine={startLine} /></div>
+                      <div>
+                        <p className="reference-editorial"><strong>Approach</strong> {displayBlock.purpose}</p>
+                        <SyntaxCode code={block.code} label={`${block.label} reference implementation`} startLine={startLine} />
+                      </div>
                     </details>
                   </div>
                 ) : <div id={`exercise-${lesson.id}-${block.id}`} hidden />}

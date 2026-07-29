@@ -53,6 +53,23 @@ test("every practice cell has a complete contract with its exact Python signatur
   assert.deepEqual(Object.keys(contracts.exerciseContracts).sort(), expectedKeys.sort());
 });
 
+test("every routed reference solution has brief authored editorial", () => {
+  const referenceBlocks = course.allRoutedLessons.flatMap((lesson) => (
+    lesson.implementation.codeBlocks.map((block) => ({
+      key: `${lesson.id}/${block.id}`,
+      purpose: block.purpose,
+    }))
+  ));
+
+  assert.equal(referenceBlocks.length, 70);
+  for (const { key, purpose } of referenceBlocks) {
+    assert.equal(purpose, purpose.trim(), `${key} editorial has no surrounding whitespace`);
+    assert.ok(purpose.length >= 20, `${key} editorial says something useful`);
+    assert.ok(purpose.length <= 160, `${key} editorial stays brief`);
+    assert.match(purpose, /[.!?]$/, `${key} editorial is a complete sentence`);
+  }
+});
+
 test("every course after Linear Algebra asks for one guided core implementation", () => {
   const exercises = [];
   for (const program of course.coursePrograms.filter(({ order }) => order >= 2)) {

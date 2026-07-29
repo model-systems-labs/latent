@@ -80,18 +80,6 @@
     grid-row: 1 / span 2;
   }
 
-  .dataset-record {
-    grid-template-columns: 1fr;
-  }
-
-  .icl-results {
-    grid-template-columns: 1fr;
-  }
-
-  .icl-results article + article {
-    border-left: 0;
-  }
-
   .course-track-grid {
     grid-template-columns: 1fr;
   }
@@ -373,27 +361,6 @@
     flex-direction: column;
   }
 
-  .context-action-summary,
-  .context-branch-evidence {
-    grid-template-columns: 1fr;
-  }
-
-  .context-branch-evidence > span + span {
-    border-left: 0;
-    border-top: 1px solid var(--line);
-    padding-left: 0;
-  }
-
-  .context-request-heading {
-    align-items: start;
-    flex-direction: column;
-  }
-
-  .context-decision-list article {
-    align-items: start;
-    grid-template-columns: 1fr;
-  }
-
   .conversation-identity-chain {
     align-items: start;
     gap: 0.25rem;
@@ -415,24 +382,6 @@
 
   .streaming-profile-controls button {
     text-align: left;
-  }
-
-  .streaming-policy-evidence {
-    grid-template-columns: 1fr;
-  }
-
-  .streaming-policy-evidence > span + span {
-    border-left: 0;
-    border-top: 1px solid var(--line);
-    padding-left: 0;
-  }
-
-  .experiment-lab .streaming-ui-trace > div {
-    grid-template-columns: 4.5rem minmax(0, 1fr);
-  }
-
-  .experiment-lab .streaming-ui-trace > div > p {
-    grid-column: 2;
   }
 
   .state-inspector {
@@ -666,47 +615,8 @@
   .lab-controls,
   .output-grid,
   .check-grid,
-  .paper-footer,
-  .dataset-record dl,
-  .metric-grid,
-  .compact-metrics,
-  .artifact-grid {
+  .paper-footer {
     grid-template-columns: 1fr;
-  }
-
-  .metric-grid > span + span {
-    border-left: 0;
-    border-top: 1px solid var(--line);
-  }
-
-  .artifact-grid article + article {
-    border-left: 0;
-    border-top: 1px solid var(--line);
-    padding-left: 0;
-  }
-
-  .experiment-header,
-  .experiment-action,
-  .model-loader {
-    align-items: stretch;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .model-loader > i {
-    width: 100%;
-  }
-
-  .merge-list {
-    grid-template-columns: 1fr;
-  }
-
-  .merge-list > span:nth-child(even) {
-    border-left: 0;
-  }
-
-  .merge-list > span + span {
-    border-top: 1px solid var(--line);
   }
 
   .lesson-card {
@@ -822,26 +732,6 @@
   .state-inspector,
   .quality-grid {
     grid-template-columns: 1fr;
-  }
-
-  .quality-audit-summary,
-  .quality-check-group .quality-grid,
-  .quality-manual-boundary li {
-    grid-template-columns: 1fr;
-  }
-
-  .quality-audit-summary {
-    gap: 0.35rem;
-  }
-
-  .quality-audit-summary code {
-    text-align: left;
-  }
-
-  .quality-check-group .quality-grid article:nth-child(even),
-  .quality-check-group .quality-grid article:nth-child(odd) {
-    padding-left: 0;
-    padding-right: 0;
   }
 
   .track-navigation,

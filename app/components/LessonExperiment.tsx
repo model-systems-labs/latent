@@ -27,6 +27,8 @@ import {
 } from "@/app/lib/pipeline-load-lifecycle";
 import { ReplayStages, ReplayTrace, useReplaySequence } from "@/app/components/ExperimentReplay";
 import styles from "@/app/components/LessonExperiment.module.css";
+import "@/app/styles/experiments-models.css";
+import "@/app/styles/experiments-systems-product.css";
 import { isHarnessExperimentVariant } from "@/examples/learning-platform/llm-learning/content/harness-engineering/experiments";
 
 const HarnessExperiment = lazy(() => import("@/app/components/HarnessExperiment"));

@@ -10,6 +10,7 @@ const syntaxCodeUrl = new URL("app/features/ide/SyntaxCode.tsx", root);
 const codeEditorUrl = new URL("app/features/ide/CodeEditor.tsx", root);
 const learnerCodeEditorUrl = new URL("packages/course-kit/src/learner-code-editor.ts", root);
 const learningFlowUrl = new URL("app/styles/learning-flow.css", root);
+const experimentModelsUrl = new URL("app/styles/experiments-models.css", root);
 const codingWorkspaceUrl = new URL("app/styles/coding-workspace.css", root);
 const responsiveUrl = new URL("app/styles/responsive.css", root);
 const paperLabMobileUrl = new URL("app/components/PaperLab.module.css", root);
@@ -146,10 +147,9 @@ test("interactive experiments introduce their purpose before one compact dataset
 });
 
 test("the neural language model reveals learning as a controllable checkpoint replay", async () => {
-  const [source, learningFlow, responsive] = await Promise.all([
+  const [source, experimentModels] = await Promise.all([
     readFile(lessonExperimentUrl, "utf8"),
-    readFile(learningFlowUrl, "utf8"),
-    readFile(responsiveUrl, "utf8"),
+    readFile(experimentModelsUrl, "utf8"),
   ]);
   const experiment = source.slice(
     source.indexOf("function NeuralLmExperiment"),
@@ -163,9 +163,9 @@ test("the neural language model reveals learning as a controllable checkpoint re
   assert.match(experiment, /Pause replay/);
   assert.match(experiment, /Training loss can keep improving while held-out loss rises/);
   assert.match(experiment, /prefers-reduced-motion: reduce/);
-  assert.match(rule(learningFlow, ".neural-replay-steps"), /grid-template-columns:\s*repeat\(5/);
-  assert.match(rule(learningFlow, '.neural-replay-steps button[aria-pressed="true"]'), /background:\s*var\(--violet-deep\)/);
-  assert.match(responsive, /\.neural-replay > header\s*\{[^}]*grid-template-columns:\s*1fr/);
+  assert.match(rule(experimentModels, ".neural-replay-steps"), /grid-template-columns:\s*repeat\(5/);
+  assert.match(rule(experimentModels, '.neural-replay-steps button[aria-pressed="true"]'), /background:\s*var\(--violet-deep\)/);
+  assert.match(experimentModels, /@media \(max-width: 650px\)[\s\S]*?\.neural-replay > header\s*\{[^}]*grid-template-columns:\s*1fr/);
 });
 
 test("saved results render only artifacts that exist", async () => {

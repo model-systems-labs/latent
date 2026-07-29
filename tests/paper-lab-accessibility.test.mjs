@@ -145,7 +145,7 @@ test("technical diagram labels keep an 11px floor and AA text contrast", async (
     readFile(responsiveUrl, "utf8"),
   ]);
   const start = learningFlow.indexOf(".concept-diagram {");
-  const end = learningFlow.indexOf(".experiment-lab {", start);
+  const end = learningFlow.indexOf(".persistence-warning {", start);
   assert.ok(start >= 0 && end > start, "Expected the bounded technical-diagram stylesheet section");
   const diagrams = learningFlow.slice(start, end);
   const undersized = [...diagrams.matchAll(/font-size:\s*0\.([\d]+)rem/g)]

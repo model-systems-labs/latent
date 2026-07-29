@@ -757,6 +757,7 @@
   border-radius: 999px;
   cursor: pointer;
   font-size: max(0.68rem, 11px);
+  min-height: 44px;
   padding: 0.55rem 0.75rem;
 }
 

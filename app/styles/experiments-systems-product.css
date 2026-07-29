@@ -1,0 +1,512 @@
+/* Systems and product traces, state inspectors, and audit results. */
+.experiment-lab .simulation-controls {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.experiment-lab .simulation-result {
+  padding: 1.25rem 0 0;
+}
+
+.experiment-lab .trace-list {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
+.experiment-lab .trace-list > div {
+  border-top: 1px solid var(--line);
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.experiment-lab .trace-list > div:last-child {
+  border-bottom: 1px solid var(--line);
+}
+
+.experiment-lab .trace-list.replay-trace > button {
+  align-items: baseline;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--line);
+  color: var(--ink);
+  cursor: pointer;
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: 5rem minmax(7rem, 0.35fr) minmax(0, 1fr);
+  min-height: 3rem;
+  padding: 0.7rem 0;
+  text-align: left;
+}
+
+.experiment-lab .trace-list.replay-trace > button:last-child {
+  border-bottom: 1px solid var(--line);
+}
+
+.experiment-lab .trace-list.replay-trace > button > span {
+  color: var(--faint);
+  font-family: var(--mono);
+  font-size: max(0.68rem, 11px);
+}
+
+.experiment-lab .trace-list.replay-trace > button > strong {
+  font-size: max(0.68rem, 11px);
+  font-weight: 560;
+}
+
+.experiment-lab .trace-list.replay-trace > button > p {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: max(0.68rem, 11px);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.experiment-lab .trace-list.replay-trace > button.active {
+  background: var(--violet-wash);
+}
+
+.experiment-lab .trace-list.replay-trace > button.complete > span {
+  color: var(--green);
+}
+
+.experiment-lab .trace-list.replay-trace > button.pending {
+  opacity: 0.5;
+}
+
+.experiment-lab .trace-list.replay-trace > button.warning {
+  background: rgba(184, 135, 94, 0.08);
+}
+
+.experiment-lab .trace-list.replay-trace > button.error {
+  background: rgba(141, 90, 84, 0.09);
+}
+
+.experiment-lab .compact-trace button.pending {
+  opacity: 0.46;
+}
+
+.experiment-lab .state-inspector {
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  border-top: 1px solid var(--line);
+}
+
+.experiment-lab .mini-message,
+.experiment-lab .stream-preview {
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.experiment-lab .stream-preview.cancelled > span {
+  color: #8d5a54;
+}
+
+.experiment-lab .streaming-ui-trace > div,
+.experiment-lab .streaming-ui-trace > button {
+  grid-template-columns: 5rem minmax(7rem, 0.35fr) minmax(0, 1fr);
+}
+
+.streaming-policy-evidence {
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 1rem;
+}
+
+.streaming-policy-evidence > span {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+  padding: 0.8rem 0;
+}
+
+.streaming-policy-evidence > span + span {
+  border-left: 1px solid var(--line);
+  padding-left: 0.9rem;
+}
+
+.streaming-policy-evidence b,
+.streaming-announcement-log > span {
+  color: var(--violet);
+  font-size: max(0.68rem, 11px);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.streaming-policy-evidence code {
+  color: var(--muted);
+  font-size: max(0.68rem, 11px);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.streaming-announcement-log {
+  padding-top: 1rem;
+}
+
+.streaming-announcement-log ol {
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  list-style: none;
+  margin: 0.7rem 0 0;
+  padding: 0;
+}
+
+.streaming-announcement-log li {
+  align-items: baseline;
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: 1.5rem minmax(0, 1fr);
+  padding: 0.65rem 0;
+}
+
+.streaming-announcement-log li + li {
+  border-top: 1px solid var(--line);
+}
+
+.streaming-announcement-log li b {
+  color: var(--faint);
+  font-family: var(--mono);
+  font-size: max(0.68rem, 11px);
+  font-weight: 500;
+}
+
+.streaming-announcement-log li code {
+  color: var(--ink);
+  font-size: max(0.68rem, 11px);
+  line-height: 1.45;
+}
+
+.experiment-lab .context-stack {
+  gap: 0;
+}
+
+.experiment-lab .context-stack article {
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.experiment-lab .context-stack article:first-child {
+  border-top: 1px solid var(--line);
+}
+
+.experiment-lab .context-stack article.included {
+  background: rgba(118, 104, 137, 0.045);
+  border-color: var(--line);
+}
+
+.context-action-summary {
+  align-items: baseline;
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(8rem, 0.35fr) minmax(0, 1fr);
+  padding: 0.8rem 0;
+}
+
+.context-action-summary > span {
+  display: grid;
+  gap: 0.28rem;
+}
+
+.context-action-summary b,
+.context-branch-evidence b,
+.context-request-heading span,
+.context-decision-list article > span {
+  color: var(--violet);
+  font-size: max(0.68rem, 11px);
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.context-action-summary strong {
+  font-size: 0.78rem;
+  font-weight: 560;
+}
+
+.context-action-summary p {
+  color: var(--muted);
+  font-family: var(--serif);
+  font-size: 0.78rem;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.context-branch-evidence {
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.context-branch-evidence > span {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+  padding: 0.8rem 0;
+}
+
+.context-branch-evidence > span + span {
+  border-left: 1px solid var(--line);
+  padding-left: 0.85rem;
+}
+
+.context-branch-evidence code,
+.context-request-heading code,
+.context-decision-list code {
+  color: var(--muted);
+  font-size: max(0.68rem, 11px);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.context-request-heading {
+  align-items: end;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 1rem 0 0.7rem;
+}
+
+.context-request-heading > div {
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.context-request-heading strong {
+  font-family: var(--mono);
+  font-size: max(0.68rem, 11px);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.context-decision-list {
+  border-top: 1px solid var(--line);
+}
+
+.context-decision-list article {
+  align-items: baseline;
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: minmax(9.5rem, 0.7fr) minmax(0, 1fr) minmax(12rem, auto);
+  padding: 0.68rem 0;
+}
+
+.context-decision-list article + article {
+  border-top: 1px solid var(--line);
+}
+
+.context-decision-list article p {
+  font-family: var(--serif);
+  font-size: 0.7rem;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.context-decision-list article.included code {
+  color: var(--green);
+}
+
+.context-decision-list article.excluded {
+  opacity: 0.52;
+}
+
+.experiment-lab .context-attempt-record {
+  margin-top: 1rem;
+}
+
+.experiment-lab .quality-grid {
+  gap: 0;
+  padding: 0;
+}
+
+.experiment-lab .quality-grid article {
+  border: 0;
+  border-top: 1px solid var(--line);
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.quality-audit-result {
+  border-top: 1px solid var(--line);
+}
+
+.quality-audit-summary {
+  align-items: baseline;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(10rem, 0.8fr) minmax(8rem, 0.5fr) minmax(0, 1fr);
+  padding: 1rem 0;
+}
+
+.quality-audit-summary span,
+.quality-check-group > header span,
+.quality-manual-boundary > header span {
+  color: var(--violet);
+  font-size: max(0.68rem, 11px);
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.quality-audit-summary strong {
+  font-family: var(--serif);
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.quality-audit-summary code,
+.quality-check-group > header code,
+.quality-manual-boundary > header code {
+  color: var(--muted);
+  font-size: max(0.68rem, 11px);
+  text-align: right;
+}
+
+.quality-check-group,
+.quality-manual-boundary {
+  border-top: 1px solid var(--line);
+}
+
+.quality-check-group > header,
+.quality-manual-boundary > header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  padding: 0.8rem 0 0.2rem;
+}
+
+.quality-check-group .quality-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.quality-check-group .quality-grid article:nth-child(even) {
+  padding-left: 1rem;
+}
+
+.quality-check-group .quality-grid article:nth-child(odd) {
+  padding-right: 1rem;
+}
+
+.quality-manual-boundary > p {
+  color: var(--muted);
+  font-family: var(--serif);
+  font-size: 0.72rem;
+  line-height: 1.5;
+  margin: 0.5rem 0 0;
+}
+
+.quality-manual-boundary ol {
+  list-style: none;
+  margin: 0.7rem 0 0;
+  padding: 0;
+}
+
+.quality-manual-boundary li {
+  align-items: baseline;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(9rem, 0.45fr) minmax(0, 1.55fr);
+  padding: 0.75rem 0;
+}
+
+.quality-manual-boundary li strong {
+  font-size: max(0.68rem, 11px);
+  font-weight: 560;
+}
+
+.quality-manual-boundary li span {
+  color: var(--muted);
+  font-family: var(--serif);
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 650px), (max-width: 940px) and (max-height: 500px) {
+  .experiment-lab .simulation-controls button {
+    min-height: 45px;
+  }
+
+  .context-action-summary,
+  .context-branch-evidence {
+    grid-template-columns: 1fr;
+  }
+
+  .context-branch-evidence > span + span {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    padding-left: 0;
+  }
+
+  .context-request-heading {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .context-decision-list article {
+    align-items: start;
+    grid-template-columns: 1fr;
+  }
+
+  .streaming-policy-evidence {
+    grid-template-columns: 1fr;
+  }
+
+  .streaming-policy-evidence > span + span {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    padding-left: 0;
+  }
+
+  .experiment-lab .streaming-ui-trace > div,
+  .experiment-lab .streaming-ui-trace > button {
+    grid-template-columns: 4.5rem minmax(0, 1fr);
+  }
+
+  .experiment-lab .streaming-ui-trace > div > p,
+  .experiment-lab .streaming-ui-trace > button > p {
+    grid-column: 2;
+  }
+
+  .quality-audit-summary,
+  .quality-check-group .quality-grid,
+  .quality-manual-boundary li {
+    grid-template-columns: 1fr;
+  }
+
+  .quality-audit-summary {
+    gap: 0.35rem;
+  }
+
+  .quality-audit-summary code {
+    text-align: left;
+  }
+
+  .quality-check-group .quality-grid article:nth-child(even),
+  .quality-check-group .quality-grid article:nth-child(odd) {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .experiment-lab .trace-list.replay-trace > button {
+    grid-template-columns: 4.5rem minmax(0, 1fr);
+  }
+
+  .experiment-lab .trace-list.replay-trace > button > p {
+    grid-column: 2;
+  }
+}

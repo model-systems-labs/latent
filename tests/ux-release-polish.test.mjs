@@ -7,6 +7,8 @@ const capstoneStylesUrl = new URL("../app/styles/capstone.css", import.meta.url)
 const codingWorkspaceStylesUrl = new URL("../app/styles/coding-workspace.css", import.meta.url);
 const courseCatalogStylesUrl = new URL("../app/styles/course-catalog.css", import.meta.url);
 const learningFlowStylesUrl = new URL("../app/styles/learning-flow.css", import.meta.url);
+const experimentModelStylesUrl = new URL("../app/styles/experiments-models.css", import.meta.url);
+const experimentSystemsProductStylesUrl = new URL("../app/styles/experiments-systems-product.css", import.meta.url);
 const productizationStylesUrl = new URL("../app/styles/productization.css", import.meta.url);
 const projectStructureStylesUrl = new URL("../app/styles/project-structure.css", import.meta.url);
 const responsiveStylesUrl = new URL("../app/styles/responsive.css", import.meta.url);
@@ -90,11 +92,19 @@ test("outer and compiled-capstone secondary copy clears the AA contrast floor", 
 });
 
 test("lesson evidence and model-status text retain an 11px readable floor", async () => {
-  const styles = await readFile(learningFlowStylesUrl, "utf8");
-  assertReadableFloor(styles, [
+  const [learningFlow, modelExperiments, systemsProductExperiments] = await Promise.all([
+    readFile(learningFlowStylesUrl, "utf8"),
+    readFile(experimentModelStylesUrl, "utf8"),
+    readFile(experimentSystemsProductStylesUrl, "utf8"),
+  ]);
+  assertReadableFloor(learningFlow, [
     ".check em",
     ".generation-status",
+  ]);
+  assertReadableFloor(modelExperiments, [
     ".model-loader > div em",
+  ]);
+  assertReadableFloor(systemsProductExperiments, [
     ".streaming-policy-evidence b,\n.streaming-announcement-log > span",
     ".streaming-policy-evidence code",
     ".streaming-announcement-log li b",
@@ -116,6 +126,8 @@ test("live stylesheet copy cannot regress below 11px outside audited non-text ex
     ["capstone.css", capstoneStylesUrl],
     ["coding-workspace.css", codingWorkspaceStylesUrl],
     ["course-catalog.css", courseCatalogStylesUrl],
+    ["experiments-models.css", experimentModelStylesUrl],
+    ["experiments-systems-product.css", experimentSystemsProductStylesUrl],
     ["learning-flow.css", learningFlowStylesUrl],
     ["productization.css", productizationStylesUrl],
     ["project-structure.css", projectStructureStylesUrl],

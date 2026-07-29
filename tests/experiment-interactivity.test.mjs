@@ -6,8 +6,9 @@ const root = new URL("../", import.meta.url);
 const lessonExperimentUrl = new URL("app/components/LessonExperiment.tsx", root);
 const harnessExperimentUrl = new URL("app/components/HarnessExperiment.tsx", root);
 const replayUrl = new URL("app/components/ExperimentReplay.tsx", root);
-const learningFlowUrl = new URL("app/styles/learning-flow.css", root);
-const responsiveUrl = new URL("app/styles/responsive.css", root);
+const modelStylesUrl = new URL("app/styles/experiments-models.css", root);
+const systemsProductStylesUrl = new URL("app/styles/experiments-systems-product.css", root);
+const globalsUrl = new URL("app/globals.css", root);
 
 function section(source, start, end) {
   return source.slice(source.indexOf(start), source.indexOf(end));
@@ -75,14 +76,19 @@ test("systems, product, fundamentals, and harness runs replay their internal ste
 });
 
 test("replay controls remain legible and selectable at compact widths", async () => {
-  const [learningFlow, responsive] = await Promise.all([
-    readFile(learningFlowUrl, "utf8"),
-    readFile(responsiveUrl, "utf8"),
+  const [modelStyles, systemsProductStyles, globals, lessonExperiment] = await Promise.all([
+    readFile(modelStylesUrl, "utf8"),
+    readFile(systemsProductStylesUrl, "utf8"),
+    readFile(globalsUrl, "utf8"),
+    readFile(lessonExperimentUrl, "utf8"),
   ]);
-  assert.match(learningFlow, /\.replay-stage-bar\s*\{[^}]*grid-template-columns:\s*repeat\(auto-fit/);
-  assert.match(learningFlow, /\.replay-stage-bar button\[aria-pressed="true"\]/);
-  assert.match(learningFlow, /\.experiment-lab \.trace-list\.replay-trace > button\.active/);
-  assert.match(learningFlow, /\.replay-merge-list > button\.pending/);
-  assert.match(responsive, /\.replay-stage-bar\s*\{[^}]*grid-template-columns:\s*repeat\(2/);
-  assert.match(responsive, /\.experiment-lab \.trace-list\.replay-trace > button\s*\{[^}]*grid-template-columns:\s*4\.5rem/);
+  assert.match(modelStyles, /\.replay-stage-bar\s*\{[^}]*grid-template-columns:\s*repeat\(auto-fit/);
+  assert.match(modelStyles, /\.replay-stage-bar button\[aria-pressed="true"\]/);
+  assert.match(modelStyles, /\.replay-merge-list > button\.pending/);
+  assert.match(modelStyles, /@media \(max-width: 650px\)[\s\S]*?\.replay-stage-bar\s*\{[^}]*grid-template-columns:\s*repeat\(2/);
+  assert.match(systemsProductStyles, /\.experiment-lab \.trace-list\.replay-trace > button\.active/);
+  assert.match(systemsProductStyles, /@media \(max-width: 650px\)[\s\S]*?\.experiment-lab \.trace-list\.replay-trace > button\s*\{[^}]*grid-template-columns:\s*4\.5rem/);
+  assert.match(lessonExperiment, /import "@\/app\/styles\/experiments-models\.css";/);
+  assert.match(lessonExperiment, /import "@\/app\/styles\/experiments-systems-product\.css";/);
+  assert.doesNotMatch(globals, /experiments-(?:models|systems-product)\.css/);
 });

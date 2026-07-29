@@ -113,9 +113,10 @@ test("every shared lesson teaches and checks the concept before its coding pract
 });
 
 test("lesson prose, diagrams, code, and outcomes share one editorial rail", async () => {
-  const [learningFlow, codingWorkspace, lessonOutcome] = await Promise.all([
+  const [learningFlow, codingWorkspace, lessonMobile, lessonOutcome] = await Promise.all([
     readFile(learningFlowUrl, "utf8"),
     readFile(codingWorkspaceUrl, "utf8"),
+    readFile(paperLabMobileUrl, "utf8"),
     readFile(lessonOutcomeCssUrl, "utf8"),
   ]);
   assert.match(learningFlow, /\.paper-page\s*\{\s*max-width:\s*60rem/);
@@ -123,6 +124,12 @@ test("lesson prose, diagrams, code, and outcomes share one editorial rail", asyn
     assert.match(rule(learningFlow, selector), /max-width:\s*none/, selector);
   }
   assert.match(rule(codingWorkspace, ".practice-editor"), /max-width:\s*none/);
+  assert.match(rule(codingWorkspace, ".editor-footer"), /padding:\s*1rem 0 1\.4rem/);
+  assert.match(rule(learningFlow, ".implementation-intro"), /margin:\s*0 0 1\.4rem/);
+  assert.match(
+    rule(lessonMobile, ".lessonShell :global(.implementation-section .implementation-intro)"),
+    /margin:\s*0 0 1\.5rem/,
+  );
   assert.match(rule(lessonOutcome, ".layout"), /display:\s*grid/);
   assert.match(rule(lessonOutcome, ".check"), /border:\s*0/);
 });
@@ -136,6 +143,29 @@ test("interactive experiments introduce their purpose before one compact dataset
   assert.doesNotMatch(dataset, /lesson\.dataset\.(?:source|license|size)/);
   assert.match(surface, /<section className="experiment-lab" id="experiment" aria-labelledby=\{`experiment-title-\$\{lesson\.id\}`\}>/);
   assert.match(surface, /<header className="experiment-header">[\s\S]*?<h3 id=\{`experiment-title-\$\{lesson\.id\}`\}>\{lesson\.experiment\.title\}<\/h3>[\s\S]*?<p>\{lesson\.experiment\.intro\}<\/p>/);
+});
+
+test("the neural language model reveals learning as a controllable checkpoint replay", async () => {
+  const [source, learningFlow, responsive] = await Promise.all([
+    readFile(lessonExperimentUrl, "utf8"),
+    readFile(learningFlowUrl, "utf8"),
+    readFile(responsiveUrl, "utf8"),
+  ]);
+  const experiment = source.slice(
+    source.indexOf("function NeuralLmExperiment"),
+    source.indexOf("function BpeExperiment"),
+  );
+  assert.match(experiment, /\{ label: "Start", steps: 1 \}/);
+  assert.match(experiment, /\{ label: "Best", steps: 2_880 \}/);
+  assert.match(experiment, /\{ label: "Too far", steps: 4_000 \}/);
+  assert.match(experiment, /aria-label="Inspect a training checkpoint"/);
+  assert.match(experiment, /aria-pressed=\{index === checkpointIndex\}/);
+  assert.match(experiment, /Pause replay/);
+  assert.match(experiment, /Training loss can keep improving while held-out loss rises/);
+  assert.match(experiment, /prefers-reduced-motion: reduce/);
+  assert.match(rule(learningFlow, ".neural-replay-steps"), /grid-template-columns:\s*repeat\(5/);
+  assert.match(rule(learningFlow, '.neural-replay-steps button[aria-pressed="true"]'), /background:\s*var\(--violet-deep\)/);
+  assert.match(responsive, /\.neural-replay > header\s*\{[^}]*grid-template-columns:\s*1fr/);
 });
 
 test("saved results render only artifacts that exist", async () => {
@@ -216,7 +246,7 @@ test("lesson code opens progressive starter-first syntax-aware Python practice i
   assert.doesNotMatch(paperLab, /<SyntaxCode code=\{starterSource\}/);
   assert.match(paperLab, /"Running…" : `Run round \$\{round\}`/);
   assert.match(paperLab, /"Running tests…" : "Run all tests"/);
-  assert.match(paperLab, /className="reference-comparison"[\s\S]*?<summary>Reference solution<\/summary>[\s\S]*?<SyntaxCode code=\{block\.code\}/);
+  assert.match(paperLab, /className="reference-comparison"[\s\S]*?<summary>Reference solution<\/summary>[\s\S]*?className="reference-editorial"[\s\S]*?\{displayBlock\.purpose\}[\s\S]*?<SyntaxCode code=\{block\.code\}/);
   assert.match(paperLab, /dirty \? <button className="start-over-button"[\s\S]*?>Start over<\/button> : null/);
   assert.match(paperLab, /resetArmed \? \([\s\S]*?Confirm start over for \$\{block\.label\}, round \$\{round\}[\s\S]*?>Confirm<\/button>[\s\S]*?Cancel start over for \$\{block\.label\}, round \$\{round\}[\s\S]*?>Cancel<\/button>/);
   assert.doesNotMatch(paperLab, /Reset all|Restore all|Restore reference|Restore draft|Run all examples|Run practice checks|Practice cell|Show solution|Hide solution/);

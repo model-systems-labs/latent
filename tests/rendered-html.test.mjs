@@ -679,6 +679,7 @@ test("each lesson server-renders one read-only reference comparison without embe
     assert.equal(comparisons.length, 1, `${slug} must expose reference code only for its single active exercise`);
     comparisonCount += comparisons.length;
     assert.match(html, /Reference solution/);
+    assert.match(html, /class="reference-editorial"/);
     assert.doesNotMatch(html, /Compare with reference|Your draft stays unchanged/);
     assert.match(html, /reference implementation/);
     assert.doesNotMatch(html, /data-reference-code=/, slug);
@@ -737,8 +738,9 @@ test("Conversation State renders a normalized update and all 18 reducer actions"
   assert.match(html, /messageId/);
   assert.match(html, /attemptId/);
   assert.match(html, /requestId/);
-  assert.match(html, /What changed/);
   assert.match(html, /Replay selected flow/);
+  assert.doesNotMatch(html, /What changed/);
+  assert.doesNotMatch(html, /Inspect reducer action/);
 });
 
 test("Streaming React renders the frame timing trace and four honest profiles", async () => {
@@ -780,15 +782,12 @@ test("Actions and Context renders a concrete branch, actionable flows, and an ex
   assert.match(html, />Retry \/ regenerate</);
   assert.match(html, />Edit prompt</);
   assert.match(html, /Request budget · (?:<!-- -->)?26(?:<!-- -->)? tokens/);
-  assert.match(html, /Messages sent to the model/);
-  assert.match(html, /Saved partial answer/);
-  assert.match(html, /Full attempt record/);
-  assert.match(html, /latent-local-135m/);
-  assert.match(html, /chat-v3/);
-  assert.match(html, /temperature/);
-  assert.match(html, /includedMessageIds/);
   assert.match(html, /Replay selected request/);
   assert.match(html, /exact token counts/);
+  assert.doesNotMatch(html, /Inspect request construction stage/);
+  assert.doesNotMatch(html, /Messages sent to the model/);
+  assert.doesNotMatch(html, /Saved partial answer/);
+  assert.doesNotMatch(html, /Full attempt record/);
 });
 
 test("Product Quality separates executed checks, unexecuted specifications, and manual verification", async () => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ReplayTrace, useReplaySequence } from "@/app/components/ExperimentReplay";
 import type { HarnessExperimentVariant } from "@/examples/learning-platform/llm-learning/content/harness-engineering/experiments";
 
 type HarnessResult = {
@@ -245,7 +246,7 @@ export function harnessExperimentResult(variant: HarnessExperimentVariant, value
 export default function HarnessExperiment({ variant, onComplete }: { variant: HarnessExperimentVariant; onComplete: () => void }) {
   const initial = harnessExperimentResult(variant, 0).initial;
   const [value, setValue] = useState(initial);
-  const [ran, setRan] = useState(false);
+  const replay = useReplaySequence(onComplete, 560);
   const result = harnessExperimentResult(variant, value);
   return (
     <>
@@ -259,24 +260,22 @@ export default function HarnessExperiment({ variant, onComplete }: { variant: Ha
             max={result.maximum}
             step={result.step}
             value={value}
-            onChange={(event) => { setValue(Number(event.target.value)); setRan(false); }}
+            onChange={(event) => { setValue(Number(event.target.value)); replay.reset(); }}
           />
         </label>
       </div>
       <div className="experiment-action">
         <p>Set one condition, then run the example.</p>
-        <button type="button" onClick={() => { setRan(true); onComplete(); }}>
-          {ran ? "Run again" : "Run trace"}
+        <button type="button" onClick={replay.playing ? replay.pause : () => replay.start(result.trace.length)}>
+          {replay.playing ? "Pause trace" : replay.started ? "Run again" : "Run trace"}
         </button>
       </div>
-      {ran ? (
+      {replay.started ? (
         <div className="simulation-result fundamentals-result">
           <div className="metric-grid">
             {result.metrics.map((metric) => <span key={metric.label}><em>{metric.label}</em><strong>{metric.value}</strong></span>)}
           </div>
-          <div className="trace-list compact-trace">
-            {result.trace.map((item, index) => <div key={item.label}><span>{index + 1}</span><strong>{item.label}</strong><p>{item.detail}</p></div>)}
-          </div>
+          <ReplayTrace label="Inspect harness trace step" items={result.trace} current={replay.step} onSelect={replay.select} />
         </div>
       ) : null}
     </>

@@ -14,7 +14,15 @@ test("lesson training surfaces distinguish the demo from the recorded course run
 
   assert.match(experiment, /Quick browser model\./);
   assert.match(experiment, /does not read your IDE code or save the Python checkpoint used by the chatbot/);
-  assert.match(experiment, /"Train demo RNN"/);
+  assert.match(experiment, /"Train and generate a sample"/);
+  assert.match(experiment, /32-character windows/);
+  assert.match(experiment, /Explore one training pass/);
+  assert.match(experiment, /Move through the next-character targets/);
+  assert.match(experiment, /Inspect the loss history/);
+  assert.match(experiment, /← Earlier 30/);
+  assert.match(experiment, /Reveal 32 more characters/);
+  assert.match(experiment, /Next-character loss across 600 updates/);
+  assert.match(experiment, /Broken words expose the limits of this tiny model and corpus/);
   assert.match(artifactPanel, /Recorded training replay · fixed course run, not your code/);
   assert.match(recordedPanel, /Fixed checkpoints from a repeatable course run; moving between them does not run your code/);
   assert.match(recordedPanel, />Download recorded checkpoint</);

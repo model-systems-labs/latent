@@ -79,7 +79,7 @@ test("starter-first practice states expose stable accessible semantics", async (
   assert.match(source, /className=\{`cell-footer cell-feedback[^`]*`\} role="status"[^>]*aria-live="polite" aria-atomic="true"/);
   assert.match(source, /\{result \? \([\s\S]*?: roundVerified \? \([\s\S]*?: <span className="sr-only">/, "untouched exercises must expose only screen-reader test status");
   assert.match(source, /className="reset-confirmation"[\s\S]*?aria-label=\{`Confirm start over for \$\{block\.label\}, round \$\{round\}`\}[\s\S]*?aria-label=\{`Cancel start over for \$\{block\.label\}, round \$\{round\}`\}/);
-  assert.match(source, /<details className="reference-comparison">[\s\S]*?<summary>Reference solution<\/summary>/);
+  assert.match(source, /<details className="reference-comparison">[\s\S]*?<summary>Reference solution<\/summary>[\s\S]*?<p className="reference-editorial"><strong>Approach<\/strong> \{displayBlock\.purpose\}<\/p>/);
   assert.match(source, /className=\{`cell-footer[^`]*`\} role="status"[^>]*aria-live="polite" aria-atomic="true"/);
   assert.match(source, /id=\{`practice-status-\$\{lesson\.id\}`\} role="status" aria-live="polite" aria-atomic="true"/);
   assert.doesNotMatch(source, /Reset all|Restore all|Restore reference|Restore draft|Show solution|Hide solution/);

@@ -1,3 +1,5 @@
+import type { CurriculumModuleOverview } from "./manifest.js";
+
 export type CodeBlock = {
   id: string;
   label: string;
@@ -116,6 +118,7 @@ export type CourseTrack = {
   shortTitle: string;
   thesis: string;
   outcome: string;
+  overview?: CurriculumModuleOverview;
   lessonIds: string[];
 };
 

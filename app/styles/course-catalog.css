@@ -158,10 +158,11 @@
 
 .lesson-card.lesson-card-simple p {
   color: var(--muted);
-  font-size: max(0.68rem, 11px);
-  line-height: 1.5;
-  margin: 0.4rem 0 0;
-  max-width: 62ch;
+  font-family: var(--serif);
+  font-size: clamp(0.9rem, 1.05vw, 0.98rem);
+  line-height: 1.62;
+  margin: 0.5rem 0 0;
+  max-width: 58ch;
 }
 
 .lesson-card.lesson-card-simple > .lesson-card-status {

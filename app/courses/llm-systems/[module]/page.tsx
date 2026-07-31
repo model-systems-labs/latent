@@ -7,6 +7,7 @@ import { moduleCheckpoint } from "@/examples/learning-platform/llm-learning/cont
 import { PageAtmosphere } from "@/app/components/PageAtmosphere";
 import { LearnerHeader } from "@/app/components/LearnerHeader";
 import { LearnerActionLink } from "@/app/components/LearnerActionLink";
+import { ModuleOverview } from "@/app/components/ModuleOverview";
 
 export function generateStaticParams() {
   return courseTracks.map((track) => ({ module: track.id }));
@@ -38,6 +39,7 @@ export default async function LlmSystemsModulePage({ params }: { params: Promise
             <h1>{track.title}</h1>
             <p className="course-thesis">{track.thesis}</p>
           </header>
+          <ModuleOverview overview={track.overview} outcome={track.outcome} />
           <CourseCurriculum title={track.title} lessons={lessons} />
           {checkpoint ? (
             <Link className="module-checkpoint-card module-checkpoint-card-simple" href={`/checkpoints/${track.id}`}>

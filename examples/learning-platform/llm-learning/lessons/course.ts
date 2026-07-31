@@ -233,6 +233,7 @@ export const courseTracks: CourseTrack[] = llmSystemsCurriculum.modules.map((mod
   shortTitle: module.shortTitle,
   thesis: module.thesis,
   outcome: module.outcome,
+  overview: module.overview,
   lessonIds: [...module.lessonIds],
 }));
 

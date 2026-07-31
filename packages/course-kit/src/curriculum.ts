@@ -148,6 +148,19 @@ export function validateCurriculumManifest(
     requireText(`${path}.shortTitle`, module.shortTitle);
     requireText(`${path}.thesis`, module.thesis);
     requireText(`${path}.outcome`, module.outcome);
+    if (module.overview) {
+      requireText(`${path}.overview.title`, module.overview.title);
+      requireText(`${path}.overview.introduction`, module.overview.introduction);
+      if (module.overview.objectives.length === 0) {
+        issues.push({ path: `${path}.overview.objectives`, message: "must contain at least one objective" });
+      }
+      if (module.overview.objectives.length > 5) {
+        issues.push({ path: `${path}.overview.objectives`, message: "must contain at most five objectives" });
+      }
+      module.overview.objectives.forEach((objective, objectiveIndex) => {
+        requireText(`${path}.overview.objectives[${objectiveIndex}]`, objective);
+      });
+    }
     if (module.lessons.length === 0) {
       issues.push({ path: `${path}.lessons`, message: "must contain at least one lesson" });
     }

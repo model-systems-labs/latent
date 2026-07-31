@@ -31,6 +31,11 @@ test("course manifests compile to stable ordered lessons", () => {
       shortTitle: "Core",
       thesis: "Learn it.",
       outcome: "Build it.",
+      overview: {
+        title: "See the pieces connect.",
+        introduction: "Start with one small mechanism and build toward the complete result.",
+        objectives: ["Trace the data flow.", "Explain the tradeoff."],
+      },
       lessons: [{ lessonId: "lesson-one", projectPath: "models/lesson-one.js" }],
     }],
   });
@@ -39,6 +44,40 @@ test("course manifests compile to stable ordered lessons", () => {
   assert.equal(curriculum.lessonCount, 1);
   assert.equal(curriculum.testCount, 1);
   assert.equal(curriculum.lessons[0].projectPath, "models/lesson-one.js");
+  assert.deepEqual(curriculum.modules[0].overview.objectives, [
+    "Trace the data flow.",
+    "Explain the tradeoff.",
+  ]);
+});
+
+test("module overviews reject empty or overlong objective lists", () => {
+  const base = {
+    schemaVersion: 1,
+    id: "test-course",
+    title: "Test Course",
+    shortTitle: "Test",
+    thesis: "A typed course.",
+    outcome: "A tested result.",
+    modules: [{
+      id: "foundations",
+      routeSlug: "foundations",
+      order: 1,
+      title: "Foundations",
+      shortTitle: "Core",
+      thesis: "Learn it.",
+      outcome: "Build it.",
+      overview: {
+        title: "See the pieces connect.",
+        introduction: "Start with one small mechanism.",
+        objectives: [],
+      },
+      lessons: [{ lessonId: "lesson-one", projectPath: "models/lesson-one.js" }],
+    }],
+  };
+
+  assert.throws(() => courseKit.defineCurriculumManifest(base), /too_small/);
+  base.modules[0].overview.objectives = ["One", "Two", "Three", "Four", "Five", "Six"];
+  assert.throws(() => courseKit.defineCurriculumManifest(base), /too_big/);
 });
 
 test("course manifests reject unreachable source lessons", () => {

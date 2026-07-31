@@ -66,6 +66,9 @@ test("one LLM Systems program owns four technical modules and every lesson", () 
 
   for (const curriculumModule of curriculum.modules) {
     assert.equal(curriculumModule.lessonCount, curriculumModule.lessons.length);
+    assert.ok(curriculumModule.overview);
+    assert.ok(curriculumModule.overview.introduction.length > 120);
+    assert.equal(curriculumModule.overview.objectives.length, 3);
     assert.equal(
       curriculumModule.testCount,
       curriculumModule.lessons.reduce((total, lesson) => total + lesson.testCount, 0),

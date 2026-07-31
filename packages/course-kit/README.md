@@ -40,7 +40,9 @@ The package includes versioned pack, feed, and question-group schemas under
 Course Kit also owns the framework-neutral lesson types, curriculum manifest
 schema, and strict curriculum compiler used by the Latent application. It has
 no React, application persistence, privileged Latent runtime, or course-content
-dependency.
+dependency. Trusted curriculum modules may include an optional orientation
+overview with a short introduction and up to five ordered learning objectives;
+the application decides how to present that reviewed source data.
 
 The public `latent-learning-pack` and `latent-learning-feed` formats, semantic
 quality checks, canonical JSON, and standalone renderer are data-only and

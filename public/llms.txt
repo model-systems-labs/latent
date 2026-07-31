@@ -41,6 +41,8 @@ open-learning/skills/author-learning-pack.md
 open-learning/skills/review-learning-pack.md
 open-learning/skills/publish-learning-pack.md
 skills/author-learning-platform.md
+skills/author-interactive.md
+skills/author-interactive-visual-and-learning-contract.md
 skills/author-course.md
 skills/author-flash-card-deck.md
 skills/author-question-group.md

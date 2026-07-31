@@ -217,10 +217,12 @@ test("the capstone template and host implement the same safe persistence and sta
   assert.doesNotMatch(host, /response\.match\(\/\\S\+\/g\)/);
   assert.match(host, /generatedUnitLabel = "Generated characters"/);
   assert.match(host, /generatedUnitLabel = generation\.unit === "stream-chunks" \? "Model stream chunks"/);
-  assert.match(host, /selectedBackend: saved\.selectedBackend/);
+  assert.match(host, /saved\.selectedBackend === "student" && !studentRef\.current[\s\S]*?\? "local"[\s\S]*?: saved\.selectedBackend/);
+  assert.match(host, /buildMode: descriptor\.mode/);
+  assert.match(host, /sourceRevision: descriptor\.projectRevision/);
   assert.match(host, /client\.setUnavailableHandler\(\(\) => \{ localReadyRef\.current = false; \}\)/);
   assert.match(host, /!client\.isReady\(\)/);
-  assert.match(host, /const certifiedRuntime = certifiedCapstoneRuntimeConfig\(build\)/);
+  assert.match(host, /nextRuntime = certifiedCapstoneRuntimeConfig\(build\)/);
   assert.match(host, /runtime: buildRuntime as unknown as PreviewJson/);
   assert.match(host, /buildRuntime\.model\.seed/);
   assert.match(host, /buildRuntime\.interface\.responsePrefix/);

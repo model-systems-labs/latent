@@ -8,7 +8,7 @@ import { LearnerHeader } from "@/app/components/LearnerHeader";
 
 export const metadata: Metadata = {
   title: "Project structure · Build an LLM System",
-  description: "See which starter files you have completed and what is ready for the browser-chat build.",
+  description: "Explore the Browser Chat project, run its current source, and see what is verified for a full build.",
 };
 
 export default function ProjectPage() {
@@ -20,10 +20,10 @@ export default function ProjectPage() {
         <article className="project-page" id="main-content" tabIndex={-1}>
           <header className="project-page-hero">
             <h1>Project structure</h1>
-            <p>See which lesson files are ready for the final browser build.</p>
+            <p>Explore the files, run the current app, and see what is verified for a full build.</p>
             <nav className="project-hero-actions" aria-label="Project actions">
               <Link className="project-hero-link" href="/workspace">Open coding workspace →</Link>
-              <Link className="project-hero-link" href="/capstone">Preview Browser Chat →</Link>
+              <Link className="project-hero-link" href="/capstone">Run Browser Chat →</Link>
             </nav>
           </header>
           <ProjectStructureMap />

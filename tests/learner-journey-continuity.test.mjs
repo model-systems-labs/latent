@@ -41,15 +41,21 @@ test("the IDE synchronizes passing lesson files without skipping experiment or c
   assert.match(workbench, /Open the capstone →/);
 });
 
-test("project continuity treats every file as scaffolded and gates capstone on the current build", async () => {
+test("project continuity distinguishes the live import graph from standalone lesson contracts", async () => {
   const [structure, timeline] = await Promise.all([
     readFile(new URL("../app/components/ProjectStructureMap.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/ProjectTimeline.tsx", import.meta.url), "utf8"),
   ]);
 
-  assert.match(structure, /The full project is scaffolded now\. Your verified lesson implementations progressively replace its placeholders\./);
-  assert.match(structure, /Lesson checks prove one file/);
-  assert.match(structure, /Python checkpoint stores trained weights/);
+  assert.match(structure, /The React app imports real TypeScript modules/);
+  assert.match(structure, /standalone Python files implement the same host-owned contracts/);
+  assert.match(structure, /models\/character-rnn\.py can also produce the checkpoint/);
+  assert.match(structure, /BrowserChat\.tsx imports the browser adapters it uses/);
+  assert.match(structure, /full build records the whole source tree and its evidence/);
+  assert.match(structure, /main\.tsx → BrowserChat\.tsx → browser adapters/);
+  assert.match(structure, /standalone \.py files → host-owned checks/);
+  assert.match(structure, /character-rnn\.py → checkpoint → Student RNN/);
+  assert.match(structure, /\*\.config\.js → host-parsed configuration/);
   assert.match(structure, /Saved in this browser\. You can save an optional backup/);
   assert.match(structure, /portfolioReadiness/);
   assert.match(structure, /activeBuildIsCurrent/);

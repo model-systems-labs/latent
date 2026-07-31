@@ -1,0 +1,4 @@
+interface:
+  display_name: "Author Interactive"
+  short_description: "Build trusted lesson interactives safely"
+  default_prompt: "Use $author-interactive to build a trusted, stateful lesson interactive."

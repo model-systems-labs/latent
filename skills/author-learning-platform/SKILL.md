@@ -51,7 +51,12 @@ Do not move executable checks into portable JSON, add runtime model calls, or
 load remote code. A hosted content URL is never execution authority.
 
 Use `$author-course`, `$author-flash-card-deck`, `$author-question-group`, or
-`$author-ide-exercise` for focused changes.
+`$author-ide-exercise` for focused changes. In a full Latent reference
+application fork, use `$author-interactive` when a lesson needs a purpose-made
+simulator, worked trace, explorable diagram, or custom lesson UI. The generated
+standalone static scaffold does not include the trusted-interactive frame seam.
+That skill edits reviewed application source; it does not create a fifth
+portable content primitive or add executable fields to a Learning Pack.
 
 ## Validate
 
@@ -66,5 +71,6 @@ Also run the repository's canonical Course Kit validation before publishing
 portable content. Inspect the lesson, card reveal, practice checks, IDE checks,
 keyboard flow, mobile layout, and saved progress in `npm run preview`.
 
-Report the project path, edited layers, four primitive counts, validation
-result, preview URL, and anything not interactively verified.
+Report the project path, edited layers, four portable primitive counts, any
+trusted-interactive definitions and capabilities, validation result, preview
+URL, and anything not interactively verified.

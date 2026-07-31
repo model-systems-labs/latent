@@ -17,6 +17,8 @@ export type GenerationPhase = "queued" | "loading" | "prefill" | "streaming" | "
 export type PreviewInitialization = {
   buildId: string;
   buildNumber: number;
+  buildMode: "portable";
+  sourceRevision: number;
   selectedBackend: ChatBackend;
   studentReady: boolean;
   localReady: boolean;
@@ -65,6 +67,8 @@ export async function initializePreview(): Promise<PreviewInitialization> {
   return {
     buildId: "portable-browser-chat",
     buildNumber: 1,
+    buildMode: "portable",
+    sourceRevision: 0,
     selectedBackend,
     studentReady,
     localReady,

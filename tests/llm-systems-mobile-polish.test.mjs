@@ -135,7 +135,8 @@ test("full-height workspaces account for the family header at every compact brea
   assert.match(capstone, /compiled-capstone-shell \$\{styles\.shell\}/);
   assert.match(capstone, /compiled-capstone-runtime \$\{styles\.runtime\}/);
   assert.match(capstone, /capstone-build-gate \$\{styles\.gate\}/);
-  assert.match(capstone, /<span>Capstone preview<\/span><strong>Browser Chat<\/strong>/);
+  assert.match(capstone, /descriptor\?\.mode === "verified" \? "Verified project" : descriptor\?\.mode === "development" \? "Development preview" : "Project app"/);
+  assert.match(capstone, /<\/span><strong>Browser Chat<\/strong>/);
   assert.doesNotMatch(capstone, />LLM Systems<\/Link>|href="\/project"/);
   assert.match(capstoneStyles, /\.shell\s*\{[^}]*min-height:\s*calc\(100dvh - var\(--learner-header-height\) - var\(--learner-context-nav-height, 0rem\)\)/);
   assert.match(capstoneStyles, /\.runtime\s*\{[^}]*height:\s*calc\(100dvh - var\(--learner-header-height\) - var\(--learner-context-nav-height, 0rem\) - 4\.8rem\)/);

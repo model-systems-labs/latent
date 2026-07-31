@@ -219,6 +219,10 @@ test("the mobile code view is a bounded viewport instead of growing to the full 
 
 test("the desktop IDE keeps its three panes inside one workspace viewport", async () => {
   const capstoneCss = await readFile(capstoneCssUrl, "utf8");
+  const workspaceWorkbench = cssRule(capstoneCss, ".ide-shell .project-workbench");
+  assert.match(workspaceWorkbench, /width:\s*100%/);
+  assert.match(workspaceWorkbench, /max-width:\s*none/);
+
   const desktopBlock = capstoneCss.match(/@media \(min-width: 941px\) \{([\s\S]*)\n\}\n\n\.project-workbench/)?.[1];
   assert.ok(desktopBlock, "the desktop IDE must own an explicit wide-screen viewport contract");
 

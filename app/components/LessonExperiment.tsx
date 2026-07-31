@@ -3,7 +3,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import type { CourseLesson } from "@latent/course-kit";
 import {
-  runCausalAttention,
   trainAdditiveAttention,
   trainBpe,
   trainCharacterRnn,
@@ -12,9 +11,12 @@ import {
   type BpeResult,
   type NeuralLmResult,
   type RnnResult,
-  type TransformerResult,
 } from "@latent/model-lab";
-import { markExperimentComplete, saveCharacterRnnArtifact } from "@/app/lib/learner-state";
+import {
+  flushLearnerPersistence,
+  markExperimentComplete,
+  saveCharacterRnnArtifact,
+} from "@/app/lib/learner-state";
 import { MANUAL_PRODUCT_VERIFICATION, runCapstoneQualityAudit } from "@/app/lib/capstone-contract";
 import {
   beginPipelineLoad,
@@ -32,6 +34,9 @@ import "@/app/styles/experiments-systems-product.css";
 import { isHarnessExperimentVariant } from "@/examples/learning-platform/llm-learning/content/harness-engineering/experiments";
 
 const HarnessExperiment = lazy(() => import("@/app/components/HarnessExperiment"));
+const TrustedInteractiveFrame = lazy(async () => ({
+  default: (await import("@/app/features/trusted-interactives/TrustedInteractiveFrame")).TrustedInteractiveFrame,
+}));
 
 type ModelMessage = { role: "system" | "user" | "assistant"; content: string };
 type TextGenerator = {
@@ -609,60 +614,6 @@ function AttentionExperiment({ onComplete }: ExperimentProps) {
               ...row.map((value, columnIndex) => <i key={`${rowIndex}-${columnIndex}`} style={{ background: `rgba(118, 104, 137, ${0.08 + value * 0.82})` }}>{value.toFixed(2)}</i>),
             ])}
           </div>
-        </div>
-      ) : null}
-    </>
-  );
-}
-
-function TransformerExperiment({ onComplete }: ExperimentProps) {
-  const [result, setResult] = useState<TransformerResult | null>(null);
-  const replay = useReplaySequence(onComplete, 620);
-  const selectedToken = result?.tokens[Math.min(replay.step, result.tokens.length - 1)] ?? "";
-  const run = () => {
-    const nextResult = runCausalAttention();
-    setResult(nextResult);
-    replay.start(nextResult.tokens.length);
-  };
-  return (
-    <>
-      <div className="experiment-action">
-        <p>8-dimensional token-plus-position vectors · identity Q/K/V projections · one causal attention head</p>
-        <button type="button" onClick={replay.playing ? replay.pause : run}>{replay.playing ? "Pause token replay" : result ? "Replay attention" : "Run attention"}</button>
-      </div>
-      {result ? (
-        <div className="experiment-results">
-          <ReplayStages
-            label="Inspect one causal attention query"
-            stages={result.tokens.map((token, index) => ({ label: token, value: `position ${index + 1}` }))}
-            current={replay.step}
-            onSelect={replay.select}
-          />
-          <div className="causal-note" aria-live="polite">
-            <strong>Query “{selectedToken}”</strong>
-            <span>Can read positions 1–{replay.step + 1}; every later position is masked to exactly zero.</span>
-          </div>
-          <div className="attention-matrix transformer-matrix" style={{ gridTemplateColumns: `6.5rem repeat(${result.tokens.length}, 1fr)` }}>
-            <span />
-            {result.tokens.map((token, index) => <strong key={`${token}-${index}`}>{token}</strong>)}
-            {result.attention.flatMap((row, rowIndex) => [
-              <strong className={rowIndex === replay.step ? "active-query" : rowIndex > replay.step ? "pending-query" : ""} key={`row-${rowIndex}`}>{result.tokens[rowIndex]}</strong>,
-              ...row.map((value, columnIndex) => {
-                const pending = rowIndex > replay.step;
-                const masked = columnIndex > rowIndex;
-                return (
-                  <i
-                    className={`${masked ? "masked" : ""}${rowIndex === replay.step ? " active-query" : ""}${pending ? " pending-query" : ""}`.trim()}
-                    key={`${rowIndex}-${columnIndex}`}
-                    style={{ background: masked || pending ? undefined : `rgba(118, 104, 137, ${0.08 + value * 0.82})` }}
-                  >
-                    {pending ? "·" : masked ? "—" : value.toFixed(2)}
-                  </i>
-                );
-              }),
-            ])}
-          </div>
-          <div className="context-norms">{result.contextNorms.map((value, index) => <span className={index === replay.step ? "active" : index > replay.step ? "pending" : ""} key={`${result.tokens[index]}-${index}`}><em>{result.tokens[index]}</em><code>{index <= replay.step ? `‖c‖ ${value.toFixed(3)}` : "waiting"}</code></span>)}</div>
         </div>
       ) : null}
     </>
@@ -1556,6 +1507,10 @@ function FundamentalsExperiment({ variant, onComplete }: { variant: string } & E
 
 export function LessonExperiment({ lesson }: { lesson: CourseLesson }) {
   const complete = () => markExperimentComplete(lesson.id);
+  const completeTrustedInteractive = async () => {
+    markExperimentComplete(lesson.id);
+    await flushLearnerPersistence();
+  };
   return (
     <section className="experiment-lab" id="experiment" aria-labelledby={`experiment-title-${lesson.id}`}>
       <header className="experiment-header">
@@ -1570,7 +1525,11 @@ export function LessonExperiment({ lesson }: { lesson: CourseLesson }) {
       {lesson.experiment.kind === "neural-lm" ? <NeuralLmExperiment onComplete={complete} /> : null}
       {lesson.experiment.kind === "bpe" ? <BpeExperiment onComplete={complete} /> : null}
       {lesson.experiment.kind === "attention" ? <AttentionExperiment onComplete={complete} /> : null}
-      {lesson.experiment.kind === "transformer" ? <TransformerExperiment onComplete={complete} /> : null}
+      {lesson.experiment.kind === "trusted-interactive" && lesson.experiment.interactive ? (
+        <Suspense fallback={<p>Preparing interactive…</p>}>
+          <TrustedInteractiveFrame lesson={lesson} onComplete={completeTrustedInteractive} />
+        </Suspense>
+      ) : null}
       {lesson.experiment.kind === "icl" ? <IclExperiment onComplete={complete} /> : null}
       {lesson.experiment.kind === "systems" && lesson.experiment.variant ? <SystemsExperiment variant={lesson.experiment.variant as SystemsVariant} onComplete={complete} /> : null}
       {lesson.experiment.kind === "product" && lesson.experiment.variant ? <ProductExperiment variant={lesson.experiment.variant as ProductVariant} onComplete={complete} /> : null}

@@ -264,6 +264,8 @@ export type GenerationPhase = "queued" | "loading" | "prefill" | "streaming" | "
 export type PreviewInitialization = {
   buildId: string;
   buildNumber: number;
+  buildMode: "development" | "verified" | "portable";
+  sourceRevision: number;
   selectedBackend: ChatBackend;
   studentReady: boolean;
   localReady: boolean;
@@ -569,6 +571,36 @@ function conversationRecord(messages: Message[]) {
   };
 }
 
+function projectBuildLabel(initialization: PreviewInitialization) {
+  if (initialization.buildMode === "development") {
+    return "Development preview · project revision " + initialization.sourceRevision;
+  }
+  if (initialization.buildMode === "portable") return "Portable demo";
+  return "Verified build #" + initialization.buildNumber;
+}
+
+function projectEmptyStateCopy(initialization: PreviewInitialization | null) {
+  if (initialization?.buildMode === "verified") {
+    return {
+      eyebrow: "Verified project connected",
+      title: "Ask the verified system you built.",
+      detail: "This build connects the tested browser adapters and the source-bound Python checkpoint.",
+    };
+  }
+  if (initialization?.buildMode === "portable") {
+    return {
+      eyebrow: "Portable demo connected",
+      title: "Try the exported Browser Chat demo.",
+      detail: "This self-contained archive uses its included demo bridge; it does not claim to be the live project runtime.",
+    };
+  }
+  return {
+    eyebrow: "Development preview connected",
+    title: "Use Browser Chat while you build it.",
+    detail: "This React entry imports the project's browser adapters. Your Python lesson files stay standalone and are checked against the same host-owned contracts.",
+  };
+}
+
 export function BrowserChat() {
   const [state, dispatch] = useReducer(chatReducer, {
     messages: [],
@@ -617,6 +649,7 @@ export function BrowserChat() {
   const persistenceGeneration = useRef(0);
   const terminalConversation = useMemo(() => conversationRecord(state.messages), [state.messages]);
   const terminalConversationIdentity = JSON.stringify(terminalConversation);
+  const emptyStateCopy = projectEmptyStateCopy(preview);
 
   useEffect(() => {
     let active = true;
@@ -635,7 +668,7 @@ export function BrowserChat() {
       setTemperature(initialization.runtime.model.temperature);
       setTopK(initialization.runtime.model.topK);
       setMaxTokens(Math.min(160, initialization.runtime.model.maxTokens));
-      setPreparationDetail("Active build #" + initialization.buildNumber);
+      setPreparationDetail(projectBuildLabel(initialization));
       setHydrated(true);
     }).catch((initializationError) => {
       if (!active) return;
@@ -1000,7 +1033,7 @@ export function BrowserChat() {
   const prepareBackend = async () => {
     if (preparing || backendReady) return;
     if (backend === "student") {
-      setError("This build doesn't have a Python checkpoint for the current source. Test and train models/character-rnn.py, then rebuild the project.");
+      setError("The current project doesn't have a Python checkpoint for this exact model source. Test and train models/character-rnn.py, then return here.");
       setPhase("error");
       return;
     }
@@ -1015,7 +1048,7 @@ export function BrowserChat() {
       await loadLocal(update);
       const initialization = await initializePreview();
       setPreview(initialization);
-      setPreparationDetail("Active build #" + initialization.buildNumber);
+      setPreparationDetail(projectBuildLabel(initialization));
       setPhase("complete");
     } catch (preparationError) {
       setError(preparationError instanceof Error ? preparationError.message : "The selected model couldn't be set up.");
@@ -1029,7 +1062,7 @@ export function BrowserChat() {
     <main className="browser-chat">
       <header className="app-header">
         <div>
-          <span className="project-label">browser-chat / current build</span>
+          <span className="project-label">browser-chat / {preview ? projectBuildLabel(preview) : "current project"}</span>
           <h1>Browser Chat</h1>
         </div>
         <div className="phase-status" data-phase={phase} role="status" aria-live="polite" aria-atomic="true">
@@ -1055,9 +1088,9 @@ export function BrowserChat() {
               <button className={backend === "local" ? "active" : ""} disabled={busy} onClick={() => setBackend("local")} type="button">Local Transformer</button>
               <button className={backend === "student" ? "active" : ""} disabled={busy} onClick={() => setBackend("student")} type="button">Student RNN</button>
             </div>
-            <p>{backend === "local" ? "A real model that runs locally through the isolated host bridge." : "The Python checkpoint tied to this build in Model Foundations."}</p>
+            <p>{backend === "local" ? "A real model that runs locally through the isolated host bridge." : "A checkpoint trained from the exact current models/character-rnn.py source."}</p>
             <button className="prepare-model" type="button" disabled={preparing || backendReady || backend === "student"} onClick={() => void prepareBackend()}>
-              {backendReady ? "Model ready" : preparing ? preparationDetail : backend === "student" ? "Rebuild with Python checkpoint" : "Load local model"}
+              {backendReady ? "Model ready" : preparing ? preparationDetail : backend === "student" ? "Train current Python model" : "Load local model"}
             </button>
           </section>
 
@@ -1118,9 +1151,9 @@ export function BrowserChat() {
             {!hydrated ? <p className="empty-state">Loading the conversation saved on this device…</p> : null}
             {hydrated && visibleMessages.length === 0 ? (
               <div className="empty-state">
-                <span>Current project connected</span>
-                <h2>Ask the system you built.</h2>
-                <p>Your messages go through the context rules, serving protocol, reliability checks, reducer, and render buffer you built.</p>
+                <span>{emptyStateCopy.eyebrow}</span>
+                <h2>{emptyStateCopy.title}</h2>
+                <p>{emptyStateCopy.detail}</p>
               </div>
             ) : null}
             {visibleMessages.map((message) => {

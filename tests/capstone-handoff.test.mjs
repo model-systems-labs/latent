@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { readFile } from "node:fs/promises";
@@ -10,6 +11,7 @@ let bindings;
 let template;
 let fileStatus;
 let contracts;
+let developmentPreview;
 
 before(async () => {
   vite = await createServer({
@@ -19,12 +21,13 @@ before(async () => {
     appType: "custom",
     logLevel: "silent",
   });
-  [capstone, bindings, template, fileStatus, contracts] = await Promise.all([
+  [capstone, bindings, template, fileStatus, contracts, developmentPreview] = await Promise.all([
     vite.ssrLoadModule("/app/components/BrowserChatCapstone.tsx"),
     vite.ssrLoadModule("/app/runtime/bindings/manifest.ts"),
     vite.ssrLoadModule("/examples/learning-platform/llm-learning/content/browser-chat/project-template.ts"),
     vite.ssrLoadModule("/app/lib/project-file-status.ts"),
     vite.ssrLoadModule("/examples/learning-platform/llm-learning/content/llm-systems/contracts.ts"),
+    vite.ssrLoadModule("/app/features/capstone/development-preview.ts"),
   ]);
 });
 
@@ -175,9 +178,9 @@ test("all four project surfaces derive their numerator from the same source-boun
   assert.deepEqual(capstone.capstonePathPresentation("ready", capstone.summarizeCapstoneProgress(project, verifiedSources), undefined, false), {
     sourceState: "pending",
     buildState: "current",
-    previewState: "pending",
-    previewDetail: "locked until the build passes",
-  }, "an older active build must not overwrite current workspace drift");
+    previewState: "current",
+    previewDetail: "development preview available",
+  }, "an older active build must not overwrite current workspace drift or block a development preview");
 });
 
 test("untrusted legacy results cannot change capstone progress or saved receipt counts", () => {
@@ -245,7 +248,7 @@ test("a complete active build presents verified evidence and one honest run acti
     sourceState: "complete",
     buildState: "complete",
     previewState: "current",
-    previewDetail: "ready to run",
+    previewDetail: "verified build ready",
   });
 });
 
@@ -279,6 +282,11 @@ test("capstone milestones keep lesson readiness, model checkpoint, and app build
     })[1].value,
     "Source-bound Python checkpoint saved · retrain after model edits",
   );
+  assert.deepEqual(capstone.capstoneMilestoneEvidence("ready", null, 7, progress, undefined, "development"), [
+    { label: "Lesson files", value: "14/14 ready" },
+    { label: "Model checkpoint", value: "Not trained from Python yet" },
+    { label: "App build", value: "Development preview · last verified build #7 remains separate" },
+  ]);
 });
 
 test("a validated but stale build is labeled as historical and cannot become the current preview", () => {
@@ -400,23 +408,105 @@ test("a missing source-bound Python checkpoint routes directly to the model trai
   assert.match(recovery.why, /imported checkpoints, JavaScript demo weights, or checkpoints from older source/);
 });
 
+test("a development preview failure points to its actual project file", () => {
+  const progress = summarize(projectFixture());
+  const recovery = capstone.capstoneRecoveryForFailure({
+    code: "DEVELOPMENT_PREVIEW_FAILED",
+    message: "runtime/transport.config.js: delayMs must be an integer.",
+    path: "runtime/transport.config.js",
+  }, progress);
+  assert.equal(recovery.blockedStage, "preview");
+  assert.equal(recovery.path, "runtime/transport.config.js");
+  assert.equal(recovery.href, "/workspace?file=runtime%2Ftransport.config.js");
+  assert.equal(recovery.actionLabel, "Open transport.config.js");
+});
+
+test("a development Student RNN requires the exact local source-bound checkpoint", async () => {
+  const source = "def rnn_step(value):\\n    return value\\n";
+  const sourceHash = `sha256:${createHash("sha256").update(source).digest("hex")}`;
+  const checkpointPayload = {
+    version: 1,
+    vocabulary: ["a"],
+    hiddenSize: 1,
+    Wxh: [[0.1]],
+    Whh: [[0.1]],
+    Why: [[0.1]],
+    bh: [0],
+    by: [0],
+  };
+  const checkpoint = {
+    id: "checkpoint-current",
+    projectId: "browser-chat",
+    buildId: null,
+    kind: "character-rnn",
+    formatVersion: 1,
+    payload: checkpointPayload,
+    metrics: { finalLoss: 0.5, parameters: 5, vocabularySize: 1 },
+    origin: "python",
+    sourcePath: "models/character-rnn.py",
+    sourceHash,
+    createdAt: 1,
+  };
+  const artifact = {
+    checkpoint: checkpointPayload,
+    finalLoss: 0.5,
+    parameters: 5,
+    vocabularySize: 1,
+    trainedAt: 1,
+    origin: "python",
+    checkpointId: checkpoint.id,
+    sourcePath: checkpoint.sourcePath,
+    sourceHash,
+  };
+  const files = { "models/character-rnn.py": { content: source } };
+  assert.equal(
+    (await developmentPreview.currentDevelopmentStudentArtifact(
+      files,
+      artifact,
+      checkpoint,
+      "models/character-rnn.py",
+    ))?.checkpointId,
+    checkpoint.id,
+  );
+  assert.equal(await developmentPreview.currentDevelopmentStudentArtifact(
+    { "models/character-rnn.py": { content: `${source}# changed` } },
+    artifact,
+    checkpoint,
+    "models/character-rnn.py",
+  ), null);
+  assert.equal(await developmentPreview.currentDevelopmentStudentArtifact(
+    files,
+    artifact,
+    { ...checkpoint, importedFrom: "backup.json" },
+    "models/character-rnn.py",
+  ), null);
+});
+
 test("the learner-facing component no longer emits the old dead-end or raw capability failure", async () => {
-  const [source, styles] = await Promise.all([
+  const [source, styles, developmentSource] = await Promise.all([
     readFile(new URL("../app/components/BrowserChatCapstone.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/styles/capstone.css", import.meta.url), "utf8"),
+    readFile(new URL("../app/features/capstone/development-preview.ts", import.meta.url), "utf8"),
   ]);
   assert.doesNotMatch(source, /Canonical project required|Build the repository in the IDE/);
   assert.doesNotMatch(source, /Restore the capstone build/);
-  assert.match(source, /Checking your build/);
+  assert.match(source, /Compiling Browser Chat/);
   assert.doesNotMatch(source, /setDetail\(error instanceof Error \? error\.message/);
   assert.doesNotMatch(source, /Last test run|passing in the last run/);
   assert.doesNotMatch(source, /Current lesson files|<strong>Active build<\/strong>|capstone-build-path|How it runs|What to fix next/);
   assert.match(source, /className="capstone-action"/);
   assert.match(source, /className="capstone-milestones"/);
   assert.doesNotMatch(source, /No saved test results/);
-  assert.match(source, /portfolioReadiness\(\{ project, learner, lessons: courseLessons \}\)\.activeBuildMatchesTests/);
-  assert.match(source, /status === "ready" && !activeBuildIsCurrent/);
-  assert.match(source, /if \(!activeBuildIsCurrent \|\| !iframe/);
+  assert.match(source, /portfolioReadiness\(\{\s*project: currentProject,\s*learner: currentLearner,\s*lessons: courseLessons/);
+  assert.doesNotMatch(source, /status === "ready" && !activeBuildIsCurrent/);
+  assert.doesNotMatch(source, /if \(!activeBuildIsCurrent \|\| !iframe/);
+  assert.match(source, /compileDevelopmentCapstonePreview/);
+  assert.match(source, /setRunRequested\(true\)/);
+  assert.match(source, /buildMode: descriptor\.mode/);
+  assert.match(developmentSource, /BrowserLabCompilerClient/);
+  assert.match(developmentSource, /verifyPreviewBundle/);
+  assert.match(developmentSource, /runCapstoneBehaviorContract/);
+  assert.doesNotMatch(developmentSource, /repositories\.builds|saveProjectRuntime|promote/);
   assert.match(source, /presentedStatus === "ready" && bundle/);
   assert.match(source, /await reconcileCanonicalProject\(\)/);
   assert.match(source, /aria-label="Verified lesson files"/);

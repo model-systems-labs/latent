@@ -197,7 +197,7 @@ test("an editable capstone source change produces a different runnable bundle", 
   const baseline = await compileCanonical(canonicalFiles(), "canonical-capstone-baseline");
   const component = template.CANONICAL_BROWSER_CHAT_FILES.find((file) => file.path === template.CAPSTONE_COMPONENT_PATH);
   assert.ok(component);
-  const editedSource = component.source.replace("Ask the system you built.", "Ask your compiled project.");
+  const editedSource = component.source.replace("Use Browser Chat while you build it.", "Use your compiled project now.");
   assert.notEqual(editedSource, component.source);
 
   const edited = await compileCanonical(
@@ -206,7 +206,7 @@ test("an editable capstone source change produces a different runnable bundle", 
   );
   assert.equal(edited.diagnostics.filter((diagnostic) => diagnostic.severity === "error").length, 0);
   assert.notEqual(edited.modules[0].codeHash, baseline.modules[0].codeHash);
-  assert.match(edited.modules[0].code, /Ask your compiled project\./);
+  assert.match(edited.modules[0].code, /Use your compiled project now\./);
 });
 
 test("the host-owned mounted behavior contract passes canonical BrowserChat and rejects a blank component", async () => {

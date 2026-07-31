@@ -350,7 +350,8 @@ test("project views expose current completion, repository history, and accessibl
   assert.match(timeline, /trustedProjectResults\(project\.tests\)/);
   assert.match(workbench, /trustedProjectResults\(project\.tests\)/);
 
-  assert.match(projectPage, /See which lesson files are ready for the final browser build/);
+  assert.match(projectPage, /Explore the files, run the current app, and see what is verified for a full build/);
+  assert.match(projectPage, /Run Browser Chat/);
   assert.match(projectPage, /History and privacy/);
   assert.doesNotMatch(projectPage, /When you edit a lesson file|latest full-project test result|Other unchanged lesson results|last active build stays in place/);
 

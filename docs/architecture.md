@@ -8,6 +8,8 @@ The user-visible v0.2 scope is frozen in
 [the launch contract](./v0.2-launch-contract.md). The security rationale for
 the extension model is recorded in
 [ADR-0001](./decisions/0001-portable-content-and-trusted-extensions.md).
+The reviewed browser-native interaction seam is recorded in
+[ADR-0002](./decisions/0002-trusted-interactive-frames.md).
 
 ## Platform composition
 
@@ -109,6 +111,42 @@ Pure libraries compile to `dist/` with declarations before the web build.
 Browser Lab is intentionally source-exported inside the private workspace so
 Vite can discover its compiler and sandbox worker URLs; publishing it outside
 the monorepo would require a dedicated worker-bundling build.
+
+### Browser Chat development preview
+
+Browser Chat has two deliberately different execution identities. The
+development preview compiles the current `capstone/main.tsx` import graph,
+verifies the emitted bundle hash, runs the host-owned capstone behavior
+contract (including its isolated preflight), and mounts it in the same
+opaque-origin sandboxed iframe used by a verified build. It may run before
+lesson completion, but it is ephemeral: it does not persist test evidence,
+promote a build, mint a receipt, or qualify as portfolio evidence.
+
+A verified build still requires the complete source-bound contract suite and
+durable promotion record. Python lesson files remain standalone CPython
+contract implementations rather than React imports. Only a host-recorded
+`models/character-rnn.py` checkpoint whose hash matches the exact current
+source may enter either preview mode; otherwise Browser Chat can use its local
+browser model.
+
+### Trusted interactive lesson frames
+
+Trusted lesson interactives are reviewed application source authored as
+separate HTML, CSS, and JavaScript files plus a typed definition. They are not
+portable Learning Pack or Question Group fields. The application hashes the
+exact source, injects the shared learner visual contract, and transfers the
+verified bundle over a private `MessageChannel` to an opaque-origin iframe
+with `sandbox="allow-scripts"` and a network-denying CSP.
+
+The frame receives only explicit host capabilities for context, bounded JSON
+state, allowlisted events, and completion requests. State is namespaced by
+course, lesson, interactive, definition version, source hash, and state schema
+version. The host validates saved evidence before updating progress; mounting
+or messaging from the frame is never completion. This gives coding agents a
+natural browser-native authoring medium without granting remotely loaded
+content or authored JavaScript application authority. The implementation and
+authoring workflow are described in
+[Trusted lesson interactives](./trusted-interactives.md).
 
 ## Shared learner presentation
 

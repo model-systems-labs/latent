@@ -29,6 +29,10 @@ intended skill.
 - **Trusted platform source:** verify checks are deterministic and host-owned,
   browser execution is bounded, persistence binds exact source and contract,
   and remote metadata cannot grant capabilities.
+- **Trusted interactives, when present:** verify source is repository-owned,
+  the opaque frame requests only named capabilities, exact-version state
+  restores before controls activate, reset is complete, and the host validates
+  meaningful saved evidence before changing progress.
 - **Experience:** verify navigation, feedback, accessibility, mobile layout,
   reload behavior, and the leech page as a progress query.
 

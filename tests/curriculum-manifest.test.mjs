@@ -114,6 +114,20 @@ test("model dataset records and reference frames match the supplied runtimes", (
   assert.equal(icl.frames[2].payload.demonstrations, 4);
 });
 
+test("Transformers selects a reviewed trusted interactive without embedding executable source", () => {
+  const lesson = course.courseLessons.find((candidate) => candidate.id === "transformers");
+  assert.ok(lesson);
+  assert.equal(lesson.experiment.kind, "trusted-interactive");
+  assert.deepEqual(lesson.experiment.interactive, {
+    id: "causal-attention",
+    definitionVersion: 2,
+  });
+  assert.equal("source" in lesson.experiment, false);
+  assert.equal("html" in lesson.experiment, false);
+  assert.equal("css" in lesson.experiment, false);
+  assert.equal("javascript" in lesson.experiment, false);
+});
+
 test("manifest validation rejects ambiguous files and unreachable source lessons", () => {
   const duplicatePathManifest = structuredClone(manifestModule.llmSystemsManifest);
   duplicatePathManifest.modules[1].lessons[0].projectPath =

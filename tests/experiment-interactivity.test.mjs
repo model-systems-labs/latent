@@ -4,6 +4,14 @@ import test from "node:test";
 
 const root = new URL("../", import.meta.url);
 const lessonExperimentUrl = new URL("app/components/LessonExperiment.tsx", root);
+const trustedInteractiveHostUrl = new URL(
+  "app/features/trusted-interactives/TrustedInteractiveFrame.tsx",
+  root,
+);
+const causalAttentionUrl = new URL(
+  "app/features/trusted-interactives/definitions/causal-attention/main.js",
+  root,
+);
 const harnessExperimentUrl = new URL("app/components/HarnessExperiment.tsx", root);
 const replayUrl = new URL("app/components/ExperimentReplay.tsx", root);
 const modelStylesUrl = new URL("app/styles/experiments-models.css", root);
@@ -30,8 +38,7 @@ test("the shared replay controller supports pause, direct inspection, cleanup, a
 test("every instant model experiment exposes an inspectable mechanism instead of only final output", async () => {
   const source = await readFile(lessonExperimentUrl, "utf8");
   const bpe = section(source, "function BpeExperiment", "function AttentionExperiment");
-  const attention = section(source, "function AttentionExperiment", "function TransformerExperiment");
-  const transformer = section(source, "function TransformerExperiment", "function IclExperiment");
+  const attention = section(source, "function AttentionExperiment", "function IclExperiment");
   const icl = section(source, "function IclExperiment", "type SystemsVariant");
 
   assert.match(bpe, /useReplaySequence/);
@@ -40,11 +47,28 @@ test("every instant model experiment exposes an inspectable mechanism instead of
   assert.match(attention, /useReplaySequence/);
   assert.match(attention, /Inspect alignment training checkpoint/);
   assert.match(attention, /pointNumber=\{\(point\) => 1 \+ \(point - 1\) \* 20\}/);
-  assert.match(transformer, /useReplaySequence/);
-  assert.match(transformer, /Inspect one causal attention query/);
-  assert.match(transformer, /pending-query/);
   assert.match(icl, /role="status" aria-live="polite"/);
   assert.match(icl, /className="icl-result-stack" aria-live="polite"/);
+});
+
+test("the Transformers experiment dispatches through the stateful trusted-frame seam", async () => {
+  const [lessonExperiment, host, authored] = await Promise.all([
+    readFile(lessonExperimentUrl, "utf8"),
+    readFile(trustedInteractiveHostUrl, "utf8"),
+    readFile(causalAttentionUrl, "utf8"),
+  ]);
+
+  assert.match(lessonExperiment, /kind === "trusted-interactive"/);
+  assert.match(lessonExperiment, /TrustedInteractiveFrame lesson=\{lesson\}/);
+  assert.doesNotMatch(lessonExperiment, /function TransformerExperiment/);
+  assert.match(host, /sandboxed|mountTrustedInteractiveFrame/);
+  assert.match(host, /validateTrustedInteractiveCheckpoint/);
+  assert.match(host, /Reset interactive/);
+  assert.match(host, /createTrustedInteractiveStatePersistence/);
+  assert.match(authored, /window\.Latent\.connect\(\)/);
+  assert.match(authored, /saveCurrentState/);
+  assert.match(authored, /causal-attention-comparison/);
+  assert.match(authored, /causal-attention-trace-revealed/);
 });
 
 test("systems, product, fundamentals, and harness runs replay their internal steps", async () => {

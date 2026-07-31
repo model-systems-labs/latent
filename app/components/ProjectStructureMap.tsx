@@ -155,10 +155,28 @@ export function ProjectStructureMap() {
       <header className="project-structure-root">
         <div className={styles.intro}>
           <strong>browser-chat/</strong>
-          <p>The full project is scaffolded now. Your verified lesson implementations progressively replace its placeholders.</p>
+          <p>The React app imports real TypeScript modules. Your standalone Python files implement the same host-owned contracts; models/character-rnn.py can also produce the checkpoint the app runs.</p>
         </div>
         <span role="status" aria-label={`${sourceProgress.verified} of ${sourceProgress.total} lesson source files are build-ready; ${sourceProgress.partial} partially verified; ${sourceProgress.needsWork} ${sourceProgress.needsWork === 1 ? "needs" : "need"} work; ${sourceProgress.notStarted} not started`}>{sourceProgress.verified} of {sourceProgress.total} lesson files ready</span>
       </header>
+      <dl className={styles.relationships} aria-label="How the Browser Chat project files connect">
+        <div>
+          <dt>Imported app graph</dt>
+          <dd><code>main.tsx → BrowserChat.tsx → browser adapters</code></dd>
+        </div>
+        <div>
+          <dt>Python contracts</dt>
+          <dd><code>standalone .py files → host-owned checks</code></dd>
+        </div>
+        <div>
+          <dt>Trained model</dt>
+          <dd><code>character-rnn.py → checkpoint → Student RNN</code></dd>
+        </div>
+        <div>
+          <dt>Runtime settings</dt>
+          <dd><code>*.config.js → host-parsed configuration</code></dd>
+        </div>
+      </dl>
       <div className="project-structure-groups">
         {projectGroups.map((group, index) => (
           <ProjectGroup
@@ -171,7 +189,7 @@ export function ProjectStructureMap() {
       </div>
       <footer className={`project-structure-next ${styles.next}`}>
         <div>
-          <p>Lesson checks prove one file. The Python checkpoint stores trained weights. A full build ties the checked project to Browser Chat.</p>
+          <p>BrowserChat.tsx imports the browser adapters it uses. Lesson checks verify the matching Python contracts; a full build records the whole source tree and its evidence.</p>
           <span>Saved in this browser. You can save an optional backup from the IDE.</span>
         </div>
         <Link href={nextAction.href}>{nextAction.label} →</Link>

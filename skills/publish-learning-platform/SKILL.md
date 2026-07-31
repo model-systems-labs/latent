@@ -37,6 +37,10 @@ unlicensed content, or mismatched release identity.
 Preview the exact build. Exercise all four primitives, failure feedback,
 keyboard navigation, mobile layout, reload persistence, source links, and the
 leech-only progress query. Record any browser check that could not be run.
+If the reviewed platform contains trusted interactives, also exercise every
+advertised path, exact-state reload, host reset, capability failure, and
+completion evidence at desktop and compact widths. Confirm the generated
+artifact contains the reviewed source rather than fetching executable bytes.
 
 ## Publish by layer
 

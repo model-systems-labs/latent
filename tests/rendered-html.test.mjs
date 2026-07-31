@@ -464,7 +464,11 @@ test("Transformers works through a shaped causal attention matrix before the liv
   assert.match(html, /The full decoder block/);
   assert.match(html, /Non-affine layer normalization/);
   assert.match(html, /learned gain gamma and bias beta/);
-  assert.match(html, /Run causal self-attention/);
+  assert.match(html, /Inspect causal self-attention/);
+  assert.match(html, /Reveal a fixed masked-attention trace/);
+  assert.doesNotMatch(html, /Watch the mask move with the query/);
+  assert.doesNotMatch(html, /causal-attention-query-selected/);
+  assert.doesNotMatch(html, /globalThis\.Latent/);
 });
 
 test("In-Context Learning renders a controlled comparison and explicit inference boundary", async () => {
@@ -541,10 +545,9 @@ test("the capstone contains the complete React chat system", async () => {
   const html = await response.text();
   assert.match(html, /Browser Chat/);
   assert.match(html, /compiled-capstone-shell/);
-  assert.match(html, /Checking your build/);
-  assert.match(html, /Verifying the current test result and preview bundle/);
+  assert.match(html, /Compiling Browser Chat/);
+  assert.match(html, /Building the current React import graph/);
   assert.match(html, /href="\/workspace"/);
-  assert.match(html, /href="\/project"/);
   assert.doesNotMatch(html, /Project file editor/);
   assert.doesNotMatch(html, /Student model|Local chat model|Enter to send/);
 });

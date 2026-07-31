@@ -1,0 +1,136 @@
+<main class="attention-lab" data-ready="false" aria-labelledby="attention-lab-title">
+  <header class="lab-intro">
+    <div class="lab-intro-copy">
+      <p class="lab-kicker">Causal attention · one head</p>
+      <h2 id="attention-lab-title">Watch the mask move with the query</h2>
+      <p>
+        Reveal the fixed trace from this lesson’s forward pass, then choose a
+        query token. Each row can mix information from its own position and the
+        positions before it—never from the future.
+      </p>
+    </div>
+    <div class="lab-run">
+      <button class="run-button" id="run-attention" type="button" disabled>
+        <span aria-hidden="true">▶</span>
+        <span>Reveal attention trace</span>
+      </button>
+      <p class="lab-status" id="lab-status" role="status" aria-live="polite" aria-atomic="true">
+        Connecting to the lesson…
+      </p>
+    </div>
+  </header>
+
+  <section class="attention-board" aria-labelledby="query-heading">
+    <div class="query-strip">
+      <div>
+        <p class="section-label">Query position</p>
+        <h3 id="query-heading">Choose the row to inspect</h3>
+      </div>
+      <div
+        class="query-tabs"
+        id="query-tabs"
+        role="tablist"
+        aria-label="Causal attention query tokens"
+        aria-busy="true"
+      ></div>
+    </div>
+
+    <div class="attention-layout">
+      <div class="matrix-region" id="matrix-region">
+        <header class="matrix-heading">
+          <div>
+            <p class="section-label">Attention probabilities</p>
+            <h3 id="matrix-heading">Queries down · keys across</h3>
+          </div>
+          <div class="matrix-legend" aria-label="Attention matrix legend">
+            <span><i class="legend-swatch legend-low" aria-hidden="true"></i> Lower weight</span>
+            <span><i class="legend-swatch legend-high" aria-hidden="true"></i> Higher weight</span>
+            <span><i class="legend-swatch legend-mask" aria-hidden="true"></i> Future masked</span>
+          </div>
+        </header>
+
+        <div
+          class="matrix-scroll"
+          role="region"
+          aria-labelledby="matrix-heading"
+          tabindex="0"
+        >
+          <table id="attention-matrix">
+            <caption>
+              Causal self-attention probabilities. Select a query row to inspect
+              which earlier key positions it can read.
+            </caption>
+            <thead id="matrix-head"></thead>
+            <tbody id="matrix-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <aside
+        class="query-detail"
+        id="query-detail"
+        role="tabpanel"
+      >
+        <p class="section-label">Selected query</p>
+        <div class="query-title">
+          <span id="query-position">Position —</span>
+          <strong id="query-token">Waiting</strong>
+        </div>
+        <dl class="query-metrics">
+          <div>
+            <dt>Readable keys</dt>
+            <dd id="readable-keys">—</dd>
+          </div>
+          <div>
+            <dt>Masked future</dt>
+            <dd id="masked-keys">—</dd>
+          </div>
+          <div>
+            <dt>Row probability</dt>
+            <dd id="row-total">—</dd>
+          </div>
+        </dl>
+        <div class="norm-block">
+          <div>
+            <span>Context magnitude</span>
+            <strong id="context-norm">—</strong>
+          </div>
+          <div
+            class="norm-track"
+            role="img"
+            id="norm-track"
+            aria-label="Context magnitude is not available until attention runs"
+          >
+            <i id="norm-fill"></i>
+          </div>
+        </div>
+        <p class="query-explanation" id="query-explanation">
+          Reveal the attention trace to inspect the causal mask and probability rows.
+        </p>
+      </aside>
+    </div>
+  </section>
+
+  <footer class="reading-guide" aria-label="How to read the attention matrix">
+    <p class="section-label">Read the matrix</p>
+    <ol>
+      <li>
+        <span>1</span>
+        <p><strong>Start with a query row.</strong> It represents the token currently building a new context vector.</p>
+      </li>
+      <li>
+        <span>2</span>
+        <p><strong>Scan only left through the diagonal.</strong> Future columns are masked before softmax.</p>
+      </li>
+      <li>
+        <span>3</span>
+        <p><strong>Compare the visible weights.</strong> Every unmasked row normalizes to one.</p>
+      </li>
+    </ol>
+  </footer>
+
+  <div class="lab-error" id="lab-error" role="alert" hidden>
+    <strong>This interactive could not start.</strong>
+    <p id="lab-error-detail">Reload the lesson and try again.</p>
+  </div>
+</main>

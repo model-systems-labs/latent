@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { sampleCharacterRnn } from "@latent/model-lab/character-rnn";
-import { sourceBoundPythonRnnArtifactFromCheckpoint, useLearnerState, type SavedRnnArtifact } from "@/app/lib/learner-state";
-import { useProjectState, type ProjectState } from "@/app/lib/project-workspace";
+import { loadLearnerState, sourceBoundPythonRnnArtifactFromCheckpoint, useLearnerState, type SavedRnnArtifact } from "@/app/lib/learner-state";
+import { loadProjectState, useProjectState, type ProjectRuntime, type ProjectState } from "@/app/lib/project-workspace";
 import { expectedProjectContractIdsForPath, projectLessonBuildStatus, projectResultsForFile, trustedProjectResults } from "@/app/lib/project-file-status";
 import { canonicalLessonSeeds, reconcileCanonicalProject } from "@/app/lib/canonical-project";
 import { recordLearningEvent } from "@/app/lib/learning-analytics";
 import { createLatestConversationWriter, loadCapstoneConversation } from "@/app/features/capstone/conversation-store";
+import { compileDevelopmentCapstonePreview, currentDevelopmentStudentArtifact } from "@/app/features/capstone/development-preview";
 import { LocalModelClient } from "@/app/runtime/model/local-model-client";
 import { LOCAL_MODEL_MAX_NEW_TOKENS, type ModelMessage } from "@/app/runtime/model/protocol";
 import { getPersistenceContext } from "@/app/platform/persistence/client";
@@ -18,7 +19,6 @@ import {
   LLM_RUNTIME_CAPABILITIES,
   certifiedCapstoneRuntimeConfig,
   loadValidatedCapstoneBundle,
-  type CapstoneRuntimeDescriptor,
   type CertifiedCapstoneRuntimeConfig,
 } from "@/app/runtime/bindings";
 import {
@@ -88,10 +88,21 @@ export async function cancelActiveGenerationResources(
 }
 
 type HostStatus = "loading" | "ready" | "missing" | "error";
+export type CapstonePreviewMode = "development" | "verified";
+
+type CapstonePreviewIdentity = {
+  buildId: string;
+  buildNumber: number;
+  projectRevision: number;
+  mode: CapstonePreviewMode;
+};
+
+type CapstonePreviewRuntime = ProjectRuntime | CertifiedCapstoneRuntimeConfig;
 
 type CapstoneFailure = {
   code: string | null;
   message: string;
+  path: string | null;
 };
 
 export type CapstoneProgress = {
@@ -202,14 +213,14 @@ export function capstoneMissingBuildRecovery(progress: CapstoneProgress): Capsto
   if (!sourceComplete) {
     const lessonTarget = lessonTargetForPath(progress.nextPath);
     return {
-      eyebrow: "You need a passing build",
+      eyebrow: "For a verified build",
       title: "Finish the next module.",
       summary: progress.totalLessonFiles
         ? `${progress.verifiedLessonFiles} of ${progress.totalLessonFiles} lesson files are verified.`
         : "No lesson files are ready yet.",
       path: progress.nextPath,
       pathLabel: `Next source · ${progress.nextPath}`,
-      why: "This is the first unfinished lesson contribution the capstone still needs. Return to its explanation and implementation before opening the file in the IDE.",
+      why: "This is the first unfinished contribution required by full-project verification. The development preview remains available while you work.",
       action: lessonTarget ? "lesson" : "workspace",
       actionLabel: lessonTarget ? `Continue ${lessonTarget.title}` : `Open ${progress.nextTitle}`,
       href: lessonTarget?.href ?? workspaceHref(progress.nextPath),
@@ -217,12 +228,12 @@ export function capstoneMissingBuildRecovery(progress: CapstoneProgress): Capsto
     };
   }
   return {
-    eyebrow: "Run a full build",
-    title: "Run the full project tests.",
-    summary: `All ${progress.totalLessonFiles} lesson files are verified. The preview needs one passing build of the current source.`,
+    eyebrow: "Create a verified build",
+    title: "Verify the full project.",
+    summary: `All ${progress.totalLessonFiles} lesson files are verified. Run one full-project check to promote the current source; the development preview is already available.`,
     path: CAPSTONE_COMPONENT_PATH,
     pathLabel: `Final integration · ${CAPSTONE_COMPONENT_PATH}`,
-    why: "A passing full build puts every verified Python lesson, the tested browser adapters, and the React app into one snapshot before any project code reaches the preview.",
+    why: "A passing full build records every verified Python lesson, the tested browser adapters, and the React app in one source-bound snapshot.",
     action: "project",
     actionLabel: "Review the project and run the full build",
     href: "/project",
@@ -235,6 +246,14 @@ export function capstoneReadyGateCopy(buildNumber: number) {
     eyebrow: `Verified build ${buildNumber}`,
     title: "Browser Chat is ready.",
     summary: "The current source and React app passed together and can run in the isolated browser preview.",
+  } as const;
+}
+
+export function capstoneDevelopmentReadyCopy(projectRevision: number) {
+  return {
+    eyebrow: "Development preview",
+    title: "Your current app is running.",
+    summary: `Project revision ${projectRevision} compiled from the files in the IDE. Full-project verification remains a separate milestone.`,
   } as const;
 }
 
@@ -259,11 +278,12 @@ export function capstoneMilestoneEvidence(
   lastPassingBuildNumber: number | null,
   progress: CapstoneProgress,
   artifact: SavedRnnArtifact | undefined,
+  previewMode: CapstonePreviewMode = "verified",
 ) {
   const lessonFiles = progress.totalLessonFiles
     ? `${progress.verifiedLessonFiles}/${progress.totalLessonFiles} ready`
     : "Restoring project files";
-  const checkpoint = status === "ready"
+  const checkpoint = status === "ready" && previewMode === "verified"
     ? "Current source-bound Python checkpoint"
     : artifact?.origin === "python" && artifact.sourcePath === PYTHON_CHARACTER_RNN_PATH && artifact.sourceHash
       ? "Source-bound Python checkpoint saved · retrain after model edits"
@@ -272,8 +292,12 @@ export function capstoneMilestoneEvidence(
         : artifact
           ? "JavaScript lesson model only · Python checkpoint required"
           : "Not trained from Python yet";
-  const appBuild = status === "ready" && verifiedBuildNumber
+  const appBuild = status === "ready" && previewMode === "verified" && verifiedBuildNumber
     ? `Build #${verifiedBuildNumber} passes the current source`
+    : status === "ready" && previewMode === "development"
+      ? lastPassingBuildNumber
+        ? `Development preview · last verified build #${lastPassingBuildNumber} remains separate`
+        : "Development preview · full-project checks not complete"
     : status === "loading"
       ? "Checking the current source"
       : lastPassingBuildNumber
@@ -288,18 +312,40 @@ export function capstoneMilestoneEvidence(
 
 function failureRecord(error: unknown): CapstoneFailure {
   if (!error || typeof error !== "object") {
-    return { code: null, message: typeof error === "string" ? error : "Latent couldn’t verify the active capstone build." };
+    return {
+      code: null,
+      message: typeof error === "string" ? error : "Latent couldn’t verify the current Browser Chat project.",
+      path: null,
+    };
   }
-  const candidate = error as { code?: unknown; message?: unknown };
+  const candidate = error as { code?: unknown; message?: unknown; path?: unknown };
   return {
     code: typeof candidate.code === "string" ? candidate.code : null,
-    message: typeof candidate.message === "string" ? candidate.message : "Latent couldn’t verify the active capstone build.",
+    message: typeof candidate.message === "string" ? candidate.message : "Latent couldn’t verify the current Browser Chat project.",
+    path: typeof candidate.path === "string" ? candidate.path : null,
   };
 }
 
 /** Converts host verification failures into a concrete, non-jargon repair step without weakening the gate. */
 export function capstoneRecoveryForFailure(error: unknown, progress: CapstoneProgress): CapstoneRecovery {
   const failure = failureRecord(error);
+  if (failure.code === "DEVELOPMENT_PREVIEW_FAILED") {
+    const targetPath = failure.path ?? CAPSTONE_COMPONENT_PATH;
+    const targetName = targetPath.split("/").at(-1) ?? targetPath;
+    return {
+      eyebrow: "The current app needs a fix",
+      title: "The current Browser Chat project didn’t compile.",
+      summary: failure.message,
+      path: targetPath,
+      pathLabel: `Current source · ${targetPath}`,
+      why: "The development preview compiles the current React import graph and host-parsed config files without requiring course completion. Fix this source error, then return here; full-project verification remains separate.",
+      action: "workspace",
+      actionLabel: `Open ${targetName}`,
+      actionPath: targetPath,
+      href: workspaceHref(targetPath),
+      blockedStage: "preview",
+    };
+  }
   if (failure.code === "MISSING_SOURCE_BOUND_CHECKPOINT") {
     return {
       eyebrow: "You need a Python checkpoint",
@@ -594,14 +640,17 @@ export function capstonePathPresentation(
   progress: CapstoneProgress,
   blockedStage?: CapstoneRecovery["blockedStage"],
   activeBuildIsCurrent = true,
+  previewMode: CapstonePreviewMode = activeBuildIsCurrent ? "verified" : "development",
 ) {
   const sourceComplete = progress.totalLessonFiles > 0 && progress.verifiedLessonFiles === progress.totalLessonFiles;
-  const currentStatus: HostStatus = status === "ready" && !activeBuildIsCurrent ? "error" : status;
+  const verified = status === "ready" && activeBuildIsCurrent && previewMode === "verified";
   return {
     sourceState: sourceComplete ? "complete" : blockedStage === "source" ? "current" : "pending",
-    buildState: currentStatus === "ready" ? "complete" : currentStatus === "loading" || blockedStage === "build" || !activeBuildIsCurrent ? "current" : "pending",
-    previewState: currentStatus === "ready" || blockedStage === "preview" ? "current" : "pending",
-    previewDetail: currentStatus === "ready" ? "ready to run" : blockedStage === "preview" ? "reload the runtime" : "locked until the build passes",
+    buildState: verified ? "complete" : status === "loading" || blockedStage === "build" || !activeBuildIsCurrent ? "current" : "pending",
+    previewState: status === "ready" || blockedStage === "preview" ? "current" : "pending",
+    previewDetail: status === "ready"
+      ? verified ? "verified build ready" : "development preview available"
+      : blockedStage === "preview" ? "fix or reload the runtime" : "preparing current files",
   } as const;
 }
 
@@ -613,95 +662,176 @@ export function BrowserChatCapstone() {
   const runPreviewButtonRef = useRef<HTMLButtonElement | null>(null);
   const resetPreviewButtonRef = useRef<HTMLButtonElement | null>(null);
   const restoreRunFocusRef = useRef(false);
+  const focusResetAfterRunRef = useRef(false);
   const studentRef = useRef<SavedRnnArtifact | null>(null);
   const localModelRef = useRef<LocalModelClient | null>(null);
   const [conversationWriter] = useState(() => createLatestConversationWriter());
   const localReadyRef = useRef(false);
   const [bundle, setBundle] = useState<ValidatedPreviewBundle | null>(null);
   const [reactRuntime, setReactRuntime] = useState<ValidatedPreviewRuntime | null>(null);
-  const [descriptor, setDescriptor] = useState<CapstoneRuntimeDescriptor | null>(null);
-  const [buildRuntime, setBuildRuntime] = useState<CertifiedCapstoneRuntimeConfig | null>(null);
+  const [descriptor, setDescriptor] = useState<CapstonePreviewIdentity | null>(null);
+  const [buildRuntime, setBuildRuntime] = useState<CapstonePreviewRuntime | null>(null);
   const [status, setStatus] = useState<HostStatus>("loading");
-  const [detail, setDetail] = useState("Loading your last passing project build…");
+  const [detail, setDetail] = useState("Compiling the current Browser Chat project…");
   const [runRequested, setRunRequested] = useState(false);
   const [failure, setFailure] = useState<CapstoneFailure | null>(null);
-  const activeBuildIsCurrent = portfolioReadiness({ project, learner, lessons: courseLessons }).activeBuildMatchesTests;
-  const presentedStatus: HostStatus = status === "ready" && !activeBuildIsCurrent ? "error" : status;
+  const presentedStatus: HostStatus = status;
+  const projectSourceKey = JSON.stringify(
+    Object.values(project.files)
+      .sort((left, right) => left.path.localeCompare(right.path))
+      .map((file) => [file.path, file.updatedAt, file.content]),
+  );
 
   useEffect(() => {
     let active = true;
+    const controller = new AbortController();
+    sessionRef.current?.dispose();
+    sessionRef.current = null;
+    studentRef.current = null;
+    focusResetAfterRunRef.current = false;
     void (async () => {
-      await reconcileCanonicalProject();
+      await Promise.resolve();
       if (!active) return;
       setStatus("loading");
       setBundle(null);
       setReactRuntime(null);
       setDescriptor(null);
       setBuildRuntime(null);
-      studentRef.current = null;
       setRunRequested(false);
       setFailure(null);
-      setDetail("Loading your last passing project build…");
+      setDetail("Compiling the current Browser Chat project…");
+      await reconcileCanonicalProject();
+      if (!active) return;
       const { repositories } = await getPersistenceContext();
-      const build = await repositories.builds.activeValidated("browser-chat");
-      if (!build) {
-        if (active) { setStatus("missing"); setDetail("There isn’t a passing full-project build on this device yet."); }
-        return;
-      }
-      const expectedSourceHash = build.fileHashes[PYTHON_CHARACTER_RNN_PATH];
-      const checkpoint = build.checkpointId
-        ? await repositories.checkpoints.get(build.checkpointId)
-        : undefined;
-      const buildStudent = expectedSourceHash
-        ? sourceBoundPythonRnnArtifactFromCheckpoint(checkpoint, PYTHON_CHARACTER_RNN_PATH, expectedSourceHash)
+      const currentProject = loadProjectState();
+      const currentLearner = loadLearnerState();
+      const activeBuildIsCurrent = portfolioReadiness({
+        project: currentProject,
+        learner: currentLearner,
+        lessons: courseLessons,
+      }).activeBuildMatchesTests;
+      const persistedProject = await repositories.projects.get("browser-chat");
+      const build = activeBuildIsCurrent
+        ? await repositories.builds.activeValidated("browser-chat")
         : null;
-      if (!buildStudent || buildStudent.checkpointId !== build.checkpointId) {
-        throw Object.assign(
-          new Error(`The active build has no local Python checkpoint trained from its exact ${PYTHON_CHARACTER_RNN_PATH} source.`),
-          { code: "MISSING_SOURCE_BOUND_CHECKPOINT" },
-        );
-      }
-      const loaded = await loadValidatedCapstoneBundle(build);
-      const certifiedRuntime = certifiedCapstoneRuntimeConfig(build);
       const runtimeResponse = await fetch(PREVIEW_REACT_RUNTIME_PATH, {
         cache: "force-cache",
         credentials: "same-origin",
+        signal: controller.signal,
       });
       if (!runtimeResponse.ok) throw new Error("The trusted React preview runtime isn’t available.");
-      const [verified, verifiedRuntime] = await Promise.all([
-        verifyPreviewBundle({
-          projectId: loaded.descriptor.projectId,
-          buildId: loaded.descriptor.buildId,
-          buildNumber: loaded.descriptor.buildNumber,
-          projectRevision: loaded.descriptor.projectRevision,
-          sourceHash: loaded.descriptor.fingerprints.sourceTree,
-          entryPath: loaded.entryPath,
-          code: loaded.code,
-          codeHash: loaded.codeHash,
-        }),
-        runtimeResponse.text().then((source) => verifyPreviewRuntime(source)),
-      ]);
+      const runtimeSource = await runtimeResponse.text();
+      const verifiedRuntime = await verifyPreviewRuntime(runtimeSource);
+      let nextBundle: ValidatedPreviewBundle;
+      let nextRuntime: CapstonePreviewRuntime;
+      let nextDescriptor: CapstonePreviewIdentity;
+      let nextStudent: SavedRnnArtifact | null;
+
+      const loadDevelopment = async () => {
+        const development = await compileDevelopmentCapstonePreview({
+          files: currentProject.files,
+          runtime: currentProject.runtime,
+          projectRevision: persistedProject?.draftRevision ?? 0,
+          runtimeSource,
+          signal: controller.signal,
+        });
+        const descriptor: CapstonePreviewIdentity = {
+          buildId: development.bundle.buildId,
+          buildNumber: development.bundle.buildNumber,
+          projectRevision: development.bundle.projectRevision,
+          mode: "development",
+        };
+        const learnerArtifact = currentLearner.artifacts.characterRnn;
+        const developmentCheckpoint = learnerArtifact?.checkpointId
+          ? await repositories.checkpoints.get(learnerArtifact.checkpointId)
+          : undefined;
+        const student = await currentDevelopmentStudentArtifact(
+          currentProject.files,
+          learnerArtifact,
+          developmentCheckpoint,
+          PYTHON_CHARACTER_RNN_PATH,
+        );
+        return {
+          bundle: development.bundle,
+          runtime: development.runtime,
+          descriptor,
+          student,
+        };
+      };
+
+      if (build) {
+        try {
+          const expectedSourceHash = build.fileHashes[PYTHON_CHARACTER_RNN_PATH];
+          const checkpoint = build.checkpointId
+            ? await repositories.checkpoints.get(build.checkpointId)
+            : undefined;
+          const buildStudent = expectedSourceHash
+            ? sourceBoundPythonRnnArtifactFromCheckpoint(checkpoint, PYTHON_CHARACTER_RNN_PATH, expectedSourceHash)
+            : null;
+          if (!buildStudent || buildStudent.checkpointId !== build.checkpointId) {
+            throw new Error(`The active build has no local Python checkpoint trained from its exact ${PYTHON_CHARACTER_RNN_PATH} source.`);
+          }
+          const loaded = await loadValidatedCapstoneBundle(build);
+          nextBundle = await verifyPreviewBundle({
+            projectId: loaded.descriptor.projectId,
+            buildId: loaded.descriptor.buildId,
+            buildNumber: loaded.descriptor.buildNumber,
+            projectRevision: loaded.descriptor.projectRevision,
+            sourceHash: loaded.descriptor.fingerprints.sourceTree,
+            entryPath: loaded.entryPath,
+            code: loaded.code,
+            codeHash: loaded.codeHash,
+          });
+          nextRuntime = certifiedCapstoneRuntimeConfig(build);
+          nextDescriptor = {
+            buildId: loaded.descriptor.buildId,
+            buildNumber: loaded.descriptor.buildNumber,
+            projectRevision: loaded.descriptor.projectRevision,
+            mode: "verified",
+          };
+          nextStudent = buildStudent;
+        } catch (error) {
+          if (controller.signal.aborted) throw error;
+          const development = await loadDevelopment();
+          nextBundle = development.bundle;
+          nextRuntime = development.runtime;
+          nextDescriptor = development.descriptor;
+          nextStudent = development.student;
+        }
+      } else {
+        const development = await loadDevelopment();
+        nextBundle = development.bundle;
+        nextRuntime = development.runtime;
+        nextDescriptor = development.descriptor;
+        nextStudent = development.student;
+      }
       if (!active) return;
-      studentRef.current = buildStudent;
-      setDescriptor(loaded.descriptor);
-      setBuildRuntime(certifiedRuntime);
-      setBundle(verified);
+      studentRef.current = nextStudent;
+      setDescriptor(nextDescriptor);
+      setBuildRuntime(nextRuntime);
+      setBundle(nextBundle);
       setReactRuntime(verifiedRuntime);
       setStatus("ready");
-      setDetail(`Build ${loaded.descriptor.buildNumber} is verified. It runs with limited, isolated browser access. A stuck synchronous loop may still require reloading this tab.`);
+      setRunRequested(true);
+      setDetail(nextDescriptor.mode === "verified"
+        ? `Verified build #${nextDescriptor.buildNumber} is running from the IDE project.`
+        : `Development preview · project revision ${nextDescriptor.projectRevision} · current files, not a passing build.`);
     })().catch((error) => {
-      if (!active) return;
+      if (!active || controller.signal.aborted) return;
       studentRef.current = null;
       setFailure(failureRecord(error));
       setStatus("error");
-      setDetail("The active capstone build couldn’t be verified, so it didn’t run.");
+      setDetail("The current Browser Chat project couldn’t start.");
     });
-    return () => { active = false; };
-  }, [project.activeBuild?.id]);
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [learner.artifacts.characterRnn?.checkpointId, project.activeBuild?.id, projectSourceKey]);
 
   useEffect(() => {
     const iframe = iframeRef.current;
-    if (!activeBuildIsCurrent || !iframe || !bundle || !reactRuntime || !descriptor || !buildRuntime || !runRequested) return;
+    if (!iframe || !bundle || !reactRuntime || !descriptor || !buildRuntime || !runRequested) return;
     let disposed = false;
     const capabilityGate = new CapstoneCapabilityGate();
     const generationRequests = new Map<string, ActiveGenerationResource>();
@@ -741,7 +871,7 @@ export function BrowserChatCapstone() {
         let generatedUnitLabel = "Generated units";
         if (payload.backend === "student") {
           const student = studentRef.current;
-          if (!student) throw new Error("This build doesn’t have a Python checkpoint for the current source. Test and train the model file, then rebuild.");
+          if (!student) throw new Error("The current project doesn’t have a Python checkpoint for this model source. Test and train the model file, then try again.");
           const continuation = sampleCharacterRnn(student.checkpoint, latestUser, payload.options.maxTokens, payload.options.temperature, buildRuntime.model.seed, payload.options.topK);
           const checkpointLabel = student.origin === "python"
             ? "Python + NumPy checkpoint"
@@ -836,10 +966,15 @@ export function BrowserChatCapstone() {
       void (async () => {
         if (request.method === "initialize") {
           const saved = await loadCapstoneConversation();
+          const selectedBackend = saved.selectedBackend === "student" && !studentRef.current
+            ? "local"
+            : saved.selectedBackend;
           respond(request.requestId, {
             buildId: descriptor.buildId,
             buildNumber: descriptor.buildNumber,
-            selectedBackend: saved.selectedBackend,
+            buildMode: descriptor.mode,
+            sourceRevision: descriptor.projectRevision,
+            selectedBackend,
             studentReady: Boolean(studentRef.current),
             localReady: localReadyRef.current,
             conversation: { version: 1, id: "active", messages: portableMessages(saved.messages) },
@@ -905,9 +1040,11 @@ export function BrowserChatCapstone() {
       allowedMethods: ALLOWED_METHODS,
       handlers: {
         onRequest: handleRequest,
-        onReady: () => setDetail(`Build ${descriptor.buildNumber} is running from the IDE project.`),
+        onReady: () => setDetail(descriptor.mode === "verified"
+          ? `Verified build #${descriptor.buildNumber} is running from the IDE project.`
+          : `Development preview · project revision ${descriptor.projectRevision} · current files, not a passing build.`),
         onError: (message) => {
-          setFailure({ code: "PREVIEW_RUNTIME_ERROR", message: message.message });
+          setFailure({ code: "PREVIEW_RUNTIME_ERROR", message: message.message, path: null });
           setStatus("error");
           setRunRequested(false);
           setDetail("The preview stopped before your code could continue.");
@@ -925,7 +1062,7 @@ export function BrowserChatCapstone() {
       void cancelActiveGenerationResources(generationRequests, (requestId) => localModel?.cancel(requestId));
       capabilityGate.reset();
     };
-  }, [activeBuildIsCurrent, buildRuntime, bundle, conversationWriter, descriptor, reactRuntime, runRequested]);
+  }, [buildRuntime, bundle, conversationWriter, descriptor, reactRuntime, runRequested]);
 
   useEffect(() => () => {
     sessionRef.current?.dispose();
@@ -936,7 +1073,8 @@ export function BrowserChatCapstone() {
   useEffect(() => {
     if (presentedStatus !== "ready") return;
     const frame = window.requestAnimationFrame(() => {
-      if (runRequested) {
+      if (runRequested && focusResetAfterRunRef.current) {
+        focusResetAfterRunRef.current = false;
         resetPreviewButtonRef.current?.focus();
       } else if (restoreRunFocusRef.current) {
         restoreRunFocusRef.current = false;
@@ -952,35 +1090,35 @@ export function BrowserChatCapstone() {
     totalCells: seed.totalCells,
   }]));
   const progress = summarizeCapstoneProgress(project, verifiedLessons);
-  const staleBuild = status === "ready" && !activeBuildIsCurrent;
-  const recovery = staleBuild
-    ? capstoneStaleBuildRecovery(project.activeBuild?.buildNumber ?? descriptor?.buildNumber ?? 1, progress)
+  const recovery = presentedStatus === "error"
+    ? capstoneRecoveryForFailure(failure, progress)
     : presentedStatus === "missing"
       ? capstoneMissingBuildRecovery(progress)
-      : presentedStatus === "error"
-        ? capstoneRecoveryForFailure(failure, progress)
-        : null;
+      : null;
   const gateCopy = presentedStatus === "loading"
     ? {
-        eyebrow: "Checking the build",
-        title: "Checking your build",
-        summary: "Verifying the current test result and preview bundle.",
+        eyebrow: "Starting the app",
+        title: "Compiling Browser Chat",
+        summary: "Building the current React import graph and checking it before the isolated preview starts.",
       }
     : presentedStatus === "ready"
-      ? capstoneReadyGateCopy(descriptor?.buildNumber ?? project.activeBuild?.buildNumber ?? 1)
+      ? descriptor?.mode === "verified"
+        ? capstoneReadyGateCopy(descriptor.buildNumber)
+        : capstoneDevelopmentReadyCopy(descriptor?.projectRevision ?? 0)
       : recovery ?? capstoneMissingBuildRecovery(progress);
   const milestones = capstoneMilestoneEvidence(
     presentedStatus,
-    presentedStatus === "ready" ? descriptor?.buildNumber ?? null : null,
+    presentedStatus === "ready" && descriptor?.mode === "verified" ? descriptor.buildNumber : null,
     project.activeBuild?.buildNumber ?? null,
     progress,
     learner.artifacts.characterRnn,
+    descriptor?.mode ?? "development",
   );
 
   return (
     <main className={`compiled-capstone-shell ${styles.shell}`} id="main-content" tabIndex={-1}>
       <header className={`capstone-topbar ${styles.topbar}`}>
-        <div><span>Capstone preview</span><strong>Browser Chat</strong></div>
+        <div><span>{descriptor?.mode === "verified" ? "Verified project" : descriptor?.mode === "development" ? "Development preview" : "Project app"}</span><strong>Browser Chat</strong></div>
         <nav aria-label="Capstone actions"><Link href="/workspace">Open IDE →</Link></nav>
       </header>
       {presentedStatus === "ready" && bundle && reactRuntime && buildRuntime && runRequested ? (
@@ -1013,8 +1151,8 @@ export function BrowserChatCapstone() {
 
           <div className="capstone-action">
             {presentedStatus === "ready" ? (
-              <button ref={runPreviewButtonRef} type="button" onClick={() => { setRunRequested(true); void recordLearningEvent("capstone_started", { outcome: "passed" }); }}>
-                Run preview
+              <button ref={runPreviewButtonRef} type="button" onClick={() => { focusResetAfterRunRef.current = true; setRunRequested(true); void recordLearningEvent("capstone_started", { outcome: "passed" }); }}>
+                {descriptor?.mode === "verified" ? "Run verified app" : "Run development preview"}
               </button>
             ) : recovery?.action === "retry" ? (
               <button type="button" onClick={() => window.location.reload()}>{recovery.actionLabel}</button>

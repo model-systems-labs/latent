@@ -159,8 +159,12 @@ RESULT = {
       ],
     },
     experiment: {
-      kind: "transformer",
-      title: "Run causal self-attention",
-      intro: "Run the masked-attention forward pass with identity Q/K/V projections, then inspect the full probability matrix.",
+      kind: "trusted-interactive",
+      interactive: {
+        id: "causal-attention",
+        definitionVersion: 2,
+      },
+      title: "Inspect causal self-attention",
+      intro: "Reveal a fixed masked-attention trace with identity Q/K/V projections, then compare query rows across the full probability matrix.",
     },
   } satisfies Omit<CourseLesson, "sources">);

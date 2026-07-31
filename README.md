@@ -80,11 +80,21 @@ coding practice, and a worked system-design framework. Build it, validate it,
 and start a preview.
 ```
 
+For a purpose-made simulator, worked trace, or explorable diagram inside a
+reviewed Latent application, use
+[`skills/author-interactive/SKILL.md`](./skills/author-interactive/SKILL.md).
+That workflow lets an agent author ordinary HTML, CSS, and JavaScript, while
+the platform supplies the visual contract, opaque sandbox, exact-version
+state, and host-validated progress. It is a trusted source extension, not an
+executable field in a portable course pack.
+
 ## What you get
 
 - **Composition primitives:** Course and Module.
 - **Learning primitives:** Lesson, Flash cards, Question Group, and IDE
   exercise.
+- **Trusted extensions:** Stateful HTML/CSS/JavaScript lesson interactives
+  with bounded host capabilities.
 - **Embedded blocks:** Knowledge check, code block, callout, headings, and
   lists.
 - **Framework services:** Progress, resume, review, persistence, navigation,

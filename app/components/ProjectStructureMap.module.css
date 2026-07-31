@@ -1,6 +1,12 @@
 .intro { display: grid; gap: 0.45rem; }
 .intro strong { color: var(--ink); font-family: var(--mono); font-size: 1.05rem; font-weight: 500; }
 .intro p { color: var(--muted); font-size: 0.78rem; line-height: 1.55; margin: 0; max-width: 43rem; }
+.relationships { border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; }
+.relationships > div { display: grid; gap: 0.28rem; padding: 0.85rem 1rem 0.85rem 0; }
+.relationships > div:nth-child(even) { border-left: 1px solid var(--line); padding-left: 1rem; }
+.relationships dt { color: var(--faint); font-family: var(--sans); font-size: max(0.68rem, 11px); letter-spacing: 0.08em; text-transform: uppercase; }
+.relationships dd { color: var(--muted); font-size: max(0.72rem, 12px); line-height: 1.45; margin: 0; }
+.relationships code { color: var(--ink); font-family: var(--mono); font-size: inherit; white-space: normal; }
 .next { align-items: center; border-top: 1px solid var(--line-strong); display: grid; gap: 1.5rem; grid-template-columns: minmax(0, 1fr) auto; padding: 1.1rem 0; }
 .next > div { display: grid; gap: 0.35rem; }
 .next p,
@@ -9,5 +15,7 @@
 .next > a { color: var(--violet-deep); font-size: max(0.68rem, 11px); white-space: nowrap; }
 
 @media (max-width: 650px) {
+  .relationships { grid-template-columns: 1fr; }
+  .relationships > div:nth-child(even) { border-left: 0; padding-left: 0; }
   .next { align-items: start; gap: 0.85rem; grid-template-columns: 1fr; }
 }

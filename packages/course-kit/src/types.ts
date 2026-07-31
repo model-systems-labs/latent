@@ -23,6 +23,30 @@ export type LessonSource = {
   relevance: string;
 };
 
+export type CourseLessonExperiment = {
+  title: string;
+  intro: string;
+} & (
+  | {
+      kind: "rnn" | "neural-lm" | "bpe" | "attention" | "icl" | "systems" | "product" | "fundamentals" | "harness";
+      /** Presentation variant interpreted by the matching experiment kind. */
+      variant?: string;
+      interactive?: never;
+    }
+  | {
+      kind: "trusted-interactive";
+      variant?: never;
+      /**
+       * A reviewed application-owned HTML/CSS/JavaScript experience. This is a
+       * compiled trusted-source reference, never a portable Learning Pack field.
+       */
+      interactive: {
+        id: string;
+        definitionVersion: number;
+      };
+    }
+);
+
 export type CourseLesson = {
   id: string;
   number: number;
@@ -82,13 +106,7 @@ export type CourseLesson = {
     postlude?: string;
     codeBlocks: CodeBlock[];
   };
-  experiment: {
-    kind: "rnn" | "neural-lm" | "bpe" | "attention" | "transformer" | "icl" | "systems" | "product" | "fundamentals" | "harness";
-    /** Presentation variant interpreted by the matching experiment kind. */
-    variant?: string;
-    title: string;
-    intro: string;
-  };
+  experiment: CourseLessonExperiment;
 };
 
 export type CourseTrack = {

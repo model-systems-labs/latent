@@ -795,6 +795,21 @@ export async function flushLearnerPersistence() {
   if (learnerPersistenceError) throw new Error(learnerPersistenceError);
 }
 
+/**
+ * Reads the host-owned lesson record instead of the optimistic in-memory
+ * snapshot. Trusted interactive checkpoints use this to make an already
+ * persisted completion idempotent after their frame remounts.
+ */
+export async function isExperimentDurablyComplete(lessonId: string) {
+  await initializeLearnerPersistence();
+  const location = lessonProgressLocation(lessonId);
+  const { repositories } = await getPersistenceContext();
+  const record = await repositories.progress.get(
+    lessonProgressId(location.courseId, lessonId),
+  );
+  return record?.experimentComplete === true;
+}
+
 export function updateLearnerState(update: (state: LearnerState) => LearnerState) {
   const next = update(loadLearnerState());
   storeLearnerState(next);

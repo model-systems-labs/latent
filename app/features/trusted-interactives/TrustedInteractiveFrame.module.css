@@ -1,0 +1,165 @@
+.host {
+  border-block: 1px solid color-mix(in srgb, var(--line) 78%, transparent);
+  margin-top: clamp(1.25rem, 3vw, 2rem);
+  min-width: 0;
+}
+
+.frameSurface {
+  background: color-mix(in srgb, var(--paper) 70%, transparent);
+  min-height: 15rem;
+  min-width: 0;
+  position: relative;
+}
+
+.frame {
+  border: 0;
+  display: block;
+  max-width: 100%;
+  min-width: 0;
+  transition: height 160ms ease;
+  width: 100%;
+}
+
+.frame:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: -3px;
+}
+
+.loading,
+.error {
+  align-content: center;
+  background: var(--paper);
+  color: var(--muted);
+  display: grid;
+  gap: 0.7rem;
+  inset: 0;
+  justify-items: center;
+  min-height: 15rem;
+  padding: 2rem;
+  position: absolute;
+  text-align: center;
+}
+
+.loading span {
+  animation: pulse 1.2s ease-in-out infinite;
+  background: var(--accent);
+  height: 0.45rem;
+  width: 2.5rem;
+}
+
+.error strong {
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.error p {
+  line-height: 1.55;
+  margin: 0;
+  max-width: 38rem;
+}
+
+.error button,
+.footer button {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  min-height: 2.75rem;
+  padding: 0.65rem 0.9rem;
+}
+
+.error button:hover,
+.footer button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.footer {
+  align-items: center;
+  border-top: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 0.75rem clamp(1rem, 3vw, 1.5rem);
+}
+
+.footerCopy {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.footerCopy p {
+  color: var(--muted);
+  font-size: max(0.7rem, 11px);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.footerCopy p[data-tone="complete"] {
+  color: var(--success, #486750);
+}
+
+.footerCopy p[data-tone="error"] {
+  color: var(--danger, #8d5a54);
+}
+
+.footerCopy small {
+  color: var(--muted);
+  font-size: max(0.66rem, 11px);
+  line-height: 1.45;
+}
+
+.footer button {
+  flex: 0 0 auto;
+  font-size: max(0.72rem, 11px);
+}
+
+.footer button:disabled {
+  cursor: wait;
+  opacity: 0.48;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scaleX(0.72);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+@media (max-width: 520px) {
+  .footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .footer button {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .frame {
+    transition: none;
+  }
+
+  .loading span {
+    animation: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .host,
+  .footer,
+  .error button,
+  .footer button {
+    border-color: CanvasText;
+  }
+}

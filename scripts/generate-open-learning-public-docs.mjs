@@ -22,6 +22,18 @@ const copies = [
   ["skills/review-learning-pack/SKILL.md", "public/open-learning/skills/review-learning-pack.md"],
   ["skills/publish-learning-pack/SKILL.md", "public/open-learning/skills/publish-learning-pack.md"],
   ["skills/author-learning-platform/SKILL.md", "public/skills/author-learning-platform.md"],
+  [
+    "skills/author-interactive/SKILL.md",
+    "public/skills/author-interactive.md",
+    (source) => source.replace(
+      "](references/visual-and-learning-contract.md)",
+      "](author-interactive-visual-and-learning-contract.md)",
+    ),
+  ],
+  [
+    "skills/author-interactive/references/visual-and-learning-contract.md",
+    "public/skills/author-interactive-visual-and-learning-contract.md",
+  ],
   ["skills/author-course/SKILL.md", "public/skills/author-course.md"],
   ["skills/author-flash-card-deck/SKILL.md", "public/skills/author-flash-card-deck.md"],
   ["skills/author-question-group/SKILL.md", "public/skills/author-question-group.md"],

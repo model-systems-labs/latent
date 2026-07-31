@@ -98,6 +98,8 @@ export const CAPSTONE_PREFLIGHT_SOURCE = String.raw`(() => {
   const initialization = {
     buildId: "preflight",
     buildNumber: 1,
+    buildMode: "verified",
+    sourceRevision: 1,
     selectedBackend: "local",
     studentReady: true,
     localReady: true,
@@ -244,6 +246,8 @@ export const CAPSTONE_BEHAVIOR_BOOTSTRAP_SOURCE = String.raw`(() => {
         return Promise.resolve({
           buildId: "host-behavior-contract",
           buildNumber: 1,
+          buildMode: "verified",
+          sourceRevision: 1,
           selectedBackend: fixture.selectedBackend,
           studentReady: fixture.selectedBackend === "student" ? prepared : true,
           localReady: fixture.selectedBackend === "local" ? prepared : true,
@@ -562,7 +566,7 @@ export const CAPSTONE_BEHAVIOR_BOOTSTRAP_SOURCE = String.raw`(() => {
 })();`;
 
 /** Updated whenever the fixed host-owned bootstrap changes. */
-export const CAPSTONE_BEHAVIOR_BOOTSTRAP_SHA256 = "sha256-k3yJtOBMiYL518ne3XFb5I+lh5THUygesb0wX03fUWk=" as const;
+export const CAPSTONE_BEHAVIOR_BOOTSTRAP_SHA256 = "sha256-j3M+scEzg6VuWwkngkLNk9NA8qtEokNgXXcfuipPSXg=" as const;
 
 export function createCapstoneBehaviorFrameSrcdoc(): string {
   return `<!doctype html>

@@ -27,6 +27,11 @@ configured npm registry:
 COURSE_KIT_RELEASE=https://github.com/model-systems-labs/latent/releases/download/course-kit-v0.2.0/latent-course-kit-0.2.0.tgz
 ```
 
+That immutable release reports standalone `playerVersion: 1` and retains its
+legacy view navigation. Repository builds with `playerVersion: 2` use the
+sidebar-free continuous checks below. Do not claim the newer presentation for
+a v0.2.0 artifact.
+
 ## Release workflow
 
 ### 1. Establish immutability
@@ -97,10 +102,12 @@ npm exec --yes --package "$COURSE_KIT_RELEASE" -- \
   <dedicated-output-directory>
 ```
 
-Check:
+Check the layout that the build report identifies:
 
-- the first lesson or deck opens;
-- every navigation item is reachable;
+- for `playerVersion: 2` and later, every lesson and deck is present in source order in one scrolling document;
+- for `playerVersion: 2` and later, the in-flow contents links reach the corresponding sections without hiding the others;
+- for `playerVersion: 2` and later, no side navigation reserves reading space at desktop or small viewports;
+- for the immutable v0.2.0 `playerVersion: 1`, the first lesson or deck opens and every legacy navigation item remains reachable;
 - quiz feedback and explanations work;
 - card reveal and ratings work;
 - lesson and card progress survive reload;

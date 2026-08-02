@@ -12,13 +12,6 @@
     }
   };
   let state = readState();
-  const viewFamily = (view) => (
-    view.startsWith("lesson-")
-      ? "lesson"
-      : view.startsWith("deck-")
-        ? "deck"
-        : view
-  );
   const save = () => {
     try { localStorage.setItem(storageKey, JSON.stringify(state)); } catch {}
   };
@@ -29,40 +22,25 @@
       button.setAttribute("aria-pressed", String(complete));
     });
   };
-  const updateDeckStatus = () => {
-    document.querySelectorAll("[data-view^='deck-']").forEach((deck) => {
+  const updateDeckStatus = (announcedDeck = null) => {
+    const decks = announcedDeck ? [announcedDeck] : document.querySelectorAll("[data-deck]");
+    decks.forEach((deck) => {
       const cards = Array.from(deck.querySelectorAll("[data-card]"));
       const known = cards.filter((card) => state.cards[card.dataset.card] === "know").length;
       const status = deck.querySelector(".deck-status");
-      if (status) status.textContent = known + " of " + cards.length + " marked as known on this device.";
+      if (status) {
+        if (deck === announcedDeck) {
+          status.setAttribute("role", "status");
+          status.setAttribute("aria-live", "polite");
+        }
+        status.textContent = known + " of " + cards.length + " marked as known on this device.";
+      }
       deck.querySelectorAll("[data-rating]").forEach((button) => {
         const card = button.closest("[data-card]");
         button.setAttribute("aria-pressed", String(state.cards[card.dataset.card] === button.dataset.rating));
       });
     });
   };
-  const openView = (view, moveFocus = true) => {
-    document.querySelectorAll(".learning-view[data-view]").forEach((section) => { section.hidden = section.dataset.view !== view; });
-    document.querySelectorAll("[data-open-view]").forEach((entry) => entry.setAttribute("aria-current", entry.dataset.openView === view ? "page" : "false"));
-    document.querySelectorAll(".learner-primary-nav [data-view]").forEach((entry) => {
-      entry.setAttribute("aria-current", viewFamily(entry.dataset.view) === viewFamily(view) ? "page" : "false");
-    });
-    const target = document.getElementById(view);
-    if (target) {
-      history.replaceState(null, "", "#" + view);
-      if (moveFocus) target.querySelector("h1")?.focus({ preventScroll: true });
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  };
-  document.querySelectorAll("[data-open-view]").forEach((button) => {
-    button.addEventListener("click", () => openView(button.dataset.openView));
-  });
-  document.querySelectorAll(".learner-primary-nav [data-view]").forEach((link) => {
-    link.addEventListener("click", (event) => {
-      event.preventDefault();
-      openView(link.dataset.view);
-    });
-  });
   document.querySelectorAll(".quiz").forEach((quiz) => {
     quiz.addEventListener("submit", (event) => {
       event.preventDefault();
@@ -105,7 +83,7 @@
       const card = button.closest("[data-card]");
       state.cards[card.dataset.card] = button.dataset.rating;
       save();
-      updateDeckStatus();
+      updateDeckStatus(card.closest("[data-deck]"));
     });
   });
   document.querySelectorAll("[data-complete]").forEach((button) => {
@@ -118,10 +96,6 @@
       updateCompleteButtons();
     });
   });
-  const initial = location.hash.slice(1);
-  if (initial && document.querySelector('[data-open-view="' + CSS.escape(initial) + '"]')) {
-    openView(initial, false);
-  }
   updateCompleteButtons();
   updateDeckStatus();
 })();

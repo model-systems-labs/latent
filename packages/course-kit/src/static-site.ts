@@ -6,7 +6,6 @@ import {
   validateLearningPack,
 } from "./learning-pack.js";
 import {
-  LEARNER_UI_BREAKPOINTS,
   LEARNER_UI_VERSION,
   createLearnerUiCss,
   learnerUiJavaScript,
@@ -19,7 +18,7 @@ import {
   type LearnerUiTheme,
 } from "./learner-ui.js";
 
-export const STANDALONE_PLAYER_VERSION = 1 as const;
+export const STANDALONE_PLAYER_VERSION = 2 as const;
 
 export type StandaloneLearningSiteUi = Readonly<{
   productName?: string;
@@ -67,7 +66,7 @@ function escapeHtml(value: string) {
 function renderBlock(block: LearningBlock, lessonId: string) {
   if (block.type === "paragraph") return `<p>${escapeHtml(block.text)}</p>`;
   if (block.type === "heading") {
-    const Tag = block.level === 2 ? "h2" : "h3";
+    const Tag = block.level === 2 ? "h3" : "h4";
     return `<${Tag}>${escapeHtml(block.text)}</${Tag}>`;
   }
   if (block.type === "list") {
@@ -111,7 +110,6 @@ function renderIndex(
 ) {
   const lessons = [...pack.lessons].sort((left, right) => left.order - right.order);
   const decks = [...pack.flashcardDecks].sort((left, right) => left.order - right.order);
-  const firstView = lessons[0] ? `lesson-${lessons[0].id}` : `deck-${decks[0]?.id ?? ""}`;
   const storageKey = `latent.learning.v1:${pack.package.id}@${pack.package.version}:${sha256}`;
   const navigation = [
     ...lessons.map((lesson) => ({
@@ -129,14 +127,10 @@ function renderIndex(
     ...(lessons[0] ? [{
       label: ui.modulesLabel ?? "Modules",
       href: `#lesson-${lessons[0].id}`,
-      current: true,
-      dataView: `lesson-${lessons[0].id}`,
     }] : []),
     ...(decks[0] ? [{
       label: ui.reviewLabel ?? "Review",
       href: `#deck-${decks[0].id}`,
-      current: lessons.length === 0,
-      dataView: `deck-${decks[0].id}`,
     }] : []),
   ];
   const header = renderLearnerHeader({
@@ -153,17 +147,17 @@ function renderIndex(
   });
 
   const lessonSections = lessons.map((lesson) => `
-    <section class="learner-reading learning-view" id="lesson-${escapeHtml(lesson.id)}" data-view="lesson-${escapeHtml(lesson.id)}" ${`lesson-${lesson.id}` === firstView ? "" : "hidden"}>
+    <section class="learner-reading course-section" id="lesson-${escapeHtml(lesson.id)}" aria-labelledby="lesson-${escapeHtml(lesson.id)}-title">
       <header class="view-header">
         <span class="learner-eyebrow">${lesson.durationMinutes} minute lesson</span>
-        <h1 tabindex="-1">${escapeHtml(lesson.title)}</h1>
+        <h2 id="lesson-${escapeHtml(lesson.id)}-title" tabindex="-1">${escapeHtml(lesson.title)}</h2>
         <p>${escapeHtml(lesson.summary)}</p>
       </header>
       <div class="lesson-body">
         ${lesson.blocks.map((block) => renderBlock(block, lesson.id)).join("")}
       </div>
-      <section class="sources" aria-labelledby="${escapeHtml(lesson.id)}-sources">
-        <h2 id="${escapeHtml(lesson.id)}-sources">Sources used here</h2>
+      <section class="sources" aria-labelledby="lesson-${escapeHtml(lesson.id)}-sources">
+        <h3 id="lesson-${escapeHtml(lesson.id)}-sources">Sources used here</h3>
         <ul>${sourceLinks(pack, [
           ...lesson.sourceIds,
           ...lesson.blocks.flatMap((block) => block.type === "quiz" ? block.sourceIds : []),
@@ -174,13 +168,13 @@ function renderIndex(
   `).join("");
 
   const deckSections = decks.map((deck) => `
-    <section class="learner-reading learning-view" id="deck-${escapeHtml(deck.id)}" data-view="deck-${escapeHtml(deck.id)}" ${`deck-${deck.id}` === firstView ? "" : "hidden"}>
+    <section class="learner-reading course-section" id="deck-${escapeHtml(deck.id)}" data-deck aria-labelledby="deck-${escapeHtml(deck.id)}-title">
       <header class="view-header">
         <span class="learner-eyebrow">${deck.cards.length} flash cards</span>
-        <h1 tabindex="-1">${escapeHtml(deck.title)}</h1>
+        <h2 id="deck-${escapeHtml(deck.id)}-title" tabindex="-1">${escapeHtml(deck.title)}</h2>
         <p>${escapeHtml(deck.description)}</p>
       </header>
-      <div class="deck-status" role="status" aria-live="polite"></div>
+      <div class="deck-status"></div>
       <ol class="cards">
         ${deck.cards.map((card, index) => `
           <li class="learner-card card" data-card="${escapeHtml(card.id)}">
@@ -197,8 +191,8 @@ function renderIndex(
           </li>
         `).join("")}
       </ol>
-      <section class="sources" aria-labelledby="${escapeHtml(deck.id)}-sources">
-        <h2 id="${escapeHtml(deck.id)}-sources">Sources used here</h2>
+      <section class="sources" aria-labelledby="deck-${escapeHtml(deck.id)}-sources">
+        <h3 id="deck-${escapeHtml(deck.id)}-sources">Sources used here</h3>
         <ul>${sourceLinks(pack, [
           ...deck.sourceIds,
           ...deck.cards.flatMap((card) => card.sourceIds),
@@ -222,21 +216,21 @@ function renderIndex(
   ${renderLearnerAtmosphere()}
   <div class="learner-page">
   ${header}
-  <div class="learner-main learner-layout layout">
-    <aside class="learner-sidebar sidebar">
+  <main class="learner-main learner-content standalone-course" id="content" tabindex="-1">
+    <header class="learner-reading course-intro">
       <p class="learner-eyebrow">Published by ${escapeHtml(pack.package.authors[0]?.name ?? "Independent publisher")}</p>
-      <h2>${escapeHtml(pack.package.title)}</h2>
+      <h1>${escapeHtml(pack.package.title)}</h1>
       <p>${escapeHtml(pack.package.description)}</p>
-      <nav aria-label="Learning pack contents">
-        ${navigation.map((entry) => `<button class="learner-nav-item" type="button" data-open-view="${escapeHtml(entry.id)}" aria-current="${entry.id === firstView ? "page" : "false"}"><small>${escapeHtml(entry.eyebrow)}</small><span>${escapeHtml(entry.title)}</span></button>`).join("")}
+      <nav class="course-contents" aria-label="Learning pack contents">
+        <ol>${navigation.map((entry) => `<li><a href="#${escapeHtml(entry.id)}"><small>${escapeHtml(entry.eyebrow)}</small><span>${escapeHtml(entry.title)}</span></a></li>`).join("")}</ol>
       </nav>
-      <footer>
+      <div class="course-meta">
         <span>${escapeHtml(pack.package.license)}</span>
         <a href="./learning-pack.json">View source JSON</a>
-      </footer>
-    </aside>
-    <main class="learner-content" id="content" tabindex="-1">${lessonSections}${deckSections}</main>
-  </div>
+      </div>
+    </header>
+    <div class="course-flow">${lessonSections}${deckSections}</div>
+  </main>
   ${footer}
   </div>
   <script src="./assets/learner-ui.js" defer></script>
@@ -260,13 +254,6 @@ export const standalonePlayerJavaScript = `(() => {
     }
   };
   let state = readState();
-  const viewFamily = (view) => (
-    view.startsWith("lesson-")
-      ? "lesson"
-      : view.startsWith("deck-")
-        ? "deck"
-        : view
-  );
   const save = () => {
     try { localStorage.setItem(storageKey, JSON.stringify(state)); } catch {}
   };
@@ -277,40 +264,25 @@ export const standalonePlayerJavaScript = `(() => {
       button.setAttribute("aria-pressed", String(complete));
     });
   };
-  const updateDeckStatus = () => {
-    document.querySelectorAll("[data-view^='deck-']").forEach((deck) => {
+  const updateDeckStatus = (announcedDeck = null) => {
+    const decks = announcedDeck ? [announcedDeck] : document.querySelectorAll("[data-deck]");
+    decks.forEach((deck) => {
       const cards = Array.from(deck.querySelectorAll("[data-card]"));
       const known = cards.filter((card) => state.cards[card.dataset.card] === "know").length;
       const status = deck.querySelector(".deck-status");
-      if (status) status.textContent = known + " of " + cards.length + " marked as known on this device.";
+      if (status) {
+        if (deck === announcedDeck) {
+          status.setAttribute("role", "status");
+          status.setAttribute("aria-live", "polite");
+        }
+        status.textContent = known + " of " + cards.length + " marked as known on this device.";
+      }
       deck.querySelectorAll("[data-rating]").forEach((button) => {
         const card = button.closest("[data-card]");
         button.setAttribute("aria-pressed", String(state.cards[card.dataset.card] === button.dataset.rating));
       });
     });
   };
-  const openView = (view, moveFocus = true) => {
-    document.querySelectorAll(".learning-view[data-view]").forEach((section) => { section.hidden = section.dataset.view !== view; });
-    document.querySelectorAll("[data-open-view]").forEach((entry) => entry.setAttribute("aria-current", entry.dataset.openView === view ? "page" : "false"));
-    document.querySelectorAll(".learner-primary-nav [data-view]").forEach((entry) => {
-      entry.setAttribute("aria-current", viewFamily(entry.dataset.view) === viewFamily(view) ? "page" : "false");
-    });
-    const target = document.getElementById(view);
-    if (target) {
-      history.replaceState(null, "", "#" + view);
-      if (moveFocus) target.querySelector("h1")?.focus({ preventScroll: true });
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  };
-  document.querySelectorAll("[data-open-view]").forEach((button) => {
-    button.addEventListener("click", () => openView(button.dataset.openView));
-  });
-  document.querySelectorAll(".learner-primary-nav [data-view]").forEach((link) => {
-    link.addEventListener("click", (event) => {
-      event.preventDefault();
-      openView(link.dataset.view);
-    });
-  });
   document.querySelectorAll(".quiz").forEach((quiz) => {
     quiz.addEventListener("submit", (event) => {
       event.preventDefault();
@@ -353,7 +325,7 @@ export const standalonePlayerJavaScript = `(() => {
       const card = button.closest("[data-card]");
       state.cards[card.dataset.card] = button.dataset.rating;
       save();
-      updateDeckStatus();
+      updateDeckStatus(card.closest("[data-deck]"));
     });
   });
   document.querySelectorAll("[data-complete]").forEach((button) => {
@@ -366,38 +338,43 @@ export const standalonePlayerJavaScript = `(() => {
       updateCompleteButtons();
     });
   });
-  const initial = location.hash.slice(1);
-  if (initial && document.querySelector('[data-open-view="' + CSS.escape(initial) + '"]')) {
-    openView(initial, false);
-  }
   updateCompleteButtons();
   updateDeckStatus();
 })();\n`;
 
-const standaloneLearningLayoutCss = `.sidebar h2 {
-  font-family: var(--learner-font-reading);
-  font-size: clamp(1.8rem, 3vw, 2.5rem);
-  font-weight: 500;
-  letter-spacing: -.04em;
-  line-height: 1.05;
-  margin: var(--learner-space-3) 0 var(--learner-space-4);
+const standaloneLearningLayoutCss = `.course-intro {
+  padding-bottom: var(--learner-rhythm-major);
+  padding-top: clamp(var(--learner-space-5), 5vw, var(--learner-rhythm-major));
 }
-.sidebar > p:not(.learner-eyebrow),
+.course-intro h1 {
+  font-family: var(--learner-font-reading);
+  font-size: clamp(2.8rem, 7vw, 5.4rem);
+  font-weight: 500;
+  letter-spacing: -.06em;
+  line-height: .96;
+  margin: var(--learner-space-3) 0 var(--learner-space-5);
+}
+.course-intro > p:not(.learner-eyebrow),
 .view-header p { color: var(--learner-color-muted); line-height: 1.65; }
-.sidebar nav { border-top: var(--learner-border); margin-top: var(--learner-space-6); }
-.sidebar nav button { border-bottom-color: var(--learner-color-border); border-radius: 0; display: grid; gap: var(--learner-space-1); padding: var(--learner-space-4) 0; }
-.sidebar nav button[aria-current="page"] span::after { color: var(--learner-color-accent-strong); content: " →"; }
-.sidebar nav small { font-size: .68rem; text-transform: uppercase; }
-.sidebar footer { color: var(--learner-color-muted); display: flex; flex-wrap: wrap; font-size: .7rem; gap: var(--learner-space-3); justify-content: space-between; margin-top: var(--learner-space-6); }
+.course-intro > p:not(.learner-eyebrow) { font-family: var(--learner-font-reading); font-size: 1.2rem; margin: 0; }
+.course-contents { border-top: var(--learner-border); margin-top: var(--learner-space-6); }
+.course-contents ol { list-style: none; margin: 0; padding: 0; }
+.course-contents a { border-bottom: var(--learner-border); display: grid; gap: var(--learner-space-1); padding: var(--learner-space-4) 0; text-decoration: none; }
+.course-contents a:hover span { color: var(--learner-color-accent-strong); }
+.course-contents small { color: var(--learner-color-muted); font-size: .68rem; text-transform: uppercase; }
+.course-meta { color: var(--learner-color-muted); display: flex; flex-wrap: wrap; font-size: .75rem; gap: var(--learner-space-3); justify-content: space-between; margin-top: var(--learner-space-5); }
+.course-flow { border-top: var(--learner-border); }
+.course-section { padding: var(--learner-rhythm-major) 0; scroll-margin-top: var(--learner-space-5); }
+.course-section + .course-section { border-top: var(--learner-border); }
 .view-header { border-bottom: var(--learner-border); padding-bottom: var(--learner-space-6); }
-.view-header h1 { font-size: clamp(2.6rem, 6vw, 4.8rem); font-weight: 500; letter-spacing: -.06em; line-height: .98; margin: var(--learner-space-3) 0 var(--learner-space-5); }
+.view-header h2 { font-size: clamp(2.4rem, 6vw, 4.5rem); font-weight: 500; letter-spacing: -.06em; line-height: .98; margin: var(--learner-space-3) 0 var(--learner-space-5); }
 .view-header p { font-family: var(--learner-font-reading); font-size: 1.2rem; margin: 0; }
 .lesson-body { padding: var(--learner-space-6) 0; }
 .lesson-body > p,
 .lesson-body li { font-family: var(--learner-font-reading); font-size: 1.08rem; line-height: 1.75; }
-.lesson-body h2,
 .lesson-body h3,
-.sources h2 { font-family: var(--learner-font-reading); font-weight: 500; letter-spacing: -.03em; margin-top: var(--learner-space-7); }
+.lesson-body h4,
+.sources h3 { font-family: var(--learner-font-reading); font-weight: 500; letter-spacing: -.03em; margin-top: var(--learner-space-7); }
 .callout { background: var(--learner-color-accent-soft); border-left: 3px solid var(--learner-color-accent); margin: var(--learner-space-6) 0; padding: var(--learner-space-5); }
 .callout p { line-height: 1.6; margin-bottom: 0; }
 .code-block { margin: var(--learner-space-6) 0; }
@@ -414,7 +391,7 @@ code { font-family: var(--learner-font-mono); font-size: .86rem; line-height: 1.
 .quiz-result.correct { color: var(--learner-color-success); }
 .quiz-explanation { color: var(--learner-color-muted); line-height: 1.6; }
 .sources { border-top: var(--learner-border); margin-top: var(--learner-space-7); padding-top: var(--learner-space-4); }
-.sources h2 { font-size: 1.35rem; margin-top: 0; }
+.sources h3 { font-size: 1.35rem; margin-top: 0; }
 .sources ul { list-style: none; padding: 0; }
 .sources li { display: grid; gap: var(--learner-space-1); padding: var(--learner-space-3) 0; }
 .sources li span { color: var(--learner-color-muted); font-size: .75rem; line-height: 1.5; }
@@ -428,12 +405,7 @@ code { font-family: var(--learner-font-mono); font-size: .86rem; line-height: 1.
 .card-answer { display: grid; gap: var(--learner-space-3); }
 .card-answer small { color: var(--learner-color-muted); line-height: 1.5; }
 .card-face em { align-self: end; color: var(--learner-color-accent-strong); font-size: .72rem; font-style: normal; }
-.card-actions { display: flex; gap: var(--learner-space-2); }
-@media (max-width: ${LEARNER_UI_BREAKPOINTS.stacked}px) {
-  .sidebar { padding-bottom: var(--learner-space-5); }
-  .sidebar nav { display: flex; gap: var(--learner-space-2); overflow-x: auto; }
-  .sidebar nav button { border: var(--learner-border); border-radius: var(--learner-radius-sm); flex: 0 0 12rem; padding: var(--learner-space-3); }
-}\n`;
+.card-actions { display: flex; gap: var(--learner-space-2); }\n`;
 
 export const standalonePlayerCss = `${createLearnerUiCss()}\n${standaloneLearningLayoutCss}`;
 

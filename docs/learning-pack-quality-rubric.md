@@ -46,7 +46,8 @@ Review the exact package version that will be published. A valid schema is neces
 - `validate --strict` passes.
 - Two builds from the same source are byte-identical.
 - `verify-url` passes against the deployed feed.
-- The standalone lesson, quiz, deck, local progress, and source links work at the deployed nested path.
+- In standalone player version 2 and later, every lesson and deck is visible in source order in the scrolling document, and its in-flow fragment link works at the deployed nested path.
+- Quiz feedback, card ratings, local progress, and source links work at the deployed nested path.
 
 ## Review report
 

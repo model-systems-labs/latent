@@ -204,19 +204,48 @@ test("standalone builds derive integrity, are deterministic, self-contained, and
   assert.equal(feed.packages[0].bytes, Buffer.byteLength(packageJson));
   assert.equal(report.sha256, expectedDigest);
   assert.equal(report.packageBytes, Buffer.byteLength(packageJson));
+  assert.equal(report.playerVersion, 2);
   assert.equal(report.learnerUiVersion, 2);
   assert.match(first["index.html"], /Content-Security-Policy/);
   assert.match(first["index.html"], /<body class="learner-ui"/);
   assert.match(first["index.html"], /class="learner-skip-link"/);
-  assert.match(first["index.html"], /<main class="learner-content" id="content" tabindex="-1">/);
+  assert.match(first["index.html"], /<main class="learner-main learner-content standalone-course" id="content" tabindex="-1">/);
   assert.match(first["index.html"], /class="learner-header"/);
   assert.match(first["index.html"], /src="\.\/assets\/learner-ui\.js"/);
+  assert.match(first["index.html"], /<h1>Make reliable changes to an LLM application<\/h1>/);
+  assert.match(first["index.html"], /<h2 id="lesson-claim-before-metric-title" tabindex="-1">Write the claim before the metric<\/h2>/);
+  assert.match(first["index.html"], /<h3>Separate the claim from its proxy<\/h3>/);
+  assert.match(first["index.html"], /id="lesson-claim-before-metric-sources"/);
+  assert.match(first["index.html"], /id="deck-reliable-change-review-sources"/);
+  assert.match(first["index.html"], /<div class="deck-status"><\/div>/);
+  assert.match(first["index.html"], /<a href="#lesson-evidence-before-release"><small>15 min lesson<\/small>/);
+  assert.match(first["index.html"], /<a href="#deck-reliable-change-review"><small>8 flash cards<\/small>/);
+  assert.doesNotMatch(first["index.html"], /<aside class="learner-sidebar sidebar"/);
+  assert.doesNotMatch(first["index.html"], /data-open-view|aria-current="page"/);
+  assert.equal(
+    (first["index.html"].match(/class="learner-reading course-section"/g) ?? []).length,
+    3,
+  );
+  assert.doesNotMatch(
+    first["index.html"],
+    /class="learner-reading course-section"[^>]*\shidden(?:\s|>)/,
+  );
+  assert.ok(
+    first["index.html"].indexOf('id="lesson-claim-before-metric"')
+      < first["index.html"].indexOf('id="lesson-evidence-before-release"'),
+  );
+  assert.ok(
+    first["index.html"].indexOf('id="lesson-evidence-before-release"')
+      < first["index.html"].indexOf('id="deck-reliable-change-review"'),
+  );
   assert.doesNotMatch(first["index.html"], /<img src=x onerror=/);
   assert.match(first["index.html"], /&lt;img src=x onerror=alert\(1\)&gt;/);
   assert.match(first["assets/player.css"], /--learner-font-sans:/);
   assert.match(first["assets/player.css"], /--learner-background-recipe: paper;/);
   assert.match(first["assets/player.css"], /\.learner-ui :focus-visible/);
   assert.match(first["assets/player.css"], /font-family: var\(--learner-font-reading\)/);
+  assert.match(first["assets/player.css"], /\.course-section \+ \.course-section/);
+  assert.doesNotMatch(first["assets/player.css"], /\n\.sidebar(?:\s|\.|\{|>)/);
   assert.doesNotMatch(first["assets/player.css"], /\.site-header|\.wordmark|\.skip-link/);
   assert.doesNotMatch(first["assets/player.css"], /font-family: Georgia|font-family: ui-monospace/);
   assert.doesNotMatch(
@@ -226,15 +255,11 @@ test("standalone builds derive integrity, are deterministic, self-contained, and
   );
   assert.match(first["assets/learner-ui.js"], /event\.key !== "Escape"/);
   assert.match(first["assets/player.js"], /localStorage\.getItem\(storageKey\)/);
-  assert.match(first["assets/player.js"], /focus\(\{ preventScroll: true \}\)/);
-  assert.match(
-    first["assets/player.js"],
-    /querySelectorAll\("\.learning-view\[data-view\]"\)/,
-  );
-  assert.doesNotMatch(
-    first["assets/player.js"],
-    /querySelectorAll\("\[data-view\]"\)/,
-  );
+  assert.match(first["assets/player.js"], /querySelectorAll\("\[data-complete\]"\)/);
+  assert.match(first["assets/player.js"], /querySelectorAll\("\.card-face"\)/);
+  assert.match(first["assets/player.js"], /status\.setAttribute\("aria-live", "polite"\)/);
+  assert.doesNotMatch(first["assets/player.js"], /openView|data-open-view|history\.replaceState|window\.scrollTo/);
+  assert.doesNotMatch(first["assets/player.js"], /learning-view|data-view/);
   assert.doesNotMatch(first["assets/player.js"], /\beval\s*\(|new Function|dangerouslySetInnerHTML/);
   assert.match(first["_headers"], /Access-Control-Allow-Origin: \*/);
   assert.match(first["_headers"], /Content-Security-Policy:/);
@@ -254,6 +279,18 @@ test("standalone builds derive integrity, are deterministic, self-contained, and
   quiz.sourceIds.push("nested-only");
   const nestedFiles = await buildStandaloneLearningSite(nestedCitation);
   assert.match(nestedFiles["index.html"], /A source cited only by a quiz/);
+
+  const sharedViewIds = copy(example);
+  sharedViewIds.flashcardDecks[0].id = sharedViewIds.lessons[0].id;
+  const sharedViewFiles = await buildStandaloneLearningSite(sharedViewIds);
+  assert.equal(
+    (sharedViewFiles["index.html"].match(/id="lesson-claim-before-metric-sources"/g) ?? []).length,
+    1,
+  );
+  assert.equal(
+    (sharedViewFiles["index.html"].match(/id="deck-claim-before-metric-sources"/g) ?? []).length,
+    1,
+  );
 });
 
 test("standalone Learning Pack UI configuration changes presentation without changing canonical content identity", async () => {
@@ -324,6 +361,25 @@ test("standalone Learning Pack UI rejects ambiguous appearance configuration", a
     }),
     /ui\.appearance and ui\.theme cannot be configured together/,
   );
+});
+
+test("every standalone palette uses the same sidebar-free continuous document", async () => {
+  for (const palette of ["paper", "sage", "cobalt", "plum", "graphite"]) {
+    const files = await buildStandaloneLearningSite(copy(example), {
+      ui: { appearance: { palette } },
+    });
+    assert.doesNotMatch(files["index.html"], /learner-sidebar|data-open-view/);
+    assert.doesNotMatch(
+      files["index.html"],
+      /class="learner-reading course-section"[^>]*\shidden(?:\s|>)/,
+    );
+    assert.equal(
+      (files["index.html"].match(/class="learner-reading course-section"/g) ?? []).length,
+      3,
+    );
+    assert.match(files["assets/player.css"], /\.course-section \+ \.course-section/);
+    assert.doesNotMatch(files["assets/player.js"], /openView|data-open-view/);
+  }
 });
 
 test("JSON parsing enforces the two-megabyte package limit", () => {

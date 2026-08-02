@@ -8,6 +8,12 @@ contracts and are identified inside their documents.
 
 ## [Unreleased]
 
+### Changed
+
+- Standalone and hosted Learning Pack readers now present every lesson and
+  flash-card deck in one sidebar-free scrolling document with native in-flow
+  contents links.
+
 ## [0.2.0] - 2026-07-25
 
 ### Added

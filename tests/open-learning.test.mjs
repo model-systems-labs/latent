@@ -4,6 +4,8 @@ import { readdir, readFile } from "node:fs/promises";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { relative } from "node:path";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { createServer } from "#vite-test-server";
 
 import {
@@ -29,6 +31,18 @@ async function loadOpenLearningModule() {
   });
   const openLearning = await vite.ssrLoadModule("/app/lib/open-learning.ts");
   return { openLearning, close: () => vite.close() };
+}
+
+async function loadHostedLearningReaderModule() {
+  const vite = await createServer({
+    root: fileURLToPath(root),
+    configFile: false,
+    server: { middlewareMode: true },
+    appType: "custom",
+    logLevel: "silent",
+  });
+  const reader = await vite.ssrLoadModule("/app/open-learning/HostedLearningReader.tsx");
+  return { reader, close: () => vite.close() };
 }
 
 function sha256(source) {
@@ -128,6 +142,65 @@ test("installation and progress keys isolate publisher, package, and version", a
   } finally {
     await close();
   }
+});
+
+test("hosted Learning Packs render as one accessible continuous document", async () => {
+  const { reader, close } = await loadHostedLearningReaderModule();
+  try {
+    const preview = {
+      feedUrl: "https://publisher.example/course/learning-feed.json",
+      pack: example,
+      sha256: "a".repeat(64),
+      siteUrl: "https://publisher.example/course/",
+    };
+    const markup = renderToStaticMarkup(createElement(reader.PortablePackReader, { preview }));
+    const firstLesson = markup.indexOf('id="hosted-lesson-claim-before-metric"');
+    const secondLesson = markup.indexOf('id="hosted-lesson-evidence-before-release"');
+    const deck = markup.indexOf('id="hosted-deck-reliable-change-review"');
+
+    assert.ok(firstLesson > 0);
+    assert.ok(firstLesson < secondLesson);
+    assert.ok(secondLesson < deck);
+    assert.equal((markup.match(/>Mark lesson complete<\/button>/g) ?? []).length, 2);
+    assert.match(markup, /<h2 id="hosted-pack-title">Make reliable changes to an LLM application<\/h2>/);
+    assert.match(markup, /<h3 id="hosted-lesson-claim-before-metric" tabindex="-1">Write the claim before the metric<\/h3>/);
+    assert.match(markup, /<h4>Separate the claim from its proxy<\/h4>/);
+    assert.match(markup, /<h4 id="hosted-deck-reliable-change-review-sources">Sources used here<\/h4>/);
+
+    const contentsLabel = markup.indexOf('aria-label="Hosted pack contents"');
+    const contentsStart = markup.lastIndexOf("<nav", contentsLabel);
+    const contentsEnd = markup.indexOf("</nav>", contentsLabel);
+    const contents = markup.slice(contentsStart, contentsEnd);
+    assert.match(contents, /<ol>/);
+    assert.match(contents, /href="#hosted-lesson-claim-before-metric"/);
+    assert.match(contents, /href="#hosted-lesson-evidence-before-release"/);
+    assert.match(contents, /href="#hosted-deck-reliable-change-review"/);
+    assert.doesNotMatch(contents, /<button|aria-current|onClick/);
+
+    const deckStatusText = "0 of 8 marked as known on this device.";
+    const deckStatus = markup.indexOf(deckStatusText);
+    const deckStatusTag = markup.slice(markup.lastIndexOf("<p", deckStatus), markup.indexOf(">", deckStatus));
+    assert.doesNotMatch(deckStatusTag, /role=|aria-live=/);
+
+    const sharedIds = structuredClone(example);
+    sharedIds.flashcardDecks[0].id = sharedIds.lessons[0].id;
+    const sharedMarkup = renderToStaticMarkup(createElement(reader.PortablePackReader, {
+      preview: { ...preview, pack: sharedIds },
+    }));
+    const ids = [...sharedMarkup.matchAll(/\sid="([^"]+)"/g)].map((match) => match[1]);
+    assert.equal(new Set(ids).size, ids.length);
+  } finally {
+    await close();
+  }
+
+  const [readerSource, readerCss] = await Promise.all([
+    readFile(new URL("app/open-learning/HostedLearningReader.tsx", root), "utf8"),
+    readFile(new URL("app/open-learning/studio.module.css", root), "utf8"),
+  ]);
+  assert.doesNotMatch(readerSource, /selectedView|setSelectedView|styles\.readerNav|aria-current/);
+  assert.doesNotMatch(readerCss, /\.readerLayout|\.readerNav/);
+  assert.match(readerCss, /\.readerSection \+ \.readerSection/);
+  assert.match(readerCss, /\.lessonBlocks h4,[\s\S]*\.lessonBlocks h5/);
 });
 
 test("the committed standalone example exactly matches a fresh deterministic build", async () => {

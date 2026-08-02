@@ -199,6 +199,12 @@ field, pinstripe, particle field, filled decorative shape, image request,
 fixed background attachment, or runtime service. Reduced-motion, forced-color,
 and print modes remove the decorative motion and highlights.
 
+Standalone Learning Pack player version 2 and later is always one sidebar-free
+vertical document. Its course contents are in flow, use native fragment links,
+and do not hide lessons or decks behind view-selection controls. Appearance
+palettes cannot select a different layout. The hosted-feed reader follows the
+same continuous-reading rule after it verifies a pack.
+
 Learning Studio and the original LLM Systems course use Paper, Interview Loop
 uses Sage, and Ten Problems uses Cobalt; Plum and Graphite remain bounded
 alternatives. `renderLearnerAtmosphere()` supplies static markup,

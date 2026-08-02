@@ -9,7 +9,7 @@ There is no required central upload, account, model provider, database, or appli
 - A strict `latent-learning-pack` JSON format for objectives, sources, lessons, multiple-choice checks, decks, and cards.
 - Namespaced `extensions` metadata for experimentation without weakening the core reader.
 - A provider-neutral command-line tool for initialization, inspection, validation, deterministic builds, local preview, and remote verification.
-- A standalone, responsive learning site generated from the same validated package.
+- A standalone, responsive learning site that presents every lesson and deck in one sidebar-free scrolling document generated from the same validated package.
 - An HTTPS feed containing exact package identity, version, byte count, and SHA-256 digest.
 - A browser publishing studio at `/open-learning/publish` that can validate and build locally without the command line.
 - A separate hosted-feed reader at `/open-learning/read` that verifies content before rendering it.
@@ -28,6 +28,12 @@ COURSE_KIT_RELEASE=https://github.com/model-systems-labs/latent/releases/downloa
 npm exec --yes --package "$COURSE_KIT_RELEASE" -- \
   latent-learning init my-learning-pack --json
 ```
+
+The immutable v0.2.0 tarball predates the sidebar-free player. Repository
+builds and the checked-in public example now use standalone player version 2;
+that presentation will become available to downstream CLI installs in the
+next Course Kit patch release. The Learning Pack v1 content and feed formats
+remain unchanged.
 
 The GitHub tarball is the permanent registry-independent install path. Course
 Kit is not currently published on npm. After the `@latent` npm scope is
@@ -104,7 +110,10 @@ Required behavior:
 - If learners will open the feed from a different origin, return an `Access-Control-Allow-Origin` header for that reader or for `*`.
 - Keep an already-published `package-id@version` immutable. Publish changed content under a new semantic version.
 
-The standalone site does not need CORS. CORS is needed only when a reader on another origin fetches the feed and package.
+The standalone site does not need CORS. Its in-flow contents links jump to
+lessons and decks in the same continuous document; appearance palettes never
+replace that layout with a side navigation or one-view-at-a-time reader. CORS
+is needed only when a reader on another origin fetches the feed and package.
 
 Verify a deployed feed:
 

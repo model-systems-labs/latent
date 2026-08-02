@@ -162,7 +162,7 @@ function LessonBlockView({
   identity: string;
 }) {
   if (block.type === "paragraph") return <p>{block.text}</p>;
-  if (block.type === "heading") return block.level === 2 ? <h2>{block.text}</h2> : <h3>{block.text}</h3>;
+  if (block.type === "heading") return block.level === 2 ? <h4>{block.text}</h4> : <h5>{block.text}</h5>;
   if (block.type === "list") {
     return block.style === "ordered"
       ? <ol>{block.items.map((item) => <li key={item}>{item}</li>)}</ol>
@@ -182,11 +182,11 @@ function LessonBlockView({
   return <QuizBlock block={block} identity={identity} />;
 }
 
-function PortablePackReader({ preview }: { preview: HostedPreview }) {
+export function PortablePackReader({ preview }: { preview: HostedPreview }) {
   const { pack } = preview;
   const publisherHost = new URL(preview.feedUrl).host;
-  const firstView = pack.lessons[0] ? `lesson:${pack.lessons[0].id}` : `deck:${pack.flashcardDecks[0]?.id}`;
-  const [selectedView, setSelectedView] = useState(firstView);
+  const lessons = [...pack.lessons].sort((left, right) => left.order - right.order);
+  const decks = [...pack.flashcardDecks].sort((left, right) => left.order - right.order);
   const [revealedCards, setRevealedCards] = useState<string[]>([]);
   const [progress, setProgress] = useState<ProgressState>(emptyProgress);
   const progressKey = learningProgressKey(
@@ -213,7 +213,7 @@ function PortablePackReader({ preview }: { preview: HostedPreview }) {
       }
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [firstView, progressKey]);
+  }, [progressKey]);
 
   const saveProgress = useCallback((next: ProgressState) => {
     setProgress(next);
@@ -222,13 +222,6 @@ function PortablePackReader({ preview }: { preview: HostedPreview }) {
     } catch {}
   }, [progressKey]);
 
-  const selectedLesson = selectedView.startsWith("lesson:")
-    ? pack.lessons.find((lesson) => lesson.id === selectedView.slice("lesson:".length))
-    : undefined;
-  const selectedDeck = selectedView.startsWith("deck:")
-    ? pack.flashcardDecks.find((deck) => deck.id === selectedView.slice("deck:".length))
-    : undefined;
-
   return (
     <section className={styles.reader} aria-labelledby="hosted-pack-title">
       <header className={styles.readerTrust}>
@@ -236,55 +229,58 @@ function PortablePackReader({ preview }: { preview: HostedPreview }) {
         <code>SHA-256 {preview.sha256.slice(0, 12)}…</code>
         <a href={preview.siteUrl} rel="noreferrer" target="_blank">Open publisher site ↗</a>
       </header>
-      <div className={styles.readerLayout}>
-        <aside className={styles.readerNav}>
+      <div className={styles.readerDocument}>
+        <header className={styles.readerIntro}>
           <span className="eyebrow">Published by {pack.package.authors[0]?.name}</span>
           <h2 id="hosted-pack-title">{pack.package.title}</h2>
           <p>{pack.package.description}</p>
-          <nav aria-label="Hosted pack contents">
-            {[...pack.lessons].sort((left, right) => left.order - right.order).map((lesson) => (
-              <button
-                aria-current={selectedView === `lesson:${lesson.id}` ? "page" : undefined}
-                key={lesson.id}
-                onClick={() => setSelectedView(`lesson:${lesson.id}`)}
-                type="button"
-              >
-                <small>{lesson.durationMinutes} min lesson</small>
-                <span>{lesson.title}</span>
-              </button>
-            ))}
-            {[...pack.flashcardDecks].sort((left, right) => left.order - right.order).map((deck) => (
-              <button
-                aria-current={selectedView === `deck:${deck.id}` ? "page" : undefined}
-                key={deck.id}
-                onClick={() => setSelectedView(`deck:${deck.id}`)}
-                type="button"
-              >
-                <small>{deck.cards.length} flash cards</small>
-                <span>{deck.title}</span>
-              </button>
-            ))}
+          <nav className={styles.readerContents} aria-label="Hosted pack contents">
+            <ol>
+              {lessons.map((lesson) => (
+                <li key={`lesson:${lesson.id}`}>
+                  <a href={`#hosted-lesson-${lesson.id}`}>
+                    <small>{lesson.durationMinutes} min lesson</small>
+                    <span>{lesson.title}</span>
+                  </a>
+                </li>
+              ))}
+              {decks.map((deck) => (
+                <li key={`deck:${deck.id}`}>
+                  <a href={`#hosted-deck-${deck.id}`}>
+                    <small>{deck.cards.length} flash cards</small>
+                    <span>{deck.title}</span>
+                  </a>
+                </li>
+              ))}
+            </ol>
           </nav>
-        </aside>
-        <article className={styles.readerContent}>
-          {selectedLesson ? (
-            <>
+        </header>
+        <div className={styles.readerContent}>
+          {lessons.map((lesson) => (
+            <section
+              aria-labelledby={`hosted-lesson-${lesson.id}`}
+              className={styles.readerSection}
+              key={`lesson:${lesson.id}`}
+            >
               <header className={styles.contentHeader}>
-                <span className="eyebrow">{selectedLesson.durationMinutes} minute lesson</span>
-                <h2 tabIndex={-1}>{selectedLesson.title}</h2>
-                <p>{selectedLesson.summary}</p>
+                <span className="eyebrow">{lesson.durationMinutes} minute lesson</span>
+                <h3 id={`hosted-lesson-${lesson.id}`} tabIndex={-1}>{lesson.title}</h3>
+                <p>{lesson.summary}</p>
               </header>
               <div className={styles.lessonBlocks}>
-                {selectedLesson.blocks.map((block, index) => (
-                  <LessonBlockView block={block} identity={`${pack.package.id}-${selectedLesson.id}-${index}`} key={`${block.type}-${index}`} />
+                {lesson.blocks.map((block, index) => (
+                  <LessonBlockView block={block} identity={`${pack.package.id}-${lesson.id}-${index}`} key={`${block.type}-${index}`} />
                 ))}
               </div>
-              <section className={styles.readerSources}>
-                <h3>Sources used here</h3>
+              <section
+                aria-labelledby={`hosted-lesson-${lesson.id}-sources`}
+                className={styles.readerSources}
+              >
+                <h4 id={`hosted-lesson-${lesson.id}-sources`}>Sources used here</h4>
                 <ul>
                   {sourceLinks(pack, [
-                    ...selectedLesson.sourceIds,
-                    ...selectedLesson.blocks.flatMap((block) => block.type === "quiz" ? block.sourceIds : []),
+                    ...lesson.sourceIds,
+                    ...lesson.blocks.flatMap((block) => block.type === "quiz" ? block.sourceIds : []),
                   ]).map((source) => (
                     <li key={source.id}>
                       <a href={source.url} rel="noreferrer" target="_blank">{source.title} ↗</a>
@@ -294,39 +290,43 @@ function PortablePackReader({ preview }: { preview: HostedPreview }) {
                 </ul>
               </section>
               <button
-                aria-pressed={progress.completedLessons.includes(selectedLesson.id)}
+                aria-pressed={progress.completedLessons.includes(lesson.id)}
                 className={styles.primaryButton}
                 onClick={() => {
-                  const complete = progress.completedLessons.includes(selectedLesson.id);
+                  const complete = progress.completedLessons.includes(lesson.id);
                   saveProgress({
                     ...progress,
                     completedLessons: complete
-                      ? progress.completedLessons.filter((entry) => entry !== selectedLesson.id)
-                      : [...progress.completedLessons, selectedLesson.id],
+                      ? progress.completedLessons.filter((entry) => entry !== lesson.id)
+                      : [...progress.completedLessons, lesson.id],
                   });
                 }}
                 type="button"
               >
-                {progress.completedLessons.includes(selectedLesson.id) ? "Lesson complete" : "Mark lesson complete"}
+                {progress.completedLessons.includes(lesson.id) ? "Lesson complete" : "Mark lesson complete"}
               </button>
-            </>
-          ) : null}
-          {selectedDeck ? (
-            <>
+            </section>
+          ))}
+          {decks.map((deck) => (
+            <section
+              aria-labelledby={`hosted-deck-${deck.id}`}
+              className={styles.readerSection}
+              key={`deck:${deck.id}`}
+            >
               <header className={styles.contentHeader}>
-                <span className="eyebrow">{selectedDeck.cards.length} flash cards</span>
-                <h2 tabIndex={-1}>{selectedDeck.title}</h2>
-                <p>{selectedDeck.description}</p>
+                <span className="eyebrow">{deck.cards.length} flash cards</span>
+                <h3 id={`hosted-deck-${deck.id}`} tabIndex={-1}>{deck.title}</h3>
+                <p>{deck.description}</p>
               </header>
-              <p className={styles.deckStatus} role="status">
-                {selectedDeck.cards.filter((card) => progress.cardRatings[card.id] === "know").length} of {selectedDeck.cards.length} marked as known on this device.
+              <p className={styles.deckStatus}>
+                {deck.cards.filter((card) => progress.cardRatings[card.id] === "know").length} of {deck.cards.length} marked as known on this device.
               </p>
               <ol className={styles.cards}>
-                {selectedDeck.cards.map((card, index) => {
+                {deck.cards.map((card, index) => {
                   const revealed = revealedCards.includes(card.id);
                   return (
                     <li className={styles.card} key={card.id}>
-                      <span>Card {index + 1} of {selectedDeck.cards.length}</span>
+                      <span>Card {index + 1} of {deck.cards.length}</span>
                       <button
                         aria-expanded={revealed}
                         className={styles.cardFace}
@@ -369,12 +369,15 @@ function PortablePackReader({ preview }: { preview: HostedPreview }) {
                   );
                 })}
               </ol>
-              <section className={styles.readerSources}>
-                <h3>Sources used here</h3>
+              <section
+                aria-labelledby={`hosted-deck-${deck.id}-sources`}
+                className={styles.readerSources}
+              >
+                <h4 id={`hosted-deck-${deck.id}-sources`}>Sources used here</h4>
                 <ul>
                   {sourceLinks(pack, [
-                    ...selectedDeck.sourceIds,
-                    ...selectedDeck.cards.flatMap((card) => card.sourceIds),
+                    ...deck.sourceIds,
+                    ...deck.cards.flatMap((card) => card.sourceIds),
                   ]).map((source) => (
                     <li key={source.id}>
                       <a href={source.url} rel="noreferrer" target="_blank">{source.title} ↗</a>
@@ -383,9 +386,9 @@ function PortablePackReader({ preview }: { preview: HostedPreview }) {
                   ))}
                 </ul>
               </section>
-            </>
-          ) : null}
-        </article>
+            </section>
+          ))}
+        </div>
       </div>
     </section>
   );

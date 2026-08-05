@@ -1,0 +1,19 @@
+{
+  "name": "neural-chalk",
+  "version": "1.0.0",
+  "description": "Turn bounded source collections into validated, self-hosted courses, flash cards, and programming practice.",
+  "author": {
+    "name": "Model Systems Labs",
+    "url": "https://github.com/model-systems-labs"
+  },
+  "homepage": "https://model-systems-labs.github.io/latent/",
+  "repository": "https://github.com/model-systems-labs/latent",
+  "license": "Apache-2.0",
+  "keywords": [
+    "education",
+    "learning",
+    "courses",
+    "flash-cards",
+    "source-grounded"
+  ]
+}

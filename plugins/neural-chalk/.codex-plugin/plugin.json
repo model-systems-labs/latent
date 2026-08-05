@@ -1,0 +1,42 @@
+{
+  "name": "neural-chalk",
+  "version": "1.0.0",
+  "description": "Turn bounded source collections into validated, self-hosted courses, flash cards, and programming practice.",
+  "author": {
+    "name": "Model Systems Labs",
+    "url": "https://github.com/model-systems-labs"
+  },
+  "homepage": "https://model-systems-labs.github.io/latent/",
+  "repository": "https://github.com/model-systems-labs/latent",
+  "license": "Apache-2.0",
+  "keywords": [
+    "education",
+    "learning",
+    "courses",
+    "flash-cards",
+    "source-grounded"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Neural Chalk",
+    "shortDescription": "Build durable learning from sources",
+    "longDescription": "Create, review, validate, and publish source-grounded lessons, flash cards, and programming practice with Neural Chalk's declarative formats and released Course Kit CLI.",
+    "developerName": "Model Systems Labs",
+    "category": "Education",
+    "capabilities": [
+      "Research",
+      "Write"
+    ],
+    "websiteURL": "https://model-systems-labs.github.io/latent/",
+    "privacyPolicyURL": "https://model-systems-labs.github.io/latent/open-learning/plugin/privacy.html",
+    "termsOfServiceURL": "https://model-systems-labs.github.io/latent/open-learning/plugin/terms.html",
+    "brandColor": "#78667D",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
+    "defaultPrompt": [
+      "Turn these sources into a course for my goal.",
+      "Create and validate a portable learning pack.",
+      "Review this learning pack for publication."
+    ]
+  }
+}

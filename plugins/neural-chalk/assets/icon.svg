@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Neural Chalk</title>
+  <rect width="512" height="512" rx="120" fill="#f4f0e8"/>
+  <rect x="158" y="158" width="196" height="196" rx="42" fill="#78667d" transform="rotate(-7 256 256)"/>
+</svg>

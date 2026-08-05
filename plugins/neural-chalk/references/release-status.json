@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "courseKit": {
+    "sourceVersion": "0.2.0",
+    "state": "released",
+    "latestPublishedVersion": "0.2.0",
+    "latestPublishedTag": "course-kit-v0.2.0",
+    "releaseCommit": "57d5b7ca00e36411841d1aeaff32085afead5c7c",
+    "releaseUrl": "https://github.com/model-systems-labs/latent/releases/tag/course-kit-v0.2.0",
+    "installUrl": "https://github.com/model-systems-labs/latent/releases/download/course-kit-v0.2.0/latent-course-kit-0.2.0.tgz",
+    "tarballSha256": "f133c22dbd7f4bd6d2d2740d1b05d0f9e201a33973d25022dd4419d4a8e799dd",
+    "npmState": "unpublished",
+    "questionGroupSchemaState": "published"
+  },
+  "schemas": {
+    "state": "published",
+    "artifacts": [
+      {
+        "name": "learning-pack-v1",
+        "url": "https://model-systems-labs.github.io/latent/open-learning/v1/learning-pack.schema.json",
+        "sha256": "4a9fda2a74f1585f801586e3d0020262ed4ddd06c7d68b27e5130152b4fa75cc"
+      },
+      {
+        "name": "learning-feed-v1",
+        "url": "https://model-systems-labs.github.io/latent/open-learning/v1/learning-feed.schema.json",
+        "sha256": "747618c597f38c23c3dbf50e5298be40a81b99cd0a498b78c5b5ecad60884b0c"
+      },
+      {
+        "name": "question-group-library-v1",
+        "url": "https://model-systems-labs.github.io/latent/question-groups/v1/question-group-library.schema.json",
+        "sha256": "c04920af757de2f0fac38a873a1db44e5d7081125cb9d6e0d8cbe181102c69f5"
+      },
+      {
+        "name": "question-group-progress-v1",
+        "url": "https://model-systems-labs.github.io/latent/question-groups/v1/question-group-progress.schema.json",
+        "sha256": "282f3a47daad12d6c7c96e422d5955be47a05b701569227be89c05611277b9e6"
+      }
+    ]
+  },
+  "referenceDeployment": {
+    "state": "released",
+    "provider": "Sites",
+    "projectId": "appgprj_6a50536d982481919199f252601daf02",
+    "versionId": "appgprj_6a50536d982481919199f252601daf02~appgver_db00e4bec2308191b8832184e0fc7d64",
+    "versionNumber": 91,
+    "deploymentId": "appgdep_6a65291f968081918601996b34340e46",
+    "sourceArchiveSha256": "ac0ea9966553398cb0e1eea86f9a7f4c471a0c3712ab7446a4cd2fe57ddeb318",
+    "commitSha": "57d5b7ca00e36411841d1aeaff32085afead5c7c",
+    "url": "https://latent-llm-learning.cswansondeveloper.chatgpt.site",
+    "llmsUrl": "https://latent-llm-learning.cswansondeveloper.chatgpt.site/llms.txt",
+    "provenanceVerification": {
+      "mode": "provider-authenticated",
+      "publiclyReproducible": false,
+      "publicIdentityEvidence": "The live llms.txt names course-kit-v0.2.0; the public verifier independently peels that annotated GitHub tag.",
+      "providerEvidence": "An authenticated Sites version lookup reported version 91 at the recorded commit and archive hash."
+    },
+    "verifiedAt": "2026-07-25T21:25:54.378Z"
+  }
+}

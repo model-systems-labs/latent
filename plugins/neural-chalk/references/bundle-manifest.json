@@ -1,0 +1,144 @@
+{
+  "format": "neural-chalk-plugin-bundle",
+  "schemaVersion": 1,
+  "courseKit": {
+    "version": "0.2.0",
+    "tag": "course-kit-v0.2.0",
+    "installUrl": "https://github.com/model-systems-labs/latent/releases/download/course-kit-v0.2.0/latent-course-kit-0.2.0.tgz",
+    "tarballSha256": "f133c22dbd7f4bd6d2d2740d1b05d0f9e201a33973d25022dd4419d4a8e799dd"
+  },
+  "files": [
+    {
+      "source": "skills/learn-from-sources/SKILL.md",
+      "destination": "skills/learn-from-sources/SKILL.md",
+      "bytes": 6864,
+      "sha256": "3c6564ee740e288180b56dc7eb99b9d75f6fba7f3989ba5447dae049b0f6119b"
+    },
+    {
+      "source": "skills/learn-from-sources/agents/openai.yaml",
+      "destination": "skills/learn-from-sources/agents/openai.yaml",
+      "bytes": 245,
+      "sha256": "7379229ecedeef8ac367017e7291a80cc0242b9afd1e8d743d2418489faeb537"
+    },
+    {
+      "source": "skills/author-learning-pack/SKILL.md",
+      "destination": "skills/author-learning-pack/SKILL.md",
+      "bytes": 6001,
+      "sha256": "f286bb47efa8f23c6f432c3e63f22b2d090ffccffade64ddab0e01aba3442f4b"
+    },
+    {
+      "source": "skills/author-learning-pack/agents/openai.yaml",
+      "destination": "skills/author-learning-pack/agents/openai.yaml",
+      "bytes": 235,
+      "sha256": "bc2cc960418464d784996b88e2055ccc66d83b0a873ec0bfc8b98cbf52ccc21a"
+    },
+    {
+      "source": "skills/author-question-group/SKILL.md",
+      "destination": "skills/author-question-group/SKILL.md",
+      "bytes": 3895,
+      "sha256": "bb1d2d3a63ec2b141a720724b9368a4c0c9ddd1b6e8832cd9102416143c62756"
+    },
+    {
+      "source": "skills/author-question-group/agents/openai.yaml",
+      "destination": "skills/author-question-group/agents/openai.yaml",
+      "bytes": 228,
+      "sha256": "da1774aa3c1de16108dc679f6c8a7e90315b1f1ce576211523d3d41217fe9461"
+    },
+    {
+      "source": "skills/review-learning-pack/SKILL.md",
+      "destination": "skills/review-learning-pack/SKILL.md",
+      "bytes": 5544,
+      "sha256": "5bbef11522c19f4ef54acfae451f7429e7742a11fb25c38ab1dc2aa8c9a6429f"
+    },
+    {
+      "source": "skills/review-learning-pack/agents/openai.yaml",
+      "destination": "skills/review-learning-pack/agents/openai.yaml",
+      "bytes": 246,
+      "sha256": "f7195ebe060858b315277cc7a0a8956edbb764cac8836d65073308b1cca1ae7b"
+    },
+    {
+      "source": "skills/publish-learning-pack/SKILL.md",
+      "destination": "skills/publish-learning-pack/SKILL.md",
+      "bytes": 7300,
+      "sha256": "1b6d6e051c755631b4c982dd4f568d9e0493e7d4f4215f382ff162fbdcf130ae"
+    },
+    {
+      "source": "skills/publish-learning-pack/agents/openai.yaml",
+      "destination": "skills/publish-learning-pack/agents/openai.yaml",
+      "bytes": 230,
+      "sha256": "ef0031d7ef4b94866e00808c8de683f32e9f3dce1e1fc88a33690c3429922309"
+    },
+    {
+      "source": "docs/open-learning.md",
+      "destination": "references/open-learning.md",
+      "bytes": 11478,
+      "sha256": "399032d5a367540b6f4eb70c8321bb3b2fb8313fb05f9740a8fc7dcc71e8e2b8"
+    },
+    {
+      "source": "docs/learning-pack-quality-rubric.md",
+      "destination": "references/learning-pack-quality-rubric.md",
+      "bytes": 3078,
+      "sha256": "af9c0172d388e74696fcfc00e7346026bef97266e001a46dde7704cd1ecded12"
+    },
+    {
+      "source": "docs/learning-pack.schema.json",
+      "destination": "references/learning-pack.schema.json",
+      "bytes": 19704,
+      "sha256": "4a9fda2a74f1585f801586e3d0020262ed4ddd06c7d68b27e5130152b4fa75cc"
+    },
+    {
+      "source": "docs/learning-feed.schema.json",
+      "destination": "references/learning-feed.schema.json",
+      "bytes": 3698,
+      "sha256": "747618c597f38c23c3dbf50e5298be40a81b99cd0a498b78c5b5ecad60884b0c"
+    },
+    {
+      "source": "docs/question-groups.md",
+      "destination": "references/question-groups.md",
+      "bytes": 19538,
+      "sha256": "e130de4bd8ef874721ceb5510b53a248f4b8c7c6f7819a2d045228b3f3573d2c"
+    },
+    {
+      "source": "docs/release-status.json",
+      "destination": "references/release-status.json",
+      "bytes": 2810,
+      "sha256": "d693f34cc7152f364c8bf3bd377172176037952f337e07055e8602c06fd3fe67"
+    },
+    {
+      "source": "packages/course-kit/schema/question-group-library.schema.json",
+      "destination": "references/question-group-library.schema.json",
+      "bytes": 38929,
+      "sha256": "c04920af757de2f0fac38a873a1db44e5d7081125cb9d6e0d8cbe181102c69f5"
+    },
+    {
+      "source": "packages/course-kit/schema/question-group-progress.schema.json",
+      "destination": "references/question-group-progress.schema.json",
+      "bytes": 2487,
+      "sha256": "282f3a47daad12d6c7c96e422d5955be47a05b701569227be89c05611277b9e6"
+    },
+    {
+      "source": "examples/open-learning/reliable-llm-changes/learning-pack.json",
+      "destination": "references/learning-pack.example.json",
+      "bytes": 13993,
+      "sha256": "8f533a9631ca4b6e2eb277b94f74cf724960042fdde5fbe62b4b83181a5d91a1"
+    },
+    {
+      "source": "examples/learning-platform/javascript-array-methods/content/question-groups.json",
+      "destination": "references/question-group-library.example.json",
+      "bytes": 4970,
+      "sha256": "6866b28f1d9549dcf19e49b880a66955cb8953bc88e6afdc6d6e0d6934e141dc"
+    },
+    {
+      "source": "LICENSE",
+      "destination": "LICENSE",
+      "bytes": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "source": "CONTENT_LICENSE.md",
+      "destination": "CONTENT_LICENSE.md",
+      "bytes": 3875,
+      "sha256": "cd661006acc49be196d4e656f9d13e63c97f1d531412fb4f0d675f28beb07e5b"
+    }
+  ]
+}

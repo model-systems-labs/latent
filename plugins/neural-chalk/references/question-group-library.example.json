@@ -1,0 +1,165 @@
+{
+  "format": "latent-question-group-library",
+  "schemaVersion": 1,
+  "library": {
+    "id": "latent-starters/javascript-array-methods",
+    "version": "1.1.0",
+    "title": "JavaScript array method practice",
+    "description": "Small browser exercises for expressing one-to-one transformations without mutating the input.",
+    "authors": [
+      {
+        "name": "Latent Project Contributors",
+        "url": "https://github.com/model-systems-labs/latent"
+      }
+    ],
+    "license": {
+      "expression": "CC-BY-4.0",
+      "url": "https://creativecommons.org/licenses/by/4.0/"
+    },
+    "provenance": {
+      "sourceUrl": "https://github.com/model-systems-labs/latent/tree/main/examples/learning-platform/javascript-array-methods",
+      "revision": "1.1.0-type-hinted-starters"
+    }
+  },
+  "objectives": [
+    {
+      "id": "transform-labels",
+      "title": "Transform labels without mutation",
+      "description": "Implement a one-to-one label transformation that leaves the caller's input array unchanged."
+    }
+  ],
+  "sources": [
+    {
+      "id": "mdn-array-map",
+      "title": "Array.prototype.map()",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/map",
+      "note": "Documents the one-to-one array transformation used by this original practice prompt."
+    }
+  ],
+  "runtimes": [
+    {
+      "id": "tiny-browser-javascript",
+      "language": "javascript",
+      "environment": "browser-worker",
+      "engine": "native-javascript",
+      "engineVersion": "ES2024",
+      "capabilities": [
+        "function"
+      ],
+      "limits": {
+        "timeoutMs": 1500,
+        "maxOutputBytes": 50000
+      }
+    }
+  ],
+  "groups": [
+    {
+      "id": "array-methods",
+      "order": 1,
+      "title": "Array methods",
+      "description": "Practice choosing and applying methods from the required result shape.",
+      "objectiveIds": [
+        "transform-labels"
+      ],
+      "tags": [
+        "arrays",
+        "methods"
+      ],
+      "questions": [
+        {
+          "id": "format-labels",
+          "order": 1,
+          "title": "Format display labels",
+          "prompt": "Implement formatLabels so it returns one trimmed, uppercase label for each input value while leaving the input array unchanged.",
+          "difficulty": "easy",
+          "language": "javascript",
+          "path": "format-labels.js",
+          "starterCode": "/**\n * @param {string[]} labels\n * @returns {string[]}\n */\nfunction formatLabels(labels) {\n  // Return one normalized label for each input.\n  return [];\n}\n",
+          "entrypoint": {
+            "kind": "function",
+            "functionName": "formatLabels"
+          },
+          "objectiveIds": [
+            "transform-labels"
+          ],
+          "sourceIds": [
+            "mdn-array-map"
+          ],
+          "runtimeId": "tiny-browser-javascript",
+          "constraints": [
+            "Return a new array with the same length and order.",
+            "Trim surrounding whitespace before converting each label to uppercase.",
+            "Do not mutate the input array."
+          ],
+          "tags": [
+            "arrays",
+            "map",
+            "immutability"
+          ],
+          "cases": [
+            {
+              "id": "mixed-labels",
+              "label": "normalizes several labels",
+              "visibility": "example",
+              "args": [
+                [
+                  " alpha ",
+                  "Beta",
+                  " gamma"
+                ]
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns normalized labels in order",
+                  "kind": "deep-equal",
+                  "expected": [
+                    "ALPHA",
+                    "BETA",
+                    "GAMMA"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "empty",
+              "label": "handles an empty array",
+              "visibility": "check",
+              "args": [
+                []
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns an empty array",
+                  "kind": "deep-equal",
+                  "expected": []
+                }
+              ]
+            },
+            {
+              "id": "single-label",
+              "label": "handles one label without whitespace",
+              "visibility": "check",
+              "args": [
+                [
+                  "ready"
+                ]
+              ],
+              "assertions": [
+                {
+                  "id": "result",
+                  "label": "returns one uppercase label",
+                  "kind": "deep-equal",
+                  "expected": [
+                    "READY"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

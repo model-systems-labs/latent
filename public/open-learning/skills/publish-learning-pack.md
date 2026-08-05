@@ -1,20 +1,26 @@
 ---
 name: publish-learning-pack
-description: Validate, deterministically build, deploy, and verify a Latent Open Learning package on any static host. Use when a user asks to preview, self-host, release, update, or troubleshoot a portable lesson or flash-card feed.
+description: Validate, deterministically build, deploy, and verify a Neural Chalk Open Learning package on any static host. Use when a user asks to preview, self-host, release, update, or troubleshoot a portable lesson or flash-card feed.
 ---
 
 # Publish Learning Pack
 
-Publish the builder's exact canonical, validated bytes without making Latent or a central repository a dependency.
+Publish the builder's exact canonical, validated bytes without making Neural Chalk or a central repository a dependency.
 
 ## Read the publishing contract
 
-At the repository root, read:
+Resolve the publishing contract before changing external state:
 
-1. `docs/open-learning.md`
-2. `docs/learning-pack-quality-rubric.md`
-3. `docs/learning-feed.schema.json`
-4. the target `learning-pack.json`
+- In a Neural Chalk checkout, read `docs/open-learning.md`,
+  `docs/learning-pack-quality-rubric.md`, and `docs/learning-feed.schema.json`.
+- From the installed Neural Chalk plugin, read `../../references/open-learning.md`,
+  `../../references/learning-pack-quality-rubric.md`, and
+  `../../references/learning-feed.schema.json`, resolving those paths from
+  this `SKILL.md` directory.
+
+Use the checkout files when both locations exist. The plugin bundle records
+the exact source digests for its copies in `../../references/bundle-manifest.json`.
+Also read the target `learning-pack.json`.
 
 Resolve the exact source file, package id, version, intended host, and deployment target before changing external state.
 
@@ -54,7 +60,7 @@ npm exec --yes --package "$COURSE_KIT_RELEASE" -- \
   --json
 ```
 
-When intentionally publishing from the Latent monorepo, build the workspace and
+When intentionally publishing from the Neural Chalk monorepo, build the workspace and
 use `node packages/course-kit/bin/latent-learning.mjs` as the equivalent local
 fallback.
 
@@ -135,7 +141,7 @@ npm exec --yes --package "$COURSE_KIT_RELEASE" -- \
   --json
 ```
 
-Then open that feed in Latent's `/open-learning/read` reader. Confirm the publisher origin, package id, version, digest, lesson, deck, and explicit save behavior.
+Then open that feed in Neural Chalk's `/open-learning/read` reader. Confirm the publisher origin, package id, version, digest, lesson, deck, and explicit save behavior.
 
 If no interactive browser is available, report reader rendering and save
 behavior as unverified. A passing `verify-url` result does not prove those

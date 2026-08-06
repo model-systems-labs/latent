@@ -63,7 +63,7 @@
   such as `None`, lists, and dictionaries.
 - Advance the immutable portable library from `1.0.0` to `2.0.0` because the
   execution contract changed while leaving all 39 public case vectors intact.
-- Declare one exact `python` / `host-managed` / `pyodide@314.0.2` requirement.
+- Declare one exact `python` / `host-managed` / `pyodide@314.0.3` requirement.
   Portable JSON still cannot load an interpreter or executable tests.
 - Add a reviewed example-local host adapter that reuses Latent's Python Lab
   worker and host-owned assertion evaluator. Each submission starts a fresh

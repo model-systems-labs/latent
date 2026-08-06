@@ -267,7 +267,7 @@ export function supportsInterviewPython(
   return requirement.language === "python"
     && requirement.environment === "host-managed"
     && requirement.engine === "pyodide"
-    && requirement.engineVersion === "314.0.2"
+    && requirement.engineVersion === "314.0.3"
     && requirement.capabilities.includes("function");
 }
 
@@ -313,7 +313,7 @@ export function createInterviewPythonRuntime(options: RuntimeOptions = {}) {
         );
         if (
           initialized.runtime !== "pyodide"
-          || initialized.runtimeVersion !== "314.0.2"
+          || initialized.runtimeVersion !== "314.0.3"
           || initialized.guardrailsApplied !== true
           || initialized.capabilityReduced !== true
         ) {

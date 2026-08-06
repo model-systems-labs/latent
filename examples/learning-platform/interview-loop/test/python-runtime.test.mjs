@@ -72,7 +72,7 @@ function fakeClient(result, calls) {
       return {
         schemaVersion: 1,
         runtime: "pyodide",
-        runtimeVersion: "314.0.2",
+        runtimeVersion: "314.0.3",
         pythonVersion: "3.14.0",
         packages: [],
         guardrailsApplied: true,

@@ -105,7 +105,7 @@ test("all four exercises declare Python and all 13 authored cases pass", {
     language: "python",
     environment: "host-managed",
     engine: "pyodide",
-    engineVersion: "314.0.2",
+    engineVersion: "314.0.3",
     capabilities: ["function"],
     limits: {
       timeoutMs: 10_000,
@@ -123,7 +123,7 @@ test("all four exercises declare Python and all 13 authored cases pass", {
     language: "python",
     environment: "host-managed",
     engine: "pyodide",
-    engineVersion: "314.0.2",
+    engineVersion: "314.0.3",
     capabilities: ["function"],
     limits: {
       timeoutMs: 10_000,

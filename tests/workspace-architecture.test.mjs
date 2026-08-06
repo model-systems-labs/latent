@@ -224,7 +224,7 @@ test("the v0.2 contract separates portable content from trusted executable sourc
 
 test("the source inventory attributes the browser Python runtime", async () => {
   const source = await readFile(new URL("../app/sources/page.tsx", import.meta.url), "utf8");
-  assert.match(source, /name: "Pyodide", version: "314\.0\.2", license: "MPL-2\.0"/);
+  assert.match(source, /name: "Pyodide", version: "314\.0\.3", license: "MPL-2\.0"/);
   assert.match(source, /name: "NumPy", version: "2\.4\.3", license: "BSD-3-Clause"/);
   assert.match(source, /name: "CodeMirror Python language", version: "6\.2\.1", license: "MIT"/);
 });

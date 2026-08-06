@@ -53,7 +53,7 @@ npm run preview
 Run these commands from a Latent monorepo checkout with its workspace
 dependencies installed; Node 22.13 or newer is required. Validation is
 offline. The preview command validates, packages the same-origin Pyodide
-314.0.2 runtime, builds `dist/`, and serves that exact static artifact on
+314.0.3 runtime, builds `dist/`, and serves that exact static artifact on
 loopback. Once built, the learner experience does not fetch Python from a CDN.
 
 The Python exercises run through the trusted Python Lab adapter with

@@ -14,7 +14,7 @@ Teaching and practice content has the separate terms in
   Latent contributors.
 - Zod 4.4.3, MIT, copyright 2025 Colin McDonnell.
 
-The generated static distribution also includes Pyodide 314.0.2 runtime
+The generated static distribution also includes Pyodide 314.0.3 runtime
 assets, licensed under the Mozilla Public License 2.0 and copyright the Pyodide
 contributors. Pyodide source and license information are available at
 <https://github.com/pyodide/pyodide>.

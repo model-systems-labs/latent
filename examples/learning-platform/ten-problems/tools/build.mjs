@@ -200,10 +200,10 @@ async function readPyodideAssets() {
       sha256: sha256(bytes),
     });
   }
-  files["assets/pyodide/NOTICE.txt"] = `Pyodide 314.0.2
+  files["assets/pyodide/NOTICE.txt"] = `Pyodide 314.0.3
 
 The runtime payloads in this directory come from the npm package
-pyodide@314.0.2 and are licensed under the Mozilla Public License 2.0. The two
+pyodide@314.0.3 and are licensed under the Mozilla Public License 2.0. The two
 JavaScript module copies have one inert generated ESLint directive prepended;
 the trusted-runtime report records both their source and published hashes.
 Project and corresponding source: https://github.com/pyodide/pyodide
@@ -221,7 +221,7 @@ contracts to the repository's guarded Python Lab worker and evaluates the
 data-only assertions. Learner code runs in a fresh worker for each submission,
 with a hard execution timeout and bounded structured output.
 
-The site ships the npm-locked Pyodide 314.0.2 core at same-origin static paths,
+The site ships the npm-locked Pyodide 314.0.3 core at same-origin static paths,
 so running a problem does not fetch a compiler or interpreter from a third
 party. Python Lab applies capability guardrails, but is not a hostile-code
 security sandbox.
@@ -287,7 +287,7 @@ files["trusted-runtime-report.json"] = `${JSON.stringify({
     language: "python",
     environment: "host-managed",
     engine: "pyodide",
-    engineVersion: "314.0.2",
+    engineVersion: "314.0.3",
     selfHosted: true,
   },
   worker: {

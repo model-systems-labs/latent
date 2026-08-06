@@ -18,7 +18,7 @@ The generated practice site contains reviewed source from:
   contributors.
 
 The generated `dist/assets/pyodide/` directory contains core payloads from
-`pyodide@314.0.2`, licensed under MPL-2.0. The two JavaScript module copies
+`pyodide@314.0.3`, licensed under MPL-2.0. The two JavaScript module copies
 receive one inert generated ESLint directive; source and published hashes,
 project, corresponding source, and license links are recorded in the generated
 runtime report and `dist/assets/pyodide/NOTICE.txt`.

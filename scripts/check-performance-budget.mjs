@@ -142,7 +142,7 @@ enforceAsset("Project IDE", /^ProjectWorkbench-.*\.js$/, 560 * 1024);
 enforceAsset("Local Transformer runtime", /^local-transformer-runtime-.*\.js$/, 900 * 1024);
 enforceAsset("Training worker", /^model\.worker-.*\.js$/, 950 * 1024);
 enforceAsset("Browser compiler WASM", /^esbuild-.*\.wasm$/, 14 * 1024 * 1024, mib);
-enforceAsset("Transformer WASM", /^ort-wasm-simd-threaded\.jsep-.*\.wasm$/, 22 * 1024 * 1024, mib);
+enforceAsset("Transformer WASM", /^ort-wasm-simd-threaded\.asyncify-.*\.wasm$/, 23 * 1024 * 1024, mib);
 requireDeferredModule("app/components/ProjectWorkbench.tsx", "Project IDE loading boundary");
 requireDeferredModule("app/lib/local-transformer-runtime.ts", "Local Transformer loading boundary");
 requireDeferredModule("app/features/ide/CodeEditor.tsx", "Lesson editor loading boundary");

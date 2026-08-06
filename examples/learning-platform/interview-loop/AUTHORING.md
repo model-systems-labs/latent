@@ -484,7 +484,7 @@ recorded. The following evidence belongs to the shared learner UI revision.
 - Interview Loop's shared-source/vendor check, local validation, nine focused
   tests, and production build passed. All 13 authored cases also passed real
   Python execution, including mutation and nested-alias checks. Its
-  marker-owned artifact contains 28 files and self-hosts Pyodide 314.0.2.
+  marker-owned artifact contains 28 files and self-hosts Pyodide 314.0.3.
 - Ten Problems strict Question Group validation passed with 4 groups,
   10 questions, 39 cases, and zero warnings. Its six tests passed, including
   real CPython reference execution across all 39 cases and configured build
@@ -565,7 +565,7 @@ The table above is the concise before/after visual record for this revision.
   The trusted coding-lab contract is `interview-loop.retry-plan.v4`; its
   version change prevents saved v3 drafts from replacing the new annotated
   Python starter.
-- Portable content declares only a `host-managed` Pyodide 314.0.2 requirement.
+- Portable content declares only a `host-managed` Pyodide 314.0.3 requirement.
   `trusted/python-exercise-runtime.ts` is the reviewed adapter from the shared
   learner application to Python Lab. The marker-owned build bundles that
   adapter and worker, copies the pinned Pyodide assets to the same origin, and

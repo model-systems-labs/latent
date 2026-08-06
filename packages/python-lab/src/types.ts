@@ -1,5 +1,5 @@
-export const PYODIDE_VERSION = "314.0.2" as const;
-export const PYODIDE_CDN_URL = "https://cdn.jsdelivr.net/pyodide/v314.0.2/full/" as const;
+export const PYODIDE_VERSION = "314.0.3" as const;
+export const PYODIDE_CDN_URL = "https://cdn.jsdelivr.net/pyodide/v314.0.3/full/" as const;
 export const PYTHON_WORKSPACE_ROOT = "/workspace" as const;
 export const CURATED_PYTHON_PACKAGES = ["numpy", "sortedcontainers"] as const;
 

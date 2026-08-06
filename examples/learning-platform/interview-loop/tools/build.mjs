@@ -51,7 +51,7 @@ const pyodideFiles = Object.freeze([
   "python_stdlib.zip",
   "pyodide-lock.json",
 ]);
-const remotePyodideIndex = "https://cdn.jsdelivr.net/pyodide/v314.0.2/full/";
+const remotePyodideIndex = "https://cdn.jsdelivr.net/pyodide/v314.0.3/full/";
 
 function escapeHtml(value) {
   return value
@@ -243,10 +243,10 @@ try {
   }
   await writeFile(
     join(pyodideOutput, "NOTICE.txt"),
-    `Pyodide 314.0.2
+    `Pyodide 314.0.3
 
 The runtime payloads in this directory come from the npm package
-pyodide@314.0.2 and are licensed under the Mozilla Public License 2.0.
+pyodide@314.0.3 and are licensed under the Mozilla Public License 2.0.
 Project and corresponding source: https://github.com/pyodide/pyodide
 License: https://www.mozilla.org/MPL/2.0/
 `,
@@ -308,7 +308,7 @@ License: https://www.mozilla.org/MPL/2.0/
     },
     pythonRuntime: {
       engine: "pyodide",
-      engineVersion: "314.0.2",
+      engineVersion: "314.0.3",
       assets: runtimeAssets,
     },
   }, null, 2)}\n`, "utf8");

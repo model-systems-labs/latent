@@ -131,7 +131,7 @@ export function isPythonLabWorkerResponse(value: unknown): value is PythonLabWor
   if (value.type === "python-lab/failed") return isRecord(value.error) && typeof value.error.code === "string" && typeof value.error.message === "string";
   if (!isRecord(value.result)) return false;
   if (value.type === "python-lab/initialized") {
-    return value.result.schemaVersion === 1 && value.result.runtime === "pyodide" && value.result.runtimeVersion === "314.0.2"
+    return value.result.schemaVersion === 1 && value.result.runtime === "pyodide" && value.result.runtimeVersion === "314.0.3"
       && typeof value.result.pythonVersion === "string" && Array.isArray(value.result.packages)
       && value.result.guardrailsApplied === true && value.result.capabilityReduced === true;
   }

@@ -16,7 +16,7 @@ const runtimeNotices = [
   { name: "Dexie", version: "4.4.4", license: "Apache-2.0", url: "https://github.com/dexie/Dexie.js", use: "Saves your work in IndexedDB on this device." },
   { name: "CodeMirror", version: "6.0.2", license: "MIT", url: "https://github.com/codemirror/dev", use: "Browser project editor." },
   { name: "CodeMirror Python language", version: "6.2.1", license: "MIT", url: "https://github.com/codemirror/lang-python", use: "Python syntax parsing and highlighting in the browser IDE." },
-  { name: "Pyodide", version: "314.0.2", license: "MPL-2.0", url: "https://github.com/pyodide/pyodide", use: "Lets you run CPython and its standard library in the browser through WebAssembly when you choose to start it." },
+  { name: "Pyodide", version: "314.0.3", license: "MPL-2.0", url: "https://github.com/pyodide/pyodide", use: "Lets you run CPython and its standard library in the browser through WebAssembly when you choose to start it." },
   { name: "NumPy", version: "2.4.3", license: "BSD-3-Clause", url: "https://github.com/numpy/numpy", use: "Provides the array tools used in the browser Python model labs." },
   { name: "Sorted Containers", version: "2.4.0", license: "Apache-2.0", url: "https://github.com/grantjenks/python-sortedcontainers", use: "Provides SortedList, SortedDict, and SortedSet in the browser Python runtime." },
   { name: "esbuild-wasm", version: "0.28.1", license: "MIT", url: "https://github.com/evanw/esbuild", use: "Virtual TypeScript and JavaScript compilation." },

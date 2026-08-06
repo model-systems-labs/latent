@@ -25,7 +25,7 @@ test("all ten portable contracts declare the pinned host-managed Python runtime"
     language: "python",
     environment: "host-managed",
     engine: "pyodide",
-    engineVersion: "314.0.2",
+    engineVersion: "314.0.3",
     capabilities: ["function"],
     limits: {
       timeoutMs: 10_000,

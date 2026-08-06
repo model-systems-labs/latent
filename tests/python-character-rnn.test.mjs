@@ -238,7 +238,7 @@ function passingPythonLab(payload = validPayload()) {
     async initialize(request, options) {
       calls.push(["initialize", request]);
       options.onEvent?.({ type: "stdout", requestId: "init", text: "Python ready\n" });
-      return { schemaVersion: 1, runtime: "pyodide", runtimeVersion: "314.0.2", pythonVersion: "3.13", packages: ["numpy"], capabilityReduced: true };
+      return { schemaVersion: 1, runtime: "pyodide", runtimeVersion: "314.0.3", pythonVersion: "3.13", packages: ["numpy"], capabilityReduced: true };
     },
     async sync(request) {
       calls.push(["sync", request]);

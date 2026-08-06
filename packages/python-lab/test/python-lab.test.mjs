@@ -93,7 +93,7 @@ function initialized(requestId) {
     result: {
       schemaVersion: 1,
       runtime: "pyodide",
-      runtimeVersion: "314.0.2",
+      runtimeVersion: "314.0.3",
       pythonVersion: "3.14.0",
       packages: ["numpy"],
       guardrailsApplied: true,
@@ -134,9 +134,9 @@ test("pins the Pyodide release and exposes only the curated runtime packages", a
   const manifest = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
   const packageManifestUrl = import.meta.resolve("pyodide/package.json");
   const lock = JSON.parse(await readFile(new URL("pyodide-lock.json", packageManifestUrl), "utf8"));
-  assert.equal(manifest.dependencies.pyodide, "314.0.2");
+  assert.equal(manifest.dependencies.pyodide, "314.0.3");
   assert.deepEqual(pythonLab.CURATED_PYTHON_PACKAGES, ["numpy", "sortedcontainers"]);
-  assert.equal(pythonLab.PYODIDE_CDN_URL, "https://cdn.jsdelivr.net/pyodide/v314.0.2/full/");
+  assert.equal(pythonLab.PYODIDE_CDN_URL, "https://cdn.jsdelivr.net/pyodide/v314.0.3/full/");
   assert.equal(lock.packages.sortedcontainers.version, "2.4.0");
   assert.equal(lock.packages.sortedcontainers.file_name, "sortedcontainers-2.4.0-py2.py3-none-any.whl");
   assert.throws(() => pythonLab.validateInitializeRequest({ packages: ["micropip"] }), (error) => error.code === "PACKAGE_NOT_ALLOWED");
@@ -190,7 +190,7 @@ test("a timeout hard-terminates Python and the next initialize creates a fresh w
   await assert.rejects(client.initialize({ packages: ["numpy"] }, { timeoutMs: 5 }), (error) => error.code === "WALL_TIMEOUT");
   assert.equal(stalled.terminated, true);
   const ready = await client.initialize({ packages: ["numpy"] }, { timeoutMs: 100 });
-  assert.equal(ready.runtimeVersion, "314.0.2");
+  assert.equal(ready.runtimeVersion, "314.0.3");
   client.dispose();
 });
 
@@ -280,5 +280,5 @@ test("the source retains Vite-discoverable worker and matching CDN contracts wit
   assert.match(safety, /"js", "micropip", "pyodide", "pyodide_js"/);
   assert.match(safety, /pyodide\.code\.run_js\/eval_code/);
   assert.match(safety, /_latent_sys\.modules\.pop/);
-  assert.match(bundle, /cdn\.jsdelivr\.net\/pyodide\/v314\.0\.2\/full/);
+  assert.match(bundle, /cdn\.jsdelivr\.net\/pyodide\/v314\.0\.3\/full/);
 });

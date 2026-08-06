@@ -1,7 +1,7 @@
 # `@latent/python-lab`
 
 Python Lab is the browser-only CPython boundary for Latent's saved learner
-projects. It runs version-pinned Pyodide `314.0.2` in one lazy module Web Worker, syncs a
+projects. It runs version-pinned Pyodide `314.0.3` in one lazy module Web Worker, syncs a
 bounded virtual project into `/workspace`, and returns typed output, test
 results, and declared artifacts. It has no React, LMS, curriculum, or
 persistence dependency.
@@ -90,7 +90,7 @@ matching versioned CDN directory (with the pinned npm package supplying the
 authoritative API types and dependency lock):
 
 ```text
-https://cdn.jsdelivr.net/pyodide/v314.0.2/full/
+https://cdn.jsdelivr.net/pyodide/v314.0.3/full/
 ```
 
 Pyodide's core WASM, standard library, lockfile, requested curated wheels, and

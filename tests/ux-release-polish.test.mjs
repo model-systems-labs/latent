@@ -112,13 +112,17 @@ test("lesson evidence and model-status text retain an 11px readable floor", asyn
   ]);
 });
 
-test("course progress and lesson copy retain an 11px readable floor", async () => {
+test("course progress retains its utility floor and lesson copy uses reading size", async () => {
   const styles = await readFile(courseCatalogStylesUrl, "utf8");
   assertReadableFloor(styles, [
     ".course-progress-record span",
-    ".lesson-card.lesson-card-simple p",
     ".lesson-card.lesson-card-simple > .lesson-card-status",
   ]);
+  assert.match(
+    styles,
+    /\.lesson-card\.lesson-card-simple p\s*\{[^}]*font-family:\s*var\(--serif\);[^}]*font-size:\s*clamp\(0\.9rem,\s*1\.05vw,\s*0\.98rem\);/,
+    "lesson descriptions should read as body copy, not 11px utility text",
+  );
 });
 
 test("live stylesheet copy cannot regress below 11px outside audited non-text exceptions", async () => {

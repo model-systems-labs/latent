@@ -30,6 +30,13 @@ integration fixtures for privileged browser runtimes as well as useful
 learning material. They do not define the framework, and a deployment of
 Latent Courses is not the framework's canonical homepage.
 
+The framework-neutral curriculum manifest can give a trusted module a concise
+orientation overview: one heading, an introduction that explains how its
+lessons connect, and one to five ordered learning objectives. The current
+course application renders that data before progress and lesson navigation.
+It is trusted repository content, not a Learning Pack field, and does not alter
+portable schema bytes or progress identity.
+
 ## Code map
 
 - `products/framework` owns the framework landing surface and its

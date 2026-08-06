@@ -7,6 +7,12 @@ const curriculumLessonReferenceSchema = z.object({
   projectPath: z.string().min(3),
 }).strict();
 
+const curriculumModuleOverviewSchema = z.object({
+  title: z.string().min(1),
+  introduction: z.string().min(1),
+  objectives: z.array(z.string().min(1)).min(1).max(5),
+}).strict();
+
 const curriculumModuleSchema = z.object({
   id: z.string().min(1),
   routeSlug: z.string().min(1),
@@ -15,6 +21,7 @@ const curriculumModuleSchema = z.object({
   shortTitle: z.string().min(1),
   thesis: z.string().min(1),
   outcome: z.string().min(1),
+  overview: curriculumModuleOverviewSchema.optional(),
   lessons: z.array(curriculumLessonReferenceSchema).min(1),
 }).strict();
 
@@ -40,6 +47,15 @@ export type CurriculumLessonReference = {
   projectPath: string;
 };
 
+export type CurriculumModuleOverview = {
+  /** Learner-facing orientation heading, distinct from the module name. */
+  title: string;
+  /** Explains how the lessons connect before the learner opens one. */
+  introduction: string;
+  /** A short, ordered set of capabilities the module develops. */
+  objectives: readonly string[];
+};
+
 export type CurriculumModuleDefinition = {
   id: string;
   /** Route compatibility is explicit instead of being inferred from projectPath. */
@@ -49,6 +65,8 @@ export type CurriculumModuleDefinition = {
   shortTitle: string;
   thesis: string;
   outcome: string;
+  /** Optional richer orientation for module landing pages. */
+  overview?: CurriculumModuleOverview;
   lessons: readonly CurriculumLessonReference[];
 };
 

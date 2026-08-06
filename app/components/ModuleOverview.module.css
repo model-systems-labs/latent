@@ -1,0 +1,99 @@
+.overview {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: clamp(2rem, 5vw, 5rem);
+  grid-template-columns: minmax(0, 1.15fr) minmax(18rem, 0.85fr);
+  padding: clamp(2rem, 4vw, 3.4rem) 0;
+}
+
+.introduction h2 {
+  font-family: var(--serif);
+  font-size: clamp(1.8rem, 3vw, 2.55rem);
+  font-weight: 400;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  margin: 0;
+  max-width: 15ch;
+}
+
+.introduction > p {
+  color: var(--muted);
+  font-family: var(--serif);
+  font-size: clamp(1.03rem, 1.2vw, 1.14rem);
+  line-height: 1.72;
+  margin: 1.15rem 0 0;
+  max-width: 48rem;
+}
+
+.path {
+  border-left: 1px solid var(--line);
+  padding-left: clamp(1.4rem, 3vw, 2.4rem);
+}
+
+.path h3,
+.outcome > span {
+  color: var(--violet-deep);
+  font-size: max(0.68rem, 11px);
+  font-weight: 650;
+  letter-spacing: 0.09em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.path ol {
+  counter-reset: module-objective;
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+}
+
+.path li {
+  color: var(--ink);
+  counter-increment: module-objective;
+  display: grid;
+  font-size: clamp(0.88rem, 1vw, 0.96rem);
+  gap: 0.75rem;
+  grid-template-columns: 1.5rem minmax(0, 1fr);
+  line-height: 1.55;
+  padding: 0.7rem 0;
+}
+
+.path li + li {
+  border-top: 1px solid var(--line);
+}
+
+.path li::before {
+  color: var(--violet);
+  content: counter(module-objective, decimal-leading-zero);
+  font-family: var(--mono);
+  font-size: max(0.66rem, 11px);
+  letter-spacing: 0.06em;
+  padding-top: 0.12rem;
+}
+
+.outcome {
+  border-top: 1px solid var(--line-strong);
+  margin-top: 0.65rem;
+  padding-top: 1.1rem;
+}
+
+.outcome > p {
+  color: var(--muted);
+  font-family: var(--serif);
+  font-size: 0.98rem;
+  line-height: 1.6;
+  margin: 0.55rem 0 0;
+}
+
+@media (max-width: 760px) {
+  .overview {
+    gap: 1.8rem;
+    grid-template-columns: 1fr;
+  }
+
+  .path {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    padding: 1.5rem 0 0;
+  }
+}

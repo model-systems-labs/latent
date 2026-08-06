@@ -78,7 +78,7 @@ test("Course Kit is independently licensed, packable, and guarded for public rel
   assert.match(release, /npm publishing is intentionally deferred/);
   assert.doesNotMatch(release, /NPM_PUBLISH_ENABLED|run:\s*npm publish/);
   assert.match(release, /_schema-site\/open-learning\/v1/);
-  assert.match(release, /actions\/deploy-pages@[0-9a-f]{40} # v4/);
+  assert.match(release, /actions\/deploy-pages@[0-9a-f]{40} # v5\.0\.0/);
 });
 
 test("Course Kit schema ids use immutable versioned Pages paths with exact convenience copies", async () => {

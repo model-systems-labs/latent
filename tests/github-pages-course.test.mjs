@@ -70,7 +70,7 @@ test("both Pages publishers retain public artifacts and the LLM Systems example"
   for (const workflow of [deploy, release]) {
     assert.match(workflow, /open-learning\/v1\/learning-pack\.schema\.json/);
     assert.match(workflow, /question-group-progress\.schema\.json/);
-    assert.match(workflow, /actions\/deploy-pages@[0-9a-f]{40} # v4/);
+    assert.match(workflow, /actions\/deploy-pages@[0-9a-f]{40} # v5\.0\.0/);
   }
   assert.match(
     readme,

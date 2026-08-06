@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>Neural Chalk plugin privacy notice</title>
+  <style>
+    body { background: #f4f0e8; color: #282322; font: 17px/1.65 system-ui, sans-serif; margin: 0 auto; max-width: 760px; padding: 48px 24px 80px; }
+    h1, h2 { font-family: Georgia, serif; font-weight: 500; line-height: 1.12; }
+    h1 { font-size: clamp(2.4rem, 8vw, 4.8rem); letter-spacing: -.05em; }
+    h2 { border-top: 1px solid #d8d0c7; margin-top: 2.4rem; padding-top: 1.5rem; }
+    a { color: #554653; }
+    small { color: #665e59; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Neural Chalk plugin privacy notice</h1>
+    <small>Effective August 5, 2026</small>
+    <p>The Neural Chalk plugin is a skills-only package for Codex and Claude Code. Model Systems Labs does not operate an account, analytics, telemetry, or data-processing service for the plugin.</p>
+
+    <h2>Local files and agent hosts</h2>
+    <p>The plugin instructs the installed coding agent to read sources the user places in scope, edit learning-project files, and run the released Course Kit command-line tool. Those operations occur under the agent host's sandbox, approval, authentication, logging, and data-use settings. Do not place secrets or unnecessary personal information in course sources or generated content.</p>
+
+    <h2>Network requests</h2>
+    <p>Course Kit installation can download the immutable Neural Chalk release artifact from GitHub and its pinned dependencies from the configured npm registry. Source review can open user-authorized links. Publishing and remote verification contact only the destination or feed the user identifies. GitHub, npm, the coding-agent provider, source publishers, and deployment providers process requests under their own notices.</p>
+
+    <h2>Published learning material</h2>
+    <p>Learning Packs and Question Groups are files controlled by their publisher. The plugin does not upload them to Model Systems Labs. A user who deploys generated files chooses the host and is responsible for the privacy notice, access controls, retention, and content appropriate to that deployment.</p>
+
+    <h2>Contact</h2>
+    <p>Ask general questions through the <a href="https://github.com/model-systems-labs/latent/issues">public issue tracker</a> without posting private information. Report suspected security or privacy vulnerabilities through the <a href="https://github.com/model-systems-labs/latent/security/advisories/new">private vulnerability form</a>.</p>
+  </main>
+</body>
+</html>

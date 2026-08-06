@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "plugin": {
+    "name": "neural-chalk",
+    "version": "1.0.0"
+  },
+  "codex": {
+    "packageValidation": "passed",
+    "localInstallation": "passed",
+    "readOnlySkillSmoke": "passed",
+    "submission": "not-submitted",
+    "review": "not-started",
+    "publication": "not-published"
+  },
+  "claudeCode": {
+    "pluginValidation": "passed",
+    "marketplaceValidation": "passed",
+    "isolatedInstallation": "passed",
+    "readOnlySkillSmoke": "blocked-expired-local-oauth",
+    "submission": "not-submitted",
+    "review": "not-started",
+    "publication": "not-published"
+  },
+  "updatedAt": "2026-08-05"
+}

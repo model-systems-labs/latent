@@ -1,0 +1,20 @@
+{
+  "name": "neural-chalk",
+  "interface": {
+    "displayName": "Neural Chalk"
+  },
+  "plugins": [
+    {
+      "name": "neural-chalk",
+      "source": {
+        "source": "local",
+        "path": "./plugins/neural-chalk"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Education"
+    }
+  ]
+}

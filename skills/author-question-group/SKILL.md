@@ -1,6 +1,6 @@
 ---
 name: author-question-group
-description: Create or improve a portable Latent Question Group library for programming practice. Use when a user asks an agent to write method-style coding problems, group practice questions, add declarative cases and assertions, or prepare self-hosted practice content.
+description: Create or improve a portable Neural Chalk Question Group library for programming practice. Use when a user asks an agent to write method-style coding problems, group practice questions, add declarative cases and assertions, or prepare self-hosted practice content.
 ---
 
 # Author Question Group
@@ -10,8 +10,20 @@ code, cases, and bounded assertions; it never grants runtime authority.
 
 ## Read the contract
 
-Read `docs/question-groups.md`, the checked-in Question Group schema, and a
-complete example. Use the exact Course Kit commands documented there.
+Resolve the contract before authoring:
+
+- In a Neural Chalk checkout, read `docs/question-groups.md`,
+  `packages/course-kit/schema/question-group-library.schema.json`, and
+  `examples/learning-platform/javascript-array-methods/content/question-groups.json`.
+- From the installed Neural Chalk plugin, read
+  `../../references/question-groups.md`,
+  `../../references/question-group-library.schema.json`, and
+  `../../references/question-group-library.example.json`, resolving those
+  paths from this `SKILL.md` directory.
+
+Use the checkout files when both locations exist. The plugin bundle records
+the exact source digests for its copies in `../../references/bundle-manifest.json`.
+Use the exact Course Kit commands documented in the guide.
 
 Define the audience and two to five observable objectives. Record authorship,
 license, provenance, and source support at the library level. Map every group
@@ -59,7 +71,7 @@ npm exec --yes --package="$COURSE_KIT_RELEASE" -- \
   latent-learning questions serve <site>
 ```
 
-When working in the Latent source tree, build Course Kit and replace
+When working in the Neural Chalk source tree, build Course Kit and replace
 each `npm exec ... -- latent-learning` prefix with
 `node packages/course-kit/bin/latent-learning.mjs`. In the tiny platform, also
 run:

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Learn from Sources"
+  short_description: "Turn source collections into durable understanding"
+  default_prompt: "Use $learn-from-sources to turn these sources into a grounded interactive course for my learning goal."

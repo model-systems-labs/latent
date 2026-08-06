@@ -1,6 +1,6 @@
 ---
 name: learn-from-sources
-description: Turn a bounded source collection—such as a codebase, research papers, technical documentation, notes, or a mixture—into a source-grounded Latent course for a specific learning goal. Use when a user asks how to understand or work in a repository, synthesize a paper collection, learn supplied material, prepare to reproduce or apply a result, or replace one-off summaries with a durable mental model.
+description: Turn a bounded source collection—such as a codebase, research papers, technical documentation, notes, or a mixture—into a source-grounded Neural Chalk course for a specific learning goal. Use when a user asks how to understand or work in a repository, synthesize a paper collection, learn supplied material, prepare to reproduce or apply a result, or replace one-off summaries with a durable mental model.
 ---
 
 # Learn from Sources
@@ -10,12 +10,19 @@ retrieve, and apply. Build a learning path, not a source-by-source summary.
 
 ## Read the contracts
 
-In a Latent checkout, read:
+Resolve the contracts before inspecting sources:
 
-1. `docs/open-learning.md`
-2. `docs/learning-pack-quality-rubric.md`
-3. `docs/learning-pack.schema.json`
-4. `skills/author-learning-pack/SKILL.md`
+- In a Neural Chalk checkout, read `docs/open-learning.md`,
+  `docs/learning-pack-quality-rubric.md`, `docs/learning-pack.schema.json`, and
+  `skills/author-learning-pack/SKILL.md`.
+- From the installed Neural Chalk plugin, read `../../references/open-learning.md`,
+  `../../references/learning-pack-quality-rubric.md`,
+  `../../references/learning-pack.schema.json`, and the sibling
+  `../author-learning-pack/SKILL.md`, resolving those paths from this
+  `SKILL.md` directory.
+
+Use the checkout files when both locations exist. The plugin bundle records
+the exact source digests for its copies in `../../references/bundle-manifest.json`.
 
 Use the public Learning Pack seam for portable lessons, quizzes, and flash
 cards. Keep agents at authoring and build time. Do not add a model call, source
@@ -112,8 +119,8 @@ For paper collections, normally teach:
 
 ## Author for durable understanding
 
-Follow `skills/author-learning-pack/SKILL.md` to initialize, author, strictly
-validate, and build the pack.
+Follow the `author-learning-pack` skill bundled alongside this one to
+initialize, author, strictly validate, and build the pack.
 
 Sequence the course around the learner's capability rather than the order of
 the files. Use:

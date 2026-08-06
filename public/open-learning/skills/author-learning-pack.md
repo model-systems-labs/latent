@@ -1,6 +1,6 @@
 ---
 name: author-learning-pack
-description: Create or improve source-grounded Latent Open Learning lessons, quizzes, and flash-card decks in the public learning-pack.json format. Use when a user asks an LLM to teach a topic, make a portable course or deck, convert notes into self-hosted learning material, or extend Latent with new declarative content.
+description: Create or improve source-grounded Neural Chalk Open Learning lessons, quizzes, and flash-card decks in the public learning-pack.json format. Use when a user asks an LLM to teach a topic, make a portable course or deck, convert notes into self-hosted learning material, or extend Neural Chalk with new declarative content.
 ---
 
 # Author Learning Pack
@@ -9,11 +9,18 @@ Create a useful, portable learning pack that passes the same checks regardless o
 
 ## Read the contract
 
-At the repository root, read:
+Resolve the contract before authoring:
 
-1. `docs/open-learning.md`
-2. `docs/learning-pack.schema.json`
-3. `examples/open-learning/reliable-llm-changes/learning-pack.json`
+- In a Neural Chalk checkout, read `docs/open-learning.md`,
+  `docs/learning-pack.schema.json`, and
+  `examples/open-learning/reliable-llm-changes/learning-pack.json`.
+- From the installed Neural Chalk plugin, read `../../references/open-learning.md`,
+  `../../references/learning-pack.schema.json`, and
+  `../../references/learning-pack.example.json`, resolving those paths from
+  this `SKILL.md` directory.
+
+Use the checkout files when both locations exist. The plugin bundle records
+the exact source digests for its copies in `../../references/bundle-manifest.json`.
 
 Do not infer fields from the current first-party lesson types. Community packs use the public JSON contract and cannot invoke privileged lesson runtimes.
 
@@ -64,7 +71,7 @@ npm exec --yes --package "$COURSE_KIT_RELEASE" -- \
   latent-learning init <directory> --json
 ```
 
-When intentionally working inside the Latent monorepo, the equivalent fallback
+When intentionally working inside the Neural Chalk monorepo, the equivalent fallback
 is:
 
 ```bash

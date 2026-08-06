@@ -1,6 +1,6 @@
 ---
 name: review-learning-pack
-description: Independently review a Latent learning-pack.json for factual support, pedagogy, assessment quality, licensing, accessibility, safety, deterministic output, and publishing readiness. Use when a user asks to audit, QA, approve, critique, or repair a portable lesson or flash-card pack.
+description: Independently review a Neural Chalk learning-pack.json for factual support, pedagogy, assessment quality, licensing, accessibility, safety, deterministic output, and publishing readiness. Use when a user asks to audit, QA, approve, critique, or repair a portable lesson or flash-card pack.
 ---
 
 # Review Learning Pack
@@ -9,11 +9,18 @@ Review the exact immutable version proposed for release. Schema validity and edi
 
 ## Read the review contract
 
-At the repository root, read:
+Resolve the review contract before evaluating the package:
 
-1. `docs/open-learning.md`
-2. `docs/learning-pack-quality-rubric.md`
-3. `docs/learning-pack.schema.json`
+- In a Neural Chalk checkout, read `docs/open-learning.md`,
+  `docs/learning-pack-quality-rubric.md`, and
+  `docs/learning-pack.schema.json`.
+- From the installed Neural Chalk plugin, read `../../references/open-learning.md`,
+  `../../references/learning-pack-quality-rubric.md`, and
+  `../../references/learning-pack.schema.json`, resolving those paths from
+  this `SKILL.md` directory.
+
+Use the checkout files when both locations exist. The plugin bundle records
+the exact source digests for its copies in `../../references/bundle-manifest.json`.
 
 Do not rely on the authoring agent's summary. Read the package and its cited sources directly.
 
@@ -38,7 +45,7 @@ npm exec --yes --package "$COURSE_KIT_RELEASE" -- \
   --json
 ```
 
-When intentionally reviewing from the Latent monorepo, build the workspace and
+When intentionally reviewing from the Neural Chalk monorepo, build the workspace and
 use `node packages/course-kit/bin/latent-learning.mjs` as the equivalent local
 fallback.
 
@@ -69,7 +76,7 @@ Clearly label anything that could not be verified. Do not replace verification w
 
 ### 4. Review teaching and assessment
 
-Apply `docs/learning-pack-quality-rubric.md`.
+Apply the quality rubric resolved above.
 
 Pay special attention to:
 
@@ -141,4 +148,4 @@ verification: proof that the repair worked
 
 If the user asked only for review, do not edit files. If asked to repair, update only the authored source, regenerate derived output, and rerun the entire gate.
 
-Never call a package Latent-reviewed, endorsed, certified, or identity-verified unless a separate authorized attestation for that exact digest exists.
+Never call a package Neural Chalk-reviewed, endorsed, certified, or identity-verified unless a separate authorized attestation for that exact digest exists.

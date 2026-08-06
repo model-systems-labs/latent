@@ -1,0 +1,25 @@
+{
+  "name": "neural-chalk",
+  "owner": {
+    "name": "Model Systems Labs",
+    "url": "https://github.com/model-systems-labs"
+  },
+  "metadata": {
+    "description": "Official Neural Chalk plugins for source-grounded learning authoring."
+  },
+  "plugins": [
+    {
+      "name": "neural-chalk",
+      "source": "./plugins/neural-chalk",
+      "description": "Build, review, and publish validated learning material from bounded sources.",
+      "version": "1.0.0",
+      "category": "education",
+      "tags": [
+        "learning",
+        "courses",
+        "flash-cards",
+        "programming-practice"
+      ]
+    }
+  ]
+}

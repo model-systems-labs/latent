@@ -73,7 +73,7 @@ test("Course Kit is independently licensed, packable, and guarded for public rel
   assert.match(release, /Validate the exact tagged repository[\s\S]*npm run validate/);
   assert.match(release, /npm run validate[\s\S]*git diff --exit-code/);
   assert.match(release, /actions\/upload-artifact@[0-9a-f]{40} # v4/);
-  assert.match(release, /actions\/download-artifact@[0-9a-f]{40} # v4/);
+  assert.match(release, /actions\/download-artifact@[0-9a-f]{40} # v8\.0\.1/);
   assert.match(release, /github-release:[\s\S]*?gh release create "\$GITHUB_REF_NAME"/);
   assert.match(release, /npm publishing is intentionally deferred/);
   assert.doesNotMatch(release, /NPM_PUBLISH_ENABLED|run:\s*npm publish/);

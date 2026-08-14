@@ -1,0 +1,32 @@
+{
+  "format": "latent-learning-build-report",
+  "schemaVersion": 1,
+  "playerVersion": 1,
+  "learnerUiVersion": 2,
+  "browserArtifacts": {
+    "learnerUi": {
+      "bytes": 35931,
+      "sha256": "85484f5683d35ff8daf287b28f0c42f142851cabab1bca46d294ed606c11babd"
+    },
+    "player": {
+      "bytes": 6322,
+      "sha256": "d1d0ef2b09eac645637d4c1563065a49a1564431e7a4836f4112249c34373d76"
+    }
+  },
+  "packageId": "latent/backend-interview-prep",
+  "version": "1.0.0",
+  "sha256": "0aeb1c813ca46112266c3212487f3de47c22e5d0dfa6307187bf30b1a1332af1",
+  "packageBytes": 41457,
+  "files": [
+    ".latent-build",
+    "README.txt",
+    "_headers",
+    "assets/learner-ui.js",
+    "assets/player.css",
+    "assets/player.js",
+    "build-report.json",
+    "index.html",
+    "learning-feed.json",
+    "learning-pack.json"
+  ]
+}

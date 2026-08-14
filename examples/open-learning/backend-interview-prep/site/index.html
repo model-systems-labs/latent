@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A focused preparation course for an experienced backend engineer practicing system design tradeoffs, API implementation, failure handling, and clear interview communication under time pressure.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'">
+  <title>Backend interview: reason clearly, build safely</title>
+  <link rel="stylesheet" href="./assets/player.css">
+</head>
+<body class="learner-ui" data-storage-key="latent.learning.v1:latent/backend-interview-prep@1.0.0:0aeb1c813ca46112266c3212487f3de47c22e5d0dfa6307187bf30b1a1332af1">
+  <a class="learner-skip-link" href="#content">Skip to learning content</a>
+  <div class="learner-atmosphere" data-learner-atmosphere aria-hidden="true"><span class="learner-atmosphere__line learner-atmosphere__line--intro" data-learner-atmosphere-intro></span><span class="learner-atmosphere__line learner-atmosphere__line--1" data-learner-atmosphere-trace></span><span class="learner-atmosphere__line learner-atmosphere__line--2" data-learner-atmosphere-trace></span><span class="learner-atmosphere__line learner-atmosphere__line--3" data-learner-atmosphere-trace></span></div>
+  <div class="learner-page">
+  <header class="learner-header">
+  <div class="learner-header__inner">
+    <div class="learner-header__identity">
+      <a class="learner-wordmark" href="./" aria-label="Backend interview: reason clearly, build safely home"><i class="learner-wordmark__mark" aria-hidden="true"></i><span>Backend interview: reason clearly, build safely</span></a>
+      <span class="learner-header__meta">Version 1.0.0</span>
+    </div>
+    <nav class="learner-primary-nav learner-primary-nav--desktop" aria-label="Learning navigation"><a href="#lesson-interview-operating-system" aria-current="page" data-view="lesson-interview-operating-system">Modules</a><a href="#deck-backend-interview-rapid-review" data-view="deck-backend-interview-rapid-review">Review</a></nav>
+    <details class="learner-nav-menu learner-nav-menu--local-only">
+      <summary>Menu</summary>
+      <div class="learner-nav-menu__panel">
+
+        <nav class="learner-primary-nav learner-primary-nav--mobile" aria-label="Learning navigation"><a href="#lesson-interview-operating-system" aria-current="page" data-view="lesson-interview-operating-system">Modules</a><a href="#deck-backend-interview-rapid-review" data-view="deck-backend-interview-rapid-review">Review</a></nav>
+      </div>
+    </details>
+  </div>
+</header>
+  <div class="learner-main learner-layout layout">
+    <aside class="learner-sidebar sidebar">
+      <p class="learner-eyebrow">Published by Latent Study Pack Author</p>
+      <h2>Backend interview: reason clearly, build safely</h2>
+      <p>A focused preparation course for an experienced backend engineer practicing system design tradeoffs, API implementation, failure handling, and clear interview communication under time pressure.</p>
+      <nav aria-label="Learning pack contents">
+        <button class="learner-nav-item" type="button" data-open-view="lesson-interview-operating-system" aria-current="page"><small>10 min lesson</small><span>Run a visible reasoning loop</span></button><button class="learner-nav-item" type="button" data-open-view="lesson-architecture-and-data" aria-current="false"><small>18 min lesson</small><span>Choose architecture from the pressure points</span></button><button class="learner-nav-item" type="button" data-open-view="lesson-security-performance-reliability" aria-current="false"><small>18 min lesson</small><span>Pressure-test security, performance, and failure</span></button><button class="learner-nav-item" type="button" data-open-view="lesson-build-an-endpoint" aria-current="false"><small>20 min lesson</small><span>Build the simple endpoint first</span></button><button class="learner-nav-item" type="button" data-open-view="lesson-change-existing-code" aria-current="false"><small>16 min lesson</small><span>Change existing code without widening the blast radius</span></button><button class="learner-nav-item" type="button" data-open-view="deck-backend-interview-rapid-review" aria-current="false"><small>15 flash cards</small><span>Backend interview rapid review</span></button>
+      </nav>
+      <footer>
+        <span>CC-BY-4.0 (original instructional text only; cited sources retain their own rights)</span>
+        <a href="./learning-pack.json">View source JSON</a>
+      </footer>
+    </aside>
+    <main class="learner-content" id="content" tabindex="-1">
+    <section class="learner-reading learning-view" id="lesson-interview-operating-system" data-view="lesson-interview-operating-system" >
+      <header class="view-header">
+        <span class="learner-eyebrow">10 minute lesson</span>
+        <h1 tabindex="-1">Run a visible reasoning loop</h1>
+        <p>Use a five-move loop to clarify, frame, execute, validate, and improve without disappearing into silent analysis.</p>
+      </header>
+      <div class="lesson-body">
+        <p>The downloaded recruiting brief divides the technical interview into roughly 20 minutes of system design concepts and 30 minutes of backend coding. Its strongest process signal is breadth before depth: show familiarity across the landscape, then follow the interviewer&#039;s interest into detail. Public Karat guidance likewise recommends practicing under time pressure while explaining your thought process aloud.</p><h2>The five-move loop</h2><ol><li>Clarify: ask one question whose answer could change the design or implementation.</li><li>Frame: state the goal, important constraints, assumptions, and your starting approach.</li><li>Execute: build the solution in visible increments and name decisions as you make them.</li><li>Validate: test the happy path, boundaries, failure modes, and operational behavior.</li><li>Improve: only after the baseline works, add optimization, scale, or refactoring.</li></ol><aside class="callout callout-tip"><strong>Ask a question that changes something</strong><p>Prefer &#039;Must a successful write be immediately visible to later reads?&#039; over &#039;How many users are there?&#039; when only the first answer changes your consistency design. Explain what decision the answer controls.</p></aside><h2>Narrate decisions, not keystrokes</h2><ul><li>I see two viable approaches; I am weighing consistency against write availability.</li><li>I will start with the simplest complete request path, then identify its first bottleneck.</li><li>This change stays local because the surrounding contract is not part of the task.</li><li>Let me test duplicates, missing data, and a dependency timeout before I optimize.</li></ul><aside class="callout callout-note"><strong>Prepare three experience anchors</strong><p>Have one factual story about scale, one about reliability, and one about a difficult code change. Use context, constraint, decision, tradeoff, observed result, and what you would change now.</p></aside><form class="learner-form quiz" data-answer="consistency"><fieldset><legend>You are asked to design an order API. Which opening question gives the strongest design signal?</legend><label><input type="radio" name="interview-operating-system-question-that-changes-design" value="framework"> <span>Which web framework should I use?</span></label><label><input type="radio" name="interview-operating-system-question-that-changes-design" value="consistency"> <span>Can a confirmed order ever be shown as missing or stale to the same customer?</span></label><label><input type="radio" name="interview-operating-system-question-that-changes-design" value="all-details"> <span>Can you provide every possible requirement before I begin?</span></label></fieldset><button class="learner-button" data-variant="primary" type="submit">Check answer</button><p class="learner-status quiz-result" role="status" aria-live="polite"></p><p class="quiz-explanation" hidden>The consistency question exposes a user-visible invariant that can change storage, replication, and read-routing choices. A framework preference is usually downstream of the design, while demanding every detail prevents progress under time pressure.</p></form>
+      </div>
+      <section class="sources" aria-labelledby="interview-operating-system-sources">
+        <h2 id="interview-operating-system-sources">Sources used here</h2>
+        <ul><li><a href="https://communications.karat.com/hubfs/For_Candidates/Tech%20Interviews%20with%20Karat_2022.pdf" rel="noreferrer" target="_blank">Karat Technical Interviewing 101</a><span>Supports the preparation guidance to practice under time pressure, use a comfortable language, write readable code, and explain the thought process aloud.</span></li><li><a href="https://karat.com/candidate-experience/" rel="noreferrer" target="_blank">The Karat interview experience</a><span>Provides current first-party context about the live interview environment, discussion questions, programming questions, and emphasis on code that solves the problem.</span></li></ul>
+      </section>
+      <button class="learner-button complete-button" data-variant="primary" type="button" data-complete="interview-operating-system">Mark lesson complete</button>
+    </section>
+
+    <section class="learner-reading learning-view" id="lesson-architecture-and-data" data-view="lesson-architecture-and-data" hidden>
+      <header class="view-header">
+        <span class="learner-eyebrow">18 minute lesson</span>
+        <h1 tabindex="-1">Choose architecture from the pressure points</h1>
+        <p>Move from requirements and access patterns to components, data guarantees, and explicit architecture tradeoffs.</p>
+      </header>
+      <div class="lesson-body">
+        <p>A strong system design answer is a sequence of justified decisions. Start with the behavior and constraints, sketch one complete request path, and then pressure-test the parts most likely to fail. Technology names are useful only when they answer a requirement.</p><h2>A 20-minute structure</h2><ol><li>Minutes 0-2: clarify the core use case, scale, latency, consistency, security, and scope.</li><li>Minutes 2-4: estimate traffic and data only enough to reveal the hot path or likely capacity limit.</li><li>Minutes 4-8: sketch the client, API, service boundary, storage, and end-to-end request flow.</li><li>Minutes 8-14: cover storage, indexes, consistency, caching, asynchronous work, and security.</li><li>Minutes 14-18: pressure-test dependency failure, retry storms, hot keys, deploys, and observability.</li><li>Minutes 18-20: summarize the choice, its largest risk, and the first scale step.</li></ol><h2>Model data from invariants and access patterns</h2><ul><li>List the primary entities, read keys, filters, sorts, aggregations, and update patterns.</li><li>Name what must never be duplicated, lost, oversold, or observed out of order.</li><li>Choose transaction boundaries and isolation based on concurrent operations, not habit.</li><li>Add an index for a demonstrated access path and acknowledge its storage and write cost.</li><li>Choose a partition key that distributes load without making essential queries scatter everywhere.</li></ul><aside class="callout callout-warning"><strong>Do not design from nouns</strong><p>A queue, cache, service, or NoSQL database is not automatically scalable. State the pressure point it addresses and the new correctness or operational cost it introduces.</p></aside><h2>Tradeoff sentences</h2><ul><li>Begin with a modular monolith when one team benefits from simple transactions; extract a service when scaling, ownership, or deployment needs diverge.</li><li>Use synchronous work when the caller needs the result now; use asynchronous work for slow, bursty, or retryable work whose completion can be observed later.</li><li>Prefer stronger consistency when stale state violates an invariant; accept bounded staleness when availability and latency are more valuable.</li><li>Use relational storage when constraints, transactions, relationships, and flexible queries dominate; consider other models only after access patterns justify them.</li></ul><form class="learner-form quiz" data-answer="measure-composite"><fieldset><legend>A table receives heavy writes and one new endpoint filters by status and creation time. What is the strongest index proposal?</legend><label><input type="radio" name="architecture-and-data-index-tradeoff" value="index-all"> <span>Index every column so all future queries are fast.</span></label><label><input type="radio" name="architecture-and-data-index-tradeoff" value="measure-composite"> <span>Inspect the query and plan, test a composite index aligned with its filter and ordering, then measure read benefit and write cost.</span></label><label><input type="radio" name="architecture-and-data-index-tradeoff" value="avoid-index"> <span>Avoid indexes because every index slows writes.</span></label></fieldset><button class="learner-button" data-variant="primary" type="submit">Check answer</button><p class="learner-status quiz-result" role="status" aria-live="polite"></p><p class="quiz-explanation" hidden>PostgreSQL documents both the read benefit and system overhead of indexes. The strongest answer ties one candidate index to a real access path, validates it with the query plan and workload, and accounts for write cost rather than indexing everything or nothing.</p></form>
+      </div>
+      <section class="sources" aria-labelledby="architecture-and-data-sources">
+        <h2 id="architecture-and-data-sources">Sources used here</h2>
+        <ul><li><a href="https://www.postgresql.org/docs/18/indexes.html" rel="noreferrer" target="_blank">PostgreSQL 18 Documentation: Indexes</a><span>Supports the explanation that indexes can accelerate selected reads while adding database-wide storage and maintenance overhead.</span></li><li><a href="https://www.postgresql.org/docs/18/transaction-iso.html" rel="noreferrer" target="_blank">PostgreSQL 18 Documentation: Transaction Isolation</a><span>Supports the treatment of concurrent transaction anomalies, isolation choices, and retryable serialization failures.</span></li><li><a href="https://communications.karat.com/hubfs/For_Candidates/Tech%20Interviews%20with%20Karat_2022.pdf" rel="noreferrer" target="_blank">Karat Technical Interviewing 101</a><span>Supports the preparation guidance to practice under time pressure, use a comfortable language, write readable code, and explain the thought process aloud.</span></li></ul>
+      </section>
+      <button class="learner-button complete-button" data-variant="primary" type="button" data-complete="architecture-and-data">Mark lesson complete</button>
+    </section>
+
+    <section class="learner-reading learning-view" id="lesson-security-performance-reliability" data-view="lesson-security-performance-reliability" hidden>
+      <header class="view-header">
+        <span class="learner-eyebrow">18 minute lesson</span>
+        <h1 tabindex="-1">Pressure-test security, performance, and failure</h1>
+        <p>Identify the important trust boundary and bottleneck, then use precise controls for access, overload, retries, and monitoring.</p>
+      </header>
+      <div class="lesson-body">
+        <p>Security, performance, and reliability are boundary questions. Who crosses this boundary, what shared resource can be exhausted, and what happens when the next dependency is slow or unavailable? Cover the highest-risk case in each category before adding detail.</p><h2>Security: identity is not permission</h2><ul><li>Authentication establishes an acceptable identity; authorization decides whether that identity may perform this action on this resource.</li><li>Perform resource-level authorization on the server for every protected path; a hidden control in the client is not a security boundary.</li><li>Validate input shape, size, and allowed values, and use parameterized queries rather than concatenating untrusted data.</li><li>Minimize sensitive data, protect secrets, redact logs, and record safe audit events for important actions.</li></ul><h2>Performance: measure the user-visible path</h2><ul><li>Define throughput and p50, p95, or p99 latency targets together with errors and resource ceilings.</li><li>Instrument request time, dependency time, query plans, CPU, memory, queue depth, and cache hit rate.</li><li>Locate the constraint before adding a cache, queue, replica, partition, batch, or concurrency.</li><li>After a change, repeat a representative load test and watch for the bottleneck to move.</li></ul><h2>Reliability: retries need a budget</h2><ul><li>Use timeouts to bound waiting and leave time for the caller to handle failure.</li><li>Retry only transient failures and safe operations; cap attempts and use exponential backoff with jitter.</li><li>Make side-effecting operations idempotent or deduplicate them before treating retries as safe.</li><li>Use backpressure, rate limits, circuit breaking, and load shedding to stop one failure from consuming all shared capacity.</li></ul><aside class="callout callout-tip"><strong>Use the four golden signals</strong><p>Google SRE frames monitoring around latency, traffic, errors, and saturation. In an interview, name the user-visible symptom, the dependency or resource behind it, and the alert that should lead to action.</p></aside><form class="learner-form quiz" data-answer="idempotency-key"><fieldset><legend>A client times out while creating a payment and cannot tell whether the server committed it. What is the strongest retry design?</legend><label><input type="radio" name="security-performance-reliability-safe-retry" value="retry-fast"> <span>Retry immediately in a tight loop until a request returns 200.</span></label><label><input type="radio" name="security-performance-reliability-safe-retry" value="never-retry"> <span>Never retry any create request because POST is not idempotent by definition.</span></label><label><input type="radio" name="security-performance-reliability-safe-retry" value="idempotency-key"> <span>Send a client-scoped idempotency key, persist the first logical result, and retry transient failures with bounded backoff and jitter.</span></label></fieldset><button class="learner-button" data-variant="primary" type="submit">Check answer</button><p class="learner-status quiz-result" role="status" aria-live="polite"></p><p class="quiz-explanation" hidden>An idempotency key lets repeated attempts recover the first logical effect instead of creating duplicates. Bounded backoff and jitter reduce synchronized load, while tight loops amplify failures and a blanket ban on retries gives up useful recovery behavior.</p></form>
+      </div>
+      <section class="sources" aria-labelledby="security-performance-reliability-sources">
+        <h2 id="security-performance-reliability-sources">Sources used here</h2>
+        <ul><li><a href="https://top10proactive.owasp.org/the-top-10/c1-accesscontrol/" rel="noreferrer" target="_blank">OWASP Proactive Controls: Implement Access Control</a><span>Supports the distinction between authentication and authorization and the need for consistent server-side access checks.</span></li><li><a href="https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/" rel="noreferrer" target="_blank">Making retries safe with idempotent APIs</a><span>Supports using idempotent API semantics to make retries safe when a client cannot tell whether a side effect completed.</span></li><li><a href="https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/" rel="noreferrer" target="_blank">Exponential Backoff and Jitter</a><span>Supports bounded retry strategies that combine backoff and jitter to reduce synchronized retry contention.</span></li><li><a href="https://sre.google/sre-book/monitoring-distributed-systems/" rel="noreferrer" target="_blank">Site Reliability Engineering: Monitoring Distributed Systems</a><span>Supports monitoring user-visible symptoms through latency, traffic, errors, and saturation rather than relying only on internal implementation details.</span></li></ul>
+      </section>
+      <button class="learner-button complete-button" data-variant="primary" type="button" data-complete="security-performance-reliability">Mark lesson complete</button>
+    </section>
+
+    <section class="learner-reading learning-view" id="lesson-build-an-endpoint" data-view="lesson-build-an-endpoint" hidden>
+      <header class="view-header">
+        <span class="learner-eyebrow">20 minute lesson</span>
+        <h1 tabindex="-1">Build the simple endpoint first</h1>
+        <p>Turn a request into a clear contract, implement the happy path, and then layer in validation, authorization, errors, and tests.</p>
+      </header>
+      <div class="lesson-body">
+        <p>For a new feature or endpoint, make the contract visible before code. Confirm the input, output, persistence effect, duplicate behavior, missing-data behavior, authorization rule, and expected dependency failures. Then implement the smallest complete request path and harden it in deliberate layers.</p><h2>The coding sequence</h2><ol><li>State the request and response contract, one important assumption, and the proposed control flow.</li><li>Implement the happy path with direct control flow and names that expose intent.</li><li>Add input validation and resource-level authorization at the boundary.</li><li>Protect invariants with a database constraint, transaction, version check, or idempotency record as appropriate.</li><li>Map expected failures into stable public errors without exposing stack traces or sensitive data.</li><li>Run a happy-path example, boundaries, and one dependency failure; then discuss complexity and the next improvement.</li></ol><h2>A create-order contract</h2><figure class="code-block"><figcaption>Display-only pseudocode for the request boundary and invariant checks.</figcaption><pre><code data-language="text">POST /orders
+identity: authenticated customer
+headers: Idempotency-Key
+body: { items: [{ productId, quantity }] }
+
+1. Validate shape, quantities, and request size.
+2. Authorize the customer and load trusted product prices.
+3. Claim the idempotency key and request fingerprint.
+4. In one transaction, verify inventory and create the order.
+5. Return 201 with the order, or the stored result for a safe retry.
+6. Return a stable conflict when the same key is reused with different input.</code></pre></figure><aside class="callout callout-warning"><strong>Application checks do not close every race</strong><p>A read-then-create check can let concurrent requests both proceed. Place critical uniqueness and concurrency guarantees at the storage boundary, then translate the resulting conflict into the public API contract.</p></aside><h2>Error categories</h2><ul><li>Caller error: invalid input; respond with safe, actionable validation details.</li><li>Authentication or authorization failure: reject without leaking sensitive resource information.</li><li>Domain conflict: explain that current state prevents the operation and whether the caller can retry differently.</li><li>Transient dependency failure: bound waiting, retry only when safe, and preserve a request identifier.</li><li>Unexpected failure: return a stable server error, record structured internal context, and emit a metric.</li></ul><form class="learner-form quiz" data-answer="happy-harden-test"><fieldset><legend>Which implementation order best matches a simple-first backend interview approach?</legend><label><input type="radio" name="build-an-endpoint-endpoint-ordering" value="abstract-first"> <span>Design a generic plugin architecture, then add the endpoint when every abstraction is complete.</span></label><label><input type="radio" name="build-an-endpoint-endpoint-ordering" value="happy-harden-test"> <span>State the contract, implement the happy path, add boundary protections, and verify behavior with focused tests.</span></label><label><input type="radio" name="build-an-endpoint-endpoint-ordering" value="optimize-first"> <span>Add caching and asynchronous processing before the response behavior is defined.</span></label></fieldset><button class="learner-button" data-variant="primary" type="submit">Check answer</button><p class="learner-status quiz-result" role="status" aria-live="polite"></p><p class="quiz-explanation" hidden>This order produces a working observable baseline early, then layers in correctness at the boundaries. Generic abstractions and performance mechanisms are justified only after the contract and pressure points are known.</p></form>
+      </div>
+      <section class="sources" aria-labelledby="build-an-endpoint-sources">
+        <h2 id="build-an-endpoint-sources">Sources used here</h2>
+        <ul><li><a href="https://www.rfc-editor.org/rfc/rfc9110" rel="noreferrer" target="_blank">RFC 9110: HTTP Semantics</a><span>Supports the use and meaning of HTTP methods, status codes, safe methods, and idempotent request semantics.</span></li><li><a href="https://top10proactive.owasp.org/the-top-10/c1-accesscontrol/" rel="noreferrer" target="_blank">OWASP Proactive Controls: Implement Access Control</a><span>Supports the distinction between authentication and authorization and the need for consistent server-side access checks.</span></li><li><a href="https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/" rel="noreferrer" target="_blank">Making retries safe with idempotent APIs</a><span>Supports using idempotent API semantics to make retries safe when a client cannot tell whether a side effect completed.</span></li><li><a href="https://communications.karat.com/hubfs/For_Candidates/Tech%20Interviews%20with%20Karat_2022.pdf" rel="noreferrer" target="_blank">Karat Technical Interviewing 101</a><span>Supports the preparation guidance to practice under time pressure, use a comfortable language, write readable code, and explain the thought process aloud.</span></li></ul>
+      </section>
+      <button class="learner-button complete-button" data-variant="primary" type="button" data-complete="build-an-endpoint">Mark lesson complete</button>
+    </section>
+
+    <section class="learner-reading learning-view" id="lesson-change-existing-code" data-view="lesson-change-existing-code" hidden>
+      <header class="view-header">
+        <span class="learner-eyebrow">16 minute lesson</span>
+        <h1 tabindex="-1">Change existing code without widening the blast radius</h1>
+        <p>Map the current contract, make the narrowest coherent change, and prove the behavior at the most useful boundary.</p>
+      </header>
+      <div class="lesson-body">
+        <p>Existing code carries contracts that are not obvious from one function. Read before changing: inspect signatures, types, tests, call sites, side effects, configuration, persistence, and nearby error behavior. Your goal is the narrowest coherent change that preserves unrelated behavior.</p><h2>A safe-change loop</h2><ol><li>Reproduce or restate the requested behavior in one concrete example.</li><li>Locate the public contract and the smallest implementation boundary that owns it.</li><li>Read nearby tests and callers to discover compatibility and error expectations.</li><li>Make the minimal code change using local conventions and explicit side effects.</li><li>Add a regression test at the boundary where the defect could escape.</li><li>Run focused checks and inspect the final diff for accidental formatting, generated files, or API changes.</li></ol><aside class="callout callout-tip"><strong>Characterize before refactoring</strong><p>When behavior is unclear, capture the current externally visible behavior in a focused test. That evidence gives you a safer base for the requested change and makes any intentional contract change explicit.</p></aside><h2>High-value edge cases</h2><ul><li>Empty input, one item, maximum allowed size, duplicates, and deterministic ordering.</li><li>Missing record, stale version, unauthorized tenant, and conflicting concurrent update.</li><li>Dependency timeout, partial response, cleanup after failure, and retry after an ambiguous result.</li><li>A migration deployed before and after the application version that consumes it.</li></ul><h2>Code quality as decision quality</h2><ul><li>A reader can name each unit&#039;s responsibility without tracing hidden state.</li><li>Dependencies and side effects are explicit enough to test and replace.</li><li>The abstraction earns its complexity by representing a stable repeated concept.</li><li>Logs, metrics, and errors help diagnose behavior without exposing secrets.</li><li>The test proves the contract and would fail if the regression returned.</li></ul><form class="learner-form quiz" data-answer="characterize-boundary"><fieldset><legend>A bug report points to one endpoint, but the shared helper it calls has unclear behavior and many callers. What is the strongest first move?</legend><label><input type="radio" name="change-existing-code-narrow-change" value="rewrite-helper"> <span>Rewrite the helper into a cleaner abstraction before reproducing the bug.</span></label><label><input type="radio" name="change-existing-code-narrow-change" value="characterize-boundary"> <span>Reproduce the endpoint failure, inspect helper callers and tests, and add a focused characterization or regression test before the narrow fix.</span></label><label><input type="radio" name="change-existing-code-narrow-change" value="copy-helper"> <span>Copy the helper into the endpoint so no other caller can be affected.</span></label></fieldset><button class="learner-button" data-variant="primary" type="submit">Check answer</button><p class="learner-status quiz-result" role="status" aria-live="polite"></p><p class="quiz-explanation" hidden>Reproduction plus a boundary test establishes the behavior that matters and exposes the blast radius before editing shared code. A cleanup-first rewrite or copied logic increases change surface without first proving the requested outcome.</p></form>
+      </div>
+      <section class="sources" aria-labelledby="change-existing-code-sources">
+        <h2 id="change-existing-code-sources">Sources used here</h2>
+        <ul><li><a href="https://communications.karat.com/hubfs/For_Candidates/Tech%20Interviews%20with%20Karat_2022.pdf" rel="noreferrer" target="_blank">Karat Technical Interviewing 101</a><span>Supports the preparation guidance to practice under time pressure, use a comfortable language, write readable code, and explain the thought process aloud.</span></li><li><a href="https://karat.com/candidate-experience/" rel="noreferrer" target="_blank">The Karat interview experience</a><span>Provides current first-party context about the live interview environment, discussion questions, programming questions, and emphasis on code that solves the problem.</span></li><li><a href="https://www.rfc-editor.org/rfc/rfc9110" rel="noreferrer" target="_blank">RFC 9110: HTTP Semantics</a><span>Supports the use and meaning of HTTP methods, status codes, safe methods, and idempotent request semantics.</span></li><li><a href="https://www.postgresql.org/docs/18/transaction-iso.html" rel="noreferrer" target="_blank">PostgreSQL 18 Documentation: Transaction Isolation</a><span>Supports the treatment of concurrent transaction anomalies, isolation choices, and retryable serialization failures.</span></li></ul>
+      </section>
+      <button class="learner-button complete-button" data-variant="primary" type="button" data-complete="change-existing-code">Mark lesson complete</button>
+    </section>
+
+    <section class="learner-reading learning-view" id="deck-backend-interview-rapid-review" data-view="deck-backend-interview-rapid-review" hidden>
+      <header class="view-header">
+        <span class="learner-eyebrow">15 flash cards</span>
+        <h1 tabindex="-1">Backend interview rapid review</h1>
+        <p>Retrieve the decision rules, precise vocabulary, and boundary checks that support a clear system design and backend coding interview.</p>
+      </header>
+      <div class="deck-status" role="status" aria-live="polite"></div>
+      <ol class="cards">
+
+          <li class="learner-card card" data-card="breadth-first">
+            <span class="card-count">Card 1 of 15</span>
+            <button class="card-face" type="button" aria-expanded="false">
+              <span class="card-prompt">What does breadth before depth mean in a short system design interview?</span>
+              <span class="card-answer" hidden><strong>Cover requirements, data, components, security, performance, failures, and operations before drilling into one area.</strong><small>A broad first pass demonstrates awareness of the full engineering landscape and lets the interviewer choose where deeper reasoning is most valuable.</small></span>
+              <em>Reveal answer</em>
+            </button>
+            <div class="card-actions" hidden>
+              <button class="learner-button" type="button" data-rating="review">Needs review</button>
+              <button class="learner-button" data-variant="primary" type="button" data-rating="know">Know it</button>
+            </div>
+          </li>
+
+          <li class="learner-card card" data-card="clarifying-question">
+            <span class="card-count">Card 2 of 15</span>
+            <button class="card-face" type="button" aria-expanded="false">
+              <span class="card-prompt">What makes a clarifying question decision-relevant?</span>
+              <span class="card-answer" hidden><strong>Its answer can change the design, contract, or implementation you choose.</strong><small>A useful question exposes a requirement such as consistency, scale, latency, security, or failure behavior instead of delaying the work with generic discovery.</small></span>
+              <em>Reveal answer</em>
+            </button>
+            <div class="card-actions" hidden>
+              <button class="learner-button" type="button" data-rating="review">Needs review</button>
+              <button class="learner-button" data-variant="primary" type="button" data-rating="know">Know it</button>
+            </div>
+          </li>
+
+          <li class="learner-card card" data-card="idempotent">
+            <span class="card-count">Card 3 of 15</span>
+            <button class="card-face" type="button" aria-expanded="false">
+              <span class="card-prompt">What does idempotent mean for a backend operation?</span>
+              <span class="card-answer" hidden><strong>Repeating the same logical operation has the same externally visible effect as performing it once.</strong><small>Idempotency lets a client recover safely from an ambiguous timeout when it cannot tell whether the first attempt completed.</small></span>
+              <em>Reveal answer</em>
+            </button>
+            <div class="card-actions" hidden>
+              <button class="learner-button" type="button" data-rating="review">Needs review</button>
+              <button class="learner-button" data-variant="primary" type="button" data-rating="know">Know it</button>
+            </div>
+          </li>
+
+          <li class="learner-card card" data-card="index-cost">
+            <span class="card-count">Card 4 of 15</span>
+            <button class="card-face" type="button" aria-expanded="false">
+              <span class="card-prompt">What is the central tradeoff of adding a database index?</span>
+              <span class="card-answer" hidden><strong>It can accelerate selected reads while consuming storage and adding maintenance overhead to writes.</strong><small>That tradeoff is why an index should be tied to a real access pattern and verified against the query plan and representative workload.</small></span>
+              <em>Reveal answer</em>
+            </button>
+            <div class="card-actions" hidden>
+              <button class="learner-button" type="button" data-rating="review">Needs review</button>
+              <button class="learner-button" data-variant="primary" type="button" data-rating="know">Know it</button>
+            </div>
+          </li>
+
+          <li class="learner-card card" data-card="transaction-isolation">
+            <span class="card-count">Card 5 of 15</span>
+            <button class="card-face" type="button" aria-expanded="false">
+              <span class="card-prompt">What question does a transaction isolation level answer?</span>
+              <span class="card-answer" hidden><strong>Which effects of concurrent transactions may become visible to one another?</strong><small>The appropriate level follows from the anomalies the business invariant can tolerate and the cost of preventing or retrying conflicts.</small></span>
+              <em>Reveal answer</em>
+            </button>
+            <div class="card-actions" hidden>
+              <button class="learner-button" type="button" data-rating="review">Needs review</button>
+              <button class="learner-button" data-variant="primary" type="button" data-rating="know">Know it</button>
+            </div>
+          </li>
+
+          <li class="learner-card card" data-card="authn-authz">
+            <span class="card-count">Card 6 of 15</span>
+            <button class="card-face" type="button" aria-expanded="false">
+              <span class="card-prompt">How do authentication and authorization differ?</span>
+              <span class="card-answer" hidden><strong>Authentication establishes identity; authorization decides whether that identity may perform an action on a resource.</strong><small>A valid identity is not proof of permission, so protected backend operations require server-side authorization at the relevant resource boundary.</small></span>
+              <em>Reveal answer</em>
+            </button>
+            <div class="card-actions" hidden>
+              <button class="learner-button" type="button" data-rating="review">Needs review</button>
+              <button class="learner-button" data-variant="primary" type="button" data-rating="know">Know it</button>
+            </div>
+          </li>
+
+          <li class="learner-card card" data-card="retry-jitter">
+            <span class="card-count">Card 7 of 15</span>
+            <button class="card-face" type="button" aria-expanded="false">
+              <span class="card-prompt">Why add jitter to exponential retry backoff?</span>
+              <span class="card-answer" hidden><strong>It spreads retry attempts over time so many clients are less likely to contend again in synchronized waves.</strong><small>Backoff reduces request frequency, while jitter breaks correlation between clients that observed the same failure at nearly the same time.</small></span>
+              <em>Reveal answer</em>
+            </button>
+            <div class="card-actions" hidden>
+              <button class="learner-button" type="button" data-rating="review">Needs review</button>
+              <button class="learner-button" data-variant="primary" type="button" data-rating="know">Know it</button>
+            </div>
+          </li>
+
+          <li class="learner-card card" data-card="four-signals">
+            <span class="card-count">Card 8 of 15</span>
+            <button class="card-face" type="button" aria-expanded="false">
+              <span class="card-prompt">What are the four golden signals for service monitoring?</span>
+              <span class="card-answer" hidden><strong>Latency, traffic, errors, and saturation.</strong><small>Together they connect user-visible service behavior to demand, failures, and exhausted capacity without requiring every internal metric to page an operator.</small></span>
+              <em>Reveal answer</em>
+            </button>
+            <div class="card-actions" hidden>
+              <button class="learner-button" type="button" data-rating="review">Needs review</button>
+              <button class="learner-button" data-variant="primary" type="button" data-rating="know">Know it</button>
+            </div>
+          </li>
+
+          <li class="learner-card card" data-card="cache-aside">
+            <span class="card-count">Card 9 of 15</span>
+            <button class="card-face" type="button" aria-expanded="false">
+              <span class="card-prompt">What questions must accompany a cache-aside proposal?</span>
+              <span class="card-answer" hidden><strong>Key design, TTL, invalidation, allowed staleness, miss stampedes, eviction, and expected hit rate.</strong><small>A cache improves only a repeated read path; its correctness and operational costs must be explicit before it is treated as a performance solution.</small></span>
+              <em>Reveal answer</em>
+            </button>
+            <div class="card-actions" hidden>
+              <button class="learner-button" type="button" data-rating="review">Needs review</button>
+              <button class="learner-button" data-variant="primary" type="button" data-rating="know">Know it</button>
+            </div>
+          </li>
+
+          <li class="learner-card card" data-card="simple-first">
+            <span class="card-count">Card 10 of 15</span>
+            <button class="card-face" type="button" aria-expanded="false">
+              <span class="card-prompt">What does simple first require during a coding interview?</span>
+              <span class="card-answer" hidden><strong>State the contract, implement a complete happy path, then add boundary handling, tests, and optimization.</strong><small>This sequence exposes useful working behavior early and ensures later complexity responds to a known requirement or failure mode.</small></span>
+              <em>Reveal answer</em>
+            </button>
+            <div class="card-actions" hidden>
+              <button class="learner-button" type="button" data-rating="review">Needs review</button>
+              <button class="learner-button" data-variant="primary" type="button" data-rating="know">Know it</button>
+            </div>
+          </li>
+
+          <li class="learner-card card" data-card="error-taxonomy">
+            <span class="card-count">Card 11 of 15</span>
+            <button class="card-face" type="button" aria-expanded="false">
+              <span class="card-prompt">Which four error categories should a backend contract distinguish?</span>
+              <span class="card-answer" hidden><strong>Caller errors, domain conflicts, transient dependency failures, and unexpected or programmer failures.</strong><small>Each category needs different public semantics, retry behavior, logging, and alerting; collapsing them into one generic failure hides useful control decisions.</small></span>
+              <em>Reveal answer</em>
+            </button>
+            <div class="card-actions" hidden>
+              <button class="learner-button" type="button" data-rating="review">Needs review</button>
+              <button class="learner-button" data-variant="primary" type="button" data-rating="know">Know it</button>
+            </div>
+          </li>
+
+          <li class="learner-card card" data-card="characterization-test">
+            <span class="card-count">Card 12 of 15</span>
+            <button class="card-face" type="button" aria-expanded="false">
+              <span class="card-prompt">When is a characterization test useful before changing existing code?</span>
+              <span class="card-answer" hidden><strong>When current externally visible behavior is unclear and the change must avoid accidental contract drift.</strong><small>Capturing the behavior at the relevant boundary creates evidence for a narrow fix and makes any intentional behavior change explicit.</small></span>
+              <em>Reveal answer</em>
+            </button>
+            <div class="card-actions" hidden>
+              <button class="learner-button" type="button" data-rating="review">Needs review</button>
+              <button class="learner-button" data-variant="primary" type="button" data-rating="know">Know it</button>
+            </div>
+          </li>
+
+          <li class="learner-card card" data-card="regression-test">
+            <span class="card-count">Card 13 of 15</span>
+            <button class="card-face" type="button" aria-expanded="false">
+              <span class="card-prompt">What makes a regression test high value?</span>
+              <span class="card-answer" hidden><strong>It proves the external contract at the boundary where the defect could escape and fails if the defect returns.</strong><small>A focused boundary test protects user-visible behavior without coupling unnecessarily to internal implementation details.</small></span>
+              <em>Reveal answer</em>
+            </button>
+            <div class="card-actions" hidden>
+              <button class="learner-button" type="button" data-rating="review">Needs review</button>
+              <button class="learner-button" data-variant="primary" type="button" data-rating="know">Know it</button>
+            </div>
+          </li>
+
+          <li class="learner-card card" data-card="n-plus-one">
+            <span class="card-count">Card 14 of 15</span>
+            <button class="card-face" type="button" aria-expanded="false">
+              <span class="card-prompt">Why can code with O(n) in-memory control flow still perform poorly?</span>
+              <span class="card-answer" hidden><strong>It may issue one database or network request per item, turning the loop into n expensive round trips.</strong><small>Interview complexity analysis should count external calls and data volume, not only local data-structure operations.</small></span>
+              <em>Reveal answer</em>
+            </button>
+            <div class="card-actions" hidden>
+              <button class="learner-button" type="button" data-rating="review">Needs review</button>
+              <button class="learner-button" data-variant="primary" type="button" data-rating="know">Know it</button>
+            </div>
+          </li>
+
+          <li class="learner-card card" data-card="final-summary">
+            <span class="card-count">Card 15 of 15</span>
+            <button class="card-face" type="button" aria-expanded="false">
+              <span class="card-prompt">What belongs in the final 60-second interview summary?</span>
+              <span class="card-answer" hidden><strong>What works, the main decision, the biggest remaining risk, and the first improvement you would make with more time.</strong><small>A crisp close makes your engineering judgment visible even when the timed solution is intentionally incomplete.</small></span>
+              <em>Reveal answer</em>
+            </button>
+            <div class="card-actions" hidden>
+              <button class="learner-button" type="button" data-rating="review">Needs review</button>
+              <button class="learner-button" data-variant="primary" type="button" data-rating="know">Know it</button>
+            </div>
+          </li>
+
+      </ol>
+      <section class="sources" aria-labelledby="backend-interview-rapid-review-sources">
+        <h2 id="backend-interview-rapid-review-sources">Sources used here</h2>
+        <ul><li><a href="https://communications.karat.com/hubfs/For_Candidates/Tech%20Interviews%20with%20Karat_2022.pdf" rel="noreferrer" target="_blank">Karat Technical Interviewing 101</a><span>Supports the preparation guidance to practice under time pressure, use a comfortable language, write readable code, and explain the thought process aloud.</span></li><li><a href="https://karat.com/candidate-experience/" rel="noreferrer" target="_blank">The Karat interview experience</a><span>Provides current first-party context about the live interview environment, discussion questions, programming questions, and emphasis on code that solves the problem.</span></li><li><a href="https://www.postgresql.org/docs/18/indexes.html" rel="noreferrer" target="_blank">PostgreSQL 18 Documentation: Indexes</a><span>Supports the explanation that indexes can accelerate selected reads while adding database-wide storage and maintenance overhead.</span></li><li><a href="https://www.postgresql.org/docs/18/transaction-iso.html" rel="noreferrer" target="_blank">PostgreSQL 18 Documentation: Transaction Isolation</a><span>Supports the treatment of concurrent transaction anomalies, isolation choices, and retryable serialization failures.</span></li><li><a href="https://top10proactive.owasp.org/the-top-10/c1-accesscontrol/" rel="noreferrer" target="_blank">OWASP Proactive Controls: Implement Access Control</a><span>Supports the distinction between authentication and authorization and the need for consistent server-side access checks.</span></li><li><a href="https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/" rel="noreferrer" target="_blank">Making retries safe with idempotent APIs</a><span>Supports using idempotent API semantics to make retries safe when a client cannot tell whether a side effect completed.</span></li><li><a href="https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/" rel="noreferrer" target="_blank">Exponential Backoff and Jitter</a><span>Supports bounded retry strategies that combine backoff and jitter to reduce synchronized retry contention.</span></li><li><a href="https://www.rfc-editor.org/rfc/rfc9110" rel="noreferrer" target="_blank">RFC 9110: HTTP Semantics</a><span>Supports the use and meaning of HTTP methods, status codes, safe methods, and idempotent request semantics.</span></li><li><a href="https://sre.google/sre-book/monitoring-distributed-systems/" rel="noreferrer" target="_blank">Site Reliability Engineering: Monitoring Distributed Systems</a><span>Supports monitoring user-visible symptoms through latency, traffic, errors, and saturation rather than relying only on internal implementation details.</span></li></ul>
+      </section>
+    </section>
+  </main>
+  </div>
+  <footer class="learner-footer"><div class="learner-footer__inner"><span>CC-BY-4.0 (original instructional text only; cited sources retain their own rights) · Progress stays on this device.</span><span>Built with Neural Chalk.</span></div></footer>
+  </div>
+  <script src="./assets/learner-ui.js" defer></script>
+  <script src="./assets/player.js" defer></script>
+</body>
+</html>

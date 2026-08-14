@@ -1,0 +1,21 @@
+{
+  "format": "latent-learning-feed",
+  "schemaVersion": 1,
+  "publisher": {
+    "id": "latent",
+    "name": "Latent Study Pack Author"
+  },
+  "packages": [
+    {
+      "packageId": "latent/backend-interview-prep",
+      "version": "1.0.0",
+      "title": "Backend interview: reason clearly, build safely",
+      "description": "A focused preparation course for an experienced backend engineer practicing system design tradeoffs, API implementation, failure handling, and clear interview communication under time pressure.",
+      "packageUrl": "./learning-pack.json",
+      "siteUrl": "./",
+      "sha256": "0aeb1c813ca46112266c3212487f3de47c22e5d0dfa6307187bf30b1a1332af1",
+      "bytes": 41457,
+      "publishedAt": "2026-08-13T20:00:00Z"
+    }
+  ]
+}

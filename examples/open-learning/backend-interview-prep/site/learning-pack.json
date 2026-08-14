@@ -1,0 +1,950 @@
+{
+  "extensions": {
+    "org.latent/study-plan": {
+      "recommendedOrder": [
+        "Complete lessons 1-3 for system design breadth.",
+        "Complete lessons 4-5 for backend coding execution.",
+        "Run the rapid-review deck, then rehearse one 20-minute design prompt and one 30-minute coding prompt aloud."
+      ],
+      "sourceContext": "The candidate supplied a one-page recruiting brief. Public citations support the teachable technical claims; the exact interview format remains controlled by the candidate's recruiting instructions."
+    }
+  },
+  "flashcardDecks": [
+    {
+      "cards": [
+        {
+          "back": "Cover requirements, data, components, security, performance, failures, and operations before drilling into one area.",
+          "explanation": "A broad first pass demonstrates awareness of the full engineering landscape and lets the interviewer choose where deeper reasoning is most valuable.",
+          "front": "What does breadth before depth mean in a short system design interview?",
+          "id": "breadth-first",
+          "objectiveIds": [
+            "communicate-approach"
+          ],
+          "sourceIds": [
+            "karat-candidate-guide"
+          ],
+          "tags": [
+            "communication",
+            "system-design"
+          ]
+        },
+        {
+          "back": "Its answer can change the design, contract, or implementation you choose.",
+          "explanation": "A useful question exposes a requirement such as consistency, scale, latency, security, or failure behavior instead of delaying the work with generic discovery.",
+          "front": "What makes a clarifying question decision-relevant?",
+          "id": "clarifying-question",
+          "objectiveIds": [
+            "communicate-approach"
+          ],
+          "sourceIds": [
+            "karat-candidate-guide",
+            "karat-candidate-experience"
+          ],
+          "tags": [
+            "communication",
+            "requirements"
+          ]
+        },
+        {
+          "back": "Repeating the same logical operation has the same externally visible effect as performing it once.",
+          "explanation": "Idempotency lets a client recover safely from an ambiguous timeout when it cannot tell whether the first attempt completed.",
+          "front": "What does idempotent mean for a backend operation?",
+          "id": "idempotent",
+          "objectiveIds": [
+            "design-resilience",
+            "implement-endpoint"
+          ],
+          "sourceIds": [
+            "aws-idempotent-apis",
+            "http-semantics"
+          ],
+          "tags": [
+            "api",
+            "reliability"
+          ]
+        },
+        {
+          "back": "It can accelerate selected reads while consuming storage and adding maintenance overhead to writes.",
+          "explanation": "That tradeoff is why an index should be tied to a real access pattern and verified against the query plan and representative workload.",
+          "front": "What is the central tradeoff of adding a database index?",
+          "id": "index-cost",
+          "objectiveIds": [
+            "choose-architecture"
+          ],
+          "sourceIds": [
+            "postgres-indexes"
+          ],
+          "tags": [
+            "database",
+            "performance"
+          ]
+        },
+        {
+          "back": "Which effects of concurrent transactions may become visible to one another?",
+          "explanation": "The appropriate level follows from the anomalies the business invariant can tolerate and the cost of preventing or retrying conflicts.",
+          "front": "What question does a transaction isolation level answer?",
+          "id": "transaction-isolation",
+          "objectiveIds": [
+            "choose-architecture"
+          ],
+          "sourceIds": [
+            "postgres-isolation"
+          ],
+          "tags": [
+            "database",
+            "concurrency"
+          ]
+        },
+        {
+          "back": "Authentication establishes identity; authorization decides whether that identity may perform an action on a resource.",
+          "explanation": "A valid identity is not proof of permission, so protected backend operations require server-side authorization at the relevant resource boundary.",
+          "front": "How do authentication and authorization differ?",
+          "id": "authn-authz",
+          "objectiveIds": [
+            "design-resilience",
+            "implement-endpoint"
+          ],
+          "sourceIds": [
+            "owasp-access-control"
+          ],
+          "tags": [
+            "security",
+            "api"
+          ]
+        },
+        {
+          "back": "It spreads retry attempts over time so many clients are less likely to contend again in synchronized waves.",
+          "explanation": "Backoff reduces request frequency, while jitter breaks correlation between clients that observed the same failure at nearly the same time.",
+          "front": "Why add jitter to exponential retry backoff?",
+          "id": "retry-jitter",
+          "objectiveIds": [
+            "design-resilience"
+          ],
+          "sourceIds": [
+            "aws-retry-jitter"
+          ],
+          "tags": [
+            "reliability",
+            "distributed-systems"
+          ]
+        },
+        {
+          "back": "Latency, traffic, errors, and saturation.",
+          "explanation": "Together they connect user-visible service behavior to demand, failures, and exhausted capacity without requiring every internal metric to page an operator.",
+          "front": "What are the four golden signals for service monitoring?",
+          "id": "four-signals",
+          "objectiveIds": [
+            "design-resilience"
+          ],
+          "sourceIds": [
+            "google-sre-monitoring"
+          ],
+          "tags": [
+            "observability",
+            "reliability"
+          ]
+        },
+        {
+          "back": "Key design, TTL, invalidation, allowed staleness, miss stampedes, eviction, and expected hit rate.",
+          "explanation": "A cache improves only a repeated read path; its correctness and operational costs must be explicit before it is treated as a performance solution.",
+          "front": "What questions must accompany a cache-aside proposal?",
+          "id": "cache-aside",
+          "objectiveIds": [
+            "choose-architecture",
+            "design-resilience"
+          ],
+          "sourceIds": [
+            "google-sre-monitoring"
+          ],
+          "tags": [
+            "cache",
+            "performance"
+          ]
+        },
+        {
+          "back": "State the contract, implement a complete happy path, then add boundary handling, tests, and optimization.",
+          "explanation": "This sequence exposes useful working behavior early and ensures later complexity responds to a known requirement or failure mode.",
+          "front": "What does simple first require during a coding interview?",
+          "id": "simple-first",
+          "objectiveIds": [
+            "implement-endpoint",
+            "communicate-approach"
+          ],
+          "sourceIds": [
+            "karat-candidate-guide",
+            "karat-candidate-experience"
+          ],
+          "tags": [
+            "coding",
+            "workflow"
+          ]
+        },
+        {
+          "back": "Caller errors, domain conflicts, transient dependency failures, and unexpected or programmer failures.",
+          "explanation": "Each category needs different public semantics, retry behavior, logging, and alerting; collapsing them into one generic failure hides useful control decisions.",
+          "front": "Which four error categories should a backend contract distinguish?",
+          "id": "error-taxonomy",
+          "objectiveIds": [
+            "implement-endpoint"
+          ],
+          "sourceIds": [
+            "http-semantics",
+            "google-sre-monitoring"
+          ],
+          "tags": [
+            "errors",
+            "api"
+          ]
+        },
+        {
+          "back": "When current externally visible behavior is unclear and the change must avoid accidental contract drift.",
+          "explanation": "Capturing the behavior at the relevant boundary creates evidence for a narrow fix and makes any intentional behavior change explicit.",
+          "front": "When is a characterization test useful before changing existing code?",
+          "id": "characterization-test",
+          "objectiveIds": [
+            "change-code-safely"
+          ],
+          "sourceIds": [
+            "karat-candidate-guide"
+          ],
+          "tags": [
+            "testing",
+            "existing-code"
+          ]
+        },
+        {
+          "back": "It proves the external contract at the boundary where the defect could escape and fails if the defect returns.",
+          "explanation": "A focused boundary test protects user-visible behavior without coupling unnecessarily to internal implementation details.",
+          "front": "What makes a regression test high value?",
+          "id": "regression-test",
+          "objectiveIds": [
+            "change-code-safely"
+          ],
+          "sourceIds": [
+            "karat-candidate-experience"
+          ],
+          "tags": [
+            "testing",
+            "quality"
+          ]
+        },
+        {
+          "back": "It may issue one database or network request per item, turning the loop into n expensive round trips.",
+          "explanation": "Interview complexity analysis should count external calls and data volume, not only local data-structure operations.",
+          "front": "Why can code with O(n) in-memory control flow still perform poorly?",
+          "id": "n-plus-one",
+          "objectiveIds": [
+            "implement-endpoint",
+            "design-resilience"
+          ],
+          "sourceIds": [
+            "postgres-indexes",
+            "google-sre-monitoring"
+          ],
+          "tags": [
+            "performance",
+            "database"
+          ]
+        },
+        {
+          "back": "What works, the main decision, the biggest remaining risk, and the first improvement you would make with more time.",
+          "explanation": "A crisp close makes your engineering judgment visible even when the timed solution is intentionally incomplete.",
+          "front": "What belongs in the final 60-second interview summary?",
+          "id": "final-summary",
+          "objectiveIds": [
+            "communicate-approach",
+            "change-code-safely"
+          ],
+          "sourceIds": [
+            "karat-candidate-guide",
+            "karat-candidate-experience"
+          ],
+          "tags": [
+            "communication",
+            "review"
+          ]
+        }
+      ],
+      "description": "Retrieve the decision rules, precise vocabulary, and boundary checks that support a clear system design and backend coding interview.",
+      "id": "backend-interview-rapid-review",
+      "objectiveIds": [
+        "communicate-approach",
+        "choose-architecture",
+        "design-resilience",
+        "implement-endpoint",
+        "change-code-safely"
+      ],
+      "order": 1,
+      "sourceIds": [
+        "karat-candidate-guide",
+        "karat-candidate-experience",
+        "postgres-indexes",
+        "postgres-isolation",
+        "owasp-access-control",
+        "aws-idempotent-apis",
+        "aws-retry-jitter",
+        "http-semantics",
+        "google-sre-monitoring"
+      ],
+      "title": "Backend interview rapid review"
+    }
+  ],
+  "format": "latent-learning-pack",
+  "lessons": [
+    {
+      "blocks": [
+        {
+          "text": "The downloaded recruiting brief divides the technical interview into roughly 20 minutes of system design concepts and 30 minutes of backend coding. Its strongest process signal is breadth before depth: show familiarity across the landscape, then follow the interviewer's interest into detail. Public Karat guidance likewise recommends practicing under time pressure while explaining your thought process aloud.",
+          "type": "paragraph"
+        },
+        {
+          "level": 2,
+          "text": "The five-move loop",
+          "type": "heading"
+        },
+        {
+          "items": [
+            "Clarify: ask one question whose answer could change the design or implementation.",
+            "Frame: state the goal, important constraints, assumptions, and your starting approach.",
+            "Execute: build the solution in visible increments and name decisions as you make them.",
+            "Validate: test the happy path, boundaries, failure modes, and operational behavior.",
+            "Improve: only after the baseline works, add optimization, scale, or refactoring."
+          ],
+          "style": "ordered",
+          "type": "list"
+        },
+        {
+          "text": "Prefer 'Must a successful write be immediately visible to later reads?' over 'How many users are there?' when only the first answer changes your consistency design. Explain what decision the answer controls.",
+          "title": "Ask a question that changes something",
+          "tone": "tip",
+          "type": "callout"
+        },
+        {
+          "level": 2,
+          "text": "Narrate decisions, not keystrokes",
+          "type": "heading"
+        },
+        {
+          "items": [
+            "I see two viable approaches; I am weighing consistency against write availability.",
+            "I will start with the simplest complete request path, then identify its first bottleneck.",
+            "This change stays local because the surrounding contract is not part of the task.",
+            "Let me test duplicates, missing data, and a dependency timeout before I optimize."
+          ],
+          "style": "unordered",
+          "type": "list"
+        },
+        {
+          "text": "Have one factual story about scale, one about reliability, and one about a difficult code change. Use context, constraint, decision, tradeoff, observed result, and what you would change now.",
+          "title": "Prepare three experience anchors",
+          "tone": "note",
+          "type": "callout"
+        },
+        {
+          "choices": [
+            {
+              "id": "framework",
+              "text": "Which web framework should I use?"
+            },
+            {
+              "id": "consistency",
+              "text": "Can a confirmed order ever be shown as missing or stale to the same customer?"
+            },
+            {
+              "id": "all-details",
+              "text": "Can you provide every possible requirement before I begin?"
+            }
+          ],
+          "correctChoiceId": "consistency",
+          "explanation": "The consistency question exposes a user-visible invariant that can change storage, replication, and read-routing choices. A framework preference is usually downstream of the design, while demanding every detail prevents progress under time pressure.",
+          "id": "question-that-changes-design",
+          "objectiveIds": [
+            "communicate-approach"
+          ],
+          "prompt": "You are asked to design an order API. Which opening question gives the strongest design signal?",
+          "sourceIds": [
+            "karat-candidate-guide",
+            "karat-candidate-experience"
+          ],
+          "type": "quiz"
+        }
+      ],
+      "durationMinutes": 10,
+      "id": "interview-operating-system",
+      "objectiveIds": [
+        "communicate-approach"
+      ],
+      "order": 1,
+      "sourceIds": [
+        "karat-candidate-guide",
+        "karat-candidate-experience"
+      ],
+      "summary": "Use a five-move loop to clarify, frame, execute, validate, and improve without disappearing into silent analysis.",
+      "title": "Run a visible reasoning loop"
+    },
+    {
+      "blocks": [
+        {
+          "text": "A strong system design answer is a sequence of justified decisions. Start with the behavior and constraints, sketch one complete request path, and then pressure-test the parts most likely to fail. Technology names are useful only when they answer a requirement.",
+          "type": "paragraph"
+        },
+        {
+          "level": 2,
+          "text": "A 20-minute structure",
+          "type": "heading"
+        },
+        {
+          "items": [
+            "Minutes 0-2: clarify the core use case, scale, latency, consistency, security, and scope.",
+            "Minutes 2-4: estimate traffic and data only enough to reveal the hot path or likely capacity limit.",
+            "Minutes 4-8: sketch the client, API, service boundary, storage, and end-to-end request flow.",
+            "Minutes 8-14: cover storage, indexes, consistency, caching, asynchronous work, and security.",
+            "Minutes 14-18: pressure-test dependency failure, retry storms, hot keys, deploys, and observability.",
+            "Minutes 18-20: summarize the choice, its largest risk, and the first scale step."
+          ],
+          "style": "ordered",
+          "type": "list"
+        },
+        {
+          "level": 2,
+          "text": "Model data from invariants and access patterns",
+          "type": "heading"
+        },
+        {
+          "items": [
+            "List the primary entities, read keys, filters, sorts, aggregations, and update patterns.",
+            "Name what must never be duplicated, lost, oversold, or observed out of order.",
+            "Choose transaction boundaries and isolation based on concurrent operations, not habit.",
+            "Add an index for a demonstrated access path and acknowledge its storage and write cost.",
+            "Choose a partition key that distributes load without making essential queries scatter everywhere."
+          ],
+          "style": "unordered",
+          "type": "list"
+        },
+        {
+          "text": "A queue, cache, service, or NoSQL database is not automatically scalable. State the pressure point it addresses and the new correctness or operational cost it introduces.",
+          "title": "Do not design from nouns",
+          "tone": "warning",
+          "type": "callout"
+        },
+        {
+          "level": 2,
+          "text": "Tradeoff sentences",
+          "type": "heading"
+        },
+        {
+          "items": [
+            "Begin with a modular monolith when one team benefits from simple transactions; extract a service when scaling, ownership, or deployment needs diverge.",
+            "Use synchronous work when the caller needs the result now; use asynchronous work for slow, bursty, or retryable work whose completion can be observed later.",
+            "Prefer stronger consistency when stale state violates an invariant; accept bounded staleness when availability and latency are more valuable.",
+            "Use relational storage when constraints, transactions, relationships, and flexible queries dominate; consider other models only after access patterns justify them."
+          ],
+          "style": "unordered",
+          "type": "list"
+        },
+        {
+          "choices": [
+            {
+              "id": "index-all",
+              "text": "Index every column so all future queries are fast."
+            },
+            {
+              "id": "measure-composite",
+              "text": "Inspect the query and plan, test a composite index aligned with its filter and ordering, then measure read benefit and write cost."
+            },
+            {
+              "id": "avoid-index",
+              "text": "Avoid indexes because every index slows writes."
+            }
+          ],
+          "correctChoiceId": "measure-composite",
+          "explanation": "PostgreSQL documents both the read benefit and system overhead of indexes. The strongest answer ties one candidate index to a real access path, validates it with the query plan and workload, and accounts for write cost rather than indexing everything or nothing.",
+          "id": "index-tradeoff",
+          "objectiveIds": [
+            "choose-architecture"
+          ],
+          "prompt": "A table receives heavy writes and one new endpoint filters by status and creation time. What is the strongest index proposal?",
+          "sourceIds": [
+            "postgres-indexes"
+          ],
+          "type": "quiz"
+        }
+      ],
+      "durationMinutes": 18,
+      "id": "architecture-and-data",
+      "objectiveIds": [
+        "choose-architecture",
+        "communicate-approach"
+      ],
+      "order": 2,
+      "prerequisiteLessonIds": [
+        "interview-operating-system"
+      ],
+      "sourceIds": [
+        "postgres-indexes",
+        "postgres-isolation",
+        "karat-candidate-guide"
+      ],
+      "summary": "Move from requirements and access patterns to components, data guarantees, and explicit architecture tradeoffs.",
+      "title": "Choose architecture from the pressure points"
+    },
+    {
+      "blocks": [
+        {
+          "text": "Security, performance, and reliability are boundary questions. Who crosses this boundary, what shared resource can be exhausted, and what happens when the next dependency is slow or unavailable? Cover the highest-risk case in each category before adding detail.",
+          "type": "paragraph"
+        },
+        {
+          "level": 2,
+          "text": "Security: identity is not permission",
+          "type": "heading"
+        },
+        {
+          "items": [
+            "Authentication establishes an acceptable identity; authorization decides whether that identity may perform this action on this resource.",
+            "Perform resource-level authorization on the server for every protected path; a hidden control in the client is not a security boundary.",
+            "Validate input shape, size, and allowed values, and use parameterized queries rather than concatenating untrusted data.",
+            "Minimize sensitive data, protect secrets, redact logs, and record safe audit events for important actions."
+          ],
+          "style": "unordered",
+          "type": "list"
+        },
+        {
+          "level": 2,
+          "text": "Performance: measure the user-visible path",
+          "type": "heading"
+        },
+        {
+          "items": [
+            "Define throughput and p50, p95, or p99 latency targets together with errors and resource ceilings.",
+            "Instrument request time, dependency time, query plans, CPU, memory, queue depth, and cache hit rate.",
+            "Locate the constraint before adding a cache, queue, replica, partition, batch, or concurrency.",
+            "After a change, repeat a representative load test and watch for the bottleneck to move."
+          ],
+          "style": "unordered",
+          "type": "list"
+        },
+        {
+          "level": 2,
+          "text": "Reliability: retries need a budget",
+          "type": "heading"
+        },
+        {
+          "items": [
+            "Use timeouts to bound waiting and leave time for the caller to handle failure.",
+            "Retry only transient failures and safe operations; cap attempts and use exponential backoff with jitter.",
+            "Make side-effecting operations idempotent or deduplicate them before treating retries as safe.",
+            "Use backpressure, rate limits, circuit breaking, and load shedding to stop one failure from consuming all shared capacity."
+          ],
+          "style": "unordered",
+          "type": "list"
+        },
+        {
+          "text": "Google SRE frames monitoring around latency, traffic, errors, and saturation. In an interview, name the user-visible symptom, the dependency or resource behind it, and the alert that should lead to action.",
+          "title": "Use the four golden signals",
+          "tone": "tip",
+          "type": "callout"
+        },
+        {
+          "choices": [
+            {
+              "id": "retry-fast",
+              "text": "Retry immediately in a tight loop until a request returns 200."
+            },
+            {
+              "id": "never-retry",
+              "text": "Never retry any create request because POST is not idempotent by definition."
+            },
+            {
+              "id": "idempotency-key",
+              "text": "Send a client-scoped idempotency key, persist the first logical result, and retry transient failures with bounded backoff and jitter."
+            }
+          ],
+          "correctChoiceId": "idempotency-key",
+          "explanation": "An idempotency key lets repeated attempts recover the first logical effect instead of creating duplicates. Bounded backoff and jitter reduce synchronized load, while tight loops amplify failures and a blanket ban on retries gives up useful recovery behavior.",
+          "id": "safe-retry",
+          "objectiveIds": [
+            "design-resilience"
+          ],
+          "prompt": "A client times out while creating a payment and cannot tell whether the server committed it. What is the strongest retry design?",
+          "sourceIds": [
+            "aws-idempotent-apis",
+            "aws-retry-jitter"
+          ],
+          "type": "quiz"
+        }
+      ],
+      "durationMinutes": 18,
+      "id": "security-performance-reliability",
+      "objectiveIds": [
+        "design-resilience",
+        "choose-architecture"
+      ],
+      "order": 3,
+      "prerequisiteLessonIds": [
+        "architecture-and-data"
+      ],
+      "sourceIds": [
+        "owasp-access-control",
+        "aws-idempotent-apis",
+        "aws-retry-jitter",
+        "google-sre-monitoring"
+      ],
+      "summary": "Identify the important trust boundary and bottleneck, then use precise controls for access, overload, retries, and monitoring.",
+      "title": "Pressure-test security, performance, and failure"
+    },
+    {
+      "blocks": [
+        {
+          "text": "For a new feature or endpoint, make the contract visible before code. Confirm the input, output, persistence effect, duplicate behavior, missing-data behavior, authorization rule, and expected dependency failures. Then implement the smallest complete request path and harden it in deliberate layers.",
+          "type": "paragraph"
+        },
+        {
+          "level": 2,
+          "text": "The coding sequence",
+          "type": "heading"
+        },
+        {
+          "items": [
+            "State the request and response contract, one important assumption, and the proposed control flow.",
+            "Implement the happy path with direct control flow and names that expose intent.",
+            "Add input validation and resource-level authorization at the boundary.",
+            "Protect invariants with a database constraint, transaction, version check, or idempotency record as appropriate.",
+            "Map expected failures into stable public errors without exposing stack traces or sensitive data.",
+            "Run a happy-path example, boundaries, and one dependency failure; then discuss complexity and the next improvement."
+          ],
+          "style": "ordered",
+          "type": "list"
+        },
+        {
+          "level": 2,
+          "text": "A create-order contract",
+          "type": "heading"
+        },
+        {
+          "caption": "Display-only pseudocode for the request boundary and invariant checks.",
+          "code": "POST /orders\nidentity: authenticated customer\nheaders: Idempotency-Key\nbody: { items: [{ productId, quantity }] }\n\n1. Validate shape, quantities, and request size.\n2. Authorize the customer and load trusted product prices.\n3. Claim the idempotency key and request fingerprint.\n4. In one transaction, verify inventory and create the order.\n5. Return 201 with the order, or the stored result for a safe retry.\n6. Return a stable conflict when the same key is reused with different input.",
+          "language": "text",
+          "type": "code"
+        },
+        {
+          "text": "A read-then-create check can let concurrent requests both proceed. Place critical uniqueness and concurrency guarantees at the storage boundary, then translate the resulting conflict into the public API contract.",
+          "title": "Application checks do not close every race",
+          "tone": "warning",
+          "type": "callout"
+        },
+        {
+          "level": 2,
+          "text": "Error categories",
+          "type": "heading"
+        },
+        {
+          "items": [
+            "Caller error: invalid input; respond with safe, actionable validation details.",
+            "Authentication or authorization failure: reject without leaking sensitive resource information.",
+            "Domain conflict: explain that current state prevents the operation and whether the caller can retry differently.",
+            "Transient dependency failure: bound waiting, retry only when safe, and preserve a request identifier.",
+            "Unexpected failure: return a stable server error, record structured internal context, and emit a metric."
+          ],
+          "style": "unordered",
+          "type": "list"
+        },
+        {
+          "choices": [
+            {
+              "id": "abstract-first",
+              "text": "Design a generic plugin architecture, then add the endpoint when every abstraction is complete."
+            },
+            {
+              "id": "happy-harden-test",
+              "text": "State the contract, implement the happy path, add boundary protections, and verify behavior with focused tests."
+            },
+            {
+              "id": "optimize-first",
+              "text": "Add caching and asynchronous processing before the response behavior is defined."
+            }
+          ],
+          "correctChoiceId": "happy-harden-test",
+          "explanation": "This order produces a working observable baseline early, then layers in correctness at the boundaries. Generic abstractions and performance mechanisms are justified only after the contract and pressure points are known.",
+          "id": "endpoint-ordering",
+          "objectiveIds": [
+            "implement-endpoint",
+            "communicate-approach"
+          ],
+          "prompt": "Which implementation order best matches a simple-first backend interview approach?",
+          "sourceIds": [
+            "karat-candidate-guide",
+            "http-semantics"
+          ],
+          "type": "quiz"
+        }
+      ],
+      "durationMinutes": 20,
+      "id": "build-an-endpoint",
+      "objectiveIds": [
+        "implement-endpoint",
+        "communicate-approach",
+        "design-resilience"
+      ],
+      "order": 4,
+      "prerequisiteLessonIds": [
+        "interview-operating-system"
+      ],
+      "sourceIds": [
+        "http-semantics",
+        "owasp-access-control",
+        "aws-idempotent-apis",
+        "karat-candidate-guide"
+      ],
+      "summary": "Turn a request into a clear contract, implement the happy path, and then layer in validation, authorization, errors, and tests.",
+      "title": "Build the simple endpoint first"
+    },
+    {
+      "blocks": [
+        {
+          "text": "Existing code carries contracts that are not obvious from one function. Read before changing: inspect signatures, types, tests, call sites, side effects, configuration, persistence, and nearby error behavior. Your goal is the narrowest coherent change that preserves unrelated behavior.",
+          "type": "paragraph"
+        },
+        {
+          "level": 2,
+          "text": "A safe-change loop",
+          "type": "heading"
+        },
+        {
+          "items": [
+            "Reproduce or restate the requested behavior in one concrete example.",
+            "Locate the public contract and the smallest implementation boundary that owns it.",
+            "Read nearby tests and callers to discover compatibility and error expectations.",
+            "Make the minimal code change using local conventions and explicit side effects.",
+            "Add a regression test at the boundary where the defect could escape.",
+            "Run focused checks and inspect the final diff for accidental formatting, generated files, or API changes."
+          ],
+          "style": "ordered",
+          "type": "list"
+        },
+        {
+          "text": "When behavior is unclear, capture the current externally visible behavior in a focused test. That evidence gives you a safer base for the requested change and makes any intentional contract change explicit.",
+          "title": "Characterize before refactoring",
+          "tone": "tip",
+          "type": "callout"
+        },
+        {
+          "level": 2,
+          "text": "High-value edge cases",
+          "type": "heading"
+        },
+        {
+          "items": [
+            "Empty input, one item, maximum allowed size, duplicates, and deterministic ordering.",
+            "Missing record, stale version, unauthorized tenant, and conflicting concurrent update.",
+            "Dependency timeout, partial response, cleanup after failure, and retry after an ambiguous result.",
+            "A migration deployed before and after the application version that consumes it."
+          ],
+          "style": "unordered",
+          "type": "list"
+        },
+        {
+          "level": 2,
+          "text": "Code quality as decision quality",
+          "type": "heading"
+        },
+        {
+          "items": [
+            "A reader can name each unit's responsibility without tracing hidden state.",
+            "Dependencies and side effects are explicit enough to test and replace.",
+            "The abstraction earns its complexity by representing a stable repeated concept.",
+            "Logs, metrics, and errors help diagnose behavior without exposing secrets.",
+            "The test proves the contract and would fail if the regression returned."
+          ],
+          "style": "unordered",
+          "type": "list"
+        },
+        {
+          "choices": [
+            {
+              "id": "rewrite-helper",
+              "text": "Rewrite the helper into a cleaner abstraction before reproducing the bug."
+            },
+            {
+              "id": "characterize-boundary",
+              "text": "Reproduce the endpoint failure, inspect helper callers and tests, and add a focused characterization or regression test before the narrow fix."
+            },
+            {
+              "id": "copy-helper",
+              "text": "Copy the helper into the endpoint so no other caller can be affected."
+            }
+          ],
+          "correctChoiceId": "characterize-boundary",
+          "explanation": "Reproduction plus a boundary test establishes the behavior that matters and exposes the blast radius before editing shared code. A cleanup-first rewrite or copied logic increases change surface without first proving the requested outcome.",
+          "id": "narrow-change",
+          "objectiveIds": [
+            "change-code-safely"
+          ],
+          "prompt": "A bug report points to one endpoint, but the shared helper it calls has unclear behavior and many callers. What is the strongest first move?",
+          "sourceIds": [
+            "karat-candidate-guide",
+            "karat-candidate-experience"
+          ],
+          "type": "quiz"
+        }
+      ],
+      "durationMinutes": 16,
+      "id": "change-existing-code",
+      "objectiveIds": [
+        "change-code-safely",
+        "implement-endpoint"
+      ],
+      "order": 5,
+      "prerequisiteLessonIds": [
+        "build-an-endpoint"
+      ],
+      "sourceIds": [
+        "karat-candidate-guide",
+        "karat-candidate-experience",
+        "http-semantics",
+        "postgres-isolation"
+      ],
+      "summary": "Map the current contract, make the narrowest coherent change, and prove the behavior at the most useful boundary.",
+      "title": "Change existing code without widening the blast radius"
+    }
+  ],
+  "objectives": [
+    {
+      "description": "Frame an interview problem, ask one decision-relevant question, and narrate a simple-first approach with explicit tradeoffs.",
+      "id": "communicate-approach"
+    },
+    {
+      "description": "Choose an architecture and storage approach from requirements, access patterns, invariants, scale, and consistency needs.",
+      "id": "choose-architecture"
+    },
+    {
+      "description": "Identify security, performance, and reliability risks and select a proportionate control for each one.",
+      "id": "design-resilience"
+    },
+    {
+      "description": "Implement a backend endpoint from a clear contract, covering validation, authorization, idempotency, errors, and response semantics.",
+      "id": "implement-endpoint"
+    },
+    {
+      "description": "Make a narrow change in an existing codebase and verify it with focused tests, edge cases, and an inspectable final diff.",
+      "id": "change-code-safely"
+    }
+  ],
+  "package": {
+    "authors": [
+      {
+        "name": "Latent Study Pack Author"
+      }
+    ],
+    "description": "A focused preparation course for an experienced backend engineer practicing system design tradeoffs, API implementation, failure handling, and clear interview communication under time pressure.",
+    "homepage": "https://github.com/model-systems-labs/latent/tree/main/examples/open-learning/backend-interview-prep",
+    "id": "latent/backend-interview-prep",
+    "language": "en-US",
+    "license": "CC-BY-4.0 (original instructional text only; cited sources retain their own rights)",
+    "publishedAt": "2026-08-13T20:00:00Z",
+    "title": "Backend interview: reason clearly, build safely",
+    "version": "1.0.0"
+  },
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "authors": [
+        "Karat"
+      ],
+      "id": "karat-candidate-guide",
+      "kind": "guide",
+      "note": "Supports the preparation guidance to practice under time pressure, use a comfortable language, write readable code, and explain the thought process aloud.",
+      "publishedYear": 2022,
+      "title": "Karat Technical Interviewing 101",
+      "url": "https://communications.karat.com/hubfs/For_Candidates/Tech%20Interviews%20with%20Karat_2022.pdf"
+    },
+    {
+      "authors": [
+        "Karat"
+      ],
+      "id": "karat-candidate-experience",
+      "kind": "primary",
+      "note": "Provides current first-party context about the live interview environment, discussion questions, programming questions, and emphasis on code that solves the problem.",
+      "title": "The Karat interview experience",
+      "url": "https://karat.com/candidate-experience/"
+    },
+    {
+      "authors": [
+        "PostgreSQL Global Development Group"
+      ],
+      "id": "postgres-indexes",
+      "kind": "implementation",
+      "note": "Supports the explanation that indexes can accelerate selected reads while adding database-wide storage and maintenance overhead.",
+      "publishedYear": 2025,
+      "title": "PostgreSQL 18 Documentation: Indexes",
+      "url": "https://www.postgresql.org/docs/18/indexes.html"
+    },
+    {
+      "authors": [
+        "PostgreSQL Global Development Group"
+      ],
+      "id": "postgres-isolation",
+      "kind": "implementation",
+      "note": "Supports the treatment of concurrent transaction anomalies, isolation choices, and retryable serialization failures.",
+      "publishedYear": 2025,
+      "title": "PostgreSQL 18 Documentation: Transaction Isolation",
+      "url": "https://www.postgresql.org/docs/18/transaction-iso.html"
+    },
+    {
+      "authors": [
+        "OWASP Foundation"
+      ],
+      "id": "owasp-access-control",
+      "kind": "specification",
+      "note": "Supports the distinction between authentication and authorization and the need for consistent server-side access checks.",
+      "title": "OWASP Proactive Controls: Implement Access Control",
+      "url": "https://top10proactive.owasp.org/the-top-10/c1-accesscontrol/"
+    },
+    {
+      "authors": [
+        "Amazon Web Services"
+      ],
+      "id": "aws-idempotent-apis",
+      "kind": "implementation",
+      "note": "Supports using idempotent API semantics to make retries safe when a client cannot tell whether a side effect completed.",
+      "title": "Making retries safe with idempotent APIs",
+      "url": "https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/"
+    },
+    {
+      "authors": [
+        "Marc Brooker"
+      ],
+      "id": "aws-retry-jitter",
+      "kind": "implementation",
+      "note": "Supports bounded retry strategies that combine backoff and jitter to reduce synchronized retry contention.",
+      "publishedYear": 2015,
+      "title": "Exponential Backoff and Jitter",
+      "url": "https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/"
+    },
+    {
+      "authors": [
+        "R. Fielding",
+        "M. Nottingham",
+        "J. Reschke"
+      ],
+      "id": "http-semantics",
+      "kind": "specification",
+      "note": "Supports the use and meaning of HTTP methods, status codes, safe methods, and idempotent request semantics.",
+      "publishedYear": 2022,
+      "title": "RFC 9110: HTTP Semantics",
+      "url": "https://www.rfc-editor.org/rfc/rfc9110"
+    },
+    {
+      "authors": [
+        "Rob Ewaschuk",
+        "Google"
+      ],
+      "id": "google-sre-monitoring",
+      "kind": "implementation",
+      "note": "Supports monitoring user-visible symptoms through latency, traffic, errors, and saturation rather than relying only on internal implementation details.",
+      "publishedYear": 2016,
+      "title": "Site Reliability Engineering: Monitoring Distributed Systems",
+      "url": "https://sre.google/sre-book/monitoring-distributed-systems/"
+    }
+  ]
+}

@@ -48,7 +48,7 @@
     "validate": "npm run typecheck && npm run test"
   },
   "dependencies": {
-    "dexie": "4.4.4"
+    "dexie": "4.4.5"
   },
   "devDependencies": {
     "fake-indexeddb": "6.2.5",

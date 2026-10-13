@@ -29,7 +29,7 @@
     "validate": "npm run typecheck && npm test"
   },
   "dependencies": {
-    "msw": "2.15.0"
+    "msw": "3.0.3"
   },
   "devDependencies": {
     "typescript": "5.9.3",

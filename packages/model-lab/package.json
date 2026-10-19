@@ -44,7 +44,7 @@
     "validate": "npm run typecheck && npm test"
   },
   "devDependencies": {
-    "typescript": "5.9.3"
+    "typescript": "7.0.2"
   },
   "engines": {
     "node": ">=22.13.0"
